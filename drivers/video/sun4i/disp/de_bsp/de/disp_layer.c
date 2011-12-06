@@ -418,7 +418,7 @@ __s32 BSP_disp_layer_release(__u32 sel, __u32 hid)
                 image_clk_off(1-sel);
                 gdisp.screen[1-sel].image_output_type = 0;
             }
-            Scaler_Release(layer_man->scaler_index, TRUE);      /*release a scaler object */
+            Scaler_Release(layer_man->scaler_index, FALSE);      /*release a scaler object */
         }
         else
         {

@@ -1629,6 +1629,9 @@ __s32 BSP_disp_lcd_open_after(__u32 sel)
     gdisp.screen[sel].status |= LCD_ON;
     gdisp.screen[sel].output_type = DISP_OUTPUT_TYPE_LCD;
     Lcd_Panel_Parameter_Check(sel);
+#ifdef __LINUX_OSAL__
+    Display_set_fb_timming(sel);
+#endif
     return DIS_SUCCESS;
 }
 
@@ -1788,6 +1791,54 @@ void LCD_set_panel_funs(__lcd_panel_fun_t * lcd0_cfg, __lcd_panel_fun_t * lcd1_c
     lcd_panel_fun[1].cfg_open_flow = lcd1_cfg->cfg_open_flow;
     lcd_panel_fun[1].cfg_close_flow= lcd1_cfg->cfg_close_flow;
     lcd_panel_fun[1].lcd_user_defined_func = lcd1_cfg->lcd_user_defined_func;
+}
+
+__s32 BSP_disp_get_timming(__u32 sel, __disp_tcon_timing_t * tt)
+{    
+    memset(tt, 0, sizeof(__disp_tcon_timing_t));
+    
+    if(gdisp.screen[sel].status & LCD_ON)
+    {
+        LCDC_get_timing(sel, 0, tt);
+        tt->pixel_clk = gpanel_info[sel].lcd_dclk_freq * 1000;
+    }
+    else if((gdisp.screen[sel].status & TV_ON )|| (gdisp.screen[sel].status & HDMI_ON))
+    {
+        __disp_tv_mode_t mode = gdisp.screen[sel].tv_mode;;
+        
+        LCDC_get_timing(sel, 1, tt);
+        tt->pixel_clk = (clk_tab.tv_clk_tab[mode].tve_clk / clk_tab.tv_clk_tab[mode].pre_scale) / 1000;
+    }
+    else if(gdisp.screen[sel].status & VGA_ON )
+    {
+        __disp_tv_mode_t mode = gdisp.screen[sel].vga_mode;;
+        
+        LCDC_get_timing(sel, 1, tt);
+        tt->pixel_clk = (clk_tab.tv_clk_tab[mode].tve_clk / clk_tab.vga_clk_tab[mode].pre_scale) / 1000;
+    }
+    else
+    {
+        DE_INF("get timming fail because device is not output !\n");
+        return -1;
+    }
+    
+    return 0;
+}
+
+__u32 BSP_disp_get_cur_line(__u32 sel)
+{
+    __u32 line = 0;
+    
+    if(gdisp.screen[sel].status & LCD_ON)
+    {
+        line = LCDC_get_cur_line(sel, 0);
+    }
+    else if((gdisp.screen[sel].status & TV_ON )|| (gdisp.screen[sel].status & HDMI_ON) || (gdisp.screen[sel].status & VGA_ON ))
+    {
+        line = LCDC_get_cur_line(sel, 1);
+    }
+
+    return line;
 }
 
 #ifdef __LINUX_OSAL__
