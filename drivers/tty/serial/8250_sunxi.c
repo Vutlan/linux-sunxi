@@ -169,12 +169,6 @@ sw_serial_probe(struct platform_device *dev)
     
     ret = sw_serial_get_config(sport, dev->id);
     if (ret) {
-		printk(KERN_ERR "cannot get serial config\n");
-        goto free_dev;
-    }
-    
-    ret = sw_serial_get_config(sport, dev->id);
-    if (ret) {
         printk(KERN_ERR "Failed to get config information\n");
         goto free_dev;
     }
@@ -216,6 +210,8 @@ static int __devexit sw_serial_remove(struct platform_device *dev)
 	sw_serial[sport->port_no] = 0;
 	sw_serial_put_resource(sport);
 	
+	kfree(sport);
+	sport = NULL;
 	return 0;
 }
 
