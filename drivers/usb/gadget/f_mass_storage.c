@@ -2848,6 +2848,9 @@ buffhds_first_it:
 			i = 0x0399;
 		}
 	}
+
+/* Modified by javen */
+#if 0
 	snprintf(common->inquiry_string, sizeof common->inquiry_string,
 		 "%-8s%-16s%04x", cfg->vendor_name ?: "Linux",
 		 /* Assume product name dependent on the first LUN */
@@ -2855,6 +2858,18 @@ buffhds_first_it:
 				     ? "File-Stor Gadget"
 				     : "File-CD Gadget"),
 		 i);
+#else
+{
+    struct android_usb_config config;
+
+    memset(&config, 0, sizeof(struct android_usb_config));
+    get_android_usb_config(&config);
+
+    snprintf(common->inquiry_string, sizeof common->inquiry_string,
+            "%-8s%-16s%04d",
+            config.msc_vendor_name, config.msc_product_name, config.msc_release);
+}
+#endif
 
 	/*
 	 * Some peripheral controllers are known not to be able to
