@@ -1346,12 +1346,6 @@ __s32 Fb_Init(__u32 from)
 
         	register_framebuffer(g_fbi.fbinfo[i]);
         }
-
-        init_waitqueue_head(&g_fbi.wait[0]);
-        init_waitqueue_head(&g_fbi.wait[1]);
-        g_fbi.wait_count[0] = 0;
-        g_fbi.wait_count[1] = 0;
-
         parser_disp_init_para(&(g_fbi.disp_init));
     }
 

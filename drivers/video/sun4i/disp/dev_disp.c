@@ -222,6 +222,11 @@ __s32 DRV_DISP_Init(void)
 {
     __disp_bsp_init_para para;
 
+    init_waitqueue_head(&g_fbi.wait[0]);
+    init_waitqueue_head(&g_fbi.wait[1]);
+    g_fbi.wait_count[0] = 0;
+    g_fbi.wait_count[1] = 0;
+
     memset(&para, 0, sizeof(__disp_bsp_init_para));
     para.base_image0    = (__u32)g_fbi.io[DISP_IO_IMAGE0];
     para.base_image1    = (__u32)g_fbi.io[DISP_IO_IMAGE1];
