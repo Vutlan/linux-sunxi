@@ -226,35 +226,35 @@ static struct platform_driver sw_serial_driver = {
 
 static struct resource sw_uart_res[8][2] = {
     {/* uart0 resource */
-        {.start = UARTx_BASE(0),      .end = UARTx_BASE(0) + UART_BASE_OS, .flags = IORESOURCE_MEM}, /*base*/
+        {.start = UARTx_BASE(0),      .end = UARTx_BASE(0) + UART_BASE_OS - 1, .flags = IORESOURCE_MEM}, /*base*/
         {.start = SW_INT_IRQNO_UART0, .end = SW_INT_IRQNO_UART0,           .flags = IORESOURCE_IRQ}, /*irq */
     },
     {/* uart1 resource */
-        {.start = UARTx_BASE(1),      .end = UARTx_BASE(1) + UART_BASE_OS, .flags = IORESOURCE_MEM}, /*base*/
+        {.start = UARTx_BASE(1),      .end = UARTx_BASE(1) + UART_BASE_OS - 1, .flags = IORESOURCE_MEM}, /*base*/
         {.start = SW_INT_IRQNO_UART1, .end = SW_INT_IRQNO_UART1,           .flags = IORESOURCE_IRQ}, /*irq */
     },
     {/* uart2 resource */
-        {.start = UARTx_BASE(2),      .end = UARTx_BASE(2) + UART_BASE_OS, .flags = IORESOURCE_MEM}, /*base*/
+        {.start = UARTx_BASE(2),      .end = UARTx_BASE(2) + UART_BASE_OS - 1, .flags = IORESOURCE_MEM}, /*base*/
         {.start = SW_INT_IRQNO_UART2, .end = SW_INT_IRQNO_UART2,           .flags = IORESOURCE_IRQ}, /*irq */
     },
     {/* uart3 resource */
-        {.start = UARTx_BASE(3),      .end = UARTx_BASE(3) + UART_BASE_OS, .flags = IORESOURCE_MEM}, /*base*/
+        {.start = UARTx_BASE(3),      .end = UARTx_BASE(3) + UART_BASE_OS - 1, .flags = IORESOURCE_MEM}, /*base*/
         {.start = SW_INT_IRQNO_UART3, .end = SW_INT_IRQNO_UART3,           .flags = IORESOURCE_IRQ}, /*irq */
     },
     {/* uart4 resource */
-        {.start = UARTx_BASE(4),      .end = UARTx_BASE(4) + UART_BASE_OS, .flags = IORESOURCE_MEM}, /*base*/
+        {.start = UARTx_BASE(4),      .end = UARTx_BASE(4) + UART_BASE_OS - 1, .flags = IORESOURCE_MEM}, /*base*/
         {.start = SW_INT_IRQNO_UART4, .end = SW_INT_IRQNO_UART4,           .flags = IORESOURCE_IRQ}, /*irq */
     },
     {/* uart5 resource */
-        {.start = UARTx_BASE(5),      .end = UARTx_BASE(5) + UART_BASE_OS, .flags = IORESOURCE_MEM}, /*base*/
+        {.start = UARTx_BASE(5),      .end = UARTx_BASE(5) + UART_BASE_OS - 1, .flags = IORESOURCE_MEM}, /*base*/
         {.start = SW_INT_IRQNO_UART5, .end = SW_INT_IRQNO_UART5,           .flags = IORESOURCE_IRQ}, /*irq */
     },
     {/* uart6 resource */
-        {.start = UARTx_BASE(6),      .end = UARTx_BASE(6) + UART_BASE_OS, .flags = IORESOURCE_MEM}, /*base*/
+        {.start = UARTx_BASE(6),      .end = UARTx_BASE(6) + UART_BASE_OS - 1, .flags = IORESOURCE_MEM}, /*base*/
         {.start = SW_INT_IRQNO_UART6, .end = SW_INT_IRQNO_UART6,           .flags = IORESOURCE_IRQ}, /*irq */
     },
     {/* uart7 resource */
-        {.start = UARTx_BASE(7),      .end = UARTx_BASE(7) + UART_BASE_OS, .flags = IORESOURCE_MEM}, /*base*/
+        {.start = UARTx_BASE(7),      .end = UARTx_BASE(7) + UART_BASE_OS - 1, .flags = IORESOURCE_MEM}, /*base*/
         {.start = SW_INT_IRQNO_UART7, .end = SW_INT_IRQNO_UART7,           .flags = IORESOURCE_IRQ}, /*irq */
     },
 };
