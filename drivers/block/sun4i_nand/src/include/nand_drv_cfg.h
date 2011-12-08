@@ -39,7 +39,7 @@
 //==============================================================================
 
 #define  NAND_VERSION_0                 0x02
-#define  NAND_VERSION_1                 0x06
+#define  NAND_VERSION_1                 0x09
 
 
 //define the max value of the count of chip select

@@ -21,13 +21,17 @@
 //#include "ebios_i.h"
 //#define MAX_ECC_BIT_CNT	8
 
+#define NFC_READ_REG(reg)   		(reg)
+#define NFC_WRITE_REG(reg,data) 	(reg) = (data)
+
+
 #define ERR_ECC 	12
 #define ECC_LIMIT 	10
 #define ERR_TIMEOUT 14
-
 #define READ_RETRY_MAX_TYPE_NUM 5
 #define READ_RETRY_MAX_REG_NUM	4
 #define READ_RETRY_MAX_CYCLE	10
+#define LSB_MODE_MAX_REG_NUM	8
 /* define various unit data input or output*/
 #define NFC_READ_RAM_B(ram)    		(*((volatile __u8 *)(NAND_IO_BASE + ram)))
 #define NFC_WRITE_RAM_B(ram,data)  	(*((volatile __u8 *)(NAND_IO_BASE + ram)) = (data))
@@ -36,8 +40,7 @@
 #define NFC_READ_RAM_W(ram)   		(*((volatile __u32 *)(NAND_IO_BASE + ram)))
 #define NFC_WRITE_RAM_W(ram,data) 	(*((volatile __u32 *)(NAND_IO_BASE + ram)) = (data))
 
-#define NFC_READ_REG(reg)   		(reg)
-#define NFC_WRITE_REG(reg,data) 	(reg) = (data)
+
 
 #ifdef USE_PHYSICAL_ADDRESS
 #define NFC_IS_SDRAM(addr)			((addr >= DRAM_BASE)?1:0)

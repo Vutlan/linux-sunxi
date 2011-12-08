@@ -48,6 +48,9 @@ extern struct __NandPageCachePool_t PageCachePool;
 //define the Ecc Mode
 #define ECC_MODE           (NandStorageInfo.EccMode)
 
+//define the DDR tyep
+#define DDR_TYPE           (NandStorageInfo.DDRType)
+
 //define the sector count of a single physical page
 #define SECTOR_CNT_OF_SINGLE_PAGE           (NandStorageInfo.SectorCntPerPage)
 
@@ -93,8 +96,11 @@ extern struct __NandPageCachePool_t PageCachePool;
 //define if the nand flash system can support read retry
 #define SUPPORT_READ_RETRY                  (NAND_READ_RETRY & NandStorageInfo.OperationOpt)
 
-//define if the nand flash system can support read retry
+//define if the nand flash system can support read unique id
 #define SUPPORT_READ_UNIQUE_ID              (NAND_READ_UNIQUE_ID & NandStorageInfo.OperationOpt)
+
+//define if the nand flash system can support bank align
+#define SUPPORT_ALIGN_NAND_BNK              (!(NAND_PAGE_ADR_NO_SKIP & NandStorageInfo.OperationOpt))
 
 //define the count of the nand flash DIE in a nand flash chip
 #define DIE_CNT_OF_CHIP                     (NandStorageInfo.DieCntPerChip)
@@ -329,6 +335,8 @@ __s32 PHY_SynchBank(__u32 nBank, __u32 bMode);
 
 __s32 PHY_GetDefaultParam(__u32 bank);
 __s32 PHY_SetDefaultParam(__u32 bank);
+
+__s32 PHY_ScanDDRParam(void);
 
 #endif  //ifnedf __NAND_PHYSIC_H__
 

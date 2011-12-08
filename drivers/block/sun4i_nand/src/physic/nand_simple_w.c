@@ -38,21 +38,21 @@ __s32 _write_signle_page (struct boot_physical_param *writeop,__u32 program1,__u
 	__u8 sparebuf[4*16];
 	__u8 addr[5];
 	NFC_CMD_LIST cmd_list[4];
-	__u32 list_len,i,addr_cycle;	
-	
+	__u32 list_len,i,addr_cycle;
+
 	MEMSET(sparebuf, 0xff, SECTOR_CNT_OF_SINGLE_PAGE * 4);
 	if (writeop->oobbuf){
 		MEMCPY(sparebuf,writeop->oobbuf,SECTOR_CNT_OF_SINGLE_PAGE * 4);
 	}
 	/*create cmd list*/
 	addr_cycle = (SECTOR_CNT_OF_SINGLE_PAGE == 1)?4:5;
-	
+
 	/*the cammand have no corresponding feature if IGNORE was set, */
 	_cal_addr_in_chip(writeop->block,writeop->page,0,addr,addr_cycle);
 	_add_cmd_list(cmd_list,program1,addr_cycle,addr,NFC_DATA_FETCH,NFC_IGNORE,NFC_IGNORE,NFC_NO_WAIT_RB);
 	_add_cmd_list(cmd_list + 1,0x85,NFC_IGNORE,NFC_IGNORE,NFC_IGNORE,NFC_IGNORE,NFC_IGNORE,NFC_IGNORE);
 	_add_cmd_list(cmd_list + 2,program2,NFC_IGNORE,NFC_IGNORE,NFC_IGNORE,NFC_IGNORE,NFC_IGNORE,NFC_IGNORE);
-	
+
 	list_len = 3;
 	for(i = 0; i < list_len - 1; i++){
 		cmd_list[i].next = &(cmd_list[i+1]);
@@ -78,10 +78,10 @@ __s32 _write_signle_page (struct boot_physical_param *writeop,__u32 program1,__u
 	NFC_DeSelectChip(writeop->chip);
 	NFC_DeSelectRb(rb);
 	if (dma_wait_mode)
-		_pending_dma_irq_sem();	
-	
+		_pending_dma_irq_sem();
+
 	return ret;
-	
+
 }
 
 __s32 _write_signle_page_seq (struct boot_physical_param *writeop,__u32 program1,__u32 program2,__u8 dma_wait_mode, __u8 rb_wait_mode )
@@ -93,21 +93,21 @@ __s32 _write_signle_page_seq (struct boot_physical_param *writeop,__u32 program1
 	__u8 sparebuf[4*16];
 	__u8 addr[5];
 	NFC_CMD_LIST cmd_list[4];
-	__u32 list_len,i,addr_cycle;	
-	
+	__u32 list_len,i,addr_cycle;
+
 	MEMSET(sparebuf, 0xff, SECTOR_CNT_OF_SINGLE_PAGE * 4);
 	if (writeop->oobbuf){
 		MEMCPY(sparebuf,writeop->oobbuf,SECTOR_CNT_OF_SINGLE_PAGE * 4);
 	}
 	/*create cmd list*/
 	addr_cycle = (SECTOR_CNT_OF_SINGLE_PAGE == 1)?4:5;
-	
+
 	/*the cammand have no corresponding feature if IGNORE was set, */
 	_cal_addr_in_chip(writeop->block,writeop->page,0,addr,addr_cycle);
 	_add_cmd_list(cmd_list,program1,addr_cycle,addr,NFC_DATA_FETCH,NFC_IGNORE,NFC_IGNORE,NFC_NO_WAIT_RB);
 	_add_cmd_list(cmd_list + 1,0x85,NFC_IGNORE,NFC_IGNORE,NFC_IGNORE,NFC_IGNORE,NFC_IGNORE,NFC_IGNORE);
 	_add_cmd_list(cmd_list + 2,program2,NFC_IGNORE,NFC_IGNORE,NFC_IGNORE,NFC_IGNORE,NFC_IGNORE,NFC_IGNORE);
-	
+
 	list_len = 3;
 	for(i = 0; i < list_len - 1; i++){
 		cmd_list[i].next = &(cmd_list[i+1]);
@@ -134,10 +134,10 @@ __s32 _write_signle_page_seq (struct boot_physical_param *writeop,__u32 program1
 	NFC_DeSelectChip(writeop->chip);
 	NFC_DeSelectRb(rb);
 	if (dma_wait_mode)
-		_pending_dma_irq_sem();	
-	
+		_pending_dma_irq_sem();
+
 	return ret;
-	
+
 }
 
 __s32 _write_signle_page_1K (struct boot_physical_param *writeop,__u32 program1,__u32 program2,__u8 dma_wait_mode, __u8 rb_wait_mode )
@@ -149,21 +149,21 @@ __s32 _write_signle_page_1K (struct boot_physical_param *writeop,__u32 program1,
 	__u8 sparebuf[4*16];
 	__u8 addr[5];
 	NFC_CMD_LIST cmd_list[4];
-	__u32 list_len,i,addr_cycle;	
-	
+	__u32 list_len,i,addr_cycle;
+
 	MEMSET(sparebuf, 0xff, SECTOR_CNT_OF_SINGLE_PAGE * 4);
 	if (writeop->oobbuf){
 		MEMCPY(sparebuf,writeop->oobbuf,SECTOR_CNT_OF_SINGLE_PAGE * 4);
 	}
 	/*create cmd list*/
 	addr_cycle = (SECTOR_CNT_OF_SINGLE_PAGE == 1)?4:5;
-	
+
 	/*the cammand have no corresponding feature if IGNORE was set, */
 	_cal_addr_in_chip(writeop->block,writeop->page,0,addr,addr_cycle);
 	_add_cmd_list(cmd_list,program1,addr_cycle,addr,NFC_DATA_FETCH,NFC_IGNORE,NFC_IGNORE,NFC_NO_WAIT_RB);
 	_add_cmd_list(cmd_list + 1,0x85,NFC_IGNORE,NFC_IGNORE,NFC_IGNORE,NFC_IGNORE,NFC_IGNORE,NFC_IGNORE);
 	_add_cmd_list(cmd_list + 2,program2,NFC_IGNORE,NFC_IGNORE,NFC_IGNORE,NFC_IGNORE,NFC_IGNORE,NFC_IGNORE);
-	
+
 	list_len = 3;
 	for(i = 0; i < list_len - 1; i++){
 		cmd_list[i].next = &(cmd_list[i+1]);
@@ -190,10 +190,10 @@ __s32 _write_signle_page_1K (struct boot_physical_param *writeop,__u32 program1,
 	NFC_DeSelectChip(writeop->chip);
 	NFC_DeSelectRb(rb);
 	if (dma_wait_mode)
-		_pending_dma_irq_sem();	
-	
+		_pending_dma_irq_sem();
+
 	return ret;
-	
+
 }
 
 __s32 _erase_single_block(struct boot_physical_param *eraseop)
@@ -203,14 +203,14 @@ __s32 _erase_single_block(struct boot_physical_param *eraseop)
 	__u8 addr[5];
 	NFC_CMD_LIST cmd_list[4];
 	__u32 list_len,i;
-	
+
 	/*create cmd list*/
 	/*the cammand have no corresponding feature if IGNORE was set, */
 	list_len = 2;
 	_cal_addr_in_chip(eraseop->block,0,0,addr,3);
 	_add_cmd_list(cmd_list,0x60,3,addr,NFC_IGNORE,NFC_IGNORE,NFC_IGNORE,NFC_IGNORE);
 	_add_cmd_list(cmd_list + 1,0xd0,NFC_IGNORE,NFC_IGNORE,NFC_IGNORE,NFC_IGNORE,NFC_IGNORE,NFC_IGNORE);
-		
+
 	for(i = 0; i < list_len - 1; i++){
 		cmd_list[i].next = &(cmd_list[i+1]);
 	}
@@ -229,19 +229,19 @@ __s32 PHY_SimpleWrite (struct boot_physical_param *writeop)
 	__u32 rb;
 
 	__s32 ret;
-	
+
 	ret = _write_signle_page(writeop,0x80,0x10,0,0);
 	if (ret)
 		return FAIL;
 	rb = _cal_real_rb(writeop->chip);
 	NFC_SelectChip(writeop->chip);
 	NFC_SelectRb(rb);
-	/*get status*/	
+	/*get status*/
 	while(1){
 		status = _read_status(0x70,writeop->chip);
 		if (status < 0)
 			return status;
-		
+
 		if (status & NAND_STATUS_READY)
 			break;
 	}
@@ -259,19 +259,19 @@ __s32 PHY_SimpleWrite_Seq (struct boot_physical_param *writeop)
 	__u32 rb;
 
 	__s32 ret;
-	
+
 	ret = _write_signle_page_seq(writeop,0x80,0x10,0,0);
 	if (ret)
 		return FAIL;
 	rb = _cal_real_rb(writeop->chip);
 	NFC_SelectChip(writeop->chip);
 	NFC_SelectRb(rb);
-	/*get status*/	
+	/*get status*/
 	while(1){
 		status = _read_status(0x70,writeop->chip);
 		if (status < 0)
 			return status;
-		
+
 		if (status & NAND_STATUS_READY)
 			break;
 	}
@@ -289,19 +289,19 @@ __s32 PHY_SimpleWrite_1K (struct boot_physical_param *writeop)
 	__u32 rb;
 
 	__s32 ret;
-	
+
 	ret = _write_signle_page_1K(writeop,0x80,0x10,0,0);
 	if (ret)
 		return FAIL;
 	rb = _cal_real_rb(writeop->chip);
 	NFC_SelectChip(writeop->chip);
 	NFC_SelectRb(rb);
-	/*get status*/	
+	/*get status*/
 	while(1){
 		status = _read_status(0x70,writeop->chip);
 		if (status < 0)
 			return status;
-		
+
 		if (status & NAND_STATUS_READY)
 			break;
 	}
@@ -326,7 +326,7 @@ __s32 PHY_SimpleErase (struct boot_physical_param *eraseop )
 	rb = _cal_real_rb(eraseop->chip);
 	NFC_SelectChip(eraseop->chip);
 	NFC_SelectRb(rb);
-	/*get status*/	
+	/*get status*/
 	while(1){
 		status = _read_status(0x70,eraseop->chip);
 		if (status & NAND_STATUS_READY)
@@ -338,6 +338,6 @@ __s32 PHY_SimpleErase (struct boot_physical_param *eraseop )
 	NFC_DeSelectChip(eraseop->chip);
 	NFC_DeSelectRb(rb);
 	return ret;
-	
+
 }
 
