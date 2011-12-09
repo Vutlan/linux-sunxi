@@ -1,8 +1,7 @@
 if ARCH_SUN5I
 
-comment "Allwinner A12/A13 options"
-
 config SUN5I_FPGA
-	bool "FPGA board support"
-
+	bool "FPGA Board Support"
+	help
+	  Only for FPGA board. 
 endif

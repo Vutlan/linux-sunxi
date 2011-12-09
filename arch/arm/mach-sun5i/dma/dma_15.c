@@ -38,11 +38,6 @@ static struct sw_dma_map __initdata sw_dma_mappings[DMACH_MAX] = {
 	.channels = {DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID,
 			0,0,0,0,0,0,0,0,},
 	},
-	[DMACH_NSPI3] = {
-	.name		= "spi3",
-	.channels = {DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID,
-			0,0,0,0,0,0,0,0,},
-	},
 	[DMACH_NUART0] = {
 		.name		= "uart0",
 		.channels = {DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID,
@@ -60,26 +55,6 @@ static struct sw_dma_map __initdata sw_dma_mappings[DMACH_MAX] = {
 	},
 	[DMACH_NUART3] = {
 		.name		= "uart3",
-		.channels = {DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID,
-			0,0,0,0,0,0,0,0,},
-	},
-	[DMACH_NUART4] = {
-		.name		= "uart4",
-		.channels = {DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID,
-			0,0,0,0,0,0,0,0,},
-	},
-	[DMACH_NUART5] = {
-		.name		= "uart5",
-		.channels = {DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID,
-			0,0,0,0,0,0,0,0,},
-	},
-	[DMACH_NUART6] = {
-		.name		= "uart6",
-		.channels = {DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID,
-			0,0,0,0,0,0,0,0,},
-	},
-	[DMACH_NUART7] = {
-		.name		= "uart7",
 		.channels = {DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID,
 			0,0,0,0,0,0,0,0,},
 	},
@@ -110,13 +85,13 @@ static struct sw_dma_map __initdata sw_dma_mappings[DMACH_MAX] = {
 		.channels = {DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,
 				0,0,0,0,0,0,0,0,},
 	},
-	[DMACH_NIR0] = {
-		.name		= "ir0",
-		.channels = {DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID,
-			0,0,0,0,0,0,0,0,},
+	[DMACH_NIIS_CAPTURE] = {
+		.name		= "iis_capture",
+		.channels = {DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,
+				0,0,0,0,0,0,0,0,},
 	},
-	[DMACH_NIR1] = {
-		.name		= "ir1",
+	[DMACH_NIR] = {
+		.name		= "ir",
 		.channels = {DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID,
 			0,0,0,0,0,0,0,0,},
 	},
@@ -125,13 +100,33 @@ static struct sw_dma_map __initdata sw_dma_mappings[DMACH_MAX] = {
 		.channels = {DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,
 				0,0,0,0,0,0,0,0,},
 	},
-	[DMACH_NAC97] = {
-		.name		= "ac97",
-		.channels = {DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID,
-			0,0,0,0,0,0,0,0,},
-	},
 	[DMACH_NHDMI] = {
 		.name		= "hdmi",
+		.channels = {DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,
+				0,0,0,0,0,0,0,0,},
+	},
+	[DMACH_NUSBEP1] = {
+		.name		= "usbep1",
+		.channels = {DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,
+				0,0,0,0,0,0,0,0,},
+	},
+	[DMACH_NUSBEP2] = {
+		.name		= "usbep2",
+		.channels = {DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,
+				0,0,0,0,0,0,0,0,},
+	},
+	[DMACH_NUSBEP3] = {
+		.name		= "usbep3",
+		.channels = {DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,
+				0,0,0,0,0,0,0,0,},
+	},
+	[DMACH_NUSBEP4] = {
+		.name		= "usbep4",
+		.channels = {DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,
+				0,0,0,0,0,0,0,0,},
+	},
+	[DMACH_NUSBEP5] = {
+		.name		= "usbep5",
 		.channels = {DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,
 				0,0,0,0,0,0,0,0,},
 	},
@@ -142,11 +137,6 @@ static struct sw_dma_map __initdata sw_dma_mappings[DMACH_MAX] = {
 		},
 	[DMACH_DSDRAM] = {
 		.name		= "dsdram",
-		.channels = {0,0,0,0,0,0,0,0,
-			DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID},
-		},
-	[DMACH_DPATA] = {
-		.name		= "dpata",
 		.channels = {0,0,0,0,0,0,0,0,
 			DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID},
 		},
@@ -190,11 +180,6 @@ static struct sw_dma_map __initdata sw_dma_mappings[DMACH_MAX] = {
 		.channels = {0,0,0,0,0,0,0,0,
 			DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID},
 	},
-	[DMACH_TCON1] = {
-		.name		= "tcon1",
-		.channels = {0,0,0,0,0,0,0,0,
-			DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID},
-	},
 	[DMACH_HDMIAUDIO] = {
 		.name		= "hdmiaudio",
 		.channels = {0,0,0,0,0,0,0,0,
@@ -212,11 +197,6 @@ static struct sw_dma_map __initdata sw_dma_mappings[DMACH_MAX] = {
 	},
 	[DMACH_DSPI2] = {
 		.name		= "dspi2",
-		.channels = {0,0,0,0,0,0,0,0,
-			DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID},
-	},
-	[DMACH_DSPI3] = {
-		.name		= "dspi3",
 		.channels = {0,0,0,0,0,0,0,0,
 			DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID, DMA_CH_VALID},
 	},
