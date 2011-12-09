@@ -632,6 +632,9 @@ config ARCH_SUN5I
 #if ARCH_SUN4I
 #source "arch/arm/mach-sun4i/Kconfig
 #endif
+if ARCH_SUN5I
+source "arch/arm/mach-sun5i/Kconfig
+endif
 
 config ARCH_PNX4008
 	bool "Philips Nexperia PNX4008 Mobile"
