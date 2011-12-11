@@ -2,10 +2,11 @@
  * (C) Copyright 2010-2015
  * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
  * 
+ * Pan Nan <pannan@allwinnertech.com>
  * Tom Cubie <tanglaing@allwinnertech.com>
  * Victor Wei <weiziheng@allwinnertech.com>
  *
- * SUN4I I2C Platform Driver
+ * SUNXI I2C Platform Driver
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -37,9 +38,9 @@
 
 
 
-#define SUN4I_I2C_DEBUG
+#define SUNXI_I2C_DEBUG
 
-#ifdef SUN4I_I2C_DEBUG
+#ifdef SUNXI_I2C_DEBUG
 #define i2c_dbg(x...)   printk(x)
 #else
 #define i2c_dbg(x...)
@@ -64,7 +65,7 @@ enum
 	I2C_XFER_RUNNING = 0x4,
 };
 
-struct sun4i_i2c {
+struct sunxi_i2c {
 
 	int bus_num;
 	unsigned int      status; /* start, running, idle */
@@ -336,10 +337,10 @@ static inline void aw_twi_set_EFR(void *base_addr, unsigned int efr)
 	writel(reg_val, base_addr + TWI_EFR_REG);
 }
 
-static int i2c_sun4i_xfer_complete(struct sun4i_i2c *i2c, int code);
-static int i2c_sun4i_do_xfer(struct sun4i_i2c *i2c, struct i2c_msg *msgs, int num);
+static int i2c_sunxi_xfer_complete(struct sunxi_i2c *i2c, int code);
+static int i2c_sunxi_do_xfer(struct sunxi_i2c *i2c, struct i2c_msg *msgs, int num);
 
-static int aw_twi_enable_sys_clk(struct sun4i_i2c *i2c)
+static int aw_twi_enable_sys_clk(struct sunxi_i2c *i2c)
 {
 	int     result;
 
@@ -351,13 +352,13 @@ static int aw_twi_enable_sys_clk(struct sun4i_i2c *i2c)
 	return clk_enable(i2c->clk);
 }
 
-static void aw_twi_disable_sys_clk(struct sun4i_i2c *i2c)
+static void aw_twi_disable_sys_clk(struct sunxi_i2c *i2c)
 {
 	clk_disable(i2c->clk);
 	clk_disable(i2c->pclk);
 }
 
-static int aw_twi_request_gpio(struct sun4i_i2c *i2c)
+static int aw_twi_request_gpio(struct sunxi_i2c *i2c)
 {
 	if(i2c->bus_num == 0) {
 		/* pb0-pb1 TWI0 SDA,SCK */
@@ -389,7 +390,7 @@ static int aw_twi_request_gpio(struct sun4i_i2c *i2c)
 	return 0;
 }
 
-static void aw_twi_release_gpio(struct sun4i_i2c *i2c)
+static void aw_twi_release_gpio(struct sunxi_i2c *i2c)
 {
 	if(i2c->bus_num == 0) {
 		/* pb0-pb1 TWI0 SDA,SCK */
@@ -469,7 +470,7 @@ static int aw_twi_stop(void *base_addr)
 /*
 ****************************************************************************************************
 *
-*  FunctionName:           i2c_sun4i_addr_byte
+*  FunctionName:           i2c_sunxi_addr_byte
 *
 *  Description:
 *            发送slave地址，7bit的全部信息，及10bit的第一部分地址。供外部接口调用，内部实现。
@@ -485,7 +486,7 @@ static int aw_twi_stop(void *base_addr)
 *
 ****************************************************************************************************
 */
-static void i2c_sun4i_addr_byte(struct sun4i_i2c *i2c)
+static void i2c_sunxi_addr_byte(struct sunxi_i2c *i2c)
 {
 	unsigned char addr = 0;//address
 	unsigned char tmp  = 0;
@@ -498,8 +499,8 @@ static void i2c_sun4i_addr_byte(struct sun4i_i2c *i2c)
 	}
 	else {
 		addr = (i2c->msg[i2c->msg_idx].addr & 0x7f) << 1;// 7-1bits addr,xxxx_xxx0
-#ifdef CONFIG_SUN4I_IIC_PRINT_TRANSFER_INFO
-		if(i2c->bus_num == CONFIG_SUN4I_IIC_PRINT_TRANSFER_INFO_WITH_BUS_NUM){
+#ifdef CONFIG_SUNXI_IIC_PRINT_TRANSFER_INFO
+		if(i2c->bus_num == CONFIG_SUNXI_IIC_PRINT_TRANSFER_INFO_WITH_BUS_NUM){
 			i2c_dbg("i2c->msg->addr = 0x%x. \n", addr);
 		}
 #endif
@@ -515,7 +516,7 @@ static void i2c_sun4i_addr_byte(struct sun4i_i2c *i2c)
 }
 
 
-static int i2c_sun4i_core_process(struct sun4i_i2c *i2c)
+static int i2c_sunxi_core_process(struct sunxi_i2c *i2c)
 {
 	void *base_addr = i2c->base_addr;
 	int  ret        = AWXX_I2C_OK;
@@ -525,12 +526,11 @@ static int i2c_sun4i_core_process(struct sun4i_i2c *i2c)
 
 	state = aw_twi_query_irq_status(base_addr);
 
-#ifdef CONFIG_SUN4I_IIC_PRINT_TRANSFER_INFO
-	if(i2c->bus_num == CONFIG_SUN4I_IIC_PRINT_TRANSFER_INFO_WITH_BUS_NUM){
-		i2c_dbg("sun4i_i2c->bus_num = %d, sun4i_i2c->msg->addr = (0x%x) state = (0x%x)\n", \
+#ifdef CONFIG_SUNXI_IIC_PRINT_TRANSFER_INFO
+	if(i2c->bus_num == CONFIG_SUNXI_IIC_PRINT_TRANSFER_INFO_WITH_BUS_NUM){
+		i2c_dbg("sunxi_i2c->bus_num = %d, sunxi_i2c->msg->addr = (0x%x) state = (0x%x)\n", \
 			i2c->bus_num, i2c->msg->addr, state);
 	}
-    
 #endif
 
 	switch(state) {
@@ -539,7 +539,7 @@ static int i2c_sun4i_core_process(struct sun4i_i2c *i2c)
 		goto err_out;
 	case 0x08: /* A START condition has been transmitted */
 	case 0x10: /* A repeated start condition has been transmitted */
-		i2c_sun4i_addr_byte(i2c);/* send slave address */
+		i2c_sunxi_addr_byte(i2c);/* send slave address */
 		break;
 	case 0xd8: /* second addr has transmitted, ACK not received!    */
 	case 0x20: /* SLA+W has been transmitted; NOT ACK has been received */
@@ -657,15 +657,15 @@ err_out:
 		i2c_dbg("STOP failed!\n");
 	}
 
-	ret = i2c_sun4i_xfer_complete(i2c, err_code);/* wake up */
+	ret = i2c_sunxi_xfer_complete(i2c, err_code);/* wake up */
 
 	i2c->debug_state = state;/* just for debug */
 	return ret;
 }
 
-static irqreturn_t i2c_sun4i_handler(int this_irq, void * dev_id)
+static irqreturn_t i2c_sunxi_handler(int this_irq, void * dev_id)
 {
-	struct sun4i_i2c *i2c = (struct sun4i_i2c *)dev_id;
+	struct sunxi_i2c *i2c = (struct sunxi_i2c *)dev_id;
 	int ret = AWXX_I2C_FAIL;
 
 	if(!aw_twi_query_irq_flag(i2c->base_addr)) {
@@ -677,7 +677,7 @@ static irqreturn_t i2c_sun4i_handler(int this_irq, void * dev_id)
 	/* disable irq */
 	aw_twi_disable_irq(i2c->base_addr);
 	//twi core process
-	ret = i2c_sun4i_core_process(i2c);
+	ret = i2c_sunxi_core_process(i2c);
 
 	/* enable irq only when twi is transfering, otherwise,disable irq */
 	if(i2c->status != I2C_XFER_IDLE) {
@@ -687,7 +687,7 @@ static irqreturn_t i2c_sun4i_handler(int this_irq, void * dev_id)
 	return IRQ_HANDLED;
 }
 
-static int i2c_sun4i_xfer_complete(struct sun4i_i2c *i2c, int code)
+static int i2c_sunxi_xfer_complete(struct sunxi_i2c *i2c, int code)
 {
 	int ret = AWXX_I2C_OK;
 
@@ -713,9 +713,9 @@ static int i2c_sun4i_xfer_complete(struct sun4i_i2c *i2c, int code)
 	return ret;
 }
 
-static int i2c_sun4i_xfer(struct i2c_adapter *adap, struct i2c_msg *msgs, int num)
+static int i2c_sunxi_xfer(struct i2c_adapter *adap, struct i2c_msg *msgs, int num)
 {
-	struct sun4i_i2c *i2c = (struct sun4i_i2c *)adap->algo_data;
+	struct sunxi_i2c *i2c = (struct sunxi_i2c *)adap->algo_data;
 	int ret = AWXX_I2C_FAIL;
 	int i   = 0;
 	
@@ -725,7 +725,7 @@ static int i2c_sun4i_xfer(struct i2c_adapter *adap, struct i2c_msg *msgs, int nu
 	}
 
 	for(i = adap->retries; i >= 0; i--) {
-		ret = i2c_sun4i_do_xfer(i2c, msgs, num);
+		ret = i2c_sunxi_do_xfer(i2c, msgs, num);
 		
 		if(ret != AWXX_I2C_RETRY) {
 			goto out;
@@ -740,7 +740,7 @@ out:
 	return ret;
 }
 
-static int i2c_sun4i_do_xfer(struct sun4i_i2c *i2c, struct i2c_msg *msgs, int num)
+static int i2c_sunxi_do_xfer(struct sunxi_i2c *i2c, struct i2c_msg *msgs, int num)
 {
 	unsigned long timeout = 0;
 	int ret = AWXX_I2C_FAIL;
@@ -807,18 +807,18 @@ out:
 	return ret;
 }
 
-static unsigned int i2c_sun4i_functionality(struct i2c_adapter *adap)
+static unsigned int i2c_sunxi_functionality(struct i2c_adapter *adap)
 {
 	return I2C_FUNC_I2C|I2C_FUNC_10BIT_ADDR|I2C_FUNC_SMBUS_EMUL;
 }
 
 
-static const struct i2c_algorithm i2c_sun4i_algorithm = {
-	.master_xfer	  = i2c_sun4i_xfer,
-	.functionality	  = i2c_sun4i_functionality,
+static const struct i2c_algorithm i2c_sunxi_algorithm = {
+	.master_xfer	  = i2c_sunxi_xfer,
+	.functionality	  = i2c_sunxi_functionality,
 };
 
-static int i2c_sun4i_clk_init(struct sun4i_i2c *i2c)
+static int i2c_sunxi_clk_init(struct sunxi_i2c *i2c)
 {
 	int ret = 0;
 
@@ -847,7 +847,7 @@ static int i2c_sun4i_clk_init(struct sun4i_i2c *i2c)
 
 }
 
-static int i2c_sun4i_clk_exit(struct sun4i_i2c *i2c)
+static int i2c_sunxi_clk_exit(struct sunxi_i2c *i2c)
 {
 	void *base_addr = i2c->base_addr;
 	
@@ -861,7 +861,7 @@ static int i2c_sun4i_clk_exit(struct sun4i_i2c *i2c)
 
 }
 
-static int i2c_sun4i_hw_init(struct sun4i_i2c *i2c)
+static int i2c_sunxi_hw_init(struct sunxi_i2c *i2c)
 {
 	int ret = 0;
 
@@ -871,7 +871,7 @@ static int i2c_sun4i_hw_init(struct sun4i_i2c *i2c)
 		return -1;
 	}
 
-	if(i2c_sun4i_clk_init(i2c)) {
+	if(i2c_sunxi_clk_init(i2c)) {
 		return -1;
 	}
 
@@ -880,20 +880,24 @@ static int i2c_sun4i_hw_init(struct sun4i_i2c *i2c)
 	return ret;
 }
 
-static void i2c_sun4i_hw_exit(struct sun4i_i2c *i2c)
+static void i2c_sunxi_hw_exit(struct sunxi_i2c *i2c)
 {
-	if(i2c_sun4i_clk_exit(i2c)) {
+	if(i2c_sunxi_clk_exit(i2c)) {
 		return;
 	}
 	aw_twi_release_gpio(i2c);
 
 }
 
-static int i2c_sun4i_probe(struct platform_device *dev)
+static int i2c_sunxi_probe(struct platform_device *dev)
 {
-	struct sun4i_i2c *i2c = NULL;
+	struct sunxi_i2c *i2c = NULL;
 	struct resource *res = NULL;
+#if defined CONFIG_ARCH_SUN4I
 	struct sun4i_i2c_platform_data *pdata = NULL;
+#elif defined CONFIG_ARCH_SUN5I
+    struct sun5i_i2c_platform_data *pdata = NULL;
+#endif
 	char *i2c_clk[] ={"twi0","twi1","twi2"};
 	char *i2c_pclk[] ={"apb_twi0","apb_twi1","apb_twi2"};
 	int ret;
@@ -914,13 +918,16 @@ static int i2c_sun4i_probe(struct platform_device *dev)
 		return -ENOMEM;
 	}
 
-	i2c = kzalloc(sizeof(struct sun4i_i2c), GFP_KERNEL);
+	i2c = kzalloc(sizeof(struct sunxi_i2c), GFP_KERNEL);
 	if (!i2c) {
 		ret = -ENOMEM;
 		goto emalloc;
 	}
-
+#if defined CONFIG_ARCH_SUN4I
 	strlcpy(i2c->adap.name, "sun4i-i2c", sizeof(i2c->adap.name));
+#elif defined CONFIG_ARCH_SUN5I
+    strlcpy(i2c->adap.name, "sun5i-i2c", sizeof(i2c->adap.name));
+#endif
 	i2c->adap.owner   = THIS_MODULE;
 	i2c->adap.nr      = pdata->bus_num;
 	i2c->adap.retries = 2;
@@ -949,7 +956,11 @@ static int i2c_sun4i_probe(struct platform_device *dev)
 		goto eremap;
 	}
 
+#if defined CONFIG_ARCH_SUN4I
 	snprintf(i2c->adap.name, sizeof(i2c->adap.name), "sun4i-i2c.%u", i2c->adap.nr);
+#elif defined CONFIG_ARCH_SUN5I
+    snprintf(i2c->adap.name, sizeof(i2c->adap.name), "sun5i-i2c.%u", i2c->adap.nr);
+#endif
 
 	i2c->base_addr = ioremap(res->start, resource_size(res));
 	if (!i2c->base_addr) {
@@ -967,14 +978,14 @@ static int i2c_sun4i_probe(struct platform_device *dev)
 	}
 #endif
 
-	i2c->adap.algo = &i2c_sun4i_algorithm;
-	ret = request_irq(irq, i2c_sun4i_handler, IRQF_DISABLED, i2c->adap.name, i2c);
+	i2c->adap.algo = &i2c_sunxi_algorithm;
+	ret = request_irq(irq, i2c_sunxi_handler, IRQF_DISABLED, i2c->adap.name, i2c);
 	if (ret)
 	{
 		goto ereqirq;
 	}
 
-	if(-1 == i2c_sun4i_hw_init(i2c)){
+	if(-1 == i2c_sunxi_hw_init(i2c)){
 		ret = -EIO;
 		goto eadapt;
 	}
@@ -1029,9 +1040,9 @@ emalloc:
 }
 
 
-static int __exit i2c_sun4i_remove(struct platform_device *dev)
+static int __exit i2c_sunxi_remove(struct platform_device *dev)
 {
-	struct sun4i_i2c *i2c = platform_get_drvdata(dev);
+	struct sunxi_i2c *i2c = platform_get_drvdata(dev);
 
 	platform_set_drvdata(dev, NULL);
 
@@ -1039,7 +1050,7 @@ static int __exit i2c_sun4i_remove(struct platform_device *dev)
 
 	free_irq(i2c->irq, i2c);
 
-	i2c_sun4i_hw_exit(i2c); /* disable clock and release gpio */
+	i2c_sunxi_hw_exit(i2c); /* disable clock and release gpio */
 	clk_put(i2c->clk);
 	clk_put(i2c->pclk);
 
@@ -1053,9 +1064,9 @@ static int __exit i2c_sun4i_remove(struct platform_device *dev)
 
 
 #ifdef CONFIG_PM
-static int i2c_sun4i_suspend(struct platform_device *pdev,  pm_message_t state)
+static int i2c_sunxi_suspend(struct platform_device *pdev,  pm_message_t state)
 {
-	struct sun4i_i2c *i2c = platform_get_drvdata(pdev);
+	struct sunxi_i2c *i2c = platform_get_drvdata(pdev);
 
 	i2c->suspend_flag = 1;
 
@@ -1071,7 +1082,7 @@ static int i2c_sun4i_suspend(struct platform_device *pdev,  pm_message_t state)
 		return 0;
 	}
 
-	if(i2c_sun4i_clk_exit(i2c)) {
+	if(i2c_sunxi_clk_exit(i2c)) {
 		i2c_dbg("[i2c%d] suspend failed.. \n", i2c->bus_num);
 		i2c->suspend_flag = 0;
 		return -1;
@@ -1082,9 +1093,9 @@ static int i2c_sun4i_suspend(struct platform_device *pdev,  pm_message_t state)
 }
 
 
-static int i2c_sun4i_resume(struct platform_device *pdev)
+static int i2c_sunxi_resume(struct platform_device *pdev)
 {
-	struct sun4i_i2c *i2c = platform_get_drvdata(pdev);
+	struct sunxi_i2c *i2c = platform_get_drvdata(pdev);
 
 	i2c->suspend_flag = 0;
 	
@@ -1092,7 +1103,7 @@ static int i2c_sun4i_resume(struct platform_device *pdev)
 		return 0;
 	}
 
-	if(i2c_sun4i_clk_init(i2c)) {
+	if(i2c_sunxi_clk_init(i2c)) {
 		i2c_dbg("[i2c%d] resume failed.. \n", i2c->bus_num);
 		return -1;
 	}
@@ -1103,45 +1114,49 @@ static int i2c_sun4i_resume(struct platform_device *pdev)
 	return 0;
 }
 #else
-static int i2c_sun4i_suspend(struct platform_device *pdev,  pm_message_t state)
+static int i2c_sunxi_suspend(struct platform_device *pdev,  pm_message_t state)
 {
 	pr_info("i2c fake suspend\n");
 	return 0;
 }
 
-static int i2c_sun4i_resume(struct platform_device *pdev)
+static int i2c_sunxi_resume(struct platform_device *pdev)
 {
 	pr_info("i2c fake resume\n");
 	return 0;
 }
 #endif
 
-static struct platform_driver i2c_sun4i_driver = {
-	.probe		= i2c_sun4i_probe,
-	.remove		= __exit_p(i2c_sun4i_remove),
-	.suspend        = i2c_sun4i_suspend,
-	.resume         = i2c_sun4i_resume,
+static struct platform_driver i2c_sunxi_driver = {
+	.probe		= i2c_sunxi_probe,
+	.remove		= __exit_p(i2c_sunxi_remove),
+	.suspend        = i2c_sunxi_suspend,
+	.resume         = i2c_sunxi_resume,
 	.driver		= {
+#if defined CONFIG_ARCH_SUN4I
 		.name	= "sun4i-i2c",
+#elif defined CONFIG_ARCH_SUN5I
+        .name	= "sun5i-i2c",
+#endif
 		.owner	= THIS_MODULE,
 	},
 };
 
-static int __init i2c_adap_sun4i_init(void)
+static int __init i2c_adap_sunxi_init(void)
 {
-	return platform_driver_register(&i2c_sun4i_driver);
+	return platform_driver_register(&i2c_sunxi_driver);
 }
 
-module_init(i2c_adap_sun4i_init);
+module_init(i2c_adap_sunxi_init);
 
-static void __exit i2c_adap_sun4i_exit(void)
+static void __exit i2c_adap_sunxi_exit(void)
 {
-	platform_driver_unregister(&i2c_sun4i_driver);
+	platform_driver_unregister(&i2c_sunxi_driver);
 }
 
-module_exit(i2c_adap_sun4i_exit);
+module_exit(i2c_adap_sunxi_exit);
 
 MODULE_LICENSE("GPL");
-MODULE_ALIAS("platform:sun4i-i2c");
-MODULE_DESCRIPTION("SUN4I I2C Bus Driver");
+MODULE_ALIAS("platform:sunxi-i2c");
+MODULE_DESCRIPTION("SUNXI I2C Bus Driver");
 MODULE_AUTHOR("VictorWei");
