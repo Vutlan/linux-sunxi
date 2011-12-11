@@ -849,10 +849,10 @@ __s32 pwm_set_para(__u32 channel, __pwm_info_t * pwm_info)
 
     freq = 1000000 / pwm_info->period_ns;
 
-    if(freq > 50000)
+    if(freq > 200000)
     {
-        DE_WRN("pwm preq is large then 50khz, fix to 50khz\n");
-        freq = 50000;
+        DE_WRN("pwm preq is large then 200khz, fix to 200khz\n");
+        freq = 200000;
     }
 
     if(freq > 12500)

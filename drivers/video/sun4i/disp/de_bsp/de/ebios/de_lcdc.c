@@ -292,8 +292,8 @@ void TCON0_cfg(__u32 sel, __panel_para_t * info)
 
 	if(info->lcd_if == LCDC_LCDIF_HV)
 	{
-	    __u32 hspw_tmp = 0;
-		__u32 vspw_tmp = 0;
+	    __u32 hspw_tmp = info->lcd_hv_hspw;
+		__u32 vspw_tmp = info->lcd_hv_vspw;
 		
 		if(info->lcd_hv_hspw != 0)
 			hspw_tmp --;
@@ -555,9 +555,9 @@ __u32 TCON1_set_hdmi_mode(__u32 sel, __u8 mode)
         cfg.out_x       = 720;
         cfg.out_y       = 240;
         cfg.ht       = 858;
-        cfg.hbp      = 118;
+        cfg.hbp      = 119;
         cfg.vt       = 525;
-        cfg.vbp      = 19;
+        cfg.vbp      = 18;
         cfg.vspw     = 3;
         cfg.hspw     = 62; 
         cfg.io_pol      = 0x04000000;
