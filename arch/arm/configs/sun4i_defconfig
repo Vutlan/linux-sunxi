@@ -571,7 +571,38 @@ CONFIG_BLK_DEV_RAM_SIZE=4096
 # CONFIG_ATA_OVER_ETH is not set
 CONFIG_SUN4I_NANDFLASH=y
 # CONFIG_SENSORS_LIS3LV02D is not set
-# CONFIG_MISC_DEVICES is not set
+CONFIG_MISC_DEVICES=y
+# CONFIG_AD525X_DPOT is not set
+# CONFIG_SUN4I_VIBRATOR is not set
+CONFIG_SUNXI_DBGREG=m
+CONFIG_ANDROID_PMEM=y
+# CONFIG_INTEL_MID_PTI is not set
+# CONFIG_ENCLOSURE_SERVICES is not set
+# CONFIG_APDS9802ALS is not set
+# CONFIG_ISL29003 is not set
+# CONFIG_ISL29020 is not set
+# CONFIG_SENSORS_TSL2550 is not set
+# CONFIG_SENSORS_BH1780 is not set
+# CONFIG_SENSORS_BH1770 is not set
+# CONFIG_SENSORS_APDS990X is not set
+# CONFIG_HMC6352 is not set
+# CONFIG_SENSORS_AK8975 is not set
+# CONFIG_UID_STAT is not set
+# CONFIG_BMP085 is not set
+# CONFIG_WL127X_RFKILL is not set
+# CONFIG_APANIC is not set
+
+#
+# EEPROM support
+#
+# CONFIG_EEPROM_AT24 is not set
+# CONFIG_EEPROM_LEGACY is not set
+# CONFIG_EEPROM_93CX6 is not set
+
+#
+# Texas Instruments shared transport line discipline
+#
+# CONFIG_SENSORS_LIS3_I2C is not set
 CONFIG_HAVE_IDE=y
 # CONFIG_IDE is not set
 
