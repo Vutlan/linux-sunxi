@@ -31,8 +31,7 @@
 #include <mach/dma.h>
 #include <mach/hardware.h>
 #include <mach/irqs.h>
-#include <mach/gpio_v2.h>
-#include <mach/script_v2.h>
+#include <mach/sys_config.h>
 #include <mach/spi.h>
 #include <asm/cacheflush.h>
 
