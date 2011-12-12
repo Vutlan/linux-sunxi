@@ -45,6 +45,8 @@ Invalid Options:
 build_standby()
 {
 	echo "build standby"
+	make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} KDIR=${LICHEE_KDIR} \
+		-C ${LICHEE_KDIR}/arch/arm/mach-sun5i/pm/standby all
 }
 
 build_kernel()
