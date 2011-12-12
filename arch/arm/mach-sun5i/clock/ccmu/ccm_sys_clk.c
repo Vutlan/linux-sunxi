@@ -246,53 +246,27 @@ static __s64 sys_clk_get_rate(__aw_ccu_sys_clk_e id)
         }
         case AW_SYS_CLK_PLL2:
         {
-            enum sw_ic_ver  chip_ver = sw_get_ic_ver();
+            /* chip is version B:
+                FactorN=79, PreDiv=21, PostDiv=4, output=24*79/21/4=22.571mhz, 44.1k series fs
+                FactorN=86, PreDiv=21, PostDiv=4, output=24*86/21/4=24.571mhz, 48k series fs */
 
-            if(chip_ver == MAGIC_VER_A){
-                /* chip is version A */
-                if((aw_ccu_reg->Pll2Ctl.VCOBias == 10) &&(aw_ccu_reg->Pll2Ctl.FactorN == 94))
-                {
-                    return 22579200;
-                }
-                else if((aw_ccu_reg->Pll2Ctl.VCOBias == 9) &&(aw_ccu_reg->Pll2Ctl.FactorN == 83))
-                {
-                    return 24576000;
-                }
-                else
-                {
-                    /* set audio pll to default value 24576000 */
-                    aw_ccu_reg->Pll2Ctl.VCOBias = 9;
-                    aw_ccu_reg->Pll2Ctl.FactorN = 83;
-                    return 24576000;
-                }
+            __u32   tmpReg;
+
+            tmpReg = *(volatile __u32 *)&aw_ccu_reg->Pll2Ctl;
+            if(((tmpReg>>8) & 0x7f) == 79)
+            {
+                return 22579200;
             }
-            else if(chip_ver == MAGIC_VER_B){
-                /* chip is version B:
-                    FactorN=79, PreDiv=21, PostDiv=4, output=24*79/21/4=22.571mhz, 44.1k series fs
-                    FactorN=86, PreDiv=21, PostDiv=4, output=24*86/21/4=24.571mhz, 48k series fs */
-
-                __u32   tmpReg;
-
-                tmpReg = *(volatile __u32 *)&aw_ccu_reg->Pll2Ctl;
-                if(((tmpReg>>8) & 0x7f) == 79)
-                {
-                    return 22579200;
-                }
-                else if(((tmpReg>>8) & 0x7f) == 86)
-                {
-                    return 24576000;
-                }
-                else
-                {
-                    /* set audio pll to default value 24576000 */
-                    tmpReg &= ~((0x1f<<0)|(0x7f<<8)|(0x0f<<26));
-                    tmpReg |= (21<<0)|(86<<8)|(4<<26);
-                    *(volatile __u32 *)&aw_ccu_reg->Pll2Ctl = tmpReg;
-                    return 24576000;
-                }
+            else if(((tmpReg>>8) & 0x7f) == 86)
+            {
+                return 24576000;
             }
-            else {
-                /* chip version is unknown */
+            else
+            {
+                /* set audio pll to default value 24576000 */
+                tmpReg &= ~((0x1f<<0)|(0x7f<<8)|(0x0f<<26));
+                tmpReg |= (21<<0)|(86<<8)|(4<<26);
+                *(volatile __u32 *)&aw_ccu_reg->Pll2Ctl = tmpReg;
                 return 24576000;
             }
         }
@@ -749,51 +723,27 @@ static __s32 sys_clk_set_rate(__aw_ccu_sys_clk_e id, __s64 rate)
         }
         case AW_SYS_CLK_PLL2:
         {
-            enum sw_ic_ver  chip_ver = sw_get_ic_ver();
-
             if(rate == 22579200)
             {
-                if(chip_ver == MAGIC_VER_A){
-                    /* chip is version A */
-                    aw_ccu_reg->Pll2Ctl.VCOBias = 10;
-                    aw_ccu_reg->Pll2Ctl.FactorN = 94;
-                }
-                else if(chip_ver == MAGIC_VER_B){
-                    /* chip is version B, FactorN=79, PreDiv=21, PostDiv=4,
-                       output=24*79/21/4=22.571mhz, 44.1k series fs     */
-                    __u32   tmpReg;
+                /* chip is version B, FactorN=79, PreDiv=21, PostDiv=4,
+                   output=24*79/21/4=22.571mhz, 44.1k series fs     */
+                __u32   tmpReg;
 
-                    tmpReg = *(volatile __u32 *)&aw_ccu_reg->Pll2Ctl;
-                    tmpReg &= ~((0x1f<<0)|(0x7f<<8)|(0x0f<<26));
-                    tmpReg |= (21<<0)|(79<<8)|(4<<26);
-                    *(volatile __u32 *)&aw_ccu_reg->Pll2Ctl = tmpReg;
-                }
-                else{
-                    printk("[ccu] chip version is unknown!\n");
-                    return -1;
-                }
+                tmpReg = *(volatile __u32 *)&aw_ccu_reg->Pll2Ctl;
+                tmpReg &= ~((0x1f<<0)|(0x7f<<8)|(0x0f<<26));
+                tmpReg |= (21<<0)|(79<<8)|(4<<26);
+                *(volatile __u32 *)&aw_ccu_reg->Pll2Ctl = tmpReg;
             }
             else if(rate == 24576000)
             {
-                if(chip_ver == MAGIC_VER_A){
-                    /* chip is version A */
-                    aw_ccu_reg->Pll2Ctl.VCOBias = 9;
-                    aw_ccu_reg->Pll2Ctl.FactorN = 83;
-                }
-                else if(chip_ver == MAGIC_VER_B){
-                    /* chip is version B, FactorN=86, PreDiv=21, PostDiv=4,
-                       output=24*86/21/4=24.571mhz, 48k series fs       */
-                    __u32   tmpReg;
+                /* chip is version B, FactorN=86, PreDiv=21, PostDiv=4,
+                   output=24*86/21/4=24.571mhz, 48k series fs       */
+                __u32   tmpReg;
 
-                    tmpReg = *(volatile __u32 *)&aw_ccu_reg->Pll2Ctl;
-                    tmpReg &= ~((0x1f<<0)|(0x7f<<8)|(0x0f<<26));
-                    tmpReg |= (21<<0)|(86<<8)|(4<<26);
-                    *(volatile __u32 *)&aw_ccu_reg->Pll2Ctl = tmpReg;
-                }
-                else{
-                    printk("[ccu] chip version is unknown!\n");
-                    return -1;
-                }
+                tmpReg = *(volatile __u32 *)&aw_ccu_reg->Pll2Ctl;
+                tmpReg &= ~((0x1f<<0)|(0x7f<<8)|(0x0f<<26));
+                tmpReg |= (21<<0)|(86<<8)|(4<<26);
+                *(volatile __u32 *)&aw_ccu_reg->Pll2Ctl = tmpReg;
             }
             else
             {

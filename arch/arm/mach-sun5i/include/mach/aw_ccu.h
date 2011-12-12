@@ -243,6 +243,10 @@ typedef enum __AW_CCU_MOD_CLK
     AW_MOD_CLK_AHB_EHCI1,   /* "ahb_ehci1"          */
     AW_MOD_CLK_AHB_OHCI1,   /* "ahb_ohci1"          */
 
+    AW_MOD_CLK_IEP,         /* "iep"                */
+    AW_MOD_CLK_AHB_IEP,     /* "ahb_iep"            */
+    AW_MOD_CLK_SDRAM_IEP,   /* "sdram_iep"          */
+
     AW_MOD_CLK_CNT
 
 } __aw_ccu_mod_clk_e;
