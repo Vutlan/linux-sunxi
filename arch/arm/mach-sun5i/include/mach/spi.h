@@ -5,7 +5,7 @@
  * Pan Nan <pannan@allwinnertech.com>
  * Victor Wei <weiziheng@allwinnertech.com>
  *
- * SUN4I SPI reg definition
+ * SUN5I SPI reg definition
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as

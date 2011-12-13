@@ -17,7 +17,7 @@
 #define _SUN4I_SPI_H_
 
 
-#define SPI_MODULE_NUM      (3)
+#define SPI_MODULE_NUM      (4)
 #define SPI_FIFO_DEPTH      (64)
 
 #define SPI0_BASE_ADDR      (0x01C05000)
