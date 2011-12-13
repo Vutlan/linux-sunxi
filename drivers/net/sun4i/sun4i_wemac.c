@@ -31,7 +31,6 @@
 #include <linux/crc32.h>
 #include <linux/mii.h>
 #include <linux/ethtool.h>
-#include <linux/wemac.h>
 #include <linux/delay.h>
 #include <linux/platform_device.h>
 #include <linux/irq.h>
@@ -44,8 +43,7 @@
 #include <asm/io.h>
 
 #include <mach/dma.h>
-#include <mach/gpio_v2.h>
-#include <mach/script_v2.h>
+#include <mach/sys_config.h>
 #include <mach/clock.h>
 
 #include "sun4i_wemac.h"
