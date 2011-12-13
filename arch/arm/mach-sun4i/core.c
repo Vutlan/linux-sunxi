@@ -56,7 +56,8 @@
 
 static struct map_desc sw_io_desc[] __initdata = {
 	{ SW_VA_SRAM_BASE, __phys_to_pfn(SW_PA_SRAM_BASE),  (SZ_128K + SZ_64K), MT_MEMORY_ITCM  },
-	{ SW_VA_IO_BASE,   __phys_to_pfn(SW_PA_IO_BASE),    (SZ_1M + SZ_2M),    MT_DEVICE    },
+	{ SW_VA_IO_BASE,   __phys_to_pfn(SW_PA_IO_BASE),    (SZ_1M + SZ_2M),    MT_DEVICE       },
+	{ SW_VA_BROM_BASE, __phys_to_pfn(SW_PA_BROM_BASE),  (SZ_64K),           MT_MEMORY_ITCM  },
 };
 
 void __init sw_core_map_io(void)
@@ -256,7 +257,7 @@ void __init sw_core_init_irq(void)
 	writel(0xffffffff, SW_INT_FIQ_PENDING_REG0);
 	writel(0xffffffff, SW_INT_FIQ_PENDING_REG1);
 	writel(0xffffffff, SW_INT_FIQ_PENDING_REG2);
-	
+
 	/*enable protection mode*/
 	writel(0x01, SW_INT_PROTECTION_REG);
 	/*config the external interrupt source type*/
