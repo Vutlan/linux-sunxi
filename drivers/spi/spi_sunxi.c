@@ -838,7 +838,7 @@ static int spi_sunxi_xfer(struct spi_device *spi, struct spi_transfer *t)
 	if(rx_buf) {
 		if(rx_len > BULK_DATA_BOUNDARY) { /* dma */
             //spi_msg(" rx -> by dma\n");
-            #if defined CONFIG_SUN4I_SPI_NDMA || CONFIG_SUN5I_SPI_NDMA
+            #if defined(CONFIG_SUN4I_SPI_NDMA) || defined(CONFIG_SUN5I_SPI_NDMA)
             aw_spi_sel_dma_type(0, base_addr);
             #else
             aw_spi_sel_dma_type(1, base_addr);
@@ -901,7 +901,7 @@ static int spi_sunxi_xfer(struct spi_device *spi, struct spi_transfer *t)
 		}
 		else {
             //spi_msg(" tx -> by dma\n");
-            #if defined CONFIG_SUN4I_SPI_NDMA || CONFIG_SUN5I_SPI_NDMA
+            #if defined(CONFIG_SUN4I_SPI_NDMA) || defined(CONFIG_SUN5I_SPI_NDMA)
             aw_spi_sel_dma_type(0, base_addr);
             #else
             aw_spi_sel_dma_type(1, base_addr);
@@ -1359,7 +1359,7 @@ static int __init spi_sunxi_probe(struct platform_device *pdev)
 	}
 
 	/* Check for availability of necessary resource */
-    #if defined CONFIG_SUN4I_SPI_NDMA || CONFIG_SUN5I_SPI_NDMA
+    #if defined(CONFIG_SUN4I_SPI_NDMA) || defined(CONFIG_SUN5I_SPI_NDMA)
     dma_res = platform_get_resource(pdev, IORESOURCE_DMA, 0);
     if (dma_res == NULL) {
         spi_wrn("Unable to get spi DMA resource\n");
@@ -1605,7 +1605,7 @@ static struct resource sunxi_spi0_resources[] = {
 		.end	= SPI0_BASE_ADDR + 1024,
 		.flags	= IORESOURCE_MEM,
 	},
-	#if defined CONFIG_SUN4I_SPI_NDMA || CONFIG_SUN5I_SPI_NDMA
+	#if defined(CONFIG_SUN4I_SPI_NDMA) || defined(CONFIG_SUN5I_SPI_NDMA)
 	[1] = {
 		.start	= DMACH_NSPI0,
 		.end	= DMACH_NSPI0,
@@ -1649,7 +1649,7 @@ static struct resource sunxi_spi1_resources[] = {
 		.end	= SPI1_BASE_ADDR + 1024,
 		.flags	= IORESOURCE_MEM,
 	},
-	#if defined CONFIG_SUN4I_SPI_NDMA || CONFIG_SUN5I_SPI_NDMA
+	#if defined(CONFIG_SUN4I_SPI_NDMA) || defined(CONFIG_SUN5I_SPI_NDMA)
 	[1] = {
 		.start	= DMACH_NSPI1,
 		.end	= DMACH_NSPI1,
@@ -1688,7 +1688,7 @@ static struct resource sunxi_spi2_resources[] = {
 		.end	= SPI2_BASE_ADDR + 1024,
 		.flags	= IORESOURCE_MEM,
 	},
-	#if defined CONFIG_SUN4I_SPI_NDMA || CONFIG_SUN5I_SPI_NDMA
+	#if defined(CONFIG_SUN4I_SPI_NDMA) || defined(CONFIG_SUN5I_SPI_NDMA)
 	[1] = {
 		.start	= DMACH_NSPI2,
 		.end	= DMACH_NSPI2,
@@ -1733,7 +1733,7 @@ static struct resource sunxi_spi3_resources[] = {
 		.end	= SPI3_BASE_ADDR + 1024,
 		.flags	= IORESOURCE_MEM,
 	},
-	#if defined CONFIG_SUN4I_SPI_NDMA || CONFIG_SUN5I_SPI_NDMA
+	#if defined(CONFIG_SUN4I_SPI_NDMA) || defined(CONFIG_SUN5I_SPI_NDMA)
 	[1] = {
 		.start	= DMACH_NSPI3,
 		.end	= DMACH_NSPI3,
