@@ -27,11 +27,7 @@
 #include <mach/irqs.h>
 
 #include "8250.h"
-#ifdef CONFIG_ARCH_SUN5I
-#define MAX_PORTS	    4
-#else
 #define MAX_PORTS	    8
-#endif
 
 static int sw_serial[MAX_PORTS];
 
