@@ -427,7 +427,7 @@ EXPORT_SYMBOL(sw_get_ic_ver);
 
 
 MACHINE_START(SUN4I, "sun4i")
-	.boot_params    = PLAT_PHYS_OFFSET + 0x400,
+	.boot_params    = PLAT_PHYS_OFFSET + 0x100,
 	.timer          = &sw_sys_timer,
 	.fixup          = sw_core_fixup,
 	.map_io         = sw_core_map_io,
