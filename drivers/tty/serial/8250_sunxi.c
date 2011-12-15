@@ -280,7 +280,7 @@ static int __init sw_serial_init(void)
     
     memset(sw_serial, 0, sizeof(sw_serial));
     uart_used = 0;
-    for (i=1; i<MAX_PORTS; i++, used=0) {
+    for (i=0; i<MAX_PORTS; i++, used=0) {
         sprintf(uart_para, "uart_para%d", i);
         ret = script_parser_fetch(uart_para, "uart_used", &used, sizeof(int));
         if (ret)
@@ -298,6 +298,13 @@ static int __init sw_serial_init(void)
     }
 
 	return 0;
+}
+
+int init_uart0(struct platform_device *dev)
+{
+	int uart0_ret;
+	uart0_ret=sw_serial_probe(dev);
+	return uart0_ret;
 }
 
 static void __exit sw_serial_exit(void)

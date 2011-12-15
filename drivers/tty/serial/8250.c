@@ -41,7 +41,7 @@
 
 #include <asm/io.h>
 #include <asm/irq.h>
-
+#include "8250_sunxi.h"
 #include "8250.h"
 
 #define UART_USR        31
@@ -3226,6 +3226,14 @@ static int __devinit serial8250_probe(struct platform_device *dev)
 		irqflag = IRQF_SHARED;
 
 	for (i = 0; p && p->flags != 0; p++, i++) {
+
+		/*because there is some trouble to instead uart0 port of different iotype
+		so I probe uart0 use our probe function in it*/
+		if( i == 0 ) {
+			init_uart0(dev);
+			continue;
+		}
+
 		port.iobase		= p->iobase;
 		port.membase		= p->membase;
 		port.irq		= p->irq;
