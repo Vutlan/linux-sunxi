@@ -1,13 +1,11 @@
 /*
 *********************************************************************************************************
-* File    : dram.c
+* File    : dram_i.h
 * By      : Berg.Xing
-* Date    : 2011-06-01
-* Descript: dram  for AW1623 chipset
-* Update  : date          auther      ver     notes
-*     2011-06-01      			Berg        1.0     create file
-*	  2011-07-29		  Berg        1.1	  change dram_power_save_process() and dram_power_up_process()
-*	  2011-08-05		  Berg        1.2     add retraining method in power up process when failed
+* Date    : 2011-12-07
+* Descript: dram for AW1625 chipset
+* Update  : date                auther      ver     notes
+*			2011-12-07			Berg        1.0     create file from aw1623
 *********************************************************************************************************
 */
 #include "dram_i.h"
@@ -255,12 +253,12 @@ __u32 mctl_ahb_reset(void)
 	__u32 reg_val;
 
 	reg_val = mctl_read_w(DRAM_CCM_AHB_GATE_REG);
-	reg_val &=~(0x1<<14);
+	reg_val &=~(0x3<<14);
 	mctl_write_w(DRAM_CCM_AHB_GATE_REG,reg_val);
     standby_delay(0x10);
 
 	reg_val = mctl_read_w(DRAM_CCM_AHB_GATE_REG);
-	reg_val |=(0x1<<14);
+	reg_val |=(0x3<<14);
 	mctl_write_w(DRAM_CCM_AHB_GATE_REG,reg_val);
 }
 
