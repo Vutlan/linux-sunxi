@@ -71,6 +71,13 @@ build_kernel()
 	cp .config output/
 	cp rootfs/sun5i_rootfs.cpio.gz output/
 
+        mkbootimg --kernel output/bImage \
+                        --ramdisk output/sun5i_rootfs.cpio.gz \
+                        --board 'sun5i' \
+                        --base 0x40000000 \
+                        -o output/boot.img
+
+
 	mkbootimg --kernel output/bImage \
 			--ramdisk output/sun5i_rootfs.cpio.gz \
 			--board 'sun5i' \
