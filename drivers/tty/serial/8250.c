@@ -3284,13 +3284,14 @@ static int serial8250_suspend(struct platform_device *dev, pm_message_t state)
 {
 	int i;
 
+#if 1
 	for (i = 0; i < UART_NR; i++) {
 		struct uart_8250_port *up = &serial8250_ports[i];
 
 		if (up->port.type != PORT_UNKNOWN && up->port.dev == &dev->dev)
 			uart_suspend_port(&serial8250_reg, &up->port);
 	}
-
+#endif
 	return 0;
 }
 
@@ -3492,10 +3493,14 @@ static int __init serial8250_init(void)
 
 	serial8250_register_ports(&serial8250_reg, &serial8250_isa_devs->dev);
 
+//register platform driver or not
+#if 1
 	ret = platform_driver_register(&serial8250_isa_driver);
 	if (ret == 0)
 		goto out;
-
+#else
+	goto out;
+#endif
 	platform_device_del(serial8250_isa_devs);
 put_dev:
 	platform_device_put(serial8250_isa_devs);
