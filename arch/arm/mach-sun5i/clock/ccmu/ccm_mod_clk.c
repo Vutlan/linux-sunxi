@@ -46,9 +46,9 @@ static __aw_ccu_clk_t aw_ccu_mod_clk[] =
     make_mod_clk_inf(AW_MOD_CLK_I2S         , "i2s"             ),
     make_mod_clk_inf(AW_MOD_CLK_AC97        , "mclk_none"       ),
     make_mod_clk_inf(AW_MOD_CLK_SPDIF       , "spdif"           ),
-    make_mod_clk_inf(AW_MOD_CLK_KEYPAD      , "key_pad"     ),
+    make_mod_clk_inf(AW_MOD_CLK_KEYPAD      , "key_pad"         ),
     make_mod_clk_inf(AW_MOD_CLK_SATA        , "mclk_none"       ),
-    make_mod_clk_inf(AW_MOD_CLK_USBPHY      , "usb_phy"         ),
+    make_mod_clk_inf(AW_MOD_CLK_USBPHY      , "mclk_none"       ),
     make_mod_clk_inf(AW_MOD_CLK_USBPHY0     , "usb_phy0"        ),
     make_mod_clk_inf(AW_MOD_CLK_USBPHY1     , "usb_phy1"        ),
     make_mod_clk_inf(AW_MOD_CLK_USBPHY2     , "mclk_none"       ),
@@ -376,7 +376,6 @@ static __aw_ccu_sys_clk_e mod_clk_get_parent(__aw_ccu_mod_clk_e id)
             }
             return AW_SYS_CLK_NONE;
         }
-        case AW_MOD_CLK_USBPHY:
         case AW_MOD_CLK_USBPHY0:
         case AW_MOD_CLK_USBPHY1:
         case AW_MOD_CLK_USBOHCI0:
@@ -544,10 +543,10 @@ static __aw_ccu_clk_onff_e mod_clk_get_status(__aw_ccu_mod_clk_e id)
             return aw_ccu_reg->SpdifClk.SpecClkGate? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
         case AW_MOD_CLK_KEYPAD:
             return aw_ccu_reg->KeyPadClk.SpecClkGate? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
-        case AW_MOD_CLK_USBPHY:
         case AW_MOD_CLK_USBPHY0:
+            return aw_ccu_reg->UsbClk.Phy0ClkGate? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
         case AW_MOD_CLK_USBPHY1:
-            return AW_CCU_CLK_ON;
+            return aw_ccu_reg->UsbClk.Phy1ClkGate? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
         case AW_MOD_CLK_USBOHCI0:
             return aw_ccu_reg->UsbClk.OHCI0SpecClkGate? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
         case AW_MOD_CLK_GPS:
@@ -737,7 +736,6 @@ static __s64 mod_clk_get_rate(__aw_ccu_mod_clk_e id)
             return (1 << aw_ccu_reg->SpdifClk.ClkDiv);
         case AW_MOD_CLK_KEYPAD:
             return (1 << aw_ccu_reg->KeyPadClk.ClkPreDiv) * (aw_ccu_reg->KeyPadClk.ClkDiv + 1);
-        case AW_MOD_CLK_USBPHY:
         case AW_MOD_CLK_USBPHY0:
         case AW_MOD_CLK_USBPHY1:
         case AW_MOD_CLK_USBOHCI0:
@@ -807,7 +805,6 @@ static __aw_ccu_clk_reset_e mod_clk_get_reset(__aw_ccu_mod_clk_e id)
         case AW_MOD_CLK_I2S:
         case AW_MOD_CLK_SPDIF:
         case AW_MOD_CLK_KEYPAD:
-        case AW_MOD_CLK_USBPHY:
             return AW_CCU_CLK_NRESET;
         case AW_MOD_CLK_USBPHY0:
             return aw_ccu_reg->UsbClk.UsbPhy0Rst? AW_CCU_CLK_NRESET : AW_CCU_CLK_RESET;
@@ -908,7 +905,6 @@ static __s32 mod_clk_set_parent(__aw_ccu_mod_clk_e id, __aw_ccu_sys_clk_e parent
             }
             return -1;
         }
-        case AW_MOD_CLK_USBPHY:
         case AW_MOD_CLK_USBPHY0:
         case AW_MOD_CLK_USBPHY1:
         case AW_MOD_CLK_USBOHCI0:
@@ -1116,10 +1112,14 @@ static __s32 mod_clk_set_status(__aw_ccu_mod_clk_e id, __aw_ccu_clk_onff_e statu
             aw_ccu_reg->KeyPadClk.SpecClkGate = (status == AW_CCU_CLK_OFF)? 0 : 1;
             return 0;
         }
-        case AW_MOD_CLK_USBPHY:
         case AW_MOD_CLK_USBPHY0:
+        {
+            aw_ccu_reg->UsbClk.Phy0ClkGate = (status == AW_CCU_CLK_OFF)? 0 : 1;
+            return 0;
+        }
         case AW_MOD_CLK_USBPHY1:
         {
+            aw_ccu_reg->UsbClk.Phy1ClkGate = (status == AW_CCU_CLK_OFF)? 0 : 1;
             return 0;
         }
         case AW_MOD_CLK_USBOHCI0:
@@ -1518,7 +1518,6 @@ static __s32 mod_clk_set_rate(__aw_ccu_mod_clk_e id, __s64 rate)
 
         case AW_MOD_CLK_LCD0CH0:
         case AW_MOD_CLK_LVDS:
-        case AW_MOD_CLK_USBPHY:
         case AW_MOD_CLK_USBPHY0:
         case AW_MOD_CLK_USBPHY1:
         case AW_MOD_CLK_USBOHCI0:
@@ -1566,7 +1565,6 @@ static __s32 mod_clk_set_reset(__aw_ccu_mod_clk_e id, __aw_ccu_clk_reset_e reset
         case AW_MOD_CLK_IR0:
         case AW_MOD_CLK_I2S:
         case AW_MOD_CLK_SPDIF:
-        case AW_MOD_CLK_USBPHY:
         case AW_MOD_CLK_USBOHCI0:
             return (reset == AW_CCU_CLK_NRESET)? 0 : -1;
 
