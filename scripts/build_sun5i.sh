@@ -110,12 +110,23 @@ build_modules()
 	make -C modules/example LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LICHEE_KDIR=${LICHEE_KDIR} \
 		CONFIG_CHIP_ID=${CONFIG_CHIP_ID} install
 
+	#build usi-bmc4329 sdio wifi module
+	make -C modules/wifi/usi-bcm4329/v4.218.248.15/open-src/src/dhd/linux \
+			CROSS_COMPILE=${CROSS_COMPILE} ARCH=arm LINUXVER=${KERNEL_VERSION} \
+			LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LINUXDIR=${LICHEE_KDIR} CONFIG_CHIP_ID=${CONFIG_CHIP_ID} \
+			INSTALL_DIR=${LICHEE_MOD_DIR} dhd-cdc-sdmmc-gpl
 }
 
 clean_kernel()
 {
 	make clean
 	rm -rf output/*
+
+	#build usi-bmc4329 sdio wifi module
+	make -C modules/wifi/usi-bcm4329/v4.218.248.15/open-src/src/dhd/linux \
+			CROSS_COMPILE=${CROSS_COMPILE} ARCH=arm LINUXVER=${KERNEL_VERSION} \
+			LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LINUXDIR=${LICHEE_KDIR} CONFIG_CHIP_ID=${CONFIG_CHIP_ID} \
+			INSTALL_DIR=${LICHEE_MOD_DIR} clean
 }
 
 clean_modules()
