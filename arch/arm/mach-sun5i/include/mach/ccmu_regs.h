@@ -393,7 +393,7 @@ typedef struct __CCMU_DRAM_GATE_REG0100
     __u32   TsGate:1;           //bit3,  Gating dram clock for TS, 0-mask, 1-pass
     __u32   reserved1:1;        //bit4,  reserved
     __u32   Tve0Gate:1;         //bit5,  Gating dram clock for TVE0, 0-mask, 1-pass
-    __u32   reserved2:20;       //bit6,  reserved
+    __u32   reserved2:19;       //bit6,  reserved
     __u32   DeFe0Gate:1;        //bit25, Gating dram clock for DE_FE0, 0-mask, 1-pass
     __u32   DeBe0Gate:1;        //bit26, Gating dram clock for DE_BE0, 0-mask, 1-pass
     __u32   reserved3:4;        //bit27, reserved
