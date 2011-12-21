@@ -776,9 +776,7 @@ static __u32 pwm_read_reg(__u32 offset)
 static __s32 pwm_write_reg(__u32 offset, __u32 value)
 {
     sys_put_wvalue(gdisp.init_para.base_pwm+offset, value);
-    
-    LCD_delay_ms(20);
-    
+        
     return 0;    
 }
 
@@ -849,22 +847,34 @@ __s32 pwm_set_para(__u32 channel, __pwm_info_t * pwm_info)
 
     freq = 1000000 / pwm_info->period_ns;
 
-	for(i=0; i<11; i++)
-	{
-	    for(j=16; j<=256; j+=16)
-	    {
-	        __u32 pwm_freq = 0;
+    if(freq > 366)
+    {
+        pre_scal_id = 0;
+        entire_cycle = 24000000 / freq;
+    }
+    else
+    {
+    	for(i=1; i<11; i++)
+    	{
+    	    for(j=16;; j+=16)
+    	    {
+    	        __u32 pwm_freq = 0;
 
-	        pwm_freq = 24000000 / (pre_scal[i][0] * j);
-	        if(abs(pwm_freq - freq) < abs(tmp - freq))
-	        {
-	            tmp = pwm_freq;
-	            pre_scal_id = i;
-	            entire_cycle = j;
-	            DE_INF("pre_scal:%d, entire_cycle:%d, pwm_freq:%d\n", pre_scal[i][0], j, pwm_freq);
-	            DE_INF("----%d\n", tmp);
-	        }
-	    }
+    	        pwm_freq = 24000000 / (pre_scal[i][0] * j);
+    	        if(abs(pwm_freq - freq) < abs(tmp - freq))
+    	        {
+    	            tmp = pwm_freq;
+    	            pre_scal_id = i;
+    	            entire_cycle = j;
+    	            DE_INF("pre_scal:%d, entire_cycle:%d, pwm_freq:%d\n", pre_scal[i][0], j, pwm_freq);
+    	            DE_INF("----%d\n", tmp);
+    	        }
+    	        else if((tmp < freq) && (pwm_freq < tmp))
+    	        {
+    	            break;
+    	        }
+    	    }
+    	}
 	}
 	
     active_cycle = (pwm_info->duty_ns * entire_cycle + (pwm_info->period_ns/2)) / pwm_info->period_ns;

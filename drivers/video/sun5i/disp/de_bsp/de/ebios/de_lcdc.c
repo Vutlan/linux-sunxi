@@ -791,7 +791,6 @@ __u32 TCON1_set_hdmi_mode(__u32 sel, __u8 mode)
 	cfg.b_rgb_remap_io = 1;//rgb
 	cfg.b_remap_if      = 1;
 	TCON1_cfg(sel, &cfg);
-    TCON_set_hdmi_src(sel);
     
     return 0;
 }
@@ -979,9 +978,7 @@ __u32 TCON1_set_tv_mode(__u32 sel, __u8 mode)
     cfg.b_rgb_remap_io = 0;
     cfg.b_remap_if      = 0;
     TCON1_cfg(sel, &cfg);
-
-    TCON_set_tv_src(sel, sel);
-        
+    
     return 0;
 }
 
@@ -1106,7 +1103,6 @@ __s32 TCON1_set_vga_mode(__u32 sel, __u8 mode)
     cfg.b_rgb_remap_io = 0;
     cfg.b_remap_if      = 1;
     TCON1_cfg(sel, &cfg);
-    TCON_set_tv_src(sel, sel);
     
     return 0;
 }
@@ -1368,35 +1364,6 @@ __s32 LCD_LVDS_close(__u32 sel)
 	LCDC_CLR_BIT(sel, LCDC_LVDS_ANA0,0x3F310000);
 	LCDC_CLR_BIT(sel, LCDC_LVDS_OFF,(__u32)1<<31); 	
 	return 0;
-}
-
-#define ____TCON_MUX_CTL____
-
-__u8 TCON_mux_init(void)
-{
-	LCDC_CLR_BIT(0,LCDC_MUX_CTRL,LCDC_BIT31); 
-	LCDC_INIT_BIT(0,LCDC_MUX_CTRL,0xf<<4,0<<4);		
-	LCDC_INIT_BIT(0,LCDC_MUX_CTRL,0xf,1);
-	return 0;
-}
-
-__u8 TCON_set_hdmi_src(__u8 src)
-{
-	LCDC_INIT_BIT(0,LCDC_MUX_CTRL,0x3<<8,src<<8);
-	return 0;	
-}
-
-__u8 TCON_set_tv_src(__u32 tv_index, __u8 src)
-{
-    if(tv_index == 0)
-    {
-	    LCDC_INIT_BIT(0,LCDC_MUX_CTRL,0x3<<4,src<<4);
-	}
-	else
-	{
-	    LCDC_INIT_BIT(0,LCDC_MUX_CTRL,0x3<<0,src<<0);
-	}
-	return 0;	
 }
 
 #define ____TCON_CEU____
