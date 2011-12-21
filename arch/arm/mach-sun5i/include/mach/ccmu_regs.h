@@ -368,9 +368,8 @@ typedef struct __CCMU_USB_CLK_REG00CC
     __u32   reserved0:4;        //bit2,  reserved
     __u32   OHCI0SpecClkGate:1; //bit6,  gating special clock for OHCI0, 0-CLOCK OFF, 1-CLOCK ON
     __u32   reserved1:1;        //bit7,  reserved
-    __u32   Phy0ClkGate:1;      //bit8,  gating special clock for USB PHY0, 0-CLOCK OFF, 1-CLOCK ON
-    __u32   Phy1ClkGate:1;      //bit9,  gating special clock for USB PHY1, 0-CLOCK OFF, 1-CLOCK ON
-    __u32   reserved2:22;       //bit10,  reserved
+    __u32   PhySpecClkGate:1;   //bit8,  gating special clock for USB PHY, 0-CLOCK OFF, 1-CLOCK ON
+    __u32   reserved2:23;       //bit9,  reserved
 } __ccmu_usb_clk_reg00cc_t;
 
 

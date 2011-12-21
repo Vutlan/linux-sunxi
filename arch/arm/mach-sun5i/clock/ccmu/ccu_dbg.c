@@ -264,8 +264,7 @@ void clk_dbg_inf(void)
     print_clk_inf(UsbClk, UsbPhy0Rst    );
     print_clk_inf(UsbClk, UsbPhy1Rst    );
     print_clk_inf(UsbClk, OHCI0SpecClkGate  );
-    print_clk_inf(UsbClk, Phy0ClkGate       );
-    print_clk_inf(UsbClk, Phy1ClkGate   );
+    print_clk_inf(UsbClk, PhySpecClkGate    );
 
     printk("\nGpsClk clk infor:\n");
     print_clk_inf(GpsClk, Reset         );
@@ -566,8 +565,7 @@ static int ccmu_stats_show(struct seq_file *m, void *unused)
     sprintf_clk_inf(m, UsbClk, UsbPhy0Rst    );
     sprintf_clk_inf(m, UsbClk, UsbPhy1Rst    );
     sprintf_clk_inf(m, UsbClk, OHCI0SpecClkGate  );
-    sprintf_clk_inf(m, UsbClk, Phy0ClkGate       );
-    sprintf_clk_inf(m, UsbClk, Phy1ClkGate   );
+    sprintf_clk_inf(m, UsbClk, PhySpecClkGate    );
 
     seq_printf(m, "\nGpsClk clk infor:\n");
     sprintf_clk_inf(m, GpsClk, Reset         );
