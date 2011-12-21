@@ -72,7 +72,7 @@ static __aw_ccu_clk_t aw_ccu_mod_clk[] =
     make_mod_clk_inf(AW_MOD_CLK_CSI0        , "csi0"            ),
     make_mod_clk_inf(AW_MOD_CLK_CSI1        , "mclk_none"       ),
     make_mod_clk_inf(AW_MOD_CLK_VE          , "ve"              ),
-    make_mod_clk_inf(AW_MOD_CLK_ADDA        , "mclk_none"       ),
+    make_mod_clk_inf(AW_MOD_CLK_ADDA        , "audio_codec" ),
     make_mod_clk_inf(AW_MOD_CLK_AVS         , "avs"             ),
     make_mod_clk_inf(AW_MOD_CLK_ACE         , "mclk_none"       ),
     make_mod_clk_inf(AW_MOD_CLK_LVDS        , "lvds"            ),
@@ -442,6 +442,8 @@ static __aw_ccu_sys_clk_e mod_clk_get_parent(__aw_ccu_mod_clk_e id)
         }
         case AW_MOD_CLK_VE:
             return AW_SYS_CLK_PLL4;
+        case AW_MOD_CLK_ADDA:
+            return AW_SYS_CLK_PLL2;
         case AW_MOD_CLK_AVS:
             return AW_SYS_CLK_HOSC;
         case AW_MOD_CLK_LVDS:
@@ -565,6 +567,8 @@ static __aw_ccu_clk_onff_e mod_clk_get_status(__aw_ccu_mod_clk_e id)
             return aw_ccu_reg->Csi0Clk.SpecClkGate? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
         case AW_MOD_CLK_VE:
             return aw_ccu_reg->VeClk.SpecClkGate? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
+        case AW_MOD_CLK_ADDA:
+            return aw_ccu_reg->AddaClk.SpecClkGate? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
         case AW_MOD_CLK_AVS:
             return aw_ccu_reg->AvsClk.SpecClkGate? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
         case AW_MOD_CLK_LVDS:
@@ -755,6 +759,7 @@ static __s64 mod_clk_get_rate(__aw_ccu_mod_clk_e id)
             return aw_ccu_reg->Csi0Clk.ClkDiv + 1;
         case AW_MOD_CLK_VE:
             return 1;
+        case AW_MOD_CLK_ADDA:
         case AW_MOD_CLK_AVS:
             return 1;
         case AW_MOD_CLK_LVDS:
@@ -827,6 +832,7 @@ static __aw_ccu_clk_reset_e mod_clk_get_reset(__aw_ccu_mod_clk_e id)
             return aw_ccu_reg->Csi0Clk.Reset? AW_CCU_CLK_NRESET : AW_CCU_CLK_RESET;
         case AW_MOD_CLK_VE:
             return aw_ccu_reg->VeClk.Reset? AW_CCU_CLK_NRESET : AW_CCU_CLK_RESET;
+        case AW_MOD_CLK_ADDA:
         case AW_MOD_CLK_AVS:
             return AW_CCU_CLK_NRESET;
         case AW_MOD_CLK_LVDS:
@@ -984,6 +990,8 @@ static __s32 mod_clk_set_parent(__aw_ccu_mod_clk_e id, __aw_ccu_sys_clk_e parent
         }
         case AW_MOD_CLK_VE:
             return (parent == AW_SYS_CLK_PLL4)? 0 : -1;
+        case AW_MOD_CLK_ADDA:
+            return (parent == AW_SYS_CLK_PLL2)? 0 : -1;
         case AW_MOD_CLK_AVS:
             return (parent == AW_SYS_CLK_HOSC)? 0 : -1;
         case AW_MOD_CLK_HDMI:
@@ -1148,6 +1156,9 @@ static __s32 mod_clk_set_status(__aw_ccu_mod_clk_e id, __aw_ccu_clk_onff_e statu
             return 0;
         case AW_MOD_CLK_VE:
             aw_ccu_reg->VeClk.SpecClkGate = (status == AW_CCU_CLK_OFF)? 0 : 1;
+            return 0;
+        case AW_MOD_CLK_ADDA:
+            aw_ccu_reg->AddaClk.SpecClkGate = (status == AW_CCU_CLK_OFF)? 0 : 1;
             return 0;
         case AW_MOD_CLK_AVS:
             aw_ccu_reg->AvsClk.SpecClkGate = (status == AW_CCU_CLK_OFF)? 0 : 1;
@@ -1518,6 +1529,7 @@ static __s32 mod_clk_set_rate(__aw_ccu_mod_clk_e id, __s64 rate)
 
         case AW_MOD_CLK_LCD0CH0:
         case AW_MOD_CLK_LVDS:
+        case AW_MOD_CLK_ADDA:
         case AW_MOD_CLK_USBPHY0:
         case AW_MOD_CLK_USBPHY1:
         case AW_MOD_CLK_USBOHCI0:
@@ -1622,6 +1634,7 @@ static __s32 mod_clk_set_reset(__aw_ccu_mod_clk_e id, __aw_ccu_clk_reset_e reset
 
         case AW_MOD_CLK_LCD0CH1_S1:
         case AW_MOD_CLK_LCD0CH1_S2:
+        case AW_MOD_CLK_ADDA:
         case AW_MOD_CLK_AVS:
         case AW_MOD_CLK_HDMI:
         default:
