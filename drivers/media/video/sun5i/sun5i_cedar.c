@@ -79,7 +79,7 @@ struct clk *dram_veclk = NULL;
 struct clk *avs_moduleclk = NULL;
 struct clk *hosc_clk = NULL;
 
-static unsigned long pll4clk_rate = 120000000;
+static unsigned long pll4clk_rate = 240000000;
 
 extern unsigned long ve_start;
 extern unsigned long ve_size;
@@ -1025,7 +1025,7 @@ static int __init cedardev_init(void)
 		printk("set parent of ve_moduleclk to ve_pll4clk failed!\n");		
 		return -EFAULT;
 	}
-	clk_set_rate(ve_moduleclk, pll4clk_rate);			
+	clk_set_rate(ve_moduleclk, pll4clk_rate/2);			
 	//	//macc PLL
 //	val = readl(0xf1c20018);
 //	val &= 0x7ffc0000;
