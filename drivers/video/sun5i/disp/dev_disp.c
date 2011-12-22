@@ -241,6 +241,8 @@ __s32 DRV_DISP_Init(void)
 
 	memset(&g_disp_drv, 0, sizeof(__disp_drv_t));
 
+    sys_put_wvalue(0xf1c20118, 1<<19);
+    
     BSP_disp_init(&para);
     BSP_disp_open();
 
