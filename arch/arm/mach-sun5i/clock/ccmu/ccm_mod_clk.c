@@ -830,8 +830,9 @@ static __aw_ccu_clk_reset_e mod_clk_get_reset(__aw_ccu_mod_clk_e id)
         case AW_MOD_CLK_LCD0CH0:
             return aw_ccu_reg->Lcd0Ch0Clk.LcdReset? AW_CCU_CLK_NRESET : AW_CCU_CLK_RESET;
         case AW_MOD_CLK_LCD0CH1_S1:
-        case AW_MOD_CLK_LCD0CH1_S2:
             return AW_CCU_CLK_NRESET;
+        case AW_MOD_CLK_LCD0CH1_S2:
+            return aw_ccu_reg->Lcd0Ch0Clk.TveReset? AW_CCU_CLK_NRESET : AW_CCU_CLK_RESET;
         case AW_MOD_CLK_CSI0:
             return aw_ccu_reg->Csi0Clk.Reset? AW_CCU_CLK_NRESET : AW_CCU_CLK_RESET;
         case AW_MOD_CLK_VE:
@@ -1620,7 +1621,6 @@ static __s32 mod_clk_set_reset(__aw_ccu_mod_clk_e id, __aw_ccu_clk_reset_e reset
         case AW_MOD_CLK_LCD0CH0:
         {
             aw_ccu_reg->Lcd0Ch0Clk.LcdReset = (reset == AW_CCU_CLK_RESET)? 0 : 1;
-            aw_ccu_reg->Lcd0Ch0Clk.TveReset = (reset == AW_CCU_CLK_RESET)? 0 : 1;
             return 0;
         }
         case AW_MOD_CLK_CSI0:
@@ -1644,8 +1644,11 @@ static __s32 mod_clk_set_reset(__aw_ccu_mod_clk_e id, __aw_ccu_clk_reset_e reset
             aw_ccu_reg->IepClk.Reset = (reset == AW_CCU_CLK_RESET)? 0 : 1;
             return 0;
 
-        case AW_MOD_CLK_LCD0CH1_S1:
         case AW_MOD_CLK_LCD0CH1_S2:
+            aw_ccu_reg->Lcd0Ch0Clk.TveReset = (reset == AW_CCU_CLK_RESET)? 0 : 1;
+            return 0;
+
+        case AW_MOD_CLK_LCD0CH1_S1:
         case AW_MOD_CLK_ADDA:
         case AW_MOD_CLK_AVS:
         case AW_MOD_CLK_HDMI:
