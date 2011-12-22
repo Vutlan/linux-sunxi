@@ -731,7 +731,7 @@ static __s32 sys_clk_set_rate(__aw_ccu_sys_clk_e id, __s64 rate)
 
                 tmpReg = *(volatile __u32 *)&aw_ccu_reg->Pll2Ctl;
                 tmpReg &= ~((0x1f<<0)|(0x7f<<8)|(0x0f<<26));
-                tmpReg |= (21<<0)|(79<<8)|(4<<26);
+                tmpReg |= (21<<0)|(79<<8)|(3<<26);
                 *(volatile __u32 *)&aw_ccu_reg->Pll2Ctl = tmpReg;
             }
             else if(rate == 24576000)
@@ -742,7 +742,7 @@ static __s32 sys_clk_set_rate(__aw_ccu_sys_clk_e id, __s64 rate)
 
                 tmpReg = *(volatile __u32 *)&aw_ccu_reg->Pll2Ctl;
                 tmpReg &= ~((0x1f<<0)|(0x7f<<8)|(0x0f<<26));
-                tmpReg |= (21<<0)|(86<<8)|(4<<26);
+                tmpReg |= (21<<0)|(86<<8)|(3<<26);
                 *(volatile __u32 *)&aw_ccu_reg->Pll2Ctl = tmpReg;
             }
             else
