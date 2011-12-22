@@ -79,7 +79,7 @@ struct clk *dram_veclk = NULL;
 struct clk *avs_moduleclk = NULL;
 struct clk *hosc_clk = NULL;
 
-static unsigned long pll4clk_rate = 720000000;
+static unsigned long pll4clk_rate = 120000000;
 
 extern unsigned long ve_start;
 extern unsigned long ve_size;
@@ -478,7 +478,7 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	struct cedarv_engine_task *task_ptr = NULL;
 #endif
 	unsigned long flags;
-		unsigned int val; 	
+		//unsigned int val; 	
 	devp = filp->private_data;
 	
 	switch (cmd)
@@ -601,14 +601,14 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			
 		case IOCTL_RESET_VE:					            
             clk_disable(dram_veclk);
-            //clk_reset(ve_moduleclk, 1);
-            //clk_reset(ve_moduleclk, 0);
+            clk_reset(ve_moduleclk, 1);
+            clk_reset(ve_moduleclk, 0);
             	/*********for fpga*********/
-	val = readl(0xf1c2013c);
-	val &= ~0x00000001;
-	writel(val,0xf1c2013c);	
-	val |= 0x00000001;
-	writel(val,0xf1c2013c);	
+//	val = readl(0xf1c2013c);
+//	val &= ~0x00000001;
+//	writel(val,0xf1c2013c);	
+//	val |= 0x00000001;
+//	writel(val,0xf1c2013c);	
 	/*********for fpga*********/
             clk_enable(dram_veclk);	
 		break;
