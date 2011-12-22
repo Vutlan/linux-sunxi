@@ -694,10 +694,9 @@ __s32 DE_SCAL_Set_Scaling_Coef(__u8 sel, __scal_scan_mod_t *in_scan, __scal_src_
 
 	//added for aw1625, wait ceof access
 	scal_dev[sel]->frm_ctrl.bits.coef_access_ctrl= 1; 
-	while(scal_dev[sel]->status.bits.coef_access_status == 0)
+	/*while(scal_dev[sel]->status.bits.coef_access_status == 0)
 	{
-	    OSAL_PRINTF("==\n");
-	}
+	}*/
     for(i=0; i<32; i++)
     {
 	    scal_dev[sel]->ch0_horzcoef0[i].dwval = fir_tab[(ch0h_fir_coef_addr>>2) + i];
@@ -709,7 +708,6 @@ __s32 DE_SCAL_Set_Scaling_Coef(__u8 sel, __scal_scan_mod_t *in_scan, __scal_src_
     }
 
 	scal_dev[sel]->frm_ctrl.bits.coef_access_ctrl = 0x0;
-    scal_dev[sel]->frm_ctrl.bits.coef_rdy_en = 0x1;
       
     return 0;
 }
