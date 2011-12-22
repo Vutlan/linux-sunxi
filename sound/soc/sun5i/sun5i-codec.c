@@ -338,21 +338,9 @@ static  int codec_init(void)
 	//enable PA
 	codec_wr_control(SUN5I_ADC_ACTL, 0x1, PA_ENABLE, 0x1);
 	codec_wr_control(SUN5I_DAC_FIFOC, 0x3, DRA_LEVEL,0x3);
-	
-	/***debug*2011-12-21 16:58:40***/
-	writel(0x8c105615,0xf1c20008);//0x8c005615
-	//writel(0x400,0xf1c22c18);
-	writel(0x80000000,0xf1c20140);
-	/****debug***/
-	//set volume
-//	if(codec_chip_ver == MAGIC_VER_A){
-//		codec_wr_control(SUN5I_DAC_ACTL, 0x6, VOLUME, 0x01);
-//	}else if(codec_chip_ver == MAGIC_VER_B){
-		codec_wr_control(SUN5I_DAC_ACTL, 0x6, VOLUME, 0x3b);
-//	}else{
-//		printk("[audio codec] chip version is unknown!\n");
-//		return -1;
-//	}	
+
+	codec_wr_control(SUN5I_DAC_ACTL, 0x6, VOLUME, 0x3b);
+
 	if(SCRIPT_AUDIO_OK != script_parser_fetch("audio_para", "audio_lr_change", &device_lr_change, sizeof(device_lr_change)/sizeof(int))){
 		printk("audiocodec_adap_awxx_init: script_parser_fetch err. \n");
 	    return -1;
@@ -445,18 +433,18 @@ static int codec_capture_stop(void)
 {
 	//disable adc drq
 	codec_wr_control(SUN5I_ADC_FIFOC ,0x1, ADC_DRQ, 0x0);
-	//enable mic1 pa
+	//disable mic1 pa
 	codec_wr_control(SUN5I_ADC_ACTL, 0x1, MIC1_EN, 0x0);
 
-	//enable VMIC
+	//disable VMIC
 	codec_wr_control(SUN5I_ADC_ACTL, 0x1, VMIC_EN, 0x0);
-	//enable adc digital
+	//disable adc digital
 	codec_wr_control(SUN5I_ADC_FIFOC, 0x1,ADC_DIG_EN, 0x0);
 	//set RX FIFO mode
 	codec_wr_control(SUN5I_ADC_FIFOC, 0x1, RX_FIFO_MODE, 0x0);
 	//flush RX FIFO
 	codec_wr_control(SUN5I_ADC_FIFOC, 0x1, ADC_FIFO_FLUSH, 0x0);
-	//enable adc1 analog
+	//disable adc1 analog
 	codec_wr_control(SUN5I_ADC_ACTL, 0x3,  ADC_EN, 0x0);
 	return 0;
 }
@@ -641,7 +629,7 @@ static void sun5i_audio_play_buffdone(struct sw_dma_chan *channel,
 {
 	struct sun5i_playback_runtime_data *play_prtd;
 	struct snd_pcm_substream *substream = dev_id;
-//printk("%s,%d\n", __func__, __LINE__);
+
 	if (result == SW_RES_ABORT || result == SW_RES_ERR)
 		return;
 		
@@ -800,8 +788,7 @@ static int snd_sun5i_codec_prepare(struct	snd_pcm_substream	*substream)
 				reg_val = readl(baseaddr + SUN5I_DAC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(0<<29);
-				writel(reg_val, baseaddr + SUN5I_DAC_FIFOC);
-				
+				writel(reg_val, baseaddr + SUN5I_DAC_FIFOC);				
 				break;
 			case 22050:
 				clk_set_rate(codec_pll2clk, 22579200);
@@ -1091,15 +1078,6 @@ static int snd_sun5i_codec_trigger(struct snd_pcm_substream *substream, int cmd)
 				}
 				//pa unmute
 				codec_wr_control(SUN5I_DAC_ACTL, 0x1, PA_MUTE, 0x1);	
-				printk("%s,%d\n", __func__, __LINE__);
-				printk("0xf1c20008 is:%x\n", *(volatile int *)0xf1c20008);
-				printk("0xf1c22c00 is:%x\n", *(volatile int *)0xf1c22c00);
-				printk("0xf1c22c04 is:%x\n", *(volatile int *)0xf1c22c04);
-				printk("0xf1c22c10 is:%x\n", *(volatile int *)0xf1c22c10);
-				printk("0xf1c22c18 is:%x\n", *(volatile int *)0xf1c22c18);
-				printk("0xf1c22c28 is:%x\n", *(volatile int *)0xf1c22c28);
-				printk("0xf1c20068 is:%x\n", *(volatile int *)0xf1c20068);
-				printk("0xf1c20140 is:%x\n", *(volatile int *)0xf1c20140);
 				break;
 			case SNDRV_PCM_TRIGGER_SUSPEND:				
 				codec_play_stop();				
