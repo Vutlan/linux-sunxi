@@ -762,7 +762,7 @@ static __s64 mod_clk_get_rate(__aw_ccu_mod_clk_e id)
         case AW_MOD_CLK_CSI0:
             return aw_ccu_reg->Csi0Clk.ClkDiv + 1;
         case AW_MOD_CLK_VE:
-            return 1;
+            return (aw_ccu_reg->VeClk.ClkDiv + 1);
         case AW_MOD_CLK_ADDA:
         case AW_MOD_CLK_AVS:
             return 1;
@@ -1518,7 +1518,14 @@ static __s32 mod_clk_set_rate(__aw_ccu_mod_clk_e id, __s64 rate)
             return 0;
         }
         case AW_MOD_CLK_VE:
-            return (rate == 1)? 0 : -1;
+        {
+            if((rate < 1) || (rate > 8))
+            {
+                return -1;
+            }
+            aw_ccu_reg->VeClk.ClkDiv = rate-1;
+            return 0;
+        }
         case AW_MOD_CLK_HDMI:
         {
             if((rate < 1) || (rate > 16))
