@@ -233,7 +233,7 @@ int Hdmi_run_thread(void *parg)
 	return 0;
 }
 
-//extern void audio_set_hdmi_func(__audio_hdmi_func * hdmi_func);
+extern void audio_set_hdmi_func(__audio_hdmi_func * hdmi_func);
 extern __s32 disp_set_hdmi_func(__disp_hdmi_func * func);
 
 __s32 Hdmi_init(void)
@@ -261,7 +261,7 @@ __s32 Hdmi_init(void)
 
     audio_func.hdmi_audio_enable = Hdmi_Audio_Enable;
     audio_func.hdmi_set_audio_para = Hdmi_Set_Audio_Para;
-	//audio_set_hdmi_func(&audio_func);
+	audio_set_hdmi_func(&audio_func);
 
 	disp_func.Hdmi_open = Hdmi_open;
 	disp_func.Hdmi_close = Hdmi_close;
