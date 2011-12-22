@@ -694,9 +694,9 @@ __s32 DE_SCAL_Set_Scaling_Coef(__u8 sel, __scal_scan_mod_t *in_scan, __scal_src_
 
 	//added for aw1625, wait ceof access
 	scal_dev[sel]->frm_ctrl.bits.coef_access_ctrl= 1; 
-    mdelay(1);
 	while(scal_dev[sel]->status.bits.coef_access_status == 0)
 	{
+	    OSAL_PRINTF("==\n");
 	}
     for(i=0; i<32; i++)
     {
