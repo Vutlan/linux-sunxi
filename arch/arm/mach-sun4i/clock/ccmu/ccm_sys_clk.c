@@ -1239,6 +1239,8 @@ __aw_ccu_err_e aw_ccu_set_sys_clk(__aw_ccu_clk_t *clk)
             goto _restore_clk_pare;
         }
 
+        /* update clock parent */
+        clk->parent = sys_clk_get_parent(clk->id);
         /* update clock rate */
         clk->rate = sys_clk_get_rate(clk->id);
         /* update clock status */
@@ -1254,6 +1256,8 @@ __aw_ccu_err_e aw_ccu_set_sys_clk(__aw_ccu_clk_t *clk)
             CCU_ERR("try to set %s rate to %lld failed!\n", clk->name, clk->rate);
             goto _restore_clk_pare;
         }
+        /* update clock rate */
+        clk->rate = sys_clk_get_rate(clk->id);
         /* update clock status */
         clk->onoff = sys_clk_get_status(clk->id);
         return AW_CCU_ERR_NONE;
@@ -1267,6 +1271,8 @@ __aw_ccu_err_e aw_ccu_set_sys_clk(__aw_ccu_clk_t *clk)
             CCU_ERR("try to set %s status to %d failed!\n", clk->name, clk->onoff);
             goto _restore_clk_pare;
         }
+        /* update clock status */
+        clk->onoff = sys_clk_get_status(clk->id);
         return AW_CCU_ERR_NONE;
     }
 
