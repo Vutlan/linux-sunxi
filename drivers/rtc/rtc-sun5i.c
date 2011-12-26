@@ -18,7 +18,7 @@
 #include <linux/bcd.h>
 #include <linux/rtc.h>
 #include <linux/slab.h>
-
+#include <mach/sys_config.h>
 #define DRV_VERSION "0.4.3"
 
 /*¿ØÖÆ·½Ê½¼Ä´æÆ÷*/
@@ -50,8 +50,15 @@
 #define PCF8563_SC_LV		0x80 /* low voltage */
 #define PCF8563_MO_C		0x80 /* century */
 
+#define RTC_NAME	"pcf8563"
+
 static struct i2c_driver pcf8563_driver;
-//static int sun5i_rtc_alarmno = NO_IRQ;
+static __u32 twi_id = 0;
+/* Addresses to scan */
+static union{
+	unsigned short dirty_addr_buf[2];
+	const unsigned short normal_i2c[2];
+}u_i2c_addr = {{0x00},};
 struct pcf8563 {
 	struct rtc_device *rtc;
 	/*
@@ -70,29 +77,90 @@ struct pcf8563 {
 	 */
 	int c_polarity;	/* 0: MO_C=1 means 19xx, otherwise MO_C=1 means 20xx */
 };
-#if 0
-/* IRQ Handlers, irq no. is shared with timer2 */
-static irqreturn_t sun5ii_rtc_alarmirq(int irq, void *id)
+
+/**
+ * rtc_fetch_sysconfig_para - get config info from sysconfig.fex file.
+ * return value:  
+ *                    = 0; success;
+ *                    < 0; err
+ */
+static int rtc_fetch_sysconfig_para(void)
 {
-//	struct rtc_device *rdev = id;
-//	u32 val;
-//
-//    /*judge the int is whether ours*/
-//    val = readl(sunxi_rtc_base + SUNXI_ALARM_INT_STATUS_REG)&(RTC_ENABLE_WK_IRQ | RTC_ENABLE_CNT_IRQ);
-//    if (val) {
-//		/*Clear pending count alarm*/
-//		val = readl(sunxi_rtc_base + SUNXI_ALARM_INT_STATUS_REG);//0x11c
-//		val |= (RTC_ENABLE_CNT_IRQ);	//0x00000001
-//		writel(val, sunxi_rtc_base + SUNXI_ALARM_INT_STATUS_REG);
-//		
-//		rtc_update_irq(rdev, 1, RTC_AF | RTC_IRQF);
-//		return IRQ_HANDLED;
-//    } else {
-//        return IRQ_NONE;
-//    }
-	return IRQ_NONE;
+	int ret = -1;
+	int device_used = -1;
+	__u32 twi_addr = 0;
+
+	char name[I2C_NAME_SIZE];
+	script_parser_value_type_t type = SCIRPT_PARSER_VALUE_TYPE_STRING;
+	
+	//__u32 twi_id = 0;
+
+	printk("========HV Inital ===================\n");
+	if(SCRIPT_PARSER_OK != script_parser_fetch("rtc_para", "rtc_used", &device_used, 1)){
+	                printk("rtc: script_parser_fetch err. \n");
+	                goto script_parser_fetch_err;
+	}
+	if(1 == device_used){
+		if(SCRIPT_PARSER_OK != script_parser_fetch_ex("rtc_para", "rtc_name", (int *)(&name), &type, sizeof(name)/sizeof(int))){
+			pr_err("%s: script_parser_fetch err. \n", __func__);
+			goto script_parser_fetch_err;
+		}
+		if(strcmp(RTC_NAME, name)){
+			pr_err("%s: name %s does not match HV_NAME. \n", __func__, name);
+			pr_err(RTC_NAME);
+			//ret = 1;
+			return ret;
+		}
+		if(SCRIPT_PARSER_OK != script_parser_fetch("rtc_para", "rtc_twi_addr", &twi_addr, sizeof(twi_addr)/sizeof(__u32))){
+			pr_err("%s: script_parser_fetch err. \n", name);
+			goto script_parser_fetch_err;
+		}
+		u_i2c_addr.dirty_addr_buf[0] = twi_addr;
+		u_i2c_addr.dirty_addr_buf[1] = I2C_CLIENT_END;
+		printk("%s: after: tkey_twi_addr is 0x%x, dirty_addr_buf: 0x%hx. dirty_addr_buf[1]: 0x%hx \n", \
+		__func__, twi_addr, u_i2c_addr.dirty_addr_buf[0], u_i2c_addr.dirty_addr_buf[1]);
+		
+		if(SCRIPT_PARSER_OK != script_parser_fetch("rtc_para", "rtc_twi_id", &twi_id, 1)){
+			pr_err("%s: script_parser_fetch err. \n", name);
+			goto script_parser_fetch_err;
+		}
+		printk("%s: rtc_twi_id is %d. \n", __func__, twi_id);
+		
+	}else{
+		pr_err("%s: rtc_unused. \n",  __func__);
+		ret = -1;
+	}
+	printk("%s:ok\n",__func__);
+	return 0;
+
+script_parser_fetch_err:
+	pr_notice("=========rtc script_parser_fetch_err============\n");
+	return ret;
 }
-#endif
+
+/**
+ * rtc_detect - Device detection callback for automatic device creation
+ * return value:  
+ *                    = 0; success;
+ *                    < 0; err
+ */
+int rtc_detect(struct i2c_client *client, struct i2c_board_info *info)
+{
+	struct i2c_adapter *adapter = client->adapter;
+printk("%s,line:%d,twi_id:%d,adapter->nr:%d\n", __func__, __LINE__,twi_id,adapter->nr);
+	if(twi_id == adapter->nr)
+	{
+		pr_info("%s: Detected chip %s at adapter %d, address 0x%02x\n",\
+			 __func__, RTC_NAME, i2c_adapter_id(adapter), client->addr);
+printk("%s,line:%d\n", __func__, __LINE__);
+		strlcpy(info->type, RTC_NAME, I2C_NAME_SIZE);
+		return 0;
+	}else{
+		printk("%s,line:%d\n", __func__, __LINE__);
+		return -ENODEV;
+	}
+}
+
 /*
  * In the routines that deal directly with the pcf8563 hardware, we use
  * rtc_time -- month 0-11, hour 0-23, yr = calendar year-epoch.
@@ -212,59 +280,7 @@ static int pcf8563_set_datetime(struct i2c_client *client, struct rtc_time *tm)
 
 	return 0;
 }
-#if 0
-static int pcf8563_get_alarmtime(struct i2c_client *client, struct rtc_time *tm)
-{
-	return 0;
-}
 
-static int pcf8563_set_alarmtime(struct i2c_client *client, struct rtc_time *tm)
-{
-	struct rtc_time tm_now;
-	unsigned long time_now = 0;
-	unsigned long time_set = 0;
-	unsigned long time_gap = 0;
-	unsigned long time_gap_day = 0;
-	unsigned long time_gap_hour = 0;
-	unsigned long time_gap_minute = 0;
-	unsigned long time_gap_second = 0;   
-	int ret = 0;	
-	
-#ifdef RTC_ALARM_DEBUG    
-    printk("*****************************\n\n");
-    printk("line:%d,%s the alarm time: year:%d, month:%d, day:%d. hour:%d.minute:%d.second:%d\n",\
-    __LINE__, __func__, tm->tm_year, tm->tm_mon,\
-    	 tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);	  
-   	printk("*****************************\n\n");
-#endif
-
-    ret = pcf8563_get_datetime(client, &tm_now);
-    
-    ret = rtc_tm_to_time(tm, &time_set);
-    ret = rtc_tm_to_time(&tm_now, &time_now);
-    if(time_set <= time_now){
-    	printk("The time or date can`t set, The day has pass!!!\n");
-    	return -EINVAL;
-    }
-    time_gap = time_set - time_now;
-    time_gap_day = time_gap/(3600*24);//day
-    time_gap_hour = (time_gap - time_gap_day*24)/3600;//hour
-    time_gap_minute = (time_gap - time_gap_day*24*60 - time_gap_hour*60)/60;//minute
-    time_gap_second = time_gap - time_gap_day*24*60*60 - time_gap_hour*60*60-time_gap_minute*60;//second
-    if(time_gap_day > 255) {
-    	printk("The time or date can`t set, The day range of 0 to 255\n");
-    	return -EINVAL;
-    }
-
-#ifdef RTC_ALARM_DEBUG  		  
-   	printk("line:%d,%s year:%d, month:%d, day:%ld. hour:%ld.minute:%ld.second:%ld\n",\
-    __LINE__, __func__, tm->tm_year, tm->tm_mon,\
-    	 time_gap_day, time_gap_hour, time_gap_minute, time_gap_second);
-    printk("*****************************\n\n");	
-#endif
-	return 0;
-}
-#endif
 static int pcf8563_rtc_read_time(struct device *dev, struct rtc_time *tm)
 {
 	return pcf8563_get_datetime(to_i2c_client(dev), tm);
@@ -274,22 +290,10 @@ static int pcf8563_rtc_set_time(struct device *dev, struct rtc_time *tm)
 {
 	return pcf8563_set_datetime(to_i2c_client(dev), tm);
 }
-#if 0
-static int pcf8563_rtc_read_alarm(struct device *dev, struct rtc_time *tm)
-{
-	return pcf8563_get_alarmtime(to_i2c_client(dev), tm);
-}
 
-static int pcf8563_rtc_set_alarm(struct device *dev, struct rtc_time *tm)
-{
-	return pcf8563_set_alarmtime(to_i2c_client(dev), tm);
-}
-#endif
 static const struct rtc_class_ops pcf8563_rtc_ops = {
 	.read_time	= pcf8563_rtc_read_time,
 	.set_time	= pcf8563_rtc_set_time,
-//	.set_alarm	= pcf8563_rtc_set_alarm,
-//	.read_alarm = pcf8563_rtc_read_alarm,
 };
 
 static int pcf8563_probe(struct i2c_client *client,
@@ -297,9 +301,9 @@ static int pcf8563_probe(struct i2c_client *client,
 {
 	struct pcf8563 *pcf8563;	
 	int err = 0;
-//	sun5i_rtc_alarmno = SW_INT_IRQNO_ALARM;
-	dev_dbg(&client->dev, "%s\n", __func__);
 
+	dev_dbg(&client->dev, "%s\n", __func__);
+printk("%s,line:%d\n",__func__, __LINE__);
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C))
 		return -ENODEV;
 
@@ -318,12 +322,7 @@ static int pcf8563_probe(struct i2c_client *client,
 		err = PTR_ERR(pcf8563->rtc);
 		goto exit_kfree;
 	}
-//	err = request_irq(sun5i_rtc_alarmno, sun5ii_rtc_alarmirq,
-//			  IRQF_DISABLED,  "sun5i-rtc alarm", pcf8563->rtc);
-//	if (err) {
-//		printk("IRQ%d error %d\n", sun5i_rtc_alarmno, err);
-//		return err;
-//	}
+
 	return 0;
 
 exit_kfree:
@@ -345,23 +344,35 @@ static int pcf8563_remove(struct i2c_client *client)
 }
 
 static const struct i2c_device_id pcf8563_id[] = {
-	{ "pcf8563", 0 },
-	{ "rtc8564", 0 },
+	{ RTC_NAME, 0 },
 	{ }
 };
 MODULE_DEVICE_TABLE(i2c, pcf8563_id);
 
 static struct i2c_driver pcf8563_driver = {
-	.driver		= {
-		.name	= "rtc-pcf8563",
+	.class = I2C_CLASS_HWMON,
+	.driver			= {
+		.name		= RTC_NAME,
 	},
-	.probe		= pcf8563_probe,
-	.remove		= pcf8563_remove,
-	.id_table	= pcf8563_id,
+	.probe			= pcf8563_probe,
+	.remove			= pcf8563_remove,
+	.id_table		= pcf8563_id,
+	.address_list	= u_i2c_addr.normal_i2c,
 };
 
 static int __init pcf8563_init(void)
 {
+	
+	if(rtc_fetch_sysconfig_para()){
+		printk("%s,line:%d,err\n\n", __func__,__LINE__);
+		return -1;
+	}
+
+	printk("%s \n", __func__);
+	printk("%s: after fetch_sysconfig_para:  normal_i2c: 0x%hx. normal_i2c[1]: 0x%hx \n", \
+	__func__, u_i2c_addr.normal_i2c[0], u_i2c_addr.normal_i2c[1]);
+	pcf8563_driver.detect = rtc_detect;
+	
 	return i2c_add_driver(&pcf8563_driver);
 }
 
