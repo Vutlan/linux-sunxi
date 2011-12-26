@@ -323,7 +323,7 @@ int codec_rd_control(u32 reg, u32 bit, u32 *val)
 */
 static  int codec_init(void)
 {
-	int device_lr_change = 0;
+	//int device_lr_change = 0;
 	enum sw_ic_ver  codec_chip_ver = sw_get_ic_ver();
 	//enable dac digital 
 	codec_wr_control(SUN5I_DAC_DPC, 0x1, DAC_EN, 0x1);  
@@ -341,13 +341,13 @@ static  int codec_init(void)
 
 	codec_wr_control(SUN5I_DAC_ACTL, 0x6, VOLUME, 0x3b);
 
-	if(SCRIPT_AUDIO_OK != script_parser_fetch("audio_para", "audio_lr_change", &device_lr_change, sizeof(device_lr_change)/sizeof(int))){
-		printk("audiocodec_adap_awxx_init: script_parser_fetch err. \n");
-	    return -1;
-	}	
-	
-	if(device_lr_change)
-		codec_wr_control(SUN5I_DAC_DEBUG ,  0x1, DAC_CHANNEL, 0x1);
+//	if(SCRIPT_AUDIO_OK != script_parser_fetch("audio_para", "audio_lr_change", &device_lr_change, sizeof(device_lr_change)/sizeof(int))){
+//		printk("audiocodec_adap_awxx_init: script_parser_fetch err. \n");
+//	    return -1;
+//	}	
+//	
+//	if(device_lr_change)
+//		codec_wr_control(SUN5I_DAC_DEBUG ,  0x1, DAC_CHANNEL, 0x1);
 	return 0;
 }
 
