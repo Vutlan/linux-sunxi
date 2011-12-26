@@ -208,7 +208,7 @@ extern __s32 BSP_disp_lcd_close_after(__u32 sel);
 extern __lcd_flow_t * BSP_disp_lcd_get_close_flow(__u32 sel);
 extern __s32 BSP_disp_lcd_xy_switch(__u32 sel, __s32 mode);
 extern __s32 BSP_disp_set_gamma_table(__u32 sel, __u32 *gamtbl_addr,__u32 gamtbl_size);
-extern __s32 BSP_disp_lcd_set_bright(__u32 sel, __disp_lcd_bright_t  bright);
+extern __s32 BSP_disp_lcd_set_bright(__u32 sel, __u32  bright);
 extern __s32 BSP_disp_lcd_get_bright(__u32 sel);
 extern __s32 BSP_disp_lcd_set_src(__u32 sel, __disp_lcdc_src_t src);
 extern __s32 LCD_PWM_EN(__u32 sel, __bool b_en);

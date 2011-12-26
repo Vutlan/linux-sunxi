@@ -1249,11 +1249,11 @@ __s32 Disp_lcdc_init(__u32 sel)
             pwm_info.period_ns = 1000000 / gpanel_info[sel].lcd_pwm_freq;
             if(gpanel_info[sel].lcd_pwm_pol == 0)
             {
-                pwm_info.duty_ns = (DISP_LCD_BRIGHT_LEVEL12 * pwm_info.period_ns) / 16;
+                pwm_info.duty_ns = (192 * pwm_info.period_ns) / 256;
             }
             else
             {
-                pwm_info.duty_ns = ((16 - DISP_LCD_BRIGHT_LEVEL12) * pwm_info.period_ns) / 16;
+                pwm_info.duty_ns = ((256 - 192) * pwm_info.period_ns) / 256;
             }
             pwm_set_para(gpanel_info[sel].lcd_pwm_ch, &pwm_info);
         }
@@ -1719,27 +1719,22 @@ __s32 BSP_disp_lcd_xy_switch(__u32 sel, __s32 mode)
     return DIS_SUCCESS;
 }
 
-//setting:  0,       1,      2,....  14,   15
-//pol==0:  0,       2,      3,....  15,   16
-//pol==1: 16,    14,    13, ...   1,   0
-__s32 BSP_disp_lcd_set_bright(__u32 sel, __disp_lcd_bright_t  bright)
+//setting:  0,       1,      2,....  255,   256
+//pol==0:  0,       1,      2,....  255,   256
+//pol==1: 256,    255,    254, ...   1,   0
+__s32 BSP_disp_lcd_set_bright(__u32 sel, __u32  bright)
 {	    
     __u32 duty_ns;
     
     if((OSAL_sw_get_ic_ver() != 0xA) && (gpanel_info[sel].lcd_pwm_not_used == 0))
     {
-        if(bright != 0)
-        {
-            bright += 1;
-        }
-
         if(gpanel_info[sel].lcd_pwm_pol == 0)
         {
-            duty_ns = (bright * gdisp.pwm[gpanel_info[sel].lcd_pwm_ch].period_ns + 8) / 16;
+            duty_ns = (bright * gdisp.pwm[gpanel_info[sel].lcd_pwm_ch].period_ns + 128) / 256;
         }
         else
         {
-            duty_ns = ((16 - bright) * gdisp.pwm[gpanel_info[sel].lcd_pwm_ch].period_ns + 8) / 16;
+            duty_ns = ((256- bright) * gdisp.pwm[gpanel_info[sel].lcd_pwm_ch].period_ns + 128) / 256;
         }
         pwm_set_duty_ns(gpanel_info[sel].lcd_pwm_ch, duty_ns);
     }

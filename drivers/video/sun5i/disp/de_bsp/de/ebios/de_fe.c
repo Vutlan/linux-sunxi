@@ -491,7 +491,6 @@ __s32 DE_SCAL_Set_Scaling_Factor(__u8 sel, __scal_scan_mod_t *in_scan, __scal_sr
 	return 0;
 }
 
-
 //*********************************************************************************************
 // function         : DE_SCAL_Set_Scaling_Coef(__u8 sel, __scal_scan_mod_t *in_scan, __scal_src_size_t *in_size,
 //                                             __scal_src_type_t *in_type, __scal_scan_mod_t *out_scan, 
@@ -522,7 +521,7 @@ __s32 DE_SCAL_Set_Scaling_Coef(__u8 sel, __scal_scan_mod_t *in_scan, __scal_src_
     __u32 ch0v_fir_coef_ofst, ch0h_fir_coef_ofst, ch1v_fir_coef_ofst, ch1h_fir_coef_ofst;
     __s32 fir_ofst_tmp;
     __u32 i;
-    
+
     in_w0 = in_size->scal_width;
     in_h0 = in_size->scal_height;
 
@@ -687,10 +686,10 @@ __s32 DE_SCAL_Set_Scaling_Coef(__u8 sel, __scal_scan_mod_t *in_scan, __scal_src_
     ch1h_fir_coef_ofst = (ch1h_fir_coef_ofst > (al1_size - 1)) ? (al1_size - 1) : ch1h_fir_coef_ofst;                                           
     
     //compute the fir coeficient address for each channel in horizontal and vertical direction
-    ch0v_fir_coef_addr = (ch0v_fir_coef_ofst<<7);
-    ch0h_fir_coef_addr = ((al1_size)<<7) + (ch0h_fir_coef_ofst<<8);
-    ch1v_fir_coef_addr = (ch1v_fir_coef_ofst<<7);
-    ch1h_fir_coef_addr = ((al1_size)<<7) + (ch1h_fir_coef_ofst<<8);
+    ch0v_fir_coef_addr =  (ch0v_fir_coef_ofst<<7);
+    ch0h_fir_coef_addr =  (ch0h_fir_coef_ofst<<7);
+    ch1v_fir_coef_addr =  (ch1v_fir_coef_ofst<<7);
+    ch1h_fir_coef_addr =  (ch1h_fir_coef_ofst<<7);
 
 	//added for aw1625, wait ceof access
 	scal_dev[sel]->frm_ctrl.bits.coef_access_ctrl= 1; 
@@ -700,10 +699,8 @@ __s32 DE_SCAL_Set_Scaling_Coef(__u8 sel, __scal_scan_mod_t *in_scan, __scal_src_
     for(i=0; i<32; i++)
     {
 	    scal_dev[sel]->ch0_horzcoef0[i].dwval = fir_tab[(ch0h_fir_coef_addr>>2) + i];
-		//scal_dev[sel]->ch0_horzcoef1[i].dwval = fir_tab[(ch0h_fir_coef_addr>>2) + 2*i + 1];
         scal_dev[sel]->ch0_vertcoef[i].dwval  = fir_tab[(ch0v_fir_coef_addr>>2) + i];
 		scal_dev[sel]->ch1_horzcoef0[i].dwval = fir_tab[(ch1h_fir_coef_addr>>2) + i];
-		//scal_dev[sel]->ch1_horzcoef1[i].dwval = fir_tab[(ch1h_fir_coef_addr>>2) + 2*i + 1];
         scal_dev[sel]->ch1_vertcoef[i].dwval  = fir_tab[(ch1v_fir_coef_addr>>2) + i];
     }
 
