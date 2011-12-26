@@ -223,7 +223,7 @@ void sunximmc_procfs_attach(struct sunxi_mmc_host *smc_host)
 void sunximmc_procfs_remove(struct sunxi_mmc_host *smc_host)
 {
     struct device *dev = &smc_host->pdev->dev;
-    char sunximmc_proc_rootname[16] = {0};
+    char sunximmc_proc_rootname[32] = {0};
 
     snprintf(sunximmc_proc_rootname, sizeof(sunximmc_proc_rootname), "driver/%s", dev_name(dev));
     remove_proc_entry("insert", smc_host->proc_root);
