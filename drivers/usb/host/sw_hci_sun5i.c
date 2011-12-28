@@ -52,17 +52,17 @@
 #include <mach/sys_config.h>
 
 #include  "sw_hci_sun5i.h"
+#define  USB_CONTROLLER_NUM         2
+static char* usbc_name[USB_CONTROLLER_NUM] 			= {"usbc0", "usbc1"};
+static char* usbc_ahb_ehci_name[USB_CONTROLLER_NUM]  = {"", "ahb_ehci0"};
+static char* usbc_ahb_ohci_name[USB_CONTROLLER_NUM]  = {"", "ahb_ohci0"};
+static char* usbc_phy_gate_name[USB_CONTROLLER_NUM] 	= {"usb_phy", "usb_phy"};
+static char* ohci_phy_gate_name[USB_CONTROLLER_NUM]  = {"", "usb_ohci0"};
+static char* usbc_phy_reset_name[USB_CONTROLLER_NUM] = {"usb_phy0", "usb_phy1"};
 
-static char* usbc_name[3] 			= {"usbc0", "usbc1", "usbc2"};
-static char* usbc_ahb_ehci_name[3]  = {"", "ahb_ehci0", "ahb_ehci1"};
-static char* usbc_ahb_ohci_name[3]  = {"", "ahb_ohci0", "ahb_ohci1"};
-static char* usbc_phy_gate_name[3] 	= {"usb_phy1", "usb_phy1", "usb_phy1"};
-static char* ohci_phy_gate_name[3]  = {"", "usb_ohci0", "usb_ohci1"};
-static char* usbc_phy_reset_name[3] = {"usb_phy1", "usb_phy1", "usb_phy1"};
-
-static u32 usbc_base[3] 			= {SW_VA_USB0_IO_BASE, SW_VA_USB1_IO_BASE, SW_VA_USB2_IO_BASE};
-static u32 ehci_irq_no[3] 			= {0, SW_INT_SRC_EHCI0, SW_INT_SRC_EHCI1};
-static u32 ohci_irq_no[3] 			= {0, SW_INT_SRC_OHCI0, SW_INT_SRC_OHCI1};
+static u32 usbc_base[USB_CONTROLLER_NUM] 			= {SW_VA_USB0_IO_BASE, SW_VA_USB1_IO_BASE};
+static u32 ehci_irq_no[USB_CONTROLLER_NUM] 			= {0, SW_INT_SRC_EHCI0};
+static u32 ohci_irq_no[USB_CONTROLLER_NUM] 			= {0, SW_INT_SRC_OHCI0};
 
 u32 usb1_drv_vbus_Handle = 0;
 u32 usb2_drv_vbus_Handle = 0;
@@ -344,7 +344,7 @@ static void UsbPhyInit(__u32 usbc_no)
 
 	return;
 }
-#if 0
+#if 1
 /*
 *******************************************************************************
 *                     clock_init
@@ -365,33 +365,33 @@ static void UsbPhyInit(__u32 usbc_no)
 */
 static s32 clock_init(struct sw_hci_hcd *sw_hci, u32 ohci)
 {
-    if(ohci){  /* ohci */
-    	sw_hci->sie_clk = clk_get(NULL, "ahb_ohci0");
+ if(ohci){  /* ohci */
+    	sw_hci->sie_clk = clk_get(NULL, usbc_ahb_ohci_name[sw_hci->usbc_no]);
     	if (IS_ERR(sw_hci->sie_clk)){
     		DMSG_PANIC("ERR: get ohci%d abh clk failed.\n", (sw_hci->usbc_no - 1));
     		goto failed;
     	}
 
-    	sw_hci->ohci_gate = clk_get(NULL, "usb_ohci0");
+    	sw_hci->ohci_gate = clk_get(NULL, ohci_phy_gate_name[sw_hci->usbc_no]);
     	if (IS_ERR(sw_hci->ohci_gate)){
     		DMSG_PANIC("ERR: get ohci%d gate clk failed.\n", (sw_hci->usbc_no - 1));
     		goto failed;
     	}
 	}else{  /* ehci */
-    	sw_hci->sie_clk = clk_get(NULL, "ahb_ehci0");
+    	sw_hci->sie_clk = clk_get(NULL, usbc_ahb_ehci_name[sw_hci->usbc_no]);
     	if (IS_ERR(sw_hci->sie_clk)){
     		DMSG_PANIC("ERR: get ehci%d abh clk failed.\n", (sw_hci->usbc_no - 1));
     		goto failed;
     	}
 	}
 
-	sw_hci->phy_gate = clk_get(NULL, "usb_phy1");
+	sw_hci->phy_gate = clk_get(NULL, usbc_phy_gate_name[sw_hci->usbc_no]);
 	if (IS_ERR(sw_hci->phy_gate)){
 		DMSG_PANIC("ERR: get usb%d phy_gate failed.\n", sw_hci->usbc_no);
 		goto failed;
 	}
 
-	sw_hci->phy_reset = clk_get(NULL, "usb_phy1");
+	sw_hci->phy_reset = clk_get(NULL, usbc_phy_reset_name[sw_hci->usbc_no]);
 	if (IS_ERR(sw_hci->phy_reset)){
 		DMSG_PANIC("ERR: get usb%d phy_reset failed.\n", sw_hci->usbc_no);
 		goto failed;
@@ -493,18 +493,8 @@ static int open_clock(struct sw_hci_hcd *sw_hci, u32 ohci)
         sw_hci->clk_is_open = 1;
 
  	    clk_enable(sw_hci->phy_gate);
-		DMSG_DEBUG("[%s]: open clock, 0x60(0x%x), 0xcc(0x%x)\n",
-				  sw_hci->hci_name,
-				  (u32)USBC_Readl(SW_VA_CCM_IO_BASE + 0x60),
-				  (u32)USBC_Readl(SW_VA_CCM_IO_BASE + 0xcc));
-
 	    clk_enable(sw_hci->phy_reset);
-		clk_reset(sw_hci->phy_reset, 0);
-		DMSG_DEBUG("[%s]: open clock, 0x60(0x%x), 0xcc(0x%x)\n",
-				  sw_hci->hci_name,
-				  (u32)USBC_Readl(SW_VA_CCM_IO_BASE + 0x60),
-				  (u32)USBC_Readl(SW_VA_CCM_IO_BASE + 0xcc));
-
+		  clk_reset(sw_hci->phy_reset, 0);
 
         if(ohci && sw_hci->ohci_gate){
             clk_enable(sw_hci->ohci_gate);

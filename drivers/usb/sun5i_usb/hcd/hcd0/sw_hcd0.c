@@ -106,7 +106,7 @@ static void sw_hcd_save_context(struct sw_hcd *sw_hcd);
 static void sw_hcd_restore_context(struct sw_hcd *sw_hcd);
 
 
-#if 0
+#if 1
 static s32 usb_clock_init(sw_hcd_io_t *sw_hcd_io)
 {
 	sw_hcd_io->sie_clk = clk_get(NULL, "ahb_usb0");
@@ -115,7 +115,7 @@ static s32 usb_clock_init(sw_hcd_io_t *sw_hcd_io)
 		goto failed;
 	}
 
-	sw_hcd_io->phy_clk = clk_get(NULL, "usb_phy1");
+	sw_hcd_io->phy_clk = clk_get(NULL, "usb_phy");
 	if (IS_ERR(sw_hcd_io->phy_clk)){
 		DMSG_PANIC("ERR: get usb phy clk failed.\n");
 		goto failed;
@@ -196,7 +196,7 @@ static s32 open_usb_clock(sw_hcd_io_t *sw_hcd_io)
 
 	    clk_enable(sw_hcd_io->phy_clk);
 	    clk_enable(sw_hcd_io->phy0_clk);
-		clk_reset(sw_hcd_io->phy0_clk, 0);
+		  clk_reset(sw_hcd_io->phy0_clk, 0);
 		mdelay(10);
 
 		sw_hcd_io->clk_is_open = 1;
@@ -239,9 +239,9 @@ static s32 close_usb_clock(sw_hcd_io_t *sw_hcd_io)
  	DMSG_INFO_HCD0("close_usb_clock\n");
 
 	if(sw_hcd_io->sie_clk && sw_hcd_io->phy_clk && sw_hcd_io->phy0_clk && sw_hcd_io->clk_is_open){
-		clk_reset(sw_hcd_io->phy0_clk, 1);
+		  clk_reset(sw_hcd_io->phy0_clk, 1);
 	    clk_disable(sw_hcd_io->phy0_clk);
-	    clk_disable(sw_hcd_io->phy_clk);
+	    //clk_disable(sw_hcd_io->phy_clk);
 	    clk_disable(sw_hcd_io->sie_clk);
 		sw_hcd_io->clk_is_open = 0;
 	}else{

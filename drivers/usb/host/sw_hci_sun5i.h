@@ -138,9 +138,9 @@
 //   interrupt register
 //-----------------------------------------------------------------------
 #define SW_INT_SRC_EHCI0            		39
-#define SW_INT_SRC_OHCI0                    64
-#define SW_INT_SRC_EHCI1            		40
-#define SW_INT_SRC_OHCI1                    65
+#define SW_INT_SRC_OHCI0                    40
+//#define SW_INT_SRC_EHCI1            		40
+//#define SW_INT_SRC_OHCI1                    65
 
 //-----------------------------------------------------------------------
 //   SDRAM Control register

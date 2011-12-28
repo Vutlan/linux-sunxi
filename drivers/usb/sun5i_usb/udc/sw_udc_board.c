@@ -46,7 +46,7 @@
 
 #define res_size(_r) (((_r)->end - (_r)->start) + 1)
 
-#if 0
+#if 1
 /*
 *******************************************************************************
 *                     open_usb_clock
@@ -122,7 +122,7 @@ u32 close_usb_clock(sw_udc_io_t *sw_udc_io)
 
 	    clk_reset(sw_udc_io->phy0_clk, 1);
 	    clk_disable(sw_udc_io->phy0_clk);
-	    clk_disable(sw_udc_io->phy_clk);
+	    //clk_disable(sw_udc_io->phy_clk);
 	    clk_disable(sw_udc_io->sie_clk);
 	}else{
 		DMSG_PANIC("ERR: clock handle is null, sie_clk(0x%p), phy_clk(0x%p), phy0_clk(0x%p), open(%d)\n",
@@ -368,7 +368,7 @@ __s32 sw_udc_io_init(__u32 usbc_no, struct platform_device *pdev, sw_udc_io_t *s
 		goto io_failed;
 	}
 
-	sw_udc_io->phy_clk = clk_get(NULL, "usb_phy1");
+	sw_udc_io->phy_clk = clk_get(NULL, "usb_phy");
 	if (IS_ERR(sw_udc_io->phy_clk)){
 		DMSG_PANIC("ERR: get usb phy clk failed.\n");
 		goto io_failed;
