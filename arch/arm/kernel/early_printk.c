@@ -16,8 +16,13 @@
 
 void sw_put_char(u8 val)
 {
+#ifdef CONFIG_SUN5I_A13
+	while ((SW_UART1_USR & 0x2) == 0);
+		SW_UART1_THR = val;
+#else
 	while ((SW_UART0_USR & 0x2) == 0);
 		SW_UART0_THR = val;
+#endif
 }
 
 void sw_put_string(char *buf, int n)

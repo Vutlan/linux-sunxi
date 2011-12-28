@@ -35,8 +35,13 @@
 /* uart */
 static struct plat_serial8250_port debug_uart_platform_data[] = {
 	{
-		.membase	= (void __iomem *)SW_VA_UART0_IO_BASE,
-		.irq		= SW_INT_IRQNO_UART0,
+#ifdef CONFIG_SUN5I_A13
+		.membase	= (void __iomem *)SW_VA_UART1_IO_BASE,
+		.irq		= SW_INT_IRQNO_UART1,
+#else
+		.membase        = (void __iomem *)SW_VA_UART0_IO_BASE,
+		.irq            = SW_INT_IRQNO_UART0,
+#endif
 		.flags		= UPF_BOOT_AUTOCONF,
 		.iotype		= UPIO_MEM32,
 		.regshift	= 2,
