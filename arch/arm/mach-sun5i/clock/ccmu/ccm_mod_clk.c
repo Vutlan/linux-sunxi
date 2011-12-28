@@ -848,6 +848,8 @@ static __aw_ccu_clk_reset_e mod_clk_get_reset(__aw_ccu_mod_clk_e id)
             return aw_ccu_reg->MaliClk.Reset? AW_CCU_CLK_NRESET : AW_CCU_CLK_RESET;
 
         case AW_MOD_CLK_IEP:
+            return aw_ccu_reg->IepClk.Reset? AW_CCU_CLK_NRESET : AW_CCU_CLK_RESET;
+
         default:
             return AW_CCU_CLK_NRESET;
     }
