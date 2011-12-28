@@ -237,11 +237,6 @@
 #define SW_UART0_THR                      (*(volatile unsigned int *)(SW_VA_UART0_IO_BASE + 0x00))
 #define SW_UART0_LSR                      (*(volatile unsigned int *)(SW_VA_UART0_IO_BASE + 0x14))
 #define SW_UART0_USR                      (*(volatile unsigned int *)(SW_VA_UART0_IO_BASE + 0x7c))
-#define SW_UART1_THR                      (*(volatile unsigned int *)(SW_VA_UART1_IO_BASE + 0x00))
-#define SW_UART1_LSR                      (*(volatile unsigned int *)(SW_VA_UART1_IO_BASE + 0x14))
-#define SW_UART1_USR                      (*(volatile unsigned int *)(SW_VA_UART1_IO_BASE + 0x7c))
-
-
 
 #define SW_UART1_THR                      (*(volatile unsigned int *)(SW_VA_UART1_IO_BASE + 0x00))
 #define SW_UART1_LSR                      (*(volatile unsigned int *)(SW_VA_UART1_IO_BASE + 0x14))
