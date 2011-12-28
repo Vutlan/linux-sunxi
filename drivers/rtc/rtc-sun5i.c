@@ -95,7 +95,7 @@ static int rtc_fetch_sysconfig_para(void)
 	
 	//__u32 twi_id = 0;
 
-	printk("========HV Inital ===================\n");
+	printk("========RTC Inital ===================\n");
 	if(SCRIPT_PARSER_OK != script_parser_fetch("rtc_para", "rtc_used", &device_used, 1)){
 	                printk("rtc: script_parser_fetch err. \n");
 	                goto script_parser_fetch_err;
@@ -107,8 +107,6 @@ static int rtc_fetch_sysconfig_para(void)
 		}
 		if(strcmp(RTC_NAME, name)){
 			pr_err("%s: name %s does not match HV_NAME. \n", __func__, name);
-			pr_err(RTC_NAME);
-			//ret = 1;
 			return ret;
 		}
 		if(SCRIPT_PARSER_OK != script_parser_fetch("rtc_para", "rtc_twi_addr", &twi_addr, sizeof(twi_addr)/sizeof(__u32))){
@@ -117,7 +115,7 @@ static int rtc_fetch_sysconfig_para(void)
 		}
 		u_i2c_addr.dirty_addr_buf[0] = twi_addr;
 		u_i2c_addr.dirty_addr_buf[1] = I2C_CLIENT_END;
-		printk("%s: after: tkey_twi_addr is 0x%x, dirty_addr_buf: 0x%hx. dirty_addr_buf[1]: 0x%hx \n", \
+		printk("%s: after: rtc_twi_addr is 0x%x, dirty_addr_buf: 0x%hx. dirty_addr_buf[1]: 0x%hx \n", \
 		__func__, twi_addr, u_i2c_addr.dirty_addr_buf[0], u_i2c_addr.dirty_addr_buf[1]);
 		
 		if(SCRIPT_PARSER_OK != script_parser_fetch("rtc_para", "rtc_twi_id", &twi_id, 1)){
@@ -174,49 +172,39 @@ static int pcf8563_get_datetime(struct i2c_client *client, struct rtc_time *tm)
 {
 	struct pcf8563 *pcf8563 = i2c_get_clientdata(client);
 	unsigned char buf[13] = { PCF8563_REG_ST1 };
-
+	int ret;
 	struct i2c_msg msgs[] = {
 		{ client->addr, 0, 1, buf },	/* setup read ptr */
 		{ client->addr, I2C_M_RD, 13, buf },	/* read status + date */
 	};
-
+	ret = i2c_transfer(client->adapter, msgs, 2); 
 	/* read registers */
-	if ((i2c_transfer(client->adapter, msgs, 2)) != 2) {
-		dev_err(&client->dev, "%s: read error\n", __func__);
+	if (ret != 2) {
+		dev_err(&client->dev, "%s: read error,ret:%d\n", __func__,ret);
 		return -EIO;
 	}
 
 	if (buf[PCF8563_REG_SC] & PCF8563_SC_LV)
 		dev_info(&client->dev,
 			"low voltage detected, date/time is not reliable.\n");
-
-	dev_dbg(&client->dev,
-		"%s: raw data is st1=%02x, st2=%02x, sec=%02x, min=%02x, hr=%02x, "
-		"mday=%02x, wday=%02x, mon=%02x, year=%02x\n",
-		__func__,
-		buf[0], buf[1], buf[2], buf[3],
-		buf[4], buf[5], buf[6], buf[7],
-		buf[8]);
- 
-
+	printk("%s,raw data is st1=%02x, st2=%02x, sec=%02x, min=%02x, hr=%02x, mday=%02x, wday=%02x, mon=%02x, year=%02x\n",\
+	 __func__,buf[0], buf[1], buf[2], buf[3],buf[4], buf[5], buf[6], buf[7],buf[8]);
+	
 	tm->tm_sec = bcd2bin(buf[PCF8563_REG_SC] & 0x7F);
 	tm->tm_min = bcd2bin(buf[PCF8563_REG_MN] & 0x7F);
 	tm->tm_hour = bcd2bin(buf[PCF8563_REG_HR] & 0x3F); /* rtc hr 0-23 */
 	tm->tm_mday = bcd2bin(buf[PCF8563_REG_DM] & 0x3F);
 	tm->tm_wday = buf[PCF8563_REG_DW] & 0x07;
-	tm->tm_mon = bcd2bin(buf[PCF8563_REG_MO] & 0x1F) - 1; /* rtc mn 1-12 */
+	tm->tm_mon = bcd2bin(buf[PCF8563_REG_MO] & 0x1F) - 1; /* month is 1..12 in RTC but 0..11 in linux*/
 	tm->tm_year = bcd2bin(buf[PCF8563_REG_YR]);
 	if (tm->tm_year < 70)
-		tm->tm_year += 100;	/* assume we are in 1970...2069 */
+		tm->tm_year += 110;	/* assume we are in 2010...2079 */
 	/* detect the polarity heuristically. see note above. */
 	pcf8563->c_polarity = (buf[PCF8563_REG_MO] & PCF8563_MO_C) ?
 		(tm->tm_year >= 100) : (tm->tm_year < 100);
 
-	dev_dbg(&client->dev, "%s: tm is secs=%d, mins=%d, hours=%d, "
-		"mday=%d, mon=%d, year=%d, wday=%d\n",
-		__func__,
-		tm->tm_sec, tm->tm_min, tm->tm_hour,
-		tm->tm_mday, tm->tm_mon, tm->tm_year, tm->tm_wday);
+	printk("%s: tm is secs=%d, mins=%d, hours=%d,mday=%d, mon=%d, year=%d, wday=%d\n",\
+		__func__,tm->tm_sec, tm->tm_min, tm->tm_hour, tm->tm_mday, tm->tm_mon, tm->tm_year, tm->tm_wday);
 
 	/* the clock can give out invalid datetime, but we cannot return
 	 * -EINVAL otherwise hwclock will refuse to set the time on bootup.
@@ -240,12 +228,101 @@ static int pcf8563_set_datetime(struct i2c_client *client, struct rtc_time *tm)
 	struct pcf8563 *pcf8563 = i2c_get_clientdata(client);
 	int i, err;
 	unsigned char buf[9];
+	int leap_year = 0;
+	
+	/*int tm_year; years from 1900
+    *int tm_mon; months since january 0-11
+    *the input para tm->tm_year is the offset related 1900;
+    */
+	leap_year = tm->tm_year + 1900;
+	if(leap_year > 2073 || leap_year < 2010) {
+		dev_err(&client->dev, "rtc only supports 63£¨2010¡«2073£© years\n");
+		return -EINVAL;
+	}
+	/*hardware base time:1900, but now set the default start time to 2010*/
+	tm->tm_year -= 110;
+	/* month is 1..12 in RTC but 0..11 in linux*/
+	tm->tm_mon  += 1;
+	
+	/*prevent the application seting the error time*/
+	if(tm->tm_mon > 12){
+		_dev_info(&client->dev, "set time month error:line:%d,%d-%d-%d %d:%d:%d\n",__LINE__,
+	       tm->tm_year + 2010, tm->tm_mon, tm->tm_mday,
+	       tm->tm_hour, tm->tm_min, tm->tm_sec);
+		switch(tm->tm_mon){
+			case 1:
+			case 3:
+			case 5:
+			case 7:
+			case 8:
+			case 10:
+			case 12:
+				if(tm->tm_mday > 31){
+					_dev_info(&client->dev, "set time day error:line:%d,%d-%d-%d %d:%d:%d\n",__LINE__,
+				       tm->tm_year + 2010, tm->tm_mon, tm->tm_mday,
+				       tm->tm_hour, tm->tm_min, tm->tm_sec);					
+				}
+				if((tm->tm_hour > 24)||(tm->tm_min > 59)||(tm->tm_sec > 59)){
+						_dev_info(&client->dev, "set time error:line:%d,%d-%d-%d %d:%d:%d\n",__LINE__,
+				       tm->tm_year + 2010, tm->tm_mon, tm->tm_mday,
+				       tm->tm_hour, tm->tm_min, tm->tm_sec);									
+				}
+				break;
+			case 4:
+			case 6:
+			case 9:
+			case 11:
+				if(tm->tm_mday > 30){
+					_dev_info(&client->dev, "set time day error:line:%d,%d-%d-%d %d:%d:%d\n",__LINE__,
+				       tm->tm_year + 2010, tm->tm_mon, tm->tm_mday,
+				       tm->tm_hour, tm->tm_min, tm->tm_sec);					
+				}
+				if((tm->tm_hour > 24)||(tm->tm_min > 59)||(tm->tm_sec > 59)){
+					_dev_info(&client->dev, "set time error:line:%d,%d-%d-%d %d:%d:%d\n",__LINE__,
+				       tm->tm_year + 2010, tm->tm_mon, tm->tm_mday,
+				       tm->tm_hour, tm->tm_min, tm->tm_sec);									
+				}
+				break;				
+			case 2:
+				if((leap_year%400==0) || ((leap_year%100!=0) && (leap_year%4==0))) {
+					if(tm->tm_mday > 28){
+						_dev_info(&client->dev, "set time day error:line:%d,%d-%d-%d %d:%d:%d\n",__LINE__,
+				       		tm->tm_year + 2010, tm->tm_mon, tm->tm_mday,
+				       		tm->tm_hour, tm->tm_min, tm->tm_sec);					
+					}
+					if((tm->tm_hour > 24)||(tm->tm_min > 59)||(tm->tm_sec > 59)){
+						_dev_info(&client->dev, "set time error:line:%d,%d-%d-%d %d:%d:%d\n",__LINE__,
+					       tm->tm_year + 2010, tm->tm_mon, tm->tm_mday,
+					       tm->tm_hour, tm->tm_min, tm->tm_sec);									
+					}
+				}else{
+					if(tm->tm_mday > 29){
+						_dev_info(&client->dev, "set time day error:line:%d,%d-%d-%d %d:%d:%d\n",__LINE__,
+					       tm->tm_year + 2010, tm->tm_mon, tm->tm_mday,
+					       tm->tm_hour, tm->tm_min, tm->tm_sec);					
+					}
+					if((tm->tm_hour > 24)||(tm->tm_min > 59)||(tm->tm_sec > 59)){
+						_dev_info(&client->dev, "set time error:line:%d,%d-%d-%d %d:%d:%d\n",__LINE__,
+					       tm->tm_year + 2010, tm->tm_mon, tm->tm_mday,
+					       tm->tm_hour, tm->tm_min, tm->tm_sec);									
+					}
 
-	dev_dbg(&client->dev, "%s: secs=%d, mins=%d, hours=%d, "
-		"mday=%d, mon=%d, year=%d, wday=%d\n",
-		__func__,
-		tm->tm_sec, tm->tm_min, tm->tm_hour,
-		tm->tm_mday, tm->tm_mon, tm->tm_year, tm->tm_wday);
+				}
+				break;
+			default:				
+				break;
+		}
+		/*if the set date error,set the default time:2010:01:01:00:00:00*/
+		tm->tm_sec  = 0;
+		tm->tm_min  = 0;
+		tm->tm_hour = 0;		
+		tm->tm_mday = 1;
+		tm->tm_mon  = 1;
+		tm->tm_year = 110;// 2010 = 1900 + 110
+	}
+		
+	printk("%s: secs=%d, mins=%d, hours=%d, mday=%d, mon=%d, year=%d\n",\
+		__func__,tm->tm_sec, tm->tm_min, tm->tm_hour, tm->tm_mday, tm->tm_mon, tm->tm_year);
 
 	/* hours, minutes and seconds */
 	buf[PCF8563_REG_SC] = bin2bcd(tm->tm_sec);
@@ -255,14 +332,14 @@ static int pcf8563_set_datetime(struct i2c_client *client, struct rtc_time *tm)
 	buf[PCF8563_REG_DM] = bin2bcd(tm->tm_mday);
 
 	/* month, 1 - 12 */
-	buf[PCF8563_REG_MO] = bin2bcd(tm->tm_mon + 1);
+	buf[PCF8563_REG_MO] = bin2bcd(tm->tm_mon);
 
 	/* year and century */
 	buf[PCF8563_REG_YR] = bin2bcd(tm->tm_year % 100);
-	if (pcf8563->c_polarity ? (tm->tm_year >= 100) : (tm->tm_year < 100))
+	if (pcf8563->c_polarity ? (tm->tm_year >= 0) : (tm->tm_year < 0))
 		buf[PCF8563_REG_MO] |= PCF8563_MO_C;
 
-	buf[PCF8563_REG_DW] = tm->tm_wday & 0x07;
+	//buf[PCF8563_REG_DW] = tm->tm_wday & 0x07;
 
 	/* write register's data */
 	for (i = 0; i < 7; i++) {
@@ -302,8 +379,7 @@ static int pcf8563_probe(struct i2c_client *client,
 	struct pcf8563 *pcf8563;	
 	int err = 0;
 
-	dev_dbg(&client->dev, "%s\n", __func__);
-printk("%s,line:%d\n",__func__, __LINE__);
+	printk("%s,line:%d\n",__func__, __LINE__);
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C))
 		return -ENODEV;
 
@@ -362,15 +438,14 @@ static struct i2c_driver pcf8563_driver = {
 
 static int __init pcf8563_init(void)
 {
-	
 	if(rtc_fetch_sysconfig_para()){
 		printk("%s,line:%d,err\n\n", __func__,__LINE__);
 		return -1;
 	}
-
-	printk("%s \n", __func__);
+	
 	printk("%s: after fetch_sysconfig_para:  normal_i2c: 0x%hx. normal_i2c[1]: 0x%hx \n", \
 	__func__, u_i2c_addr.normal_i2c[0], u_i2c_addr.normal_i2c[1]);
+
 	pcf8563_driver.detect = rtc_detect;
 	
 	return i2c_add_driver(&pcf8563_driver);
