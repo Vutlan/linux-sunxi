@@ -86,7 +86,7 @@ static unsigned long pll4clk_rate = 720000000;
 
 extern unsigned long ve_start;
 extern unsigned long ve_size;
-
+extern int flush_clean_user_range(long start, long end);
 struct iomap_para{
 	volatile char* regs_macc;
 	#ifdef CHIP_VERSION_F23
@@ -808,6 +808,16 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
         		return -EFAULT;
         	}
         }        
+        case IOCTL_FLUSH_CACHE:
+        {        	
+        	struct cedarv_cache_range cache_range;        	
+    		if(copy_from_user(&cache_range, (void __user*)arg, sizeof(struct cedarv_cache_range))){
+				printk("IOCTL_FLUSH_CACHE copy_from_user fail\n");
+				return -EFAULT;
+			}
+			flush_clean_user_range(cache_range.start, cache_range.end);			
+        }
+        break;        
         default:
         break;
     }    
@@ -879,7 +889,7 @@ static int cedardev_mmap(struct file *filp, struct vm_area_struct *vma)
         vma->vm_flags |= VM_RESERVED | VM_IO;
 
         /* Select uncached access. */
-        vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
+        //vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
 
         if (remap_pfn_range(vma, vma->vm_start, temp_pfn,
                             vma->vm_end - vma->vm_start, vma->vm_page_prot)) {
