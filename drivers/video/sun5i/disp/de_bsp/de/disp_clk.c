@@ -515,6 +515,7 @@ __s32 tve_clk_init(__u32 sel)
 {
 	if(sel == 0)
 	{
+		OSAL_CCMU_MclkReset(h_lcd0ch1mclk2, RST_INVAILD);
 		h_tvenc0ahbclk = OSAL_CCMU_OpenMclk(AW_MOD_CLK_AHB_TVE0);
 		OSAL_CCMU_MclkOnOff(h_tvenc0ahbclk, CLK_ON);
 
@@ -537,6 +538,7 @@ __s32 tve_clk_exit(__u32 sel)
 	{
 		OSAL_CCMU_MclkOnOff(h_tvenc0ahbclk, CLK_OFF);
 		OSAL_CCMU_CloseMclk(h_tvenc0ahbclk);
+		OSAL_CCMU_MclkReset(h_lcd0ch1mclk2, RST_VAILD);
 
 		g_clk_status &= CLK_TVENC0_AHB_OFF;
 	}
@@ -776,9 +778,7 @@ static __s32 disp_pll_assign(__u32 sel, __u32 pll_clk)
     {
         DE_WRN("Can't assign PLL for screen%d, pll_clk:%d\n",sel, pll_clk); 
     }
-    
-    OSAL_PRINTF("====disp_pll_assign====: sel:%d,pll_clk:%d,pll_sel:%d\n", sel, pll_clk, ret);
-    
+        
     return ret;
 }
 
