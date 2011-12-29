@@ -29,7 +29,7 @@
 #include <asm/setup.h>
 #include <mach/hardware.h>
 #include <mach/i2c.h>
-#include <mach/sys_config.h>
+#include <mach/platform.h>
 
 /* uart */
 static struct plat_serial8250_port debug_uart_platform_data[] = {
@@ -191,11 +191,10 @@ static struct platform_device *sw_pdevs[] __initdata = {
 
 void __init sw_pdev_init(void)
 {
-	int dbg_uart = 0;
-	script_parser_fetch("uart_para", "uart_debug_port", &dbg_uart, sizeof(int));
+	if (SW_UART0_LSR)
+		platform_device_register(&debug_uart[0]);
+	else if (SW_UART1_LSR)
+		platform_device_register(&debug_uart[1]);
 
-	if (dbg_uart > 3)
-		return;
-	platform_device_register(&debug_uart[dbg_uart]);
 	platform_add_devices(sw_pdevs, ARRAY_SIZE(sw_pdevs));
 }

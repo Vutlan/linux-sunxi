@@ -3232,7 +3232,6 @@ static int __devinit serial8250_probe(struct platform_device *dev)
 		port.uartclk		= p->uartclk;
 		port.regshift		= p->regshift;
 		port.iotype		= p->iotype;
-		port.iotype		= UPIO_DWAPB32;
 		port.flags		= p->flags;
 		port.mapbase		= p->mapbase;
 		port.hub6		= p->hub6;
