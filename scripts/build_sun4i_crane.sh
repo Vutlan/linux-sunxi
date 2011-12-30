@@ -86,6 +86,8 @@ build_kernel()
 	cp drivers/net/wireless/bcm4330/firmware/bcm4330.bin ${LICHEE_MOD_DIR}
 	cp drivers/net/wireless/bcm4330/firmware/bcm4330.hcd ${LICHEE_MOD_DIR}
 	cp drivers/net/wireless/bcm4330/firmware/nvram.txt ${LICHEE_MOD_DIR}/bcm4330_nvram.txt
+	cp drivers/net/wireless/bcm4330/firmware/mw269v3_fw.bin ${LICHEE_MOD_DIR}
+	cp drivers/net/wireless/bcm4330/firmware/mw269v3_nvram.txt ${LICHEE_MOD_DIR}
 }
 
 build_modules()
