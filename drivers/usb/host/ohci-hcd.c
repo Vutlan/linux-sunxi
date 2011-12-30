@@ -761,7 +761,11 @@ static irqreturn_t ohci_irq (struct usb_hcd *hcd)
 	ints = ohci_readl(ohci, &regs->intrstatus);
 
 #ifdef  CONFIG_USB_SW_SUN4I_HCI
-    if(1){
+{
+    enum sw_ic_ver ic_version = MAGIC_VER_A;
+
+    ic_version = sw_get_ic_ver();
+    if(ic_version == MAGIC_VER_A || ic_version == MAGIC_VER_B){
         __u32 HcRhPortStatus = ohci_readl(ohci, &regs->roothub.portstatus[0]);
 
         if((HcRhPortStatus & RH_PS_CSC) && (ints & OHCI_INTR_RHSC)){
@@ -776,6 +780,7 @@ static irqreturn_t ohci_irq (struct usb_hcd *hcd)
 
         return IRQ_HANDLED;
     }
+}
 #endif
 
 	/* Check for an all 1's result which is a typical consequence
