@@ -46,6 +46,9 @@
 #include <asm/unaligned.h>
 #include <asm/byteorder.h>
 
+#ifdef  CONFIG_USB_SW_SUN4I_HCI
+#include <mach/system.h>
+#endif
 
 #define DRIVER_AUTHOR "Roman Weissgaerber, David Brownell"
 #define DRIVER_DESC "USB 1.1 'Open' Host Controller (OHCI) Driver"
