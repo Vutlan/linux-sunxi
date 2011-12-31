@@ -498,7 +498,7 @@ static inline int sw_dma_loadbuffer(struct sw_dma_chan *chan, struct sw_dma_buf 
 	}
 
 	if(chan->dcon & SW_NDMA_CONF_CONTI || chan->dcon & SW_DDMA_CONF_CONTI || chan->load_state == SW_DMALOAD_NONE){
-		writel(__virt_to_bus(buf->data), chan->addr_reg);
+		writel(__virt_to_bus(buf->data), chan->addr_reg);//virtual address to physics address
 		dma_wrreg(chan, SW_DMA_DCNT, buf->size);
 	}
 
@@ -601,6 +601,7 @@ static int sw_dma_start(struct sw_dma_chan *chan)
 	dbg_showchan(chan);
 
 	//printk("[%s] dcon=0x%08x\n", __FUNCTION__, (unsigned int)chan->dcon);
+	/*start chansfer the buffer*/
 	dma_wrreg(chan, SW_DMA_DCONF, SW_DCONF_LOADING | chan->dcon);
 
 
@@ -880,8 +881,8 @@ void exec_pending_chan(int chan_nr, unsigned long pend_bits)
 		break;
 
 	case SW_DMALOAD_NONE:
-		printk(KERN_ERR "dma%d: IRQ with no loaded buffer?\n",
-		       chan->number);
+			printk(KERN_ERR "dma%d: IRQ with no loaded buffer?chan->state:%d\n",
+		       chan->number , chan->state);
 		break;
 
 	default:
@@ -1131,6 +1132,10 @@ static int sw_dma_dostop(struct sw_dma_chan *chan)
 	tmp &= ~SW_DCONF_LOADING;
 	dma_wrreg(chan, SW_DMA_DCONF, tmp);
 
+	tmp = readl(dma_base + SW_DMA_DIRQPD);
+	tmp &= (3 << (chan->number<<1));
+	writel(tmp, dma_base + SW_DMA_DIRQPD);
+	
 	/* should stop do this, or should we wait for flush? */
 	chan->state      = SW_DMA_IDLE;
 	pr_debug("L%d, loadstate %d -> SW_DMALOAD_NONE\n", __LINE__, chan->load_state);
