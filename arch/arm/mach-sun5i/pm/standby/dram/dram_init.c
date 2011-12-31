@@ -6,6 +6,7 @@
 * Descript: dram for AW1625 chipset
 * Update  : date                auther      ver     notes
 *			2011-12-07			Berg        1.0     create file from aw1623
+*			2011-12-31			Berg		1.1		change the method of exit selfrefesh
 *********************************************************************************************************
 */
 #include "dram_i.h"
@@ -86,22 +87,32 @@ void mctl_enable_dll0(void)
 void mctl_enable_dllx(void)
 {
     __u32 i = 0;
+    __u32 reg_val;
+    __u32 dll_num;
 
-    for(i=1; i<5; i++)
+	reg_val = mctl_read_w(SDR_DCR);	
+	reg_val >>=6;
+	reg_val &= 0x7;
+	if(reg_val == 3)
+		dll_num = 5;
+	else
+		dll_num = 3;
+
+    for(i=1; i<dll_num; i++)
     {
         mctl_write_w(SDR_DLLCR0+(i<<2), mctl_read_w(SDR_DLLCR0+(i<<2)) & ~0x40000000 | 0x80000000);
     }
 
 	standby_delay(0x100);
 
-    for(i=1; i<5; i++)
+    for(i=1; i<dll_num; i++)
     {
         mctl_write_w(SDR_DLLCR0+(i<<2), mctl_read_w(SDR_DLLCR0+(i<<2)) & ~0xC0000000);
     }
 
 	standby_delay(0x1000);
 
-    for(i=1; i<5; i++)
+    for(i=1; i<dll_num; i++)
     {
         mctl_write_w(SDR_DLLCR0+(i<<2), mctl_read_w(SDR_DLLCR0+(i<<2)) & ~0x80000000 | 0x40000000);
     }
@@ -182,7 +193,7 @@ void mctl_setup_dram_clock(__u32 clk)
     mctl_write_w(DRAM_CCM_SDRAM_PLL_REG, reg_val);
 
 	//setup MBUS clock
-    reg_val &= (0x1<<31)|(0x2<<24)|(0x1); 	
+    reg_val = (0x1<<31)|(0x2<<24)|(0x1); 	
     mctl_write_w(DRAM_CCM_MUS_CLK_REG, reg_val);
         
     //open DRAMC AHB & DLL register clock
@@ -212,6 +223,9 @@ __s32 DRAMC_init(__dram_para_t *para)
 
     //setup DRAM relative clock
     mctl_setup_dram_clock(para->dram_clk);
+
+	//dram pad hold off
+	mctl_write_w(SDR_DPCR, 0x0);	
 
     //reset external DRAM
     mctl_ddr3_reset();
@@ -250,6 +264,12 @@ __s32 DRAMC_init(__dram_para_t *para)
     reg_val |= ((0x1)&0x3)<<13;
     mctl_write_w(SDR_DCR, reg_val);
 
+	//set odt impendance divide ratio
+	reg_val=((para->dram_zq)>>8)&0xfffff;
+	reg_val |= ((para->dram_zq)&0xff)<<20;
+	reg_val |= (para->dram_zq)&0xf0000000;
+    mctl_write_w(SDR_ZQCR0, reg_val);
+
     //dram clock on
     DRAMC_clock_output_en(1);
 	standby_delay(0x10);
@@ -257,17 +277,12 @@ __s32 DRAMC_init(__dram_para_t *para)
 
     mctl_enable_dllx();
 
-	//set odt impendance divide ratio
-	reg_val=((para->dram_zq)>>8)&0xfffff;
-	reg_val |= ((para->dram_zq)&0xff)<<20;
-	reg_val |= (para->dram_zq)&0xf0000000;
-    mctl_write_w(SDR_ZQCR0, reg_val);
 
     //set I/O configure register
-    reg_val = 0x00cc0000;
-    reg_val |= (para->dram_odt_en)&0x3;
-    reg_val |= ((para->dram_odt_en)&0x3)<<30;
-    mctl_write_w(SDR_IOCR, reg_val);
+//    reg_val = 0x00cc0000;
+//   reg_val |= (para->dram_odt_en)&0x3;
+//  reg_val |= ((para->dram_odt_en)&0x3)<<30;
+//    mctl_write_w(SDR_IOCR, reg_val);
 
     //set refresh period
     DRAMC_set_autorefresh_cycle(para->dram_clk);
@@ -292,12 +307,9 @@ __s32 DRAMC_init(__dram_para_t *para)
     }
     mctl_write_w(SDR_MR, reg_val);
 
-    reg_val = 0x0;
     mctl_write_w(SDR_EMR, para->dram_emr1);
-    reg_val = 0x0;
-		mctl_write_w(SDR_EMR2, para->dram_emr2);
-    reg_val = 0x0;
-		mctl_write_w(SDR_EMR3, para->dram_emr3);
+	mctl_write_w(SDR_EMR2, para->dram_emr2);
+	mctl_write_w(SDR_EMR3, para->dram_emr3);
 
 	//set DQS window mode
 	reg_val = mctl_read_w(SDR_CCR);
