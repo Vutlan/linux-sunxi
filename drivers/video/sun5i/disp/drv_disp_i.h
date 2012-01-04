@@ -23,7 +23,7 @@ typedef enum
 #define IDTOHAND(ID)  ((ID) + 100)
 
 
-#define DISP_IO_NUM     8 
+#define DISP_IO_NUM     9 
 #define DISP_IO_SCALER0 0
 #define DISP_IO_SCALER1 1
 #define DISP_IO_IMAGE0  2
@@ -32,6 +32,7 @@ typedef enum
 #define DISP_IO_LCDC1   5
 #define DISP_IO_TVEC0    6
 #define DISP_IO_TVEC1    7
+#define DISP_IO_IEP      8
 
 #define sys_get_hvalue(n)   (*((volatile __u16 *)(n)))         /* half word input */
 #define sys_put_hvalue(n,c) (*((volatile __u16 *)(n)) = (c))   /* half word output */

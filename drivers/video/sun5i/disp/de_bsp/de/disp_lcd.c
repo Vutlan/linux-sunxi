@@ -1667,6 +1667,7 @@ __s32 BSP_disp_lcd_open_after(__u32 sel)
     gdisp.screen[sel].status |= LCD_ON;
     gdisp.screen[sel].output_type = DISP_OUTPUT_TYPE_LCD;
     Lcd_Panel_Parameter_Check(sel);
+    Disp_drc_enable(sel, TRUE);
 #ifdef __LINUX_OSAL__
     Display_set_fb_timming(sel);
 #endif
@@ -1682,6 +1683,7 @@ __s32 BSP_disp_lcd_close_befor(__u32 sel)
 {    
 	close_flow[sel].func_num = 0;
 	lcd_panel_fun[sel].cfg_close_flow(sel);
+	Disp_drc_enable(sel, 2);	//must close immediately, cause vbi may not come
 
 	gdisp.screen[sel].status &= LCD_OFF;
 	gdisp.screen[sel].output_type = DISP_OUTPUT_TYPE_NONE;
@@ -1722,7 +1724,7 @@ __s32 BSP_disp_lcd_xy_switch(__u32 sel, __s32 mode)
 //setting:  0,       1,      2,....  255,   256
 //pol==0:  0,       1,      2,....  255,   256
 //pol==1: 256,    255,    254, ...   1,   0
-__s32 BSP_disp_lcd_set_bright(__u32 sel, __u32  bright)
+__s32 BSP_disp_lcd_set_bright(__u32 sel, __u32 bright, __u32 from_iep)
 {	    
     __u32 duty_ns;
     
@@ -1730,16 +1732,18 @@ __s32 BSP_disp_lcd_set_bright(__u32 sel, __u32  bright)
     {
         if(gpanel_info[sel].lcd_pwm_pol == 0)
         {
-            duty_ns = (bright * gdisp.pwm[gpanel_info[sel].lcd_pwm_ch].period_ns + 128) / 256;
+            duty_ns = (bright * gdisp.screen[sel].lcd_bright_dimming * gdisp.pwm[gpanel_info[sel].lcd_pwm_ch].period_ns / 256 + 128) / 256;
         }
         else
         {
-            duty_ns = ((256- bright) * gdisp.pwm[gpanel_info[sel].lcd_pwm_ch].period_ns + 128) / 256;
+            duty_ns = ((256- bright * gdisp.screen[sel].lcd_bright_dimming/256 ) * gdisp.pwm[gpanel_info[sel].lcd_pwm_ch].period_ns + 128) / 256;
         }
         pwm_set_duty_ns(gpanel_info[sel].lcd_pwm_ch, duty_ns);
     }
-    gdisp.screen[sel].lcd_bright = bright;
-
+    if(!from_iep)
+    {
+    	gdisp.screen[sel].lcd_bright = bright;
+	}
     return DIS_SUCCESS;
 }
 

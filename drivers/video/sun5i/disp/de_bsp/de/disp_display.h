@@ -6,6 +6,8 @@
 #include "disp_layer.h"
 #include "disp_scaler.h"
 #include "disp_video.h"
+#include "../iep/disp_iep.h"
+
 
 #define IMAGE_USED              0x00000004
 #define IMAGE_USED_MASK         (~(IMAGE_USED))
@@ -82,7 +84,7 @@ typedef struct
     __u32                   max_layers;
     __layer_man_t           layer_manage[4];
     __bool                  bout_yuv;
-    __u32                   de_flicker_status;
+    __u32                   iep_status;
 
     __u32                   image_output_type;//see macro definition IMAGE_OUTPUT_XXX above, it can be lcd only /lcd+scaler/ scaler only
     __u32                   out_scaler_index;
@@ -101,6 +103,7 @@ typedef struct
 
 	__u32                   lcd_bright;
 	__disp_color_range_t    out_color_range;
+	__u32                   lcd_bright_dimming;	//IEP-drc backlight dimming rate: 0 -256 (256: no dimming; 0: the most dimming)
 
 	__disp_lcd_cfg_t        lcd_cfg;
     __hdle                  gpio_hdl[4];

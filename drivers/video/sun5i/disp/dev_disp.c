@@ -63,6 +63,11 @@ static struct resource disp_resource[DISP_IO_NUM] =
 		.end   = 0x01c1bfff,
 		.flags = IORESOURCE_MEM,
 	},
+	[DISP_IO_IEP] = {
+		.start = 0x01e70000,
+		.end   = 0x01e703ff,
+		.flags = IORESOURCE_MEM,
+	},
 };
 
 
@@ -233,6 +238,7 @@ __s32 DRV_DISP_Init(void)
     para.base_lcdc1     = (__u32)g_fbi.base_lcdc1;
     para.base_tvec0      = (__u32)g_fbi.base_tvec0;
     para.base_tvec1      = (__u32)g_fbi.base_tvec1;
+    para.base_iep       = (__u32)g_fbi.base_iep;
     para.base_ccmu      = (__u32)g_fbi.base_ccmu;
     para.base_sdram     = (__u32)g_fbi.base_sdram;
     para.base_pioc      = (__u32)g_fbi.base_pioc;
@@ -391,7 +397,7 @@ static int __init disp_probe(struct platform_device *pdev)//called when platform
 	info->base_sdram = 0xf1c01000;
 	info->base_pioc = 0xf1c20800;
 	info->base_pwm = 0xf1c20c00;
-
+	info->base_iep = 0xf1e70000;
 	__inf("SCALER0 base 0x%08x\n", info->base_scaler0);
 	__inf("SCALER1 base 0x%08x\n", info->base_scaler1);
 	__inf("IMAGE0 base 0x%08x\n", info->base_image0+ 0x800);
@@ -400,6 +406,7 @@ static int __init disp_probe(struct platform_device *pdev)//called when platform
 	__inf("LCDC1 base 0x%08x\n", info->base_lcdc1);
 	__inf("TVEC0 base 0x%08x\n", info->base_tvec0);
 	__inf("TVEC1 base 0x%08x\n", info->base_tvec1);
+	__inf("IEP base 0x%08x\n", info->base_iep);
 	__inf("CCMU base 0x%08x\n", info->base_ccmu);
 	__inf("SDRAM base 0x%08x\n", info->base_sdram);
 	__inf("PIO base 0x%08x\n", info->base_pioc);
@@ -759,14 +766,58 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
             ret = BSP_disp_set_screen_size(ubuffer[0], (__disp_rectsz_t*)ubuffer[1]);
             break;
 
+	//----iep----
         case DISP_CMD_DE_FLICKER_ON:
-            ret = BSP_disp_de_flicker_enable(ubuffer[0], 1);
+            ret = BSP_disp_iep_deflicker_enable(ubuffer[0], 1);
             break;
 
         case DISP_CMD_DE_FLICKER_OFF:
-            ret = BSP_disp_de_flicker_enable(ubuffer[0], 0);
+            ret = BSP_disp_iep_deflicker_enable(ubuffer[0], 0);
             break;
 
+        case DISP_CMD_GET_DE_FLICKER_EN:
+        	ret = BSP_disp_iep_get_deflicker_enable(ubuffer[0]);
+        	break;
+        	
+        case DISP_CMD_DRC_ON:
+        	ret = BSP_disp_iep_drc_enable(ubuffer[0], 1);
+        	break;
+
+        case DISP_CMD_DRC_OFF:
+			ret = BSP_disp_iep_drc_enable(ubuffer[0], 0);
+        	break;
+
+		case DISP_CMD_GET_DRC_EN:
+			ret = BSP_disp_iep_get_drc_enable(ubuffer[0]);
+			break;
+			
+        case DISP_CMD_DE_FLICKER_SET_WINDOW:
+        {
+          	__disp_rect_t para;
+    	    
+    		if(copy_from_user(&para, (void __user *)ubuffer[1],sizeof(__disp_rect_t)))
+    		{
+    		    __wrn("copy_from_user fail\n");
+    			return  -EFAULT;
+    		}
+ 
+			ret = BSP_disp_iep_set_demo_win(ubuffer[0], 1, &para);
+			break;
+		}
+		      	
+        case DISP_CMD_DRC_SET_WINDOW:
+		{
+			__disp_rect_t para;
+			
+			if(copy_from_user(&para, (void __user *)ubuffer[1],sizeof(__disp_rect_t)))
+			{
+				__wrn("copy_from_user fail\n");
+				return	-EFAULT;
+			}
+		
+			ret = BSP_disp_iep_set_demo_win(ubuffer[0], 2, &para);
+			break;
+		}
     //----layer----
     	case DISP_CMD_LAYER_REQUEST:
     		ret = BSP_disp_layer_request(ubuffer[0], (__disp_layer_work_mode_t)ubuffer[1]);
@@ -1175,7 +1226,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     		break;
 
     	case DISP_CMD_LCD_SET_BRIGHTNESS:
-    		ret = BSP_disp_lcd_set_bright(ubuffer[0], ubuffer[1]);
+    		ret = BSP_disp_lcd_set_bright(ubuffer[0], ubuffer[1],0);
     		break;
 
     	case DISP_CMD_LCD_GET_BRIGHTNESS:

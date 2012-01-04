@@ -4,13 +4,6 @@
 //delete this line if you want to use the lcd para define in sys_config1.fex
 //#define LCD_PARA_USE_CONFIG
 
-#include "../../../power/axp_power/axp-gpio.h"
-extern int axp_gpio_set_io(int gpio, int io_state);
-extern int axp_gpio_get_io(int gpio, int *io_state);
-extern int axp_gpio_set_value(int gpio, int value);
-extern int axp_gpio_get_value(int gpio, int *value);
-
-
 #ifdef LCD_PARA_USE_CONFIG
 static __u8 g_gamma_tbl[][2] = 
 {
@@ -119,33 +112,23 @@ static __s32 LCD_close_flow(__u32 sel)
 
 static void LCD_power_on(__u32 sel)
 {
-    //LCD_POWER_EN(sel, 1);//config lcd_power pin to open lcd power
-    axp_gpio_set_io(0, 1);
-    axp_gpio_set_value(0, 1);
+    LCD_POWER_EN(sel, 1);//config lcd_power pin to open lcd power
 }
 
 static void LCD_power_off(__u32 sel)
 {
-    //LCD_POWER_EN(sel, 0);//config lcd_power pin to close lcd power
-    axp_gpio_set_io(0, 1);
-    axp_gpio_set_value(0, 0);
+    LCD_POWER_EN(sel, 0);//config lcd_power pin to close lcd power
 }
 
 static void LCD_bl_open(__u32 sel)
 {
     LCD_PWM_EN(sel, 1);//open pwm module
-    
-    //LCD_BL_EN(sel, 1);//config lcd_bl_en pin to open lcd backlight
-    axp_gpio_set_io(1, 1);
-    axp_gpio_set_value(1, 1);
+    LCD_BL_EN(sel, 1);//config lcd_bl_en pin to open lcd backlight
 }
 
 static void LCD_bl_close(__u32 sel)
 {
-    //LCD_BL_EN(sel, 0);//config lcd_bl_en pin to close lcd backlight
-    axp_gpio_set_io(1, 1);
-    axp_gpio_set_value(1, 0);
-    
+    LCD_BL_EN(sel, 0);//config lcd_bl_en pin to close lcd backlight
     LCD_PWM_EN(sel, 0);//close pwm module
 }
 

@@ -226,7 +226,8 @@ __s32 BSP_disp_tv_open(__u32 sel)
         TCON1_open(sel);
         Disp_TVEC_Open(sel);
 
-        Disp_Switch_Dram_Mode(DISP_OUTPUT_TYPE_TV, tv_mod);
+        Disp_Switch_Dram_Mode(DISP_OUTPUT_TYPE_TV, tv_mod);  
+        Disp_de_flicker_enable(sel, TRUE);
 #ifdef __LINUX_OSAL__
         {
             user_gpio_set_t  gpio_info[1];
@@ -278,6 +279,7 @@ __s32 BSP_disp_tv_close(__u32 sel)
         tve_clk_off(sel);
         image_clk_off(sel);
         lcdc_clk_off(sel);
+        Disp_de_flicker_enable(sel, 2);	//must close immediately, because vbi may not come
 		DE_BE_Set_Outitl_enable(sel, FALSE);
         for(scaler_index=0; scaler_index<2; scaler_index++)
         {

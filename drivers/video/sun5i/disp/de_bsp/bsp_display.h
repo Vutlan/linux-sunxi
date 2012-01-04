@@ -89,6 +89,7 @@ typedef struct
 	__u32 base_sdram;
 	__u32 base_ccmu;
 	__u32 base_pwm;
+	__u32 base_iep;
 
 	void (*tve_interrup) (__u32 sel);
 	__s32 (*hdmi_set_mode)(__disp_tv_mode_t mode);
@@ -208,7 +209,7 @@ extern __s32 BSP_disp_lcd_close_after(__u32 sel);
 extern __lcd_flow_t * BSP_disp_lcd_get_close_flow(__u32 sel);
 extern __s32 BSP_disp_lcd_xy_switch(__u32 sel, __s32 mode);
 extern __s32 BSP_disp_set_gamma_table(__u32 sel, __u32 *gamtbl_addr,__u32 gamtbl_size);
-extern __s32 BSP_disp_lcd_set_bright(__u32 sel, __u32  bright);
+extern __s32 BSP_disp_lcd_set_bright(__u32 sel, __u32  bright, __u32 from_iep);
 extern __s32 BSP_disp_lcd_get_bright(__u32 sel);
 extern __s32 BSP_disp_lcd_set_src(__u32 sel, __disp_lcdc_src_t src);
 extern __s32 LCD_PWM_EN(__u32 sel, __bool b_en);
@@ -279,6 +280,11 @@ extern __s32 BSP_disp_sprite_block_close(__u32 sel, __u32 hid);
 extern __s32 BSP_disp_sprite_block_set_para(__u32 sel, __u32 hid,__disp_sprite_block_para_t *para);
 extern __s32 BSP_disp_sprite_block_get_para(__u32 sel, __u32 hid,__disp_sprite_block_para_t *para);
 
+extern __s32 BSP_disp_iep_deflicker_enable(__u32 sel, __bool en);
+extern __s32 BSP_disp_iep_get_deflicker_enable(__u32 sel);
+extern __s32 BSP_disp_iep_drc_enable(__u32 sel, __bool en);
+extern __s32 BSP_disp_iep_get_drc_enable(__u32 sel);
+extern __s32 BSP_disp_iep_set_demo_win(__u32 sel, __u32 mode, __disp_rect_t *regn)	;
 #ifdef __LINUX_OSAL__
 __s32 Display_set_fb_timming(__u32 sel);
 #endif

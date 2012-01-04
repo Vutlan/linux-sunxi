@@ -599,6 +599,12 @@ typedef enum tag_DISP_CMD
     DISP_CMD_CAPTURE_SCREEN = 0x20,//caputre screen and scaler to dram
     DISP_CMD_DE_FLICKER_ON = 0x21,
     DISP_CMD_DE_FLICKER_OFF = 0x22,
+    DISP_CMD_GET_DE_FLICKER_EN = 0x23,
+    DISP_CMD_DRC_ON = 0x24,
+    DISP_CMD_DRC_OFF = 0x25,
+    DISP_CMD_GET_DRC_EN = 0x26,
+    DISP_CMD_DE_FLICKER_SET_WINDOW = 0x27,
+    DISP_CMD_DRC_SET_WINDOW = 0x28,
 
 //----layer----
     DISP_CMD_LAYER_REQUEST = 0x40,
