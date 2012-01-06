@@ -573,7 +573,11 @@ __s32 hdmi_clk_init(void)
 	OSAL_CCMU_SetMclkDiv(h_hdmimclk, 1);
 
 	OSAL_CCMU_MclkOnOff(h_hdmiahbclk, CLK_ON);
+
+	OSAL_CCMU_MclkOnOff(h_hdmimclk, CLK_ON);
+	
 	g_clk_status |= CLK_HDMI_AHB_ON;
+	g_clk_status |= CLK_HDMI_MOD_ON;
 
 	return DIS_SUCCESS;
 }
@@ -587,27 +591,20 @@ __s32 hdmi_clk_exit(void)
 	OSAL_CCMU_MclkOnOff(h_hdmiahbclk, CLK_OFF);
 	OSAL_CCMU_CloseMclk(h_hdmiahbclk);
 	OSAL_CCMU_CloseMclk(h_hdmimclk);
+	OSAL_CCMU_MclkOnOff(h_hdmimclk, CLK_OFF);
 
-	g_clk_status &= (CLK_HDMI_AHB_OFF & CLK_HDMI_MOD_OFF);
-	
+	g_clk_status &= (CLK_HDMI_AHB_OFF & CLK_HDMI_MOD_OFF & CLK_HDMI_MOD_OFF);
+
 	return DIS_SUCCESS;
 }
 
 __s32 hdmi_clk_on(void)
 {
-	OSAL_CCMU_MclkOnOff(h_hdmimclk, CLK_ON);
-
-	g_clk_status |= CLK_HDMI_MOD_ON;
-
 	return DIS_SUCCESS;
 }
 
 __s32 hdmi_clk_off(void)
 {
-	OSAL_CCMU_MclkOnOff(h_hdmimclk, CLK_OFF);
-
-	g_clk_status &= CLK_HDMI_MOD_OFF;
-
 	return DIS_SUCCESS;
 }
 
