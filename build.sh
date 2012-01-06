@@ -36,10 +36,10 @@ if [ -z "$MODULE" ]; then
 	MODULE="all"
 fi
 
-if [  "$PLATFORM" = "nuclear-a12" ]; then
+if [  "$PLATFORM" = "a12_nuclear" ]; then
 	PLATFORM="a12"
 fi
-if [  "$PLATFORM" = "nuclear-a13" ]; then
+if [  "$PLATFORM" = "a13_nuclear" ]; then
 	PLATFORM="a13"
 fi
 
