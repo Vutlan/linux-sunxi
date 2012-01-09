@@ -57,7 +57,7 @@ typedef struct
 
 typedef struct
 {
-	__u32 			min_adj_index_hist[IEP_LH_PWRSV_NUM];
+	__u8 			min_adj_index_hist[IEP_LH_PWRSV_NUM];
 	__u32           user_bl;
 }__disp_pwrsv_t;
 

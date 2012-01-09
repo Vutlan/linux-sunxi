@@ -14,14 +14,16 @@ static __u32 printf_cnt=0; //for test
 
 //power save core 
 #define SCENE_CHNG_THR   45	//
-#define SCENE_CHANGE_DETECT_DISABLE 1	//enable detetion cause filcker in actual ic test 111230
+#define SCENE_CHANGE_DETECT_DISABLE 1	//enable detetion cause filcker in actual ic test 111230, so disable it.
 
 #define CLK_ON 1
 #define CLK_OFF 0
 #define RST_INVAILD 0
 #define RST_VAILD   1
 
-//#define DEMO
+//#define DRC_DEFAULT_ENABLE	//Enable drc default
+//#define DRC_DEMO //when defined DRC_DEFAULT_ENABLE, run DRC in DEMO mode 		
+#define PWRSAVE_PROC_THRES	85 //when BSP_disp_lcd_get_bright() exceed PWRSAVE_PROC_THRES, STOP PWRSAVE.
 
 #define ____SEPARATOR_IEP_DRC_CORE____
 
@@ -37,6 +39,7 @@ static __u32 printf_cnt=0; //for test
 *
 *Note	       :    power save mode alg.  Dynamic adjust backlight and lgc gain through screen content and user backlight setting
 *                               Add SCENE CHANGE DETECT.
+*			  Add HANG-UP DETECT: When use PWRSAVE_CORE in LOW referential backlight condiction, backlight will flicker. So STOP use PWRSAVE_CORE.
 *
 *Date	:       11/12/21
 **********************************************************************************************************/
@@ -51,67 +54,58 @@ static __inline __s32 PWRSAVE_CORE(__u32 sel)
 	__u32 lgcaddr;
 	__u32 drc_filter_total=0, drc_filter_tmp=0;
 
-	p95=0;
-	
-	hist_region_num = (hist_region_num>8)? 8 : IEP_LH_INTERVAL_NUM;
-	
-	//read histogram result
-	DE_IEP_Lh_Get_Cnt_Rec(sel, histcnt);
+	if(BSP_disp_lcd_get_bright(sel) < PWRSAVE_PROC_THRES)
+	{
+		memset(gpwrsv[sel].min_adj_index_hist, 255, sizeof(__u8)*IEP_LH_PWRSV_NUM);
+		lgcaddr = (__u32)pttab + ((128-1)<<9);
+		lgcaddr = __pa(lgcaddr);
+		DE_IEP_Drc_Set_Lgc_Addr(sel, lgcaddr);	//set "gain=1" tab to lgc
 
-	for(i=0; i<IEP_LH_INTERVAL_NUM; i++)
-	{
-		size += histcnt[i];
-	}
-	size = (size==0) ? 1 : size;
-	
-	//calculate some var
-	hist[0] = (histcnt[0]*100)/size;
-	for (i = 1; i < hist_region_num; i++)
-	{
-		hist[i] = (histcnt[i]*100)/size + hist[i-1];
-	}
-
-	for (i = 0; i< hist_region_num; i++)
-	{
-		if (hist[i] >= 95)
-		{
-			p95 = hist_thres_pwrsv[i];
-			break;
-		}
-	}
-
-	if(i == hist_region_num)//sometime, hist[hist_region_num - 1] may less than 95 due to integer calc
-	{
-		p95 = hist_thres_pwrsv[7];
-	}
-
-	min_adj_index = p95;
-	
-	//__inf("min_adj_index: %d\n", min_adj_index);
-	
-#if SCENE_CHANGE_DETECT_DISABLE
-	for(i = 0; i <IEP_LH_PWRSV_NUM - 1; i++)
-	{
-		gpwrsv[sel].min_adj_index_hist[i] = gpwrsv[sel].min_adj_index_hist[i+1];
-	}
-	gpwrsv[sel].min_adj_index_hist[IEP_LH_PWRSV_NUM-1] = min_adj_index;
-	
-	for (i = 0; i <IEP_LH_PWRSV_NUM; i++)
-	{
-		drc_filter_total += drc_filter[i];
-		drc_filter_tmp += drc_filter[i]*gpwrsv[sel].min_adj_index_hist[i];
-	}
-	min_adj_index = drc_filter_tmp/drc_filter_total;
-#else
-	//ADD frame average alg
-	//SCENE CHANGE DETECT
-	if (abs((__s32)min_adj_index - gpwrsv[sel].min_adj_index_hist[IEP_LH_PWRSV_NUM - 1]) > SCENE_CHNG_THR)
-	{
-		memset(gpwrsv[sel].min_adj_index_hist, min_adj_index, sizeof(__u8)*IEP_LH_PWRSV_NUM);
+		gdisp.screen[sel].lcd_bright_dimming = 256;
+		BSP_disp_lcd_set_bright(sel, BSP_disp_lcd_get_bright(sel),1);
+			
 	}
 	else
 	{
-		//store new gain index, shift history data
+		p95=0;
+		
+		hist_region_num = (hist_region_num>8)? 8 : IEP_LH_INTERVAL_NUM;
+		
+		//read histogram result
+		DE_IEP_Lh_Get_Cnt_Rec(sel, histcnt);
+
+		for(i=0; i<IEP_LH_INTERVAL_NUM; i++)
+		{
+			size += histcnt[i];
+		}
+		size = (size==0) ? 1 : size;
+		
+		//calculate some var
+		hist[0] = (histcnt[0]*100)/size;
+		for (i = 1; i < hist_region_num; i++)
+		{
+			hist[i] = (histcnt[i]*100)/size + hist[i-1];
+		}
+
+		for (i = 0; i< hist_region_num; i++)
+		{
+			if (hist[i] >= 95)
+			{
+				p95 = hist_thres_pwrsv[i];
+				break;
+			}
+		}
+
+		if(i == hist_region_num)//sometime, hist[hist_region_num - 1] may less than 95 due to integer calc
+		{
+			p95 = hist_thres_pwrsv[7];
+		}
+
+		min_adj_index = p95;
+		
+		//__inf("min_adj_index: %d\n", min_adj_index);
+		
+#if SCENE_CHANGE_DETECT_DISABLE
 		for(i = 0; i <IEP_LH_PWRSV_NUM - 1; i++)
 		{
 			gpwrsv[sel].min_adj_index_hist[i] = gpwrsv[sel].min_adj_index_hist[i+1];
@@ -124,32 +118,55 @@ static __inline __s32 PWRSAVE_CORE(__u32 sel)
 			drc_filter_tmp += drc_filter[i]*gpwrsv[sel].min_adj_index_hist[i];
 		}
 		min_adj_index = drc_filter_tmp/drc_filter_total;
-	}
+#else
+		//ADD frame average alg
+		//SCENE CHANGE DETECT
+		if (abs((__s32)min_adj_index - gpwrsv[sel].min_adj_index_hist[IEP_LH_PWRSV_NUM - 1]) > SCENE_CHNG_THR)
+		{
+			memset(gpwrsv[sel].min_adj_index_hist, min_adj_index, sizeof(__u8)*IEP_LH_PWRSV_NUM);
+		}
+		else
+		{
+			//store new gain index, shift history data
+			for(i = 0; i <IEP_LH_PWRSV_NUM - 1; i++)
+			{
+				gpwrsv[sel].min_adj_index_hist[i] = gpwrsv[sel].min_adj_index_hist[i+1];
+			}
+			gpwrsv[sel].min_adj_index_hist[IEP_LH_PWRSV_NUM-1] = min_adj_index;
+			
+			for (i = 0; i <IEP_LH_PWRSV_NUM; i++)
+			{
+				drc_filter_total += drc_filter[i];
+				drc_filter_tmp += drc_filter[i]*gpwrsv[sel].min_adj_index_hist[i];
+			}
+			min_adj_index = drc_filter_tmp/drc_filter_total;
+		}
 
 #endif
 
-	min_adj_index = (min_adj_index >= 255)?255:((min_adj_index<hist_thres_pwrsv[0])?hist_thres_pwrsv[0]:min_adj_index);
-	gdisp.screen[sel].lcd_bright_dimming = (min_adj_index+1);
+		min_adj_index = (min_adj_index >= 255)?255:((min_adj_index<hist_thres_pwrsv[0])?hist_thres_pwrsv[0]:min_adj_index);
+		gdisp.screen[sel].lcd_bright_dimming = (min_adj_index+1);
 
-	BSP_disp_lcd_set_bright(sel, BSP_disp_lcd_get_bright(sel),1);
+		BSP_disp_lcd_set_bright(sel, BSP_disp_lcd_get_bright(sel),1);
 
-	//lgcaddr = (__u32)pwrsv_lgc_tab[min_adj_index-128];
-	lgcaddr = (__u32)pttab + ((min_adj_index - 128)<<9);
+		//lgcaddr = (__u32)pwrsv_lgc_tab[min_adj_index-128];
+		lgcaddr = (__u32)pttab + ((min_adj_index - 128)<<9);
 
-	if(printf_cnt == 120)
-	{
-		__inf("save backlight power: %d percent\n", (256 - (__u32)min_adj_index)*100 / 256);
-		printf_cnt = 0;
+		if(printf_cnt == 120)
+		{
+			__inf("save backlight power: %d percent\n", (256 - (__u32)min_adj_index)*100 / 256);
+			printf_cnt = 0;
+		}
+		else
+		{
+			printf_cnt++;
+		}
+		
+		//virtual to physcal addr
+		lgcaddr = __pa(lgcaddr);
+		
+		DE_IEP_Drc_Set_Lgc_Addr(sel, lgcaddr);
 	}
-	else
-	{
-		printf_cnt++;
-	}
-	
-	//lgcaddr -= 0x80000000;	//virtual to physcal addr
-	lgcaddr = __pa(lgcaddr);
-	
-	DE_IEP_Drc_Set_Lgc_Addr(sel, lgcaddr);
 
 	return 0;
 }
@@ -268,7 +285,7 @@ __s32 BSP_disp_iep_set_demo_win(__u32 sel, __u32 mode, __disp_rect_t *regn)
 	
 	if(regn == NULL)
     {
-    	OSAL_PRINTF("BSP_disp_iep_set_demo_win: parameters invalid!\n");
+    	DE_WRN("BSP_disp_iep_set_demo_win: parameters invalid!\n");
         return DIS_PARA_FAILED;
     }
 
@@ -286,11 +303,12 @@ __s32 BSP_disp_iep_set_demo_win(__u32 sel, __u32 mode, __disp_rect_t *regn)
 	if(mode == 2)	//drc
 	{
 		memcpy(&giep[sel].drc_win, regn, sizeof(__disp_rect_t)); 
-		OSAL_PRINTF("BSP_disp_iep_set_demo_win: drc window  win_x: %d, win_y: %d, win_width: %d, win_height: %d.\n", giep[sel].drc_win.x, giep[sel].drc_win.y, giep[sel].drc_win.width, giep[sel].drc_win.height);
+		DE_INF("BSP_disp_iep_set_demo_win: drc window  win_x: %d, win_y: %d, win_width: %d, win_height: %d.\n", giep[sel].drc_win.x, giep[sel].drc_win.y, giep[sel].drc_win.width, giep[sel].drc_win.height);
 	}
 	else if(mode == 1) //de-flicker
 	{
 		memcpy(&giep[sel].deflicker_win, regn, sizeof(__disp_rect_t));
+		DE_INF("BSP_disp_iep_set_demo_win: drc window  win_x: %d, win_y: %d, win_width: %d, win_height: %d.\n", giep[sel].drc_win.x, giep[sel].drc_win.y, giep[sel].drc_win.width, giep[sel].drc_win.height);
 	}
 	return DIS_SUCCESS;
 }
@@ -368,7 +386,6 @@ __s32 Disp_drc_enable(__u32 sel, __u32 en)
 __s32 Disp_drc_init(__u32 sel)
 {
 	__u32 scn_width, scn_height;
-	__u32 i;
 	
 	scn_width = BSP_disp_get_screen_width(sel);
     scn_height = BSP_disp_get_screen_height(sel);
@@ -398,11 +415,7 @@ __s32 Disp_drc_init(__u32 sel)
 		DE_IEP_Lh_Set_Thres(sel, hist_thres_pwrsv);
 		//gpwrsv[sel].user_bl = gdisp.screen[sel].lcd_bright;
 		
-		for(i=0; i<IEP_LH_PWRSV_NUM; i++)
-		{
-			gpwrsv[sel].min_adj_index_hist[i] = 255;
-			//__inf("gpwrsv[sel].min_adj_index_hist[%d] = %d.\n", i, gpwrsv[sel].min_adj_index_hist[i]);
-		}
+		memset(gpwrsv[sel].min_adj_index_hist, 255, sizeof(__u8)*IEP_LH_PWRSV_NUM);
 
 		//giep[sel].drc_en = 1;		
 		giep[sel].drc_win_en = 1;
@@ -615,7 +628,6 @@ __s32 iep_clk_open(__u32 sel)
 	OSAL_CCMU_MclkOnOff(h_iepdramclk, CLK_ON);
 
 	g_clk_status |= (CLK_IEP_MOD_ON | CLK_IEP_DRAM_ON);
-	__inf("^^^^\n");
 	return DIS_SUCCESS;
 }
 
@@ -632,13 +644,10 @@ __s32 iep_clk_close(__u32 sel)
 
 __s32 Disp_iep_init(__u32 sel)
 {
-	__u32 parg[2];
-#ifdef DEMO
+
+#ifdef DRC_DEFAULT_ENABLE
 	__disp_rect_t regn;
 #endif
-
-	parg[0] = 0x77;
-	parg[1] = 0x60;
 
 	memset(giep, 0, sizeof(giep));
 	memset(gpwrsv, 0, sizeof(gpwrsv));
@@ -650,12 +659,18 @@ __s32 Disp_iep_init(__u32 sel)
 
         memcpy(pttab, pwrsv_lgc_tab, sizeof(pwrsv_lgc_tab));
         
-#ifdef DEMO
-		regn.x = 150;
-		regn.y = 90;
-		regn.width = 499;
-		regn.height = 299;
-
+#ifdef DRC_DEFAULT_ENABLE
+#ifdef DRC_DEMO
+		regn.x = BSP_disp_get_screen_width(sel)/2;
+		regn.y = 0;
+		regn.width = BSP_disp_get_screen_width(sel)/2;
+		regn.height = BSP_disp_get_screen_height(sel);
+#else 
+		regn.x = 0;
+		regn.y = 0;
+		regn.width = BSP_disp_get_screen_width(sel);
+		regn.height = BSP_disp_get_screen_height(sel);
+#endif
 		BSP_disp_iep_drc_enable(sel, 1);
 		BSP_disp_iep_set_demo_win(sel,  2,  &regn);
 #endif
