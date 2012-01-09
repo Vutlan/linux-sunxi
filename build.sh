@@ -39,9 +39,6 @@ fi
 if [  "$PLATFORM" = "a12_nuclear" ]; then
 	PLATFORM="a12"
 fi
-if [  "$PLATFORM" = "a13_nuclear" ]; then
-	PLATFORM="a13"
-fi
 
 if [ -x ./scripts/build_${PLATFORM}.sh ]; then
 	./scripts/build_${PLATFORM}.sh $MODULE
