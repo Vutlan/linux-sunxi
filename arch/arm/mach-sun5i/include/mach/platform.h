@@ -232,7 +232,7 @@
 #define SW_INT_SRCPRIO_REG2               (SW_VA_INT_IO_BASE + 0x88)
 #define SW_INT_SRCPRIO_REG3               (SW_VA_INT_IO_BASE + 0x8c)
 #define SW_INT_SRCPRIO_REG4               (SW_VA_INT_IO_BASE + 0x90)
-
+#define SW_INT_SRCPRIO_REG5               (SW_VA_INT_IO_BASE + 0x94)
 
 #define SW_UART0_THR                      (*(volatile unsigned int *)(SW_VA_UART0_IO_BASE + 0x00))
 #define SW_UART0_LSR                      (*(volatile unsigned int *)(SW_VA_UART0_IO_BASE + 0x14))
