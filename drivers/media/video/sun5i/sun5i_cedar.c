@@ -81,6 +81,8 @@ struct clk *hosc_clk = NULL;
 
 static unsigned long pll4clk_rate = 240000000;
 
+#define VE_PROFILECLK  240000000
+
 extern unsigned long ve_start;
 extern unsigned long ve_size;
 
@@ -615,16 +617,12 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		
 		case IOCTL_SET_VE_FREQ:	
 			{
-//				int arg_rate = (int)arg;
-//				if(arg_rate >= 320){
-//					clk_set_rate(ve_moduleclk, pll4clk_rate/3);//ve_moduleclk rate is 320khz
-//				}else if((arg_rate >= 240) && (arg_rate < 320)){
-//					clk_set_rate(ve_moduleclk, pll4clk_rate/4);//ve_moduleclk rate is 240khz
-//				}else if((arg_rate >= 160) && (arg_rate < 240)){
-//					clk_set_rate(ve_moduleclk, pll4clk_rate/6);//ve_moduleclk rate is 160khz
-//				}else{
-//					printk("IOCTL_SET_VE_FREQ set ve freq error,%s,%d\n", __func__, __LINE__);
-//				}
+				int arg_rate = (int)arg;
+				int v_div = 0;
+				v_div = (pll4clk_rate + (arg_rate-1))/arg_rate;
+				if (v_div <= 8 && v_div >= 1) {
+					clk_set_rate(ve_moduleclk, pll4clk_rate/v_div);
+				}
 			break;
 			}
         case IOCTL_GETVALUE_AVS2:
@@ -957,6 +955,7 @@ static int __init cedardev_init(void)
 	int devno;
 	unsigned int val;
 	dev_t dev = 0;
+	int v_div;
 	printk("[cedar dev]: install start!!!\n");
 	if((platform_device_register(&sw_device_cedar))<0)
 		return err;
@@ -1024,8 +1023,12 @@ static int __init cedardev_init(void)
 	if(clk_set_parent(ve_moduleclk, ve_pll4clk)){
 		printk("set parent of ve_moduleclk to ve_pll4clk failed!\n");		
 		return -EFAULT;
+	}		
+	v_div = (pll4clk_rate + (VE_PROFILECLK-1))/VE_PROFILECLK;
+	if (v_div <= 8 && v_div >= 1) {
+		clk_set_rate(ve_moduleclk, pll4clk_rate/v_div);
 	}
-	clk_set_rate(ve_moduleclk, pll4clk_rate/2);			
+	//clk_set_rate(ve_moduleclk, pll4clk_rate/2);			
 	//	//macc PLL
 //	val = readl(0xf1c20018);
 //	val &= 0x7ffc0000;
