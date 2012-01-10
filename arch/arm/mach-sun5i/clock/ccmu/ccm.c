@@ -47,6 +47,13 @@ __s32 aw_ccu_init(void)
 
     /* config the CCU to default status */
 
+    #if(USE_PLL6M_REPLACE_PLL4)
+    /* switch pll4 output to pll6 */
+    aw_ccu_reg->Pll4Ctl.PllSwitch = 2;
+    #else
+    aw_ccu_reg->Pll4Ctl.PllSwitch = 0;
+    #endif
+
     return AW_CCU_ERR_NONE;
 }
 

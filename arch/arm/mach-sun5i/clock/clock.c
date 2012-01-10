@@ -157,6 +157,12 @@ int clk_init(void)
     tmpSclk->clk->onoff = AW_CCU_CLK_ON;
     tmpSclk->set_clk(tmpSclk->clk);
 
+    /* use pll6 to replace pll4, pll4 need not enable */
+    #if(USE_PLL6M_REPLACE_PLL4)
+    tmpSclk = &ccu_sys_clk[AW_SYS_CLK_PLL4];
+    tmpSclk->clk->onoff = AW_CCU_CLK_OFF;
+    tmpSclk->set_clk(tmpSclk->clk);
+    #else
     tmpFreq = sw_cfg_get_int(script_base, "target", "pll4_freq");
     if (tmpFreq == -1) {
         /* try to get pll4 frequency failed, set to default value */
@@ -176,6 +182,7 @@ int clk_init(void)
     tmpSclk->set_clk(tmpSclk->clk);
     tmpSclk->clk->onoff = AW_CCU_CLK_ON;
     tmpSclk->set_clk(tmpSclk->clk);
+    #endif
 
     tmpFreq = sw_cfg_get_int(script_base, "target", "pll6_freq");
     if (tmpFreq == -1) {
@@ -184,7 +191,7 @@ int clk_init(void)
         tmpFreq = 600;
     } else {
         /* check if the value is valid */
-        if ((tmpFreq < 120) || (tmpFreq > 1200)) {
+        if ((tmpFreq < 120) || (tmpFreq > 2000)) {
             /* pll6 frequency is invalid, set to default value */
             CCU_ERR("pll6 frequency config is invalid!\n");
             tmpFreq = 600;

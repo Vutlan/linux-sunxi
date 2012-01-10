@@ -63,7 +63,6 @@ struct cpufreq_frequency_table sun4i_freq_tbl[] = {
     { .frequency = 912000,  .index = SUN4I_CLK_DIV(1, 3, 2, 2), },
     { .frequency = 960000,  .index = SUN4I_CLK_DIV(1, 3, 2, 2), },
     { .frequency = 1008000, .index = SUN4I_CLK_DIV(1, 3, 2, 2), },
-    #if(1)
     { .frequency = 1056000, .index = SUN4I_CLK_DIV(1, 3, 2, 2), },
     { .frequency = 1104000, .index = SUN4I_CLK_DIV(1, 3, 2, 2), },
     { .frequency = 1152000, .index = SUN4I_CLK_DIV(1, 3, 2, 2), },
@@ -74,7 +73,6 @@ struct cpufreq_frequency_table sun4i_freq_tbl[] = {
     { .frequency = 1392000, .index = SUN4I_CLK_DIV(1, 4, 2, 2), },
     { .frequency = 1440000, .index = SUN4I_CLK_DIV(1, 4, 2, 2), },
     { .frequency = 1488000, .index = SUN4I_CLK_DIV(1, 4, 2, 2), },
-    #endif
 
     /* table end */
     { .frequency = CPUFREQ_TABLE_END,  .index = 0,              },
