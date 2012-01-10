@@ -605,6 +605,8 @@ typedef enum tag_DISP_CMD
     DISP_CMD_GET_DRC_EN = 0x26,
     DISP_CMD_DE_FLICKER_SET_WINDOW = 0x27,
     DISP_CMD_DRC_SET_WINDOW = 0x28,
+    DISP_CMD_SET_HUE = 0x29,
+    DISP_CMD_GET_HUE = 0x2a,
 
 //----layer----
     DISP_CMD_LAYER_REQUEST = 0x40,

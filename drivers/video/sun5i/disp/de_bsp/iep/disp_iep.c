@@ -398,7 +398,7 @@ __s32 Disp_drc_init(__u32 sel)
 		
 		//another module		
 		//DE_BE_Output_Cfg_Csc_Coeff(sel, DISP_OUTPUT_TYPE_TV, 0);	//when running drc mode, debe must output yuv format		
-		DE_BE_Output_Cfg_Csc_Coeff_IGB(sel);
+        BSP_disp_set_output_csc(sel, gdisp.screen[sel].output_type, 1);
 		//IEP module 		
 		DE_IEP_Set_Mode(sel, 2);		
 		DE_IEP_Set_Display_Size(sel, scn_width, scn_height);
@@ -784,7 +784,7 @@ __s32 Disp_drc_close_proc(__u32 sel, __u32 tcon_index)
 		DE_IEP_Disable(sel);
 		
 		//another module
-		DE_BE_Output_Cfg_Csc_Coeff(sel, 0, DISP_COLOR_RANGE_0_255);	//when NOT running drc mode, debe output rgb format
+        BSP_disp_set_output_csc(sel, gdisp.screen[sel].output_type, 0);;
 
 		//IEP clk
 		iep_clk_close(sel);

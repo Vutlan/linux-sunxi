@@ -1,25 +1,20 @@
 //*****************************************************************************
-//  All Winner Micro, All Right Reserved. 2006-2011 Copyright (c)
+//  All Winner Micro, All Right Reserved. 2006-2012 Copyright (c)
 //
 //  File name   :        de_scal_bsp.c
 //
-//  Description :  display engine scaler base functions implement for aw1623
+//  Description :  display engine scaler base functions implement for aw1625
 //     
 //  History       :
-//                 2011/05/03      zchmin       v1.0    Initial version
-//                 2011/05/13      vito            v1.1    added vpp function
-//                 2011/05/25      zchmin       v1.2    redefine 3d inmode
-//                 2011/07/01      zchmin       v1.3    modify set scal coef error
-//                 2011/07/14      zchmin       v1.4    added input/output rg swap
-//                 2011/08/04      zchmin       v1.5    added divisor no-zero limited
-//                 2011/09/28      zchmin       v1.6    added 3D interleaved input format support
+//                 2011/09/09      zchmin       v1.0    Initial version
+//                 2011/10/19      zchmin       v1.1    correct out_type->fmt == DE_SCAL_INYUV420
+//                 2012/01/04      zchmin       v1.2    correct negative shifter
 //******************************************************************************
 
 
 #include "de_fe.h"
 
-//static volatile __de_scal_dev_t *scal_dev[2];
-static __de_scal_dev_t * scal_dev[2];
+static volatile __de_scal_dev_t *scal_dev[2];
 static __u32 de_scal_ch0_offset;
 static __u32 de_scal_ch1_offset;
 static __u32 de_scal_ch2_offset;
@@ -422,7 +417,7 @@ __s32 DE_SCAL_Set_Scaling_Factor(__u8 sel, __scal_scan_mod_t *in_scan, __scal_sr
 {
     __s32 in_w0, in_h0, out_w0, out_h0;
     __s32 ch0_hstep, ch0_vstep ;
-	__u32 w_shift, h_shift;
+	__s8 w_shift, h_shift;
     
     in_w0 = in_size->scal_width;
     in_h0 = in_size->scal_height;
@@ -482,14 +477,15 @@ __s32 DE_SCAL_Set_Scaling_Factor(__u8 sel, __scal_scan_mod_t *in_scan, __scal_sr
     //step factor
     ch0_hstep = (in_w0<<16)/out_w0;
     ch0_vstep = ((in_h0>>in_scan->field)<<16)/( out_h0 );
-
+    
 	scal_dev[sel]->ch0_horzfact.dwval = ch0_hstep;
     scal_dev[sel]->ch0_vertfact.dwval = ch0_vstep<<(out_scan->field);
-    scal_dev[sel]->ch1_horzfact.dwval = ch0_hstep>>w_shift;
-    scal_dev[sel]->ch1_vertfact.dwval = (ch0_vstep>>h_shift)<<(out_scan->field);
+    scal_dev[sel]->ch1_horzfact.dwval = (w_shift>0) ? (ch0_hstep>>w_shift) : ch0_hstep<<(0-w_shift);
+    scal_dev[sel]->ch1_vertfact.dwval = (h_shift>0) ? (ch0_vstep>>h_shift)<<(out_scan->field) : (ch0_vstep<<(0-h_shift))<<(out_scan->field);
     
 	return 0;
 }
+
 
 //*********************************************************************************************
 // function         : DE_SCAL_Set_Scaling_Coef(__u8 sel, __scal_scan_mod_t *in_scan, __scal_src_size_t *in_size,
@@ -521,7 +517,7 @@ __s32 DE_SCAL_Set_Scaling_Coef(__u8 sel, __scal_scan_mod_t *in_scan, __scal_src_
     __u32 ch0v_fir_coef_ofst, ch0h_fir_coef_ofst, ch1v_fir_coef_ofst, ch1h_fir_coef_ofst;
     __s32 fir_ofst_tmp;
     __u32 i;
-
+    
     in_w0 = in_size->scal_width;
     in_h0 = in_size->scal_height;
 
@@ -686,16 +682,16 @@ __s32 DE_SCAL_Set_Scaling_Coef(__u8 sel, __scal_scan_mod_t *in_scan, __scal_src_
     ch1h_fir_coef_ofst = (ch1h_fir_coef_ofst > (al1_size - 1)) ? (al1_size - 1) : ch1h_fir_coef_ofst;                                           
     
     //compute the fir coeficient address for each channel in horizontal and vertical direction
-    ch0v_fir_coef_addr =  (ch0v_fir_coef_ofst<<7);
-    ch0h_fir_coef_addr =  (ch0h_fir_coef_ofst<<7);
-    ch1v_fir_coef_addr =  (ch1v_fir_coef_ofst<<7);
-    ch1h_fir_coef_addr =  (ch1h_fir_coef_ofst<<7);
+    ch0v_fir_coef_addr = (ch0v_fir_coef_ofst<<7);
+    ch0h_fir_coef_addr = (ch0h_fir_coef_ofst<<7);
+    ch1v_fir_coef_addr = (ch1v_fir_coef_ofst<<7);
+    ch1h_fir_coef_addr = (ch1h_fir_coef_ofst<<7);
 
 	//added for aw1625, wait ceof access
 	scal_dev[sel]->frm_ctrl.bits.coef_access_ctrl= 1; 
-	/*while(scal_dev[sel]->status.bits.coef_access_status == 0)
+	while(scal_dev[sel]->status.bits.coef_access_status == 0)
 	{
-	}*/
+	}
     for(i=0; i<32; i++)
     {
 	    scal_dev[sel]->ch0_horzcoef0[i].dwval = fir_tab[(ch0h_fir_coef_addr>>2) + i];
@@ -1153,16 +1149,14 @@ __s32 DE_SCAL_Set_Writeback_Addr(__u8 sel, __scal_buf_addr_t *addr)
     return 0;
 }
 
+
 //**********************************************************************************
 // function         : DE_SCAL_Set_Writeback_Chnl(__u8 sel, __u32 channel)
-// description      : scaler write back channel selection
+// description      : scaler write back channel select
 // parameters       :
-//						sel <scaler select>                 
-//                 		channel <channel for wb>
-//						|		0/1	:	Y/G channel
-//						|		2	:	U/R channel
-//						|		3	:	V/B channel
-// return           : success
+//                 sel <scaler select>
+//                 channel <channel number, for argb 0, for plannar 0/1, 2, 3>
+// return            : success
 //***********************************************************************************
 __s32 DE_SCAL_Set_Writeback_Chnl(__u8 sel, __u32 channel)
 {
@@ -1455,7 +1449,12 @@ __s32 DE_SCAL_Set_CSC_Coef_Enhance(__u8 sel, __u8 in_csc_mode, __u8 out_csc_mode
     __s32 *pt;
 	__u32 i;
 	__s32 sinv, cosv;   //sin_tab: 7 bit fractional
-	
+
+	bright = bright*64/100;
+	bright = saturaion*64/100;
+	bright = contrast*64/100;
+	bright = hue*64/100;
+
 	sinv = image_enhance_tab[8*12 + (hue&0x3f)];
 	cosv = image_enhance_tab[8*12 + 8*8 + (hue&0x3f)];
 	
@@ -2319,7 +2318,7 @@ __s32 DE_SCAL_Vpp_Set_Luma_Sharpness_Level(__u8 sel, __u32 level)
 	scal_dev[sel]->vpp_lp2.bits.lpf_gain = 31;
 	scal_dev[sel]->vpp_lp2.bits.neggain = 3;
 	scal_dev[sel]->vpp_lp2.bits.delta = 3;
-	scal_dev[sel]->vpp_lp2.bits.limit_thr = 40;
+	scal_dev[sel]->vpp_lp2.bits.limit_thr = 3;
 
 	switch(level)
 	{
@@ -2475,22 +2474,22 @@ __s32 DE_SCAL_Vpp_Set_White_Level_Extension(__u8 sel, __u32 level)
 		break;
 		
 		case	0x1:	
-			scal_dev[sel]->vpp_wle.bits.wle_gain = 112;
+			scal_dev[sel]->vpp_wle.bits.wle_gain = 73;
 			scal_dev[sel]->vpp_wle.bits.wle_en = 0x1;
 		break;
 
 		case	0x2:	
-			scal_dev[sel]->vpp_wle.bits.wle_gain = 160;
+			scal_dev[sel]->vpp_wle.bits.wle_gain = 79;
 			scal_dev[sel]->vpp_wle.bits.wle_en = 0x1;
 		break;
 
 		case	0x3:	
-			scal_dev[sel]->vpp_wle.bits.wle_gain = 208;
+			scal_dev[sel]->vpp_wle.bits.wle_gain = 92;
 			scal_dev[sel]->vpp_wle.bits.wle_en = 0x1;
 		break;
 
 		case	0x4:	
-			scal_dev[sel]->vpp_wle.bits.wle_gain = 255;
+			scal_dev[sel]->vpp_wle.bits.wle_gain = 127;
 			scal_dev[sel]->vpp_wle.bits.wle_en = 0x1;
 		break;
 
@@ -2524,22 +2523,22 @@ __s32 DE_SCAL_Vpp_Set_Black_Level_Extension(__u8 sel, __u32 level)
 		break;
 
 		case	0x1:	
-			scal_dev[sel]->vpp_ble.bits.ble_gain = 64;
+			scal_dev[sel]->vpp_ble.bits.ble_gain = 9;
 			scal_dev[sel]->vpp_ble.bits.ble_en = 0x1;
 		break;
 
 		case	0x2:	
-			scal_dev[sel]->vpp_ble.bits.ble_gain = 128;
+			scal_dev[sel]->vpp_ble.bits.ble_gain = 16;
 			scal_dev[sel]->vpp_ble.bits.ble_en = 0x1;
 		break;
 
 		case	0x3:	
-			scal_dev[sel]->vpp_ble.bits.ble_gain = 192;
+			scal_dev[sel]->vpp_ble.bits.ble_gain = 32;
 			scal_dev[sel]->vpp_ble.bits.ble_en = 0x1;
 		break;
 
 		case	0x4:	
-			scal_dev[sel]->vpp_ble.bits.ble_gain = 255;
+			scal_dev[sel]->vpp_ble.bits.ble_gain = 64;
 			scal_dev[sel]->vpp_ble.bits.ble_en = 0x0;
 		break;
 

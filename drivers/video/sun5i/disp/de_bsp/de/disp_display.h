@@ -80,10 +80,9 @@ typedef struct
     __u32                   bright;
     __u32                   contrast;
     __u32                   saturation;
-    __bool                  enhance_en;
+    __u32                   hue;
     __u32                   max_layers;
     __layer_man_t           layer_manage[4];
-    __bool                  bout_yuv;
     __u32                   iep_status;
 
     __u32                   image_output_type;//see macro definition IMAGE_OUTPUT_XXX above, it can be lcd only /lcd+scaler/ scaler only
@@ -102,7 +101,6 @@ typedef struct
 	__u32	                pll_use_status;	//lcdc0/lcdc1 using which video pll(0 or 1)
 
 	__u32                   lcd_bright;
-	__disp_color_range_t    out_color_range;
 	__u32                   lcd_bright_dimming;	//IEP-drc backlight dimming rate: 0 -256 (256: no dimming; 0: the most dimming)
 
 	__disp_lcd_cfg_t        lcd_cfg;

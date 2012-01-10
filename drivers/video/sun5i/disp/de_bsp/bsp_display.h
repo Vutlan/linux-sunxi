@@ -129,11 +129,11 @@ extern __s32 BSP_disp_set_contrast(__u32 sel, __u32 contrast);
 extern __s32 BSP_disp_get_contrast(__u32 sel);
 extern __s32 BSP_disp_set_saturation(__u32 sel, __u32 saturation);
 extern __s32 BSP_disp_get_saturation(__u32 sel);
-extern __s32 BSP_disp_enhance_enable(__u32 sel, __bool enable);
-extern __s32 BSP_disp_get_enhance_enable(__u32 sel);
+extern __s32 BSP_disp_set_hue(__u32 sel, __u32 hue);
+extern __s32 BSP_disp_get_hue(__u32 sel);
 extern __s32 BSP_disp_capture_screen(__u32 sel, __disp_capture_screen_para_t * para);
 extern __s32 BSP_disp_set_screen_size(__u32 sel, __disp_rectsz_t * size);
-extern __s32 BSP_disp_set_output_csc(__u32 sel, __disp_output_type_t type);
+extern __s32 BSP_disp_set_output_csc(__u32 sel, __u32 out_type, __u32 drc_en);
 extern __s32 BSP_disp_de_flicker_enable(__u32 sel, __bool b_en);
 
 extern __s32 BSP_disp_layer_request(__u32 sel, __disp_layer_work_mode_t mode);
