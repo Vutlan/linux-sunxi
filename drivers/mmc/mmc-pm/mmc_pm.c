@@ -73,7 +73,8 @@ EXPORT_SYMBOL(mmc_pm_power);
 int mmc_pm_io_shd_suspend_host(void)
 {
     struct mmc_pm_ops *ops = &mmc_card_pm_ops;
-    return (ops->module_sel!=2) && (ops->module_sel!=5) && (ops->module_sel!=6);
+    return (ops->module_sel!=2) && (ops->module_sel!=5)
+    		 && (ops->module_sel!=6) && (ops->module_sel!=7);
 }
 EXPORT_SYMBOL(mmc_pm_io_shd_suspend_host);
 
