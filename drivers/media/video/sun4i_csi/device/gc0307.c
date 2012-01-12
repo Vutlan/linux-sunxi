@@ -1,5 +1,5 @@
 /*
- * A V4L2 driver for Micron mt9m112 cameras.
+ * A V4L2 driver for GalaxyCore GC0307 cameras.
  *
  */
 #include <linux/init.h>
@@ -21,21 +21,20 @@
 #include "../include/sun4i_dev_csi.h"
 
 MODULE_AUTHOR("raymonxiu");
-MODULE_DESCRIPTION("A low-level driver for Micron mt9m112 sensors");
+MODULE_DESCRIPTION("A low-level driver for GalaxyCore GC0307 sensors");
 MODULE_LICENSE("GPL");
 
 //for internel driver debug
 #define DEV_DBG_EN   		0 
 #if(DEV_DBG_EN == 1)		
-#define csi_dev_dbg(x,arg...) printk(KERN_INFO"[CSI_DEBUG][MT9M112]"x,##arg)
+#define csi_dev_dbg(x,arg...) printk(KERN_INFO"[CSI_DEBUG][GC0307]"x,##arg)
 #else
 #define csi_dev_dbg(x,arg...) 
 #endif
-#define csi_dev_err(x,arg...) printk(KERN_INFO"[CSI_ERR][MT9M112]"x,##arg)
-#define csi_dev_print(x,arg...) printk(KERN_INFO"[CSI][MT9M112]"x,##arg)
+#define csi_dev_err(x,arg...) printk(KERN_INFO"[CSI_ERR][GC0307]"x,##arg)
+#define csi_dev_print(x,arg...) printk(KERN_INFO"[CSI][GC0307]"x,##arg)
 
-#define MCLK (24*1000*1000)
-//#define MCLK (49.5*1000*1000)
+#define MCLK (12*1000*1000)
 #define VREF_POL	CSI_HIGH
 #define HREF_POL	CSI_HIGH
 #define CLK_POL		CSI_RISING
@@ -50,14 +49,14 @@ MODULE_LICENSE("GPL");
 #define CSI_PWR_OFF			0
 
 
-#define V4L2_IDENT_SENSOR 0x1320
+#define V4L2_IDENT_SENSOR 0x0307
 
 #define REG_TERM 0xff
 #define VAL_TERM 0xff
 
 
 #define REG_ADDR_STEP 1
-#define REG_DATA_STEP 2
+#define REG_DATA_STEP 1
 #define REG_STEP 			(REG_ADDR_STEP+REG_DATA_STEP)
 
 
@@ -65,8 +64,6 @@ MODULE_LICENSE("GPL");
  * Basic window sizes.  These probably belong somewhere more globally
  * useful.
  */
-#define SXGA_WIDTH	1280
-#define SXGA_HEIGHT	1024
 #define VGA_WIDTH		640
 #define VGA_HEIGHT	480
 #define QVGA_WIDTH	320
@@ -79,12 +76,12 @@ MODULE_LICENSE("GPL");
 /*
  * Our nominal (default) frame rate.
  */
-#define SENSOR_FRAME_RATE 25
+#define SENSOR_FRAME_RATE 10
 
 /*
- * The Micron mt9m112 sits on i2c with ID 0xBA
+ * The gc0307 sits on i2c with ID 0x42
  */
-#define I2C_ADDR 0xBA
+#define I2C_ADDR 0x42
 
 /* Registers */
 
@@ -141,188 +138,439 @@ struct regval_list {
  * The default register settings
  *
  */
+static struct regval_list sensor_default_regs[] = 
+{
 
-static struct regval_list sensor_default_regs[] = {
-#if 1 //MCLK == 24M
-{{0xf0},{0x00,0x00}},
-{{0x66},{0x10,0x01}},
-{{0x67},{0x05,0x01}},
-{{0x65},{0xa0,0x00}},
-{{0xff},{0x00,0x64}},
-{{0x65},{0x20,0x00}},
-{{0xff},{0x00,0x64}},
-#endif 
-{{0xf0},{0x00,0x00}},
-{{0x0d},{0x00,0x09}},
-{{0xff},{0x00,0x20}},
-{{0x0d},{0x00,0x08}},
-{{0xf0},{0x00,0x00}},
-{{0x01},{0x00,0x24}},
-{{0x03},{0x04,0x00}},// default value
-{{0x30},{0x04,0x2a}},
-{{0xf0},{0x00,0x01}},
-{{0x05},{0x00,0x0f}},
-{{0x25},{0x00,0x4d}},// saturation adjustment, default value  0x4d
-{{0x3b},{0x04,0x30}},//0x0436
-{{0x3c},{0x04,0x00}},
-{{0x47},{0x32,0x2e}},
-{{0x9d},{0x3c,0xe0}},
+     // Initail Sequence Write In.
+    //========= close output
+{{0x43},{0x00}},
+{{0x44},{0xa2}},
+    
+         //========= close some functions
+          // open them after configure their parmameters
+{{0x40},{0x10}},
+{{0x41},{0x00}},          
+{{0x42},{0x10}},                      
+{{0x47},{0x00}},//mode1,                  
+{{0x48},{0xc1}},//mode2,
+{{0x49},{0x00}},//dither_mode         
+{{0x4a},{0x00}},//clock_gating_en
+{{0x4b},{0x00}},//mode_reg3
+{{0x4E},{0x23}},//sync mode
+{{0x4F},{0x01}},//AWB, AEC, every N frame 
+     
+                        //========= frame timing
+{{0x01},{0x6a}},//HB
+{{0x02},{0x70}},//VB//0c
+{{0x1C},{0x00}},//Vs_st
+{{0x1D},{0x00}},//Vs_et
+{{0x10},{0x00}},//high 4 bits of VB, HB
+{{0x11},{0x05}},//row_tail,  AD_pipe_number
+     
+{{0x03},{0x01}},//row_start
+{{0x04},{0x2c}},
+     
+              //========= windowing
+{{0x05},{0x00}},//row_start
+{{0x06},{0x00}},
+{{0x07},{0x00}},//col start
+{{0x08},{0x00}},
+{{0x09},{0x01}},//win height
+{{0x0A},{0xE8}},
+{{0x0B},{0x02}},//win width, pixel array only 640
+{{0x0C},{0x80}},
+     
+                      //========= analog
+{{0x0D},{0x22}},//rsh_width
+{{0x0E},{0x02}},//CISCTL mode2,  
+{{0x0F},{0xb2}},//CISCTL mode1
+     
+     
+{{0x12},{0x70}},//7 hrst, 6_4 darsg,
+{{0x13},{0x00}},//7 CISCTL_restart, 0 apwd
+{{0x14},{0x00}},//NA
+{{0x15},{0xba}},//7_4 vref
+{{0x16},{0x13}},//5to4 _coln_r,  __1to0__da18
+{{0x17},{0x52}},//opa_r, ref_r, sRef_r
+//{{0x18},{0xc0}},//analog_mode, best case for left band.
+{{0x18},{0x00}},
+      
+{{0x1E},{0x0d}},//tsp_width          
+{{0x1F},{0x32}},//sh_delay
+     
+                          //========= offset
+{{0x47},{0x00}}, //7__test_image, __6__fixed_pga, //__5__auto_DN,__4__CbCr_fix, 
+                   //__3to2__dark_sequence, __1__allow_pclk_vcync, __0__LSC_test_image
+{{0x19},{0x06}}, //pga_o           
+{{0x1a},{0x06}}, //pga_e           
+     
+{{0x31},{0x00}}, //4  //pga_oFFset ,   high 8bits of 11bits
+{{0x3B},{0x00}}, //global_oFFset, low 8bits of 11bits
+     
+{{0x59},{0x0f}}, //offset_mode    
+{{0x58},{0x88}}, //DARK_VALUE_RATIO_G,  DARK_VALUE_RATIO_RB
+{{0x57},{0x08}}, //DARK_CURRENT_RATE
+{{0x56},{0x77}}, //PGA_OFFSET_EVEN_RATIO, PGA_OFFSET_ODD_RATIO
+      
+             //========= blk
+{{0x35},{0xd8}}, //blk_mode
+     
+{{0x36},{0x40}}, 
+    
+{{0x3C},{0x00}},
+{{0x3D},{0x00}},
+{{0x3E},{0x00}},
+{{0x3F},{0x00}},
+     
+{{0xb5},{0x70}},
+{{0xb6},{0x40}},
+{{0xb7},{0x00}},
+{{0xb8},{0x38}},
+{{0xb9},{0xc3}},        
+{{0xba},{0x0f}},
+     
+{{0x7e},{0x45}},
+{{0x7f},{0x66}},
+     
+{{0x5c},{0x48}},//78
+{{0x5d},{0x58}},//88
+      
+      
+               //========= manual_gain 
+{{0x61},{0x80}},//manual_gain_g1  
+{{0x63},{0x80}},//manual_gain_r
+{{0x65},{0x98}},//manual_gai_b, 0xa0=1.25, 0x98=1.1875
+{{0x67},{0x80}},//manual_gain_g2
+{{0x68},{0x18}},//global_manual_gain   2.4bits
+     
+                 //=========CC _R
+{{0x69},{0x58}}, //54//58
+{{0x6A},{0xf6}}, //ff
+{{0x6B},{0xfb}}, //fe
+{{0x6C},{0xf4}}, //ff
+{{0x6D},{0x5a}}, //5f
+{{0x6E},{0xe6}}, //e1
+      
+{{0x6f},{0x00}},  
+      
+           //=========lsc                            
+{{0x70},{0x14}},
+{{0x71},{0x1c}},
+{{0x72},{0x20}},
+      
+{{0x73},{0x10}},  
+{{0x74},{0x3c}},//480/8
+{{0x75},{0x52}},// 640/8
+     
+                 //=========dn                                                                            
+{{0x7d},{0x2f}}, //dn_mode    
+{{0x80},{0x0c}},//when auto_dn, check 7e,7f
+{{0x81},{0x0c}},
+{{0x82},{0x44}},
+                  
+                   //dd                                                                           
+{{0x83},{0x18}}, //DD_TH1                       
+{{0x84},{0x18}}, //DD_TH2                       
+{{0x85},{0x04}}, //DD_TH3                                                                                               
+{{0x87},{0x34}}, //32 b DNDD_low_range X16,  DNDD_low_range_C_weight_center                   
+     
+     
+               //=========intp-ee                                                                         
+{{0x88},{0x04}},                                                     
+{{0x89},{0x01}},                                        
+{{0x8a},{0x50}},//60                                          
+{{0x8b},{0x50}},//60                                          
+{{0x8c},{0x07}},                                                                
+                
+{{0x50},{0x0c}},                                  
+{{0x5f},{0x3c}},                                                                                   
+                 
+{{0x8e},{0x02}},                                                            
+{{0x86},{0x02}},                                                                
+              
+{{0x51},{0x20}},                                                              
+{{0x52},{0x08}}, 
+{{0x53},{0x00}},
+      
+      
+              //========= YCP 
+                   //contrast_center                                                                             
+{{0x77},{0x80}},//contrast_center                                                                   
+{{0x78},{0x00}},//fixed_Cb                                                                          
+{{0x79},{0x00}},//fixed_Cr                                                                          
+{{0x7a},{0x00}},//luma_offset                                                                                                                                                             
+{{0x7b},{0x40}},//hue_cos                                                                           
+{{0x7c},{0x00}},//hue_sin                                                                           
+                       
+            //saturation                                                                                  
+{{0xa0},{0x40}},//global_saturation
+{{0xa1},{0x40}},//luma_contrast                                                                     
+{{0xa2},{0x34}},//saturation_Cb//0x34                                                                   
+{{0xa3},{0x32}},// 34  saturation_Cr//0x34
+          
+{{0xa4},{0xc8}},                                                                
+{{0xa5},{0x02}},
+{{0xa6},{0x28}},                                                                            
+{{0xa7},{0x02}},
+     
+          //skin                                                                                                
+{{0xa8},{0xee}},                                                            
+{{0xa9},{0x12}},                                                            
+{{0xaa},{0x01}},                                                        
+{{0xab},{0x20}},                                                    
+{{0xac},{0xf0}},                                                        
+{{0xad},{0x10}},                                                            
+     
+             //========= ABS
+{{0xae},{0x18}},//  black_pixel_target_number 
+{{0xaf},{0x74}},
+{{0xb0},{0xe0}},    
+{{0xb1},{0x20}},
+{{0xb2},{0x6c}},
+{{0xb3},{0x40}},
+{{0xb4},{0x04}},
+     
+               //========= AWB 
+{{0xbb},{0x42}},
+{{0xbc},{0x60}},
+{{0xbd},{0x50}},
+{{0xbe},{0x50}},
+     
+{{0xbf},{0x0c}},
+{{0xc0},{0x06}},
+{{0xc1},{0x60}},
+{{0xc2},{0xf1}}, //f4
+{{0xc3},{0x40}},
+{{0xc4},{0x1c}},//18
+{{0xc5},{0x56}},
+{{0xc6},{0x1d}},  
 
-{{0xf0},{0x00,0x02}},
-{{0x28},{0xef,0x02}},//0xef3e
-{{0x06},{0x74,0x8e}},
-{{0x02},{0x00,0xee}},// base matrix signs
-{{0x15},{0x00,0xd9}},// delta coefficients signs
-{{0x09},{0x00,0x67}},//k1
-{{0x0a},{0x00,0x9a}},//k2
-{{0x0b},{0x00,0x28}},//k3
-{{0x0c},{0x00,0x30}},//k4
-{{0x0d},{0x00,0xca}},//k5
-{{0x0e},{0x00,0x37}},//k6
-{{0x0f},{0x00,0x1a}},//k7
-{{0x10},{0x00,0x65}},//k8
-{{0x11},{0x00,0x86}},//k9
-{{0x16},{0x00,0x5e}},//d1  0x0062
-{{0x17},{0x00,0x84}},//d2
-{{0x18},{0x00,0x4d}},//d3
-{{0x19},{0x00,0x24}},//d4
-{{0x1a},{0x00,0x1f}},//d5
-{{0x1b},{0x00,0x2f}},//d6
-{{0x1c},{0x00,0x04}},//d7
-{{0x1d},{0x00,0x23}},//d8
-{{0x1e},{0x00,0x10}},//d9
-{{0x03},{0x39,0x22}},// base matrix scale k1-k5
-{{0x04},{0x05,0x24}},// base matrix scale k6-k9 0x04e4
-{{0xf0},{0x00,0x02}},
-{{0x1f},{0x01,0x80}},
-{{0x20},{0xc8,0x14}},//0xdc0c
-{{0x21},{0x80,0x80}},
-{{0x22},{0x90,0x80}},
-{{0x23},{0x88,0x78}},
-{{0x26},{0x80,0x00}},
-{{0x27},{0x80,0x08}},
-{{0x2e},{0x0c,0x44}},// 0x0d20
-{{0x3e},{0x1c,0xff}},
-{{0x46},{0x00,0xb0}},
-{{0x5b},{0x80,0x02}},
-{{0x5c},{0x11,0x0c}},
-{{0x5d},{0x15,0x10}},
-{{0x5e},{0x53,0x4c}},
-{{0x5f},{0x2b,0x21}},
-{{0x24},{0x7f,0x40}},
-{{0x60},{0x00,0x02}},
-{{0x62},{0x10,0x10}},
-{{0x65},{0x00,0x00}},
-{{0xdc},{0x0f,0xf8}},
-{{0xdd},{0x0c,0xe0}},
-{{0xf0},{0x00,0x01}},
-{{0x47},{0x20,0x2e}},
-{{0x80},{0x00,0x06}},// lens correction control   
-{{0x81},{0x00,0x00}},// vertical red knee 0 and initial value  0x0009
-{{0x82},{0xfe,0x05}},// vertical red knees 2 and 1
-{{0x83},{0x00,0x00}},// vertical red knees 4 and 30x00ff
-{{0x84},{0x0c,0x00}},// vertical green knee 0 and initial value
-{{0x85},{0xfe,0x02}},// vertical green knees 2 and 1
-{{0x86},{0x00,0xff}},// vertical green knees 4 and 3
-{{0x87},{0x07,0x01}},// vertical blue knee 0 and initial value 1003
-{{0x88},{0xfc,0x06}},// vertical blue knees 2 and 1
-{{0x89},{0x00,0xff}},// vertical blue knees 4 and 3
-{{0x8a},{0x08,0x01}},// horizontal red knee 0 and initial value
-{{0x8b},{0x03,0x0e}},// horizontal red knees 2 and 1
-{{0x8c},{0xfe,0xfd}},// horizontal red knees 4 and 3
-{{0x8d},{0x00,0xff}},// horizontal red knee 5
-{{0x8e},{0x06,0x01}},// horizontal green knee 0 and initial value
-{{0x8f},{0x04,0x0b}},// horizontal green knees 2 and 1 
-{{0x90},{0xfe,0xfb}},// horizontal green knees 4 and 3
-{{0x91},{0x00,0xfe}},// horizontal green knee 5
-{{0x92},{0x06,0x00}},// horizontal blue knee 0 and initial value
-{{0x93},{0x04,0x0b}},// horizontal blue knees 2 and 1 
-{{0x94},{0xfe,0xfd}},// horizontal blue knees 4 and 3
-{{0x95},{0x00,0xff}},// horizontal blue knees 5
-{{0xb6},{0x02,0x04}},// lens vertical red knees 6 and 5
-{{0xb7},{0xfb,0xfa}},// lens vertical red knees 8 and 7
-{{0xb8},{0x05,0x03}},// lens vertical green knees 6 and 5
-{{0xb9},{0xfa,0xf8}},// lens vertical green knees 8 and 7
-{{0xba},{0x04,0x01}},// lens vertical blue knees 6 and 5
-{{0xbb},{0xfe,0xf8}},// lens vertical blue knees 8 and 7
-{{0xbc},{0xff,0x01}},// lens horizontal red knees 7 and 6
-{{0xbd},{0xf4,0xff}},// lens horizontal red knees 9 and 8
-{{0xbe},{0x00,0xfb}},// lens horizontal red knee 10
-{{0xbf},{0x00,0x00}},// lens horizontal green knees 7 and 6
-{{0xc0},{0xf8,0xfd}},// lens horizontal green knees 9 and 8
-{{0xc1},{0x00,0xf7}},// lens horizontal green knee 10
-{{0xc2},{0x01,0xff}},// lens horizontal blue knees 7 and 6
-{{0xc3},{0xf5,0xfc}},// lens horizontal blue knees 9 and 8
-{{0xc4},{0x00,0xfa}},// lens horizontal blue knee 10
-{{0x06},{0x74,0x8e}},
-{{0x9d},{0x3c,0xe0}},// defect correction control
-{{0xf0},{0x00,0x02}},
-{{0x2e},{0x0d,0x3a}},// 0x0d32
-{{0x37},{0x00,0x81}},
-{{0x36},{0x78,0x10}},
-{{0xf0},{0x00,0x01}},
-{{0x06},{0xf4,0x8e}},
-{{0xf0},{0x00,0x01}},
-{{0x06},{0x64,0x8e}},
-{{0xf0},{0x00,0x02}},
-{{0x5b},{0x00,0x01}},//0x0003
+{{0xca},{0x70}},//0x70
+{{0xcb},{0x70}},//0x70
+{{0xcc},{0x78}},//0x78
 
-{{0xf0},{0x00,0x00}},
-{{0x20},{0x01,0x00}},
-{{0x21},{0x80,0x00}},
-{{0x22},{0x09,0x0d}},
+{{0xcd},{0x80}},//R_ratio                                      
+{{0xce},{0x80}},//G_ratio  , cold_white white                                    
+{{0xcf},{0x80}},//B_ratio     
+
+                   //=========  aecT  
+{{0x20},{0x06}},//02
+{{0x21},{0xc0}},
+{{0x22},{0x40}},   
+{{0x23},{0x88}},
+{{0x24},{0x96}},
+{{0x25},{0x30}},
+{{0x26},{0xd0}},
+{{0x27},{0x00}},
+     
+     
+    /////23 M  
+{{0x28},{0x02}},//AEC_exp_level_1bit11to8   
+{{0x29},{0x58}},//AEC_exp_level_1bit7to0    
+{{0x2a},{0x02}},//AEC_exp_level_2bit11to8   
+{{0x2b},{0x58}},//AEC_exp_level_2bit7to0           
+{{0x2c},{0x02}},//AEC_exp_level_3bit11to8   659 - 8FPS,  8ca - 6FPS  //    
+{{0x2d},{0x58}},//AEC_exp_level_3bit7to0           
+{{0x2e},{0x02}},//AEC_exp_level_4bit11to8   4FPS 
+{{0x2f},{0xee}},//AEC_exp_level_4bit7to0   
+    
+{{0x30},{0x20}},                        
+{{0x31},{0x00}},                     
+{{0x32},{0x1c}},
+{{0x33},{0x90}},            
+{{0x34},{0x10}},  
+     
+{{0xd0},{0x34}},//[2]  1  before gamma,  0 after gamma
+     
+{{0xd1},{0x50}},//AEC_target_Y//0x50                         
+{{0xd2},{0x61}},//f2     
+{{0xd4},{0x4b}},//96
+{{0xd5},{0x01}},// 10 
+{{0xd6},{0x4b}},//antiflicker_step //96                      
+{{0xd7},{0x03}},//AEC_exp_time_min //10              
+{{0xd8},{0x02}},
+      
+{{0xdd},{0x12}},
+     
+         //========= measure window                                      
+{{0xe0},{0x03}},                       
+{{0xe1},{0x02}},                           
+{{0xe2},{0x27}},                               
+{{0xe3},{0x1e}},               
+{{0xe8},{0x3b}},                   
+{{0xe9},{0x6e}},                       
+{{0xea},{0x2c}},                   
+{{0xeb},{0x50}},                   
+{{0xec},{0x73}},       
+      
+              //========= close_frame                                                 
+{{0xed},{0x00}},//close_frame_num1 ,can be use to reduce FPS               
+{{0xee},{0x00}},//close_frame_num2  
+{{0xef},{0x00}},//close_frame_num
+     
+        // page1
+{{0xf0},{0x01}},//select page1 
+      
+{{0x00},{0x20}},                            
+{{0x01},{0x20}},                            
+{{0x02},{0x20}},                                  
+{{0x03},{0x20}},                          
+{{0x04},{0x78}},
+{{0x05},{0x78}},                   
+{{0x06},{0x78}},                                
+{{0x07},{0x78}},                                   
+     
+     
+     
+{{0x10},{0x04}},                        
+{{0x11},{0x04}},                            
+{{0x12},{0x04}},                        
+{{0x13},{0x04}},                            
+{{0x14},{0x01}},                            
+{{0x15},{0x01}},                            
+{{0x16},{0x01}},                       
+{{0x17},{0x01}},                       
+      
+      
+{{0x20},{0x00}},                    
+{{0x21},{0x00}},                    
+{{0x22},{0x00}},                        
+{{0x23},{0x00}},                        
+{{0x24},{0x00}},                    
+{{0x25},{0x00}},                        
+{{0x26},{0x00}},                    
+{{0x27},{0x00}},                        
+     
+{{0x40},{0x11}},
+     
+       //=============================lscP 
+{{0x45},{0x06}},   
+{{0x46},{0x06}},           
+{{0x47},{0x05}},
+     
+{{0x48},{0x04}},  
+{{0x49},{0x03}},       
+{{0x4a},{0x03}},
+     
+     
+{{0x62},{0xd8}},
+{{0x63},{0x24}},
+{{0x64},{0x24}},
+{{0x65},{0x24}},
+{{0x66},{0xd8}},
+{{0x67},{0x24}},
+    
+{{0x5a},{0x00}},
+{{0x5b},{0x00}},
+{{0x5c},{0x00}},
+{{0x5d},{0x00}},
+{{0x5e},{0x00}},
+{{0x5f},{0x00}},
+     
+     
+           //============================= ccP 
+     
+{{0x69},{0x03}},//cc_mode
+     
+           //CC_G
+{{0x70},{0x5d}},
+{{0x71},{0xed}},
+{{0x72},{0xff}},
+{{0x73},{0xe5}},
+{{0x74},{0x5f}},
+{{0x75},{0xe6}},
+      
+         //CC_B
+{{0x76},{0x41}},
+{{0x77},{0xef}},
+{{0x78},{0xff}},
+{{0x79},{0xff}},
+{{0x7a},{0x5f}},
+{{0x7b},{0xfa}},   
+     
+     
+          //============================= AGP
+     
+{{0x7e},{0x00}}, 
+{{0x7f},{0x30}},   //  00    select gamma  
+{{0x80},{0x48}}, //  c8
+{{0x81},{0x06}}, 
+{{0x82},{0x08}}, 
+      
+             
+{{0x83},{0x23}}, 
+{{0x84},{0x38}}, 
+{{0x85},{0x4F}}, 
+{{0x86},{0x61}}, 
+{{0x87},{0x72}}, 
+{{0x88},{0x80}}, 
+{{0x89},{0x8D}}, 
+{{0x8a},{0xA2}}, 
+{{0x8b},{0xB2}}, 
+{{0x8c},{0xC0}}, 
+{{0x8d},{0xCA}}, 
+{{0x8e},{0xD3}}, 
+{{0x8f},{0xDB}}, 
+{{0x90},{0xE2}}, 
+{{0x91},{0xED}}, 
+{{0x92},{0xF6}}, 
+{{0x93},{0xFD}},
+        /*
+{{0x83},{0x13}}, // 相当于0x20对应的Gamma
+{{0x84},{0x23}}, 
+{{0x85},{0x35}}, 
+{{0x86},{0x44}}, 
+{{0x87},{0x53}}, 
+{{0x88},{0x60}}, 
+{{0x89},{0x6D}}, 
+{{0x8a},{0x84}}, 
+{{0x8b},{0x98}}, 
+{{0x8c},{0xaa}}, 
+{{0x8d},{0xb8}}, 
+{{0x8e},{0xc6}}, 
+{{0x8f},{0xd1}}, 
+{{0x90},{0xdb}}, 
+{{0x91},{0xea}}, 
+{{0x92},{0xf5}}, 
+{{0x93},{0xFb}},
+     */ 
+            //about gamma1 is hex r oct
+{{0x94},{0x04}}, 
+{{0x95},{0x0E}}, 
+{{0x96},{0x1B}}, 
+{{0x97},{0x28}}, 
+{{0x98},{0x35}}, 
+{{0x99},{0x41}}, 
+{{0x9a},{0x4E}}, 
+{{0x9b},{0x67}}, 
+{{0x9c},{0x7E}}, 
+{{0x9d},{0x94}}, 
+{{0x9e},{0xA7}}, 
+{{0x9f},{0xBA}}, 
+{{0xa0},{0xC8}}, 
+{{0xa1},{0xD4}}, 
+{{0xa2},{0xE7}}, 
+{{0xa3},{0xF4}}, 
+{{0xa4},{0xFA}},
+      
+            //========= open functions  
+{{0xf0},{0x00}},//set back to page0  
+     
+{{0x40},{0x7e}},
+{{0x41},{0x2f}},
+{{0x43},{0x40}},
+{{0x44},{0xE2}},
+
+{{0x0f},{0x82}},
+{{0x45},{0x24}},
+{{0x47},{0x20}},
+
 };
 
-static struct regval_list sensor_sxga_regs[] = {
-{{0xf0},{0x00,0x00}},
-{{0x05},{0x01,0x40}},// horizontal blank
-{{0x06},{0x00,0x0d}},
-{{0xf0},{0x00,0x02}},
-{{0xc8},{0x1f,0x0b}},
-{{0x9c},{0xd1,0x00}},// auto exposure speed B
-{{0x59},{0x02,0x71}},
-{{0x5a},{0x02,0x71}},
-{{0xf0},{0x00,0x00}},
-//{{0x20},{0x01,0x00}},
-//{{0x22},{0x09,0x0d}},
-{{0x68},{0x00,0x70}},
-{{0xf0},{0x00,0x01}},
-{{0xa1},{0x05,0x00}},// horizontal output size B
-{{0xa4},{0x04,0x00}},// vertical output size B
-{{0x9b},{0x02,0x02}},
-{{0xdc},{0x11,0x05}},// gamma start B
-{{0xdd},{0x5d,0x33}},
-{{0xde},{0xad,0x8d}},
-{{0xdf},{0xd6,0xc4}},
-{{0xe0},{0xf3,0xe6}},
-{{0xe1},{0xff,0x00}},// gamma end B
-{{0xf0},{0x00,0x00}},
-};
-
-static struct regval_list sensor_vga_regs[] = {
-{{0xf0},{0x00,0x00}},
-{{0x07},{0x03,0x74}},   //horizontal blank
-{{0x08},{0x00,0x09}},
-{{0xf0},{0x00,0x02}},
-{{0xc8},{0x00,0x00}},
-{{0x2f},{0xd1,0x00}},// auto exposure speed A
-{{0x57},{0x02,0x71}},
-{{0x58},{0x02,0x71}},
-{{0xf0},{0x00,0x00}},
-//{{0x21},{0x80,0x00}},
-//{{0x22},{0x09,0x0d}},
-{{0x68},{0x00,0x70}},
-{{0xf0},{0x00,0x01}},
-{{0xa7},{0x02,0x80}},// horizontal output size A
-{{0xaa},{0x02,0x00}},// vertical output size A
-{{0x3a},{0x02,0x02}},
-{{0x53},{0x11,0x05}},// gamma start A
-{{0x54},{0x5d,0x33}},
-{{0x55},{0xad,0x8d}},
-{{0x56},{0xd6,0xc4}},
-{{0x57},{0xf3,0xe6}},
-{{0x58},{0xff,0x00}},// gamma end A
-{{0xf0},{0x00,0x00}},
+static struct regval_list sensor_oe_disable[] =
+{
+	{{0xf0},{0x00}},
+	{{0x44},{0xA2}},
 };
 
 /*
@@ -330,235 +578,386 @@ static struct regval_list sensor_vga_regs[] = {
  * Here only tune the R G B channel gain. 
  * The white balance enalbe bit is modified in sensor_s_autowb and sensor_s_wb
  */
-//static struct regval_list sensor_wb_auto_regs[] = {
-//	//NULL
-//};
+static struct regval_list sensor_wb_auto_regs[] = {
+	{{0xf0},{0x00}},
+//	{{0x41},{0x2b}},
+	{{0xc7},{0x4c}},
+	{{0xc8},{0x40}},
+	{{0xc9},{0x4a}},
+};
 
 static struct regval_list sensor_wb_cloud_regs[] = {
-	//NULL
+	{{0xf0},{0x00}},
+//	{{0x41},{0x2b}},
+	{{0xc7},{0x5a}},
+	{{0xc8},{0x42}},
+	{{0xc9},{0x40}},
 };
 
 static struct regval_list sensor_wb_daylight_regs[] = {
 	//tai yang guang
-	//NULL
+	{{0xf0},{0x00}},
+//	{{0x41},{0x2b}},	
+	{{0xc7},{0x50}},
+	{{0xc8},{0x45}},
+	{{0xc9},{0x40}},
 };
 
 static struct regval_list sensor_wb_incandescence_regs[] = {
 	//bai re guang
-	//NULL
+	{{0xf0},{0x00}},
+//	{{0x41},{0x2b}},	
+	{{0xc7},{0x48}},
+	{{0xc8},{0x40}},
+	{{0xc9},{0x5c}},
 };
 
 static struct regval_list sensor_wb_fluorescent_regs[] = {
 	//ri guang deng
-	//NULL
+	{{0xf0},{0x00}},
+//	{{0x41},{0x2b}},
+	{{0xc7},{0x40}},
+	{{0xc8},{0x42}},
+	{{0xc9},{0x50}},
 };
 
 static struct regval_list sensor_wb_tungsten_regs[] = {
 	//wu si deng
-	//NULL
+	{{0xf0},{0x00}},
+//	{{0x41},{0x2b}},
+	{{0xc7},{0x40}},
+	{{0xc8},{0x54}},
+	{{0xc9},{0x70}},
 };
 
 /*
  * The color effect settings
  */
 static struct regval_list sensor_colorfx_none_regs[] = {
-{{0xf0},{0x00,0x01}},
-{{0xe2},{0x70,0x00}},
+			{{0xf0},{0x00}},		
+			{{0x41},{0x2f}},//  3f
+			{{0x40},{0x7e}},
+			{{0x42},{0x10}},
+			{{0x47},{0x2c}},//
+			{{0x48},{0xc3}},
+			{{0x8a},{0x50}},//60
+			{{0x8b},{0x50}},
+			{{0x8c},{0x07}},
+			{{0x50},{0x0c}},
+			{{0x77},{0x80}},
+			{{0xa1},{0x40}},
+			{{0x7a},{0x00}},
+			{{0x78},{0x00}},
+			{{0x79},{0x00}},
+			{{0x7b},{0x40}},
+			{{0x7c},{0x00}},
 };
 
 static struct regval_list sensor_colorfx_bw_regs[] = {
-{{0xf0},{0x00,0x01}},
-{{0xe2},{0x70,0x01}},
+      {{0xf0},{0x00}},
+      {{0x41},{0x2f}},//2f  blackboard
+			{{0x40},{0x7e}},
+			{{0x42},{0x10}},
+			{{0x47},{0x3c}},//2c
+			{{0x48},{0xc3}},
+			{{0x8a},{0x60}},
+			{{0x8b},{0x60}},
+			{{0x8c},{0x07}},
+			{{0x50},{0x0c}},
+			{{0x77},{0x80}},
+			{{0xa1},{0x40}},
+			{{0x7a},{0x00}},
+			{{0x78},{0x00}},
+			{{0x79},{0x00}},
+			{{0x7b},{0x40}},
+			{{0x7c},{0x00}},
 };
 
 static struct regval_list sensor_colorfx_sepia_regs[] = {
-{{0xf0},{0x00,0x01}},
-{{0xe2},{0x70,0x02}},
+      {{0xf0},{0x00}},
+      {{0x41},{0x2f}},
+			{{0x40},{0x7e}},
+			{{0x42},{0x10}},
+			{{0x47},{0x3c}},
+			{{0x48},{0xc3}},
+			{{0x8a},{0x60}},
+			{{0x8b},{0x60}},
+			{{0x8c},{0x07}},
+			{{0x50},{0x0c}},
+			{{0x77},{0x80}},
+			{{0xa1},{0x40}},
+			{{0x7a},{0x00}},
+			{{0x78},{0xc0}},
+			{{0x79},{0x20}},
+			{{0x7b},{0x40}},
+			{{0x7c},{0x00}},	
 };
 
 static struct regval_list sensor_colorfx_negative_regs[] = {
-{{0xf0},{0x00,0x01}},
-{{0xe2},{0x70,0x03}},
+      {{0xf0},{0x00}},
+      {{0x41},{0x6f}},//[6]
+			{{0x40},{0x7e}},
+			{{0x42},{0x10}},
+			{{0x47},{0x20}},//20
+			{{0x48},{0xc3}},
+			{{0x8a},{0x60}},
+			{{0x8b},{0x60}},
+			{{0x8c},{0x07}},
+			{{0x50},{0x0c}},
+			{{0x77},{0x80}},
+			{{0xa1},{0x40}},
+			{{0x7a},{0x00}},
+			{{0x78},{0x00}},
+			{{0x79},{0x00}},
+			{{0x7b},{0x40}},
+			{{0x7c},{0x00}},
+			{{0x41},{0x6f}},
 };
 
 static struct regval_list sensor_colorfx_emboss_regs[] = {
-	//NULL
+	
 };
 
 static struct regval_list sensor_colorfx_sketch_regs[] = {
-	//NULL
+	    {{0xf0},{0x00}},
+	    {{0x41},{0x2f}},
+			{{0x40},{0x7e}},
+			{{0x42},{0x10}},
+			{{0x47},{0x3c}},
+			{{0x48},{0xc3}},
+			{{0x8a},{0x60}},
+			{{0x8b},{0x60}},
+			{{0x8c},{0x07}},
+			{{0x50},{0x0c}},
+			{{0x77},{0x80}},
+			{{0xa1},{0x40}},
+			{{0x7a},{0x00}},
+			{{0x78},{0x00}},
+			{{0x79},{0x00}},
+			{{0x7b},{0x40}},
+			{{0x7c},{0x00}},
 };
 
 static struct regval_list sensor_colorfx_sky_blue_regs[] = {
-	//NULL
+	    {{0xf0},{0x00}},
+	    {{0x41},{0x2f}},
+			{{0x40},{0x7e}},
+			{{0x42},{0x10}},
+			{{0x47},{0x2c}},
+			{{0x48},{0xc3}},
+			{{0x8a},{0x60}},
+			{{0x8b},{0x60}},
+			{{0x8c},{0x07}},
+			{{0x50},{0x0c}},
+			{{0x77},{0x80}},
+			{{0xa1},{0x40}},
+			{{0x7a},{0x00}},
+			{{0x78},{0x70}},
+			{{0x79},{0x00}},
+			{{0x7b},{0x3f}},
+			{{0x7c},{0xf5}},	
 };
 
 static struct regval_list sensor_colorfx_grass_green_regs[] = {
-	//NULL
+			{{0xf0},{0x00}},
+			{{0x41},{0x2f}},
+			{{0x40},{0x7e}},
+			{{0x42},{0x10}},
+			{{0x47},{0x3c}},
+			{{0x48},{0xc3}},
+			{{0x8a},{0x60}},
+			{{0x8b},{0x60}},
+			{{0x8c},{0x07}},
+			{{0x50},{0x0c}},
+			{{0x77},{0x80}},
+			{{0xa1},{0x40}},
+			{{0x7a},{0x00}},
+			{{0x78},{0xc0}},
+			{{0x79},{0xc0}},
+			{{0x7b},{0x40}},
+			{{0x7c},{0x00}},	
 };
 
 static struct regval_list sensor_colorfx_skin_whiten_regs[] = {
-	//NULL
+	
 };
 
 static struct regval_list sensor_colorfx_vivid_regs[] = {
-	//NULL
+//NULL
 };
 
 /*
  * The brightness setttings
  */
 static struct regval_list sensor_brightness_neg4_regs[] = {
-	//NULL
+//NULL
 };
 
 static struct regval_list sensor_brightness_neg3_regs[] = {
-	//NULL
+//NULL
 };
 
 static struct regval_list sensor_brightness_neg2_regs[] = {
-	//NULL
+//NULL
 };
 
 static struct regval_list sensor_brightness_neg1_regs[] = {
-	//NULL
+//NULL
 };
 
 static struct regval_list sensor_brightness_zero_regs[] = {
-	//NULL
+//NULL
 };
 
 static struct regval_list sensor_brightness_pos1_regs[] = {
-	//NULL
+//NULL
 };
 
 static struct regval_list sensor_brightness_pos2_regs[] = {
-	//NULL
+//NULL
 };
 
 static struct regval_list sensor_brightness_pos3_regs[] = {
-	//NULL
+//NULL
 };
 
 static struct regval_list sensor_brightness_pos4_regs[] = {
-	//NULL
+//NULL
 };
 
 /*
  * The contrast setttings
  */
 static struct regval_list sensor_contrast_neg4_regs[] = {
-	//NULL
+//NULL
 };
 
 static struct regval_list sensor_contrast_neg3_regs[] = {
-	//NULL
+//NULL
 };
 
 static struct regval_list sensor_contrast_neg2_regs[] = {
-	//NULL
+//NULL
 };
 
 static struct regval_list sensor_contrast_neg1_regs[] = {
-	//NULL
+//NULL
 };
 
 static struct regval_list sensor_contrast_zero_regs[] = {
-	//NULL
+//NULL
 };
 
 static struct regval_list sensor_contrast_pos1_regs[] = {
-	//NULL
+//NULL
 };
 
 static struct regval_list sensor_contrast_pos2_regs[] = {
-	//NULL
+//NULL
 };
 
 static struct regval_list sensor_contrast_pos3_regs[] = {
-	//NULL
+//NULL
 };
 
 static struct regval_list sensor_contrast_pos4_regs[] = {
-	//NULL
+//NULL
 };
 
 /*
  * The saturation setttings
  */
 static struct regval_list sensor_saturation_neg4_regs[] = {
-	//NULL
+//NULL
 };
 
 static struct regval_list sensor_saturation_neg3_regs[] = {
-	//NULL
+//NULL
 };
 
 static struct regval_list sensor_saturation_neg2_regs[] = {
-	//NULL
+//NULL
 };
 
 static struct regval_list sensor_saturation_neg1_regs[] = {
-	//NULL
+//NULL
 };
 
 static struct regval_list sensor_saturation_zero_regs[] = {
-	//NULL
+//NULL
 };
 
 static struct regval_list sensor_saturation_pos1_regs[] = {
-	//NULL
+//NULL
 };
 
 static struct regval_list sensor_saturation_pos2_regs[] = {
-	//NULL
+//NULL
 };
 
 static struct regval_list sensor_saturation_pos3_regs[] = {
-	//NULL
+//NULL
 };
 
 static struct regval_list sensor_saturation_pos4_regs[] = {
-	//NULL
+//NULL
 };
 
 /*
  * The exposure target setttings
  */
 static struct regval_list sensor_ev_neg4_regs[] = {
-	//NULL
+	{{0xf0},{0x00}},
+	{{0x7a},{0x00}},                   
+	{{0xd1},{0x50}},                    	
 };
 
 static struct regval_list sensor_ev_neg3_regs[] = {
-	//NULL
+	{{0xf0},{0x00}},
+	{{0x7a},{0xd0}},                   
+	{{0xd1},{0x38}},                    	
 };
 
 static struct regval_list sensor_ev_neg2_regs[] = {
-	//NULL
+	{{0xf0},{0x00}},
+	{{0x7a},{0xe0}},                   
+	{{0xd1},{0x40}},                   	
 };
 
 static struct regval_list sensor_ev_neg1_regs[] = {
-	//NULL
+	{{0xf0},{0x00}},
+	{{0x7a},{0xf0}},                   
+	{{0xd1},{0x48}},                    	
 };
 
 static struct regval_list sensor_ev_zero_regs[] = {
-	//NULL
+	{{0xf0},{0x00}},
+	{{0x7a},{0x00}},                   
+	{{0xd1},{0x50}},                   	
 };
 
 static struct regval_list sensor_ev_pos1_regs[] = {
-	//NULL
+	{{0xf0},{0x00}},
+	{{0x7a},{0x00}},                   
+	{{0xd1},{0x50}},                    	
 };
 
 static struct regval_list sensor_ev_pos2_regs[] = {
-	//NULL
+	{{0xf0},{0x00}},
+	{{0x7a},{0x20}},                   
+	{{0xd1},{0x58}},                   	
 };
 
 static struct regval_list sensor_ev_pos3_regs[] = {
-	//NULL
+	{{0xf0},{0x00}},
+	{{0x7a},{0x30}},                   
+	{{0xd1},{0x60}},                    	
 };
 
 static struct regval_list sensor_ev_pos4_regs[] = {
-	//NULL
+	{{0xf0},{0x00}},
+	{{0x7a},{0x40}},                   
+	{{0xd1},{0x68}},                   
 };
 
 
@@ -570,32 +969,33 @@ static struct regval_list sensor_ev_pos4_regs[] = {
 
 
 static struct regval_list sensor_fmt_yuv422_yuyv[] = {
-	{{0xf0},{0x00,0x01}},   //Page 1
-	{{0x9b},{0x02,0x02}},   //Context B YCbYCr 
-	{{0x3a},{0x02,0x02}},   //Context A YCbYCr
+	//YCbYCr
+	{{0xf0},{0x00}},
+	{{0x44},{0xE2}},
 };
 
 
 static struct regval_list sensor_fmt_yuv422_yvyu[] = {
-	{{0xf0},{0x00,0x01}},   //Page 1
-	{{0x9b},{0x02,0x03}},   //Context B YCrYCb 
-	{{0x3a},{0x02,0x03}},   //Context A YCrYCb
+	//YCrYCb
+	{{0xf0},{0x00}},
+	{{0x44},{0xE3}},
 };
 
 static struct regval_list sensor_fmt_yuv422_vyuy[] = {
-	{{0xf0},{0x00,0x01}},   //Page 1
-	{{0x9b},{0x02,0x01}},   //Context B CrYCbY 
-	{{0x3a},{0x02,0x01}},   //Context A CrYCbY
+	//CrYCbY
+	{{0xf0},{0x00}},
+	{{0x44},{0xE1}},
 };
 
 static struct regval_list sensor_fmt_yuv422_uyvy[] = {
-	{{0xf0},{0x00,0x01}},   //Page 1
-	{{0x9b},{0x02,0x00}},   //Context B CbYCrY 
-	{{0x3a},{0x02,0x00}},   //Context A CbYCrY
+	//CbYCrY
+	{{0xf0},{0x00}},
+	{{0x44},{0xE0}},
 };
 
 //static struct regval_list sensor_fmt_raw[] = {
 //	
+//	//raw
 //};
 
 
@@ -667,6 +1067,9 @@ static int sensor_write(struct v4l2_subdev *sd, unsigned char *reg,
 	for(i = REG_ADDR_STEP; i < REG_STEP; i++)
 			data[i] = value[i-REG_ADDR_STEP];
 	
+//	for(i = 0; i < REG_STEP; i++)
+//		printk("data[%x]=%x\n",i,data[i]);
+			
 	msg.addr = client->addr;
 	msg.flags = 0;
 	msg.len = REG_STEP;
@@ -690,22 +1093,19 @@ static int sensor_write(struct v4l2_subdev *sd, unsigned char *reg,
 static int sensor_write_array(struct v4l2_subdev *sd, struct regval_list *vals , uint size)
 {
 	int i,ret;
-
+	
 	if (size == 0)
 		return -EINVAL;
 	
 	for(i = 0; i < size ; i++)
 	{
-		if(vals->reg_num[0] == 0xff)
-			msleep(vals->value[0] * 256 + vals->value[1]);
-		else {	
-			ret = sensor_write(sd, vals->reg_num, vals->value);
-			if (ret < 0)
-				{
-					csi_dev_err("sensor_write_err!\n");
-					return ret;
-				}
-		}	
+		ret = sensor_write(sd, vals->reg_num, vals->value);
+		if (ret < 0)
+			{
+				csi_dev_err("sensor_write_err!\n");
+				return ret;
+			}
+		
 		vals++;
 	}
 
@@ -722,7 +1122,7 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
 	struct csi_dev *dev=(struct csi_dev *)dev_get_drvdata(sd->v4l2_dev->dev);
 	struct sensor_info *info = to_state(sd);
 	char csi_stby_str[32],csi_power_str[32],csi_reset_str[32];
-	
+	int ret;
 	if(info->ccm_info->iocfg == 0) {
 		strcpy(csi_stby_str,"csi_stby");
 		strcpy(csi_power_str,"csi_power_en");
@@ -743,6 +1143,10 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
 			//active mclk before stadby in
 			clk_enable(dev->csi_module_clk);
 			msleep(100);
+			//disable oe
+			ret = sensor_write_array(sd,sensor_oe_disable,ARRAY_SIZE(sensor_oe_disable));
+			if(ret < 0)
+				csi_dev_err("sensor_oe_disable error\n");
 			//standby on io
 			gpio_write_one_pin_value(dev->csi_pin_hd,CSI_STBY_ON,csi_stby_str);
 			msleep(100);
@@ -767,6 +1171,7 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
 			gpio_write_one_pin_value(dev->csi_pin_hd,CSI_RST_ON,csi_reset_str);
 			msleep(100);
 			gpio_write_one_pin_value(dev->csi_pin_hd,CSI_RST_OFF,csi_reset_str);
+
 			gpio_write_one_pin_value(dev->csi_pin_hd,CSI_STBY_OFF,csi_stby_str);
 			msleep(10);
 			break;
@@ -832,6 +1237,7 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
 			//set the io to hi-z
 			gpio_set_one_pin_io_status(dev->csi_pin_hd,0,csi_reset_str);//set the gpio to input
 			gpio_set_one_pin_io_status(dev->csi_pin_hd,0,csi_stby_str);//set the gpio to input
+			
 			break;
 		default:
 			return -EINVAL;
@@ -887,8 +1293,6 @@ static int sensor_detect(struct v4l2_subdev *sd)
 	
 	regs.reg_num[0] = 0xfe;
 	regs.value[0] = 0x00; //PAGE 0x00
-	regs.value[1] = 0x00;
-	
 	ret = sensor_write(sd, regs.reg_num, regs.value);
 	if (ret < 0) {
 		csi_dev_err("sensor_write err at sensor_detect!\n");
@@ -896,14 +1300,13 @@ static int sensor_detect(struct v4l2_subdev *sd)
 	}
 	
 	regs.reg_num[0] = 0x00;
-	regs.reg_num[1] = 0x00;
 	ret = sensor_read(sd, regs.reg_num, regs.value);
 	if (ret < 0) {
 		csi_dev_err("sensor_read err at sensor_detect!\n");
 		return ret;
 	}
-
-	if(regs.value[0] != 0x14)
+	
+	if(regs.value[0] != 0x99)
 		return -ENODEV;
 	
 	return 0;
@@ -913,21 +1316,21 @@ static int sensor_init(struct v4l2_subdev *sd, u32 val)
 {
 	int ret;
 	csi_dev_dbg("%s %s %d %\n",__FILE__,__FUNC__,__LINE__);
-	
+	writel(0x0055555d,0xf1c208a4);//debug
+
 	/*Make sure it is a target sensor*/
 	ret = sensor_detect(sd);
 	if (ret) {
 		csi_dev_err("chip found is not an target chip.\n");
 		return ret;
 	}
-	
 	return sensor_write_array(sd, sensor_default_regs , ARRAY_SIZE(sensor_default_regs));
 }
 
 static long sensor_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
 {
 	int ret=0;
-	
+
 	switch(cmd){
 		case CSI_SUBDEV_CMD_GET_INFO: 
 		{
@@ -935,11 +1338,13 @@ static long sensor_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
 			__csi_subdev_info_t *ccm_info = arg;
 			
 			csi_dev_dbg("CSI_SUBDEV_CMD_GET_INFO\n");
+			
 			ccm_info->mclk 	=	info->ccm_info->mclk ;
 			ccm_info->vref 	=	info->ccm_info->vref ;
 			ccm_info->href 	=	info->ccm_info->href ;
 			ccm_info->clock	=	info->ccm_info->clock;
 			ccm_info->iocfg	=	info->ccm_info->iocfg;
+
 			csi_dev_dbg("ccm_info.mclk=%x\n ",info->ccm_info->mclk);
 			csi_dev_dbg("ccm_info.vref=%x\n ",info->ccm_info->vref);
 			csi_dev_dbg("ccm_info.href=%x\n ",info->ccm_info->href);
@@ -953,11 +1358,13 @@ static long sensor_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
 			__csi_subdev_info_t *ccm_info = arg;
 			
 			csi_dev_dbg("CSI_SUBDEV_CMD_SET_INFO\n");
+		
 			info->ccm_info->mclk 	=	ccm_info->mclk 	;
 			info->ccm_info->vref 	=	ccm_info->vref 	;
 			info->ccm_info->href 	=	ccm_info->href 	;
 			info->ccm_info->clock	=	ccm_info->clock	;
 			info->ccm_info->iocfg	=	ccm_info->iocfg	;
+			
 			csi_dev_dbg("ccm_info.mclk=%x\n ",info->ccm_info->mclk);
 			csi_dev_dbg("ccm_info.vref=%x\n ",info->ccm_info->vref);
 			csi_dev_dbg("ccm_info.href=%x\n ",info->ccm_info->href);
@@ -968,7 +1375,8 @@ static long sensor_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
 		default:
 			return -EINVAL;
 	}		
-		return ret;
+	
+	return ret;
 }
 
 
@@ -1039,28 +1447,20 @@ static struct sensor_win_size {
 	int (*set_size) (struct v4l2_subdev *sd);
 /* h/vref stuff */
 } sensor_win_sizes[] = {
-	/* SXGA */
-	{
-		.width		= SXGA_WIDTH,
-		.height		= SXGA_HEIGHT,
-		.regs 		= sensor_sxga_regs,
-		.regs_size	= ARRAY_SIZE(sensor_sxga_regs),
-		.set_size		= NULL,
-	},
 	/* VGA */
 	{
 		.width		= VGA_WIDTH,
 		.height		= VGA_HEIGHT,
-		.regs 		= sensor_vga_regs,
-		.regs_size	= ARRAY_SIZE(sensor_vga_regs),
-		.set_size		= NULL,
+		.regs 		= NULL,
+		.regs_size	= 0,
+		.set_size	= NULL,
 	}
 };
 
 #define N_WIN_SIZES (ARRAY_SIZE(sensor_win_sizes))
 
  
- 
+
  
 static int sensor_enum_fmt(struct v4l2_subdev *sd, unsigned index,
                  enum v4l2_mbus_pixelcode *code)//linux-3.0
@@ -1088,7 +1488,7 @@ static int sensor_try_fmt_internal(struct v4l2_subdev *sd,
 	int index;
 	struct sensor_win_size *wsize;
 //	struct v4l2_pix_format *pix = &fmt->fmt.pix;//linux-3.0
-
+	csi_dev_dbg("%s %s %d %\n",__FILE__,__FUNC__,__LINE__);
 	for (index = 0; index < N_FMTS; index++)
 		if (sensor_formats[index].mbus_code == fmt->code)//linux-3.0
 			break;
@@ -1119,7 +1519,6 @@ static int sensor_try_fmt_internal(struct v4l2_subdev *sd,
 	
 	if (wsize >= sensor_win_sizes + N_WIN_SIZES)
 		wsize--;   /* Take the smallest one */
-		
 	if (ret_wsize != NULL)
 		*ret_wsize = wsize;
 	/*
@@ -1171,7 +1570,7 @@ static int sensor_s_fmt(struct v4l2_subdev *sd,
 		if (ret < 0)
 			return ret;
 	}
-	
+		
 	info->fmt = sensor_fmt;
 	info->width = wsize->width;
 	info->height = wsize->height;
@@ -1201,6 +1600,29 @@ static int sensor_g_parm(struct v4l2_subdev *sd, struct v4l2_streamparm *parms)
 
 static int sensor_s_parm(struct v4l2_subdev *sd, struct v4l2_streamparm *parms)
 {
+//	struct v4l2_captureparm *cp = &parms->parm.capture;
+	//struct v4l2_fract *tpf = &cp->timeperframe;
+	//struct sensor_info *info = to_state(sd);
+	//int div;
+
+//	if (parms->type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
+//		return -EINVAL;
+//	if (cp->extendedmode != 0)
+//		return -EINVAL;
+
+//	if (tpf->numerator == 0 || tpf->denominator == 0)
+//		div = 1;  /* Reset to full rate */
+//	else
+//		div = (tpf->numerator*SENSOR_FRAME_RATE)/tpf->denominator;
+//		
+//	if (div == 0)
+//		div = 1;
+//	else if (div > CLK_SCALE)
+//		div = CLK_SCALE;
+//	info->clkrc = (info->clkrc & 0x80) | div;
+//	tpf->numerator = 1;
+//	tpf->denominator = sensor_FRAME_RATE/div;
+//sensor_write(sd, REG_CLKRC, info->clkrc);
 	return -EINVAL;
 }
 
@@ -1236,14 +1658,14 @@ static int sensor_queryctrl(struct v4l2_subdev *sd,
 //		return v4l2_ctrl_query_fill(qc, 0, 255, 1, 128);
 //	case V4L2_CID_AUTOGAIN:
 //		return v4l2_ctrl_query_fill(qc, 0, 1, 1, 1);
-//	case V4L2_CID_EXPOSURE:
-//		return v4l2_ctrl_query_fill(qc, -4, 4, 1, 0);
-//	case V4L2_CID_EXPOSURE_AUTO:
-//		return v4l2_ctrl_query_fill(qc, 0, 1, 1, 0);
-//	case V4L2_CID_DO_WHITE_BALANCE:
-//		return v4l2_ctrl_query_fill(qc, 0, 5, 1, 0);
-//	case V4L2_CID_AUTO_WHITE_BALANCE:
-//		return v4l2_ctrl_query_fill(qc, 0, 1, 1, 1);
+	case V4L2_CID_EXPOSURE:
+		return v4l2_ctrl_query_fill(qc, -4, 4, 1, 0);
+	case V4L2_CID_EXPOSURE_AUTO:
+		return v4l2_ctrl_query_fill(qc, 0, 1, 1, 0);
+	case V4L2_CID_DO_WHITE_BALANCE:
+		return v4l2_ctrl_query_fill(qc, 0, 5, 1, 0);
+	case V4L2_CID_AUTO_WHITE_BALANCE:
+		return v4l2_ctrl_query_fill(qc, 0, 1, 1, 1);
 	case V4L2_CID_COLORFX:
 		return v4l2_ctrl_query_fill(qc, 0, 9, 1, 0);
 	case V4L2_CID_CAMERA_FLASH_MODE:
@@ -1259,70 +1681,80 @@ static int sensor_g_hflip(struct v4l2_subdev *sd, __s32 *value)
 	struct regval_list regs;
 	
 	regs.reg_num[0] = 0xf0;
-	regs.value[0] = 0x00; //PAGEMODE 0x00
-	regs.value[1] = 0x00;
-	
+	regs.value[0] = 0x00;		//page 0
 	ret = sensor_write(sd, regs.reg_num, regs.value);
 	if (ret < 0) {
 		csi_dev_err("sensor_write err at sensor_g_hflip!\n");
 		return ret;
 	}
 	
-	regs.reg_num[0] = 0x20;
+	regs.reg_num[0] = 0x0f;
 	ret = sensor_read(sd, regs.reg_num, regs.value);
 	if (ret < 0) {
 		csi_dev_err("sensor_read err at sensor_g_hflip!\n");
 		return ret;
 	}
 	
-	regs.value[1] &= (1<<1);
-	regs.value[1] = regs.value[1]>>1;		//0x20 bit1 is hflip enable
-	
-	*value = regs.value[1];
+	regs.value[0] &= (1<<4);
+	regs.value[0] = regs.value[0]>>4;		//0x0f bit4 is mirror
+		
+	*value = regs.value[0];
+
 	info->hflip = *value;
 	return 0;
 }
 
 static int sensor_s_hflip(struct v4l2_subdev *sd, int value)
 {
-	int ret;
+	int ret,i;
 	struct sensor_info *info = to_state(sd);
-	struct regval_list regs;
-	
-	regs.reg_num[0] = 0xf0;
-	regs.value[0] = 0x00; //PAGEMODE 0x00
-	regs.value[1] = 0x00; 
-	
-	ret = sensor_write(sd, regs.reg_num, regs.value);
+	struct regval_list regs[3];
+
+	regs[0].reg_num[0] = 0xf0;
+	regs[0].value[0] = 0x00;		//page 0
+	ret = sensor_write(sd, regs[0].reg_num, regs[0].value);
 	if (ret < 0) {
 		csi_dev_err("sensor_write err at sensor_s_hflip!\n");
 		return ret;
 	}
 	
-	regs.reg_num[0] = 0x20;
-	ret = sensor_read(sd, regs.reg_num, regs.value);
-	if (ret < 0) {
-		csi_dev_err("sensor_read err at sensor_s_hflip!\n");
-		return ret;
+	regs[0].reg_num[0] = 0x0f;
+	regs[1].reg_num[0] = 0x45;
+	regs[2].reg_num[0] = 0x47;
+	
+	for(i=0; i<3; i++) {
+		ret = sensor_read(sd, regs[i].reg_num, regs[i].value);
+		if (ret < 0) {
+			csi_dev_err("sensor_read err at sensor_s_hflip!\n");
+			return ret;
+		}
 	}
 	
-	switch(value) {
-	case 0:
-		regs.value[1] &= 0xfd;
-		break;
-	case 1:
-		regs.value[1] |= 0x02;
-		break;
-	default:
+	switch (value) {
+		case 0:
+		  regs[0].value[0] &= 0xef;
+		  regs[1].value[0] &= 0xfe;
+		  regs[2].value[0] &= 0xfb;
+			break;
+		case 1:
+			regs[0].value[0] |= 0x10;
+		  regs[1].value[0] |= 0x01;
+		  regs[2].value[0] |= 0x04;
+			break;
+		default:
 			return -EINVAL;
-	}	
-	
-	ret = sensor_write(sd, regs.reg_num, regs.value);
-	if (ret < 0) {
-		csi_dev_err("sensor_write err at sensor_s_hflip!\n");
-		return ret;
 	}
+	
+	for(i=0; i<3; i++) {
+		ret = sensor_write(sd, regs[i].reg_num, regs[i].value);
+		if (ret < 0) {
+			csi_dev_err("sensor_write err at sensor_s_hflip!\n");
+			return ret;
+		}
+	}
+	
 	msleep(100);
+	
 	info->hflip = value;
 	return 0;
 }
@@ -1332,72 +1764,82 @@ static int sensor_g_vflip(struct v4l2_subdev *sd, __s32 *value)
 	int ret;
 	struct sensor_info *info = to_state(sd);
 	struct regval_list regs;
-	
+
 	regs.reg_num[0] = 0xf0;
-	regs.value[0] = 0x00; //PAGEMODE 0x00
-	regs.value[1] = 0x00;
-	
+	regs.value[0] = 0x00;		//page 0
 	ret = sensor_write(sd, regs.reg_num, regs.value);
 	if (ret < 0) {
 		csi_dev_err("sensor_write err at sensor_g_vflip!\n");
 		return ret;
 	}
 	
-	regs.reg_num[0] = 0x20;
+	regs.reg_num[0] = 0x0f;
 	ret = sensor_read(sd, regs.reg_num, regs.value);
 	if (ret < 0) {
 		csi_dev_err("sensor_read err at sensor_g_vflip!\n");
 		return ret;
 	}
-
-	regs.value[1] &= (1<<0);
-	regs.value[1] = regs.value[0]>>0;		//0x20 bit0 is vflip enable
 	
-	*value = regs.value[1];
-	info->hflip = *value;
+	regs.value[0] &= (1<<5);
+	regs.value[0] = regs.value[0]>>5;		//0x0f bit5 is upsidedown
+		
+	*value = regs.value[0];
+
+	info->vflip = *value;
 	return 0;
 }
 
 static int sensor_s_vflip(struct v4l2_subdev *sd, int value)
 {
-	int ret;
+	int ret,i;
 	struct sensor_info *info = to_state(sd);
-	struct regval_list regs;
+	struct regval_list regs[3];
 	
-	regs.reg_num[0] = 0xf0;
-	regs.value[0] = 0x00; //PAGEMODE 0x00
-	regs.value[1] = 0x00;
-	
-	ret = sensor_write(sd, regs.reg_num, regs.value);
+	regs[0].reg_num[0] = 0xf0;
+	regs[0].value[0] = 0x00;		//page 0
+	ret = sensor_write(sd, regs[0].reg_num, regs[0].value);
 	if (ret < 0) {
 		csi_dev_err("sensor_write err at sensor_s_vflip!\n");
 		return ret;
 	}
 	
-	regs.reg_num[0] = 0x20;
-	ret = sensor_read(sd, regs.reg_num, regs.value);
-	if (ret < 0) {
-		csi_dev_err("sensor_read err at sensor_s_vflip!\n");
-		return ret;
+	regs[0].reg_num[0] = 0x0f;
+	regs[1].reg_num[0] = 0x45;
+	regs[2].reg_num[0] = 0x47;
+	
+	for(i=0; i<3; i++) {
+		ret = sensor_read(sd, regs[i].reg_num, regs[i].value);
+		if (ret < 0) {
+			csi_dev_err("sensor_read err at sensor_s_vflip!\n");
+			return ret;
+		}
 	}
 	
-	switch(value) {
-	case 0:
-		regs.value[1] &= 0xfe;
-		break;
-	case 1:
-		regs.value[1] |= 0x01;
-		break;
-	default:
+	switch (value) {
+		case 0:
+		  regs[0].value[0] &= 0xdf;
+		  regs[1].value[0] &= 0xfd;
+		  regs[2].value[0] &= 0xf7;
+			break;
+		case 1:
+			regs[0].value[0] |= 0x20;
+		  regs[1].value[0] |= 0x02;
+		  regs[2].value[0] |= 0x08;
+			break;
+		default:
 			return -EINVAL;
-	}	
-	
-	ret = sensor_write(sd, regs.reg_num, regs.value);
-	if (ret < 0) {
-		csi_dev_err("sensor_write err at sensor_s_vflip!\n");
-		return ret;
 	}
+	
+	for(i=0; i<3; i++) {
+		ret = sensor_write(sd, regs[i].reg_num, regs[i].value);
+		if (ret < 0) {
+			csi_dev_err("sensor_write err at sensor_s_vflip!\n");
+			return ret;
+		}
+	}
+	
 	msleep(100);
+	
 	info->vflip = value;
 	return 0;
 }
@@ -1414,23 +1856,164 @@ static int sensor_s_autogain(struct v4l2_subdev *sd, int value)
 
 static int sensor_g_autoexp(struct v4l2_subdev *sd, __s32 *value)
 {
-	return -EINVAL;
+	int ret;
+	struct sensor_info *info = to_state(sd);
+	struct regval_list regs;
+	
+	regs.reg_num[0] = 0xf0;
+	regs.value[0] = 0x00;		//page 0
+	ret = sensor_write(sd, regs.reg_num, regs.value);
+	if (ret < 0) {
+		csi_dev_err("sensor_write err at sensor_g_autoexp!\n");
+		return ret;
+	}
+	
+	regs.reg_num[0] = 0x41;
+	ret = sensor_read(sd, regs.reg_num, regs.value);
+	if (ret < 0) {
+		csi_dev_err("sensor_read err at sensor_g_autoexp!\n");
+		return ret;
+	}
+
+	regs.value[0] &= 0x08;
+	if (regs.value[0] == 0x08) {
+		*value = V4L2_EXPOSURE_AUTO;
+	}
+	else
+	{
+		*value = V4L2_EXPOSURE_MANUAL;
+	}
+	
+	info->autoexp = *value;
+	return 0;
 }
 
 static int sensor_s_autoexp(struct v4l2_subdev *sd,
 		enum v4l2_exposure_auto_type value)
 {
-	return -EINVAL;
+	int ret;
+	struct sensor_info *info = to_state(sd);
+	struct regval_list regs;
+	
+	regs.reg_num[0] = 0xf0;
+	regs.value[0] = 0x00;		//page 0
+	ret = sensor_write(sd, regs.reg_num, regs.value);
+	if (ret < 0) {
+		csi_dev_err("sensor_write err at sensor_s_autoexp!\n");
+		return ret;
+	}
+	
+	regs.reg_num[0] = 0x41;
+	ret = sensor_read(sd, regs.reg_num, regs.value);
+	if (ret < 0) {
+		csi_dev_err("sensor_read err at sensor_s_autoexp!\n");
+		return ret;
+	}
+
+	switch (value) {
+		case V4L2_EXPOSURE_AUTO:
+		  regs.value[0] |= 0x08;
+			break;
+		case V4L2_EXPOSURE_MANUAL:
+			regs.value[0] &= 0xf7;
+			break;
+		case V4L2_EXPOSURE_SHUTTER_PRIORITY:
+			return -EINVAL;    
+		case V4L2_EXPOSURE_APERTURE_PRIORITY:
+			return -EINVAL;
+		default:
+			return -EINVAL;
+	}
+		
+	ret = sensor_write(sd, regs.reg_num, regs.value);
+	if (ret < 0) {
+		csi_dev_err("sensor_write err at sensor_s_autoexp!\n");
+		return ret;
+	}
+	
+	msleep(60);
+	
+	info->autoexp = value;
+	return 0;
 }
 
 static int sensor_g_autowb(struct v4l2_subdev *sd, int *value)
 {
-	return -EINVAL;
+	int ret;
+	struct sensor_info *info = to_state(sd);
+	struct regval_list regs;
+	
+	regs.reg_num[0] = 0xf0;
+	regs.value[0] = 0x00;		//page 0
+	ret = sensor_write(sd, regs.reg_num, regs.value);
+	if (ret < 0) {
+		csi_dev_err("sensor_write err at sensor_g_autowb!\n");
+		return ret;
+	}
+	
+	regs.reg_num[0] = 0x41;
+	ret = sensor_read(sd, regs.reg_num, regs.value);
+	if (ret < 0) {
+		csi_dev_err("sensor_read err at sensor_g_autowb!\n");
+		return ret;
+	}
+
+	regs.value[0] &= (1<<2);
+	regs.value[0] = regs.value[0]>>2;		//0x41 bit2 is awb enable
+		
+	*value = regs.value[0];
+	info->autowb = *value;
+	
+	return 0;
 }
 
 static int sensor_s_autowb(struct v4l2_subdev *sd, int value)
 {
-	return -EINVAL;
+	int ret;
+	struct sensor_info *info = to_state(sd);
+	struct regval_list regs;
+	
+	ret = sensor_write_array(sd, sensor_wb_auto_regs, ARRAY_SIZE(sensor_wb_auto_regs));
+	if (ret < 0) {
+		csi_dev_err("sensor_write_array err at sensor_s_autowb!\n");
+		return ret;
+	}
+	
+	regs.reg_num[0] = 0xf0;
+	regs.value[0] = 0x00;		//page 0
+	ret = sensor_write(sd, regs.reg_num, regs.value);
+	if (ret < 0) {
+		csi_dev_err("sensor_write err at sensor_s_autowb!\n");
+		return ret;
+	}
+	
+	regs.reg_num[0] = 0x41;
+	ret = sensor_read(sd, regs.reg_num, regs.value);
+	if (ret < 0) {
+		csi_dev_err("sensor_read err at sensor_s_autowb!\n");
+		return ret;
+	}
+
+	switch(value) {
+	case 0:
+		regs.value[0] &= 0xfb;
+		break;
+	case 1:
+		regs.value[0] |= 0x04;
+		break;
+	default:
+		break;
+	}	
+	ret = sensor_write(sd, regs.reg_num, regs.value);
+	if (ret < 0) {
+		csi_dev_err("sensor_write err at sensor_s_autowb!\n");
+		return ret;
+	}
+	
+	msleep(60);
+	
+	info->autowb = value;
+	return 0;
 }
 
 static int sensor_g_hue(struct v4l2_subdev *sd, __s32 *value)
@@ -1503,7 +2086,9 @@ static int sensor_s_brightness(struct v4l2_subdev *sd, int value)
 		csi_dev_err("sensor_write_array err at sensor_s_brightness!\n");
 		return ret;
 	}
-	msleep(10);
+	
+	msleep(60);
+	
 	info->brightness = value;
 	return 0;
 }
@@ -1557,7 +2142,9 @@ static int sensor_s_contrast(struct v4l2_subdev *sd, int value)
 		csi_dev_err("sensor_write_array err at sensor_s_contrast!\n");
 		return ret;
 	}
-	msleep(10);
+	
+	msleep(60);
+	
 	info->contrast = value;
 	return 0;
 }
@@ -1611,7 +2198,9 @@ static int sensor_s_saturation(struct v4l2_subdev *sd, int value)
 		csi_dev_err("sensor_write_array err at sensor_s_saturation!\n");
 		return ret;
 	}
-	msleep(10);
+	
+	msleep(60);
+	
 	info->saturation = value;
 	return 0;
 }
@@ -1628,7 +2217,7 @@ static int sensor_s_exp(struct v4l2_subdev *sd, int value)
 {
 	int ret;
 	struct sensor_info *info = to_state(sd);
-	
+
 	switch (value) {
 		case -4:
 		  ret = sensor_write_array(sd, sensor_ev_neg4_regs, ARRAY_SIZE(sensor_ev_neg4_regs));
@@ -1665,7 +2254,9 @@ static int sensor_s_exp(struct v4l2_subdev *sd, int value)
 		csi_dev_err("sensor_write_array err at sensor_s_exp!\n");
 		return ret;
 	}
+	
 	msleep(10);
+	
 	info->exp = value;
 	return 0;
 }
@@ -1685,7 +2276,7 @@ static int sensor_s_wb(struct v4l2_subdev *sd,
 {
 	int ret;
 	struct sensor_info *info = to_state(sd);
-	
+
 	if (value == V4L2_WB_AUTO) {
 		ret = sensor_s_autowb(sd, 1);
 		return ret;
@@ -1722,7 +2313,9 @@ static int sensor_s_wb(struct v4l2_subdev *sd,
 		csi_dev_err("sensor_s_wb error, return %x!\n",ret);
 		return ret;
 	}
+	
 	msleep(10);
+	
 	info->wb = value;
 	return 0;
 }
@@ -1742,7 +2335,6 @@ static int sensor_s_colorfx(struct v4l2_subdev *sd,
 {
 	int ret;
 	struct sensor_info *info = to_state(sd);
-	
 	switch (value) {
 	case V4L2_COLORFX_NONE:
 	  ret = sensor_write_array(sd, sensor_colorfx_none_regs, ARRAY_SIZE(sensor_colorfx_none_regs));
@@ -1777,12 +2369,14 @@ static int sensor_s_colorfx(struct v4l2_subdev *sd,
 	default:
 		return -EINVAL;
 	}
-	
+
 	if (ret < 0) {
 		csi_dev_err("sensor_s_colorfx error, return %x!\n",ret);
 		return ret;
 	}
+	
 	msleep(10);
+	
 	info->clrfx = value;
 	return 0;
 }
@@ -1964,7 +2558,7 @@ static int sensor_probe(struct i2c_client *client,
 
 	info->fmt = &sensor_formats[0];
 	info->ccm_info = &ccm_info_con;
-	
+
 	info->brightness = 0;
 	info->contrast = 0;
 	info->saturation = 0;
@@ -1995,7 +2589,7 @@ static int sensor_remove(struct i2c_client *client)
 }
 
 static const struct i2c_device_id sensor_id[] = {
-	{ "mt9m112", 0 },
+	{ "gc0307", 0 },
 	{ }
 };
 MODULE_DEVICE_TABLE(i2c, sensor_id);
@@ -2004,7 +2598,7 @@ MODULE_DEVICE_TABLE(i2c, sensor_id);
 static struct i2c_driver sensor_driver = {
 	.driver = {
 		.owner = THIS_MODULE,
-	.name = "mt9m112",
+	.name = "gc0307",
 	},
 	.probe = sensor_probe,
 	.remove = sensor_remove,
@@ -2022,3 +2616,4 @@ static __exit void exit_sensor(void)
 
 module_init(init_sensor);
 module_exit(exit_sensor);
+
