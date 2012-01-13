@@ -4500,7 +4500,6 @@ dhdsdio_isr(void *arg)
 	dhd_bus_t *bus = (dhd_bus_t*)arg;
 	bcmsdh_info_t *sdh;
 
-	printk("%s: Enter\n", __FUNCTION__);
 	DHD_TRACE(("%s: Enter\n", __FUNCTION__));
 
 	if (!bus) {

@@ -2453,7 +2453,6 @@ dhd_bus_start(dhd_pub_t *dhdp)
 
 	ASSERT(dhd);
 
-printk("%s %d\n", __FILE__, __LINE__);
 	DHD_TRACE(("%s: \n", __FUNCTION__));
 
 	/* try to download image and nvram to the dongle */
@@ -2467,7 +2466,6 @@ printk("%s %d\n", __FILE__, __LINE__);
 		}
 	}
 
-printk("%s %d\n", __FILE__, __LINE__);
 	/* Start the watchdog timer */
 	dhd->pub.tickcnt = 0;
 	dhd_os_wd_timer(&dhd->pub, dhd_watchdog_ms);
@@ -2482,7 +2480,6 @@ printk("%s %d\n", __FILE__, __LINE__);
 		DHD_ERROR(("%s, dhd_bus_init failed %d\n", __FUNCTION__, ret));
 		return ret;
 	}
-printk("%s %d\n", __FILE__, __LINE__);
 #if defined(OOB_INTR_ONLY)
 	/* Host registration for OOB interrupt */
 	if (bcmsdh_register_oob_intr(dhdp)) {
@@ -2493,7 +2490,6 @@ printk("%s %d\n", __FILE__, __LINE__);
 		return -ENODEV;
 	}
 
-printk("%s %d\n", __FILE__, __LINE__);
 	/* Enable oob at firmware */
 	dhd_enable_oob_intr(dhd->pub.bus, TRUE);
 #endif /* defined(OOB_INTR_ONLY) */
@@ -2506,7 +2502,6 @@ printk("%s %d\n", __FILE__, __LINE__);
 		return -ENODEV;
 	}
 
-printk("%s %d\n", __FILE__, __LINE__);
 #ifdef EMBEDDED_PLATFORM
 	bcm_mkiovar("event_msgs", dhdp->eventmask, WL_EVENTING_MASK_LEN, iovbuf, sizeof(iovbuf));
 	dhd_wl_ioctl_cmd(dhdp, WLC_GET_VAR, iovbuf, sizeof(iovbuf), FALSE, 0);
@@ -2546,18 +2541,15 @@ printk("%s %d\n", __FILE__, __LINE__);
 	dhd_read_macaddr(dhd);
 #endif
 
-printk("%s %d\n", __FILE__, __LINE__);
 	/* Bus is ready, do any protocol initialization */
 	if ((ret = dhd_prot_init(&dhd->pub)) < 0)
 		return ret;
 
-printk("%s %d\n", __FILE__, __LINE__);
 #ifdef WRITE_MACADDR
 	/* it could be used even when WIFI is not Enabled [ON] */
 	dhd_write_macaddr(dhd->pub.mac.octet);
 #endif
 
-printk("%s %d\n", __FILE__, __LINE__);
 	return 0;
 }
 
