@@ -117,7 +117,7 @@ int axp_gpio_set_value(int gpio, int value)
 						return axp_set_bits(&axp->dev,AXP20_GPIO0_CFG,0x01);
 				case 1: axp_clr_bits(&axp->dev,AXP20_GPIO1_CFG,0x06);
 						return axp_set_bits(&axp->dev,AXP20_GPIO1_CFG,0x01);
-				case 2: return -EINVAL;
+				case 2: return axp_set_bits(&axp->dev,AXP20_GPIO2_CFG,0x01);
 				case 3: return axp_set_bits(&axp->dev,AXP20_GPIO3_CFG,0x02);
 				default:break;
 			}
@@ -127,7 +127,7 @@ int axp_gpio_set_value(int gpio, int value)
 			{
 				case 0: return axp_clr_bits(&axp->dev,AXP20_GPIO0_CFG,0x03);
 				case 1: return axp_clr_bits(&axp->dev,AXP20_GPIO1_CFG,0x03);
-				case 2: return axp_clr_bits(&axp->dev,AXP20_GPIO1_CFG,0x03);
+				case 2: return axp_clr_bits(&axp->dev,AXP20_GPIO2_CFG,0x01);
 				case 3: return axp_clr_bits(&axp->dev,AXP20_GPIO3_CFG,0x02);
 				default:break;
 			}
