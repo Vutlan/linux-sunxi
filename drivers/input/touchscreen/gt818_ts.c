@@ -48,7 +48,7 @@
 //#define DEBUG
 
 static int reg_val;
-const char *f3x_ts_name="gt818";
+const char *f3x_ts_name="gt818_ts";
 static struct workqueue_struct *goodix_wq;
 
 
@@ -932,8 +932,18 @@ COORDINATE_POLL:
 			}
 		else if(finger_current[position])
 			{ 	
-				input_report_abs(ts->input_dev, ABS_MT_POSITION_X, (*(coor_point+3*(position-1)+1)));  //can change x-y!!!
-				input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, (*(coor_point+3*(position-1))));
+				if(revert_x_flag){
+					input_report_abs(ts->input_dev, ABS_MT_POSITION_X, screen_max_x - (*(coor_point+3*(position-1)+1)));  //can change x-y!!!
+				}else{
+					input_report_abs(ts->input_dev, ABS_MT_POSITION_X, (*(coor_point+3*(position-1)+1)));  //can change x-y!!!
+				}
+
+				if(revert_y_flag){
+					input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, screen_max_y - (*(coor_point+3*(position-1))));
+				}else{
+					input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, (*(coor_point+3*(position-1))));
+				}
+				
 				input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR,1);
 				//input_report_abs(ts->input_dev, ABS_MT_WIDTH_MAJOR, finger_list.pointer[0].pressure);
 				input_mt_sync(ts->input_dev);
