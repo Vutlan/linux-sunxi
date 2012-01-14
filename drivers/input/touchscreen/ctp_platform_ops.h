@@ -87,12 +87,19 @@
 #define IRQ_EINT30	(30)
 #define IRQ_EINT31	(31)
 
+#define PIO_INT_CFG0_OFFSET 	(0x200)
+#define PIO_INT_CFG1_OFFSET 	(0x204)
+#define PIO_INT_CFG2_OFFSET 	(0x208)
+#define PIO_INT_CFG3_OFFSET 	(0x20c)
+
+/*
 typedef enum{
      PIO_INT_CFG0_OFFSET = 0x200,
      PIO_INT_CFG1_OFFSET = 0x204,
      PIO_INT_CFG2_OFFSET = 0x208,
      PIO_INT_CFG3_OFFSET = 0x20c
 } int_cfg_offset;
+*/
 
 typedef enum{
 	POSITIVE_EDGE = 0x0,
