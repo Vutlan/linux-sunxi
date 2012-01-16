@@ -431,8 +431,7 @@ static struct {
  
 int msdos_partition(struct parsed_partitions *state)
 {
-//	sector_t sector_size = bdev_logical_block_size(state->bdev) / 512;
-	sector_t sector_size = bdev_logical_block_size(state->bdev);
+	sector_t sector_size = bdev_logical_block_size(state->bdev) / 512;
 	Sector sect;
 	unsigned char *data;
 	struct partition *p;
