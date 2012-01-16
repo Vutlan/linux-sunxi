@@ -94,6 +94,8 @@ build_kernel()
 	cp drivers/net/wireless/bcm4330/firmware/bcm4330.bin ${LICHEE_MOD_DIR}
 	cp drivers/net/wireless/bcm4330/firmware/bcm4330.hcd ${LICHEE_MOD_DIR}
 	cp drivers/net/wireless/bcm4330/firmware/nvram.txt ${LICHEE_MOD_DIR}/bcm4330_nvram.txt
+	cp drivers/net/wireless/rtxx7x/RT2870STA.dat ${LICHEE_MOD_DIR}
+	cp drivers/net/wireless/rtxx7x/RT2870STACard.dat ${LICHEE_MOD_DIR}
 }
 
 build_modules()

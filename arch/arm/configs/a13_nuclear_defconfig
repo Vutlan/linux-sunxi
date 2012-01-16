@@ -955,7 +955,7 @@ CONFIG_BCM4330=m
 # CONFIG_LIBERTAS is not set
 # CONFIG_MWIFIEX is not set
 CONFIG_RTL8192CU_SW=m
-# CONFIG_RTXX7X_SW is not set
+CONFIG_RTXX7X_SW=m
 
 #
 # Enable WiMAX (Networking options) to see the WiMAX drivers
