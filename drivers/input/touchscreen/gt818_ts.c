@@ -666,6 +666,26 @@ static int goodix_init_panel(struct goodix_ts_data *ts)
        
        uint8_t config_info_d[] = {		//Touch key devlop board
 	0x06,0xA2,
+	0x00,0x02,0x04,0x06,0x08,0x0A,0x0C,0x0E,
+	0x10,0x12,0x02,0x22,0x12,0x22,0x22,0x22,
+	0x32,0x22,0x42,0x22,0x52,0x22,0x62,0x22,
+	0x72,0x22,0x82,0x22,0x92,0x22,0xA2,0x22,
+	0xB2,0x22,0xC2,0x22,0xD2,0x22,0xE2,0x22,
+	0xF2,0x22,0x0B,0x13,0x68,0x68,0x68,0x19,
+	0x19,0x19,0x0F,0x0F,0x0A,0x40,0x30,0x49,
+	0x03,0x00,0x05,0xE0,0x01,0x20,0x03,0x00,
+	0x00,0x32,0x2C,0x34,0x2E,0x00,0x00,0x05,
+	0x14,0x05,0x07,0x00,0x00,0x00,0x00,0x00,
+	0x14,0x10,0xEC,0x01,0x00,0x00,0x00,0x00,
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+	0x00,0x01
+
+	};
+
+#if 0
+       uint8_t config_info_d[] = {		//Touch key devlop board
+	0x06,0xA2,
 	//20111220
 	0x12,0x10,0x0E,0x0C,0x0A,0x08,0x06,0x04,
 	0x02,0x00,0xF2,0x22,0xE2,0x22,0xD2,0x22,
@@ -698,6 +718,8 @@ static int goodix_init_panel(struct goodix_ts_data *ts)
 	0x00,0x01
 	*/
 	};
+
+#endif
 
 //pr_info("%s: %s, %d. \n", _, __func__, __LINE__);		
        ret = goodix_read_version(ts);
@@ -792,6 +814,8 @@ static void goodix_ts_work_func(struct work_struct *work)
 	int tmp = 0;
 	int temp = 0;
 	uint16_t *coor_point = 0;
+	static int x_corrdinate = 0;
+	static int y_corrdinate = 0;
 	
 	struct goodix_ts_data *ts = container_of(work, struct goodix_ts_data, work);
 
@@ -932,17 +956,21 @@ COORDINATE_POLL:
 			}
 		else if(finger_current[position])
 			{ 	
+				x_corrdinate = *(coor_point+3*(position-1)+1);
+				y_corrdinate = *(coor_point+3*(position-1));
 				if(revert_x_flag){
-					input_report_abs(ts->input_dev, ABS_MT_POSITION_X, screen_max_x - (*(coor_point+3*(position-1)+1)));  //can change x-y!!!
-				}else{
-					input_report_abs(ts->input_dev, ABS_MT_POSITION_X, (*(coor_point+3*(position-1)+1)));  //can change x-y!!!
+					x_corrdinate = screen_max_x - x_corrdinate;
 				}
 
 				if(revert_y_flag){
-					input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, screen_max_y - (*(coor_point+3*(position-1))));
-				}else{
-					input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, (*(coor_point+3*(position-1))));
+					y_corrdinate = screen_max_y - y_corrdinate;
 				}
+
+				if(exchange_x_y_flag){
+					swap(x_corrdinate, y_corrdinate);
+				}
+				input_report_abs(ts->input_dev, ABS_MT_POSITION_X, x_corrdinate);  //can change x-y!!!
+				input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, y_corrdinate);
 				
 				input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR,1);
 				//input_report_abs(ts->input_dev, ABS_MT_WIDTH_MAJOR, finger_list.pointer[0].pressure);
@@ -1189,7 +1217,7 @@ static void gt818_i2c_test(struct goodix_ts_data *ts)
 	} 
 	
 	
-	return 0;
+	return;
 }
 
 /*******************************************************	
@@ -1374,11 +1402,14 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 
 
 	//i2c test
+#if 0
 	i2c_pre_cmd(ts);
 	msleep(10);
 	gt818_i2c_test(ts);
 	          //output
 	 msleep(2000);
+#endif
+
 	//gpio_set_one_pin_io_status(gpio_wakeup_hdle, 1, "ctp_wakeup");
         //gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "ctp_wakeup");
 #ifdef AUTO_UPDATE_GT818
