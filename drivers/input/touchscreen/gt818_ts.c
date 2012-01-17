@@ -76,11 +76,7 @@ int int_count = 0;
 
 ///////////////////////////////////////////////
 //specific tp related macro: need be configured for specific tp
-#ifdef CONFIG_ARCH_SUN4I
-#define CTP_IRQ_NO                     (IRQ_EINT21)
-#else ifdef CONFIG_ARCH_SUN5I
-#define CTP_IRQ_NO                     (IRQ_EINT11)
-#endif
+#define CTP_IRQ_NO			(gpio_int_info[0].port_num)
 
 #define CTP_IRQ_MODE			(POSITIVE_EDGE)
 #define CTP_NAME			GOODIX_I2C_NAME
@@ -100,6 +96,7 @@ static int gpio_wakeup_hdle = 0;
 static int gpio_reset_hdle = 0;
 static int gpio_wakeup_enable = 1;
 static int gpio_reset_enable = 1;
+static user_gpio_set_t  gpio_int_info[1];
 
 static int screen_max_x = 0;
 static int screen_max_y = 0;
@@ -188,14 +185,14 @@ static void ctp_clear_penirq(void)
  *              0:      success;
  *              others: fail; 
  */
-static int ctp_set_irq_mode(char *major_key , char *subkey, int ext_int_num, ext_int_mode int_mode)
+static int ctp_set_irq_mode(char *major_key , char *subkey, ext_int_mode int_mode)
 {
 	int ret = 0;
 	__u32 reg_num = 0;
 	__u32 reg_addr = 0;
 	__u32 reg_val = 0;
 	//config gpio to int mode
-	printk("%s: config gpio to int mode. \n", __func__);
+	pr_info("%s: config gpio to int mode. \n", __func__);
 #ifndef SYSCONFIG_GPIO_ENABLE
 #else
 	if(gpio_int_hdle){
@@ -203,19 +200,20 @@ static int ctp_set_irq_mode(char *major_key , char *subkey, int ext_int_num, ext
 	}
 	gpio_int_hdle = gpio_request_ex(major_key, subkey);
 	if(!gpio_int_hdle){
-		printk("request tp_int_port failed. \n");
+		pr_info("request tp_int_port failed. \n");
 		ret = -1;
 		goto request_tp_int_port_failed;
 	}
-	
-	//writel(0x6000,gpio_addr+0xdc);
+	gpio_get_one_pin_status(gpio_int_hdle, gpio_int_info, subkey, 1);
+	pr_info("%s, %d: gpio_int_info, port = %d, port_num = %d. \n", __func__, __LINE__, \
+		gpio_int_info[0].port, gpio_int_info[0].port_num);
 #endif
 
 #ifdef AW_GPIO_INT_API_ENABLE
 #else
-	printk(" INTERRUPT CONFIG\n");
-	reg_num = ext_int_num%8;
-	reg_addr = ext_int_num/8;
+	pr_info(" INTERRUPT CONFIG\n");
+	reg_num = (gpio_int_info[0].port_num)%8;
+	reg_addr = (gpio_int_info[0].port_num)/8;
 	reg_val = readl(gpio_addr + int_cfg_addr[reg_addr]);
 	reg_val &= (~(7 << (reg_num * 4)));
 	reg_val |= (int_mode << (reg_num * 4));
@@ -224,7 +222,7 @@ static int ctp_set_irq_mode(char *major_key , char *subkey, int ext_int_num, ext
 	ctp_clear_penirq();
                                                                
 	reg_val = readl(gpio_addr+PIO_INT_CTRL_OFFSET); 
-	reg_val |= (1 << ext_int_num);
+	reg_val |= (1 << (gpio_int_info[0].port_num));
 	writel(reg_val,gpio_addr+PIO_INT_CTRL_OFFSET);
 
 	udelay(1);
@@ -516,31 +514,18 @@ static struct ctp_platform_ops ctp_ops = {
 	.ts_detect = ctp_detect,
 };
 
-/*******************************************************	
-功能：	
-	读取从机数据
-	每个读操作用两条i2c_msg组成，第1条消息用于发送从机地址，
-	第2条用于发送读取地址和取回数据；每条消息前发送起始信号
-参数：
-	client:	i2c设备，包含设备地址
-	buf[0]：	首字节为读取地址
-	buf[1]~buf[len]：数据缓冲区
-	len：	读取数据长度
-return：
-	执行消息数
-*********************************************************/
 /*Function as i2c_master_send */
 static int i2c_read_bytes(struct i2c_client *client, uint8_t *buf, int len)
 {
 	struct i2c_msg msgs[2];
 	int ret=-1;
-	//发送写地址
-	msgs[0].flags=!I2C_M_RD;//写消息
+	//
+	msgs[0].flags=!I2C_M_RD; //
 	msgs[0].addr=client->addr;
 	msgs[0].len=2;
 	msgs[0].buf=&buf[0];
-	//接收数据
-	msgs[1].flags=I2C_M_RD;//读消息
+	//
+	msgs[1].flags=I2C_M_RD;//
 	msgs[1].addr=client->addr;
 	msgs[1].len=len-2;
 	msgs[1].buf=&buf[2];
@@ -550,23 +535,15 @@ static int i2c_read_bytes(struct i2c_client *client, uint8_t *buf, int len)
 }
 
 /*******************************************************	
-功能：
-	向从机写数据
-参数：
-	client:	i2c设备，包含设备地址
-	buf[0]：	首字节为写地址
-	buf[1]~buf[len]：数据缓冲区
-	len：	数据长度	
-return：
-	执行消息数
+
 *******************************************************/
 /*Function as i2c_master_send */
 static int i2c_write_bytes(struct i2c_client *client,uint8_t *data,int len)
 {
 	struct i2c_msg msg;
 	int ret=-1;
-	//发送设备地址
-	msg.flags=!I2C_M_RD;//写消息
+	//
+	msg.flags=!I2C_M_RD;//
 	msg.addr=client->addr;
 	msg.len=len;
 	msg.buf=data;		
@@ -576,13 +553,7 @@ static int i2c_write_bytes(struct i2c_client *client,uint8_t *data,int len)
 }
 
 /*******************************************************
-功能：
-	发送前缀命令
-	
-	ts:	client私有数据结构体
-return：
 
-	执行结果码，0表示正常执行
 *******************************************************/
 static int i2c_pre_cmd(struct goodix_ts_data *ts)
 {
@@ -596,13 +567,7 @@ static int i2c_pre_cmd(struct goodix_ts_data *ts)
 }
 
 /*******************************************************
-功能：
-	发送后缀命令
-	
-	ts:	client私有数据结构体
-return：
 
-	执行结果码，0表示正常执行
 *******************************************************/
 static int i2c_end_cmd(struct goodix_ts_data *ts)
 {
@@ -634,12 +599,7 @@ static short get_chip_version( unsigned int sw_ver )
 
 }
 /*******************************************************
-功能：
-	Guitar初始化函数，用于发送配置信息，获取版本信息
-参数：
-	ts:	client私有数据结构体
-return：
-	执行结果码，0表示正常执行
+
 *******************************************************/
 static int goodix_init_panel(struct goodix_ts_data *ts)
 {
@@ -760,12 +720,7 @@ static int goodix_init_panel(struct goodix_ts_data *ts)
 
 
 /*******************************************************
-功能：
-	获取版本信息
-参数：
-	ts:	client私有数据结构体
-return：
-	执行结果码，0表示正常执行
+
 *******************************************************/
 static short  goodix_read_version(struct goodix_ts_data *ts)
 {
@@ -789,22 +744,16 @@ static short  goodix_read_version(struct goodix_ts_data *ts)
 
 
 /*******************************************************	
-功能：
-	触摸屏工作函数
-	由中断触发，接受1组坐标数据，校验后再分析输出
-参数：
-	ts:	client私有数据结构体
-return：
-	执行结果码，0表示正常执行
+
 ********************************************************/
 static void goodix_ts_work_func(struct work_struct *work)
 {	
 	uint8_t  touch_data[3] = {READ_TOUCH_ADDR_H,READ_TOUCH_ADDR_L,0};
 	uint8_t  key_data[3] ={READ_KEY_ADDR_H,READ_KEY_ADDR_L,0};
 	uint8_t  point_data[8*MAX_FINGER_NUM+2]={ 0 };  
-	static uint8_t   finger_last[MAX_FINGER_NUM+1]={0};		//上次触摸按键的手指索引
-	uint8_t  finger_current[MAX_FINGER_NUM+1] = {0};		//当前触摸按键的手指索引
-	uint8_t  coor_data[6*MAX_FINGER_NUM] = {0};				//对应手指的数据
+	static uint8_t   finger_last[MAX_FINGER_NUM+1]={0};		//
+	uint8_t  finger_current[MAX_FINGER_NUM+1] = {0};		//
+	uint8_t  coor_data[6*MAX_FINGER_NUM] = {0};			//
 	static uint8_t  last_key = 0;
 	uint8_t  finger = 0;
 	uint8_t  key = 0;
@@ -842,7 +791,7 @@ COORDINATE_POLL:
 		goto XFER_ERROR ;
 	}
 
-	ret=i2c_read_bytes(ts->client, touch_data,sizeof(touch_data)/sizeof(touch_data[0]));  //读0x712，触摸
+	ret=i2c_read_bytes(ts->client, touch_data,sizeof(touch_data)/sizeof(touch_data[0]));  //
 	if(ret <= 0) {
 		dev_err(&(ts->client->dev),"I2C transfer error. Number:%d ,%s--%d\n", ret,__func__,__LINE__);
 		ts->bad_data = 1;
@@ -856,7 +805,7 @@ COORDINATE_POLL:
 	}
 	
 #ifdef HAVE_TOUCH_KEY	
-	ret=i2c_read_bytes(ts->client, key_data,sizeof(key_data)/sizeof(key_data[0]));  //读0x721，按键 
+	ret=i2c_read_bytes(ts->client, key_data,sizeof(key_data)/sizeof(key_data[0]));  //
 	if(ret <= 0) {
 		dev_err(&(ts->client->dev),"I2C transfer error. Number:%d,%s--%d\n", ret,__func__,__LINE__);
 		ts->bad_data = 1;
@@ -916,20 +865,20 @@ COORDINATE_POLL:
 				finger_current[temp] = 1;
 				for(count=0; count<6; count++)
 				{
-					coor_data[(temp-1)*6+count] = point_data[position+1+count];		//记录当前手指索引，并装载坐标数据
+					coor_data[(temp-1)*6+count] = point_data[position+1+count];	//
 				}
 			}
 			else
 			{
-			dev_err(&(ts->client->dev),"Track Id error:%d\n ");
-			ts->bad_data = 1;
-			tmp ++;
-			ts->retry++;
-			#ifndef INT_PORT
-				goto COORDINATE_POLL;
-			#else
-				goto XFER_ERROR;
-			#endif
+				dev_err(&(ts->client->dev),"Track Id error:%d\n ");
+				ts->bad_data = 1;
+				tmp ++;
+				ts->retry++;
+				#ifndef INT_PORT
+					goto COORDINATE_POLL;
+				#else
+					goto XFER_ERROR;
+				#endif
 			}		
 		}
 		//coor_point = (uint16_t *)coor_data;		
@@ -1017,13 +966,7 @@ XFER_ERROR:
 }
 
 /*******************************************************	
-功能：
-	计时器响应函数
-	由计时器触发，调度触摸屏工作函数运行；之后重新计时
-参数：
-	timer：函数关联的计时器	
-return：
-	计时器工作模式，HRTIMER_NORESTART表示不需要自动重启
+
 ********************************************************/
 static enum hrtimer_restart goodix_ts_timer_func(struct hrtimer *timer)
 {
@@ -1034,13 +977,7 @@ static enum hrtimer_restart goodix_ts_timer_func(struct hrtimer *timer)
 }
 
 /*******************************************************	
-功能：
-	中断响应函数
-	由中断触发，调度触摸屏处理函数运行
-参数：
-	timer：函数关联的计时器	
-return：
-	计时器工作模式，HRTIMER_NORESTART表示不需要自动重启
+
 ********************************************************/
 static irqreturn_t goodix_ts_irq_handler(int irq, void *dev_id)
 {
@@ -1068,13 +1005,7 @@ static irqreturn_t goodix_ts_irq_handler(int irq, void *dev_id)
 }
 
 /*******************************************************	
-功能：
-	管理GT801的电源，允许GT801 PLUS进入睡眠或将其唤醒
-参数：
-	on:	0表示使能睡眠，1为唤醒
-return：
-	是否设置成功，0为成功
-	错误码：-1为i2c错误，-2为GPIO错误；-EINVAL为参数on错误
+
 ********************************************************/
 //#if defined(INT_PORT)
 static int goodix_ts_power(struct goodix_ts_data * ts, int on)
@@ -1123,7 +1054,7 @@ static int goodix_ts_power(struct goodix_ts_data * ts, int on)
 				
 				if(ts->use_irq) {
 				//	s3c_gpio_cfgpin(INT_PORT, INT_CFG);	//Set IO port as interrupt port	
-					ret = ctp_ops.set_irq_mode("ctp_para", "ctp_int_port", CTP_IRQ_NO, CTP_IRQ_MODE);
+					ret = ctp_ops.set_irq_mode("ctp_para", "ctp_int_port", CTP_IRQ_MODE);
 					if(0 != ret){
 						printk("%s:ctp_ops.set_irq_mode err. \n", __func__);
 						return ret;
@@ -1160,7 +1091,7 @@ static int goodix_iic_test(struct i2c_client * client)
 	int i;
 	for(i =0; i<256;i++)
 	{
-	msg.flags = !I2C_M_RD;//写消息
+	msg.flags = !I2C_M_RD;//
 	msg.addr = i;
 	msg.len = 1;
 	msg.buf = data;		
@@ -1220,49 +1151,37 @@ static void gt818_i2c_test(struct goodix_ts_data *ts)
 	return;
 }
 
-/*******************************************************	
-功能：
-	触摸屏探测函数
-	在注册驱动时调用(要求存在对应的client)；
-	用于IO,中断等资源申请；设备注册；触摸屏初始化等工作
-参数：
-	client：待驱动的设备结构体
-	id：设备ID
-return：
-	执行结果码，0表示正常执行
-********************************************************/
 static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
-	//TODO:在测试失败后需要释放ts
+	//TODO:
 	int ret = 0;
 	int err = 0;
 	int retry=0;
 
-       //unsigned short version_temp = 0;
- 	unsigned char update_path[1] = {0};
+	//unsigned short version_temp = 0;
+	unsigned char update_path[1] = {0};
 	uint8_t goodix_id[3] = {0,0xff,0};
-       char test_data = 1;
-//       char test_data2[4]={0x6,0xA2,5,10};
+	char test_data = 1;
+	//char test_data2[4]={0x6,0xA2,5,10};
 	struct goodix_ts_data *ts;
 
 	struct goodix_i2c_rmi_platform_data *pdata;
 	dev_dbg(&client->dev,"Install touch driver.\n");
 
-	
-    printk("======goodix_gt818 probe======\n");
-    //config gpio:
-	   //pr_info("%s: %s, %d. \n", _, __func__, __LINE__);
+	printk("======goodix_gt818 probe======\n");
+	//config gpio:
+	//pr_info("%s: %s, %d. \n", _, __func__, __LINE__);
 	gpio_wakeup_hdle = gpio_request_ex("ctp_para", "ctp_wakeup");
 	if(!gpio_wakeup_hdle) {
 		pr_warning("touch panel tp_wakeup request gpio fail!\n");
 		goto exit_gpio_wakeup_request_failed;
 	}
 	
-//    printk("======gt818_addr=0x%x=======\n",client->addr);
-    
-    //goodix_iic_test(client);
-    
-    //Check I2C function
+	//printk("======gt818_addr=0x%x=======\n",client->addr);
+	    
+	//goodix_iic_test(client);
+	    
+	//Check I2C function
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) 
 	{
 		dev_err(&client->dev, "Must have I2C_FUNC_I2C.\n");
@@ -1284,21 +1203,15 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 
 	ts->gpio_irq = INT_PORT;
 
-	
-	
-	
 	i2c_connect_client = client;	//used by Guitar_Update
 	
-#if 1
+
 #ifdef	INT_PORT
 	//gpio_direction_input(INT_PORT);
 	gpio_set_one_pin_io_status(gpio_int_hdle, 0, "ctp_int_port");
 	//s3c_gpio_setpull(INT_PORT, S3C_GPIO_PULL_NONE);	
 	gpio_set_one_pin_pull(gpio_int_hdle, 0, "ctp_int_port");	
-	
 #endif
-#endif
-
 	
 #if defined(NO_DEFAULT_ID) && defined(INT_PORT)
 	for(retry=0;retry < 3; retry++)
@@ -1362,30 +1275,30 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 
 	for(retry=0;retry < 3; retry++)
 	{
-	//gpio_direction_output(SHUTDOWN_PORT,0);
- 	  gpio_set_one_pin_io_status(gpio_wakeup_hdle, 1, "ctp_wakeup");
-	  gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "ctp_wakeup");
-         msleep(50);
-	//gpio_direction_input(SHUTDOWN_PORT);
-         gpio_set_one_pin_io_status(gpio_wakeup_hdle, 0, "ctp_wakeup");
-          msleep(200);
-          //output
-	  //gpio_set_one_pin_io_status(gpio_wakeup_hdle, 1, "ctp_wakeup");
-          //gpio_write_one_pin_value(gpio_wakeup_hdle, 1, "ctp_wakeup");
-	    	//pr_info("%s: %s, %d. \n", _, __func__, __LINE__);
+		//gpio_direction_output(SHUTDOWN_PORT,0);
+		gpio_set_one_pin_io_status(gpio_wakeup_hdle, 1, "ctp_wakeup");
+		gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "ctp_wakeup");
+		msleep(50);
+		//gpio_direction_input(SHUTDOWN_PORT);
+		gpio_set_one_pin_io_status(gpio_wakeup_hdle, 0, "ctp_wakeup");
+		msleep(200);
+		//output
+		//gpio_set_one_pin_io_status(gpio_wakeup_hdle, 1, "ctp_wakeup");
+		//gpio_write_one_pin_value(gpio_wakeup_hdle, 1, "ctp_wakeup");
+		//pr_info("%s: %s, %d. \n", _, __func__, __LINE__);
 		ret =i2c_write_bytes(client, &test_data, 1);	//Test I2C connection.
 		if (ret > 0)
 			break;
 	}
 
 
-/******
-    pr_info("========write_msg=%d=======\n", i2c_write_bytes(client,test_data2,4));
-    test_data2[2]=0;
-    test_data2[3]=0;
-    printk("=====test_data2[2]=%d,test_data2[3]=%d====\n",test_data2[2],test_data2[3]);
-    printk("=====read_msg=%d,test_data2[2]=%d,test_data2[3]=%d====\n",i2c_read_bytes(client,test_data2,4),test_data2[2],test_data2[3]);
-***/  
+	/******
+	    pr_info("========write_msg=%d=======\n", i2c_write_bytes(client,test_data2,4));
+	    test_data2[2]=0;
+	    test_data2[3]=0;
+	    printk("=====test_data2[2]=%d,test_data2[3]=%d====\n",test_data2[2],test_data2[3]);
+	    printk("=====read_msg=%d,test_data2[2]=%d,test_data2[3]=%d====\n",i2c_read_bytes(client,test_data2,4),test_data2[2],test_data2[3]);
+	***/  
 
 	if(ret <= 0)
 	{
@@ -1435,7 +1348,7 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 
 	ts->input_dev->evbit[0] = BIT_MASK(EV_SYN) | BIT_MASK(EV_KEY) | BIT_MASK(EV_ABS) ;
 	ts->input_dev->keybit[BIT_WORD(BTN_TOUCH)] = BIT_MASK(BTN_TOUCH);
-	ts->input_dev->absbit[0] = BIT(ABS_X) | BIT(ABS_Y) | BIT(ABS_PRESSURE); 						// absolute coor (x,y)
+	ts->input_dev->absbit[0] = BIT(ABS_X) | BIT(ABS_Y) | BIT(ABS_PRESSURE); 			// absolute coor (x,y)
 #ifdef HAVE_TOUCH_KEY
 	for(retry = 0; retry < MAX_KEY_NUM; retry++)
 	{
@@ -1501,7 +1414,7 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 //		#define GT801_PLUS_IRQ_TYPE IRQ_TYPE_LEVEL_HIGH
 	#endif
 	    //pr_info("%s: %s, %d. \n", _, __func__, __LINE__);
-	err = ctp_ops.set_irq_mode("ctp_para", "ctp_int_port", CTP_IRQ_NO, CTP_IRQ_MODE);
+	err = ctp_ops.set_irq_mode("ctp_para", "ctp_int_port", CTP_IRQ_MODE);
 	if(0 != err){
 		printk("%s:ctp_ops.set_irq_mode err. \n", __func__);
 		goto exit_set_irq_mode;
@@ -1620,12 +1533,6 @@ err_create_proc_entry:
 
 
 /*******************************************************	
-功能：
-	驱动资源释放
-参数：
-	client：设备结构体
-return：
-	执行结果码，0表示正常执行
 ********************************************************/
 static int goodix_ts_remove(struct i2c_client *client)
 {
@@ -1657,7 +1564,7 @@ static int goodix_ts_remove(struct i2c_client *client)
 	return 0;
 }
 
-//停用设备
+//
 static int goodix_ts_suspend(struct i2c_client *client, pm_message_t mesg)
 {
 	int ret;
@@ -1675,7 +1582,7 @@ static int goodix_ts_suspend(struct i2c_client *client, pm_message_t mesg)
 	//ret = cancel_work_sync(&ts->work);
 	//if(ret && ts->use_irq)	
 		//enable_irq(client->irq);
-	if (ts->power) {	/* 必须在取消work后再执行，避免因GPIO导致坐标处理代码死循环	*/
+	if (ts->power) {	/* ±ØÐëÔÚÈ¡ÏûworkºóÔÙÖ´ÐÐ£¬±ÜÃâÒòGPIOµ¼ÖÂ×ø±ê´¦Àí´úÂëËÀÑ­»·	*/
 		ret = ts->power(ts, 0);
 		if (ret < 0)
 			printk(KERN_ERR "goodix_ts_suspend power off failed\n");
@@ -1685,7 +1592,7 @@ static int goodix_ts_suspend(struct i2c_client *client, pm_message_t mesg)
 	return 0;
 }
 
-//重新唤醒
+//
 static int goodix_ts_resume(struct i2c_client *client)
 {
 	int ret;
@@ -2319,9 +2226,8 @@ static u8  gt818_update_firmware( u8 *nvram, u16 length, struct goodix_ts_data *
     u16 cur_frame_num, total_frame_num, cur_frame_len;
     u32 gt80x_update_rate;
 
-    unsigned char i2c_data_buf[PACK_SIZE+2] = {0,};        //˽¾ݻº´爸
-    unsigned char i2c_chk_data_buf[PACK_SIZE+2] = {0,};        //˽¾ݻº´爸
-    
+    unsigned char i2c_data_buf[PACK_SIZE+2] = {0,};        //
+    unsigned char i2c_chk_data_buf[PACK_SIZE+2] = {0,};        //
     if( length > NVRAM_LEN - NVRAM_BOOT_SECTOR_LEN )
     {
         printk(KERN_INFO"length too big %d %d\n", length, NVRAM_LEN - NVRAM_BOOT_SECTOR_LEN );
@@ -2474,7 +2380,7 @@ static u8  gt818_update_firmware( u8 *nvram, u16 length, struct goodix_ts_data *
         printk(KERN_INFO"nvram validate fail\n");
         return 0;
     }
-    //ι0X00FFд0XCC±ʕ¼½⋸
+    //Î¹0X00FFÐ´0XCCÂ±î¾ÊÂ¼Â½â¸
 //    i2c_chk_data_buf[0] = 0xff;
 //    i2c_chk_data_buf[1] = 0x00;
 //    i2c_chk_data_buf[2] = 0x0;
@@ -2593,7 +2499,7 @@ int  gt818_downloader( struct goodix_ts_data *ts,  unsigned char * data, unsigne
 //            err = 0;
 //            goto exit_downloader;
 //        }
-	if( ((ts->version&0xf000) | (fw_info->version&0xf000)) == 0)   //?????0¡轿?3¡ꢣ·؉	
+	if( ((ts->version&0xf000) | (fw_info->version&0xf000)) == 0)   //
   	{		   			 
  		 if ( (ts->version&0x1ff) >= (fw_info->version&0x1ff) )   			 
   		{        			
@@ -2603,7 +2509,7 @@ int  gt818_downloader( struct goodix_ts_data *ts,  unsigned char * data, unsigne
  	 }	
       else		
   	{			
-  		if(((ts->version&0xf000) & (fw_info->version&0xf000)) == 0xf000)    //?1?F¡轿?????¡Ὁ	
+  		if(((ts->version&0xf000) & (fw_info->version&0xf000)) == 0xf000)    //
   		{					
   			if( (ts->version&0xff) > (fw_info->version&0xff))						
 			{							
@@ -2639,7 +2545,7 @@ int  gt818_downloader( struct goodix_ts_data *ts,  unsigned char * data, unsigne
 			TPD_DOWNLOADER_DEBUG("Need to upgrade\n");						
 			}				
 		}			
-	else                   //¦̡�¡㸚???¡Ὁ	
+	else                   //
 	{					
 	if( (ts->version&0xff) > (fw_info->version&0xff))						
 		{							
@@ -2740,14 +2646,14 @@ exit_downloader:
 
 }
 //******************************End of firmware update surpport*******************************
-//可用于该驱动的 设备名—设备ID 列表
+//¿ÉÓÃÓÚ¸ÃÇý¶¯µÄ Éè±¸Ãû¡ªÉè±¸ID ÁÐ±í
 //only one client
 static const struct i2c_device_id goodix_ts_id[] = {
 	{ GOODIX_I2C_NAME, 0 },
 	{ }
 };
 
-//设备驱动结构体
+//Éè±¸Çý¶¯½á¹¹Ìå
 static struct i2c_driver goodix_ts_driver = {
 	.class = I2C_CLASS_HWMON,
 	.probe		= goodix_ts_probe,
@@ -2768,10 +2674,10 @@ static struct i2c_driver goodix_ts_driver = {
 };
 
 /*******************************************************	
-功能：
-	驱动加载函数
-return：
-	执行结果码，0表示正常执行
+¹¦ÄÜ£º
+	Çý¶¯¼ÓÔØº¯Êý
+return£º
+	Ö´ÐÐ½á¹ûÂë£¬0±íÊ¾Õý³£Ö´ÐÐ
 ********************************************************/
 static int __devinit goodix_ts_init(void)
 {
@@ -2794,7 +2700,7 @@ static int __devinit goodix_ts_init(void)
 	if(0 != err){
 		printk("%s:ctp_ops.init_platform_resource err. \n", __func__);    
 	}
-	//?
+	//
 	ctp_set_gpio_mode();
 	
 	goodix_wq = create_singlethread_workqueue("goodix_wq");
@@ -2816,10 +2722,10 @@ static int __devinit goodix_ts_init(void)
 }
 
 /*******************************************************	
-功能：
-	驱动卸载函数
-参数：
-	client：设备结构体
+¹¦ÄÜ£º
+	Çý¶¯Ð¶ÔØº¯Êý
+²ÎÊý£º
+	client£ºÉè±¸½á¹¹Ìå
 ********************************************************/
 static void __exit goodix_ts_exit(void)
 {
@@ -2829,7 +2735,7 @@ static void __exit goodix_ts_exit(void)
 		destroy_workqueue(goodix_wq);		//release our work queue
 }
 
-late_initcall(goodix_ts_init);				//最后初始化驱动felix
+late_initcall(goodix_ts_init);				//×îºó³õÊ¼»¯Çý¶¯felix
 module_exit(goodix_ts_exit);
 
 MODULE_DESCRIPTION("Goodix Touchscreen Driver");
