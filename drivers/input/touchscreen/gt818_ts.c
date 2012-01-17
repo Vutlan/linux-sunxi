@@ -587,7 +587,7 @@ static short get_chip_version( unsigned int sw_ver )
 {
     //pr_info("%s: %s, %d. \n", _, __func__, __LINE__);
     if ( (sw_ver&0xff) < TPD_CHIP_VERSION_C_FIRMWARE_BASE )
-        return TPD_GT818_VERSION_B;
+	return TPD_GT818_VERSION_B;
    else if ( (sw_ver&0xff) < TPD_CHIP_VERSION_D1_FIRMWARE_BASE )        
    	return TPD_GT818_VERSION_C;    
    else if((sw_ver&0xff) < TPD_CHIP_VERSION_E_FIRMWARE_BASE)        
@@ -599,7 +599,9 @@ static short get_chip_version( unsigned int sw_ver )
 
 }
 /*******************************************************
-
+notice: init panel need to be complete within 200ms.
+	so, i2c transfer clk more faster more better
+	     and do not add too much print info when debug.
 *******************************************************/
 static int goodix_init_panel(struct goodix_ts_data *ts)
 {
@@ -623,7 +625,26 @@ static int goodix_init_panel(struct goodix_ts_data *ts)
 	0x00,0x3C,0x28,0x00,0x00,0x00,0x00,0x00,
 	0x00,0x01
 	};
-       
+	
+	uint8_t config_info_d[] = {		 //Touch key devlop board
+		0x06,0xA2,
+		0x00,0x02,0x04,0x06,0x08,0x0A,0x0C,0x0E,
+		0x10,0x12,0x02,0x22,0x12,0x22,0x22,0x22,
+		0x32,0x22,0x42,0x22,0x52,0x22,0x62,0x22,
+		0x72,0x22,0x82,0x22,0x92,0x22,0xA2,0x22,
+		0xB2,0x22,0xC2,0x22,0xD2,0x22,0xE2,0x22,
+		0xF2,0x22,0x0B,0x13,0x68,0x68,0x68,0x19,
+		0x19,0x19,0x0F,0x0F,0x0A,0x35,0x25,0x49,
+		0x03,0x00,0x05,0xE0,0x01,0x20,0x03,0x00,
+		0x00,0x32,0x2C,0x34,0x2E,0x00,0x00,0x05,
+		0x14,0x05,0x07,0x00,0x00,0x00,0x00,0x00,
+		0x14,0x10,0xEC,0x01,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x01
+	};
+
+#if 0
        uint8_t config_info_d[] = {		//Touch key devlop board
 	0x06,0xA2,
 	0x00,0x02,0x04,0x06,0x08,0x0A,0x0C,0x0E,
@@ -642,6 +663,7 @@ static int goodix_init_panel(struct goodix_ts_data *ts)
 	0x00,0x01
 
 	};
+#endif
 
 #if 0
        uint8_t config_info_d[] = {		//Touch key devlop board
@@ -749,14 +771,17 @@ static short  goodix_read_version(struct goodix_ts_data *ts)
 static void goodix_ts_work_func(struct work_struct *work)
 {	
 	uint8_t  touch_data[3] = {READ_TOUCH_ADDR_H,READ_TOUCH_ADDR_L,0};
-	uint8_t  key_data[3] ={READ_KEY_ADDR_H,READ_KEY_ADDR_L,0};
 	uint8_t  point_data[8*MAX_FINGER_NUM+2]={ 0 };  
 	static uint8_t   finger_last[MAX_FINGER_NUM+1]={0};		//
 	uint8_t  finger_current[MAX_FINGER_NUM+1] = {0};		//
 	uint8_t  coor_data[6*MAX_FINGER_NUM] = {0};			//
-	static uint8_t  last_key = 0;
+
 	uint8_t  finger = 0;
+#ifdef HAVE_TOUCH_KEY
 	uint8_t  key = 0;
+	static uint8_t  last_key = 0;
+	uint8_t  key_data[3] ={READ_KEY_ADDR_H,READ_KEY_ADDR_L,0};
+#endif
 	unsigned int  count = 0;
 	unsigned int position = 0;	
 	int ret=-1;
@@ -785,7 +810,9 @@ static void goodix_ts_work_func(struct work_struct *work)
 	
 	
 	i2c_pre_cmd(ts);
+#ifndef INT_PORT
 COORDINATE_POLL:
+#endif
 	if( tmp > 9) {
 		dev_info(&(ts->client->dev), "Because of transfer error,touchscreen stop working.\n");
 		goto XFER_ERROR ;
@@ -870,7 +897,7 @@ COORDINATE_POLL:
 			}
 			else
 			{
-				dev_err(&(ts->client->dev),"Track Id error:%d\n ");
+				dev_err(&(ts->client->dev), "Track Id error:%d\n ", temp);
 				ts->bad_data = 1;
 				tmp ++;
 				ts->retry++;
@@ -1083,73 +1110,7 @@ static int goodix_ts_power(struct goodix_ts_data * ts, int on)
 	}
 
 }
-static int goodix_iic_test(struct i2c_client * client)
-{
-	struct i2c_msg msg;
-	int ret=-1;
-	uint8_t data[0];
-	int i;
-	for(i =0; i<256;i++)
-	{
-	msg.flags = !I2C_M_RD;//
-	msg.addr = i;
-	msg.len = 1;
-	msg.buf = data;		
-	if(0x18 == i || 0x51 == i){
-		continue;
-	}
-		
-	ret=i2c_transfer(client->adapter, &msg,1);
-	if(ret == 1)
-	{
-	  pr_err("IIC TEST OK addr = %x\n",i);
-	  break;
-	}else{
-		pr_err("----------IIC TEST failed addr = %x\n",i);	
-	}
-	mdelay(1000);
-    }
-	return ret;
-}
 
-static void gt818_i2c_test(struct goodix_ts_data *ts)
-{
-	int ret = 0;
-	//write data
-	//pr_info("%s: %s %d . \n", __FILE__, __func__, __LINE__);
-	uint8_t write_buffer[] = {
-		0x06,0xAc,
-		0x12,0x10,0x0E
-	};
-	
-	 ret=i2c_write_bytes(ts->client,write_buffer, (sizeof(write_buffer)/sizeof(write_buffer[0])));	
-	 if (ret < 0){
-	 	pr_info("%s: %s %d err . \n", __FILE__, __func__, __LINE__);
-	 	return ret;	
-	 } 
-		
-	//read data
-	//pr_info("%s: %s %d . \n", __FILE__, __func__, __LINE__);
-	uint8_t read_buffer[5] = {0};
-	memset(read_buffer, 0, 5);
-	read_buffer[0] = 0x06;
-	read_buffer[1] = 0xac;
-	msleep(5);
-	ret=i2c_read_bytes(ts->client, read_buffer, 4);
-	if (ret < 0){
-	 	pr_info("%s: %s %d err . \n", __FILE__, __func__, __LINE__);
-	 	return ret;	
-	}else{
-		int i = 0;
-		for(i=0; i<5; i++){
-			pr_info("return value: %x. \n",read_buffer[i]);
-		}
-			
-	} 
-	
-	
-	return;
-}
 
 static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
@@ -1160,10 +1121,12 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 
 	//unsigned short version_temp = 0;
 	unsigned char update_path[1] = {0};
+#if defined(NO_DEFAULT_ID) && defined(INT_PORT)
 	uint8_t goodix_id[3] = {0,0xff,0};
+#endif
 	char test_data = 1;
 	//char test_data2[4]={0x6,0xA2,5,10};
-	struct goodix_ts_data *ts;
+	struct goodix_ts_data *ts = NULL;
 
 	struct goodix_i2c_rmi_platform_data *pdata;
 	dev_dbg(&client->dev,"Install touch driver.\n");
@@ -1178,8 +1141,6 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 	}
 	
 	//printk("======gt818_addr=0x%x=======\n",client->addr);
-	    
-	//goodix_iic_test(client);
 	    
 	//Check I2C function
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) 
@@ -1313,16 +1274,6 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 	pdata = client->dev.platform_data;
 	
 
-
-	//i2c test
-#if 0
-	i2c_pre_cmd(ts);
-	msleep(10);
-	gt818_i2c_test(ts);
-	          //output
-	 msleep(2000);
-#endif
-
 	//gpio_set_one_pin_io_status(gpio_wakeup_hdle, 1, "ctp_wakeup");
         //gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "ctp_wakeup");
 #ifdef AUTO_UPDATE_GT818
@@ -1386,52 +1337,33 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 	client->irq=INT_PORT;		//If not defined in client
 	if (client->irq)
 	{
-	/*****
-		ret = gpio_request(INT_PORT, "TS_INT");	//Request IO
-		
-		if (ret < 0) 
-		{
-			dev_err(&client->dev, "Failed to request GPIO:%d, ERRNO:%d\n",(int)INT_PORT,ret);
-			goto err_gpio_request_failed;
+		#if INT_TRIGGER==1
+			#define GT801_PLUS_IRQ_TYPE IRQ_TYPE_EDGE_RISING
+		#elif INT_TRIGGER==0
+			#define GT801_PLUS_IRQ_TYPE IRQ_TYPE_EDGE_FALLING
+	//	#elif INT_TRIGGER==2
+	//		#define GT801_PLUS_IRQ_TYPE IRQ_TYPE_LEVEL_LOW
+	//	#elif INT_TRIGGER==3
+	//		#define GT801_PLUS_IRQ_TYPE IRQ_TYPE_LEVEL_HIGH
+		#endif
+		    //pr_info("%s: %s, %d. \n", _, __func__, __LINE__);
+		err = ctp_ops.set_irq_mode("ctp_para", "ctp_int_port", CTP_IRQ_MODE);
+		if(0 != err){
+			printk("%s:ctp_ops.set_irq_mode err. \n", __func__);
+			goto exit_set_irq_mode;
 		}
-		
-		//S3C_Gpio_Setpull(Int_Port, S3C_Gpio_Pull_None);	//ret > 0 ?
-		 gpio_set_one_pin_pull(gpio_int_hdle, 0, "ctp_int_port");
 
-		//s3c_gpio_cfgpin(INT_PORT, INT_CFG);	//Set IO port function	
-  	      reg_val = readl(gpio_addr + PHO_CFG2_OFFSET);
-             reg_val &=(~(1<<20));
-             reg_val |=(3<<21);  
-             writel(reg_val,gpio_addr + PHO_CFG2_OFFSET);				
-	*******/
-	#if INT_TRIGGER==1
-		#define GT801_PLUS_IRQ_TYPE IRQ_TYPE_EDGE_RISING
-	#elif INT_TRIGGER==0
-		#define GT801_PLUS_IRQ_TYPE IRQ_TYPE_EDGE_FALLING
-//	#elif INT_TRIGGER==2
-//		#define GT801_PLUS_IRQ_TYPE IRQ_TYPE_LEVEL_LOW
-//	#elif INT_TRIGGER==3
-//		#define GT801_PLUS_IRQ_TYPE IRQ_TYPE_LEVEL_HIGH
-	#endif
-	    //pr_info("%s: %s, %d. \n", _, __func__, __LINE__);
-	err = ctp_ops.set_irq_mode("ctp_para", "ctp_int_port", CTP_IRQ_MODE);
-	if(0 != err){
-		printk("%s:ctp_ops.set_irq_mode err. \n", __func__);
-		goto exit_set_irq_mode;
-	}
-
-	err =  request_irq(SW_INT_IRQNO_PIO, goodix_ts_irq_handler, GT801_PLUS_IRQ_TYPE|IRQF_SHARED, client->name, ts);
-	if (err < 0) {
-		pr_info( "goodix_probe: request irq failed\n");
-		goto exit_irq_request_failed;
-	}
-	ts->use_irq = 1;
-	printk("======Request EIRQ succesd!==== \n");
-	dev_dbg(&client->dev,"Reques EIRQ %d succesd on GPIO:%d\n",INT_PORT,INT_PORT);
+		err =  request_irq(SW_INT_IRQNO_PIO, goodix_ts_irq_handler, GT801_PLUS_IRQ_TYPE|IRQF_SHARED, client->name, ts);
+		if (err < 0) {
+			pr_info( "goodix_probe: request irq failed\n");
+			goto exit_irq_request_failed;
+		}
+		ts->use_irq = 1;
+		printk("======Request EIRQ succesd!==== \n");
+		dev_dbg(&client->dev,"Reques EIRQ %d succesd on GPIO:%d\n",INT_PORT,INT_PORT);
 
 	}
 #endif	
-err_gpio_request_failed:
 	
 	if (!ts->use_irq) 
 	{
@@ -1518,11 +1450,10 @@ err_input_register_device_failed:
 err_input_dev_alloc_failed:
 	i2c_set_clientdata(client, NULL);
 exit_gpio_wakeup_request_failed:
-exit_gpio_int_request_failed:
 exit_ioremap_failed:
-    if(gpio_addr){
-        iounmap(gpio_addr);
-    }
+	if(gpio_addr){
+		iounmap(gpio_addr);
+	}
 err_i2c_failed:	
 	kfree(ts);
 err_alloc_data_failed:
@@ -1564,6 +1495,7 @@ static int goodix_ts_remove(struct i2c_client *client)
 	return 0;
 }
 
+#if defined(CONFIG_PM) || defined(CONFIG_HAS_EARLYSUSPEND)
 //
 static int goodix_ts_suspend(struct i2c_client *client, pm_message_t mesg)
 {
@@ -1571,11 +1503,10 @@ static int goodix_ts_suspend(struct i2c_client *client, pm_message_t mesg)
 	struct goodix_ts_data *ts = i2c_get_clientdata(client);
 
 	if (ts->use_irq){
-		
-//	disable_irq(client->irq);
-	reg_val = readl(gpio_addr + PIO_INT_CTRL_OFFSET);
-       reg_val &=~(1<<CTP_IRQ_NO);
-       writel(reg_val,gpio_addr + PIO_INT_CTRL_OFFSET);	
+		//disable_irq(client->irq);
+		reg_val = readl(gpio_addr + PIO_INT_CTRL_OFFSET);
+		reg_val &=~(1<<CTP_IRQ_NO);
+		writel(reg_val,gpio_addr + PIO_INT_CTRL_OFFSET);	
 	}	
 	else
 		hrtimer_cancel(&ts->timer);
@@ -1589,7 +1520,9 @@ static int goodix_ts_suspend(struct i2c_client *client, pm_message_t mesg)
 		else
 			printk(KERN_ERR "goodix_ts_suspend power off success\n");
 	}
+	
 	return 0;
+	
 }
 
 //
@@ -1607,16 +1540,17 @@ static int goodix_ts_resume(struct i2c_client *client)
 	}
 
 	if (ts->use_irq){
-//		enable_irq(client->irq);
+		//enable_irq(client->irq);
 		reg_val = readl(gpio_addr + PIO_INT_CTRL_OFFSET);
-              reg_val |=(1<<CTP_IRQ_NO);
-             writel(reg_val,gpio_addr + PIO_INT_CTRL_OFFSET);	
-		}	
+		reg_val |=(1<<CTP_IRQ_NO);
+		writel(reg_val,gpio_addr + PIO_INT_CTRL_OFFSET);	
+	}	
 	else
 		hrtimer_start(&ts->timer, ktime_set(1, 0), HRTIMER_MODE_REL);
 
 	return 0;
 }
+#endif
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 static void goodix_ts_early_suspend(struct early_suspend *h)
@@ -1671,6 +1605,8 @@ static int  update_read_version(struct goodix_ts_data *ts, char **version)
 		return 1;	
 }
 */
+
+#if 0
 /**
 @brief CRC cal proc,include : Reflect,init_crc32_table,GenerateCRC32
 @param global var oldcrc32
@@ -1688,6 +1624,8 @@ static unsigned int Reflect(unsigned long int ref, char ch)
 	}
 	return value;
 }
+#endif
+
 /*---------------------------------------------------------------------------------------------------------*/
 /*  CRC Check Program INIT								                                           		   */
 /*---------------------------------------------------------------------------------------------------------*/
@@ -1897,10 +1835,12 @@ static int goodix_update_write(struct file *filp, const char __user *buff, unsig
 
 static int goodix_update_read( char *page, char **start, off_t off, int count, int *eof, void *data )
 {
-	    int i;
-	    int ret = -1;
-	    int len = 0;
-	    int read_times = 0;
+#ifdef DEBUG
+	int i;
+#endif
+	int ret = -1;
+	int len = 0;
+	int read_times = 0;
 	struct goodix_ts_data *ts;
 //	int len = 0;
 	unsigned char read_data[360] = {80, };
@@ -1909,142 +1849,131 @@ static int goodix_update_read( char *page, char **start, off_t off, int count, i
 	if(ts==NULL)
 		return 0;
     
-       printk("___READ__\n");
-	if(ts->read_mode == MODE_RD_VER)		//read version data
-	{
+	printk("___READ__\n");
+	//read version data
+	if(ts->read_mode == MODE_RD_VER)	{
 		i2c_pre_cmd(ts);
 		ret = goodix_read_version(ts);
-             i2c_end_cmd(ts);
-		if(ret <= 0)
-		{
+		i2c_end_cmd(ts);
+		if(ret <= 0){
 			printk(KERN_INFO"Read version data failed!\n");
 			return 0;
 		}
-        
-             read_data[1] = (char)(ts->version&0xff);
-             read_data[0] = (char)((ts->version>>8)&0xff);
+
+		read_data[1] = (char)(ts->version&0xff);
+		read_data[0] = (char)((ts->version>>8)&0xff);
 
 		printk(KERN_INFO"Gt818 ROM version is:%x%x\n", read_data[0],read_data[1]);
 		memcpy(page, read_data, 2);
 		//*eof = 1;
 		return 2;
-	}
-       else if (ts->read_mode == MODE_RD_CHIP_TYPE)
-	    {
-	       page[0] = GT818;
- 	       return 1;
-	   }
-       else if(ts->read_mode == MODE_RD_CFG)
-	{
+	}else if (ts->read_mode == MODE_RD_CHIP_TYPE){
+		page[0] = GT818;
+		return 1;
+	}else if(ts->read_mode == MODE_RD_CFG){
 
-            read_data[0] = 0x06;
-            read_data[1] = 0xa2;       // cfg start address
-            printk("read config addr is:%x,%x\n", read_data[0],read_data[1]);
+		read_data[0] = 0x06;
+		read_data[1] = 0xa2;       // cfg start address
+		printk("read config addr is:%x,%x\n", read_data[0],read_data[1]);
 
-	     len = 106;
-           i2c_pre_cmd(ts);
-	     ret = i2c_read_bytes(ts->client, read_data, len+2);
-            i2c_end_cmd(ts);
-            if(ret <= 0)
-		{
+		len = 106;
+		i2c_pre_cmd(ts);
+		ret = i2c_read_bytes(ts->client, read_data, len+2);
+		i2c_end_cmd(ts);
+		if(ret <= 0){
 			printk(KERN_INFO"Read config info failed!\n");
 			return 0;
 		}
-              
+
 		memcpy(page, read_data+2, len);
 		return len;
-	}
-	   
-	else if (ts->read_mode == MODE_RD_RAW)
-	{
+	}else if (ts->read_mode == MODE_RD_RAW){
 #define TIMEOUT (-100)
-	    int retry = 0;
-        if (raw_data_ready != RAW_DATA_READY)
-        {
-            raw_data_ready = RAW_DATA_ACTIVE;
-        }
+		int retry = 0;
+		if (raw_data_ready != RAW_DATA_READY){
+			raw_data_ready = RAW_DATA_ACTIVE;
+		}
 
 RETRY:
-        read_data[0] = 0x07;
-        read_data[1] = 0x11;
-        read_data[2] = 0x01;
-        
-        ret = i2c_write_bytes(ts->client, read_data, 3);
-        
+		read_data[0] = 0x07;
+		read_data[1] = 0x11;
+		read_data[2] = 0x01;
+
+		ret = i2c_write_bytes(ts->client, read_data, 3);
+
 #ifdef DEBUG
-        sum += read_times;
-        printk("count :%d\n", ++access_count);
-        printk("A total of try times:%d\n", sum);
+		sum += read_times;
+		printk("count :%d\n", ++access_count);
+		printk("A total of try times:%d\n", sum);
 #endif
-               
-        read_times = 0;
-	    while (RAW_DATA_READY != raw_data_ready)
-	    {
-	        msleep(4);
 
-	        if (read_times++ > 10)
-	        {
-    	        if (retry++ > 5)
-    	        {
-    	            return TIMEOUT;
-    	        }
-                goto RETRY;
-	        }
-	    }
+		read_times = 0;
+		while (RAW_DATA_READY != raw_data_ready){
+			msleep(4);
+
+			if (read_times++ > 10){
+				if (retry++ > 5){
+					return TIMEOUT;
+				}
+				goto RETRY;
+			}
+		}
 #ifdef DEBUG	    
-        printk("read times:%d\n", read_times);
+		printk("read times:%d\n", read_times);
 #endif	    
-        read_data[0] = 0x08;
-        read_data[1] = 0x80;       // raw data address
-        
-	    len = 160;
+		read_data[0] = 0x08;
+		read_data[1] = 0x80;       // raw data address
 
-	   // msleep(4);
+		len = 160;
 
-        i2c_pre_cmd(ts);
-	    ret = i2c_read_bytes(ts->client, read_data, len+2);    	    
-  //      i2c_end_cmd(ts);
-        
-        if(ret <= 0)
-		{
+		// msleep(4);
+
+		i2c_pre_cmd(ts);
+		ret = i2c_read_bytes(ts->client, read_data, len+2);    	    
+		//      i2c_end_cmd(ts);
+
+		if(ret <= 0){
 			printk(KERN_INFO"Read raw data failed!\n");
 			return 0;
 		}
+		
 		memcpy(page, read_data+2, len);
 
 		read_data[0] = 0x09;
-        read_data[1] = 0xC0;
-	//	i2c_pre_cmd(ts);
-	    ret = i2c_read_bytes(ts->client, read_data, len+2);    	    
-        i2c_end_cmd(ts);
-        
-        if(ret <= 0)
-		{
+		read_data[1] = 0xC0;
+		//	i2c_pre_cmd(ts);
+		ret = i2c_read_bytes(ts->client, read_data, len+2);    	    
+		i2c_end_cmd(ts);
+
+		if(ret <= 0){
 			printk(KERN_INFO"Read raw data failed!\n");
 			return 0;
 		}
 		memcpy(&page[160], read_data+2, len);
 
 #ifdef DEBUG
-//**************
-        for (i = 0; i < 300; i++)
-        {
-            printk("%6x", page[i]);
+		//**************
+		for (i = 0; i < 300; i++)
+		{
+			printk("%6x", page[i]);
 
-            if ((i+1) % 10 == 0)
-            {
-                printk("\n");
-            }
-        }
-//********************/  
+			if ((i+1) % 10 == 0)
+			{
+				printk("\n");
+			}
+		}
+		//********************/  
 #endif
-        raw_data_ready = RAW_DATA_NON_ACTIVE;
-    
+		raw_data_ready = RAW_DATA_NON_ACTIVE;
+
 		return (2*len);   
-		
-    }
+
+	}
+
+	return -1;
 }             
 #endif
+
 //********************************************************************************************
 static u8  is_equal( u8 *src , u8 *dst , int len )
 {
@@ -2162,42 +2091,42 @@ static  int gt818_reset( struct goodix_ts_data *ts )
 
 static  int gt818_reset2( struct goodix_ts_data *ts )
 {
-    int ret = 1;
-    u8 retry;
-    
-    unsigned char outbuf[3] = {0,0xff,0};
-    unsigned char inbuf[3] = {0,0xff,0};
-    //outbuf[1] = 1;
+	int ret = 1;
+	u8 retry;
 
-//    gpio_direction_output(SHUTDOWN_PORT,0);
-     gpio_set_one_pin_io_status(gpio_wakeup_hdle, 1, "ctp_wakeup");
-     gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "ctp_wakeup");
-    msleep(20);
-//    gpio_direction_input(SHUTDOWN_PORT);
-    gpio_set_one_pin_io_status(gpio_wakeup_hdle, 0, "ctp_wakeup");
-    msleep(100);
-    for(retry=0;retry < 80; retry++)
-    {
-        ret =i2c_write_bytes(ts->client, inbuf, 0);	//Test I2C connection.
-        if (ret > 0)
-        {
-            msleep(10);
-            ret =i2c_read_bytes(ts->client, inbuf, 3);	//Test I2C connection.
-            if (ret > 0)
-            {
-             //   if(inbuf[2] == 0x55)
-             //       {
-		//	    ret =i2c_write_bytes(ts->client, outbuf, 3);
-		//	    msleep(10);
-			    break;						
-	//		}
-				}			
-			}	
-		
-		}
-    printk(KERN_INFO"Detect address %0X\n", ts->client->addr);
-    //msleep(500);
-    return ret;	
+	//unsigned char outbuf[3] = {0,0xff,0};
+	unsigned char inbuf[3] = {0,0xff,0};
+	//outbuf[1] = 1;
+
+	//gpio_direction_output(SHUTDOWN_PORT,0);
+	gpio_set_one_pin_io_status(gpio_wakeup_hdle, 1, "ctp_wakeup");
+	gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "ctp_wakeup");
+	msleep(20);
+	//gpio_direction_input(SHUTDOWN_PORT);
+	gpio_set_one_pin_io_status(gpio_wakeup_hdle, 0, "ctp_wakeup");
+	msleep(100);
+	for(retry=0;retry < 80; retry++)
+	{
+		ret =i2c_write_bytes(ts->client, inbuf, 0);	//Test I2C connection.
+		if (ret > 0)
+		{
+			msleep(10);
+			ret =i2c_read_bytes(ts->client, inbuf, 3);	//Test I2C connection.
+			if (ret > 0)
+			{
+				//   if(inbuf[2] == 0x55)
+				//       {
+				//	    ret =i2c_write_bytes(ts->client, outbuf, 3);
+				//	    msleep(10);
+				break;						
+				//		}
+			}			
+		}	
+
+	}
+	printk(KERN_INFO"Detect address %0X\n", ts->client->addr);
+	//msleep(500);
+	return ret;	
 }
 
 
@@ -2221,7 +2150,10 @@ static  int gt818_set_address_2( struct goodix_ts_data *ts )
 }
 static u8  gt818_update_firmware( u8 *nvram, u16 length, struct goodix_ts_data *ts)
 {
-    u8 ret,err,retry_time,i;
+    u8 ret = 0;
+    u8 err = 0;
+    u8 retry_time = 0;
+    u8 i = 0;
     u16 cur_code_addr;
     u16 cur_frame_num, total_frame_num, cur_frame_len;
     u32 gt80x_update_rate;
@@ -2460,7 +2392,8 @@ int  gt818_downloader( struct goodix_ts_data *ts,  unsigned char * data, unsigne
     int i;
     unsigned short checksum = 0;
     unsigned char *data_ptr = &(fw_info->data);
-    int retry = 0,ret;
+    int retry = 0;
+    int ret = 0;
     int err = 0;
 
     struct file * file_data = NULL;
@@ -2564,7 +2497,7 @@ int  gt818_downloader( struct goodix_ts_data *ts,  unsigned char * data, unsigne
                 err = 0;
                 goto exit_downloader;        
             }
-update_start:
+//update_start:
         for ( i = 0 ; i < fw_info->length ; i++ )
             checksum += data_ptr[i];
 
