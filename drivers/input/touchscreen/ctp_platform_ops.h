@@ -114,7 +114,7 @@ struct ctp_platform_ops{
 	bool        pendown;
 	int	(*get_pendown_state)(void);
 	void        (*clear_penirq)(void);
-	int         (*set_irq_mode)(char *major_key , char *subkey, int ext_int_num, ext_int_mode int_mode);
+	int         (*set_irq_mode)(char *major_key , char *subkey, ext_int_mode int_mode);
 	int         (*set_gpio_mode)(void);
 	int         (*judge_int_occur)(void);
 	int         (*init_platform_resource)(void);
