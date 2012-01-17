@@ -106,10 +106,10 @@ void fix_timer_clock(void)
 {
     if(timer_clk_version == 1) {
         if(__reg_value(0xf1c20064)&(1<<4)) {
-            __reg_value(0xf1c20064) = (__reg_value(0xf1c0c048) & 0x07ff) > 0x0321?     \
-                            (__reg_value(0xf1c20064) & 0xffffafef) : __reg_value(0xf1c20064);
-            __reg_value(0xf1c20064) = (__reg_value(0xf1c0c048) & 0x07ff0000) > 0x3210000?     \
-                            (__reg_value(0xf1c20064) & 0xffffafef) : __reg_value(0xf1c20064);
+            __reg_value(0xf1c20060) = (__reg_value(0xf1c0c048) & 0x07ff) > 0x0321?     \
+                            (__reg_value(0xf1c20060) & 0xffff3fff) : __reg_value(0xf1c20060);
+            __reg_value(0xf1c20060) = (__reg_value(0xf1c0c048) & 0x07ff0000) > 0x3210000?     \
+                            (__reg_value(0xf1c20060) & 0xffff3fff) : __reg_value(0xf1c20060);
         }
     }
 }
