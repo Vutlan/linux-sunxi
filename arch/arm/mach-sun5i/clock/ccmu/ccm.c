@@ -19,7 +19,8 @@
 #include <mach/clock.h>
 #include "ccm_i.h"
 
-
+#define __reg_value(x)          (*(volatile __u32 *)(x))
+unsigned int timer_clk_version;
 
 __ccmu_reg_list_t   *aw_ccu_reg;
 
@@ -46,6 +47,13 @@ __s32 aw_ccu_init(void)
     aw_ccu_reg = (__ccmu_reg_list_t *)SW_VA_CCM_IO_BASE;
 
     /* config the CCU to default status */
+
+    /* get timer clock version */
+    __reg_value(0xf1c20060) |= 0x01<<5;
+    __reg_value(0xf1c2009c)  = 0x80000000;
+    timer_clk_version = (__reg_value(0xf1c15000) >>16)&0x7;
+    __reg_value(0xf1c2009c)  = 0x00000000;
+    __reg_value(0xf1c20060) &= ~(0x01<<5);
 
     #if(USE_PLL6M_REPLACE_PLL4)
     /* switch pll4 output to pll6 */
@@ -77,5 +85,32 @@ __s32 aw_ccu_init(void)
 __s32 aw_ccu_exit(void)
 {
     return AW_CCU_ERR_NONE;
+}
+
+
+/*
+*********************************************************************************************************
+*                           fix timer clock
+*
+*Description: fix timer clock with timer version;
+*
+*Arguments  : none
+*
+*Return     : none
+*
+*Notes      :
+*
+*********************************************************************************************************
+*/
+void fix_timer_clock(void)
+{
+    if(timer_clk_version == 1) {
+        if(__reg_value(0xf1c20064)&(1<<4)) {
+            __reg_value(0xf1c20064) = (__reg_value(0xf1c0c048) & 0x07ff) > 0x0321?     \
+                            (__reg_value(0xf1c20064) & 0xffffafef) : __reg_value(0xf1c20064);
+            __reg_value(0xf1c20064) = (__reg_value(0xf1c0c048) & 0x07ff0000) > 0x3210000?     \
+                            (__reg_value(0xf1c20064) & 0xffffafef) : __reg_value(0xf1c20064);
+        }
+    }
 }
 

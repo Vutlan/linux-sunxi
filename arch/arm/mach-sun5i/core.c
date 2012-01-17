@@ -338,12 +338,14 @@ static struct clock_event_device timer0_clockevent = {
 };
 
 
+extern int fix_timer_clock(void);
 static irqreturn_t sw_timer_interrupt(int irq, void *dev_id)
 {
 	struct clock_event_device *evt = (struct clock_event_device *)dev_id;
 
 	writel(0x1, SW_TIMER_INT_STA_REG);
-
+    /* fix timer clock */
+    fix_timer_clock();
 	/*
  	 * timer_set_next_event will be called only in ONESHOT mode
  	 */
