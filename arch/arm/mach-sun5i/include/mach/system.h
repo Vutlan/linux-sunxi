@@ -42,8 +42,11 @@ static inline void arch_reset(char mode, const char *cmd)
 	#define WATCH_DOG_CTRL_REG  (SW_VA_TIMERC_IO_BASE + 0x0094)
 	*(volatile unsigned int *)WATCH_DOG_CTRL_REG = 0;
 	__delay(100000);
-	*(volatile unsigned int *)WATCH_DOG_CTRL_REG = 3;
-	while(1);
+	*(volatile unsigned int *)WATCH_DOG_CTRL_REG |= 2;
+	while(1) {
+		__delay(100);
+		*(volatile unsigned int *)WATCH_DOG_CTRL_REG |= 1;
+	}
 }
 
 
