@@ -265,7 +265,7 @@ void __init sw_core_init_irq(void)
 	writel(0xffffffff, SW_INT_FIQ_PENDING_REG0);
 	writel(0xffffffff, SW_INT_FIQ_PENDING_REG1);
 	writel(0xffffffff, SW_INT_FIQ_PENDING_REG2);
-	
+
 	/*enable protection mode*/
 	writel(0x01, SW_INT_PROTECTION_REG);
 	/*config the external interrupt source type*/
@@ -405,19 +405,15 @@ void __init sw_core_init(void)
 {
 	sw_pdev_init();
 }
+
+#if 0
 enum sw_ic_ver sw_get_ic_ver(void)
 {
-	volatile u32 val = readl(SW_VA_TIMERC_IO_BASE + 0x13c);
-
-	val = (val >> 6) & 0x3;
-
-	if (val == 0x3) {
-		return MAGIC_VER_B;
-	}
-
-	return MAGIC_VER_A;
+    pr_warning("invalid to get ic version!!\n");
 }
 EXPORT_SYMBOL(sw_get_ic_ver);
+#endif
+
 /**
  * Arch Required Implementations
  *

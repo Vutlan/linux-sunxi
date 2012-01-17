@@ -12,7 +12,7 @@
  * the License, or (at your option) any later version.
  *
  */
- 
+
 #ifndef __SW_SYSTEM_H
 #define __SW_SYSTEM_H
 
@@ -46,6 +46,8 @@ static inline void arch_reset(char mode, const char *cmd)
 	while(1);
 }
 
+
+#if 0
 enum sw_ic_ver {
 	MAGIC_VER_A = 0,
 	MAGIC_VER_B,
@@ -53,5 +55,6 @@ enum sw_ic_ver {
 };
 
 enum sw_ic_ver sw_get_ic_ver(void);
+#endif
 
 #endif
