@@ -482,12 +482,8 @@ __s32 DE_BE_Sprite_Set_Global_Alpha(__u32 sel, __u8 alpha_val)
 }      
 
 __s32 DE_BE_Sprite_Block_Set_Pos(__u32 sel, __u8 blk_idx,__s16 x,__s16 y)
-{
-	__u32 reg = 0;
-
-	reg = DE_BE_RUINT32IDX(sel, DE_BE_SPRITE_POS_CTRL_OFF,blk_idx);
-	
-  	DE_BE_WUINT32IDX(sel, DE_BE_SPRITE_POS_CTRL_OFF,blk_idx,reg | ((y&0xffff)<<16) | (x&0xffff));
+{	
+  	DE_BE_WUINT32IDX(sel, DE_BE_SPRITE_POS_CTRL_OFF,blk_idx,((y&0xffff)<<16) | (x&0xffff));
    	return 0;
 }
 
@@ -497,7 +493,7 @@ __s32 DE_BE_Sprite_Block_Set_Size(__u32 sel, __u8 blk_idx,__u32 xsize,__u32 ysiz
 
 	tmp = DE_BE_RUINT32IDX(sel, DE_BE_SPRITE_ATTR_CTRL_OFF,blk_idx) & 0x0000003f;
 	
-	DE_BE_WUINT32IDX(sel, DE_BE_SPRITE_ATTR_CTRL_OFF,blk_idx,tmp | (ysize<<20) | (xsize<<8));
+	DE_BE_WUINT32IDX(sel, DE_BE_SPRITE_ATTR_CTRL_OFF,blk_idx,tmp | ((ysize-1)<<20) | ((xsize-1)<<8));
 	return 0;
 }
 
