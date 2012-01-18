@@ -1076,9 +1076,7 @@ static int goodix_ts_power(struct goodix_ts_data * ts, int on)
 				//s3c_gpio_setpull(INT_PORT, S3C_GPIO_PULL_NONE);
 				gpio_set_one_pin_pull(gpio_int_hdle, 0, "ctp_int_port");
 
-        
-        
-				
+			
 				if(ts->use_irq) {
 				//	s3c_gpio_cfgpin(INT_PORT, INT_CFG);	//Set IO port as interrupt port	
 					ret = ctp_ops.set_irq_mode("ctp_para", "ctp_int_port", CTP_IRQ_MODE);
@@ -1094,11 +1092,11 @@ static int goodix_ts_power(struct goodix_ts_data * ts, int on)
        
 			#else
 				//gpio_direction_output(SHUTDOWN_PORT,0);
-				gpio_set_one_pin_io_status(gpio_wakeup_hdle, 1, "ctp_wakeup")
+				gpio_set_one_pin_io_status(gpio_wakeup_hdle, 1, "ctp_wakeup");
 				gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "ctp_wakeup");
 				msleep(1);
 				//gpio_direction_input(SHUTDOWN_PORT);		
-				gpio_set_one_pin_io_status(gpio_wakeup_hdle, 0, "ctp_wakeup")
+				gpio_set_one_pin_io_status(gpio_wakeup_hdle, 0, "ctp_wakeup");
 			#endif					
 				msleep(40);
 				ret = 0;
