@@ -1,10 +1,10 @@
 ===========================================
 
-Version: V1_10
+Version: V1_11
 
 Author:  raymonxiu
 
-Date:     2012-1-12 19:06:59
+Date:     2012-1-19 19:25:36
 
 Description:
 
@@ -21,6 +21,14 @@ insmod sun4i_csiX.ko ccm="hi253" i2c_addr=0x40
 insmod sun4i_csiX.ko ccm="gc0307" i2c_addr=0x42
 insmod sun4i_csiX.ko ccm="mt9d112" i2c_addr=0x78
 insmod sun4i_csiX.ko ccm="ov5640" i2c_addr=0x78
+
+V1_11
+CSI: Mainly fix bugs on mt9m112,ov5640 and ov7670
+1) Fix bug on calling poll or read before streamon
+2) Fix bug on mt9m112 and ov5640 multiplex use 
+3) Fix ov7670 sensor init
+4) Modify the delay on ov2655 after every i2c command
+5) Modify camera debug info
 
 V1_10
 CSI: Fix bugs, add new modules support and modity power/standby interface

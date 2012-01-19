@@ -2079,6 +2079,7 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
 	struct csi_dev *dev=(struct csi_dev *)dev_get_drvdata(sd->v4l2_dev->dev);
 	struct sensor_info *info = to_state(sd);
 	char csi_stby_str[32],csi_power_str[32],csi_reset_str[32];
+	int ret;
 	
 	if(info->ccm_info->iocfg == 0) {
 		strcpy(csi_stby_str,"csi_stby");
@@ -2101,7 +2102,10 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
 			clk_enable(dev->csi_module_clk);
 			msleep(100);
 			//disable io oe
-			sensor_write_array(sd, sensor_oe_disable_regs, ARRAY_SIZE(sensor_oe_disable_regs));
+			csi_dev_print("disalbe oe!\n");
+			ret = sensor_write_array(sd, sensor_oe_disable_regs , ARRAY_SIZE(sensor_oe_disable_regs));
+			if(ret < 0)
+				csi_dev_err("disalbe oe falied!\n");
 			//standby on io
 			gpio_write_one_pin_value(dev->csi_pin_hd,CSI_STBY_ON,csi_stby_str);
 			msleep(100);
@@ -2112,8 +2116,8 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
 			//inactive mclk after stadby in
 			clk_disable(dev->csi_module_clk);
 			
-			gpio_write_one_pin_value(dev->csi_pin_hd,CSI_RST_ON,csi_reset_str);
-			msleep(10);
+//			gpio_write_one_pin_value(dev->csi_pin_hd,CSI_RST_ON,csi_reset_str);
+//			msleep(10);
 			break;
 		case CSI_SUBDEV_STBY_OFF:
 			csi_dev_dbg("CSI_SUBDEV_STBY_OFF\n");
@@ -2261,7 +2265,7 @@ static int sensor_detect(struct v4l2_subdev *sd)
 static int sensor_init(struct v4l2_subdev *sd, u32 val)
 {
 	int ret;
-	csi_dev_dbg("%s %s %d %\n",__FILE__,__FUNC__,__LINE__);
+	csi_dev_dbg("sensor_init\n");
 	
 	/*Make sure it is a target sensor*/
 	ret = sensor_detect(sd);
@@ -2678,7 +2682,7 @@ static int sensor_s_fmt(struct v4l2_subdev *sd,
 	struct sensor_win_size *wsize;
 	struct regval_list regs;
 	struct sensor_info *info = to_state(sd);
-	csi_dev_dbg("%s %s %d %\n",__FILE__,__FUNC__,__LINE__);
+	csi_dev_dbg("sensor_s_fmt\n");
 	
 	gain = 0;
 	exposurelow = 0;
@@ -2709,6 +2713,7 @@ static int sensor_s_fmt(struct v4l2_subdev *sd,
 			return ret;
 	}
 	
+
 	{
 		//printk("gain:0x%x,exposurelow:0x%x,exposuremid:0x%x,exposurehigh:0x%x\n",gain,exposurelow,exposuremid,exposurehigh);
 		regs.reg_num[0] = 0x35;

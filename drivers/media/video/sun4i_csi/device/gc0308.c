@@ -25,7 +25,7 @@ MODULE_DESCRIPTION("A low-level driver for GalaxyCore GC0308 sensors");
 MODULE_LICENSE("GPL");
 
 //for internel driver debug
-#define DEV_DBG_EN   		0 
+#define DEV_DBG_EN   		0
 #if(DEV_DBG_EN == 1)		
 #define csi_dev_dbg(x,arg...) printk(KERN_INFO"[CSI_DEBUG][GC0308]"x,##arg)
 #else
@@ -1097,14 +1097,14 @@ static int sensor_detect(struct v4l2_subdev *sd)
 static int sensor_init(struct v4l2_subdev *sd, u32 val)
 {
 	int ret;
-	csi_dev_dbg("%s %s %d %\n",__FILE__,__FUNC__,__LINE__);
+	csi_dev_dbg("sensor_init\n");
 	/*Make sure it is a target sensor*/
 	ret = sensor_detect(sd);
 	if (ret) {
 		csi_dev_err("chip found is not an target chip.\n");
 		return ret;
 	}
-	
+
 	switch(magic_ver) {
 	case MAGIC_VER_A:
 	case MAGIC_VER_B:
@@ -1282,7 +1282,7 @@ static int sensor_try_fmt_internal(struct v4l2_subdev *sd,
 	int index;
 	struct sensor_win_size *wsize;
 //	struct v4l2_pix_format *pix = &fmt->fmt.pix;//linux-3.0
-	csi_dev_dbg("%s %s %d %\n",__FILE__,__FUNC__,__LINE__);
+	csi_dev_dbg("sensor_try_fmt_internal\n");
 	for (index = 0; index < N_FMTS; index++)
 		if (sensor_formats[index].mbus_code == fmt->code)//linux-3.0
 			break;
@@ -1343,7 +1343,7 @@ static int sensor_s_fmt(struct v4l2_subdev *sd,
 	struct sensor_win_size *wsize;
 	struct sensor_info *info = to_state(sd);
 	
-	csi_dev_dbg("%s %s %d %\n",__FILE__,__FUNC__,__LINE__);
+	csi_dev_dbg("sensor_s_fmt\n");
 	
 	ret = sensor_try_fmt_internal(sd, fmt, &sensor_fmt, &wsize);
 	if (ret)
@@ -2291,7 +2291,6 @@ static int sensor_probe(struct i2c_client *client,
 	struct v4l2_subdev *sd;
 	struct sensor_info *info;
 //	int ret;
-
 	info = kzalloc(sizeof(struct sensor_info), GFP_KERNEL);
 	if (info == NULL)
 		return -ENOMEM;

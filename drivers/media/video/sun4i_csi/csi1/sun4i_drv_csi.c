@@ -1278,8 +1278,13 @@ static ssize_t csi_read(struct file *file, char __user *data, size_t count, loff
 	struct csi_dev *dev = video_drvdata(file);
 
 //	csi_start_generating(dev);
-	return videobuf_read_stream(&dev->vb_vidq, data, count, ppos, 0,
+	if(csi_is_generating(dev)) {
+		return videobuf_read_stream(&dev->vb_vidq, data, count, ppos, 0,
 					file->f_flags & O_NONBLOCK);
+	} else {
+		csi_err("csi is not generating!\n");
+		return -EINVAL;
+	}
 }
 
 static unsigned int csi_poll(struct file *file, struct poll_table_struct *wait)
@@ -1288,7 +1293,12 @@ static unsigned int csi_poll(struct file *file, struct poll_table_struct *wait)
 	struct videobuf_queue *q = &dev->vb_vidq;
 
 //	csi_start_generating(dev);
-	return videobuf_poll_stream(file, q, wait);
+	if(csi_is_generating(dev)) {
+		return videobuf_poll_stream(file, q, wait);
+	} else {
+		csi_err("csi is not generating!\n");
+		return -EINVAL;
+	}
 }
 
 static int csi_open(struct file *file)

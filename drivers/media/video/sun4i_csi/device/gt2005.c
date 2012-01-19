@@ -1199,12 +1199,16 @@ static int sensor_write_array(struct v4l2_subdev *sd, struct regval_list *vals ,
 	
 	for(i = 0; i < size ; i++)
 	{
-		ret = sensor_write(sd, vals->reg_num, vals->value);
-		if (ret < 0)
-			{
-				csi_dev_err("sensor_write_err!\n");
-				return ret;
-			}	
+		if(vals->reg_num[0] == 0xff && vals->reg_num[1] == 0xff) {
+			msleep(vals->value[0]);
+		} else {
+			ret = sensor_write(sd, vals->reg_num, vals->value);
+			if (ret < 0)
+				{
+					csi_dev_err("sensor_write_err!\n");
+					return ret;
+				}	
+		}
 		
 		vals++;
 	}
@@ -1402,7 +1406,7 @@ static int sensor_detect(struct v4l2_subdev *sd)
 static int sensor_init(struct v4l2_subdev *sd, u32 val)
 {
 	int ret;
-	csi_dev_dbg("%s %s %d %\n",__FILE__,__FUNC__,__LINE__);
+	csi_dev_dbg("sensor_init\n");
 	/*Make sure it is a target sensor*/
 	ret = sensor_detect(sd);
 	if (ret) {
@@ -1508,7 +1512,7 @@ static struct sensor_format_struct {
 	},
 	{
 		.desc		= "Raw RGB Bayer",
-		.mbus_code	= V4L2_PIX_FMT_SBGGR8,//linux-3.0
+		.mbus_code	= V4L2_MBUS_FMT_SBGGR8_1X8,//linux-3.0
 		.regs 		= sensor_fmt_raw,
 		.regs_size = ARRAY_SIZE(sensor_fmt_raw),
 		.bpp		= 1
@@ -1601,7 +1605,7 @@ static int sensor_try_fmt_internal(struct v4l2_subdev *sd,
 	int index;
 	struct sensor_win_size *wsize;
 //	struct v4l2_pix_format *pix = &fmt->fmt.pix;//linux-3.0
-	csi_dev_dbg("%s %s %d %\n",__FILE__,__FUNC__,__LINE__);
+	csi_dev_dbg("sensor_try_fmt_internal\n");
 	for (index = 0; index < N_FMTS; index++)
 		if (sensor_formats[index].mbus_code == fmt->code)//linux-3.0
 			break;
@@ -1661,7 +1665,7 @@ static int sensor_s_fmt(struct v4l2_subdev *sd,
 	struct sensor_format_struct *sensor_fmt;
 	struct sensor_win_size *wsize;
 	struct sensor_info *info = to_state(sd);
-	csi_dev_dbg("%s %s %d %\n",__FILE__,__FUNC__,__LINE__);
+	csi_dev_dbg("sensor_s_fmt\n");
 	ret = sensor_try_fmt_internal(sd, fmt, &sensor_fmt, &wsize);
 	if (ret)
 		return ret;

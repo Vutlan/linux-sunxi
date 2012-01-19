@@ -35,12 +35,12 @@ MODULE_LICENSE("GPL");
 //for internel driver debug
 #define DEV_DBG_EN   		0 
 #if(DEV_DBG_EN == 1)		
-#define csi_dev_dbg(x,arg...) printk(KERN_INFO"[CSI_DEBUG][GC0308]"x,##arg)
+#define csi_dev_dbg(x,arg...) printk(KERN_INFO"[CSI_DEBUG][OV7670]"x,##arg)
 #else
 #define csi_dev_dbg(x,arg...) 
 #endif
-#define csi_dev_err(x,arg...) printk(KERN_INFO"[CSI_ERR][GC0308]"x,##arg)
-#define csi_dev_print(x,arg...) printk(KERN_INFO"[CSI][GC0308]"x,##arg)
+#define csi_dev_err(x,arg...) printk(KERN_INFO"[CSI_ERR][OV7670]"x,##arg)
+#define csi_dev_print(x,arg...) printk(KERN_INFO"[CSI][OV7670]"x,##arg)
 #define MCLK (27*1000*1000)
 #define VREF_POL	CSI_LOW
 #define HREF_POL	CSI_HIGH
@@ -811,23 +811,7 @@ static int ov7670_detect(struct v4l2_subdev *sd)
 static int ov7670_init(struct v4l2_subdev *sd, u32 val)
 {
 	int ret;
-	csi_dev_dbg("%s %s %d %\n",__FILE__,__FUNC__,__LINE__);
-	switch(val) {
-		case CSI_SUBDEV_INIT_FULL:
-			ret = ov7670_power(sd,CSI_SUBDEV_STBY_ON);
-			if(ret < 0)
-				return ret;
-			ret = ov7670_power(sd,CSI_SUBDEV_STBY_OFF);
-			if(ret < 0)
-				return ret;
-		case CSI_SUBDEV_INIT_SIMP:
-			ret = ov7670_reset(sd,CSI_SUBDEV_RST_PUL);
-			if(ret < 0)
-				return ret;
-			break;
-		default:
-			return -EINVAL;
-	}
+	csi_dev_dbg("ov7670_init\n");
 	
 	/* Make sure it's an ov7670 */
 	ret = ov7670_detect(sd);
@@ -1107,7 +1091,7 @@ static int ov7670_try_fmt_internal(struct v4l2_subdev *sd,
 	int index;
 	struct ov7670_win_size *wsize;
 //	struct v4l2_pix_format *pix = &fmt->fmt.pix;//linux-3.0
-
+	csi_dev_dbg("ov7670_try_fmt_internal\n");
 	for (index = 0; index < N_OV7670_FMTS; index++)
 		if (ov7670_formats[index].mbus_code == fmt->code)//linux-3.0
 			break;
@@ -1167,7 +1151,7 @@ static int ov7670_s_fmt(struct v4l2_subdev *sd,
 	struct ov7670_win_size *wsize;
 	struct ov7670_info *info = to_state(sd);
 	unsigned char com7;
-	
+	csi_dev_dbg("ov7670_s_fmt\n");
 	ret = ov7670_try_fmt_internal(sd, fmt, &ovfmt, &wsize);
 	if (ret)
 		return ret;

@@ -1315,7 +1315,7 @@ static int sensor_detect(struct v4l2_subdev *sd)
 static int sensor_init(struct v4l2_subdev *sd, u32 val)
 {
 	int ret;
-	csi_dev_dbg("%s %s %d %\n",__FILE__,__FUNC__,__LINE__);
+	csi_dev_dbg("sensor_init\n");
 	writel(0x0055555d,0xf1c208a4);//debug
 
 	/*Make sure it is a target sensor*/
@@ -1488,7 +1488,7 @@ static int sensor_try_fmt_internal(struct v4l2_subdev *sd,
 	int index;
 	struct sensor_win_size *wsize;
 //	struct v4l2_pix_format *pix = &fmt->fmt.pix;//linux-3.0
-	csi_dev_dbg("%s %s %d %\n",__FILE__,__FUNC__,__LINE__);
+	csi_dev_dbg("sensor_try_fmt_internal\n");
 	for (index = 0; index < N_FMTS; index++)
 		if (sensor_formats[index].mbus_code == fmt->code)//linux-3.0
 			break;
@@ -1548,7 +1548,7 @@ static int sensor_s_fmt(struct v4l2_subdev *sd,
 	struct sensor_format_struct *sensor_fmt;
 	struct sensor_win_size *wsize;
 	struct sensor_info *info = to_state(sd);
-	csi_dev_dbg("%s %s %d %\n",__FILE__,__FUNC__,__LINE__);
+	csi_dev_dbg("sensor_s_fmt\n");
 	ret = sensor_try_fmt_internal(sd, fmt, &sensor_fmt, &wsize);
 	if (ret)
 		return ret;
