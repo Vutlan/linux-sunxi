@@ -411,8 +411,13 @@ static __s32 pin_init(sw_hcd_io_t *sw_hcd_io)
 	ret = script_parser_fetch("usbc0", "usb_drv_vbus_gpio", (int *)&sw_hcd_io->drv_vbus_gpio_set, 64);
 	if(ret != 0){
 		DMSG_PANIC("ERR: get usbc0(drv vbus) id failed\n");
-		return -1;
 	}
+
+    if(sw_hcd_io->drv_vbus_gpio_set.port){
+		DMSG_PANIC("ERR: usbc0(drv vbus) is invalid\n");
+		sw_hcd_io->Drv_vbus_Handle = 0;
+		return 0;
+    }
 
 	sw_hcd_io->Drv_vbus_Handle = gpio_request(&sw_hcd_io->drv_vbus_gpio_set, 1);
 	if(sw_hcd_io->Drv_vbus_Handle == 0){
@@ -449,8 +454,10 @@ static __s32 pin_init(sw_hcd_io_t *sw_hcd_io)
 */
 static __s32 pin_exit(sw_hcd_io_t *sw_hcd_io)
 {
-	gpio_release(sw_hcd_io->Drv_vbus_Handle, 0);
-	sw_hcd_io->Drv_vbus_Handle = 0;
+    if(sw_hcd_io->Drv_vbus_Handle){
+    	gpio_release(sw_hcd_io->Drv_vbus_Handle, 0);
+    	sw_hcd_io->Drv_vbus_Handle = 0;
+    }
 
 	return 0;
 }
@@ -476,6 +483,11 @@ static __s32 pin_exit(sw_hcd_io_t *sw_hcd_io)
 static void sw_hcd_board_set_vbus(struct sw_hcd *sw_hcd, int is_on)
 {
     u32 on_off = 0;
+
+    if(sw_hcd->sw_hcd_io->Drv_vbus_Handle == 0){
+        printk("wrn: sw_hcd_io->drv_vbus_Handle is null\n");
+        return;
+    }
 
 	DMSG_INFO("[%s]: Set USB Power %s\n", sw_hcd->driver_name, (is_on ? "ON" : "OFF"));
 

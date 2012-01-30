@@ -103,14 +103,22 @@ static s32 get_usb_cfg(struct sw_hci_hcd *sw_hci)
 	ret = script_parser_fetch(usbc_name[sw_hci->usbc_no], "usb_drv_vbus_gpio", (int *)&sw_hci->drv_vbus_gpio_set, 64);
 	if(ret != 0){
 		DMSG_PANIC("ERR: get usbc%d(%s) id failed\n", sw_hci->usbc_no, usbc_name[sw_hci->usbc_no]);
-		return -1;
+		//return -1;
+	}
+
+	if(sw_hci->drv_vbus_gpio_set.port){
+		sw_hci->drv_vbus_gpio_valid = 1;
+	}else{
+		DMSG_PANIC("ERR: %s(drv vbus) is invalid\n", sw_hci->hci_name);
+		sw_hci->drv_vbus_gpio_valid = 0;
 	}
 
 	/* host_init_state */
 	ret = script_parser_fetch(usbc_name[sw_hci->usbc_no], "usb_host_init_state", (int *)&(sw_hci->host_init_state), 64);
 	if(ret != 0){
 		DMSG_PANIC("ERR: script_parser_fetch host_init_state failed\n");
-		return -1;
+		sw_hci->host_init_state = 0;
+		//return -1;
 	}
 
 	return 0;
@@ -365,7 +373,7 @@ static void UsbPhyInit(__u32 usbc_no)
 */
 static s32 clock_init(struct sw_hci_hcd *sw_hci, u32 ohci)
 {
- if(ohci){  /* ohci */
+    if(ohci){  /* ohci */
     	sw_hci->sie_clk = clk_get(NULL, usbc_ahb_ohci_name[sw_hci->usbc_no]);
     	if (IS_ERR(sw_hci->sie_clk)){
     		DMSG_PANIC("ERR: get ohci%d abh clk failed.\n", (sw_hci->usbc_no - 1));
@@ -888,6 +896,11 @@ static void __sw_set_vbus(struct sw_hci_hcd *sw_hci, int is_on)
 {
     u32 on_off = 0;
 
+    if(sw_hci->drv_vbus_Handle == 0){
+        printk("wrn: sw_hci->drv_vbus_Handle is null\n");
+        return;
+    }
+
 	DMSG_INFO("[%s]: Set USB Power %s\n", sw_hci->hci_name, (is_on ? "ON" : "OFF"));
 
     /* set power flag */
@@ -1058,6 +1071,7 @@ static void print_sw_hci(struct sw_hci_hcd *sw_hci)
 	DMSG_DEBUG("used                 = %d\n", sw_hci->used);
 	DMSG_DEBUG("host_init_state      = %d\n", sw_hci->host_init_state);
 
+	DMSG_DEBUG("drv_vbus_gpio_valid  = %d\n", sw_hci->drv_vbus_gpio_valid);
 	DMSG_DEBUG("gpio_name            = %s\n", sw_hci->drv_vbus_gpio_set.gpio_name);
 	DMSG_DEBUG("port                 = %d\n", sw_hci->drv_vbus_gpio_set.port);
 	DMSG_DEBUG("port_num             = %d\n", sw_hci->drv_vbus_gpio_set.port_num);
@@ -1182,14 +1196,20 @@ static int __init sw_hci_sun5i_init(void)
     init_sw_hci(&sw_ehci0, 1, 0, ehci_name);
     init_sw_hci(&sw_ohci0, 1, 1, ohci_name);
 
-    usb1_drv_vbus_Handle = alloc_pin(&sw_ehci0.drv_vbus_gpio_set);
-    if(usb1_drv_vbus_Handle == 0){
-        DMSG_PANIC("ERR: usb1 alloc_pin failed\n");
-        goto failed0;
+    if(sw_ehci0.drv_vbus_gpio_valid){
+        usb1_drv_vbus_Handle = alloc_pin(&sw_ehci0.drv_vbus_gpio_set);
+        if(usb1_drv_vbus_Handle == 0){
+            DMSG_PANIC("ERR: usb1 alloc_pin failed\n");
+            goto failed0;
+        }
+
+        sw_ehci0.drv_vbus_Handle = usb1_drv_vbus_Handle;
+        sw_ohci0.drv_vbus_Handle = usb1_drv_vbus_Handle;
+    }else{
+        sw_ehci0.drv_vbus_Handle = 0;
+        sw_ohci0.drv_vbus_Handle = 0;
     }
 
-    sw_ehci0.drv_vbus_Handle = usb1_drv_vbus_Handle;
-    sw_ohci0.drv_vbus_Handle = usb1_drv_vbus_Handle;
 
     /* USB2 */
     //init_sw_hci(&sw_ehci1, 2, 0, ehci_name);
