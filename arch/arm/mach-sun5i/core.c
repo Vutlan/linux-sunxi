@@ -110,36 +110,33 @@ static void __init sw_core_fixup(struct machine_desc *desc,
 	size = DRAMC_get_dram_size();
 	early_printk("DRAM: %d", size);
 
-	if (size <= 512) {
-		mi->nr_banks = 1;
-		mi->bank[0].start = 0x40000000;
-		mi->bank[0].size = SZ_1M * (size - 64);
-	} else {
-		mi->nr_banks = 2;
-		mi->bank[0].start = 0x40000000;
-		mi->bank[0].size = SZ_1M * (512 - 64);
-		mi->bank[1].start = 0x60000000;
-		mi->bank[1].size = SZ_1M * (size - 512);
-	}
+	mi->nr_banks = 2;
+	mi->bank[0].start = 0x40000000;
+	mi->bank[0].size = SW_BANK1_SIZE;
+	mi->bank[1].start = 0x40000000 + SW_BANK2_OFFSET;
+	mi->bank[1].size = SZ_1M * size - SW_BANK2_OFFSET;
+
 #endif
 
 	pr_info("Total Detected Memory: %uMB with %d banks\n", size, mi->nr_banks);
 }
 
-unsigned long fb_start = (PLAT_PHYS_OFFSET + SZ_512M - SZ_64M - SZ_32M);
-unsigned long fb_size = SZ_32M;
+unsigned long fb_start = SW_FB_MEM_BASE;
+unsigned long fb_size = SW_FB_MEM_SIZE;
 EXPORT_SYMBOL(fb_start);
 EXPORT_SYMBOL(fb_size);
 
+unsigned long ve_start = SW_VE_MEM_BASE;
+unsigned long ve_size = SW_VE_MEM_SIZE;
+EXPORT_SYMBOL(ve_start);
+EXPORT_SYMBOL(ve_size);
+
+#ifndef CONFIG_SUN5I_A13
 unsigned long g2d_start = (PLAT_PHYS_OFFSET + SZ_512M - SZ_128M);
 unsigned long g2d_size = SZ_1M * 16;
 EXPORT_SYMBOL(g2d_start);
 EXPORT_SYMBOL(g2d_size);
-
-unsigned long ve_start = (PLAT_PHYS_OFFSET + SZ_64M);
-unsigned long ve_size = (SZ_64M + SZ_16M);
-EXPORT_SYMBOL(ve_start);
-EXPORT_SYMBOL(ve_size);
+#endif
 
 static void __init sw_core_reserve(void)
 {
@@ -148,33 +145,11 @@ static void __init sw_core_reserve(void)
 #else
 	memblock_reserve(fb_start, fb_size);
 	memblock_reserve(ve_start, SZ_64M);
-	memblock_reserve(ve_start + SZ_64M, SZ_16M);
+	//memblock_reserve(ve_start + SZ_64M, SZ_16M);
 
-#if 0
-        int g2d_used = 0;
-        char *script_base = (char *)(PAGE_OFFSET + 0x3000000);
-
-        g2d_used = sw_cfg_get_int(script_base, "g2d_para", "g2d_used");
-
-	memblock_reserve(fb_start, fb_size);
-	memblock_reserve(SYS_CONFIG_MEMBASE, SYS_CONFIG_MEMSIZE);
-	memblock_reserve(ve_start, ve_start);
-
-        if (g2d_used) {
-                g2d_size = sw_cfg_get_int(script_base, "g2d_para", "g2d_size");
-                if (g2d_size < 0 || g2d_size > SW_G2D_MEM_MAX) {
-                        g2d_size = SW_G2D_MEM_MAX;
-                }
-                g2d_start = SW_G2D_MEM_BASE;
-                g2d_size = g2d_size;
-                memblock_reserve(g2d_start, g2d_size);
-        }
-
-#endif
 	pr_info("Memory Reserved(in bytes):\n");
 	pr_info("\tLCD: 0x%08x, 0x%08x\n", (unsigned int)fb_start, (unsigned int)fb_size);
 	pr_info("\tSYS: 0x%08x, 0x%08x\n", (unsigned int)SYS_CONFIG_MEMBASE, (unsigned int)SYS_CONFIG_MEMSIZE);
-	pr_info("\tG2D: 0x%08x, 0x%08x\n", (unsigned int)g2d_start, (unsigned int)g2d_size);
 	pr_info("\tVE : 0x%08x, 0x%08x\n", (unsigned int)ve_start, (unsigned int)ve_size);
 #endif
 }
