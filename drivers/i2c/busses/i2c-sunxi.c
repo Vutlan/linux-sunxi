@@ -698,12 +698,10 @@ static int i2c_sunxi_xfer_complete(struct sunxi_i2c *i2c, int code)
 {
 	int ret = AWXX_I2C_OK;
 
-	spin_lock_irq(&i2c->lock);
 	i2c->msg     = NULL;
 	i2c->msg_num = 0;
 	i2c->msg_ptr = 0;
 	i2c->status  = I2C_XFER_IDLE;
-    spin_unlock_irq(&i2c->lock);
 	/* i2c->msg_idx  store the information */
 
 	if(code == AWXX_I2C_FAIL) {
