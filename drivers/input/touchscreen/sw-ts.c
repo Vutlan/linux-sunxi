@@ -1653,16 +1653,6 @@ static int __devinit sun4i_ts_probe(struct platform_device *pdev)
 	if (err)
 		goto err_out3;
 
-	#ifdef CONFIG_TOUCHSCREEN_SUN4I_DEBUG    
-        printk("tp init\n");
-    #endif
-    
-    tp_init();
-
-    #ifdef CONFIG_TOUCHSCREEN_SUN4I_DEBUG
-	    printk( "sun4i-ts.c: sun4i_ts_probe: end\n");
-    #endif
-
 #ifdef CONFIG_HAS_EARLYSUSPEND	
     printk("==register_early_suspend =\n");	
     ts_data->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;	
@@ -1679,9 +1669,18 @@ static int __devinit sun4i_ts_probe(struct platform_device *pdev)
     prev_sample = kzalloc(sizeof(*prev_sample), GFP_KERNEL);
     prev_data_sample = kzalloc(sizeof(*prev_data_sample), GFP_KERNEL);
     
+#ifdef CONFIG_TOUCHSCREEN_SUN4I_DEBUG    
+    printk("tp init\n");
+#endif  
+    tp_init();
+    
+#ifdef CONFIG_TOUCHSCREEN_SUN4I_DEBUG
+	printk( "sun4i-ts.c: sun4i_ts_probe: end\n");
+#endif
+    
     return 0;
 
- err_out3:
+err_out3:
 	if (ts_data->irq)
 		free_irq(ts_data->irq, pdev);
 err_out2:
