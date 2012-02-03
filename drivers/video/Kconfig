@@ -274,6 +274,21 @@ config LYCHEE_LCD_SUN4I
         ---help---
         default m
 
+choice
+prompt "select lcd"
+depends on LYCHEE_LCD_SUN4I
+default LYCHEE_LCD_DEFAULT
+
+config LYCHEE_LCD_DEFAULT
+        bool "lcd_default"
+        select LCD_DEFAULT
+        
+config LYCHEE_LCD_MID9742
+        bool "lcd_mid9742"
+        select LCD_MID9742
+        
+endchoice
+        
 config LYCHEE_HDMI_SUN4I
         tristate "HDMI Driver Support(sun4i)"
         depends on ARCH_SUN4I
