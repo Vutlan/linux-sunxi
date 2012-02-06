@@ -756,4 +756,11 @@ config  TOUCHSCREEN_COASIA
        tristate  "COASIA touchscreen driver"
        help
           COASIA touchscreen driver
+
+config  TOUCHSCREEN_SITRONIX_ST15XX_TS
+       tristate  "SITRONIX_ST15XX_TS touchscreen driver"
+       help
+          SITRONIX_ST15XX_TS touchscreen driver  
+
+
 endif
