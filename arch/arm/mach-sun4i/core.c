@@ -136,6 +136,11 @@ unsigned long ve_size = (SZ_64M + SZ_16M);
 EXPORT_SYMBOL(ve_start);
 EXPORT_SYMBOL(ve_size);
 
+unsigned long gps_start = (PLAT_PHYS_OFFSET + SZ_64M) + (SZ_64M + SZ_16M);
+unsigned long gps_size = (SZ_16M);
+EXPORT_SYMBOL(gps_start);
+EXPORT_SYMBOL(gps_size);
+
 static void __init sw_core_reserve(void)
 {
 	memblock_reserve(SYS_CONFIG_MEMBASE, SYS_CONFIG_MEMSIZE);
@@ -169,6 +174,7 @@ static void __init sw_core_reserve(void)
 	pr_info("\tSYS: 0x%08x, 0x%08x\n", (unsigned int)SYS_CONFIG_MEMBASE, (unsigned int)SYS_CONFIG_MEMSIZE);
 	pr_info("\tG2D: 0x%08x, 0x%08x\n", (unsigned int)g2d_start, (unsigned int)g2d_size);
 	pr_info("\tVE : 0x%08x, 0x%08x\n", (unsigned int)ve_start, (unsigned int)ve_size);
+	pr_info("\tVE : 0x%08x, 0x%08x\n", (unsigned int)gps_start, (unsigned int)gps_size);
 }
 
 void sw_irq_ack(struct irq_data *irqd)
