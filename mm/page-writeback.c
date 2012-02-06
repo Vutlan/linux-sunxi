@@ -561,7 +561,7 @@ static void balance_dirty_pages(struct address_space *mapping,
 #if 1	
 		/* card atto  */
 		if(bdi_nr_reclaimable == 0 && background_thresh == 0 && dirty_thresh == 0){
-			printk("[%s %d] \n", __FUNCTION__, __LINE__);
+			//printk("[%s %d] \n", __FUNCTION__, __LINE__);
 			break;
 		}
 #endif
