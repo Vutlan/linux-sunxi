@@ -413,7 +413,7 @@ static __s32 pin_init(sw_hcd_io_t *sw_hcd_io)
 		DMSG_PANIC("ERR: get usbc0(drv vbus) id failed\n");
 	}
 
-    if(sw_hcd_io->drv_vbus_gpio_set.port){
+    if(!sw_hcd_io->drv_vbus_gpio_set.port){
 		DMSG_PANIC("ERR: usbc0(drv vbus) is invalid\n");
 		sw_hcd_io->Drv_vbus_Handle = 0;
 		return 0;
