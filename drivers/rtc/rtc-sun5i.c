@@ -626,7 +626,7 @@ out:
 static irqreturn_t pcf8563_irq_handle(int irq, void *dev_id)
 {
 	struct pcf8563 *pcf8563 = dev_id;
-	printk("%s,%d,irq:%d\n", __func__, __LINE__, irq);
+	//printk("%s,%d,irq:%d\n", __func__, __LINE__, irq);
 	(void)schedule_work(&pcf8563->work);
 	return IRQ_HANDLED;	
 }
@@ -638,24 +638,24 @@ static void pcf8563_work(struct work_struct *work)
 	int stat;
 
 	mutex_lock(&pcf8563->mutex);
-	printk("%s,%d\n", __func__, __LINE__);
+	//printk("%s,%d\n", __func__, __LINE__);
 
 	stat = i2c_smbus_read_byte_data(client, PCF8563_REG_ST2);	
 	if (stat < 0) {
 		printk("%s,line:%d,stat:%x\n", __func__, __LINE__, stat);
 		goto unlock;
 	}
-	printk("%s,line:%d,stat:%x\n", __func__, __LINE__, stat);
+	//printk("%s,line:%d,stat:%x\n", __func__, __LINE__, stat);
 	stat &= (1<<3);
 	if (stat) {		
 		//clear alarm flag and disable alarm interrupt
 		stat &= ~(1<<3);
     	stat &= ~(1<<1);
 		i2c_smbus_write_byte_data(client, PCF8563_REG_ST2, stat);
-	 	printk("%s,line:%d,stat:%x\n", __func__, __LINE__, stat);
+	 //	printk("%s,line:%d,stat:%x\n", __func__, __LINE__, stat);
 	 	rtc_update_irq(pcf8563->rtc, 1, RTC_AF | RTC_IRQF);			 	
 	} else {
-		printk("%s,line:%d,stat:%x\n", __func__, __LINE__, stat);
+		//printk("%s,line:%d,stat:%x\n", __func__, __LINE__, stat);
 	}
 
 unlock:	
@@ -739,7 +739,7 @@ static int pcf8563_set_alarm(struct device *dev, struct rtc_wkalrm *alrm)
     struct i2c_client *client = to_i2c_client(dev);
 	struct pcf8563 *pcf8563 = i2c_get_clientdata(client);
 		
-	printk("%s,%d,client->irq:%d\n", __func__, __LINE__, client->irq);
+//	printk("%s,%d,client->irq:%d\n", __func__, __LINE__, client->irq);
 	if (client->irq < 0) {
 		return -EINVAL;
 	}
