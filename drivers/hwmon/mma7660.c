@@ -245,10 +245,10 @@ exit:
 	return error;
 }
 
-static DEVICE_ATTR(enable, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
+static DEVICE_ATTR(enable, S_IRUGO|S_IWUSR|S_IWGRP,
 		NULL, mma7660_enable_store);
 
-static DEVICE_ATTR(value, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
+static DEVICE_ATTR(value, S_IRUGO|S_IWUSR|S_IWGRP,
 		mma7660_value_show, NULL);
 
 static struct attribute *mma7660_attributes[] = {
