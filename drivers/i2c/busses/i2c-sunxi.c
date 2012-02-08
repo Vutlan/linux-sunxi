@@ -1074,19 +1074,23 @@ static int __exit i2c_sunxi_remove(struct platform_device *dev)
 static int i2c_sunxi_suspend(struct platform_device *pdev,  pm_message_t state)
 {
 	struct sunxi_i2c *i2c = platform_get_drvdata(pdev);
+	int i = 10;
 
 	i2c->suspend_flag = 1;
 
-	if(i2c->status != I2C_XFER_IDLE) {
-		i2c_dbg("[i2c-%d] suspend wihle xfer,dev addr = %x\n",
-			i2c->adap.nr, i2c->msg? i2c->msg->addr : 0xff);
-	}
-
+	/*
+	 * twi0 is for power, it will be accessed by axp driver
+	 * before twi resume, so, don't suspend twi0
+	 */
 	if(0 == i2c->bus_num) {
-		/* twi0 is for power, it will be accessed by axp driver
-		   before twi resume, so, don't suspend twi0            */
 		i2c->suspend_flag = 0;
 		return 0;
+	}
+
+	while((i2c->status != I2C_XFER_IDLE) && (i-- > 0)) {
+		i2c_dbg("[i2c-%d] suspend wihle xfer,dev addr = 0x%x\n",
+			i2c->adap.nr, i2c->msg? i2c->msg->addr : 0xff);
+		msleep(100);
 	}
 
 	if(i2c_sunxi_clk_exit(i2c)) {
