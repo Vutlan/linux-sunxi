@@ -747,6 +747,11 @@ config TOUCHSCREEN_FT5X_TS
        help
          byd0x7ets touchscreen driver
 
+config TOUCHSCREEN_FT5X06_TS_2PLUS1
+       tristate  "ft5x06 2plus1 touchscreen driver"
+       help
+         ft5x06 2plus1 touchscreen driver
+
 config  TOUCHSCREEN_ZT8031
        tristate  "ZT8031 touchscreen driver"
        help
@@ -757,10 +762,13 @@ config  TOUCHSCREEN_COASIA
        help
           COASIA touchscreen driver
 
-config  TOUCHSCREEN_SITRONIX_ST15XX_TS
-       tristate  "SITRONIX_ST15XX_TS touchscreen driver"
+config  TOUCHSCREEN_ST15XX_TS
+       tristate  "ST15XX_TS touchscreen driver"
        help
-          SITRONIX_ST15XX_TS touchscreen driver  
+          ST15XX_TS touchscreen driver
 
-
+config  TOUCHSCREEN_GT801_2PLUS1_TS		
+       tristate  "GT801_2PLUS1_TS touchscreen driver"
+       help
+          GT801_2PLUS1_TS touchscreen driver  
 endif

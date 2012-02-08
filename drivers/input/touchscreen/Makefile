@@ -66,5 +66,6 @@ obj-$(CONFIG_TOUCHSCREEN_GT801)         += goodix_touch.o
 obj-$(CONFIG_TOUCHSCREEN_ZT8031)         += zt8031.o
 obj-$(CONFIG_TOUCHSCREEN_COASIA)         += coasia_i2c.o
 obj-$(CONFIG_TOUCHSCREEN_SUN4I_TS)         += sun4i-ts.o
-obj-$(CONFIG_TOUCHSCREEN_SITRONIX_ST15XX_TS)         += sitronix_st15xx_ts.o
-
+obj-$(CONFIG_TOUCHSCREEN_FT5X06_TS_2PLUS1)         += ft5x06_ts_2plus1.o
+obj-$(CONFIG_TOUCHSCREEN_ST15XX_TS)         += sitronix_st15xx_ts.o
+obj-$(CONFIG_TOUCHSCREEN_GT801_2PLUS1_TS)         += gt801_2plus1.o
