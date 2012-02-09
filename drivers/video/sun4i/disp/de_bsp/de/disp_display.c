@@ -52,6 +52,9 @@ __s32 BSP_disp_init(__disp_bsp_init_para * para)
     TVE_set_reg_base(0, para->base_tvec0);
     TVE_set_reg_base(1, para->base_tvec1);
 
+    BSP_disp_close_lcd_backlight(0);
+    BSP_disp_close_lcd_backlight(1);
+
 	disp_pll_init();
 
     Scaler_Init(0);

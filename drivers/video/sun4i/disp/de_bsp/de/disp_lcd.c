@@ -1873,6 +1873,37 @@ __u32 BSP_disp_get_cur_line(__u32 sel)
     return line;
 }
 
+__s32 BSP_disp_close_lcd_backlight(__u32 sel)
+{
+    __disp_lcd_cfg_t lcd_cfg;
+    user_gpio_set_t  gpio_info[1];
+    __hdle hdl;
+
+    LCD_get_sys_config(sel, &lcd_cfg);
+
+    if(lcd_cfg.lcd_pwm_used)
+    {
+        memcpy(gpio_info, &(lcd_cfg.lcd_pwm), sizeof(user_gpio_set_t));
+        
+        gpio_info->mul_sel = 0;
+
+        hdl = OSAL_GPIO_Request(gpio_info, 1);
+        OSAL_GPIO_Release(hdl, 2);
+    }
+
+    if(lcd_cfg.lcd_bl_en_used)
+    {
+        memcpy(gpio_info, &(lcd_cfg.lcd_bl_en), sizeof(user_gpio_set_t));
+        
+        gpio_info->data = (gpio_info->data==0)?1:0;
+
+        hdl = OSAL_GPIO_Request(gpio_info, 1);
+        OSAL_GPIO_Release(hdl, 2);
+    }
+
+    return 0;
+}
+
 #ifdef __LINUX_OSAL__
 EXPORT_SYMBOL(LCD_OPEN_FUNC);
 EXPORT_SYMBOL(LCD_CLOSE_FUNC);
