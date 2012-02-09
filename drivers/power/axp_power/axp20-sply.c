@@ -48,6 +48,7 @@ static int pmu_used2 = 0;
 static int gpio_adp_hdle = 0;
 static int pmu_suspendpwroff_vol = 0;
 static int pmu_earlysuspend_chgcur = 0;
+static int pmu_batdeten = 0;
 struct axp_adc_res adc;
 static int count_rdc = 0;
 static int count_dis = 0;
@@ -1772,6 +1773,19 @@ static int axp_battery_probe(struct platform_device *pdev)
      DBG_PSY_MSG("pmu_earlysuspend_chgcur = %d\n",pmu_earlysuspend_chgcur);
   }
   pmu_earlysuspend_chgcur = pmu_earlysuspend_chgcur * 1000;
+  
+  var = script_parser_fetch("pmu_para", "pmu_batdeten", &pmu_batdeten, sizeof(int));
+  if (var)
+  {
+     DBG_PSY_MSG("axp driver uning configuration failed(%d)\n", __LINE__);
+     pmu_batdeten = 1;
+     DBG_PSY_MSG("pmu_batdeten = %d\n",pmu_batdeten);
+  }
+  if(!pmu_batdeten)
+  	axp_clr_bits(charger->master,0x32,0x40);
+  else
+  	axp_set_bits(charger->master,0x32,0x40);
+  	
 
 #if defined (CONFIG_AXP_CHGCHANGE)
   if(pmu_used2){
