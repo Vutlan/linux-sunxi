@@ -1,0 +1,21 @@
+#
+# GPIO_AW configuration
+#
+
+menuconfig NEW_GPIO
+	bool "GPIO_AW support"
+	help
+		this a module which control single of our board`s gpio
+
+if NEW_GPIO
+
+config GPIO_AW_CLASS
+	bool "gpio class  Support"
+
+comment "GPIO_AW drivers"
+config GPIO_AW
+	tristate "gpio support for the aw"
+	depends on NEW_GPIO
+	depends on GPIO_AW_CLASS
+	default m	
+endif # GPIO_AW
