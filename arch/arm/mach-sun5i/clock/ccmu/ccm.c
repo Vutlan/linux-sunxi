@@ -52,8 +52,6 @@ __s32 aw_ccu_init(void)
     __reg_value(0xf1c20060) |= 0x01<<5;
     __reg_value(0xf1c2009c)  = 0x80000000;
     timer_clk_version = (__reg_value(0xf1c15000) >>16)&0x7;
-    __reg_value(0xf1c2009c)  = 0x00000000;
-    __reg_value(0xf1c20060) &= ~(0x01<<5);
 
     #if(USE_PLL6M_REPLACE_PLL4)
     /* switch pll4 output to pll6 */
