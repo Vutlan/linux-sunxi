@@ -808,6 +808,28 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
         		return -EFAULT;
         	}
         }        
+        case IOCTL_READ_REG:
+        {
+            struct cedarv_regop reg_para;
+			
+						if(copy_from_user(&reg_para, (void __user*)arg, sizeof(struct cedarv_regop)))
+						{
+			                return -EFAULT;
+						}
+            return readl(reg_para.addr);
+        }
+
+        case IOCTL_WRITE_REG:
+        {
+            struct cedarv_regop reg_para;
+
+						if(copy_from_user(&reg_para, (void __user*)arg, sizeof(struct cedarv_regop)))
+						{
+			                return -EFAULT;
+						}
+            writel(reg_para.value, reg_para.addr);
+            break;
+        }
         case IOCTL_FLUSH_CACHE:
         {        	
         	struct cedarv_cache_range cache_range;        	

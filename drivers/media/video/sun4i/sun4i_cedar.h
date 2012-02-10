@@ -40,6 +40,8 @@ enum IOCTL_CMD {
 	
 	IOCTL_ADJUST_AVS2_ABS,
 	IOCTL_FLUSH_CACHE,
+	IOCTL_READ_REG = 0x300,
+	IOCTL_WRITE_REG,
 };
 
 struct cedarv_env_infomation{
@@ -77,6 +79,10 @@ struct cedarv_engine_task_info {
 	unsigned int total_time;
 };
 
+struct cedarv_regop {
+    unsigned int addr;
+    unsigned int value;
+};
 /*--------------------------------------------------------------------------------*/
 #define REGS_pBASE			(0x01C00000)	 	      // register base addr
 
