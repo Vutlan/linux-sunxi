@@ -977,6 +977,9 @@ SYSCALL_DEFINE2(clock_gettime, const clockid_t, which_clock,
 	if (!error && copy_to_user(tp, &kernel_tp, sizeof (kernel_tp)))
 		error = -EFAULT;
 
+	if ( which_clock == 3) {
+		printk("%s,line:%d\n", __func__, __LINE__);
+	}
 	return error;
 }
 
