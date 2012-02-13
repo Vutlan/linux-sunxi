@@ -1875,30 +1875,53 @@ __u32 BSP_disp_get_cur_line(__u32 sel)
 
 __s32 BSP_disp_close_lcd_backlight(__u32 sel)
 {
-    __disp_lcd_cfg_t lcd_cfg;
     user_gpio_set_t  gpio_info[1];
     __hdle hdl;
+    int value,ret;
+    char primary_key[20];
 
-    LCD_get_sys_config(sel, &lcd_cfg);
-
-    if(lcd_cfg.lcd_pwm_used)
+    sprintf(primary_key, "lcd%d_para", sel);
+    
+    value = 1;
+    ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_bl_en_used", &value, 1);
+    if(value == 0)
     {
-        memcpy(gpio_info, &(lcd_cfg.lcd_pwm), sizeof(user_gpio_set_t));
-        
-        gpio_info->mul_sel = 0;
-
-        hdl = OSAL_GPIO_Request(gpio_info, 1);
-        OSAL_GPIO_Release(hdl, 2);
+        DE_INF("%s.lcd_bl_en is not used\n", primary_key);
+    }
+    else
+    {
+        ret = OSAL_Script_FetchParser_Data(primary_key,"lcd_bl_en", (int *)gpio_info, sizeof(user_gpio_set_t)/sizeof(int));
+        if(ret < 0)
+        {
+            DE_INF("%s.lcd_bl_en not exist\n", primary_key);
+        }
+        else
+        {
+            gpio_info->data = (gpio_info->data==0)?1:0;
+            hdl = OSAL_GPIO_Request(gpio_info, 1);
+            OSAL_GPIO_Release(hdl, 2);        
+        }
     }
 
-    if(lcd_cfg.lcd_bl_en_used)
+    value = 1;
+    ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_pwm_used", &value, 1);
+    if(value == 0)
     {
-        memcpy(gpio_info, &(lcd_cfg.lcd_bl_en), sizeof(user_gpio_set_t));
-        
-        gpio_info->data = (gpio_info->data==0)?1:0;
-
-        hdl = OSAL_GPIO_Request(gpio_info, 1);
-        OSAL_GPIO_Release(hdl, 2);
+        DE_INF("%s.lcd_pwm is not used\n", primary_key);
+    }
+    else
+    {
+        ret = OSAL_Script_FetchParser_Data(primary_key,"lcd_pwm", (int *)gpio_info, sizeof(user_gpio_set_t)/sizeof(int));
+        if(ret < 0)
+        {
+            DE_INF("%s.lcd_pwm not exist\n", primary_key);
+        }
+        else
+        {
+            gpio_info->mul_sel = 0;
+            hdl = OSAL_GPIO_Request(gpio_info, 1);
+            OSAL_GPIO_Release(hdl, 2);
+        }
     }
 
     return 0;
