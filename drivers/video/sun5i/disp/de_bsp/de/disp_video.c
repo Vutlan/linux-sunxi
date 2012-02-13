@@ -46,9 +46,9 @@ static __inline __s32 Hal_Set_Frame(__u32 sel, __u32 tcon_index, __u32 id)
 
     	if(g_video[sel][id].video_cur.interlace == TRUE)
     	{
-    		g_video[sel][id].dit_enable = TRUE;
+    		g_video[sel][id].dit_enable = FALSE;
 
-            g_video[sel][id].fetch_field = FALSE;
+            g_video[sel][id].fetch_field = TRUE;
         	if(g_video[sel][id].display_cnt == 0)
         	{
         	    g_video[sel][id].fetch_bot = (g_video[sel][id].video_cur.top_field_first)?0:1;

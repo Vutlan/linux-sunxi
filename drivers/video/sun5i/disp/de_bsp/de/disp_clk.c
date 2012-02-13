@@ -150,8 +150,8 @@ __s32 image_clk_init(__u32 sel)
 			OSAL_CCMU_SetMclkDiv(h_debe0mclk, 2);
 		}
 		OSAL_CCMU_MclkOnOff(h_debe0ahbclk, CLK_ON);
-		OSAL_CCMU_MclkOnOff(h_debe0dramclk, CLK_ON);
-		OSAL_CCMU_MclkOnOff(h_debe0dramclk, CLK_OFF);
+		//OSAL_CCMU_MclkOnOff(h_debe0dramclk, CLK_ON);
+		//OSAL_CCMU_MclkOnOff(h_debe0dramclk, CLK_OFF);
 		OSAL_CCMU_MclkOnOff(h_debe0mclk, CLK_ON);
 
 		g_clk_status |= (CLK_DEBE0_AHB_ON | CLK_DEBE0_MOD_ON);
@@ -178,8 +178,8 @@ __s32 image_clk_init(__u32 sel)
 		}
 
 		OSAL_CCMU_MclkOnOff(h_debe1ahbclk, CLK_ON);
-		OSAL_CCMU_MclkOnOff(h_debe1dramclk, CLK_ON);
-		OSAL_CCMU_MclkOnOff(h_debe1dramclk, CLK_OFF);
+		//OSAL_CCMU_MclkOnOff(h_debe1dramclk, CLK_ON);
+		//OSAL_CCMU_MclkOnOff(h_debe1dramclk, CLK_OFF);
 		OSAL_CCMU_MclkOnOff(h_debe1mclk, CLK_ON);
 
 		g_clk_status |= (CLK_DEBE1_AHB_ON | CLK_DEBE1_MOD_ON);

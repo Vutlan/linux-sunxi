@@ -1176,28 +1176,17 @@ __s32 Disp_lcdc_event_proc(void *parg)
     __u32 sel = (__u32)parg;
 
     lcdc_flags=LCDC_query_int(sel);  
-
+    LCDC_clear_int(sel,lcdc_flags);
+        
     if(lcdc_flags & LCDC_VBI_LCD)
     {
-        LCDC_clear_int(sel,LCDC_VBI_LCD);
         LCD_vbi_event_proc(sel, 0);
     }
     if(lcdc_flags & LCDC_VBI_HD)
     {
-        LCDC_clear_int(sel,LCDC_VBI_HD);
         LCD_vbi_event_proc(sel, 1);
     }
-    if(lcdc_flags & LCDC_LTI_LCD_FLAG)
-    {
-        LCDC_clear_int(sel,LCDC_LTI_LCD_FLAG);
-        LCD_line_event_proc(sel, 0);
-    }
-    if(lcdc_flags & LCDC_LTI_HD_FLAG)
-    {
-        LCDC_clear_int(sel,LCDC_LTI_HD_FLAG);
-        LCD_line_event_proc(sel, 1); 
-    }
-
+    
     return OSAL_IRQ_RETURN;
 }
 
@@ -1876,6 +1865,60 @@ __u32 BSP_disp_get_cur_line(__u32 sel)
     }
 
     return line;
+}
+
+__s32 BSP_disp_close_lcd_backlight(__u32 sel)
+{
+    user_gpio_set_t  gpio_info[1];
+    __hdle hdl;
+    int value,ret;
+    char primary_key[20];
+
+    sprintf(primary_key, "lcd%d_para", sel);
+    
+    value = 1;
+    ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_bl_en_used", &value, 1);
+    if(value == 0)
+    {
+        DE_INF("%s.lcd_bl_en is not used\n", primary_key);
+    }
+    else
+    {
+        ret = OSAL_Script_FetchParser_Data(primary_key,"lcd_bl_en", (int *)gpio_info, sizeof(user_gpio_set_t)/sizeof(int));
+        if(ret < 0)
+        {
+            DE_INF("%s.lcd_bl_en not exist\n", primary_key);
+        }
+        else
+        {
+            gpio_info->data = (gpio_info->data==0)?1:0;
+            hdl = OSAL_GPIO_Request(gpio_info, 1);
+            OSAL_GPIO_Release(hdl, 2);        
+        }
+    }
+
+    value = 1;
+    ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_pwm_used", &value, 1);
+    if(value == 0)
+    {
+        DE_INF("%s.lcd_pwm is not used\n", primary_key);
+    }
+    else
+    {
+        ret = OSAL_Script_FetchParser_Data(primary_key,"lcd_pwm", (int *)gpio_info, sizeof(user_gpio_set_t)/sizeof(int));
+        if(ret < 0)
+        {
+            DE_INF("%s.lcd_pwm not exist\n", primary_key);
+        }
+        else
+        {
+            gpio_info->mul_sel = 0;
+            hdl = OSAL_GPIO_Request(gpio_info, 1);
+            OSAL_GPIO_Release(hdl, 2);
+        }
+    }
+
+    return 0;
 }
 
 #ifdef __LINUX_OSAL__
