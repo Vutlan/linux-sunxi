@@ -90,6 +90,7 @@ static __inline __s32 Hal_Set_Frame(__u32 sel, __u32 tcon_index, __u32 id)
     		}
     		else
     		{
+    		    g_video[sel][id].fetch_bot = FALSE;
         	    g_video[sel][id].dit_mode = DIT_MODE_WEAVE;
         	    g_video[sel][id].tempdiff_en = FALSE;
         	    g_video[sel][id].diagintp_en = FALSE;
