@@ -39,6 +39,32 @@ struct aw_pm_info  pm_info;
 #define DRAM_BASE_ADDR      0xc0000000
 #define DRAM_TRANING_SIZE   (16)
 static __u32 dram_traning_area_back[DRAM_TRANING_SIZE];
+#define __reg_value(reg)    (*((volatile unsigned int *)(reg)))
+
+static int err_flag;
+static void check_version(void)
+{
+    err_flag = (__reg_value(0xf1c15000)>>16)&0x7;
+    if(err_flag == 1) {
+        if(__reg_value(0xf1c20064)&(1<<4)) {
+            err_flag = (__reg_value(0xf1c0c048) & 0x07ff) * ((__reg_value(0xf1c0c048)>>16) & 0x07ff);
+            err_flag = (err_flag > 0x321*0x1f1)? -1 : 0;
+        } else {
+            __reg_value(0xf1c20064) |= (1<<4);
+            err_flag = (__reg_value(0xf1c0c048) & 0x07ff) * ((__reg_value(0xf1c0c048)>>16) & 0x07ff);
+            err_flag = (err_flag > 0x321*0x1f1)? -1 : 0;
+            __reg_value(0xf1c20064) &= ~(1<<4);
+        }
+    } else {
+        err_flag = 0;
+    }
+
+    if(err_flag) {
+        /* system error */
+        standby_clk_plldisable();
+    }
+}
+
 
 /*
 *********************************************************************************************************
@@ -131,6 +157,8 @@ int main(struct aw_pm_info *arg)
 
     /* restore stack pointer register, switch stack back to dram */
     restore_sp(sp_backup);
+
+    check_version();
 
     /* exit standby module */
     if(pm_info.standby_para.event & SUSPEND_WAKEUP_SRC_USB){

@@ -20,7 +20,7 @@
 #include "ccm_i.h"
 
 #define __reg_value(x)          (*(volatile __u32 *)(x))
-unsigned int timer_clk_version;
+static unsigned int timer_clk_version;
 
 __ccmu_reg_list_t   *aw_ccu_reg;
 
@@ -102,11 +102,12 @@ __s32 aw_ccu_exit(void)
 */
 void fix_timer_clock(void)
 {
+    __u32   tmpValue;
+
     if(timer_clk_version == 1) {
         if(__reg_value(0xf1c20064)&(1<<4)) {
-            __reg_value(0xf1c20060) = (__reg_value(0xf1c0c048) & 0x07ff) > 0x0321?     \
-                            (__reg_value(0xf1c20060) & 0xffff3fff) : __reg_value(0xf1c20060);
-            __reg_value(0xf1c20060) = (__reg_value(0xf1c0c048) & 0x07ff0000) > 0x3210000?     \
+            tmpValue = (__reg_value(0xf1c0c048) & 0x07ff) * ((__reg_value(0xf1c0c048)>>16) & 0x07ff);
+            __reg_value(0xf1c20060) = (tmpValue > 0x321*0x200)?     \
                             (__reg_value(0xf1c20060) & 0xffff3fff) : __reg_value(0xf1c20060);
         }
     }
