@@ -19,8 +19,6 @@
 /* physical offset of RAM */
 #define PLAT_PHYS_OFFSET		UL(0x40000000)
 
-#ifdef CONFIG_SUN5I_A13
-
 #define SW_VE_MEM_BASE                    (PLAT_PHYS_OFFSET + SZ_64M)
 #define SW_VE_MEM_SIZE                    (SZ_64M)
 #define SW_FB_MEM_BASE                    (SW_VE_MEM_BASE + SW_VE_MEM_SIZE)
@@ -30,8 +28,7 @@
 #define SW_BANK1_SIZE                     (SZ_64M + SW_VE_MEM_SIZE + SW_FB_MEM_SIZE)
 #define SW_BANK2_OFFSET                   (SW_BANK1_SIZE + SW_GPU_MEM_SIZE)
 
-#else
-
+/*
 #error "fixme"
 #define SW_VE_MEM_BASE                    (PLAT_PHYS_OFFSET + SZ_64M)
 #define SW_VE_MEM_SIZE                    (SZ_64M + SZ_16M)
@@ -41,8 +38,7 @@
 #define SW_GPU_MEM_SIZE                   (SZ_64M)
 #define SW_G2D_MEM_BASE
 #define SW_G2D_MEM_SIZE                   0x1000000
-
-#endif
+*/
 
 
 #endif
