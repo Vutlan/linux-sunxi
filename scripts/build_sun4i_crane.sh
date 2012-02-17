@@ -139,6 +139,9 @@ build_modules()
 			CROSS_COMPILE=${CROSS_COMPILE} ARCH=arm LINUXVER=${KERNEL_VERSION} \
 			LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LINUXDIR=${LICHEE_KDIR} CONFIG_CHIP_ID=${CONFIG_CHIP_ID} \
 			INSTALL_DIR=${LICHEE_MOD_DIR} OEM_ANDROID=1 dhd-cdc-sdmmc-gpl
+
+	#copy gps driver to module
+	cp modules/gps/gps.ko_ $LICHEE_MOD_DIR/gps.ko
 }
 
 clean_kernel()
