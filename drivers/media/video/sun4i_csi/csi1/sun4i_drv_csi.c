@@ -1842,16 +1842,6 @@ reg_sd:
 				goto free_dev;
 			}
 		}	
-		
-		if(dev->stby_mode == 1) {
-			csi_print("power on and power off camera!\n");
-      ret = update_ccm_info(dev, dev->ccm_cfg[input_num]);
-      if(ret<0)
-      	csi_err("Error when set ccm info when probe!\n");
-      
-			v4l2_subdev_call(dev->ccm_cfg[input_num]->sd,core, s_power, CSI_SUBDEV_PWR_ON);
-			v4l2_subdev_call(dev->ccm_cfg[input_num]->sd,core, s_power, CSI_SUBDEV_PWR_OFF);
-		}
 	}
 	
 	for(input_num=0; input_num<dev->dev_qty; input_num++)
@@ -1875,6 +1865,20 @@ reg_sd:
 		csi_err("csi clock get failed!\n");
 		ret = -ENXIO;
 		goto unreg_dev;
+	}
+	
+	/* power on and power off device */
+	for(input_num=0; input_num<dev->dev_qty; input_num++)
+	{
+		if(dev->stby_mode == 1) {
+			csi_print("power on and power off camera!\n");
+      ret = update_ccm_info(dev, dev->ccm_cfg[input_num]);
+      if(ret<0)
+      	csi_err("Error when set ccm info when probe!\n");
+      
+			v4l2_subdev_call(dev->ccm_cfg[input_num]->sd,core, s_power, CSI_SUBDEV_PWR_ON);
+			v4l2_subdev_call(dev->ccm_cfg[input_num]->sd,core, s_power, CSI_SUBDEV_PWR_OFF);
+		}
 	}
 	
 //	csi_dbg("%s(): csi-%d registered successfully\n",__func__, dev->id);

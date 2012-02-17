@@ -1,10 +1,10 @@
 ===========================================
 
-Version: V1_11
+Version: V1_20
 
 Author:  raymonxiu
 
-Date:     2012-1-19 19:25:36
+Date:     2012-2-17 15:28:06
 
 Description:
 
@@ -21,6 +21,12 @@ insmod sun4i_csiX.ko ccm="hi253" i2c_addr=0x40
 insmod sun4i_csiX.ko ccm="gc0307" i2c_addr=0x42
 insmod sun4i_csiX.ko ccm="mt9d112" i2c_addr=0x78
 insmod sun4i_csiX.ko ccm="ov5640" i2c_addr=0x78
+
+V1_20
+CSI: Add i2c adapter lock when camera power on/off and standby on/off
+1) Add i2c adapter lock when camera power on/off and standby on/off
+2) Modify standby and reset io sequence when power on and standby off
+3) Add new camera module gc2015,ov2643 and modify deconfig
 
 V1_11
 CSI: Mainly fix bugs on mt9m112,ov5640 and ov7670
