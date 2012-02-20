@@ -82,7 +82,6 @@ typedef struct
     __bool                  enhance_en;
     __u32                   max_layers;
     __layer_man_t           layer_manage[4];
-    __bool                  bout_yuv;
     __u32                   de_flicker_status;
 
     __u32                   image_output_type;//see macro definition IMAGE_OUTPUT_XXX above, it can be lcd only /lcd+scaler/ scaler only

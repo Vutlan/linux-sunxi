@@ -7,6 +7,7 @@
 
 frame_para_t g_video[2][4];
 
+#if 0
 static __s32 video_enhancement_start(__u32 sel, __u32 id)
 {
     __u32 scaleuprate;
@@ -106,6 +107,7 @@ static __s32 video_enhancement_stop(__u32 sel, __u32 id)
 
 	return 0;
 }
+#endif
 
 static __inline __s32 Hal_Set_Frame(__u32 sel, __u32 tcon_index, __u32 id)
 {	
@@ -271,7 +273,7 @@ static __inline __s32 Hal_Set_Frame(__u32 sel, __u32 tcon_index, __u32 id)
 
     	DE_SCAL_Set_Init_Phase(scaler_index, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type, g_video[sel][id].dit_enable);
     	DE_SCAL_Set_Scaling_Factor(scaler_index, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type);
-    	DE_SCAL_Set_Scaling_Coef(scaler_index, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type,  scaler->smooth_mode);
+    	DE_SCAL_Set_Scaling_Coef_for_video(scaler_index, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type, 0x00000101);
     	DE_SCAL_Set_Out_Size(scaler_index, &out_scan,&out_type, &out_size);
     	DE_SCAL_Set_Di_Ctrl(scaler_index,g_video[sel][id].dit_enable,g_video[sel][id].dit_mode,g_video[sel][id].diagintp_en,g_video[sel][id].tempdiff_en);
     	DE_SCAL_Set_Di_PreFrame_Addr(scaler_index, pre_frame_addr);
@@ -418,7 +420,7 @@ __s32 BSP_disp_video_start(__u32 sel, __u32 hid)
         g_video[sel][hid].video_cur.id = -1;
         g_video[sel][hid].enable = TRUE;
 
-        video_enhancement_start(sel,hid);
+        //video_enhancement_start(sel,hid);
     	return DIS_SUCCESS;
     }
     else
@@ -436,7 +438,7 @@ __s32 BSP_disp_video_stop(__u32 sel, __u32 hid)
     {
         memset(&g_video[sel][hid], 0, sizeof(frame_para_t));
         
-        video_enhancement_stop(sel,hid);
+        //video_enhancement_stop(sel,hid);
     	return DIS_SUCCESS;
     }
     else

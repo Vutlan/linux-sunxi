@@ -312,7 +312,7 @@ __s32 video_config(__s32 vic)
     HDMI_WUINT8 (0x081,0x02);
     HDMI_WUINT8 (0x082,0x0d);
     HDMI_WUINT8 (0x083,0xF7);
-    HDMI_WUINT8 (0x084,0x1E);
+    HDMI_WUINT8 (0x084,0x5E);
     HDMI_WUINT8 (0x085,0x58);
     HDMI_WUINT8 (0x086,0x00); 
     HDMI_WUINT8 (0x087,video_timing[i].VIC	 );
@@ -326,7 +326,7 @@ __s32 video_config(__s32 vic)
     HDMI_WUINT8 (0x08f,0x00);
     HDMI_WUINT8 (0x090,0x00);
     
-    reg_val = 0x82 + 0x02 + 0x0d + 0x1E + 0x58 + 
+    reg_val = 0x82 + 0x02 + 0x0d + 0x5E + 0x58 + 
               video_timing[i].VIC + video_timing[i].AVI_PR;
     reg_val = reg_val & 0xff;
     if(reg_val != 0)

@@ -129,7 +129,7 @@ __s32 BSP_disp_set_screen_size(__u32 sel, __disp_rectsz_t * size)
 __s32 BSP_disp_set_output_csc(__u32 sel, __disp_output_type_t type)
 {
     __disp_color_range_t out_color_range = DISP_COLOR_RANGE_0_255;
-    __bool bout_yuv = FALSE;
+    __u32 out_csc = 0;
 
     if(type == DISP_OUTPUT_TYPE_HDMI)
     {
@@ -148,15 +148,14 @@ __s32 BSP_disp_set_output_csc(__u32 sel, __disp_output_type_t type)
             out_color_range = value;
             DE_INF("screen0_out_color_range = %d\n", value);
         }
+        out_csc = 2;
     }
     else if(type == DISP_OUTPUT_TYPE_TV)
     {
-        bout_yuv = TRUE;
+        out_csc = 1;
     }
    
-    DE_BE_Output_Cfg_Csc_Coeff(sel, bout_yuv, out_color_range);
-
-    gdisp.screen[sel].bout_yuv = bout_yuv;
+    DE_BE_Output_Cfg_Csc_Coeff(sel, out_csc, out_color_range);
 
     return DIS_SUCCESS;
 }
