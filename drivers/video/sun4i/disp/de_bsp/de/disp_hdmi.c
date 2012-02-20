@@ -61,6 +61,7 @@ __s32 BSP_disp_hdmi_open(__u32 sel)
         gdisp.screen[sel].lcdc_status |= LCDC_TCON1_USED;
         gdisp.screen[sel].output_type = DISP_OUTPUT_TYPE_HDMI;
 
+        Disp_set_out_interlace(sel);
 #ifdef __LINUX_OSAL__
         Display_set_fb_timming(sel);
 #endif
@@ -94,6 +95,8 @@ __s32 BSP_disp_hdmi_close(__u32 sel)
     	gdisp.screen[sel].status &= HDMI_OFF;
     	gdisp.screen[sel].output_type = DISP_OUTPUT_TYPE_NONE;
 		gdisp.screen[sel].pll_use_status &= ((gdisp.screen[sel].pll_use_status == VIDEO_PLL0_USED)? VIDEO_PLL0_USED_MASK : VIDEO_PLL1_USED_MASK);
+
+        Disp_set_out_interlace(sel);
     }
 
 	return DIS_SUCCESS;
