@@ -179,4 +179,7 @@ void usi_bm01a_gpio_init(void)
     usi_bm01a_bt_on = 0;
     ops->gpio_ctrl = usi_bm01a_gpio_ctrl;
     ops->get_io_val = usi_bm01a_get_gpio_value;
+    #if CONFIG_CHIP_ID==1125
+    usi_bm01a_power_onoff(0);
+    #endif
 }
