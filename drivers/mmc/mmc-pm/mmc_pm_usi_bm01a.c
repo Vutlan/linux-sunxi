@@ -144,6 +144,7 @@ power_change:
         usi_msg("Failed to power off USI-BM01A module!\n");
         return -1;
     }
+    mdelay(5);
     ret = gpio_write_one_pin_value(ops->pio_hdle, level, "usi_bm01a_wlbt_regon");
     if (ret) {
         usi_msg("Failed to regon off for  USI-BM01A module!\n");
