@@ -147,6 +147,7 @@ static void __init sw_core_reserve(void)
 	memblock_reserve(fb_start, fb_size);
 	memblock_reserve(ve_start, SZ_64M);
 	memblock_reserve(ve_start + SZ_64M, SZ_16M);
+	memblock_reserve(g2d_start, g2d_size);
 
 #if 0
         int g2d_used = 0;
