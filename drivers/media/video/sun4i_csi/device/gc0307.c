@@ -1237,6 +1237,11 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
 			//make sure that no device can access i2c bus during sensor initial or power down
   		//when using i2c_lock_adpater function, the following codes must not access i2c bus before calling i2c_unlock_adapter
   		i2c_lock_adapter(client->adapter);
+			//standby and reset io
+			gpio_write_one_pin_value(dev->csi_pin_hd,CSI_STBY_ON,csi_stby_str);
+			msleep(100);
+			gpio_write_one_pin_value(dev->csi_pin_hd,CSI_RST_ON,csi_reset_str);
+			msleep(100);
 			//power supply off
 			if(dev->iovdd) {
 				regulator_disable(dev->iovdd);

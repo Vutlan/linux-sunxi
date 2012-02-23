@@ -993,6 +993,11 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
 			
 		case CSI_SUBDEV_PWR_OFF:
 			csi_dev_dbg("CSI_SUBDEV_PWR_OFF\n");
+			//standby and reset io
+			gpio_write_one_pin_value(dev->csi_pin_hd,CSI_STBY_ON,csi_stby_str);
+			msleep(100);
+			gpio_write_one_pin_value(dev->csi_pin_hd,CSI_RST_ON,csi_reset_str);
+			msleep(100);
 			//power supply off
 			if(dev->iovdd) {
 				regulator_disable(dev->iovdd);

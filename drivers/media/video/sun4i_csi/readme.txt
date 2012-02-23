@@ -1,10 +1,10 @@
 ===========================================
 
-Version: V1_20
+Version: V1_21
 
 Author:  raymonxiu
 
-Date:     2012-2-17 15:28:06
+Date:     2012-2-23 20:32:41
 
 Description:
 
@@ -21,6 +21,11 @@ insmod sun4i_csiX.ko ccm="hi253" i2c_addr=0x40
 insmod sun4i_csiX.ko ccm="gc0307" i2c_addr=0x42
 insmod sun4i_csiX.ko ccm="mt9d112" i2c_addr=0x78
 insmod sun4i_csiX.ko ccm="ov5640" i2c_addr=0x78
+insmod sun4i_csiX.ko ccm="gc2015" i2c_addr=0x60
+insmod sun4i_csiX.ko ccm="ov2643" i2c_addr=0x60
+
+V1_21
+CSI: Add standy and reset control before power off
 
 V1_20
 CSI: Add i2c adapter lock when camera power on/off and standby on/off
