@@ -549,13 +549,13 @@ static int __init axp_board_init(void)
         if (ret)
         {
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
-            pmu_usbcur_limit = 0;
+            pmu_usbcur_limit = 1;
         }
         ret = script_parser_fetch("pmu_para", "pmu_usbcur", &pmu_usbcur, sizeof(int));
         if (ret)
         {
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
-            pmu_usbcur = 900;
+            pmu_usbcur = 0;
         }
         ret = script_parser_fetch("pmu_para", "pmu_pwroff_vol", &pmu_pwroff_vol, sizeof(int));
         if (ret)
