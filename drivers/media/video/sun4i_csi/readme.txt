@@ -1,10 +1,10 @@
 ===========================================
 
-Version: V1_21
+Version: V1_30
 
 Author:  raymonxiu
 
-Date:     2012-2-23 20:32:41
+Date:     2012-2-25 18:42:09
 
 Description:
 
@@ -23,6 +23,11 @@ insmod sun4i_csiX.ko ccm="mt9d112" i2c_addr=0x78
 insmod sun4i_csiX.ko ccm="ov5640" i2c_addr=0x78
 insmod sun4i_csiX.ko ccm="gc2015" i2c_addr=0x60
 insmod sun4i_csiX.ko ccm="ov2643" i2c_addr=0x60
+
+V1_30
+CSI: Modfiy device source code to keep identical between sun4i/5i
+1) Modfiy the device source code to keep identical between sun4i/5i
+2) Fix gc0308 red color
 
 V1_21
 CSI: Add standy and reset control before power off

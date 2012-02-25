@@ -474,6 +474,12 @@ static int update_ccm_info(struct csi_dev *dev , struct ccm_config *ccm_cfg)
 	 dev->iovdd = ccm_cfg->iovdd;
 	 dev->avdd = ccm_cfg->avdd;
 	 dev->dvdd = ccm_cfg->dvdd;
+	 dev->reset_io    = ccm_cfg->reset_io;    
+	 dev->standby_io  = ccm_cfg->standby_io;  
+	 dev->power_io    = ccm_cfg->power_io;    
+	 dev->flash_io    = ccm_cfg->flash_io;    
+	 dev->af_power_io = ccm_cfg->af_power_io; 
+	
 	 return v4l2_subdev_call(dev->sd,core,ioctl,CSI_SUBDEV_CMD_SET_INFO,dev->ccm_info);
 }
 
@@ -1556,18 +1562,44 @@ static int fetch_config(struct csi_dev *dev)
 		/* fetch flip issue */
 		ret = script_parser_fetch("csi0_para","csi_vflip", &dev->ccm_cfg[0]->vflip , sizeof(int));
 		if (ret) {
-			csi_err("fetch csi0 vflip from sys_config failed\n");
+			csi_err("fetch vflip from sys_config failed\n");
 		}
 		
 		ret = script_parser_fetch("csi0_para","csi_hflip", &dev->ccm_cfg[0]->hflip , sizeof(int));
 		if (ret) {
-			csi_err("fetch csi0 hflip from sys_config failed\n");
+			csi_err("fetch hflip from sys_config failed\n");
 		}
 		
 		/* fetch flash light issue */
 		ret = script_parser_fetch("csi0_para","csi_flash_pol", &dev->ccm_cfg[0]->flash_pol , sizeof(int));
 		if (ret) {
-			csi_err("fetch csi0 csi_flash_pol from sys_config failed\n");
+			csi_err("fetch csi_flash_pol from sys_config failed\n");
+		}
+		
+		/* fetch reset/power/standby/flash/af io issue */
+		ret = script_parser_fetch("csi0_para","csi_reset", (int *)&dev->ccm_cfg[0]->reset_io , sizeof(user_gpio_set_t)/sizeof(int));
+		if (ret) {
+			csi_err("fetch csi_reset from sys_config failed\n");
+		}
+		
+		ret = script_parser_fetch("csi0_para","csi_stby", (int *)&dev->ccm_cfg[0]->standby_io , sizeof(user_gpio_set_t)/sizeof(int));
+		if (ret) {
+			csi_err("fetch csi_stby from sys_config failed\n");
+		}
+		
+		ret = script_parser_fetch("csi0_para","csi_power_en", (int *)&dev->ccm_cfg[0]->power_io , sizeof(user_gpio_set_t)/sizeof(int));
+		if (ret) {
+			csi_err("fetch csi_power_en from sys_config failed\n");
+		}
+		
+		ret = script_parser_fetch("csi0_para","csi_flash", (int *)&dev->ccm_cfg[0]->flash_io , sizeof(user_gpio_set_t)/sizeof(int));
+		if (ret) {
+			csi_err("fetch csi_flash from sys_config failed\n");
+		}
+		
+		ret = script_parser_fetch("csi0_para","csi_af_en", (int *)&dev->ccm_cfg[0]->af_power_io , sizeof(user_gpio_set_t)/sizeof(int));
+		if (ret) {
+			csi_err("fetch csi_af_en from sys_config failed\n");
 		}
 	} 
 	
@@ -1621,18 +1653,44 @@ static int fetch_config(struct csi_dev *dev)
 		/* fetch flip issue */
 		ret = script_parser_fetch("csi0_para","csi_vflip_b", &dev->ccm_cfg[1]->vflip , sizeof(int));
 		if (ret) {
-			csi_err("fetch csi0 vflip_b from sys_config failed\n");
+			csi_err("fetch vflip_b from sys_config failed\n");
 		}
 		
 		ret = script_parser_fetch("csi0_para","csi_hflip_b", &dev->ccm_cfg[1]->hflip , sizeof(int));
 		if (ret) {
-			csi_err("fetch csi0 hflip_b from sys_config failed\n");
+			csi_err("fetch hflip_b from sys_config failed\n");
 		}
 		
 		/* fetch flash light issue */
 		ret = script_parser_fetch("csi0_para","csi_flash_pol_b", &dev->ccm_cfg[1]->flash_pol , sizeof(int));
 		if (ret) {
-			csi_err("fetch csi0 csi_flash_pol_b from sys_config failed\n");
+			csi_err("fetch csi_flash_pol_b from sys_config failed\n");
+		}
+		
+		/* fetch reset/power/standby/flash/af io issue */
+		ret = script_parser_fetch("csi0_para","csi_reset_b", (int *)&dev->ccm_cfg[1]->reset_io , sizeof(user_gpio_set_t)/sizeof(int));
+		if (ret) {
+			csi_err("fetch csi_reset_b from sys_config failed\n");
+		}
+		
+		ret = script_parser_fetch("csi0_para","csi_stby_b", (int *)&dev->ccm_cfg[1]->standby_io , sizeof(user_gpio_set_t)/sizeof(int));
+		if (ret) {
+			csi_err("fetch csi_stby_b from sys_config failed\n");
+		}
+		
+		ret = script_parser_fetch("csi0_para","csi_power_en_b", (int *)&dev->ccm_cfg[1]->power_io , sizeof(user_gpio_set_t)/sizeof(int));
+		if (ret) {
+			csi_err("fetch csi_power_en_b from sys_config failed\n");
+		}
+		
+		ret = script_parser_fetch("csi0_para","csi_flash_b", (int *)&dev->ccm_cfg[1]->flash_io , sizeof(user_gpio_set_t)/sizeof(int));
+		if (ret) {
+			csi_err("fetch csi_flash_b from sys_config failed\n");
+		}
+		
+		ret = script_parser_fetch("csi0_para","csi_af_en_b", (int *)&dev->ccm_cfg[1]->af_power_io , sizeof(user_gpio_set_t)/sizeof(int));
+		if (ret) {
+			csi_err("fetch csi_af_en_b from sys_config failed\n");
 		}
 	}
 
