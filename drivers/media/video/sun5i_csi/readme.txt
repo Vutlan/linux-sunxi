@@ -1,10 +1,10 @@
 ===========================================
 
-Version: V1_01
+Version: V1_10
 
 Author:  raymonxiu
 
-Date:     2012-1-19 13:46:07
+Date:     2012-2-25 17:55:29
 
 Description:
 
@@ -21,6 +21,19 @@ insmod sun4i_csiX.ko ccm="hi253" i2c_addr=0x40
 insmod sun4i_csiX.ko ccm="gc0307" i2c_addr=0x42
 insmod sun4i_csiX.ko ccm="mt9d112" i2c_addr=0x78
 insmod sun4i_csiX.ko ccm="ov5640" i2c_addr=0x78
+insmod sun4i_csiX.ko ccm="gc2015" i2c_addr=0x60
+insmod sun4i_csiX.ko ccm="ov2643" i2c_addr=0x60
+
+
+V1_10
+CSI: Merge modification from sun4i and fix gc0308 red color 
+1) Judge if csi is generating before csi_read and csi_poll
+2) Add i2c adapter lock when camera power on/off and standby on/off
+3) Modify standby and reset io sequence when power on and standby off
+4) Add standy and reset control before power off
+5) Add new camera module gc2015,ov2643 and modify deconfig
+6) Modfiy the device source code to keep identical between sun4i/5i
+7) Fix gc0308 red color
 
 V1_01
 CSI: Fix bugs, add new modules support and modity power/standby interface
