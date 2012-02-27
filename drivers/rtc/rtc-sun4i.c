@@ -530,7 +530,7 @@ static int sunxi_rtc_setalarm(struct device *dev, struct rtc_wkalrm *alrm)
 
 static int sunxi_rtc_open(struct device *dev)
 {		
-	printk ("sunxi_rtc_open \n");
+	pr_debug ("sunxi_rtc_open \n");
 	return 0;
 }
 
