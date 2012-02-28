@@ -174,6 +174,25 @@ static int usi_bm01a_get_gpio_value(char* name)
     return gpio_read_one_pin_value(ops->pio_hdle, name);
 }
 
+static void usi_bm01a_power(int mode, int* updown)
+{
+	if (mode) {
+		if (*updown) {
+            usi_bm01a_gpio_ctrl("usi_bm01a_wl_regon", 1);
+            usi_bm01a_gpio_ctrl("usi_bm01a_wl_rst", 1);
+		} else {
+            usi_bm01a_gpio_ctrl("usi_bm01a_wl_rst", 0);
+            usi_bm01a_gpio_ctrl("usi_bm01a_wl_regon", 0);
+		}
+	} else {
+        if (usi_bm01a_wl_on)
+            *updown = 1;
+        else
+            *updown = 0;
+		usi_msg("sdio wifi power state: %s\n", usi_bm01a_wl_on ? "on" : "off");
+	}
+}
+
 void usi_bm01a_gpio_init(void)
 {
     struct mmc_pm_ops *ops = &mmc_card_pm_ops;
@@ -181,4 +200,5 @@ void usi_bm01a_gpio_init(void)
     usi_bm01a_bt_on = 0;
     ops->gpio_ctrl = usi_bm01a_gpio_ctrl;
     ops->get_io_val = usi_bm01a_get_gpio_value;
+    ops->power = usi_bm01a_power;
 }

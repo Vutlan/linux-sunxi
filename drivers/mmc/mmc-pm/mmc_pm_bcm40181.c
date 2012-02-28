@@ -62,6 +62,29 @@ static int bcm40181_get_io_value(char* name)
 	return ret;
 }
 
+void bcm40181_power(int mode, int* updown)
+{
+    if (mode) {
+        if (*updown) {
+			bcm40181_gpio_ctrl("bcm40181_vcc_en", 1);
+			udelay(100);
+			bcm40181_gpio_ctrl("bcm40181_shdn", 1);
+			udelay(50);
+			bcm40181_gpio_ctrl("bcm40181_vdd_en", 1);
+        } else {
+			bcm40181_gpio_ctrl("bcm40181_vcc_en", 0);
+			bcm40181_gpio_ctrl("bcm40181_shdn", 0);
+			bcm40181_gpio_ctrl("bcm40181_vdd_en", 0);
+        }
+    } else {
+        if (bcm40181_powerup)
+            *updown = 1;
+        else
+            *updown = 0;
+		bcm40181_msg("sdio wifi power state: %s\n", bcm40181_powerup ? "on" : "off");
+    }
+    return;
+}
 void bcm40181_wifi_gpio_init(void)
 {
 	struct mmc_pm_ops *ops = &mmc_card_pm_ops;
@@ -71,4 +94,5 @@ void bcm40181_wifi_gpio_init(void)
 	bcm40181_suspend = 0;
 	ops->gpio_ctrl = bcm40181_gpio_ctrl;
 	ops->get_io_val = bcm40181_get_io_value;
+	ops->power = bcm40181_power;
 }
