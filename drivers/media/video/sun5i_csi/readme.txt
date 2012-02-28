@@ -1,10 +1,10 @@
 ===========================================
 
-Version: V1_10
+Version: V1_11
 
 Author:  raymonxiu
 
-Date:     2012-2-25 17:55:29
+Date:     2012-2-28 19:28:42
 
 Description:
 
@@ -24,6 +24,10 @@ insmod sun4i_csiX.ko ccm="ov5640" i2c_addr=0x78
 insmod sun4i_csiX.ko ccm="gc2015" i2c_addr=0x60
 insmod sun4i_csiX.ko ccm="ov2643" i2c_addr=0x60
 
+V1_11
+CSI: Modify clock gating and axp_gpio_get_io bug 
+1) Insure the clk_enable() and clk_disable() are called in pair
+2) Fix the axp_gpio_get_io() bug for pmu gpio2
 
 V1_10
 CSI: Merge modification from sun4i and fix gc0308 red color 

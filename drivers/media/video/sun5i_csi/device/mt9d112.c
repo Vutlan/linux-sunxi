@@ -1149,7 +1149,9 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
   //make sure that no device can access i2c bus during sensor initial or power down
   //when using i2c_lock_adpater function, the following codes must not access i2c bus before calling i2c_unlock_adapter
   i2c_lock_adapter(client->adapter);
-  
+
+  //insure that clk_disable() and clk_enable() are called in pair 
+  //when calling CSI_SUBDEV_STBY_ON/OFF and CSI_SUBDEV_PWR_ON/OFF  
   switch(on)
 	{
 		case CSI_SUBDEV_STBY_ON:
@@ -1157,9 +1159,6 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
 			//reset off io
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_OFF);
 			msleep(10);
-			//active mclk before stadby in
-			clk_enable(dev->csi_module_clk);
-			msleep(200);
 			//standby on io
 			csi_gpio_write(sd,&dev->standby_io,CSI_STBY_ON);
 			msleep(100);
@@ -1191,8 +1190,6 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
 			break;
 		case CSI_SUBDEV_PWR_ON:
 			csi_dev_dbg("CSI_SUBDEV_PWR_ON\n");
-			//inactive mclk before power on
-			clk_disable(dev->csi_module_clk);
 			//power on reset
 			csi_gpio_set_status(sd,&dev->standby_io,1);//set the gpio to output
 			csi_gpio_set_status(sd,&dev->reset_io,1);//set the gpio to output
