@@ -503,9 +503,50 @@ static int axp_usb_get_property(struct power_supply *psy,
 
 static void axp_change(struct axp_charger *charger)
 {
+  uint8_t val,tmp;
+  int var;
   DBG_PSY_MSG("battery state change\n");
   axp_charger_update_state(charger);
   axp_charger_update(charger);
+  printk("charger->usb_valid = %d\n",charger->usb_valid);
+	if(!charger->usb_valid){
+		printk("set usb vol-lim to %d mV, cur-lim to %d mA\n",pmu_usbvol,pmu_usbcur);
+		//reset usb-ac after usb removed 
+		if((pmu_usbcur) && (pmu_usbcur_limit)){
+			axp_clr_bits(charger->master, AXP20_CHARGE_VBUS, 0x01);
+			var = pmu_usbcur * 1000;
+			if(var >= 900000)
+				axp_clr_bits(charger->master, AXP20_CHARGE_VBUS, 0x03);
+			else if ((var >= 500000)&& (var < 900000)){
+				axp_clr_bits(charger->master, AXP20_CHARGE_VBUS, 0x02);
+				axp_set_bits(charger->master, AXP20_CHARGE_VBUS, 0x01);
+			}
+			else if ((var >= 100000)&& (var < 500000)){
+				axp_clr_bits(charger->master, AXP20_CHARGE_VBUS, 0x01);
+				axp_set_bits(charger->master, AXP20_CHARGE_VBUS, 0x02);
+			}
+			else
+				printk("set usb limit current error,%d mA\n",pmu_usbcur);	
+		}
+		else
+			axp_set_bits(charger->master, AXP20_CHARGE_VBUS, 0x03);
+			
+		if((pmu_usbvol) && (pmu_usbvol_limit)){
+			axp_set_bits(charger->master, AXP20_CHARGE_VBUS, 0x40);
+			var = pmu_usbvol * 1000;
+			if(var >= 4000000 && var <=4700000){
+				tmp = (var - 4000000)/100000;
+			    axp_read(charger->master, AXP20_CHARGE_VBUS,&val);
+			    val &= 0xC7;
+			    val |= tmp << 3;
+			    axp_write(charger->master, AXP20_CHARGE_VBUS,val);
+			}
+			else
+				printk("set usb limit voltage error,%d mV\n",pmu_usbvol);	
+		}
+		else
+			axp_clr_bits(charger->master, AXP20_CHARGE_VBUS, 0x40);
+	}
   flag_state_change = 1;
   power_supply_changed(&charger->batt);
 }
@@ -1960,6 +2001,7 @@ static int axp_battery_probe(struct platform_device *pdev)
     register_early_suspend(&axp_early_suspend);
 #endif
 
+	/* µ÷ÊÔ½Ó¿Ú×¢²á */
 	class_register(&axppower_class);
 
   return ret;
@@ -2056,7 +2098,6 @@ static int axp20_suspend(struct platform_device *dev, pm_message_t state)
 		tmp &= 0xbf;
 
 		axp_write(charger->master, POWER20_COULOMB_CTL, tmp);
-
 		
     return 0;
 }
