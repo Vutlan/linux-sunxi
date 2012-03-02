@@ -143,6 +143,7 @@ int usb_stor_ZTE_AC580_init2(struct us_data *us) // PID = 0x0026
 
 int usb_stor_ASB_init(struct us_data *us)
 {
+	printk("====%s===>\n",__FUNCTION__);
 	return -ENODEV;
 }
 
