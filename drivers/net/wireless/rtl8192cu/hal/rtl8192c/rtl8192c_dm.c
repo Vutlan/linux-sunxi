@@ -619,10 +619,17 @@ dm_initial_gain_STA(
 		{
 			pDigTable->Rssi_val_min = dm_initial_gain_MinPWDB(pAdapter);
 			dm_CtrlInitGainByRssi(pAdapter);
-		}	
+		}
+#ifdef CONFIG_IOCTL_CFG80211
+		else if((wdev_to_priv(pAdapter->rtw_wdev))->p2p_enabled == _TRUE)
+		{
+			pDigTable->CurIGValue = 0x30;
+			DM_Write_DIG(pAdapter);
+		}
+#endif			
 	}
 	else	
-	{		
+	{
 		// connect -> disconnect or beforeconnect -> disconnect
 		pDigTable->Rssi_val_min = 0;
 		pDigTable->Dig_Ext_Port_Stage = DIG_EXT_PORT_STAGE_MAX;

@@ -371,7 +371,7 @@ _func_exit_;
 #endif
 
 #ifdef CONFIG_CONCURRENT_MODE
-	_exit_critical_mutex(padapter->ph2c_fwcmd_mutex, NULL);	
+	//_exit_critical_mutex(padapter->ph2c_fwcmd_mutex, NULL);	
 #endif
 exit:
 	return ret;
@@ -498,7 +498,7 @@ _func_exit_;
 
 void ConstructBeacon(_adapter *padapter, u8 *pframe, u32 *pLength)
 {
-	struct ieee80211_hdr	*pwlanhdr;
+	struct rtw_ieee80211_hdr	*pwlanhdr;
 	u16					*fctrl;
 	u32					rate_len, pktlen;
 	struct mlme_ext_priv	*pmlmeext = &(padapter->mlmeextpriv);
@@ -509,7 +509,7 @@ void ConstructBeacon(_adapter *padapter, u8 *pframe, u32 *pLength)
 
 	//DBG_871X("%s\n", __FUNCTION__);
 
-	pwlanhdr = (struct ieee80211_hdr *)pframe;	
+	pwlanhdr = (struct rtw_ieee80211_hdr *)pframe;	
 
 	fctrl = &(pwlanhdr->frame_ctl);
 	*(fctrl) = 0;
@@ -522,8 +522,8 @@ void ConstructBeacon(_adapter *padapter, u8 *pframe, u32 *pLength)
 	//pmlmeext->mgnt_seq++;
 	SetFrameSubType(pframe, WIFI_BEACON);
 	
-	pframe += sizeof(struct ieee80211_hdr_3addr);	
-	pktlen = sizeof (struct ieee80211_hdr_3addr);
+	pframe += sizeof(struct rtw_ieee80211_hdr_3addr);	
+	pktlen = sizeof (struct rtw_ieee80211_hdr_3addr);
 	
 	//timestamp will be inserted by hardware
 	pframe += 8;
@@ -600,7 +600,7 @@ _ConstructBeacon:
 
 void ConstructPSPoll(_adapter *padapter, u8 *pframe, u32 *pLength)
 {
-	struct ieee80211_hdr	*pwlanhdr;
+	struct rtw_ieee80211_hdr	*pwlanhdr;
 	u16					*fctrl;
 	u32					pktlen;
 	struct mlme_ext_priv	*pmlmeext = &(padapter->mlmeextpriv);
@@ -608,7 +608,7 @@ void ConstructPSPoll(_adapter *padapter, u8 *pframe, u32 *pLength)
 
 	//DBG_871X("%s\n", __FUNCTION__);
 
-	pwlanhdr = (struct ieee80211_hdr *)pframe;
+	pwlanhdr = (struct rtw_ieee80211_hdr *)pframe;
 
 	// Frame control.
 	fctrl = &(pwlanhdr->frame_ctl);
@@ -630,7 +630,7 @@ void ConstructPSPoll(_adapter *padapter, u8 *pframe, u32 *pLength)
 
 void ConstructNullFunctionData(_adapter *padapter, u8 *pframe, u32 *pLength, u8 *StaAddr, BOOLEAN bForcePowerSave)
 {
-	struct ieee80211_hdr	*pwlanhdr;
+	struct rtw_ieee80211_hdr	*pwlanhdr;
 	u16					*fctrl;
 	u32					pktlen;
 	struct mlme_priv		*pmlmepriv = &padapter->mlmepriv;
@@ -640,7 +640,7 @@ void ConstructNullFunctionData(_adapter *padapter, u8 *pframe, u32 *pLength, u8 
 
 	//DBG_871X("%s:%d\n", __FUNCTION__, bForcePowerSave);
 
-	pwlanhdr = (struct ieee80211_hdr *)pframe;
+	pwlanhdr = (struct rtw_ieee80211_hdr *)pframe;
 
 	fctrl = &(pwlanhdr->frame_ctl);
 	*(fctrl) = 0;
@@ -675,15 +675,15 @@ void ConstructNullFunctionData(_adapter *padapter, u8 *pframe, u32 *pLength, u8 
 
 	SetFrameSubType(pframe, WIFI_DATA_NULL);
 
-	pframe += sizeof(struct ieee80211_hdr_3addr);
-	pktlen = sizeof(struct ieee80211_hdr_3addr);
+	pframe += sizeof(struct rtw_ieee80211_hdr_3addr);
+	pktlen = sizeof(struct rtw_ieee80211_hdr_3addr);
 
 	*pLength = pktlen;
 }
 
 void ConstructProbeRsp(_adapter *padapter, u8 *pframe, u32 *pLength, u8 *StaAddr, BOOLEAN bHideSSID)
 {
-	struct ieee80211_hdr	*pwlanhdr;
+	struct rtw_ieee80211_hdr	*pwlanhdr;
 	u16					*fctrl;	
 	u8					*mac, *bssid;
 	u32					pktlen;
@@ -694,7 +694,7 @@ void ConstructProbeRsp(_adapter *padapter, u8 *pframe, u32 *pLength, u8 *StaAddr
 	
 	//DBG_871X("%s\n", __FUNCTION__);
 	
-	pwlanhdr = (struct ieee80211_hdr *)pframe;	
+	pwlanhdr = (struct rtw_ieee80211_hdr *)pframe;	
 	
 	mac = myid(&(padapter->eeprompriv));
 	bssid = cur_network->MacAddress;
@@ -708,7 +708,7 @@ void ConstructProbeRsp(_adapter *padapter, u8 *pframe, u32 *pLength, u8 *StaAddr
 	SetSeqNum(pwlanhdr, 0);
 	SetFrameSubType(fctrl, WIFI_PROBERSP);
 	
-	pktlen = sizeof(struct ieee80211_hdr_3addr);
+	pktlen = sizeof(struct rtw_ieee80211_hdr_3addr);
 	pframe += pktlen;
 
 	if(cur_network->IELength>MAX_IE_SZ)
@@ -1105,7 +1105,7 @@ _func_enter_;
 
 				p2p_ps_offload->Offload_En = 1;
 
-				if(pwdinfo->role == P2P_ROLE_GO)
+				if(rtw_p2p_chk_role(pwdinfo, P2P_ROLE_GO))
 				{
 					p2p_ps_offload->role= 1;
 					p2p_ps_offload->AllStaSleep = 0;
@@ -1223,4 +1223,70 @@ exit:
 
 }
 #endif //CONFIG_IOL
+
+
+#ifdef CONFIG_WOWLAN
+
+void rtl8192c_set_wowlan_cmd(_adapter* padapter)
+{
+	u8	res=_SUCCESS;
+	SETWOWLAN_PARM pwowlan_parm;
+	struct pwrctrl_priv *pwrpriv=&padapter->pwrctrlpriv;
+	
+_func_enter_;
+
+	pwowlan_parm.mode =0;
+	pwowlan_parm.gpio_num=0;
+	pwowlan_parm.gpio_duration=0;
+	
+	if(pwrpriv->wowlan_mode ==_TRUE){
+		pwowlan_parm.mode |=BIT(0);
+		printk("\n %s 1.pwowlan_parm.mode=0x%x \n",__FUNCTION__,pwowlan_parm.mode );
+		if(pwrpriv->wowlan_pattern ==_TRUE){
+			pwowlan_parm.mode |=BIT(1);
+		printk("\n %s 2.pwowlan_parm.mode=0x%x \n",__FUNCTION__,pwowlan_parm.mode );
+		}
+		if(pwrpriv->wowlan_magic ==_TRUE){
+			pwowlan_parm.mode |=BIT(2);
+		printk("\n %s 3.pwowlan_parm.mode=0x%x \n",__FUNCTION__,pwowlan_parm.mode );
+		}
+		if(pwrpriv->wowlan_unicast ==_TRUE){
+			pwowlan_parm.mode |=BIT(3);
+		printk("\n %s 4.pwowlan_parm.mode=0x%x \n",__FUNCTION__,pwowlan_parm.mode );
+		}
+		pwowlan_parm.mode |=BIT(6);
+		pwowlan_parm.mode |=BIT(7);
+		printk("\n %s 5.pwowlan_parm.mode=0x%x \n",__FUNCTION__,pwowlan_parm.mode );
+		{	u8 *ptr=(u8 *)&pwowlan_parm;
+			printk("\n %s H2C_WO_WLAN=%x %x:%x:%x \n",__FUNCTION__,H2C_WO_WLAN_CMD,ptr[0],ptr[1],ptr[2] );
+		}
+		rtl8192c_FillH2CCmd(padapter, H2C_WO_WLAN_CMD, 3, (u8 *)&pwowlan_parm);
+			
+		rtl8192c_set_FwJoinBssReport_cmd( padapter, 1);
+		pwowlan_parm.mode =3;
+		pwowlan_parm.gpio_num=3;
+		rtl8192c_FillH2CCmd(padapter, KEEP_ALIVE_CONTROL_CMD, 3, (u8 *)&pwowlan_parm);
+		printk("%s after KEEP_ALIVE_CONTROL_CMD register 0x81=%x \n",__FUNCTION__,rtw_read8(padapter, 0x81));
+		pwowlan_parm.mode =1;
+		pwowlan_parm.gpio_num=0;
+		rtl8192c_FillH2CCmd(padapter, DISCONNECT_DECISION_CTRL_CMD, 3, (u8 *)&pwowlan_parm);
+		printk("%s after DISCONNECT_DECISION_CTRL_CMD register 0x81=%x \n",__FUNCTION__,rtw_read8(padapter, 0x81));
+
+	}
+	else
+		rtl8192c_FillH2CCmd(padapter, H2C_WO_WLAN_CMD, 3, (u8 *)&pwowlan_parm);
+
+	
+_func_exit_;
+
+	return ;
+
+}
+
+#endif  //CONFIG_WOWLAN
+
+
+
+
+
 

@@ -425,6 +425,15 @@ void rtw_proc_init_one(struct net_device *dev)
 	}
 	entry->write_proc = proc_set_rx_signal;
 
+
+	entry = create_proc_read_entry("rssi_disp", S_IFREG | S_IRUGO,
+				   dir_dev, proc_get_rssi_disp, dev);				   
+	if (!entry) {
+		DBG_871X("Unable to create_proc_read_entry!\n"); 
+		return;
+	}
+	entry->write_proc = proc_set_rssi_disp;
+
 }
 
 void rtw_proc_remove_one(struct net_device *dev)
@@ -462,6 +471,8 @@ void rtw_proc_remove_one(struct net_device *dev)
 		remove_proc_entry("best_channel", dir_dev);
 #endif 
 		remove_proc_entry("rx_signal", dir_dev);
+
+		remove_proc_entry("rssi_disp", dir_dev);
 
 		remove_proc_entry(dev->name, rtw_proc);
 		dir_dev = NULL;
@@ -626,11 +637,15 @@ static struct net_device_stats *rtw_net_get_stats(struct net_device *pnetdev)
 #if (LINUX_VERSION_CODE>=KERNEL_VERSION(2,6,29))
 static const struct net_device_ops rtw_netdev_ops = {
 	.ndo_open = netdev_open,
-        .ndo_stop = netdev_close,
-        .ndo_start_xmit = rtw_xmit_entry,
-        .ndo_set_mac_address = rtw_net_set_mac_address,
-        .ndo_get_stats = rtw_net_get_stats,
-        .ndo_do_ioctl = rtw_ioctl,
+	.ndo_stop = netdev_close,
+	.ndo_start_xmit = rtw_xmit_entry,
+	.ndo_set_mac_address = rtw_net_set_mac_address,
+	.ndo_get_stats = rtw_net_get_stats,
+#ifdef CONFIG_IOCTL_CFG80211
+	.ndo_do_ioctl = rtw_cfg80211_do_ioctl,
+#else //CONFIG_IOCTL_CFG80211
+	.ndo_do_ioctl = rtw_ioctl,
+#endif //CONFIG_IOCTL_CFG80211
 };
 #endif
 
@@ -723,7 +738,11 @@ struct net_device *rtw_init_netdev(_adapter *old_padapter)
 	pnetdev->set_mac_address = rtw_net_set_mac_address;
 	pnetdev->get_stats = rtw_net_get_stats;
 
+#ifdef CONFIG_IOCTL_CFG80211
+	pnetdev->do_ioctl = rtw_cfg80211_do_ioctl;
+#else //CONFIG_IOCTL_CFG80211
 	pnetdev->do_ioctl = rtw_ioctl;
+#endif //CONFIG_IOCTL_CFG80211
 
 #endif
 
@@ -734,7 +753,13 @@ struct net_device *rtw_init_netdev(_adapter *old_padapter)
 	//pnetdev->tx_timeout = NULL;
 	pnetdev->watchdog_timeo = HZ*3; /* 3 second timeout */
 	
+
+//#ifdef CONFIG_IOCTL_CFG80211
+//	pnetdev->wireless_handlers = NULL;
+//#else //CONFIG_IOCTL_CFG80211
 	pnetdev->wireless_handlers = (struct iw_handler_def *)&rtw_handlers_def;  
+//#endif //CONFIG_IOCTL_CFG80211
+
 	
 #ifdef WIRELESS_SPY
 	//priv->wireless_data.spy_data = &priv->spy_data;
@@ -970,12 +995,27 @@ _func_enter_;
 		goto exit;
 	}
 
+#ifdef CONFIG_IOCTL_CFG80211
+#ifdef CONFIG_P2P
+	rtw_init_cfg80211_wifidirect_info(padapter);
+#endif //CONFIG_P2P
+#endif //CONFIG_IOCTL_CFG80211
+
 	if(init_mlme_ext_priv(padapter) == _FAIL)
 	{
 		RT_TRACE(_module_os_intfs_c_,_drv_err_,("\n Can't init mlme_ext_priv\n"));
 		ret8=_FAIL;
 		goto exit;
 	}
+
+#ifdef CONFIG_TDLS
+	if(rtw_init_tdls_info(padapter) == _FAIL)
+	{
+		DBG_871X("Can't rtw_init_tdls_info\n");
+		ret8=_FAIL;
+		goto exit;
+	}
+#endif //CONFIG_TDLS
 
 	if(_rtw_init_xmit_priv(&padapter->xmitpriv, padapter) == _FAIL)
 	{
@@ -1063,6 +1103,11 @@ void rtw_cancel_all_timer(_adapter *padapter)
 
 	_cancel_timer_ex(&padapter->pwrctrlpriv.pwr_state_check_timer);
 
+#ifdef CONFIG_IOCTL_CFG80211
+#ifdef CONFIG_P2P
+	_cancel_timer_ex(&padapter->cfg80211_wdinfo.remain_on_ch_timer);
+#endif //CONFIG_P2P
+#endif //CONFIG_IOCTL_CFG80211
 
 #ifdef CONFIG_SET_SCAN_DENY_TIMER
 	_cancel_timer_ex(&padapter->mlmepriv.set_scan_deny_timer);
@@ -1084,12 +1129,34 @@ u8 rtw_free_drv_sw(_adapter *padapter)
 
 	RT_TRACE(_module_os_intfs_c_,_drv_info_,("==>rtw_free_drv_sw"));	
 
+
+	//we can call rtw_p2p_enable here, but:
+	// 1. rtw_p2p_enable may have IO operation
+	// 2. rtw_p2p_enable is bundled with wext interface
+	#ifdef CONFIG_P2P
+	{
+		struct wifidirect_info *pwdinfo = &padapter->wdinfo;
+		if(!rtw_p2p_chk_state(pwdinfo, P2P_STATE_NONE))
+		{
+			_cancel_timer_ex( &pwdinfo->find_phase_timer );
+			_cancel_timer_ex( &pwdinfo->restore_p2p_state_timer );
+			_cancel_timer_ex( &pwdinfo->pre_tx_scan_timer);
+			rtw_p2p_set_state(pwdinfo, P2P_STATE_NONE);
+		}
+	}
+	#endif
+	
+
 #ifdef CONFIG_BR_EXT
 	_rtw_spinlock_free(&padapter->br_ext_lock);
 #endif	// CONFIG_BR_EXT
 
 
 	free_mlme_ext_priv(&padapter->mlmeextpriv);
+	
+#ifdef CONFIG_TDLS
+	//rtw_free_tdls_info(&padapter->tdlsinfo);
+#endif //CONFIG_TDLS
 	
 	rtw_free_cmd_priv(&padapter->cmdpriv);
 	
@@ -1192,6 +1259,10 @@ static int netdev_open(struct net_device *pnetdev)
 #ifndef RTK_DMP_PLATFORM
 		rtw_proc_init_one(pnetdev);
 #endif
+#endif
+
+#ifdef CONFIG_IOCTL_CFG80211
+		rtw_cfg80211_init_wiphy(padapter);
 #endif
 
 		rtw_led_control(padapter, LED_CTL_NO_LINK);
@@ -1430,7 +1501,7 @@ static int netdev_close(struct net_device *pnetdev)
 		rtw_free_network_queue(padapter,_TRUE);
 #endif
 		// Close LED
-	rtw_led_control(padapter, LED_CTL_POWER_OFF);
+		rtw_led_control(padapter, LED_CTL_POWER_OFF);
 	}
 
 #ifdef CONFIG_BR_EXT
@@ -1441,6 +1512,21 @@ static int netdev_close(struct net_device *pnetdev)
 	}
 #endif	// CONFIG_BR_EXT
 
+
+#ifdef CONFIG_IOCTL_CFG80211
+	DBG_871X("call rtw_indicate_scan_done when drv_close\n");
+	rtw_indicate_scan_done(padapter, _TRUE);
+	if((wdev_to_priv(padapter->rtw_wdev))->p2p_enabled == _TRUE)
+	{
+		DBG_871X("p2p_enabled state is _FALSE\n");
+		(wdev_to_priv(padapter->rtw_wdev))->p2p_enabled = _FALSE;
+	}
+#endif
+
+	#ifdef CONFIG_P2P
+	rtw_p2p_enable(padapter, P2P_ROLE_DISABLE);
+	#endif
+	
 	RT_TRACE(_module_os_intfs_c_,_drv_info_,("-871x_drv - drv_close\n"));
 	DBG_8192C("-871x_drv - drv_close, bup=%d\n", padapter->bup);
 	   
