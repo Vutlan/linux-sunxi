@@ -650,7 +650,11 @@ u8 *rtw_get_wps_ie(u8 *in_ie, uint in_len, u8 *wps_ie, uint *wps_ielen)
 	u8 *wpsie_ptr=NULL;
 	u8 eid, wps_oui[4]={0x0,0x50,0xf2,0x04};
 
-	cnt=_FIXED_IE_LENGTH_;	
+	if(!in_ie || in_len<=0)
+		return wpsie_ptr;
+
+	//cnt=_FIXED_IE_LENGTH_;
+	cnt = 0;
 	//match=_FALSE;
 	while(cnt<in_len)
 	{
@@ -659,7 +663,7 @@ u8 *rtw_get_wps_ie(u8 *in_ie, uint in_len, u8 *wps_ie, uint *wps_ielen)
 		if((eid==_WPA_IE_ID_)&&(_rtw_memcmp(&in_ie[cnt+2], wps_oui, 4)==_TRUE))
 		{
 			if(wps_ie)
-			_rtw_memcpy(wps_ie, &in_ie[cnt], in_ie[cnt+1]+2);
+				_rtw_memcpy(wps_ie, &in_ie[cnt], in_ie[cnt+1]+2);
 			
 			wpsie_ptr = &in_ie[cnt];
 			
@@ -977,7 +981,46 @@ void rtw_macaddr_cfg(u8 *mac_addr)
 	DBG_8192C("rtw_macaddr_cfg MAC Address  = "MAC_FMT"\n", MAC_ARG(mac_addr));
 }
 
+void dump_ie(u8 *buf, u32 buf_len) {
+	u8* pos = (u8*)buf;
+	u8 id, len;
+	
+	while(pos-buf<=buf_len){
+		id = *pos;
+		len = *(pos+1);
+
+		DBG_871X("%s ID:%u, LEN:%u\n", __FUNCTION__, id, len);
+		#ifdef CONFIG_P2P
+		dump_p2p_attr(pos, len);
+		#endif
+
+		pos+=(2+len);
+	}	
+}
+
+
 #ifdef CONFIG_P2P
+void dump_p2p_attr(u8 *ie, u32 ie_len) {
+	u8* pos = (u8*)ie;
+	u8 id;
+	u16 len;
+
+	uint is_p2p_ie;
+	rtw_get_p2p_ie(ie, ie_len, NULL, &is_p2p_ie);
+	if(!is_p2p_ie)
+		return;
+
+	pos+=6;
+	while(pos-ie<=ie_len){
+		id = *pos;
+		len = RTW_GET_LE16(pos+1);
+
+		DBG_871X("%s ID:%u, LEN:%u\n", __FUNCTION__, id, len);
+
+		pos+=(3+len);
+	}	
+}
+
 //	Added by Albert 20100910
 //	The input buffer in_ie should be pointer to the address of any information element of management frame.
 //	The p2p_ie buffer will contain "whole" the P2P IE, include the Element ID, Length, P2P OUI and P2P Attributes.
@@ -990,6 +1033,8 @@ int rtw_get_p2p_ie(u8 *in_ie, uint in_len, u8 *p2p_ie, uint *p2p_ielen)
 	uint cnt = 0;	
 	u8 eid, p2p_oui[4]={0x50,0x6F,0x9A,0x09};
 
+	if ( p2p_ielen != NULL )
+		*p2p_ielen = 0;
 
 	match=_FALSE;
 	while(cnt<in_len)
@@ -1001,17 +1046,11 @@ int rtw_get_p2p_ie(u8 *in_ie, uint in_len, u8 *p2p_ie, uint *p2p_ielen)
 			if ( p2p_ie != NULL )
 			{
 				_rtw_memcpy( p2p_ie, &in_ie[ cnt ], in_ie[ cnt + 1 ] + 2 );
-				if ( p2p_ielen != NULL )
-				{
-					*p2p_ielen = in_ie[ cnt + 1 ] + 2;
-				}
 			}
-			else
+
+			if ( p2p_ielen != NULL )
 			{
-				if ( p2p_ielen != NULL )
-				{
-					*p2p_ielen = 0;
-				}
+				*p2p_ielen = in_ie[ cnt + 1 ] + 2;
 			}
 			
 			cnt += in_ie[ cnt + 1 ] + 2;
@@ -1037,19 +1076,19 @@ int rtw_get_p2p_ie(u8 *in_ie, uint in_len, u8 *p2p_ie, uint *p2p_ielen)
 
 //	attr_content: The output buffer, contains the "body field" of P2P attribute.
 //	attr_contentlen: The data length of the "body field" of P2P attribute.
-int rtw_get_p2p_attr_content(u8 *p2p_ie, uint p2p_ielen, u8 target_attr_id ,u8 *attr_content, uint *attr_contentlen)
+u8 *rtw_get_p2p_attr_content(u8 *p2p_ie, uint p2p_ielen, u8 target_attr_id ,u8 *attr_content, uint *attr_contentlen)
 {
-	int match;
-	uint cnt = 0;	
+	uint cnt = 0;
+	u8 *p2p_attr_ptr = NULL;
 	u8 attr_id, p2p_oui[4]={0x50,0x6F,0x9A,0x09};
 
-
-	match=_FALSE;
+	if(attr_contentlen)
+		*attr_contentlen = 0;
 
 	if ( ( p2p_ie[ 0 ] != _VENDOR_SPECIFIC_IE_ ) ||
 		( _rtw_memcmp( p2p_ie + 2, p2p_oui , 4 ) != _TRUE ) )
 	{
-		return( match );
+		return p2p_attr_ptr;
 	}
 
 	//	1 ( P2P IE ) + 1 ( Length ) + 3 ( OUI ) + 1 ( OUI Type )
@@ -1062,6 +1101,8 @@ int rtw_get_p2p_attr_content(u8 *p2p_ie, uint p2p_ielen, u8 target_attr_id ,u8 *
 		attr_id = p2p_ie[cnt];
 		if( attr_id == target_attr_id )
 		{
+			p2p_attr_ptr = p2p_ie + cnt;
+			
 			//	3 -> 1 byte for attribute ID field, 2 bytes for length field
 			if(attr_content)
 				_rtw_memcpy( attr_content, &p2p_ie[ cnt + 3 ], attrlen );
@@ -1069,9 +1110,6 @@ int rtw_get_p2p_attr_content(u8 *p2p_ie, uint p2p_ielen, u8 target_attr_id ,u8 *
 			if(attr_contentlen)
 				*attr_contentlen = attrlen;
 			
-			cnt += attrlen + 3;
-
-			match = _TRUE;
 			break;
 		}
 		else
@@ -1081,7 +1119,7 @@ int rtw_get_p2p_attr_content(u8 *p2p_ie, uint p2p_ielen, u8 target_attr_id ,u8 *
 		
 	}	
 
-	return match;
+	return p2p_attr_ptr;
 
 }
 
@@ -1158,6 +1196,58 @@ int rtw_get_wps_attr_content(u8 *wps_ie, uint wps_ielen, u16 target_attr_id ,u8 
 	}	
 
 	return match;
+
+}
+
+u8 *rtw_get_wps_attr_content_ex(u8 *wps_ie, uint wps_ielen, u16 target_attr_id ,u8 *attr_content, uint *attr_contentlen)
+{	
+	u8 *pattr_content = NULL;
+	uint cnt = 0;	
+	u8 wps_oui[4]={0x00,0x50,0xF2,0x04};
+	u16	attr_id;
+	
+
+	if ( ( wps_ie[ 0 ] != _VENDOR_SPECIFIC_IE_ ) ||
+		( _rtw_memcmp( wps_ie + 2, wps_oui , 4 ) != _TRUE ) )
+	{
+		return( pattr_content );
+	}
+
+	//	1 ( WPS IE ) + 1 ( Length ) + 4 ( WPS OUI )
+	cnt = 6;
+	while( cnt < wps_ielen )
+	{
+		//	2 -> the length of WPS attribute type field.
+		//u16	attrlen = be16_to_cpu(*(u16*)(wps_ie + cnt + 2 ));
+		u16	attrlen = RTW_GET_BE16(wps_ie + cnt + 2);
+		
+		//attr_id = be16_to_cpu( *(u16*) ( wps_ie + cnt ) );
+		attr_id = RTW_GET_BE16(wps_ie + cnt);
+		if( attr_id == target_attr_id )
+		{
+			//	3 -> 1 byte for attribute ID field, 2 bytes for length field
+			if(attr_content)
+				_rtw_memcpy( attr_content, &wps_ie[ cnt + 4 ], attrlen );
+
+
+			pattr_content = &wps_ie[ cnt + 4 ];
+
+			if(attr_contentlen)
+				*attr_contentlen = attrlen;
+			
+			cnt += attrlen + 4;
+			
+				
+			break;
+		}
+		else
+		{
+			cnt += attrlen + 4; //goto next	
+		}		
+		
+	}	
+
+	return pattr_content;
 
 }
 
@@ -1272,27 +1362,26 @@ int rtw_get_wfd_attr_content(u8 *wfd_ie, uint wfd_ielen, u8 target_attr_id ,u8 *
 	cnt = 6;
 	while( cnt < wfd_ielen )
 	{
-		//u16	attrlen = le16_to_cpu(*(u16*)(p2p_ie + cnt + 1 ));
-		u16 attrlen = RTW_GET_LE16(wfd_ie + cnt + 1);
+		u16 attrlen = RTW_GET_BE16(wfd_ie + cnt + 1);
 		
 		attr_id = wfd_ie[cnt];
 		if( attr_id == target_attr_id )
 		{
-			//	2 -> 1 byte for attribute ID field, 1 bytes for length field
+			//	3 -> 1 byte for attribute ID field, 2 bytes for length field
 			if(attr_content)
-			_rtw_memcpy( attr_content, &wfd_ie[ cnt + 2 ], attrlen );
+				_rtw_memcpy( attr_content, &wfd_ie[ cnt + 3 ], attrlen );
 			
 			if(attr_contentlen)
 			*attr_contentlen = attrlen;
 			
-			cnt += attrlen + 2;
+			cnt += attrlen + 3;
 
 			match = _TRUE;
 			break;
 		}
 		else
 		{
-			cnt += attrlen + 2; //goto next	
+			cnt += attrlen + 3; //goto next	
 		}		
 		
 	}	
@@ -1303,5 +1392,118 @@ int rtw_get_wfd_attr_content(u8 *wfd_ie, uint wfd_ielen, u8 target_attr_id ,u8 *
 
 
 #endif // CONFIG_WFD
+
+u8 *rtw_get_p2p_ie_(u8 *in_ie, uint in_len, u8 *p2p_ie, uint *p2p_ielen)
+{
+	uint cnt = 0;
+	u8 *p2p_ie_ptr;
+	u8 eid, p2p_oui[4]={0x50,0x6F,0x9A,0x09};
+
+	if ( p2p_ielen != NULL )
+		*p2p_ielen = 0;
+
+	while(cnt<in_len)
+	{
+		eid = in_ie[cnt];
+		
+		if( ( eid == _VENDOR_SPECIFIC_IE_ ) && ( _rtw_memcmp( &in_ie[cnt+2], p2p_oui, 4) == _TRUE ) )
+		{
+			p2p_ie_ptr = in_ie + cnt;
+		
+			if ( p2p_ie != NULL )
+			{
+				_rtw_memcpy( p2p_ie, &in_ie[ cnt ], in_ie[ cnt + 1 ] + 2 );
+			}
+
+			if ( p2p_ielen != NULL )
+			{
+				*p2p_ielen = in_ie[ cnt + 1 ] + 2;
+			}
+			
+			return p2p_ie_ptr;
+
+			break;
+		}
+		else
+		{
+			cnt += in_ie[ cnt + 1 ] +2; //goto next	
+		}		
+		
+	}	
+
+	return NULL;
+
+}
+
+static uint rtw_p2p_attr_remove(u8 *ie, uint ielen_ori, u8 attr_id)
+{
+	u8 *target_attr;
+	uint target_attr_clen;
+	uint ielen = ielen_ori;
+	int index=0;
+
+	while(1) {
+		target_attr=rtw_get_p2p_attr_content(ie, ielen, attr_id, NULL, &target_attr_clen);
+		if(target_attr && target_attr_clen)
+		{
+			u8 *next_attr = target_attr+target_attr_clen+3;
+			uint remain_len = ielen-(next_attr-ie);
+			//dump_ie(ie, ielen);
+			//DBG_871X("[%d] ie:%p, ielen:%u\n"
+			//	"target_attr:%p, target_attr_clen:%u\n"
+			//	"next_attr:%p, remain_len:%u\n"
+			//	, index++
+			//	, ie, ielen
+			//	, target_attr, target_attr_clen
+			//	, next_attr, remain_len
+			//);
+
+			_rtw_memset(target_attr, 0, target_attr_clen+3);
+			_rtw_memcpy(target_attr, next_attr, remain_len);
+			_rtw_memset(target_attr+remain_len, 0, ielen-(target_attr_clen+3));
+			*(ie+1) -= target_attr_clen+3;
+			ielen-=target_attr_clen+3;
+		}
+		else
+		{
+			//if(index>0)
+			//	dump_ie(ie, ielen);
+			break;
+		}
+	}
+
+	return ielen;
+}
+
+void rtw_WLAN_BSSID_EX_remove_p2p_attr(WLAN_BSSID_EX *bss_ex, u8 attr_id)
+{
+	u8 *p2p_ie;
+	uint p2p_ielen, p2p_ielen_ori;
+	int cnt;
+	
+	if( (p2p_ie=rtw_get_p2p_ie_(bss_ex->IEs+_FIXED_IE_LENGTH_, bss_ex->IELength-_FIXED_IE_LENGTH_, NULL, &p2p_ielen_ori)) ) 
+	{
+		//if(rtw_get_p2p_attr_content(p2p_ie, p2p_ielen_ori, attr_id, NULL, NULL)) {
+		//	DBG_871X("rtw_get_p2p_attr_content GOT P2P_ATTR:%u!!!!!!!!\n", attr_id);
+		//	dump_ie(bss_ex->IEs+_FIXED_IE_LENGTH_, bss_ex->IELength-_FIXED_IE_LENGTH_);
+		//}
+
+		p2p_ielen=rtw_p2p_attr_remove(p2p_ie, p2p_ielen_ori, attr_id);
+		if(p2p_ielen != p2p_ielen_ori) {
+			
+			u8 *next_ie_ori = p2p_ie+p2p_ielen_ori;
+			u8 *next_ie = p2p_ie+p2p_ielen;
+			uint remain_len = bss_ex->IELength-(next_ie_ori-bss_ex->IEs);
+
+			_rtw_memcpy(next_ie, next_ie_ori, remain_len);
+			_rtw_memset(next_ie+remain_len, 0, bss_ex->IELength-(p2p_ielen_ori-p2p_ielen));
+			bss_ex->IELength -= p2p_ielen_ori-p2p_ielen;
+			
+			//DBG_871X("remove P2P_ATTR:%u!\n", attr_id);
+			//dump_ie(bss_ex->IEs+_FIXED_IE_LENGTH_, bss_ex->IELength-_FIXED_IE_LENGTH_);
+		}
+	}
+}
+
 #endif // CONFIG_P2P
 

@@ -107,10 +107,12 @@ struct sta_info {
 
 	u8	raid;
 	u8 	init_rate;
-
+	u32	ra_mask;
 	struct stainfo_stats sta_stats;
 
 #ifdef CONFIG_TDLS
+	u32	tdls_sta_state;
+	u8	dialog;
 	u8	SNonce[32];
 	u8	ANonce[32];
 	u32	TDLS_PeerKey_Lifetime;
@@ -124,12 +126,15 @@ struct sta_info {
 	u16	ch_switch_time;
 	u16	ch_switch_timeout;
 	u8	option;
-	_workitem	option_workitem;
 	_timer	option_timer;
-	_workitem	base_ch_workitem;
 	_timer	base_ch_timer;
-	_workitem	off_ch_workitem;
 	_timer	off_ch_timer;
+
+	_timer handshake_timer;
+	_timer alive_timer1;
+	_timer alive_timer2;
+	u8 timer_flag;
+	u8 alive_count;
 #endif
 
 	//for A-MPDU TX, ADDBA timeout check	
@@ -221,6 +226,11 @@ struct sta_info {
 #endif	// CONFIG_TX_MCAST2UNI
 	
 #endif	// CONFIG_AP_MODE	
+
+#ifdef CONFIG_IOCTL_CFG80211
+	u8 *passoc_req;
+	u32 assoc_req_len;
+#endif
 
 	//for DM
 	RSSI_STA	 rssi_stat;
