@@ -58,6 +58,15 @@ static int rfkill_set_power(void *data, bool blocked)
                 mmc_pm_gpio_ctrl("hw_mw269x_bt_wake", 0);
             }
             break;
+        case 8: /* bcm40183 */
+            if (!blocked) {
+                mmc_pm_gpio_ctrl("bcm40183_bt_regon", 1);
+                mmc_pm_gpio_ctrl("bcm40183_bt_rst", 1);
+            } else {
+                mmc_pm_gpio_ctrl("bcm40183_bt_regon", 0);
+                mmc_pm_gpio_ctrl("bcm40183_bt_rst", 0);
+            }
+            break;
         default:
             RF_MSG("no bt module matched !!\n");
     }
