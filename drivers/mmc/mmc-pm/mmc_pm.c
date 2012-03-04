@@ -19,7 +19,8 @@ static char* wifi_mod[] = {" ",
 							"apm6xxx", 	 /* 4 - APM6981/6658 */
 							"swb-b23",	 /* 5 - SWB-B23(BCM4329) */
 							"hw-mw269",	 /* 6 - HW-MW269X(269/269V2/269V3) */
-							"bcm40181"   /* 7 - BCM40181(BCM4330) */
+							"bcm40181",  /* 7 - BCM40181(BCM4330) */
+							"bcm40183"   /* 8 - BCM40183(BCM4330) */
 							};
 
 int mmc_pm_get_mod_type(void)
@@ -74,7 +75,8 @@ int mmc_pm_io_shd_suspend_host(void)
 {
     struct mmc_pm_ops *ops = &mmc_card_pm_ops;
     return (ops->module_sel!=2) && (ops->module_sel!=5)
-    		 && (ops->module_sel!=6) && (ops->module_sel!=7);
+    		 && (ops->module_sel!=6) && (ops->module_sel!=7
+    		 && (ops->module_sel!=8));
 }
 EXPORT_SYMBOL(mmc_pm_io_shd_suspend_host);
 
@@ -202,6 +204,9 @@ static int __devinit mmc_pm_probe(struct platform_device *pdev)
         case 7: /* BCM40181 */
             bcm40181_wifi_gpio_init();
             break;
+        case 8: /* BCM40183 */
+            bcm40183_gpio_init();
+            break;
         default:
             mmc_pm_msg("Wrong sdio module select %d !!\n", ops->module_sel);
     }
@@ -236,6 +241,9 @@ static int __devexit mmc_pm_remove(struct platform_device *pdev)
             break;
         case 7: /* BCM40181 */
             bcm40181_wifi_gpio_init();
+            break;
+        case 8: /* BCM40183 */
+            bcm40183_gpio_init();
             break;
         default:
             mmc_pm_msg("Wrong sdio module select %d !!\n", ops->module_sel);

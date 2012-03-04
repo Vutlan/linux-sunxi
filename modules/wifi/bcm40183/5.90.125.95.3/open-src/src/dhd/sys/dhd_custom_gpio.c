@@ -37,6 +37,14 @@
 #define WL_ERROR(x) printf x
 #define WL_TRACE(x)
 
+#define CUSTOMER_AW
+#ifdef CUSTOMER_AW
+extern void sunximmc_rescan_card(unsigned id, unsigned insert);
+extern int mmc_pm_get_mod_type(void);
+extern int mmc_pm_gpio_ctrl(char* name, int level);
+extern int mmc_pm_get_io_val(char* name);
+#endif
+
 #ifdef CUSTOMER_HW
 extern  void bcm_wlan_power_off(int);
 extern  void bcm_wlan_power_on(int);
@@ -126,6 +134,9 @@ dhd_customer_gpio_wlan_ctrl(int onoff)
 		case WLAN_RESET_OFF:
 			WL_TRACE(("%s: call customer specific GPIO to insert WLAN RESET\n",
 				__FUNCTION__));
+#ifdef CUSTOMER_AW
+			mmc_pm_gpio_ctrl("bcm40183_wl_regon", 0);
+#endif
 #ifdef CUSTOMER_HW
 			bcm_wlan_power_off(2);
 #endif /* CUSTOMER_HW */
@@ -138,6 +149,9 @@ dhd_customer_gpio_wlan_ctrl(int onoff)
 		case WLAN_RESET_ON:
 			WL_TRACE(("%s: callc customer specific GPIO to remove WLAN RESET\n",
 				__FUNCTION__));
+#ifdef CUSTOMER_AW
+			mmc_pm_gpio_ctrl("bcm40183_wl_regon", 1);
+#endif
 #ifdef CUSTOMER_HW
 			bcm_wlan_power_on(2);
 #endif /* CUSTOMER_HW */
@@ -149,7 +163,11 @@ dhd_customer_gpio_wlan_ctrl(int onoff)
 
 		case WLAN_POWER_OFF:
 			WL_TRACE(("%s: call customer specific GPIO to turn off WL_REG_ON\n",
-				__FUNCTION__));
+				__FUNCTION__));		
+#ifdef CUSTOMER_AW	
+			mmc_pm_gpio_ctrl("bcm40183_wl_regon", 1);
+			sunximmc_rescan_card(3, 0);
+#endif
 #ifdef CUSTOMER_HW
 			bcm_wlan_power_off(1);
 #endif /* CUSTOMER_HW */
@@ -158,11 +176,17 @@ dhd_customer_gpio_wlan_ctrl(int onoff)
 		case WLAN_POWER_ON:
 			WL_TRACE(("%s: call customer specific GPIO to turn on WL_REG_ON\n",
 				__FUNCTION__));
+#ifdef CUSTOMER_AW
+			mmc_pm_gpio_ctrl("bcm40183_wl_regon", 1);
+#endif		
 #ifdef CUSTOMER_HW
 			bcm_wlan_power_on(1);
 			/* Lets customer power to get stable */
-			OSL_DELAY(200);
 #endif /* CUSTOMER_HW */
+			OSL_DELAY(200);
+#ifdef CUSTOMER_AW
+            sunximmc_rescan_card(3, 1);
+#endif
 		break;
 	}
 }
