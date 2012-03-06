@@ -84,7 +84,7 @@
 
 #define RTC_NAME	"pcf8563"
 
-#define F25_ALARM
+//#define F25_ALARM
 #define RTC_ALARM_DEBUG
 
 static struct i2c_driver pcf8563_driver;
