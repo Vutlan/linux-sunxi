@@ -446,9 +446,10 @@ static int alarm_resume(struct platform_device *pdev)
 	unsigned long       flags;
 
 	pr_alarm(SUSPEND, "alarm_resume(%p)\n", pdev);
-
 	memset(&alarm, 0, sizeof(alarm));
 	alarm.enabled = 0;
+	alarm.time.tm_year = 110;
+	alarm.time.tm_mday = 1;
 	rtc_set_alarm(alarm_rtc_dev, &alarm);
 
 	spin_lock_irqsave(&alarm_slock, flags);
@@ -457,6 +458,28 @@ static int alarm_resume(struct platform_device *pdev)
 	update_timer_locked(&alarms[ANDROID_ALARM_ELAPSED_REALTIME_WAKEUP],
 									false);
 	spin_unlock_irqrestore(&alarm_slock, flags);
+
+	return 0;
+}
+static void __iomem *alarm_shutdown_rtc_base;
+#define ALARM_SHUTDOWN_DD_HH_MM_SS_REG 0x10c
+#define ALARM_SHUTDOWN_EN_REG 0x114
+#define ALARM_SHUTDOWN_INT_CTRL_REG 0x118
+#define ALARM_SHUTDOWN_INT_STATUS_REG 0x11c
+#include <asm/io.h>
+
+static int alarm_shutdown(struct platform_device *pdev)
+{
+	alarm_shutdown_rtc_base = (void __iomem *)(SW_VA_TIMERC_IO_BASE);
+
+	/*clear the alarm count value!!!*/
+	writel(0x00000000, alarm_shutdown_rtc_base + ALARM_SHUTDOWN_DD_HH_MM_SS_REG);//0x10c
+	/*clear the alarm irq when init*/
+    writel(0x00000000, alarm_shutdown_rtc_base + ALARM_SHUTDOWN_EN_REG);//0x114
+    /*clear the alarm irq*/
+    writel(0x00000000, alarm_shutdown_rtc_base + ALARM_SHUTDOWN_INT_CTRL_REG);//0x118
+    /*Clear pending count alarm*/
+	writel(0x00000003, alarm_shutdown_rtc_base + ALARM_SHUTDOWN_INT_STATUS_REG);//0x11c
 
 	return 0;
 }
@@ -520,6 +543,7 @@ static struct class_interface rtc_alarm_interface = {
 static struct platform_driver alarm_driver = {
 	.suspend = alarm_suspend,
 	.resume = alarm_resume,
+	.shutdown = alarm_shutdown,
 	.driver = {
 		.name = "alarm"
 	}

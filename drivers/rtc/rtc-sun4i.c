@@ -91,6 +91,7 @@
 
 #define PWM_CTRL_REG_BASE         			(0xf1c20c00+0x200)         
 
+#define F23_ALARM
 //#define RTC_ALARM_DEBUG
 /*
  * notice: IN 23 A version, operation(eg. write date, time reg)
@@ -112,6 +113,7 @@ static void __iomem *sunxi_rtc_base;
 static int sunxi_rtc_alarmno = NO_IRQ;
 static int losc_err_flag   = 0;
 
+#ifdef F23_ALARM
 /* IRQ Handlers, irq no. is shared with timer2 */
 static irqreturn_t sunxi_rtc_alarmirq(int irq, void *id)
 {
@@ -156,9 +158,14 @@ static void sunxi_rtc_setaie(int to)
 		default:
 		alarm_irq_val = 0x00000000;
 	    writel(alarm_irq_val, sunxi_rtc_base + SUNXI_ALARM_EN_REG);//0x114
+	    /*clear the alarm irq*/
+	    writel(0x00000000, sunxi_rtc_base + SUNXI_ALARM_INT_CTRL_REG);//0x118
+	    /*Clear pending count alarm*/
+		writel(0x00000003, sunxi_rtc_base + SUNXI_ALARM_INT_STATUS_REG);//0x11c
 		break;
 	}	
 }
+#endif
 
 /* Time read/write */
 static int sunxi_rtc_gettime(struct device *dev, struct rtc_time *rtc_tm)
@@ -403,6 +410,7 @@ static int sunxi_rtc_settime(struct device *dev, struct rtc_time *tm)
 	return 0;
 }
 
+#ifdef F23_ALARM
 static int sunxi_rtc_getalarm(struct device *dev, struct rtc_wkalrm *alrm)
 {
 	struct rtc_time *alm_tm = &alrm->time;
@@ -528,6 +536,17 @@ static int sunxi_rtc_setalarm(struct device *dev, struct rtc_wkalrm *alrm)
 	return 0;
 }
 
+static int sunxi_rtc_alarm_irq_enable(struct device *dev, unsigned int enabled)
+{
+	if (!enabled) {
+		sunxi_rtc_setaie(enabled);
+	}
+
+	return 0;
+}
+
+#endif
+
 static int sunxi_rtc_open(struct device *dev)
 {		
 	pr_debug ("sunxi_rtc_open \n");
@@ -544,18 +563,27 @@ static const struct rtc_class_ops sunxi_rtcops = {
 	.release			= sunxi_rtc_release,
 	.read_time			= sunxi_rtc_gettime,
 	.set_time			= sunxi_rtc_settime,
+#ifdef F23_ALARM
 	.read_alarm			= sunxi_rtc_getalarm,
 	.set_alarm			= sunxi_rtc_setalarm,
+	.alarm_irq_enable 	= sunxi_rtc_alarm_irq_enable,
+#endif
 };
 
 static int __devexit sunxi_rtc_remove(struct platform_device *pdev)
 {
-	struct rtc_device *rtc = platform_get_drvdata(pdev);    
+	struct rtc_device *rtc = platform_get_drvdata(pdev);
+
+#ifdef F23_ALARM
     free_irq(sunxi_rtc_alarmno, rtc);
+#endif
+
     rtc_device_unregister(rtc);
 	platform_set_drvdata(pdev, NULL);
-	
+
+#ifdef F23_ALARM
 	sunxi_rtc_setaie(0);
+#endif
 
 	return 0;
 }
@@ -621,6 +649,8 @@ static int __devinit sunxi_rtc_probe(struct platform_device *pdev)
 		ret = PTR_ERR(rtc);
 		goto err_out;
 	}
+
+#ifdef F23_ALARM
 	ret = request_irq(sunxi_rtc_alarmno, sunxi_rtc_alarmirq,
 			  IRQF_DISABLED,  "sunxi-rtc alarm", rtc);
 	if (ret) {
@@ -628,10 +658,20 @@ static int __devinit sunxi_rtc_probe(struct platform_device *pdev)
 		rtc_device_unregister(rtc);
 		return ret;
 	}
+#endif
 
 	sw_rtc_dev = rtc;
-	platform_set_drvdata(pdev, rtc);//设置rtc结构数据为pdev的私有数据
+	platform_set_drvdata(pdev, rtc);
 	
+	/*clear the alarm count value!!!*/
+	writel(0x00000000, sunxi_rtc_base + SUNXI_RTC_ALARM_DD_HH_MM_SS_REG);
+	/*clear the alarm irq when init*/
+    writel(0x00000000, sunxi_rtc_base + SUNXI_ALARM_EN_REG);//0x114
+    /*clear the alarm irq*/
+    writel(0x00000000, sunxi_rtc_base + SUNXI_ALARM_INT_CTRL_REG);//0x118
+    /*Clear pending count alarm*/
+	writel(0x00000003, sunxi_rtc_base + SUNXI_ALARM_INT_STATUS_REG);//0x11c
+
 	return 0;
 	
 	err_out:
