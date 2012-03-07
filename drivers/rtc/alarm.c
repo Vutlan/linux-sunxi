@@ -461,27 +461,11 @@ static int alarm_resume(struct platform_device *pdev)
 
 	return 0;
 }
-static void __iomem *alarm_shutdown_rtc_base;
-#define ALARM_SHUTDOWN_DD_HH_MM_SS_REG 0x10c
-#define ALARM_SHUTDOWN_EN_REG 0x114
-#define ALARM_SHUTDOWN_INT_CTRL_REG 0x118
-#define ALARM_SHUTDOWN_INT_STATUS_REG 0x11c
-#include <asm/io.h>
 
 static int alarm_shutdown(struct platform_device *pdev)
 {
-	alarm_shutdown_rtc_base = (void __iomem *)(SW_VA_TIMERC_IO_BASE);
-
-	/*clear the alarm count value!!!*/
-	writel(0x00000000, alarm_shutdown_rtc_base + ALARM_SHUTDOWN_DD_HH_MM_SS_REG);//0x10c
-	/*clear the alarm irq when init*/
-    writel(0x00000000, alarm_shutdown_rtc_base + ALARM_SHUTDOWN_EN_REG);//0x114
-    /*clear the alarm irq*/
-    writel(0x00000000, alarm_shutdown_rtc_base + ALARM_SHUTDOWN_INT_CTRL_REG);//0x118
-    /*Clear pending count alarm*/
-	writel(0x00000003, alarm_shutdown_rtc_base + ALARM_SHUTDOWN_INT_STATUS_REG);//0x11c
-
-	return 0;
+    rtc_alarm_shutdown(alarm_rtc_dev);
+    return 0;
 }
 
 static struct rtc_task alarm_rtc_task = {

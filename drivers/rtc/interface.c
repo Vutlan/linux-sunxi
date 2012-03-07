@@ -124,6 +124,12 @@ static void rtc_alarm_disable(struct rtc_device *rtc)
 	rtc->ops->alarm_irq_enable(rtc->dev.parent, false);
 }
 
+void rtc_alarm_shutdown(struct rtc_device *rtc)
+{
+	rtc_alarm_disable(rtc);
+}
+EXPORT_SYMBOL_GPL(rtc_alarm_shutdown);
+
 static int rtc_read_alarm_internal(struct rtc_device *rtc, struct rtc_wkalrm *alarm)
 {
 	int err;
