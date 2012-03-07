@@ -78,7 +78,7 @@
 	//#define CONFIG_HW_ANTENNA_DIVERSITY	
 	#endif
 	
-	#define CONFIG_IOL
+	//#define CONFIG_IOL //ignore for only one scan result 2012-3-7 9:50:37 by softwinner,"IOL error, polling_ret:0x00"
 #else  //#ifndef CONFIG_MP_INCLUDED
 	#define CONFIG_MP_IWPRIV_SUPPORT	1
 #endif  //#ifndef CONFIG_MP_INCLUDED
