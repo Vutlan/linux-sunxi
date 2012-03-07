@@ -312,12 +312,16 @@ static void suspend(struct work_struct *work)
 	} else {
 		suspend_short_count = 0;
 	}
-
+    /*
 	if (current_event_num == entry_event_num) {
 		if (debug_mask & DEBUG_SUSPEND)
 			pr_info("suspend: pm_suspend returned with no event\n");
 		wake_lock_timeout(&unknown_wakeup, HZ / 2);
 	}
+	*/
+
+	/* delay 5 seconds to enter standby again, by kevin, 2012-3-7 15:07 */
+	wake_lock_timeout(&unknown_wakeup, HZ * 5);
 }
 static DECLARE_WORK(suspend_work, suspend);
 
