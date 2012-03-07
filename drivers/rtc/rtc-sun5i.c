@@ -84,7 +84,7 @@
 
 #define RTC_NAME	"pcf8563"
 
-//#define F25_ALARM
+#define F25_ALARM
 #define RTC_ALARM_DEBUG
 
 static struct i2c_driver pcf8563_driver;
@@ -738,8 +738,7 @@ static int pcf8563_set_alarm(struct device *dev, struct rtc_wkalrm *alrm)
     unsigned char buf[3];
     struct i2c_client *client = to_i2c_client(dev);
 	struct pcf8563 *pcf8563 = i2c_get_clientdata(client);
-		
-//	printk("%s,%d,client->irq:%d\n", __func__, __LINE__, client->irq);
+
 	if (client->irq < 0) {
 		return -EINVAL;
 	}
@@ -906,6 +905,23 @@ out:
 	mutex_unlock(&pcf8563->mutex);
 	return ret;
 }
+
+static int pcf8563_rtc_alarm_irq_enable(struct device *dev, unsigned int enabled)
+{
+	int ret = 0;
+	struct i2c_client *client = to_i2c_client(dev);
+
+	if (!enabled) {
+		ret = pcf8563_alarm_disable(client);
+		if (ret < 0) {
+			goto out;
+		}
+	}
+
+	return 0;
+out:
+	return ret;
+}
 #endif
 
 static const struct rtc_class_ops pcf8563_rtc_ops = {
@@ -913,8 +929,9 @@ static const struct rtc_class_ops pcf8563_rtc_ops = {
 	.set_time	= pcf8563_rtc_set_time,
 #ifdef F25_ALARM
 	.read_alarm	= pcf8563_read_alarm,
-	.set_alarm	= pcf8563_set_alarm,	
-#endif	
+	.set_alarm	= pcf8563_set_alarm,
+	.alarm_irq_enable = pcf8563_rtc_alarm_irq_enable,
+#endif
 };
 
 static int pcf8563_probe(struct i2c_client *client,
@@ -922,6 +939,7 @@ static int pcf8563_probe(struct i2c_client *client,
 {
 	struct pcf8563 *pcf8563;	
 	int err = 0;
+	int ret = 0;
 
 	printk("%s,line:%d\n",__func__, __LINE__);
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C))
@@ -965,8 +983,14 @@ static int pcf8563_probe(struct i2c_client *client,
 	}
 	#endif
 	
+	ret = pcf8563_alarm_disable(client);
+	if (ret < 0) {
+		goto out;
+	}
+
 	return 0;
-	
+
+out:
 #ifdef F25_ALARM
 exit_irq:
 	if (client->irq >= 0) {
