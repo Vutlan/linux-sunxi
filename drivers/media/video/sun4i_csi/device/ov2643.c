@@ -184,10 +184,10 @@ static struct regval_list sensor_vga_regs[] =
 	{{0x0f},{0x14}},
 	{{0x10},{0x0a}},
 	{{0x11},{0x00}},
-	{{0x29},{0x07}},//;dummy pixels//0x29,0x07,//->ov setting //0x29,0x04,//F18
-	{{0x2a},{0xd0}},               //0x2a,0x93,//->ov setting //0x2a,0xce,//F18
-	{{0x2b},{0x02}},//;dummy lines //0x2b,0x02,//->ov setting //0x2b,0x02,//F18
-	{{0x2c},{0x6a}},               //0x2c,0x6a,//->ov setting //0x2c,0x8a,//F18->24MHz
+	{{0x29},{0x07}},//;dummy pixels//24.75M 0x29,0x07//24M 0x29,0x07,//->ov setting 
+	{{0x2a},{0x93}},               //24.75M 0x2a,0xd0//24M 0x2a,0x93,//->ov setting 
+	{{0x2b},{0x02}},//;dummy lines //24.75M 0x2b,0x02//24M 0x2b,0x02,//->ov setting 
+	{{0x2c},{0x6a}},               //24.75M 0x2c,0x6a//24M 0x2c,0x6a,//->ov setting 
 	//for 25fps 0x26a*1.2=0x2e6
 	{{0x1c},{0x25}},//vsync width
 	{{0x1d},{0x02}},
@@ -364,10 +364,10 @@ static struct regval_list sensor_hd720_regs[] =
 	{{0x10},{0x0a}},
 	{{0x11},{0x00}},
 	
-	{{0x29},{0x06}},//;dummy pixels //0x29,0x06,//
-	{{0x2a},{0x72}},                //0x2a,0x40,//
-	{{0x2b},{0x02}},//;dummy lines  //0x2b,0x02,//
-	{{0x2c},{0xee}},                //0x2c,0xee,//
+	{{0x29},{0x06}},//;dummy pixels //24.75M 0x29,0x06//24M 0x29,0x06,//
+	{{0x2a},{0x40}},                //24.75M 0x2a,0x72//24M 0x2a,0x40,//
+	{{0x2b},{0x02}},//;dummy lines  //24.75M 0x2b,0x02//24M 0x2b,0x02,//
+	{{0x2c},{0xee}},                //24.75M 0x2c,0xee//24M 0x2c,0xee,//
 	//for 25fps 0x2ee*1.2=0x384
 	
 	{{0x1c},{0x25}},//vsync width
@@ -846,7 +846,7 @@ static int sensor_write_array(struct v4l2_subdev *sd, struct regval_list *vals ,
 	for(i = 0; i < size ; i++)
 	{
 		if(vals->reg_num[0] == 0xff) {
-			msleep(vals->value[0]);
+			mdelay(vals->value[0]);
 		} else {
 			ret = sensor_write(sd, vals->reg_num, vals->value);
 			if (ret < 0) {
@@ -905,7 +905,7 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
 			csi_dev_dbg("CSI_SUBDEV_STBY_ON\n");
 			//reset off io
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_OFF);
-			msleep(10);
+			mdelay(10);
 			//disable oe
 			csi_dev_print("disalbe oe!\n");
 			ret = sensor_write_array(sd,sensor_oe_disable,ARRAY_SIZE(sensor_oe_disable));
@@ -916,18 +916,18 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
 			i2c_lock_adapter(client->adapter);
 			//standby on io
 			csi_gpio_write(sd,&dev->standby_io,CSI_STBY_ON);
-			msleep(100);
+			mdelay(100);
 			csi_gpio_write(sd,&dev->standby_io,CSI_STBY_OFF);
-			msleep(100);
+			mdelay(100);
 			csi_gpio_write(sd,&dev->standby_io,CSI_STBY_ON);
-			msleep(100);
+			mdelay(100);
 			//remember to unlock i2c adapter, so the device can access the i2c bus again
 			i2c_unlock_adapter(client->adapter);	
 			//inactive mclk after stadby in
 			clk_disable(dev->csi_module_clk);
 			//reset on io
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_ON);
-			msleep(10);
+			mdelay(10);
 			break;
 		case CSI_SUBDEV_STBY_OFF:
 			csi_dev_dbg("CSI_SUBDEV_STBY_OFF\n");
@@ -936,17 +936,17 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
 			i2c_lock_adapter(client->adapter);
 			//active mclk before stadby out
 			clk_enable(dev->csi_module_clk);
-			msleep(10);
+			mdelay(10);
 			//standby off io
 			csi_gpio_write(sd,&dev->standby_io,CSI_STBY_OFF);
-			msleep(10);
+			mdelay(10);
 			//reset off io
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_OFF);
-			msleep(10);
+			mdelay(10);
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_ON);
-			msleep(100);
+			mdelay(100);
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_OFF);
-			msleep(100);
+			mdelay(100);
 			//remember to unlock i2c adapter, so the device can access the i2c bus again
 			i2c_unlock_adapter(client->adapter);	
 			break;
@@ -961,35 +961,35 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
 			csi_gpio_write(sd,&dev->standby_io,CSI_STBY_ON);
 			//reset on io
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_ON);
-			msleep(10);
+			mdelay(10);
 			//active mclk before power on
 			clk_enable(dev->csi_module_clk);
-			msleep(10);
+			mdelay(10);
 			//power supply
 			csi_gpio_write(sd,&dev->power_io,CSI_PWR_ON);
-			msleep(10);
+			mdelay(10);
 			if(dev->dvdd) {
 				regulator_enable(dev->dvdd);
-				msleep(10);
+				mdelay(10);
 			}
 			if(dev->avdd) {
 				regulator_enable(dev->avdd);
-				msleep(10);
+				mdelay(10);
 			}
 			if(dev->iovdd) {
 				regulator_enable(dev->iovdd);
-				msleep(10);
+				mdelay(10);
 			}
 			//standby off io
 			csi_gpio_write(sd,&dev->standby_io,CSI_STBY_OFF);
-			msleep(10);
+			mdelay(10);
 			//reset after power on
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_OFF);
-			msleep(10);
+			mdelay(10);
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_ON);
-			msleep(100);
+			mdelay(100);
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_OFF);
-			msleep(100);
+			mdelay(100);
 			//remember to unlock i2c adapter, so the device can access the i2c bus again
 			i2c_unlock_adapter(client->adapter);	
 			break;		
@@ -1000,24 +1000,24 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
 			i2c_lock_adapter(client->adapter);
 			//standby and reset io
 			csi_gpio_write(sd,&dev->standby_io,CSI_STBY_ON);
-			msleep(100);
+			mdelay(100);
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_ON);
-			msleep(100);
+			mdelay(100);
 			//power supply off
 			if(dev->iovdd) {
 				regulator_disable(dev->iovdd);
-				msleep(10);
+				mdelay(10);
 			}
 			if(dev->avdd) {
 				regulator_disable(dev->avdd);
-				msleep(10);
+				mdelay(10);
 			}
 			if(dev->dvdd) {
 				regulator_disable(dev->dvdd);
-				msleep(10);	
+				mdelay(10);	
 			}
 			csi_gpio_write(sd,&dev->power_io,CSI_PWR_OFF);
-			msleep(10);
+			mdelay(10);
 			//inactive mclk after power off
 			clk_disable(dev->csi_module_clk);
 			//set the io to hi-z
@@ -1042,21 +1042,21 @@ static int sensor_reset(struct v4l2_subdev *sd, u32 val)
 		case CSI_SUBDEV_RST_OFF:
 			csi_dev_dbg("CSI_SUBDEV_RST_OFF\n");
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_OFF);
-			msleep(10);
+			mdelay(10);
 			break;
 		case CSI_SUBDEV_RST_ON:
 			csi_dev_dbg("CSI_SUBDEV_RST_ON\n");
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_ON);
-			msleep(10);
+			mdelay(10);
 			break;
 		case CSI_SUBDEV_RST_PUL:
 			csi_dev_dbg("CSI_SUBDEV_RST_PUL\n");
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_OFF);
-			msleep(10);
+			mdelay(10);
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_ON);
-			msleep(100);
+			mdelay(100);
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_OFF);
-			msleep(100);
+			mdelay(100);
 			break;
 		default:
 			return -EINVAL;
@@ -1528,7 +1528,7 @@ static int sensor_s_hflip(struct v4l2_subdev *sd, int value)
 		return ret;
 	}
 	
-	msleep(50);
+	mdelay(50);
 	
 	info->hflip = value;
 	return 0;
@@ -1587,7 +1587,7 @@ static int sensor_s_vflip(struct v4l2_subdev *sd, int value)
 		return ret;
 	}
 	
-	msleep(50);
+	mdelay(50);
 	
 	info->vflip = value;
 	return 0;
@@ -1664,7 +1664,7 @@ static int sensor_s_autoexp(struct v4l2_subdev *sd,
 		return ret;
 	}
 	
-	msleep(50);
+	mdelay(50);
 	
 	info->autoexp = value;
 	return 0;
@@ -1727,7 +1727,7 @@ static int sensor_s_autowb(struct v4l2_subdev *sd, int value)
 		return ret;
 	}
 	
-	msleep(50);
+	mdelay(50);
 	
 	info->autowb = value;
 	return 0;
@@ -1804,7 +1804,7 @@ static int sensor_s_brightness(struct v4l2_subdev *sd, int value)
 		return ret;
 	}
 	
-	msleep(50);
+	mdelay(50);
 	
 	info->brightness = value;
 	return 0;
@@ -1860,7 +1860,7 @@ static int sensor_s_contrast(struct v4l2_subdev *sd, int value)
 		return ret;
 	}
 	
-	msleep(50);
+	mdelay(50);
 	
 	info->contrast = value;
 	return 0;
@@ -1916,7 +1916,7 @@ static int sensor_s_saturation(struct v4l2_subdev *sd, int value)
 		return ret;
 	}
 	
-	msleep(50);
+	mdelay(50);
 	
 	info->saturation = value;
 	return 0;
@@ -1972,7 +1972,7 @@ static int sensor_s_exp(struct v4l2_subdev *sd, int value)
 		return ret;
 	}
 	
-	msleep(50);
+	mdelay(50);
 	
 	info->exp = value;
 	return 0;
@@ -2031,7 +2031,7 @@ static int sensor_s_wb(struct v4l2_subdev *sd,
 		return ret;
 	}
 	
-	msleep(50);
+	mdelay(50);
 	
 	info->wb = value;
 	return 0;
@@ -2092,7 +2092,7 @@ static int sensor_s_colorfx(struct v4l2_subdev *sd,
 		return ret;
 	}
 	
-	msleep(50);
+	mdelay(50);
 	
 	info->clrfx = value;
 	return 0;

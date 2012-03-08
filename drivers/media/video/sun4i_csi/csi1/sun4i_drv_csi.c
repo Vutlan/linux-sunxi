@@ -309,7 +309,7 @@ static inline void csi_set_addr(struct csi_dev *dev,struct csi_buffer *buffer)
 
 static int csi_clk_get(struct csi_dev *dev)
 {
-	int ret;
+//	int ret;
 
 	dev->csi_ahb_clk=clk_get(NULL, "ahb_csi1");
 	if (dev->csi_ahb_clk == NULL) {
@@ -317,22 +317,6 @@ static int csi_clk_get(struct csi_dev *dev)
 		return -1;
     }
 	
-	if(dev->ccm_info->mclk==24000000 || dev->ccm_info->mclk==12000000)
-	{
-		dev->csi_clk_src=clk_get(NULL,"hosc");
-		if (dev->csi_clk_src == NULL) {
-       	csi_err("get csi1 hosc source clk error!\n");	
-			return -1;
-    }
-  }
-  else
-  {
-		dev->csi_clk_src=clk_get(NULL,"video_pll1");
-		if (dev->csi_clk_src == NULL) {
-       	csi_err("get csi1 video pll1 source clk error!\n");	
-			return -1;
-    }
-	}  
    
 	dev->csi_module_clk=clk_get(NULL,"csi1");
 	if(dev->csi_module_clk == NULL) {
@@ -340,19 +324,6 @@ static int csi_clk_get(struct csi_dev *dev)
 		return -1;
     }
     
-	ret = clk_set_parent(dev->csi_module_clk, dev->csi_clk_src);
-	if (ret == -1) {
-        csi_err(" csi set parent failed \n");
-	    return -1;
-    }
-     
-	clk_put(dev->csi_clk_src);
-	
-	ret = clk_set_rate(dev->csi_module_clk,dev->ccm_info->mclk);
-	if (ret == -1) {
-        csi_err("set csi1 module clock error\n");
-		return -1;
-   	}
    
 //	dev->csi_isp_src_clk=clk_get(NULL,"video_pll0");
 //	if (dev->csi_isp_src_clk == NULL) {
@@ -392,6 +363,32 @@ static int csi_clk_get(struct csi_dev *dev)
 static int csi_clk_out_set(struct csi_dev *dev)
 {
 	int ret;
+	
+	if(dev->ccm_info->mclk==24000000 || dev->ccm_info->mclk==12000000 || dev->ccm_info->mclk==6000000)
+	{
+		dev->csi_clk_src=clk_get(NULL,"hosc");
+		if (dev->csi_clk_src == NULL) {
+	    csi_err("get csi0 hosc source clk error!\n");	
+			return -1;
+	  }
+	}
+	else
+	{
+		dev->csi_clk_src=clk_get(NULL,"video_pll1");
+		if (dev->csi_clk_src == NULL) {
+	    csi_err("get csi0 video pll1 source clk error!\n");	
+			return -1;
+	  }
+	}  
+	
+	ret = clk_set_parent(dev->csi_module_clk, dev->csi_clk_src);
+	if (ret == -1) {
+	  csi_err(" csi set parent failed \n");
+	  return -1;
+	}
+	   
+	clk_put(dev->csi_clk_src);
+		
 	ret = clk_set_rate(dev->csi_module_clk, dev->ccm_info->mclk);
 	if (ret == -1) {
 		csi_err("set csi1 module clock error\n");
@@ -1310,7 +1307,7 @@ static int csi_open(struct file *file)
 {
 	struct csi_dev *dev = video_drvdata(file);
 	int ret,input_num;
-	struct v4l2_control ctrl;
+//	struct v4l2_control ctrl;
 	
 	csi_dbg(0,"csi_open\n");
 
@@ -1347,38 +1344,38 @@ static int csi_open(struct file *file)
 	  } 
 	}
 	
-	dev->input=0;//default input
+	dev->input=-1;//default input null
 
 	bsp_csi_open(dev);
 	bsp_csi_set_offset(dev,0,0);//h and v offset is initialed to zero
 	
-	ret = v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_STBY_OFF);
-	if (ret!=0) {
-	  csi_err("sensor standby off error when csi open!\n");
-	  return ret;
-	}
-	
-	ret = v4l2_subdev_call(dev->sd,core, init, 0);
-	if (ret!=0) {
-		csi_err("sensor initial error when csi open!\n");
-		return ret;
-	} else {
-		csi_print("sensor initial success when csi open!\n");
-	}	
-
-	ctrl.id = V4L2_CID_VFLIP;
-	ctrl.value = dev->vflip;
-	ret = v4l2_subdev_call(dev->sd,core, s_ctrl, &ctrl);
-	if (ret!=0) {
-		csi_err("sensor sensor_s_ctrl V4L2_CID_VFLIP error when csi open!\n");
-	}
-	
-	ctrl.id = V4L2_CID_HFLIP;
-	ctrl.value = dev->hflip;
-	ret = v4l2_subdev_call(dev->sd,core, s_ctrl, &ctrl);
-	if (ret!=0) {
-		csi_err("sensor sensor_s_ctrl V4L2_CID_HFLIP error when csi open!\n");
-	}
+//	ret = v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_STBY_OFF);
+//	if (ret!=0) {
+//	  csi_err("sensor standby off error when csi open!\n");
+//	  return ret;
+//	}
+//	
+//	ret = v4l2_subdev_call(dev->sd,core, init, 0);
+//	if (ret!=0) {
+//		csi_err("sensor initial error when csi open!\n");
+//		return ret;
+//	} else {
+//		csi_print("sensor initial success when csi open!\n");
+//	}	
+//
+//	ctrl.id = V4L2_CID_VFLIP;
+//	ctrl.value = dev->vflip;
+//	ret = v4l2_subdev_call(dev->sd,core, s_ctrl, &ctrl);
+//	if (ret!=0) {
+//		csi_err("sensor sensor_s_ctrl V4L2_CID_VFLIP error when csi open!\n");
+//	}
+//	
+//	ctrl.id = V4L2_CID_HFLIP;
+//	ctrl.value = dev->hflip;
+//	ret = v4l2_subdev_call(dev->sd,core, s_ctrl, &ctrl);
+//	if (ret!=0) {
+//		csi_err("sensor sensor_s_ctrl V4L2_CID_HFLIP error when csi open!\n");
+//	}
 	
 	dev->opened = 1;
 	dev->fmt = &formats[5]; //default format

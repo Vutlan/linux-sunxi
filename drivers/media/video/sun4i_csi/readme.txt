@@ -1,10 +1,10 @@
 ===========================================
 
-Version: V1_31
+Version: V1_32
 
 Author:  raymonxiu
 
-Date:     2012-2-28 19:47:09
+Date:     2012-3-8 17:10:42
 
 Description:
 
@@ -23,6 +23,14 @@ insmod sun4i_csiX.ko ccm="mt9d112" i2c_addr=0x78
 insmod sun4i_csiX.ko ccm="ov5640" i2c_addr=0x78
 insmod sun4i_csiX.ko ccm="gc2015" i2c_addr=0x60
 insmod sun4i_csiX.ko ccm="ov2643" i2c_addr=0x60
+insmod sun4i_csiX.ko ccm="gc0329" i2c_addr=0x62
+
+V1_32
+CSI: Optimizing for CTS test and fix bug
+1) Optimizing gc0308 and gt2005 for CTS test
+2) Fix clock alternating bug
+3) Add gc0329 module
+4) Modify all msleep to mdelay
 
 V1_31
 CSI: Modify clock gating and axp_gpio_get_io bug
