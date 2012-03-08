@@ -533,7 +533,7 @@ static int ov7670_write(struct v4l2_subdev *sd, unsigned char reg,
 	int ret = i2c_smbus_write_byte_data(client, reg, value);
 
 	if (reg == REG_COM7 && (value & COM7_RESET))
-		msleep(5);  /* Wait for reset to run */
+		mdelay(5);  /* Wait for reset to run */
 	return ret;
 }
 
@@ -590,7 +590,7 @@ static int ov7670_write(struct v4l2_subdev *sd, unsigned char reg,
 	if (ret > 0)
 		ret = 0;
 	if (reg == REG_COM7 && (value & COM7_RESET))
-		msleep(5);  /* Wait for reset to run */
+		mdelay(5);  /* Wait for reset to run */
 	return ret;
 }
 #endif /* CONFIG_OLPC_XO_1 */
@@ -657,35 +657,35 @@ static int ov7670_power(struct v4l2_subdev *sd, int on)
 			csi_dev_dbg("CSI_SUBDEV_STBY_ON\n");
 			//reset off io
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_OFF);
-			msleep(10);
+			mdelay(10);
 			//standby on io
 			csi_gpio_write(sd,&dev->standby_io,CSI_STBY_ON);
-			msleep(100);
+			mdelay(100);
 			csi_gpio_write(sd,&dev->standby_io,CSI_STBY_OFF);
-			msleep(100);
+			mdelay(100);
 			csi_gpio_write(sd,&dev->standby_io,CSI_STBY_ON);
-			msleep(100);
+			mdelay(100);
 			//inactive mclk after stadby in
 			clk_disable(dev->csi_module_clk);
 			//reset on io
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_ON);
-			msleep(10);
+			mdelay(10);
 			break;
 		case CSI_SUBDEV_STBY_OFF:
 			csi_dev_dbg("CSI_SUBDEV_STBY_OFF\n");
 			//active mclk before stadby out
 			clk_enable(dev->csi_module_clk);
-			msleep(10);
+			mdelay(10);
 			//standby off io
 			csi_gpio_write(sd,&dev->standby_io,CSI_STBY_OFF);
-			msleep(10);
+			mdelay(10);
 			//reset off io
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_OFF);
-			msleep(10);
+			mdelay(10);
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_ON);
-			msleep(100);
+			mdelay(100);
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_OFF);
-			msleep(100);
+			mdelay(100);
 			break;
 		case CSI_SUBDEV_PWR_ON:
 			csi_dev_dbg("CSI_SUBDEV_PWR_ON\n");
@@ -695,58 +695,58 @@ static int ov7670_power(struct v4l2_subdev *sd, int on)
 			csi_gpio_write(sd,&dev->standby_io,CSI_STBY_ON);
 			//reset on io
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_ON);
-			msleep(1);
+			mdelay(1);
 			//active mclk before power on
 			clk_enable(dev->csi_module_clk);
-			msleep(10);
+			mdelay(10);
 			//power supply
 			csi_gpio_write(sd,&dev->power_io,CSI_PWR_ON);
-			msleep(10);
+			mdelay(10);
 			if(dev->dvdd) {
 				regulator_enable(dev->dvdd);
-				msleep(10);
+				mdelay(10);
 			}
 			if(dev->avdd) {
 				regulator_enable(dev->avdd);
-				msleep(10);
+				mdelay(10);
 			}
 			if(dev->iovdd) {
 				regulator_enable(dev->iovdd);
-				msleep(10);
+				mdelay(10);
 			}
 			//standby off io
 			csi_gpio_write(sd,&dev->standby_io,CSI_STBY_OFF);
-			msleep(10);
+			mdelay(10);
 			//reset after power on
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_OFF);
-			msleep(10);
+			mdelay(10);
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_ON);
-			msleep(100);
+			mdelay(100);
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_OFF);
-			msleep(100);
+			mdelay(100);
 			break;
 		case CSI_SUBDEV_PWR_OFF:
 			csi_dev_dbg("CSI_SUBDEV_PWR_OFF\n");
 			//standby and reset io
 			csi_gpio_write(sd,&dev->standby_io,CSI_STBY_ON);
-			msleep(100);
+			mdelay(100);
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_ON);
-			msleep(100);
+			mdelay(100);
 			//power supply off
 			if(dev->iovdd) {
 				regulator_disable(dev->iovdd);
-				msleep(10);
+				mdelay(10);
 			}
 			if(dev->avdd) {
 				regulator_disable(dev->avdd);
-				msleep(10);
+				mdelay(10);
 			}
 			if(dev->dvdd) {
 				regulator_disable(dev->dvdd);
-				msleep(10);	
+				mdelay(10);	
 			}
 			csi_gpio_write(sd,&dev->power_io,CSI_PWR_OFF);
-			msleep(10);
+			mdelay(10);
 			//inactive mclk after power off
 			clk_disable(dev->csi_module_clk);
 			//set the io to hi-z
@@ -771,28 +771,28 @@ static int ov7670_reset(struct v4l2_subdev *sd, u32 val)
 		case CSI_SUBDEV_RST_OFF:
 			csi_dev_dbg("CSI_SUBDEV_RST_OFF\n");
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_OFF);
-			msleep(10);
+			mdelay(10);
 			break;
 		case CSI_SUBDEV_RST_ON:
 			csi_dev_dbg("CSI_SUBDEV_RST_ON\n");
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_ON);
-			msleep(10);
+			mdelay(10);
 			break;
 		case CSI_SUBDEV_RST_PUL:
 			csi_dev_dbg("CSI_SUBDEV_RST_PUL\n");
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_OFF);
-			msleep(10);
+			mdelay(10);
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_ON);
-			msleep(100);
+			mdelay(100);
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_OFF);
-			msleep(100);
+			mdelay(100);
 			break;
 		default:
 			return -EINVAL;
 	}
 	
 //	ov7670_write(sd, REG_COM7, COM7_RESET);
-//	msleep(1);
+//	mdelay(1);
 	return 0;
 }
 
@@ -1071,7 +1071,7 @@ static int ov7670_set_hw(struct v4l2_subdev *sd, int hstart, int hstop,
 	ret += ov7670_write(sd, REG_HSTOP, (hstop >> 3) & 0xff);
 	ret += ov7670_read(sd, REG_HREF, &v);
 	v = (v & 0xc0) | ((hstop & 0x7) << 3) | (hstart & 0x7);
-	msleep(10);
+	mdelay(10);
 	ret += ov7670_write(sd, REG_HREF, v);
 /*
  * Vertical: similar arrangement, but only 10 bits.
@@ -1080,7 +1080,7 @@ static int ov7670_set_hw(struct v4l2_subdev *sd, int hstart, int hstop,
 	ret += ov7670_write(sd, REG_VSTOP, (vstop >> 2) & 0xff);
 	ret += ov7670_read(sd, REG_VREF, &v);
 	v = (v & 0xf0) | ((vstop & 0x3) << 2) | (vstart & 0x3);
-	msleep(10);
+	mdelay(10);
 	ret += ov7670_write(sd, REG_VREF, v);
 	return ret;
 }
@@ -1503,7 +1503,7 @@ static int ov7670_s_hflip(struct v4l2_subdev *sd, int value)
 		v |= MVFP_MIRROR;
 	else
 		v &= ~MVFP_MIRROR;
-	msleep(10);  /* FIXME */
+	mdelay(10);  /* FIXME */
 	ret += ov7670_write(sd, REG_MVFP, v);
 	return ret;
 }
@@ -1531,7 +1531,7 @@ static int ov7670_s_vflip(struct v4l2_subdev *sd, int value)
 		v |= MVFP_FLIP;
 	else
 		v &= ~MVFP_FLIP;
-	msleep(10);  /* FIXME */
+	mdelay(10);  /* FIXME */
 	ret += ov7670_write(sd, REG_MVFP, v);
 	return ret;
 }

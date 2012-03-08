@@ -708,7 +708,7 @@ static int sensor_write_array(struct v4l2_subdev *sd, struct regval_list *vals ,
 	for(i = 0; i < size ; i++)
 	{
 		if(vals->reg_num[0] == 0xff)
-			msleep(vals->value[0] * 256 + vals->value[1]);
+			mdelay(vals->value[0] * 256 + vals->value[1]);
 		else {	
 			ret = sensor_write(sd, vals->reg_num, vals->value);
 			if (ret < 0)
@@ -767,7 +767,7 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
 			csi_dev_dbg("CSI_SUBDEV_STBY_ON\n");
 			//reset off io
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_OFF);
-			msleep(10);
+			mdelay(10);
 			//disable io oe
 			csi_dev_print("disalbe oe!\n");
 			ret = sensor_write_array(sd, sensor_oe_disable_regs , ARRAY_SIZE(sensor_oe_disable_regs));
@@ -778,18 +778,18 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
 			i2c_lock_adapter(client->adapter);
 			//standby on io
 			csi_gpio_write(sd,&dev->standby_io,CSI_STBY_ON);
-			msleep(100);
+			mdelay(100);
 //			csi_gpio_write(sd,&dev->standby_io,CSI_STBY_OFF);
-//			msleep(100);
+//			mdelay(100);
 //			csi_gpio_write(sd,&dev->standby_io,CSI_STBY_ON);
-//			msleep(100);
+//			mdelay(100);
 			//remember to unlock i2c adapter, so the device can access the i2c bus again
 			i2c_unlock_adapter(client->adapter);	
 			//inactive mclk after stadby in
 			clk_disable(dev->csi_module_clk);
 			//reset on io
 //			csi_gpio_write(sd,&dev->reset_io,CSI_RST_ON);
-//			msleep(10);
+//			mdelay(10);
 			break;
 		case CSI_SUBDEV_STBY_OFF:
 			csi_dev_dbg("CSI_SUBDEV_STBY_OFF\n");
@@ -798,17 +798,17 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
 			i2c_lock_adapter(client->adapter);
 			//active mclk before stadby out
 			clk_enable(dev->csi_module_clk);
-			msleep(10);
+			mdelay(10);
 			//standby off io
 			csi_gpio_write(sd,&dev->standby_io,CSI_STBY_OFF);
-			msleep(10);
+			mdelay(10);
 			//reset off io
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_OFF);
-			msleep(10);
+			mdelay(10);
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_ON);
-			msleep(100);
+			mdelay(100);
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_OFF);
-			msleep(100);
+			mdelay(100);
 			//remember to unlock i2c adapter, so the device can access the i2c bus again
 			i2c_unlock_adapter(client->adapter);	
 			break;
@@ -823,35 +823,35 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
 			csi_gpio_write(sd,&dev->standby_io,CSI_STBY_ON);
 			//reset on io
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_ON);
-			msleep(1);
+			mdelay(1);
 			//active mclk before power on
 			clk_enable(dev->csi_module_clk);
-			msleep(10);
+			mdelay(10);
 			//power supply
 			csi_gpio_write(sd,&dev->power_io,CSI_PWR_ON);
-			msleep(10);
+			mdelay(10);
 			if(dev->dvdd) {
 				regulator_enable(dev->dvdd);
-				msleep(10);
+				mdelay(10);
 			}
 			if(dev->avdd) {
 				regulator_enable(dev->avdd);
-				msleep(10);
+				mdelay(10);
 			}
 			if(dev->iovdd) {
 				regulator_enable(dev->iovdd);
-				msleep(10);
+				mdelay(10);
 			}
 			//standby off io
 			csi_gpio_write(sd,&dev->standby_io,CSI_STBY_OFF);
-			msleep(10);
+			mdelay(10);
 			//reset after power on
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_OFF);
-			msleep(10);
+			mdelay(10);
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_ON);
-			msleep(100);
+			mdelay(100);
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_OFF);
-			msleep(100);
+			mdelay(100);
 			//remember to unlock i2c adapter, so the device can access the i2c bus again
 			i2c_unlock_adapter(client->adapter);	
 			break;
@@ -862,24 +862,24 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
 			i2c_lock_adapter(client->adapter);
 			//standby and reset io
 			csi_gpio_write(sd,&dev->standby_io,CSI_STBY_ON);
-			msleep(100);
+			mdelay(100);
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_ON);
-			msleep(100);
+			mdelay(100);
 			//power supply off
 			if(dev->iovdd) {
 				regulator_disable(dev->iovdd);
-				msleep(10);
+				mdelay(10);
 			}
 			if(dev->avdd) {
 				regulator_disable(dev->avdd);
-				msleep(10);
+				mdelay(10);
 			}
 			if(dev->dvdd) {
 				regulator_disable(dev->dvdd);
-				msleep(10);	
+				mdelay(10);	
 			}
 			csi_gpio_write(sd,&dev->power_io,CSI_PWR_OFF);
-			msleep(10);
+			mdelay(10);
 			//inactive mclk after power off
 			clk_disable(dev->csi_module_clk);
 			//set the io to hi-z
@@ -904,21 +904,21 @@ static int sensor_reset(struct v4l2_subdev *sd, u32 val)
 		case CSI_SUBDEV_RST_OFF:
 			csi_dev_dbg("CSI_SUBDEV_RST_OFF\n");
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_OFF);
-			msleep(10);
+			mdelay(10);
 			break;
 		case CSI_SUBDEV_RST_ON:
 			csi_dev_dbg("CSI_SUBDEV_RST_ON\n");
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_ON);
-			msleep(10);
+			mdelay(10);
 			break;
 		case CSI_SUBDEV_RST_PUL:
 			csi_dev_dbg("CSI_SUBDEV_RST_PUL\n");
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_OFF);
-			msleep(10);
+			mdelay(10);
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_ON);
-			msleep(100);
+			mdelay(100);
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_OFF);
-			msleep(100);
+			mdelay(100);
 			break;
 		default:
 			return -EINVAL;
@@ -1368,7 +1368,7 @@ static int sensor_s_hflip(struct v4l2_subdev *sd, int value)
 		csi_dev_err("sensor_write err at sensor_s_hflip!\n");
 		return ret;
 	}
-	msleep(100);
+	mdelay(100);
 	info->hflip = value;
 	return 0;
 }
@@ -1443,7 +1443,7 @@ static int sensor_s_vflip(struct v4l2_subdev *sd, int value)
 		csi_dev_err("sensor_write err at sensor_s_vflip!\n");
 		return ret;
 	}
-	msleep(100);
+	mdelay(100);
 	info->vflip = value;
 	return 0;
 }
@@ -1549,7 +1549,7 @@ static int sensor_s_brightness(struct v4l2_subdev *sd, int value)
 		csi_dev_err("sensor_write_array err at sensor_s_brightness!\n");
 		return ret;
 	}
-	msleep(10);
+	mdelay(10);
 	info->brightness = value;
 	return 0;
 }
@@ -1603,7 +1603,7 @@ static int sensor_s_contrast(struct v4l2_subdev *sd, int value)
 		csi_dev_err("sensor_write_array err at sensor_s_contrast!\n");
 		return ret;
 	}
-	msleep(10);
+	mdelay(10);
 	info->contrast = value;
 	return 0;
 }
@@ -1657,7 +1657,7 @@ static int sensor_s_saturation(struct v4l2_subdev *sd, int value)
 		csi_dev_err("sensor_write_array err at sensor_s_saturation!\n");
 		return ret;
 	}
-	msleep(10);
+	mdelay(10);
 	info->saturation = value;
 	return 0;
 }
@@ -1711,7 +1711,7 @@ static int sensor_s_exp(struct v4l2_subdev *sd, int value)
 		csi_dev_err("sensor_write_array err at sensor_s_exp!\n");
 		return ret;
 	}
-	msleep(10);
+	mdelay(10);
 	info->exp = value;
 	return 0;
 }
@@ -1768,7 +1768,7 @@ static int sensor_s_wb(struct v4l2_subdev *sd,
 		csi_dev_err("sensor_s_wb error, return %x!\n",ret);
 		return ret;
 	}
-	msleep(10);
+	mdelay(10);
 	info->wb = value;
 	return 0;
 }
@@ -1828,7 +1828,7 @@ static int sensor_s_colorfx(struct v4l2_subdev *sd,
 		csi_dev_err("sensor_s_colorfx error, return %x!\n",ret);
 		return ret;
 	}
-	msleep(10);
+	mdelay(10);
 	info->clrfx = value;
 	return 0;
 }

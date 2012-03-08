@@ -12,3 +12,4 @@ obj-$(CONFIG_CSI_GC0307)					+= gc0307.o
 obj-$(CONFIG_CSI_OV5640)					+= ov5640.o
 obj-$(CONFIG_CSI_GC2015)					+= gc2015.o
 obj-$(CONFIG_CSI_OV2643)					+= ov2643.o
+obj-$(CONFIG_CSI_GC0329)					+= gc0329.o
