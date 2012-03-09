@@ -320,10 +320,9 @@ int codec_rd_control(u32 reg, u32 bit, u32 *val)
 * @codec	SoC Audio Codec
 * Reset the codec, set the register of codec default value
 * Return 0 for success
-* enable the pa first, then open the pa pin
 */
 static  int codec_init(void)
-{	
+{
 	//enable dac digital 
 	codec_wr_control(SUN5I_DAC_DPC, 0x1, DAC_EN, 0x1);  
 
@@ -332,18 +331,17 @@ static  int codec_init(void)
 	codec_wr_control(SUN5I_DAC_ACTL, 0x1, PA_MUTE, 0x0);
 	//enable PA
 	codec_wr_control(SUN5I_ADC_ACTL, 0x1, PA_ENABLE, 0x1);
-	msleep(600);
-	printk("%s, line:%d\n", __func__, __LINE__);
-	gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");
 	codec_wr_control(SUN5I_DAC_FIFOC, 0x3, DRA_LEVEL,0x3);
 
 	codec_wr_control(SUN5I_DAC_ACTL, 0x6, VOLUME, 0x3b);
- 
+
 	return 0;
 }
 
 static int codec_play_open(struct snd_pcm_substream *substream)
 {	
+	codec_wr_control(SUN5I_DAC_ACTL, 0x1, PA_MUTE, 0x0);
+	gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");
 	codec_wr_control(SUN5I_DAC_DPC ,  0x1, DAC_EN, 0x1);  
 	codec_wr_control(SUN5I_DAC_FIFOC ,0x1, DAC_FIFO_FLUSH, 0x1);
 	//set TX FIFO send drq level
@@ -388,7 +386,7 @@ static int codec_capture_open(void)
 }
 
 static int codec_play_start(void)
-{
+{	
 	//flush TX FIFO
 	codec_wr_control(SUN5I_DAC_FIFOC ,0x1, DAC_FIFO_FLUSH, 0x1);
 	//enable dac drq
@@ -398,7 +396,7 @@ static int codec_play_start(void)
 
 static int codec_play_stop(void)
 {	
-	//pa mute	
+	//pa mute
 	codec_wr_control(SUN5I_DAC_ACTL, 0x1, PA_MUTE, 0x0);
 	mdelay(5);
 	//disable dac drq
@@ -413,7 +411,6 @@ static int codec_play_stop(void)
 static int codec_capture_start(void)
 {
 	//enable adc drq
-	gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");
 	codec_wr_control(SUN5I_ADC_FIFOC ,0x1, ADC_DRQ, 0x1);
 	return 0;
 }
@@ -1214,7 +1211,7 @@ void snd_sun5i_codec_free(struct snd_card *card)
 {
   
 }
-/** enable the pa first-->sleep 550ms--> then open the pa pin*/
+
 static void codec_resume_events(struct work_struct *work)
 {
 	printk("%s,%d\n",__func__,__LINE__);
@@ -1230,7 +1227,6 @@ static void codec_resume_events(struct work_struct *work)
 	codec_wr_control(SUN5I_DAC_ACTL, 0x1, 	DACPAS, 0x1);	
     msleep(50);
 	printk("====pa turn on===\n");	
-	gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");		
 }
 
 static int __init sun5i_codec_probe(struct platform_device *pdev)
@@ -1336,7 +1332,7 @@ static int __init sun5i_codec_probe(struct platform_device *pdev)
 	}
 	 gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");	
 	 codec_init(); 
-	// gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");	 
+	 gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");	 
 	 resume_work_queue = create_singlethread_workqueue("codec_resume");
 	 if (resume_work_queue == NULL) {
         printk("[su4i-codec] try to create workqueue for codec failed!\n");
