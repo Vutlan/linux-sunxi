@@ -1725,13 +1725,14 @@ static irqreturn_t serial8250_interrupt(int irq, void *dev_id)
 			 * interrupt meaning an LCR write attempt occurred while the
 			 * UART was busy. The interrupt must be cleared by reading
 			 * the UART status register (USR) and the LCR re-written. */
-			unsigned int status;
-			DEBUG_SERIAL(&up->port, "bus busy...\n");
-			printk(">>> bus busy...\n");
+			unsigned int mcr_t = serial_in(up, UART_MCR);
+			printk(">>> ttyS%d bus busy...\n", up->port.line);
 			//status = *(volatile u32 *)up->port.private_data;
-			status = serial_in(up, UART_USR);
+                        serial_out(up, UART_MCR, mcr_t|(1<<4));
+			while (serial_in(up, UART_USR)&1)
+                                serial_in(up, UART_RX);
 			serial_out(up, UART_LCR, up->lcr);
-
+                        serial_out(up, UART_MCR, mcr_t);
 			handled = 1;
 
 			end = NULL;
