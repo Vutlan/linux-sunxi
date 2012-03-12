@@ -147,3 +147,12 @@ config CSI_GC0329
 	---help---
 	  This is a Video4Linux2 sensor-level driver for the GalaxyCore
 	  GC0329 VGA camera.
+
+config CSI_GC0309
+	tristate "GalaxyCore GC0309 VGA sensor support"
+	default m
+	depends on I2C && VIDEO_V4L2
+	select	CSI_DEV_SEL
+	---help---
+	  This is a Video4Linux2 sensor-level driver for the GalaxyCore
+	  GC0309 VGA camera.

@@ -1,10 +1,10 @@
 ===========================================
 
-Version: V1_32
+Version: V1_33
 
 Author:  raymonxiu
 
-Date:     2012-3-8 17:10:42
+Date:     2012-3-12 10:03:49
 
 Description:
 
@@ -24,6 +24,13 @@ insmod sun4i_csiX.ko ccm="ov5640" i2c_addr=0x78
 insmod sun4i_csiX.ko ccm="gc2015" i2c_addr=0x60
 insmod sun4i_csiX.ko ccm="ov2643" i2c_addr=0x60
 insmod sun4i_csiX.ko ccm="gc0329" i2c_addr=0x62
+insmod sun4i_csiX.ko ccm="gc0309" i2c_addr=0x42
+
+V1_33
+CSI: Fix bugs and add new module gc0309 support 
+1) Fix gc0308 AWB recovery
+2) Fix ov2643 UXGA flicker
+3) Add new module gc0309
 
 V1_32
 CSI: Optimizing for CTS test and fix bug

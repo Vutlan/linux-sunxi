@@ -423,10 +423,10 @@ static struct regval_list sensor_default_regs[] = {
  * The white balance enalbe bit is modified in sensor_s_autowb and sensor_s_wb
  */
 static struct regval_list sensor_wb_auto_regs[] = {
-	{{0x22},{0x57}},
-	{{0x5a},{0x56}},
+	{{0x5a},{0x56}},//for AWB can adjust back, first write the RGB wb gain, and then enable AWB
 	{{0x5b},{0x40}},
-	{{0x5c},{0x4a}}
+	{{0x5c},{0x4a}},
+	{{0x22},{0x57}}
 };
 
 static struct regval_list sensor_wb_cloud_regs[] = {
