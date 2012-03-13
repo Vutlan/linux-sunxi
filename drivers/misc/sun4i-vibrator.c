@@ -100,40 +100,42 @@ static struct timed_output_dev sun4i_vibrator = {
 
 static int __init sun4i_vibrator_init(void)
 {
-	int vibe_used;
+	__u32 vibe_used;
 	int err = -1;
+	script_parser_value_type_t type = SCIRPT_PARSER_VALUE_TYPE_GPIO_WORD;
 
 	pr_info("hello, sun4i_vibrator init\n");
-	err = script_parser_fetch("motor_para", "motor_used", 
-					&vibe_used, sizeof(vibe_used)/sizeof(int));
-	if(err) {
-		pr_err("%s script_parser_fetch \"motor_para\" \"motor_used\" error = %d\n",
-				__FUNCTION__, err);
-		goto exit;
+	
+	if(SCRIPT_PARSER_OK != (err = script_parser_fetch("motor_para", "motor_used", &vibe_used, 1))){
+	                pr_err("%s: script_parser_fetch err.ret = %d. \n", __func__, err);
+	                goto exit;
 	}
-
-	if(!vibe_used) {
-		pr_err("%s motor is not used in config\n", __FUNCTION__);
-		err = -1;
-		goto exit;
-	}
-
-	err = script_parser_fetch("motor_para", "motor_shake",
-					(int *)&vibe_gpio, sizeof(vibe_gpio)/sizeof(int));
-
-	if(err) {
-		pr_err("%s script_parser_fetch \"motor_para\" \"motor_shaked\" error = %d\n",
-				__FUNCTION__, err);
-		goto exit;
-	}
-
-	vibe_off = vibe_gpio.data;
-	pr_debug("vibe_off is %d\n", vibe_off);
-
-	vibe_gpio_handler = gpio_request_ex("motor_para", "motor_shake");
-
-	if(!vibe_gpio_handler) {
-		pr_err("%s request motor gpio err\n", __FUNCTION__);
+	if(1 == vibe_used){
+		err = script_parser_fetch_ex("motor_para", "motor_shake",
+						(int *)&vibe_gpio, &type, sizeof(vibe_gpio)/sizeof(__u32));
+	
+		if(err) {
+			pr_err("%s script_parser_fetch \"motor_para\" \"motor_shaked\" error = %d\n",
+					__FUNCTION__, err);
+			goto exit;
+		}
+	
+		vibe_off = vibe_gpio.data;
+		pr_info("vibe_off is %d vibe_gpio.port = 0x%x. vibe_gpio.port_num = 0x%x\n", \
+			vibe_gpio.port, vibe_gpio.port_num, vibe_off);
+	
+		vibe_gpio_handler = gpio_request_ex("motor_para", "motor_shake");
+	
+		if(!vibe_gpio_handler) {
+			pr_err("%s request motor gpio err\n", __FUNCTION__);
+			err = -1;
+			goto exit;
+		}
+		
+		err = 0;
+		
+	}else{
+		pr_err("%s: motor_unused. \n",  __func__);
 		err = -1;
 		goto exit;
 	}
@@ -148,6 +150,7 @@ static int __init sun4i_vibrator_init(void)
 	timed_output_dev_register(&sun4i_vibrator);
 
 exit:
+	pr_info("=========script_parser_fetch_err============\n");
 	return err;
 }
 
