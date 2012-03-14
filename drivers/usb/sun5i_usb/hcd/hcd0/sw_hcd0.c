@@ -244,7 +244,7 @@ static s32 close_usb_clock(sw_hcd_io_t *sw_hcd_io)
 	if(sw_hcd_io->sie_clk && sw_hcd_io->phy_clk && sw_hcd_io->phy0_clk && sw_hcd_io->clk_is_open){
 		  clk_reset(sw_hcd_io->phy0_clk, 1);
 	    clk_disable(sw_hcd_io->phy0_clk);
-	    //clk_disable(sw_hcd_io->phy_clk);
+	    clk_disable(sw_hcd_io->phy_clk);
 	    clk_disable(sw_hcd_io->sie_clk);
 		sw_hcd_io->clk_is_open = 0;
 	}else{

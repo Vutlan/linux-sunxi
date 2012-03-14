@@ -122,7 +122,7 @@ u32 close_usb_clock(sw_udc_io_t *sw_udc_io)
 
 	    clk_reset(sw_udc_io->phy0_clk, 1);
 	    clk_disable(sw_udc_io->phy0_clk);
-	    //clk_disable(sw_udc_io->phy_clk);
+	    clk_disable(sw_udc_io->phy_clk);
 	    clk_disable(sw_udc_io->sie_clk);
 	}else{
 		DMSG_PANIC("ERR: clock handle is null, sie_clk(0x%p), phy_clk(0x%p), phy0_clk(0x%p), open(%d)\n",
