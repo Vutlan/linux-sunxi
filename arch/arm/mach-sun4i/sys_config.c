@@ -444,7 +444,7 @@ int script_parser_mainkey_get_gpio_count(char *main_name)
 
     return gpio_count;
 }
-
+EXPORT_SYMBOL(script_parser_mainkey_get_gpio_count);
 int script_parser_mainkey_get_gpio_cfg(char *main_name, void *gpio_cfg, int gpio_count)
 {
     char   main_bkname[32];
