@@ -17,7 +17,7 @@ EXTRA_CFLAGS += -Wno-uninitialized
 
 EXTRA_CFLAGS += -I$(src)/include
 
-CONFIG_AUTOCFG_CP = y
+CONFIG_AUTOCFG_CP = n
 
 CONFIG_RTL8192C = y
 CONFIG_RTL8192D = n
