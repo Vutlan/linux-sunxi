@@ -15,50 +15,50 @@ static	__s32 lcd_spi_module = -1;
 	
 void LCD_SPI_Init(__u32 sel)
 {
-		if( SCRIPT_PARSER_OK != script_parser_fetch("lcd_spi_para", "lcd_spi_used", &lcd_spi_used, 1) ){
-			 printk("LCD SPI doesn't use.\n");
+		if( SCRIPT_PARSER_OK != OSAL_Script_FetchParser_Data("lcd_spi_para", "lcd_spi_used", &lcd_spi_used, 1) ){
+			 __inf("LCD SPI doesn't use.\n");
 			 return;
 		}
 		if (0 == lcd_spi_used){
-			 printk("LCD SPI doesn't use.\n");
+			 __inf("LCD SPI doesn't use.\n");
 			 return;
 		}
-		if( SCRIPT_PARSER_OK != script_parser_fetch("lcd_spi_para", "lcd_spi_module", &lcd_spi_module, 1) ){
-			pr_err("There is no LCD SPI module input.\n");
+		if( SCRIPT_PARSER_OK != OSAL_Script_FetchParser_Data("lcd_spi_para", "lcd_spi_module", &lcd_spi_module, 1) ){
+			__wrn("There is no LCD SPI module input.\n");
 			return;
 		}
 		
-		lcd_spi_cs = gpio_request_ex("lcd_spi_para", "lcd_spi_cs");
+		lcd_spi_cs = OSAL_GPIO_Request_Ex("lcd_spi_para", "lcd_spi_cs");
 		if(!lcd_spi_cs) {
-			pr_err("request gpio lcd_spi_cs error.\n");
+			__wrn("request gpio lcd_spi_cs error.\n");
 			goto ERR1;
 		}
-		lcd_spi_clk = gpio_request_ex("lcd_spi_para", "lcd_spi_clk");
+		lcd_spi_clk = OSAL_GPIO_Request_Ex("lcd_spi_para", "lcd_spi_clk");
 		if(!lcd_spi_clk) {
-			pr_err("request gpio lcd_spi_clk error.\n");
+			__wrn("request gpio lcd_spi_clk error.\n");
 			goto ERR2;
 		}
-		lcd_spi_mosi = gpio_request_ex("lcd_spi_para", "lcd_spi_mosi");
+		lcd_spi_mosi = OSAL_GPIO_Request_Ex("lcd_spi_para", "lcd_spi_mosi");
 		if(!lcd_spi_mosi) {
-			pr_err("request gpio lcd_spi_mosi error.\n");
+			__wrn("request gpio lcd_spi_mosi error.\n");
 			goto ERR3;
 		}
 	  return;
 	  
 #ifdef SPI_DATA_PRINT		
-		printk("release GPIO src : lcd_spi_mosi\n");
+		__inf("release GPIO src : lcd_spi_mosi\n");
 #endif	
-		gpio_release(lcd_spi_mosi, 2);
+		OSAL_GPIO_Release(lcd_spi_mosi, 2);
 ERR3:
 #ifdef SPI_DATA_PRINT		
-		printk("release GPIO src : lcd_spi_clk\n");
+		__inf("release GPIO src : lcd_spi_clk\n");
 #endif		
-		gpio_release(lcd_spi_clk, 2);
+		OSAL_GPIO_Release(lcd_spi_clk, 2);
 ERR2:
 #ifdef SPI_DATA_PRINT		
-		printk("release GPIO src : lcd_spi_cs\n");
+		__inf("release GPIO src : lcd_spi_cs\n");
 #endif		
-		gpio_release(lcd_spi_cs, 2);
+		OSAL_GPIO_Release(lcd_spi_cs, 2);
 ERR1:
     return;
 }
@@ -79,74 +79,74 @@ void LCD_SPI_Write(__u32 sel)
 						0x00ad,	//display on
 						};		
 #ifdef SPI_DATA_PRINT	
-	printk("============ start LCD SPI data write, module = %d============\n", lcd_spi_module);
+	__inf("============ start LCD SPI data write, module = %d============\n", lcd_spi_module);
 #endif
 	switch(lcd_spi_module)
 	{
 		case 0: // rili 7inch
 		{
 			for(i = 0; i < 8; i++) {
-				gpio_write_one_pin_value(lcd_spi_cs, 0, "lcd_spi_cs");
+				OSAL_GPIO_DevWRITE_ONEPIN_DATA(lcd_spi_cs, 0, "lcd_spi_cs");
 #ifdef SPI_DATA_PRINT				
-				printk("write data[%d]:", i);
+				__inf("write data[%d]:", i);
 #endif				
 				for(j = 0; j < 16; j++) {
-					gpio_write_one_pin_value(lcd_spi_clk, 0, "lcd_spi_clk");
+					OSAL_GPIO_DevWRITE_ONEPIN_DATA(lcd_spi_clk, 0, "lcd_spi_clk");
 					offset = 15 - j;
 					bit_val = (0x0001 & (data[i]>>offset));
-					ret = gpio_write_one_pin_value(lcd_spi_mosi, bit_val, "lcd_spi_mosi");
+					ret = OSAL_GPIO_DevWRITE_ONEPIN_DATA(lcd_spi_mosi, bit_val, "lcd_spi_mosi");
 #ifdef SPI_DATA_PRINT					
 					if(ret == 0)
-						printk("%d-", bit_val);
+						__inf("%d-", bit_val);
 					else
-						printk("write[bit:%d]ERR", j);
+						__inf("write[bit:%d]ERR", j);
 #endif						
-					udelay(CMD_WIRTE_DELAY);
-					gpio_write_one_pin_value(lcd_spi_clk, 1, "lcd_spi_clk");
-					udelay(CMD_WIRTE_DELAY);
+					LCD_delay_us(CMD_WIRTE_DELAY);
+					OSAL_GPIO_DevWRITE_ONEPIN_DATA(lcd_spi_clk, 1, "lcd_spi_clk");
+					LCD_delay_us(CMD_WIRTE_DELAY);
 				}
 #ifdef SPI_DATA_PRINT				
-				printk("\n");
+				__inf("\n");
 #endif				
-				gpio_write_one_pin_value(lcd_spi_cs, 1, "lcd_spi_cs");
-				gpio_write_one_pin_value(lcd_spi_clk, 1, "lcd_spi_clk");
-				udelay(CMD_WIRTE_DELAY);
+				OSAL_GPIO_DevWRITE_ONEPIN_DATA(lcd_spi_cs, 1, "lcd_spi_cs");
+				OSAL_GPIO_DevWRITE_ONEPIN_DATA(lcd_spi_clk, 1, "lcd_spi_clk");
+				LCD_delay_us(CMD_WIRTE_DELAY);
 			}			
-			mdelay(50);			
-			gpio_write_one_pin_value(lcd_spi_cs, 0, "lcd_spi_cs");
+			LCD_delay_ms(50);			
+			OSAL_GPIO_DevWRITE_ONEPIN_DATA(lcd_spi_cs, 0, "lcd_spi_cs");
 #ifdef SPI_DATA_PRINT			
-			printk("write data[8]:");
+			__inf("write data[8]:");
 #endif			
 			for(j = 0; j < 16; j++) {
-					gpio_write_one_pin_value(lcd_spi_clk, 0, "lcd_spi_clk");
+					OSAL_GPIO_DevWRITE_ONEPIN_DATA(lcd_spi_clk, 0, "lcd_spi_clk");
 					offset = 15 - j;
 					bit_val = (0x0001 & (data[i]>>offset));
-					ret = gpio_write_one_pin_value(lcd_spi_mosi, bit_val, "lcd_spi_mosi");
+					ret = OSAL_GPIO_DevWRITE_ONEPIN_DATA(lcd_spi_mosi, bit_val, "lcd_spi_mosi");
 #ifdef SPI_DATA_PRINT					
 					if(ret == 0)
-						printk("%d-", bit_val);
+						__inf("%d-", bit_val);
 					else
-						printk("write[bit:%d]ERR", j);
+						__inf("write[bit:%d]ERR", j);
 #endif						
-					udelay(CMD_WIRTE_DELAY);
-					gpio_write_one_pin_value(lcd_spi_clk, 1, "lcd_spi_clk");
-					udelay(CMD_WIRTE_DELAY);
+					LCD_delay_us(CMD_WIRTE_DELAY);
+					OSAL_GPIO_DevWRITE_ONEPIN_DATA(lcd_spi_clk, 1, "lcd_spi_clk");
+					LCD_delay_us(CMD_WIRTE_DELAY);
 				}
 #ifdef SPI_DATA_PRINT				
-			printk("\n");
+			__inf("\n");
 #endif			
-			gpio_write_one_pin_value(lcd_spi_cs, 1, "lcd_spi_cs");
-			gpio_write_one_pin_value(lcd_spi_clk, 1, "lcd_spi_clk");
-			udelay(CMD_WIRTE_DELAY);	
+			OSAL_GPIO_DevWRITE_ONEPIN_DATA(lcd_spi_cs, 1, "lcd_spi_cs");
+			OSAL_GPIO_DevWRITE_ONEPIN_DATA(lcd_spi_clk, 1, "lcd_spi_clk");
+			LCD_delay_us(CMD_WIRTE_DELAY);	
 #ifdef SPI_DATA_PRINT				
-			printk("========== LCD SPI data translation finished ===========\n");			
+			__inf("========== LCD SPI data translation finished ===========\n");			
 #endif				
 			break;
 		}
 		default:
 		{
 #ifdef SPI_DATA_PRINT							
-			printk("%s Unknow lcd_spi_module\n", __func__);	
+			__inf("%s Unknow lcd_spi_module\n", __func__);	
 #endif			
 			break;
 		}
@@ -157,22 +157,22 @@ void LCD_SPI_Dinit(__u32 sel)
 {
 		
 #ifdef SPI_DATA_PRINT		
-		printk("release GPIO src : lcd_spi_mosi\n");
+		__inf("release GPIO src : lcd_spi_mosi\n");
 #endif	
 	  if (lcd_spi_mosi){
-		    gpio_release(lcd_spi_mosi, 2);
+		    OSAL_GPIO_Release(lcd_spi_mosi, 2);
 	  }
 #ifdef SPI_DATA_PRINT		
-		printk("release GPIO src : lcd_spi_clk\n");
+		__inf("release GPIO src : lcd_spi_clk\n");
 #endif	
 		if (lcd_spi_clk){
-			gpio_release(lcd_spi_clk, 2);
+			OSAL_GPIO_Release(lcd_spi_clk, 2);
 	  }
 #ifdef SPI_DATA_PRINT		
-		printk("release GPIO src : lcd_spi_cs\n");
+		__inf("release GPIO src : lcd_spi_cs\n");
 #endif		
 		if (lcd_spi_cs){
-				gpio_release(lcd_spi_cs, 2);
+				OSAL_GPIO_Release(lcd_spi_cs, 2);
 		}
 }
 //-----------------------------------------------------------------------

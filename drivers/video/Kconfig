@@ -283,9 +283,9 @@ config LYCHEE_LCD_DEFAULT
         bool "lcd_default"
         select LCD_DEFAULT
         
-config LYCHEE_LCD_MID9742
-        bool "lcd_mid9742"
-        select LCD_MID9742
+config LYCHEE_LCD_AINOL_AUROTA
+        bool "ainol_aurota"
+        select LCD_AINOL_AUROTA
         
 endchoice
         

@@ -1,5 +1,5 @@
 
-#include "../lcd_panel_cfg.h"
+#include "lcd_panel_cfg.h"
 
 //delete this line if you want to use the lcd para define in sys_config1.fex
 //#define LCD_PARA_USE_CONFIG

@@ -736,6 +736,36 @@ static int Fb_release(struct fb_info *info, int user)
 	return 0;
 }
 
+
+static int Fb_wait_for_vsync(struct fb_info *info)
+{
+	unsigned long count;
+	__u32 sel = 0;
+	int ret;
+
+    for(sel = 0; sel < 2; sel++)
+    {
+        if(((sel==0) && (g_fbi.fb_mode[info->node] != FB_MODE_SCREEN1))
+            || ((sel==1) && (g_fbi.fb_mode[info->node] != FB_MODE_SCREEN0)))
+        {
+            if(BSP_disp_get_output_type(sel) == DISP_OUTPUT_TYPE_NONE)
+            {
+                return 0;
+            }
+            
+        	count = g_fbi.wait_count[sel];
+        	ret = wait_event_interruptible_timeout(g_fbi.wait[sel], count != g_fbi.wait_count[sel], msecs_to_jiffies(50));
+        	if (ret == 0)
+        	{
+        	    __inf("timeout\n");
+        		return -ETIMEDOUT;
+        	}
+        }
+    }
+    
+	return 0;
+}
+
 static int Fb_pan_display(struct fb_var_screeninfo *var,struct fb_info *info)
 {
 	__u32 sel = 0;
@@ -795,6 +825,9 @@ static int Fb_pan_display(struct fb_var_screeninfo *var,struct fb_info *info)
             }
         }
     }
+    
+    Fb_wait_for_vsync(info);
+    
 	return 0;
 }
 
@@ -956,35 +989,6 @@ static int Fb_cursor(struct fb_info *info, struct fb_cursor *cursor)
     return 0;
 }
 
-static int Fb_wait_for_vsync(struct fb_info *info)
-{
-	unsigned long count;
-	__u32 sel = 0;
-	int ret;
-
-    for(sel = 0; sel < 2; sel++)
-    {
-        if(((sel==0) && (g_fbi.fb_mode[info->node] != FB_MODE_SCREEN1))
-            || ((sel==1) && (g_fbi.fb_mode[info->node] != FB_MODE_SCREEN0)))
-        {
-            if(BSP_disp_get_output_type(sel) == DISP_OUTPUT_TYPE_NONE)
-            {
-                return 0;
-            }
-            
-        	count = g_fbi.wait_count[sel];
-        	ret = wait_event_interruptible_timeout(g_fbi.wait[sel], count != g_fbi.wait_count[sel], msecs_to_jiffies(50));
-        	if (ret == 0)
-        	{
-        	    __inf("timeout\n");
-        		return -ETIMEDOUT;
-        	}
-        }
-    }
-    
-	return 0;
-}
-
 __s32 DRV_disp_int_process(__u32 sel)
 {
     g_fbi.wait_count[sel]++;
@@ -1057,7 +1061,7 @@ static int Fb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 
     case FBIO_WAITFORVSYNC:
     {
-        ret = Fb_wait_for_vsync(info);
+        //ret = Fb_wait_for_vsync(info);
         break;
     }
 

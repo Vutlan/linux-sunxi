@@ -1,5 +1,5 @@
 
-#include "../lcd_panel_cfg.h"
+#include "lcd_panel_cfg.h"
 
 static void  LCD_io_init(__u32 sel);
 static void  LCD_io_exit(__u32 sel);
