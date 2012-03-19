@@ -71,6 +71,8 @@ static u32 ohci_irq_no[USB_CONTROLLER_NUM] 			= {0, SW_INT_SRC_OHCI0};
 
 static u32 usb1_set_vbus_cnt = 0;
 static u32 usb2_set_vbus_cnt = 0;
+static u32 usb_enable_passly_cnt = 0;
+static u32 usb_enable_configure_cnt = 0;
 
 #define  USB_EXTERN_PIN_LDO_MASK     200
 
@@ -749,15 +751,18 @@ static void usb_passby(struct sw_hci_hcd *sw_hci, u32 enable)
 	spin_lock_init(&lock);
 	spin_lock_irqsave(&lock, flags);
 
+
+	DMSG_INFO("usb_passby en=%d,passly=%d\n",enable, usb_enable_passly_cnt);
+
 	/*enable passby*/
-	if(enable){
+	if(enable && usb_enable_passly_cnt == 0){
     	reg_value = USBC_Readl(sw_hci->usb_vbase + SW_USB_PMU_IRQ_ENABLE);
     	reg_value |= (1 << 10);		/* AHB Master interface INCR8 enable */
     	reg_value |= (1 << 9);     	/* AHB Master interface burst type INCR4 enable */
     	reg_value |= (1 << 8);     	/* AHB Master interface INCRX align enable */
     	reg_value |= (1 << 0);     	/* ULPI bypass enable */
     	USBC_Writel(reg_value, (sw_hci->usb_vbase + SW_USB_PMU_IRQ_ENABLE));
-	}else{
+	}else if(!enable && usb_enable_passly_cnt == 1){
     	reg_value = USBC_Readl(sw_hci->usb_vbase + SW_USB_PMU_IRQ_ENABLE);
     	reg_value &= ~(1 << 10);	/* AHB Master interface INCR8 disable */
     	reg_value &= ~(1 << 9);     /* AHB Master interface burst type INCR4 disable */
@@ -765,6 +770,12 @@ static void usb_passby(struct sw_hci_hcd *sw_hci, u32 enable)
     	reg_value &= ~(1 << 0);     /* ULPI bypass disable */
     	USBC_Writel(reg_value, (sw_hci->usb_vbase + SW_USB_PMU_IRQ_ENABLE));
 	}
+
+  if(enable){
+      usb_enable_passly_cnt++;
+  }else{
+      usb_enable_passly_cnt--;
+  }
 
 	spin_unlock_irqrestore(&lock, flags);
 
@@ -794,6 +805,8 @@ static void hci_port_configure(struct sw_hci_hcd *sw_hci, u32 enable)
 	unsigned long reg_value = 0;
 	u32 usbc_sdram_hpcr = 0;
 
+	DMSG_INFO("hci_port_configure en=%d,config_cnt=%d\n",enable, usb_enable_configure_cnt);
+
 	if(sw_hci->usbc_no == 1){
 		usbc_sdram_hpcr = SW_SDRAM_REG_HPCR_USB1;
 	}else if(sw_hci->usbc_no == 2){
@@ -804,11 +817,18 @@ static void hci_port_configure(struct sw_hci_hcd *sw_hci, u32 enable)
 	}
 
 	reg_value = USBC_Readl(sw_hci->sdram_vbase + usbc_sdram_hpcr);
-	if(enable){
+	if(enable && usb_enable_configure_cnt == 0){
 		reg_value |= (1 << SW_SDRAM_BP_HPCR_ACCESS_EN);
-	}else{
+	}else if(!enable && usb_enable_configure_cnt == 1){
 		reg_value &= ~(1 << SW_SDRAM_BP_HPCR_ACCESS_EN);
 	}
+
+	if(enable){
+		usb_enable_configure_cnt++;
+  }else{
+  	usb_enable_configure_cnt--;
+  }
+
 	USBC_Writel(reg_value, (sw_hci->sdram_vbase + usbc_sdram_hpcr));
 
 	return;

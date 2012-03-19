@@ -198,8 +198,8 @@ static void sw_start_ohc(struct sw_hci_hcd *sw_ohci)
 static void sw_stop_ohc(struct sw_hci_hcd *sw_ohci)
 {
     sw_ohci->set_power(sw_ohci, 0);
-    //sw_ohci->usb_passby(sw_ohci, 0);
-    //sw_ohci->port_configure(sw_ohci, 0);
+    sw_ohci->usb_passby(sw_ohci, 0);
+    sw_ohci->port_configure(sw_ohci, 0);
 	//DMSG_INFO("sw_stop_ohc\n");
 	close_ohci_clock(sw_ohci);
 
