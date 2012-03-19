@@ -226,11 +226,11 @@ static int sw_serial_suspend(struct platform_device *dev, pm_message_t state)
 {
 	int i;
 	struct uart_port *port;
-	UART_MSG("serial8250_resume uart suspend\n");
+	UART_MSG("sw_serial_resume uart suspend\n");
 	UART_MSG("&dev->dev is 0x%x\n",&dev->dev);
 
 	for (i = 0; i < MAX_PORTS; i++) {
-		port=get_ports(i);
+		port=(struct uart_port *)get_ports(i);
 		if (port->type != PORT_UNKNOWN){
 		UART_MSG("type is 0x%x  PORT_UNKNOWN is 0x%x\n",port->type,PORT_UNKNOWN);
 		UART_MSG("port.dev is 0x%x  &dev->dev is 0x%x\n",port->dev,&dev->dev);
@@ -251,7 +251,7 @@ static int sw_serial_resume(struct platform_device *dev)
 	UART_MSG("&dev->dev is 0x%x\n",&dev->dev);
 
 	for (i = 0; i < MAX_PORTS; i++) {
-		port=get_ports(i);
+		port=(struct uart_port *)get_ports(i);
 		if (port->type != PORT_UNKNOWN){
 		UART_MSG("type is 0x%x  PORT_UNKNOWN is 0x%x\n",port->type,PORT_UNKNOWN);
 		UART_MSG("port.dev is 0x%x  &dev->dev is 0x%x\n",port->dev,&dev->dev);
@@ -265,8 +265,8 @@ static int sw_serial_resume(struct platform_device *dev)
 }
 
 static struct platform_driver sw_serial_driver = {
-    .probe  = sw_serial_probe,
-    .remove = sw_serial_remove,
+    .probe  	= sw_serial_probe,
+    .remove 	= sw_serial_remove,
 	.suspend	= sw_serial_suspend,
 	.resume		= sw_serial_resume,
     .driver = {
