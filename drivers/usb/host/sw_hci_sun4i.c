@@ -69,7 +69,10 @@ u32 usb2_drv_vbus_Handle = 0;
 
 static u32 usb1_set_vbus_cnt = 0;
 static u32 usb2_set_vbus_cnt = 0;
-
+static u32 usb1_enable_passly_cnt = 0;
+static u32 usb2_enable_passly_cnt = 0;
+static u32 usb1_enable_configure_cnt = 0;
+static u32 usb2_enable_configure_cnt = 0;
 /*
 *******************************************************************************
 *                     get_usb_cfg
@@ -603,20 +606,49 @@ static void usb_passby(struct sw_hci_hcd *sw_hci, u32 enable)
 	spin_lock_irqsave(&lock, flags);
 
 	/*enable passby*/
-	if(enable){
-    	reg_value = USBC_Readl(sw_hci->usb_vbase + SW_USB_PMU_IRQ_ENABLE);
-    	reg_value |= (1 << 10);		/* AHB Master interface INCR8 enable */
-    	reg_value |= (1 << 9);     	/* AHB Master interface burst type INCR4 enable */
-    	reg_value |= (1 << 8);     	/* AHB Master interface INCRX align enable */
-    	reg_value |= (1 << 0);     	/* ULPI bypass enable */
-    	USBC_Writel(reg_value, (sw_hci->usb_vbase + SW_USB_PMU_IRQ_ENABLE));
-	}else{
-    	reg_value = USBC_Readl(sw_hci->usb_vbase + SW_USB_PMU_IRQ_ENABLE);
-    	reg_value &= ~(1 << 10);	/* AHB Master interface INCR8 disable */
-    	reg_value &= ~(1 << 9);     /* AHB Master interface burst type INCR4 disable */
-    	reg_value &= ~(1 << 8);     /* AHB Master interface INCRX align disable */
-    	reg_value &= ~(1 << 0);     /* ULPI bypass disable */
-    	USBC_Writel(reg_value, (sw_hci->usb_vbase + SW_USB_PMU_IRQ_ENABLE));
+	if(sw_hci->usbc_no == 1){
+		reg_value = USBC_Readl(sw_hci->usb_vbase + SW_USB_PMU_IRQ_ENABLE);
+		if(enable && usb1_enable_passly_cnt == 0){
+	    	reg_value |= (1 << 10);		/* AHB Master interface INCR8 enable */
+	    	reg_value |= (1 << 9);     	/* AHB Master interface burst type INCR4 enable */
+	    	reg_value |= (1 << 8);     	/* AHB Master interface INCRX align enable */
+	    	reg_value |= (1 << 0);     	/* ULPI bypass enable */
+		}else if(!enable && usb1_enable_passly_cnt == 1){
+	    	reg_value &= ~(1 << 10);	/* AHB Master interface INCR8 disable */
+	    	reg_value &= ~(1 << 9);     /* AHB Master interface burst type INCR4 disable */
+	    	reg_value &= ~(1 << 8);     /* AHB Master interface INCRX align disable */
+	    	reg_value &= ~(1 << 0);     /* ULPI bypass disable */
+		}
+        USBC_Writel(reg_value, (sw_hci->usb_vbase + SW_USB_PMU_IRQ_ENABLE));
+
+        if(enable){
+            usb1_enable_passly_cnt++;
+        }else{
+            usb1_enable_passly_cnt--;
+        }
+	}else if(sw_hci->usbc_no == 2){
+		reg_value = USBC_Readl(sw_hci->usb_vbase + SW_USB_PMU_IRQ_ENABLE);
+		if(enable && usb2_enable_passly_cnt == 0){
+	    	reg_value |= (1 << 10);		/* AHB Master interface INCR8 enable */
+	    	reg_value |= (1 << 9);     	/* AHB Master interface burst type INCR4 enable */
+	    	reg_value |= (1 << 8);     	/* AHB Master interface INCRX align enable */
+	    	reg_value |= (1 << 0);     	/* ULPI bypass enable */
+		}else if(!enable && usb2_enable_passly_cnt == 1){
+	    	reg_value &= ~(1 << 10);	/* AHB Master interface INCR8 disable */
+	    	reg_value &= ~(1 << 9);     /* AHB Master interface burst type INCR4 disable */
+	    	reg_value &= ~(1 << 8);     /* AHB Master interface INCRX align disable */
+	    	reg_value &= ~(1 << 0);     /* ULPI bypass disable */
+		}
+	    USBC_Writel(reg_value, (sw_hci->usb_vbase + SW_USB_PMU_IRQ_ENABLE));
+
+        if(enable){
+            usb2_enable_passly_cnt++;
+        }else{
+            usb2_enable_passly_cnt--;
+        }
+    }else{
+		DMSG_PANIC("EER: unkown usbc_no(%d)\n", sw_hci->usbc_no);
+		return;
 	}
 
 	spin_unlock_irqrestore(&lock, flags);
@@ -649,20 +681,38 @@ static void hci_port_configure(struct sw_hci_hcd *sw_hci, u32 enable)
 
 	if(sw_hci->usbc_no == 1){
 		usbc_sdram_hpcr = SW_SDRAM_REG_HPCR_USB1;
+		reg_value = USBC_Readl(sw_hci->sdram_vbase + usbc_sdram_hpcr);
+		if(enable && usb1_enable_configure_cnt == 0){
+			reg_value |= (1 << SW_SDRAM_BP_HPCR_ACCESS_EN);
+		}else if(!enable && usb1_enable_configure_cnt == 1){
+			reg_value &= ~(1 << SW_SDRAM_BP_HPCR_ACCESS_EN);
+		}
+		USBC_Writel(reg_value, (sw_hci->sdram_vbase + usbc_sdram_hpcr));
+
+		if(enable){
+			usb1_enable_configure_cnt++;
+        }else{
+        	usb1_enable_configure_cnt--;
+        }
 	}else if(sw_hci->usbc_no == 2){
 		usbc_sdram_hpcr = SW_SDRAM_REG_HPCR_USB2;
+		reg_value = USBC_Readl(sw_hci->sdram_vbase + usbc_sdram_hpcr);
+		if(enable && usb2_enable_configure_cnt == 0){
+			reg_value |= (1 << SW_SDRAM_BP_HPCR_ACCESS_EN);
+		}else if(!enable && usb2_enable_configure_cnt == 1){
+			reg_value &= ~(1 << SW_SDRAM_BP_HPCR_ACCESS_EN);
+		}
+		USBC_Writel(reg_value, (sw_hci->sdram_vbase + usbc_sdram_hpcr));
+
+        if(enable){
+            usb2_enable_configure_cnt++;
+        }else{
+            usb2_enable_configure_cnt--;
+        }
 	}else{
 		DMSG_PANIC("EER: unkown usbc_no(%d)\n", sw_hci->usbc_no);
 		return;
 	}
-
-	reg_value = USBC_Readl(sw_hci->sdram_vbase + usbc_sdram_hpcr);
-	if(enable){
-		reg_value |= (1 << SW_SDRAM_BP_HPCR_ACCESS_EN);
-	}else{
-		reg_value &= ~(1 << SW_SDRAM_BP_HPCR_ACCESS_EN);
-	}
-	USBC_Writel(reg_value, (sw_hci->sdram_vbase + usbc_sdram_hpcr));
 
 	return;
 }
