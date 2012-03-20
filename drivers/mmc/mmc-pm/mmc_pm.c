@@ -20,7 +20,8 @@ static char* wifi_mod[] = {" ",
 							"swb-b23",	 /* 5 - SWB-B23(BCM4329) */
 							"hw-mw269",	 /* 6 - HW-MW269X(269/269V2/269V3) */
 							"bcm40181",  /* 7 - BCM40181(BCM4330) */
-							"bcm40183"   /* 8 - BCM40183(BCM4330) */
+							"bcm40183",  /* 8 - BCM40183(BCM4330) */
+							"rtl8723as"  /* 9 - RTL8723AS(RF-SM02B) */
 							};
 
 int mmc_pm_get_mod_type(void)
@@ -207,6 +208,9 @@ static int __devinit mmc_pm_probe(struct platform_device *pdev)
         case 8: /* BCM40183 */
             bcm40183_gpio_init();
             break;
+        case 9: /* rtl8723as */
+        	rtl8723as_gpio_init();
+        	break;
         default:
             mmc_pm_msg("Wrong sdio module select %d !!\n", ops->module_sel);
     }
@@ -244,6 +248,9 @@ static int __devexit mmc_pm_remove(struct platform_device *pdev)
             break;
         case 8: /* BCM40183 */
             bcm40183_gpio_init();
+            break;
+        case 9: /* rtl8723as */
+        	rtl8723as_gpio_init();
             break;
         default:
             mmc_pm_msg("Wrong sdio module select %d !!\n", ops->module_sel);

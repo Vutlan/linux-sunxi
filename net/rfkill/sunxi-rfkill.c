@@ -67,6 +67,13 @@ static int rfkill_set_power(void *data, bool blocked)
                 mmc_pm_gpio_ctrl("bcm40183_bt_rst", 0);
             }
             break;
+         case 9: /* realtek rtl8723as */
+            if (!blocked) {
+                mmc_pm_gpio_ctrl("rtk_rtl8723as_bt_dis", 1);
+            } else {
+                mmc_pm_gpio_ctrl("rtk_rtl8723as_bt_dis", 0);
+            }
+            break;            
         default:
             RF_MSG("no bt module matched !!\n");
     }
