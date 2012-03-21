@@ -1,11 +1,11 @@
-/* driver/misc/sunxi-dbgreg.c
+/* driver/misc/sunxi-reg.c
  *
  *  Copyright (C) 2011 Allwinner Technology Co.Ltd
  *  Tom Cubie <tangliang@allwinnertech.com>
  *
  *  www.allwinnertech.com
  *
- *  Read and write system registers in userspace.
+ *  User access to the registers driver.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -32,7 +32,7 @@
 #define sunxi_reg_dbg(x...)
 #endif
 
-
+#if 0
 static char readme[] = "This is a userspace interface to access the sunxi soc registers.\n"
                        "Usage:\n"
                        "\techo address > read           # Read the value at address\n"
@@ -43,160 +43,119 @@ static char readme[] = "This is a userspace interface to access the sunxi soc re
                        "Note: Always use hex and always use virtual address\n"
 					   "Warnning: use at your own risk\n";
 
-static ssize_t sunxi_debugreg_read_store(struct device *dev,
-				struct device_attribute *attr,
-				const char *buf, size_t count)
-{
-	unsigned long addr;
-	int err, len;
+#endif
 
-	len = strlen(buf);
+static ulong sunxi_reg_value, sunxi_reg_addr;
 
-	/* echo will append '\n', user may use 0x */
-	if( len != 9 && len != 11) {
-		printk("Invalid address length, please cat read to see readme\n");
-		return count;
-	}
-
-	err = strict_strtoul(buf, 16, &addr);
-
-	if (err) {
-		printk("Invalid value, please cat read to see readme\n");
-		return count;
-	}
-
-	if(addr < 0xf0000000) {
-		printk("Please use virtual address!!!\n");
-		return count;
-	}
-
-	printk("0x%x\n", readl(addr));
-
-	return count;
-}
-
-static ssize_t sunxi_debugreg_write_store(struct device *dev,
-				struct device_attribute *attr,
-				const char *buf, size_t count)
-{
-	unsigned long addr, value;
-	int err, len;
-	const char *s = NULL;
-	char addrstr[16];
-
-	s = strchr(buf, ':');
-	if( s == NULL) {
-		printk("Wrong format, no :, please cat write to see readme\n");
-		return count;
-	}
-
-	len = s - buf;
-	sunxi_reg_dbg("len: %d\n", len);
-
-	if( len != 8 && len != 10) {
-		printk("Invalid address length, please cat write to see readme\n");
-		return count;
-	}
-
-	strncpy(addrstr, buf, len);
-	addrstr[len] = '\0';
-
-	sunxi_reg_dbg("addrstr: %s\n", addrstr);
-
-	err = strict_strtoul(addrstr, 16, &addr);
-	sunxi_reg_dbg("addr: 0x%lx\n", addr);
-	if(err) {
-		printk("Invalid address, please cat write to see readme\n");
-		return count;
-	}
-
-	/* value starts after the : */
-	len = strlen(s+1);
-	sunxi_reg_dbg("s+1 length: %d\n", len);
-	if( len > 11) {
-		printk("Invalid value length, please cat read to see readme\n");
-		return count;
-	}
-
-	err = strict_strtoul(s+1, 16, &value);
-	sunxi_reg_dbg("value: 0x%lx\n", value);
-
-	if(err) {
-		printk("Invalid value, please cat write to see readme\n");
-		return count;
-	}
-
-	if(addr < 0xf0000000) {
-		printk("Please use virtual address!!!\n");
-		return count;
-	}
-
-	writel(value, addr);
-
-	return count;
-}
-
-static ssize_t sunxi_debugreg_show(struct device *dev,
+static ssize_t sunxi_reg_value_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, readme);
+	if(sunxi_reg_addr > 0xF0000000 && sunxi_reg_addr < 0xFFFFFFFF) {
+		sunxi_reg_value = readl(sunxi_reg_addr);
+		return sprintf(buf, "0x%lx", sunxi_reg_value);
+	} else {
+		return sprintf(buf, "Please set valid address first\n");
+	}
 }
 
-static DEVICE_ATTR(read, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
-		sunxi_debugreg_show, sunxi_debugreg_read_store);
-static DEVICE_ATTR(write, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
-		sunxi_debugreg_show, sunxi_debugreg_write_store);
+static ssize_t sunxi_reg_addr_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	if(sunxi_reg_addr > 0xF0000000 && sunxi_reg_addr < 0xFFFFFFFF) {
+		return sprintf(buf, "0x%lx", sunxi_reg_addr);
+	} else {
+		return sprintf(buf, "Invalid address\n");
+	}
+}
 
-static struct attribute *sunxi_debugreg_attributes[] = {
-	&dev_attr_read.attr,
-	&dev_attr_write.attr,
+static ssize_t sunxi_reg_value_store(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+	int err;
+
+	err = strict_strtoul(buf, 16, &sunxi_reg_value);
+
+	if (err) {
+		printk("Invalid value\n");
+		return err;
+	}
+
+	if(sunxi_reg_addr < 0xF0000000 || sunxi_reg_addr > 0xFFFFFFFF) {
+		printk("Please set valid address first\n");
+		return -1;
+	}
+
+	writel(sunxi_reg_value, sunxi_reg_addr);
+
+	return count;
+}
+
+static ssize_t sunxi_reg_addr_store(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+	int err;
+
+	err = strict_strtoul(buf, 16, &sunxi_reg_addr);
+
+	if (err) {
+		printk("Invalid address\n");
+		return err;
+	}
+
+	return count;
+}
+
+static DEVICE_ATTR(value, S_IRUGO|S_IWUSR|S_IWGRP,
+		sunxi_reg_value_show, sunxi_reg_value_store);
+static DEVICE_ATTR(address, S_IRUGO|S_IWUSR|S_IWGRP,
+		sunxi_reg_addr_show, sunxi_reg_addr_store);
+
+static struct attribute *sunxi_reg_attributes[] = {
+	&dev_attr_value.attr,
+	&dev_attr_address.attr,
 	NULL
 };
 
-static struct attribute_group sunxi_debugreg_attribute_group = {
+static struct attribute_group sunxi_reg_attribute_group = {
 	.name = "rw",
-	.attrs = sunxi_debugreg_attributes
+	.attrs = sunxi_reg_attributes
 };
 
-static struct miscdevice sunxi_debugreg_dev = {
+static struct miscdevice sunxi_reg_dev = {
 	.minor =	MISC_DYNAMIC_MINOR,
-	.name =		"sunxi-dbgreg",
+	.name =		"sunxi-reg",
 };
 
-static int __init sunxi_debugreg_init(void) {
+static int __init sunxi_reg_init(void) {
 	int err;
 
 	pr_info("sunxi debug register driver init\n");
 
-	err = misc_register(&sunxi_debugreg_dev);
+	err = misc_register(&sunxi_reg_dev);
 	if(err) {
 		pr_err("%s register sunxi debug register driver as misc device error\n", __FUNCTION__);
 		goto exit;
 	}
 
-	err = sysfs_create_group(&sunxi_debugreg_dev.this_device->kobj,
-						 &sunxi_debugreg_attribute_group);
-
-	if(err) {
-		pr_err("%s create sysfs failed\n", __FUNCTION__);
-		goto exit;
-	}
-
+	sysfs_create_group(&sunxi_reg_dev.this_device->kobj,
+						 &sunxi_reg_attribute_group);
 exit:
 	return err;
 }
 
-static void __exit sunxi_debugreg_exit(void) {
+static void __exit sunxi_reg_exit(void) {
 
-	sunxi_reg_dbg("bye, sun4i_debugreg exit\n");
-	misc_deregister(&sunxi_debugreg_dev);
-	sysfs_remove_group(&sunxi_debugreg_dev.this_device->kobj,
-						 &sunxi_debugreg_attribute_group);
+	sunxi_reg_dbg("Bye, sunxi_reg exit\n");
+	misc_deregister(&sunxi_reg_dev);
+	sysfs_remove_group(&sunxi_reg_dev.this_device->kobj,
+						 &sunxi_reg_attribute_group);
 }
 
-module_init(sunxi_debugreg_init);
-module_exit(sunxi_debugreg_exit);
+module_init(sunxi_reg_init);
+module_exit(sunxi_reg_exit);
 
-MODULE_DESCRIPTION("a simple sunxi debug driver");
+MODULE_DESCRIPTION("a simple sunxi register driver");
 MODULE_AUTHOR("Tom Cubie");
 MODULE_LICENSE("GPL");

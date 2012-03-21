@@ -23,6 +23,7 @@
  
 #include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/delay.h>
 #include <mach/sys_config.h>
 
 #include "mmc_pm.h"
@@ -144,6 +145,7 @@ power_change:
         usi_msg("Failed to power off USI-BM01A module!\n");
         return -1;
     }
+    mdelay(5);
     ret = gpio_write_one_pin_value(ops->pio_hdle, level, "usi_bm01a_wlbt_regon");
     if (ret) {
         usi_msg("Failed to regon off for  USI-BM01A module!\n");
@@ -179,4 +181,7 @@ void usi_bm01a_gpio_init(void)
     usi_bm01a_bt_on = 0;
     ops->gpio_ctrl = usi_bm01a_gpio_ctrl;
     ops->get_io_val = usi_bm01a_get_gpio_value;
+    #if CONFIG_CHIP_ID==1125
+    usi_bm01a_power_onoff(0);
+    #endif
 }

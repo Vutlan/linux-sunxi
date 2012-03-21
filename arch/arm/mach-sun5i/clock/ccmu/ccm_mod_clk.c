@@ -22,6 +22,7 @@
 #include <linux/err.h>
 #include <linux/clk.h>
 #include <mach/clock.h>
+#include <mach/dram.h>
 #include "ccm_i.h"
 
 #define make_mod_clk_inf(clk_id, clk_name)  {.id = clk_id, .name = clk_name, }
@@ -1093,6 +1094,8 @@ static __s32 mod_clk_set_parent(__aw_ccu_mod_clk_e id, __aw_ccu_sys_clk_e parent
 */
 static __s32 mod_clk_set_status(__aw_ccu_mod_clk_e id, __aw_ccu_clk_onff_e status)
 {
+    volatile __dram_host_cfg_reg_t *dram_host = (__dram_host_cfg_reg_t *)DRAM_HOST_CFG_BASE;
+
     switch(id)
     {
         case AW_MOD_CLK_NFC:
@@ -1317,21 +1320,26 @@ static __s32 mod_clk_set_status(__aw_ccu_mod_clk_e id, __aw_ccu_clk_onff_e statu
             aw_ccu_reg->Apb1Gate.Uart3Gate = (status == AW_CCU_CLK_OFF)? 0 : 1;
             return 0;
         case AW_MOD_CLK_SDRAM_VE:
+            dram_host[DRAM_HOST_VE].AcsEn = (status == AW_CCU_CLK_OFF)? 0 : 1;
             aw_ccu_reg->DramGate.VeGate = (status == AW_CCU_CLK_OFF)? 0 : 1;
             return 0;
         case AW_MOD_CLK_SDRAM_CSI0:
+            dram_host[DRAM_HOST_CSI].AcsEn = (status == AW_CCU_CLK_OFF)? 0 : 1;
             aw_ccu_reg->DramGate.Csi0Gate = (status == AW_CCU_CLK_OFF)? 0 : 1;
             return 0;
         case AW_MOD_CLK_SDRAM_TS:
+            dram_host[DRAM_HOST_TSDM].AcsEn = (status == AW_CCU_CLK_OFF)? 0 : 1;
             aw_ccu_reg->DramGate.TsGate = (status == AW_CCU_CLK_OFF)? 0 : 1;
             return 0;
         case AW_MOD_CLK_SDRAM_TVE0:
             aw_ccu_reg->DramGate.Tve0Gate = (status == AW_CCU_CLK_OFF)? 0 : 1;
             return 0;
         case AW_MOD_CLK_SDRAM_DEFE0:
+            dram_host[DRAM_HOST_FE].AcsEn = (status == AW_CCU_CLK_OFF)? 0 : 1;
             aw_ccu_reg->DramGate.DeFe0Gate = (status == AW_CCU_CLK_OFF)? 0 : 1;
             return 0;
         case AW_MOD_CLK_SDRAM_DEBE0:
+            dram_host[DRAM_HOST_BE].AcsEn = (status == AW_CCU_CLK_OFF)? 0 : 1;
             aw_ccu_reg->DramGate.DeBe0Gate = (status == AW_CCU_CLK_OFF)? 0 : 1;
             return 0;
 
@@ -1342,6 +1350,7 @@ static __s32 mod_clk_set_status(__aw_ccu_mod_clk_e id, __aw_ccu_clk_onff_e statu
             aw_ccu_reg->AhbGate1.IepGate = (status == AW_CCU_CLK_OFF)? 0 : 1;
             return 0;
         case AW_MOD_CLK_SDRAM_IEP:
+            dram_host[DRAM_HOST_IEP].AcsEn = (status == AW_CCU_CLK_OFF)? 0 : 1;
             aw_ccu_reg->DramGate.IepGate = (status == AW_CCU_CLK_OFF)? 0 : 1;
             return 0;
 
@@ -1601,17 +1610,10 @@ static __s32 mod_clk_set_reset(__aw_ccu_mod_clk_e id, __aw_ccu_clk_reset_e reset
         case AW_MOD_CLK_USBPHY:
         case AW_MOD_CLK_USBOHCI0:
             return (reset == AW_CCU_CLK_NRESET)? 0 : -1;
-
         case AW_MOD_CLK_USBPHY0:
-        {
-            aw_ccu_reg->UsbClk.UsbPhy0Rst = (reset == AW_CCU_CLK_RESET)? 0 : 1;
-            return 0;
-        }
         case AW_MOD_CLK_USBPHY1:
-        {
-            aw_ccu_reg->UsbClk.UsbPhy1Rst = (reset == AW_CCU_CLK_RESET)? 0 : 1;
             return 0;
-        }
+
         case AW_MOD_CLK_GPS:
         {
             aw_ccu_reg->GpsClk.Reset = (reset == AW_CCU_CLK_RESET)? 0 : 1;

@@ -35,6 +35,9 @@
 #include <linux/buffer_head.h>
 #include <linux/pagevec.h>
 #include <trace/events/writeback.h>
+#include <linux/time.h>
+#include <linux/posix-timers.h>
+#include <linux/delay.h>
 
 /*
  * After a CPU has dirtied this many pages, balance_dirty_pages_ratelimited
@@ -108,6 +111,17 @@ int block_dump;
 int laptop_mode;
 
 EXPORT_SYMBOL(laptop_mode);
+
+/* 
+* page_num_threshold unit :page;
+* trans_sleep_time unit : ms;
+*/
+int wbc_page_num_threshold = 8000;
+int wbc_trans_sleep_time = 50;
+
+EXPORT_SYMBOL(wbc_page_num_threshold);
+EXPORT_SYMBOL(wbc_trans_sleep_time);
+
 
 /* End of sysctl-exported parameters */
 
@@ -558,7 +572,19 @@ static void balance_dirty_pages(struct address_space *mapping,
 		 * up.
 		 */
 		trace_wbc_balance_dirty_start(&wbc, bdi);
+#if 1	
+		/* card atto  */
+		if(bdi_nr_reclaimable == 0 && background_thresh == 0 && dirty_thresh == 0){
+			//printk("[%s %d] \n", __FUNCTION__, __LINE__);
+			break;
+		}
+#endif
 		if (bdi_nr_reclaimable > bdi_thresh) {
+#if 1 //card exfat atto test
+			if(nr_writeback > wbc_page_num_threshold){
+				msleep(wbc_trans_sleep_time * 2); //   0.5s or 1s  or (3s overtime)
+			}
+#endif
 			writeback_inodes_wb(&bdi->wb, &wbc);
 			pages_written += write_chunk - wbc.nr_to_write;
 			trace_wbc_balance_dirty_written(&wbc, bdi);
@@ -631,7 +657,7 @@ void balance_dirty_pages_ratelimited_nr(struct address_space *mapping,
 
 	ratelimit = ratelimit_pages;
 	if (mapping->backing_dev_info->dirty_exceeded)
-		ratelimit = 8;
+		ratelimit = 128;
 
 	/*
 	 * Check the rate limiting. Also, we do not want to throttle real-time

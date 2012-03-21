@@ -68,7 +68,7 @@
 	//#define CONFIG_HW_ANTENNA_DIVERSITY	
 	#endif
 	
-	#define CONFIG_IOL
+	//#define CONFIG_IOL
 #else  //#ifndef CONFIG_MP_INCLUDED
 	#define CONFIG_MP_IWPRIV_SUPPORT	1
 #endif  //#ifndef CONFIG_MP_INCLUDED

@@ -33,7 +33,7 @@
 #define  DMSG_PRINT(stuff...)		printk(stuff)
 #define  DMSG_ERR(...)        		(DMSG_PRINT("WRN:L%d(%s):", __LINE__, __FILE__), DMSG_PRINT(__VA_ARGS__))
 
-#if 1
+#if 0
     #define DMSG_DEBUG         		DMSG_PRINT
 #else
     #define DMSG_DEBUG(...)
@@ -214,6 +214,7 @@ struct sw_hci_hcd{
 
 	u32 drv_vbus_Handle;
 	user_gpio_set_t drv_vbus_gpio_set;
+	u32 drv_vbus_gpio_valid;
 	__u32 power_flag;                   /* flag. 是否供电       */
 
     __u32 used;                         /* flag. 控制器是否被使用 */

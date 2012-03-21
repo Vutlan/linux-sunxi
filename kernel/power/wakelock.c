@@ -55,6 +55,11 @@ static struct wake_lock suspend_backoff_lock;
 
 static unsigned suspend_short_count;
 
+#ifdef CONFIG_EARLYSUSPEND_DELAY
+/* create lock for delay early suspend, to avoid system hungup */
+struct wake_lock ealysuspend_delay_work;
+#endif
+
 #ifdef CONFIG_WAKELOCK_STAT
 static struct wake_lock deleted_wake_locks;
 static ktime_t last_sleep_time_update;
@@ -307,12 +312,16 @@ static void suspend(struct work_struct *work)
 	} else {
 		suspend_short_count = 0;
 	}
-
+    /*
 	if (current_event_num == entry_event_num) {
 		if (debug_mask & DEBUG_SUSPEND)
 			pr_info("suspend: pm_suspend returned with no event\n");
 		wake_lock_timeout(&unknown_wakeup, HZ / 2);
 	}
+	*/
+
+	/* delay 5 seconds to enter standby again, by kevin, 2012-3-7 15:07 */
+	wake_lock_timeout(&unknown_wakeup, HZ * 5);
 }
 static DECLARE_WORK(suspend_work, suspend);
 
@@ -576,7 +585,10 @@ static int __init wakelocks_init(void)
 	wake_lock_init(&unknown_wakeup, WAKE_LOCK_SUSPEND, "unknown_wakeups");
 	wake_lock_init(&suspend_backoff_lock, WAKE_LOCK_SUSPEND,
 		       "suspend_backoff");
-
+#ifdef CONFIG_EARLYSUSPEND_DELAY
+	wake_lock_init(&ealysuspend_delay_work, WAKE_LOCK_SUSPEND, "suspend_delay");
+	wake_lock(&ealysuspend_delay_work);
+#endif
 	ret = platform_device_register(&power_device);
 	if (ret) {
 		pr_err("wakelocks_init: platform_device_register failed\n");
@@ -605,6 +617,9 @@ err_suspend_work_queue:
 err_platform_driver_register:
 	platform_device_unregister(&power_device);
 err_platform_device_register:
+#ifdef CONFIG_EARLYSUSPEND_DELAY
+	wake_lock_destroy(&ealysuspend_delay_work);
+#endif
 	wake_lock_destroy(&suspend_backoff_lock);
 	wake_lock_destroy(&unknown_wakeup);
 	wake_lock_destroy(&main_wake_lock);
@@ -618,6 +633,10 @@ static void  __exit wakelocks_exit(void)
 {
 #ifdef CONFIG_WAKELOCK_STAT
 	remove_proc_entry("wakelocks", NULL);
+#endif
+
+#ifdef CONFIG_EARLYSUSPEND_DELAY
+	wake_lock_destroy(&ealysuspend_delay_work);
 #endif
 	destroy_workqueue(suspend_work_queue);
 	platform_driver_unregister(&power_driver);

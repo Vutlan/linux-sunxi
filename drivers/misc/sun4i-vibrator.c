@@ -1,4 +1,4 @@
-/* Vibrator driver for sun4i platform 
+/* Vibrator driver for sun4i platform
  * ported from msm pmic vibrator driver
  *  by tom cubie <tangliang@allwinnertech.com>
  *
@@ -100,40 +100,42 @@ static struct timed_output_dev sun4i_vibrator = {
 
 static int __init sun4i_vibrator_init(void)
 {
-	int vibe_used;
+	__u32 vibe_used;
 	int err = -1;
+	script_parser_value_type_t type = SCIRPT_PARSER_VALUE_TYPE_GPIO_WORD;
 
 	pr_info("hello, sun4i_vibrator init\n");
-	err = script_parser_fetch("motor_para", "motor_used", 
-					&vibe_used, sizeof(vibe_used)/sizeof(int));
-	if(err) {
-		pr_err("%s script_parser_fetch \"motor_para\" \"motor_used\" error = %d\n",
-				__FUNCTION__, err);
-		goto exit;
+
+	if(SCRIPT_PARSER_OK != (err = script_parser_fetch("motor_para", "motor_used", &vibe_used, 1))){
+	                pr_err("%s: script_parser_fetch err.ret = %d. \n", __func__, err);
+	                goto exit;
 	}
+	if(1 == vibe_used){
+		err = script_parser_fetch_ex("motor_para", "motor_shake",
+						(int *)&vibe_gpio, &type, sizeof(vibe_gpio)/sizeof(__u32));
 
-	if(!vibe_used) {
-		pr_err("%s motor is not used in config\n", __FUNCTION__);
-		err = -1;
-		goto exit;
-	}
+		if(err) {
+			pr_err("%s script_parser_fetch \"motor_para\" \"motor_shaked\" error = %d\n",
+					__FUNCTION__, err);
+			goto exit;
+		}
 
-	err = script_parser_fetch("motor_para", "motor_shake",
-					(int *)&vibe_gpio, sizeof(vibe_gpio)/sizeof(int));
+		vibe_off = vibe_gpio.data;
+		pr_info("vibe_off is %d vibe_gpio.port = 0x%x. vibe_gpio.port_num = 0x%x\n", \
+			vibe_off, vibe_gpio.port, vibe_gpio.port_num);
 
-	if(err) {
-		pr_err("%s script_parser_fetch \"motor_para\" \"motor_shaked\" error = %d\n",
-				__FUNCTION__, err);
-		goto exit;
-	}
+		vibe_gpio_handler = gpio_request_ex("motor_para", "motor_shake");
 
-	vibe_off = vibe_gpio.data;
-	pr_debug("vibe_off is %d\n", vibe_off);
+		if(!vibe_gpio_handler) {
+			pr_err("%s request motor gpio err\n", __FUNCTION__);
+			err = -1;
+			goto exit;
+		}
 
-	vibe_gpio_handler = gpio_request_ex("motor_para", "motor_shake");
+		err = 0;
 
-	if(!vibe_gpio_handler) {
-		pr_err("%s request motor gpio err\n", __FUNCTION__);
+	}else{
+		pr_err("%s: motor_unused. \n",  __func__);
 		err = -1;
 		goto exit;
 	}
@@ -148,6 +150,7 @@ static int __init sun4i_vibrator_init(void)
 	timed_output_dev_register(&sun4i_vibrator);
 
 exit:
+	pr_info("=========script_parser_fetch_err============\n");
 	return err;
 }
 
@@ -155,7 +158,7 @@ static void __exit sun4i_vibrator_exit(void)
 {
 	pr_info("bye, sun4i_vibrator_exit\n");
 	timed_output_dev_unregister(&sun4i_vibrator);
-	gpio_release(vibe_gpio_handler, 0);	
+	gpio_release(vibe_gpio_handler, 0);
 }
 module_init(sun4i_vibrator_init);
 module_exit(sun4i_vibrator_exit);

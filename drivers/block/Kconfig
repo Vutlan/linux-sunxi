@@ -527,12 +527,6 @@ config BLK_DEV_RBD
 
 	  If unsure, say N.
 
-config SUN4I_NANDFLASH
-        depends on BLOCK && ARCH_SUN4I
-        tristate "SUN4I Nandflash Driver"
-        ---help---
-          Nand flash driver for SUN4I
-
 config SUN5I_NANDFLASH
 	depends on BLOCK && ARCH_SUN5I
 	tristate "Nandflash Driver for A12/A13"

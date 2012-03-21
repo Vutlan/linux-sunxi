@@ -5,8 +5,9 @@
 * Date    : 2011-12-07
 * Descript: dram for AW1625 chipset
 * Update  : date                auther      ver     notes
-*			2011-12-07			Berg        1.0     create file from aw1623
-*			2011-12-31			Berg		1.1		change the method of exit selfrefesh
+*			2011-12-07			Berg        1.0     create file from A10
+*			2012-01-11			Berg		1.1		kill bug for 1/2 rank decision
+*			2012-01-31			Berg		1.2		kill bug for clock frequency > 600MHz
 *********************************************************************************************************
 */
 #include "dram_i.h"
@@ -292,20 +293,20 @@ __s32 DRAMC_init(__dram_para_t *para)
     mctl_write_w(SDR_TPR1, para->dram_tpr1);
     mctl_write_w(SDR_TPR2, para->dram_tpr2);
 
-    //set mode register
-    if(para->dram_type==3)                  //ddr3
-    {
-        reg_val = 0x0;
-        reg_val |= (para->dram_cas - 4)<<4;
-        reg_val |= 0x5<<9;
-    }
-    else if(para->dram_type==2)             //ddr2
-    {
-        reg_val = 0x2;
-        reg_val |= para->dram_cas<<4;
-        reg_val |= 0x5<<9;
-    }
-    mctl_write_w(SDR_MR, reg_val);
+	//set mode register
+	if(para->dram_type==3)							//ddr3
+	{
+		reg_val = 0x1<<12;
+		reg_val |= (para->dram_cas - 4)<<4;
+		reg_val |= 0x5<<9;
+	}
+	else if(para->dram_type==2)					//ddr2
+	{
+		reg_val = 0x2;
+		reg_val |= para->dram_cas<<4;
+		reg_val |= 0x5<<9;
+	}
+	mctl_write_w(SDR_MR, reg_val);
 
     mctl_write_w(SDR_EMR, para->dram_emr1);
 	mctl_write_w(SDR_EMR2, para->dram_emr2);
@@ -446,31 +447,31 @@ void DRAMC_clock_output_en(__u32 on)
 */
 void DRAMC_set_autorefresh_cycle(__u32 clk)
 {
-    __u32 reg_val;
-    __u32 dram_size;
-    __u32 tmp_val;
+	__u32 reg_val;
+//	__u32 dram_size;
+	__u32 tmp_val;
 
-    dram_size = mctl_read_w(SDR_DCR);
-    dram_size >>=3;
-    dram_size &= 0x7;
+//	dram_size = mctl_read_w(SDR_DCR);
+//	dram_size >>=3;
+//	dram_size &= 0x7;
 
-    if(clk < 600)
-    {
-        if(dram_size<=0x2)
-            tmp_val = (131*clk)>>10;
-        else
-            tmp_val = (336*clk)>>10;
-        reg_val = tmp_val;
-        tmp_val = (7987*clk)>>10;
-        tmp_val = tmp_val*9 - 200;
-        reg_val |= tmp_val<<8;
-        reg_val |= 0x8<<24;
-        mctl_write_w(SDR_DRR, reg_val);
-    }
-    else
-    {
-        mctl_write_w(SDR_DRR, 0x0);
-    }
+//	if(clk < 600)
+	{
+//		if(dram_size<=0x2)
+//			tmp_val = (131*clk)>>10;
+//		else
+//			tmp_val = (336*clk)>>10;
+		reg_val = 0x83;
+		tmp_val = (7987*clk)>>10;
+		tmp_val = tmp_val*9 - 200;
+		reg_val |= tmp_val<<8;
+		reg_val |= 0x8<<24;
+		mctl_write_w(SDR_DRR, reg_val);
+	}
+//	else
+//   {
+//		mctl_write_w(SDR_DRR, 0x0);
+//   }
 }
 
 

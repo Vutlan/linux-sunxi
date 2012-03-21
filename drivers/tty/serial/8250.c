@@ -38,7 +38,7 @@
 #include <linux/nmi.h>
 #include <linux/mutex.h>
 #include <linux/slab.h>
-
+#include <linux/pm.h>
 #include <asm/io.h>
 #include <asm/irq.h>
 #include "8250.h"
@@ -1725,13 +1725,14 @@ static irqreturn_t serial8250_interrupt(int irq, void *dev_id)
 			 * interrupt meaning an LCR write attempt occurred while the
 			 * UART was busy. The interrupt must be cleared by reading
 			 * the UART status register (USR) and the LCR re-written. */
-			unsigned int status;
-			DEBUG_SERIAL(&up->port, "bus busy...\n");
-			printk(">>> bus busy...\n");
+			unsigned int mcr_t = serial_in(up, UART_MCR);
+			printk(">>> ttyS%d bus busy...\n", up->port.line);
 			//status = *(volatile u32 *)up->port.private_data;
-			status = serial_in(up, UART_USR);
+			serial_out(up, UART_MCR, mcr_t|(1<<4)); //to loopback mode
+                        while (serial_in(up, UART_USR)&1)
+                                serial_in(up, UART_RX);
 			serial_out(up, UART_LCR, up->lcr);
-
+                        serial_out(up, UART_MCR, mcr_t);    //to normal mode
 			handled = 1;
 
 			end = NULL;
@@ -3232,7 +3233,6 @@ static int __devinit serial8250_probe(struct platform_device *dev)
 		port.uartclk		= p->uartclk;
 		port.regshift		= p->regshift;
 		port.iotype		= p->iotype;
-		port.iotype		= UPIO_DWAPB32;
 		port.flags		= p->flags;
 		port.mapbase		= p->mapbase;
 		port.hub6		= p->hub6;
@@ -3284,6 +3284,14 @@ static int serial8250_suspend(struct platform_device *dev, pm_message_t state)
 
 	return 0;
 }
+
+int *get_ports(int number)
+{
+	struct uart_8250_port *up = &serial8250_ports[number];
+	struct uart_port *port = &(up->port);
+	return (int *)port;
+}
+EXPORT_SYMBOL(get_ports);
 
 static int serial8250_resume(struct platform_device *dev)
 {

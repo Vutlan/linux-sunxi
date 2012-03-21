@@ -12,7 +12,7 @@
  * the License, or (at your option) any later version.
  *
  */
- 
+
 #ifndef __SW_SYSTEM_H
 #define __SW_SYSTEM_H
 
@@ -42,10 +42,15 @@ static inline void arch_reset(char mode, const char *cmd)
 	#define WATCH_DOG_CTRL_REG  (SW_VA_TIMERC_IO_BASE + 0x0094)
 	*(volatile unsigned int *)WATCH_DOG_CTRL_REG = 0;
 	__delay(100000);
-	*(volatile unsigned int *)WATCH_DOG_CTRL_REG = 3;
-	while(1);
+	*(volatile unsigned int *)WATCH_DOG_CTRL_REG |= 2;
+	while(1) {
+		__delay(100);
+		*(volatile unsigned int *)WATCH_DOG_CTRL_REG |= 1;
+	}
 }
 
+
+#if 0
 enum sw_ic_ver {
 	MAGIC_VER_A = 0,
 	MAGIC_VER_B,
@@ -53,5 +58,6 @@ enum sw_ic_ver {
 };
 
 enum sw_ic_ver sw_get_ic_ver(void);
+#endif
 
 #endif

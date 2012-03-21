@@ -331,6 +331,17 @@ void clk_dbg_inf(void)
     print_clk_inf(MaliClk, ClkSrc       );
     print_clk_inf(MaliClk, Reset        );
     print_clk_inf(MaliClk, SpecClkGate  );
+
+    printk("\nMBusClk clk infor:\n");
+    print_clk_inf(MbusClk, ClkDiv       );
+    print_clk_inf(MbusClk, PreDiv       );
+    print_clk_inf(MbusClk, ClkSrc       );
+    print_clk_inf(MbusClk, ClkGate      );
+
+    printk("\nIepClkclk infor:\n");
+    print_clk_inf(IepClk, Reset         );
+    print_clk_inf(IepClk, ClkGate       );
+
 }
 EXPORT_SYMBOL(clk_dbg_inf);
 
@@ -632,6 +643,16 @@ static int ccmu_stats_show(struct seq_file *m, void *unused)
     sprintf_clk_inf(m, MaliClk, ClkSrc       );
     sprintf_clk_inf(m, MaliClk, Reset        );
     sprintf_clk_inf(m, MaliClk, SpecClkGate  );
+
+    seq_printf(m, "\nMBusClk clk infor:\n");
+    sprintf_clk_inf(m, MbusClk, ClkDiv      );
+    sprintf_clk_inf(m, MbusClk, PreDiv      );
+    sprintf_clk_inf(m, MbusClk, ClkSrc      );
+    sprintf_clk_inf(m, MbusClk, ClkGate     );
+
+    seq_printf(m, "\nIepClkclk infor:\n");
+    sprintf_clk_inf(m, IepClk, Reset        );
+    sprintf_clk_inf(m, IepClk, ClkGate      );
 
 	return 0;
 }

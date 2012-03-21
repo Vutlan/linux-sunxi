@@ -241,6 +241,7 @@ static void axp_power_off(void)
 
     //led auto
     axp_clr_bits(&axp->dev,0x32,0x38);
+	axp_clr_bits(&axp->dev,0xb9,0x80);
 
     printk("[axp] send power-off command!\n");
     mdelay(20);
@@ -294,7 +295,7 @@ static int __devinit axp_mfd_probe(struct i2c_client *client,
 		goto out_free_chip;
 
 	ret = request_irq(client->irq, axp_mfd_irq_handler,
-		IRQF_DISABLED, "axp_mfd", chip);
+		IRQF_SHARED|IRQF_DISABLED, "axp_mfd", chip);
   	if (ret) {
   		dev_err(&client->dev, "failed to request irq %d\n",
   				client->irq);

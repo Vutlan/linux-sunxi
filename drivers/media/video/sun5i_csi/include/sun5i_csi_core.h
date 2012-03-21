@@ -11,6 +11,7 @@
 #include <linux/videodev2.h>
 #include <linux/i2c.h>
 #include <media/v4l2-mediabus.h>//linux-3.0
+#include <mach/sys_config.h>
 
 //for internel driver debug
 #define DBG_EN   		0 	
@@ -227,8 +228,9 @@ typedef struct tag_CSI_SUBDEV_INFO
     __csi_ref_t        vref;        /* input vref signal polarity */
     __csi_ref_t        href;        /* input href signal polarity */
     __csi_clk_t        clock;       /* input data valid of the input clock edge type */
-    int								 iocfg;				/*0 for csi back , 1 for csi front*/				 
+    int								 iocfg;				/*0 for csi back , 1 for csi front*/				
 }__csi_subdev_info_t;
+
 struct csi_buf_addr {
 	dma_addr_t	y;
 	dma_addr_t	cb;
@@ -278,6 +280,11 @@ struct ccm_config {
 	int stby_mode;
 	int interface;
 	int flash_pol;		
+	user_gpio_set_t reset_io;
+	user_gpio_set_t standby_io;
+	user_gpio_set_t power_io;
+	user_gpio_set_t flash_io;
+	user_gpio_set_t af_power_io;
 	struct regulator 	 *iovdd;		  /*interface voltage source of sensor module*/
 	struct regulator 	 *avdd;			/*anlog voltage source of sensor module*/
 	struct regulator 	 *dvdd;			/*core voltage source of sensor module*/
@@ -342,6 +349,13 @@ struct csi_dev {
 	int vflip;
 	int hflip;
 	int flash_pol;
+	
+	/* csi io */
+	user_gpio_set_t reset_io;
+	user_gpio_set_t standby_io;
+	user_gpio_set_t power_io;
+	user_gpio_set_t flash_io;
+	user_gpio_set_t af_power_io;
 	
 	/*parameters*/
 	__csi_conf_t			csi_mode;
