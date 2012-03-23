@@ -22,6 +22,7 @@
 #include <linux/clk.h>
 #include <linux/err.h>
 #include <linux/delay.h>
+#include <asm/sched_clock.h>
 #include "aw_clocksrc.h"
 
 #undef CLKSRC_DBG
@@ -254,6 +255,45 @@ static irqreturn_t aw_clkevt_irq(int irq, void *handle)
 }
 #endif
 
+#ifdef CONFIG_HAVE_SCHED_CLOCK
+static DEFINE_CLOCK_DATA(clk_data);
+#define SC_MULT		2796202667u
+#define SC_SHIFT	26
+
+unsigned long long notrace sched_clock(void)
+{
+    unsigned long   flags;
+    __u32           cyc;
+
+    /* disable interrupt response */
+    raw_local_irq_save(flags);
+    /* latch 64bit counter and wait ready for read */
+    TMR_REG_CNT64_CTL |= (1<<1);
+    while(TMR_REG_CNT64_CTL & (1<<1));
+	cyc = TMR_REG_CNT64_LO;
+    /* restore interrupt response */
+    raw_local_irq_restore(flags);
+
+	return cyc_to_fixed_sched_clock(&clk_data, cyc, (u32)~0, SC_MULT, SC_SHIFT);
+}
+
+static void notrace sunxi_update_sched_clock(void)
+{
+    unsigned long   flags;
+    __u32           cyc;
+
+    /* disable interrupt response */
+    raw_local_irq_save(flags);
+    /* latch 64bit counter and wait ready for read */
+    TMR_REG_CNT64_CTL |= (1<<1);
+    while(TMR_REG_CNT64_CTL & (1<<1));
+	cyc = TMR_REG_CNT64_LO;
+    /* restore interrupt response */
+    raw_local_irq_restore(flags);
+
+	update_sched_clock(&clk_data, cyc, (u32)~0);
+}
+#endif
 
 /*
 *********************************************************************************************************
@@ -271,7 +311,7 @@ static irqreturn_t aw_clkevt_irq(int irq, void *handle)
 *
 *********************************************************************************************************
 */
-static int __init aw_clksrc_init(void)
+int __init aw_clksrc_init(void)
 {
     CLKSRC_DBG("all-winners clock source init!\n");
     /* we use 64bits counter as HPET(High Precision Event Timer) */
@@ -292,7 +332,11 @@ static int __init aw_clksrc_init(void)
     aw_clocksrc.mult = clocksource_hz2mult(AW_HPET_CLOCK_SOURCE_HZ, aw_clocksrc.shift);
     /* register clock source */
     clocksource_register(&aw_clocksrc);
-
+#ifdef CONFIG_HAVE_SCHED_CLOCK
+	init_fixed_sched_clock(&clk_data, sunxi_update_sched_clock, 32,
+			       AW_HPET_CLOCK_SOURCE_HZ, SC_MULT, SC_SHIFT);
+	printk("%s, line:%d\n", __func__, __LINE__);
+#endif
     return 0;
 }
 
@@ -348,7 +392,7 @@ static int __init aw_clkevt_init(void)
 }
 #endif
 
-arch_initcall(aw_clksrc_init);
+//arch_initcall(aw_clksrc_init);
 #ifdef CONFIG_HIGH_RES_TIMERS
 arch_initcall(aw_clkevt_init);
 #endif
