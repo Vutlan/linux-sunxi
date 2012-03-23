@@ -74,6 +74,7 @@ int pmu_usbvolnew = 0;
 int pmu_usbcurnew = 0;
 int axp_usbcurflag = 0;
 int axp_usbvolflag = 0;
+static int flag_cou = 0;
 
 static int change_flag = 0;
 void Cou_Count_Clear(struct	axp_charger	*charger);
@@ -1402,19 +1403,29 @@ static void axp_charging_monitor(struct work_struct *work)
 			DBG_PSY_MSG("Cur_CoulombCounter	= %d\n", Cur_CoulombCounter);
 		}
 		charger->rest_vol =	100	* (Cur_CoulombCounter) / bat_cap + saved_cap;
-
-		if((charger->rest_vol <= (BATCAPCORRATE)) && ((v[1] >> 3) & 0x1) && (!Cou_Correction_Flag)){
+		if(Cur_CoulombCounter < 0){
+			charger->rest_vol = charger->rest_vol - 1;
+		}
+		
+		if((charger->rest_vol <= (BATCAPCORRATE)) &&(!charger->ext_valid) && (!flag_cou)){
 			Cou_Correction_Flag	= 1;
-			Set_Rest_Cap(charger,rt_rest_vol);
+			flag_cou = 1;
+			Set_Rest_Cap(charger,BATCAPCORRATE);
 			axp_write(charger->master, AXP20_DATA_BUFFER5, rt_rest_vol);
 			Cou_Count_Clear(charger);
 			axp_set_bits(charger->master,AXP20_DATA_BUFFER0,0x20);
 			printk("\n ============Capacity	Calibration	Start============ \n");
 			printk("\n ============	  Rest	Capacity  =	 %d	 ============ \n",rt_rest_vol);
 		}
-
-		DBG_PSY_MSG("Before modify:charger->rest_vol = %d\n",charger->rest_vol);
-
+		
+		if(charger->rest_vol > BATCAPCORRATE){
+			flag_cou = 0;
+		}
+		
+		if(axp_debug){
+			DBG_PSY_MSG("Before modify:charger->rest_vol = %d\n",charger->rest_vol);
+		}
+		
 		if(charger->rest_vol > 100){
 			charger->rest_vol =	100;
 		} else if (charger->rest_vol < 0){
@@ -1462,9 +1473,9 @@ static void axp_charging_monitor(struct work_struct *work)
 		}
 		
 		/*电池剩余容量校正，当其大于（电池总容量校正百分+1），ocv百分比小于（电池总容量校正百分比+2），且在放电时，电池剩余容量自减*/
-		if((rt_rest_vol	< (BATCAPCORRATE + 2)) &&	(charger->rest_vol > (BATCAPCORRATE + 1)) && (charger->bat_current_direction == 0)) {
+		if((rt_rest_vol	< (BATCAPCORRATE + 3)) &&	(charger->rest_vol > (BATCAPCORRATE + 2)) && (charger->bat_current_direction == 0)) {
 			if(cap_count3 >= TIMER5) {
-				DBG_PSY_MSG("Correct4:discharging:(rt_rest_vol < %d)&&(charger->rest_vol > %d)\n",BATCAPCORRATE+2,BATCAPCORRATE+1);
+				DBG_PSY_MSG("Correct4:discharging:(rt_rest_vol < %d)&&(charger->rest_vol > %d)\n",BATCAPCORRATE+3,BATCAPCORRATE+2);
 				charger->rest_vol --;
 				saved_cap --;
 				Set_Rest_Cap(charger,saved_cap);
@@ -1527,6 +1538,13 @@ static void axp_charging_monitor(struct work_struct *work)
 	axp_reads(charger->master,0xbc,2,v);
 	charger->ocv = ((v[0] << 4)	+ (v[1]	& 0x0f)) * 11 /10 ;
 	
+	/* 电池剩余容量校正 */
+	if(!charger->ext_valid){
+		if(charger->rest_vol > pre_rest_vol){
+			charger->rest_vol = pre_rest_vol;
+		}
+	}
+	
 	if(axp_debug){
 		DBG_PSY_MSG("charger->ic_temp = %d\n",charger->ic_temp);
 		DBG_PSY_MSG("charger->vbat = %d\n",charger->vbat);
@@ -1543,6 +1561,7 @@ static void axp_charging_monitor(struct work_struct *work)
 		axp_reads(charger->master,0xba,2,v);
 		rdc = (((v[0] & 0x1F) << 8) | v[1]) * 10742 / 10000;
 		DBG_PSY_MSG("rdc = %d\n",rdc);
+		DBG_PSY_MSG("bat_cap = %d\n",bat_cap);
 		DBG_PSY_MSG("charger->is_on = %d\n",charger->is_on);
 		DBG_PSY_MSG("charger->charge_on = %d\n",charger->charge_on);
 		DBG_PSY_MSG("charger->ext_valid = %d\n",charger->ext_valid);
@@ -1558,6 +1577,7 @@ static void axp_charging_monitor(struct work_struct *work)
 			DBG_PSY_MSG("REG[0x%x] = 0x%x\n",mm+AXP20_DATA_BUFFER0,data_mm[mm]);	
 		}
 	}
+	
 	/* if battery volume changed, inform uevent */
 	if(charger->rest_vol - pre_rest_vol){
 		printk("battery vol change: %d->%d \n", pre_rest_vol, charger->rest_vol);
@@ -1766,6 +1786,7 @@ static int axp_battery_probe(struct platform_device *pdev)
 	/* initial restvol*/
 
 	/* usb current and voltage limit */
+	
 	if((pmu_usbvol) && (pmu_usbvol_limit)) {
 		axp_set_bits(charger->master, AXP20_CHARGE_VBUS, 0x40);
 		var = pmu_usbvol * 1000;
@@ -1799,7 +1820,7 @@ static int axp_battery_probe(struct platform_device *pdev)
   	} else {
 		axp_set_bits(charger->master, AXP20_CHARGE_VBUS, 0x03);
 	}
-
+	
 	/* set lowe power warning/shutdown voltage*/
 	var = script_parser_fetch("pmu_para", "pmu_suspendpwroff_vol", &pmu_suspendpwroff_vol, sizeof(int));
 	if (var) {
@@ -1971,6 +1992,9 @@ static int axp_battery_probe(struct platform_device *pdev)
 		Cur_CoulombCounter = (Get_Bat_Coulomb_Count(charger));
 		DBG_PSY_MSG("Cur_CoulombCounter	= %d\n",Cur_CoulombCounter);
 		charger->rest_vol =	100* Cur_CoulombCounter	/ bat_cap +	saved_cap;
+		if(Cur_CoulombCounter < 0){
+			charger->rest_vol = charger->rest_vol - 1;
+		}
 		if(	charger->rest_vol >	100	){
 			charger->rest_vol =	100;
 			if(Cur_CoulombCounter < bat_cap){
@@ -1987,14 +2011,15 @@ static int axp_battery_probe(struct platform_device *pdev)
 			Cou_Count_Clear(charger);
 		}
 		
-		if(!charger->is_on && charger->ext_valid && charger->charge_on){
+		if((charger->vbat > 4100) && (!charger->is_on) && (charger->ext_valid) && (charger->charge_on)){
 			charger->rest_vol = 100;
 			saved_cap = 100 - 100 * (Cur_CoulombCounter) / bat_cap;
 			Set_Rest_Cap(charger,saved_cap);
   		}
-  		if((saved_cap == BATCAPCORRATE ) && (charger->rest_vol == BATCAPCORRATE) && (!(charger->ext_valid))){
-  			charger->rest_vol = 1;
-  			saved_cap = 1;
+  		/* 改进开机体验 */
+  		if((saved_cap <= BATCAPCORRATE ) && (charger->rest_vol <= (BATCAPCORRATE + 1)) && (!(charger->ext_valid))){
+  			charger->rest_vol = BATCAPCORRATE + 1;
+  			saved_cap = BATCAPCORRATE + 1;
 			Set_Rest_Cap(charger,saved_cap);
   		}
 	}
@@ -2004,13 +2029,17 @@ static int axp_battery_probe(struct platform_device *pdev)
 	if((charger->bat_det ==	0) || (charger->rest_vol ==	127)){
 		charger->rest_vol =	100;
 	}
-
+	
+	DBG_PSY_MSG("charger->rest_vol = %d\n",charger->rest_vol);
 	charger->interval	= msecs_to_jiffies(10 *	1000);
 	INIT_DELAYED_WORK(&charger->work,	axp_charging_monitor);
 	schedule_delayed_work(&charger->work,	charger->interval);
 	
 	/* set usb cur-vol limit*/
 	INIT_DELAYED_WORK(&usbwork, axp_usb);
+	if(charger->usb_valid){
+		schedule_delayed_work(&usbwork, msecs_to_jiffies(7 * 1000));
+	}
 
 	var = script_parser_fetch("pmu_para", "pmu_earlysuspend_chgcur", &pmu_earlysuspend_chgcur, sizeof(int));
 	if (var) {
@@ -2205,7 +2234,9 @@ static int axp20_resume(struct platform_device *dev)
 
 		charger->rest_vol =	100	* (Cur_CoulombCounter) / bat_cap + saved_cap;
 		DBG_PSY_MSG("Resume:before modify:charger->rest_vol = %d\n",charger->rest_vol);
-		
+		if(Cur_CoulombCounter < 0){
+			charger->rest_vol = charger->rest_vol - 1;
+		}
 /******************************出错处理，如果初始Pre_rest_cap估计偏大，导致充电时用库仑计计算的电量大于100%**************************/
 		if(charger->rest_vol > 100) {
 			charger->rest_vol =	100;
@@ -2214,14 +2245,19 @@ static int axp20_resume(struct platform_device *dev)
 		}
 /************************************************************************************************************************************/
 
-		if((rt_rest_vol	< (BATCAPCORRATE+1)) &&	((v[1] >> 3) & 0x1)	&& (charger->bat_current_direction	== 1) && (!Cou_Correction_Flag)) {
+		if((charger->rest_vol <= (BATCAPCORRATE))&&(!charger->ext_valid)&&(!flag_cou)) {
 			Cou_Correction_Flag	= 1;
-			Set_Rest_Cap(charger,rt_rest_vol);
+			flag_cou = 1;
+			Set_Rest_Cap(charger,BATCAPCORRATE);
 			axp_write(charger->master, AXP20_DATA_BUFFER5, rt_rest_vol);
 			Cou_Count_Clear(charger);
 			axp_set_bits(charger->master,AXP20_DATA_BUFFER0,0x20);
 			printk("\n Resume=Capacity	Calibration	Start============ \n");
 			printk("\n Resume=	  Rest	Capacity  =	 %d	 ============ \n",rt_rest_vol);
+		}
+
+		if(charger->rest_vol > BATCAPCORRATE){
+			flag_cou = 0;
 		}
 
 /******************************出错处理，如果初始Pre_rest_cap估计偏小，导致充满后用库仑计计算的电量低于100%****************/
@@ -2277,6 +2313,9 @@ static int axp20_resume(struct platform_device *dev)
 
 	axp_read(charger->master, 0x8A,	&val);
 	if((val	>> 7) && (pre_rest_vol > charger->rest_vol)	&& !charger->bat_current_direction){
+		/*长时间放电休眠取消电池总容量校正*/
+		Cou_Correction_Flag	= 0;
+		axp_clr_bits(charger->master,AXP20_DATA_BUFFER0,0x20);
 		if(pre_rest_vol	> rt_rest_vol){
 			DBG_PSY_MSG("\n	correct	rest vol!!!\n");
 			charger-> rest_vol = rt_rest_vol;

@@ -712,6 +712,9 @@ static int axp_battery_adc_set(struct axp_charger *charger)
 	ret = axp_update(charger->master, AXP20_ADC_CONTROL1, val , val);
   if (ret)
     return ret;
+  ret =	axp_update(charger->master,	AXP20_COULOMB_CONTROL, AXP20_COULOMB_ENABLE	, AXP20_COULOMB_ENABLE);
+	if (ret)
+		return ret;
     ret = axp_read(charger->master, AXP20_ADC_CONTROL3, &val);
   switch (charger->sample_time/25){
   case 1: val &= ~(3 << 6);break;
@@ -1930,7 +1933,7 @@ static int axp_battery_probe(struct platform_device *pdev)
   if((charger->bat_det == 0) || (charger->rest_vol == 127)){
   	charger->rest_vol = 100;
   }
-  if(!charger->is_on && charger->ext_valid && charger->charge_on){
+  if(((charger->vbat) >= 4100) && !charger->is_on && charger->ext_valid && charger->charge_on){
 	charger->rest_vol = 100;
   }
 
@@ -1946,7 +1949,10 @@ static int axp_battery_probe(struct platform_device *pdev)
   schedule_delayed_work(&charger->work, charger->interval);
   /* set usb cur-vol limit*/
   INIT_DELAYED_WORK(&usbwork, axp_usb);
-
+  if(charger->usb_valid){
+  	schedule_delayed_work(&usbwork, msecs_to_jiffies(7 * 1000));
+  }
+  
   var = script_parser_fetch("pmu_para", "pmu_used2", &pmu_used2, sizeof(int));
   if (var)
   {
