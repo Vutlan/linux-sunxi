@@ -1581,11 +1581,9 @@ static int thread_cpu_clock_getres(const clockid_t which_clock,
 {
 	return posix_cpu_clock_getres(THREAD_CLOCK, tp);
 }
-#include <linux/delay.h>
 static int thread_cpu_clock_get(const clockid_t which_clock,
 				struct timespec *tp)
 {
-    mdelay(10);
 	return posix_cpu_clock_get(THREAD_CLOCK, tp);
 }
 static int thread_cpu_timer_create(struct k_itimer *timer)
