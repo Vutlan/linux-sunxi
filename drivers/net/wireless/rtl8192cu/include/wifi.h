@@ -639,7 +639,7 @@ __inline static int IsFrameTypeCtrl(unsigned char *pframe)
 /* block-ack parameters */
 #define IEEE80211_ADDBA_PARAM_POLICY_MASK 0x0002
 #define IEEE80211_ADDBA_PARAM_TID_MASK 0x003C
-#define IEEE80211_ADDBA_PARAM_BUF_SIZE_MASK 0xFFA0
+#define RTW_IEEE80211_ADDBA_PARAM_BUF_SIZE_MASK 0xFFA0
 #define IEEE80211_DELBA_PARAM_TID_MASK 0xF000
 #define IEEE80211_DELBA_PARAM_INITIATOR_MASK 0x0800
 
@@ -660,7 +660,7 @@ __inline static int IsFrameTypeCtrl(unsigned char *pframe)
  * described in 802.11n draft section 7.2.1.7.1
  */
  #if defined(PLATFORM_LINUX) || defined(CONFIG_RTL8712FW)
-struct ieee80211_bar {
+struct rtw_ieee80211_bar {
 	unsigned short frame_control;
 	unsigned short duration;
 	unsigned char ra[6];
@@ -678,13 +678,13 @@ struct ieee80211_bar {
  #if defined(PLATFORM_LINUX) || defined(CONFIG_RTL8712FW)
 
  /**
- * struct ieee80211_ht_cap - HT capabilities
+ * struct rtw_ieee80211_ht_cap - HT capabilities
  *
  * This structure refers to "HT capabilities element" as
  * described in 802.11n draft section 7.3.2.52
  */
  
-struct ieee80211_ht_cap {
+struct rtw_ieee80211_ht_cap {
 	unsigned short 	cap_info;
 	unsigned char 	ampdu_params_info;
 	unsigned char 	supp_mcs_set[16];
@@ -694,7 +694,7 @@ struct ieee80211_ht_cap {
 } __attribute__ ((packed));
 
 /**
- * struct ieee80211_ht_cap - HT additional information
+ * struct rtw_ieee80211_ht_cap - HT additional information
  *
  * This structure refers to "HT information element" as
  * described in 802.11n draft section 7.3.2.53
@@ -763,7 +763,7 @@ struct ADDBA_request
 
 #pragma pack(1)
 
-struct ieee80211_ht_cap {
+struct rtw_ieee80211_ht_cap {
 	unsigned short 	cap_info;
 	unsigned char 	ampdu_params_info;
 	unsigned char 	supp_mcs_set[16];
@@ -869,7 +869,7 @@ struct ADDBA_request
 /* block-ack parameters */
 #define IEEE80211_ADDBA_PARAM_POLICY_MASK 0x0002
 #define IEEE80211_ADDBA_PARAM_TID_MASK 0x003C
-#define IEEE80211_ADDBA_PARAM_BUF_SIZE_MASK 0xFFA0
+#define RTW_IEEE80211_ADDBA_PARAM_BUF_SIZE_MASK 0xFFA0
 #define IEEE80211_DELBA_PARAM_TID_MASK 0xF000
 #define IEEE80211_DELBA_PARAM_INITIATOR_MASK 0x0800
 
@@ -1135,6 +1135,7 @@ enum P2P_PROTO_WK_ID
 	P2P_RESTORE_STATE_WK = 1,
 	P2P_PRE_TX_PROVDISC_PROCESS_WK = 2,
 	P2P_PRE_TX_NEGOREQ_PROCESS_WK = 3,
+	P2P_RO_CH_WK = 4,
 };
 
 enum P2P_PS

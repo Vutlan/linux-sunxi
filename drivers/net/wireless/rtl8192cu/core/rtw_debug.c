@@ -450,6 +450,54 @@ int proc_set_rx_signal(struct file *file, const char *buffer,
 	
 }
 
+int proc_get_rssi_disp(char *page, char **start,
+			  off_t offset, int count,
+			  int *eof, void *data)
+{
+	*eof = 1;
+	return 0;
+}
+
+int proc_set_rssi_disp(struct file *file, const char *buffer,
+		unsigned long count, void *data)
+{
+	struct net_device *dev = (struct net_device *)data;
+	_adapter *padapter = (_adapter *)rtw_netdev_priv(dev);
+	char tmp[32];
+	u32 enable=0;
+
+	if (count < 1)
+	{
+		DBG_8192C("argument size is less than 1\n");
+		return -EFAULT;
+	}	
+
+	if (buffer && !copy_from_user(tmp, buffer, sizeof(tmp))) {		
+
+		int num = sscanf(tmp, "%x", &enable);
+
+		if (num !=  1) {
+			DBG_8192C("invalid set_rssi_disp parameter!\n");
+			return count;
+		}
+		
+		if(enable)
+		{			
+			DBG_8192C("Turn On Rx RSSI Display Function\n");
+			padapter->bRxRSSIDisplay = enable ;			
+		}
+		else
+		{
+			DBG_8192C("Turn Off Rx RSSI Display Function\n");
+			padapter->bRxRSSIDisplay = 0 ;
+		}
+	
+	}
+	
+	return count;
+	
+}	
+
 		
 #ifdef CONFIG_AP_MODE
 
