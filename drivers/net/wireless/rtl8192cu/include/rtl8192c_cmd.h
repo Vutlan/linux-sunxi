@@ -35,10 +35,12 @@ enum cmd_msg_element_id
 	MACID_PS_MODE_EID=7,
 	P2P_PS_OFFLOAD_EID=8,
 	SELECTIVE_SUSPEND_ROF_CMD=9,
+	H2C_WO_WLAN_CMD = 26,	// Wake on Wlan.
 	P2P_PS_CTW_CMD_EID=32,
 	H2C_92C_IO_OFFLOAD=44,
-	H2C_92C_CMD_MAX
-};
+	KEEP_ALIVE_CONTROL_CMD=48,
+	DISCONNECT_DECISION_CTRL_CMD=49,
+	H2C_92C_CMD_MAX};
 
 struct cmd_msg_parm {
 	u8 eid; //element id
@@ -51,6 +53,12 @@ typedef struct _SETPWRMODE_PARM{
 	u8 	SmartPS;
 	u8	BcnPassTime;	// unit: 100ms
 }SETPWRMODE_PARM, *PSETPWRMODE_PARM;
+
+typedef struct _SETWOWLAN_PARM{
+	u8 	mode;
+	u8 	gpio_num;
+	u8	gpio_duration;	
+}SETWOWLAN_PARM, *PSETWOWLAN_PARM;
 
 struct H2C_SS_RFOFF_PARAM{
 	u8 	ROFOn; // 1: on, 0:off
@@ -102,4 +110,7 @@ int rtl8192c_IOL_exec_cmds_sync(ADAPTER *adapter, struct xmit_frame *xmit_frame,
 #endif //CONFIG_IOL
 
 #endif
-
+#ifdef CONFIG_WOWLAN
+void rtl8192c_set_wowlan_cmd(_adapter* padapter);
+void SetFwRelatedForWoWLAN8192CU(_adapter* 	padapter,u8 bHostIsGoingtoSleep);
+#endif // CONFIG_WOWLAN

@@ -211,6 +211,10 @@ typedef struct _RT_FIRMWARE{
 	FIRMWARE_SOURCE	eFWSource;
 	u8*			szFwBuffer;
 	u32			ulFwLength;
+#ifdef CONFIG_WOWLAN_92D
+	u8*			szWoWLANFwBuffer;
+	u32			ulWoWLANFwLength;
+#endif //CONFIG_WOWLAN_92D
 }RT_FIRMWARE, *PRT_FIRMWARE, RT_FIRMWARE_92D, *PRT_FIRMWARE_92D;
 
 //
@@ -924,7 +928,7 @@ typedef struct hal_data_8192du HAL_DATA_TYPE, *PHAL_DATA_TYPE;
 #define GET_HAL_DATA(__pAdapter)	((HAL_DATA_TYPE *)((__pAdapter)->HalData))
 #define GET_RF_TYPE(priv)	(GET_HAL_DATA(priv)->rf_type)
 
-int FirmwareDownload92D(IN PADAPTER Adapter);
+int FirmwareDownload92D(IN	PADAPTER Adapter,IN	BOOLEAN  bUsedWoWLANFw);
 VOID rtl8192d_FirmwareSelfReset(IN PADAPTER Adapter);
 void rtl8192d_ReadChipVersion(IN PADAPTER Adapter);
 VOID rtl8192d_ReadChannelPlan(PADAPTER Adapter, u8* PROMContent, BOOLEAN AutoLoadFail);
