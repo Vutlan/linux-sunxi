@@ -64,8 +64,8 @@ static int pmu_batdeten = 0;
 struct axp_adc_res adc;
 static int count_rdc = 0;
 static int count_dis = 0;
-#ifdef CONFIG_HAS_EARLYSUSPEND
 static int pmu_earlysuspend_chgcur = 0;
+#ifdef CONFIG_HAS_EARLYSUSPEND
 static struct early_suspend	axp_early_suspend;
 int	early_suspend_flag = 0;
 #endif
@@ -1369,17 +1369,10 @@ static void axp_charging_monitor(struct work_struct *work)
 	if((charger->bat_det ==	0) || (rt_rest_vol == 127) ){
 		rt_rest_vol	= 100;
 	}
-	if(flag_state_change){
-		rt_rest_vol	= charger->ocv_rest_vol;
-		flag_state_change ++;
-		if(flag_state_change >=4){
-			flag_state_change =	0;
-			change_flag	= 1;
-		}
-		if(axp_debug)
-			DBG_PSY_MSG("==flag_state_change =	%d==(when >= 4 corrent rdc)=\n",flag_state_change);
+	if(axp_debug){
+		DBG_PSY_MSG("rt_rest_vol = %d\n",rt_rest_vol);
 	}
-
+	
 	if(change_flag){
 		DBG_PSY_MSG("-----------in change_flag-----------\n");
 		change_flag	= 0;
@@ -1394,6 +1387,19 @@ static void axp_charging_monitor(struct work_struct *work)
 			}
 		}
 	}
+	
+	if(flag_state_change){
+		rt_rest_vol	= charger->ocv_rest_vol;
+		flag_state_change ++;
+		if(flag_state_change >=4){
+			flag_state_change =	0;
+			change_flag	= 1;
+		}
+		if(axp_debug)
+			DBG_PSY_MSG("==flag_state_change =	%d==(when >= 4 corrent rdc)=\n",flag_state_change);
+	}
+	
+	charger->ocv_rest_vol =	rt_rest_vol;
 
 	Get_Rest_Cap(charger,&saved_cap);
 		
@@ -1406,8 +1412,7 @@ static void axp_charging_monitor(struct work_struct *work)
 		if(Cur_CoulombCounter < 0){
 			charger->rest_vol = charger->rest_vol - 1;
 		}
-		
-		if((charger->rest_vol <= (BATCAPCORRATE)) &&(!charger->ext_valid) && (!flag_cou)){
+		if((charger->rest_vol <= (BATCAPCORRATE))&&(rt_rest_vol <= (BATCAPCORRATE + 1)) &&(!charger->ext_valid) && (!flag_cou)){
 			Cou_Correction_Flag	= 1;
 			flag_cou = 1;
 			Set_Rest_Cap(charger,BATCAPCORRATE);
@@ -1466,6 +1471,7 @@ static void axp_charging_monitor(struct work_struct *work)
 		if((rt_rest_vol	> (BATCAPCORRATE + 1)) &&	(charger->rest_vol < (BATCAPCORRATE+ 2)) && charger->bat_current_direction == 0) {
 			DBG_PSY_MSG("Correct3:discharging:(rt_rest_vol > %d)&&(charger->rest_vol < %d)\n",BATCAPCORRATE+1,BATCAPCORRATE+2);
 			if(pre_rest_vol	> charger->rest_vol) {
+				Cur_CoulombCounter = Get_Bat_Coulomb_Count(charger);
 				saved_cap =	pre_rest_vol - 100 * (Cur_CoulombCounter) /	bat_cap;
 				Set_Rest_Cap(charger,saved_cap);
 			}
@@ -1491,6 +1497,7 @@ static void axp_charging_monitor(struct work_struct *work)
 		if((charger->bat_current_direction == 1) &&	(charger->rest_vol >= 100)) {
 			DBG_PSY_MSG("Correct5:fix 99:charger->rest_vol = %d\n",charger->rest_vol);
 			charger->rest_vol =	99;
+			Cur_CoulombCounter = Get_Bat_Coulomb_Count(charger);
 			saved_cap =	99 - 100 * (Cur_CoulombCounter)	/ bat_cap;
 			Set_Rest_Cap(charger,saved_cap);
 		}
@@ -1498,6 +1505,7 @@ static void axp_charging_monitor(struct work_struct *work)
 		/*电池总容量校正*/
 		if(Cou_Correction_Flag && (charger->bat_current_direction  == 0) &&	(charger->rest_vol == 100))	{
 			axp_read(charger->master, AXP20_DATA_BUFFER5, &val);
+			Cur_CoulombCounter = Get_Bat_Coulomb_Count(charger);
 			bat_cap	= ABS(Cur_CoulombCounter) / (100 - val) * 100;
 			Buffer_Cou_Set(charger,bat_cap);
 			Cou_Correction_Flag	= 0;
@@ -1545,6 +1553,15 @@ static void axp_charging_monitor(struct work_struct *work)
 		}
 	}
 	
+	/* 出错处理 */
+	if(ABS(charger->rest_vol - rt_rest_vol) > 40){
+		axp_clr_bits(charger->master, AXP20_DATA_BUFFER0, 0x60);
+	}
+	
+	if((rt_rest_vol <= BATCAPCORRATE)&&(charger->rest_vol > (BATCAPCORRATE + 5))){
+		axp_clr_bits(charger->master, AXP20_DATA_BUFFER0, 0x60);
+	}
+	
 	if(axp_debug){
 		DBG_PSY_MSG("charger->ic_temp = %d\n",charger->ic_temp);
 		DBG_PSY_MSG("charger->vbat = %d\n",charger->vbat);
@@ -1556,7 +1573,7 @@ static void axp_charging_monitor(struct work_struct *work)
 		DBG_PSY_MSG("charger->ocv = %d\n",charger->ocv);
 		DBG_PSY_MSG("charger->disvbat = %d\n",charger->disvbat);
 		DBG_PSY_MSG("charger->disibat = %d\n",charger->disibat);
-		DBG_PSY_MSG("rt_rest_vol = %d\n",rt_rest_vol);
+		DBG_PSY_MSG("charger->ocv_rest_vol = %d\n",charger->ocv_rest_vol);
 		DBG_PSY_MSG("charger->rest_vol = %d\n",charger->rest_vol);
 		axp_reads(charger->master,0xba,2,v);
 		rdc = (((v[0] & 0x1F) << 8) | v[1]) * 10742 / 10000;
@@ -2067,6 +2084,7 @@ static int axp_battery_probe(struct platform_device *pdev)
 		pmu_usbvolnew = 4000;
 		printk("pmu_usbvolnew = %d\n",pmu_usbvolnew);
 	} else {
+		
 		if(pmu_usbvolnew){
 			axp_set_bits(charger->master, AXP20_CHARGE_VBUS, 0x40);
 			var = pmu_usbvolnew * 1000;
@@ -2080,6 +2098,7 @@ static int axp_battery_probe(struct platform_device *pdev)
 		} else {
 			axp_clr_bits(charger->master, AXP20_CHARGE_VBUS, 0x40);
 		}
+		
 	}
   
 	var = script_parser_fetch("pmu_para", "pmu_usbcur_pc", &pmu_usbcurnew, sizeof(int));
@@ -2088,6 +2107,7 @@ static int axp_battery_probe(struct platform_device *pdev)
 		pmu_usbcurnew = 500;
 		printk("pmu_usbcurnew = %d\n",pmu_usbcurnew);
 	} else {
+		
 		if(pmu_usbcurnew){
 			axp_clr_bits(charger->master, AXP20_CHARGE_VBUS, 0x01);
 			var = pmu_usbcurnew * 1000;
@@ -2104,6 +2124,7 @@ static int axp_battery_probe(struct platform_device *pdev)
 		} else {
     		axp_set_bits(charger->master, AXP20_CHARGE_VBUS, 0x03);
 		}
+		
 	}
 
 	axp_charger = charger;
@@ -2244,8 +2265,7 @@ static int axp20_resume(struct platform_device *dev)
 			charger->rest_vol =	0;
 		}
 /************************************************************************************************************************************/
-
-		if((charger->rest_vol <= (BATCAPCORRATE))&&(!charger->ext_valid)&&(!flag_cou)) {
+		if((charger->rest_vol <= (BATCAPCORRATE))&& (rt_rest_vol <= (BATCAPCORRATE + 1)) &&(!charger->ext_valid)&&(!flag_cou)) {
 			Cou_Correction_Flag	= 1;
 			flag_cou = 1;
 			Set_Rest_Cap(charger,BATCAPCORRATE);
@@ -2264,6 +2284,7 @@ static int axp20_resume(struct platform_device *dev)
 		if((charger->vbat > 4100) && (charger->rest_vol	< 100) && (charger->bat_current_direction == 0x0) && (charger->	ext_valid == 1)&&(charger->charge_on)) {
 			DBG_PSY_MSG("Resume:charger->rest_vol = %d -> 100\n",charger->rest_vol);
 			charger->rest_vol =	100;
+			Cur_CoulombCounter = Get_Bat_Coulomb_Count(charger);
 			saved_cap =	100	- 100 *(Cur_CoulombCounter)	/ bat_cap;
 			Set_Rest_Cap(charger,saved_cap);
 		}
@@ -2272,12 +2293,14 @@ static int axp20_resume(struct platform_device *dev)
 		if((charger->bat_current_direction == 1) &&	(charger->rest_vol >= 100)) {
 			printk("Resume: charging->charger->rest_vol = %d ->99\n",charger->rest_vol);
 			charger->rest_vol =	99;
+			Cur_CoulombCounter = Get_Bat_Coulomb_Count(charger);
 			saved_cap =	99 - 100 * (Cur_CoulombCounter)	/ bat_cap;
 			Set_Rest_Cap(charger,saved_cap);
 		}
 
 		if(Cou_Correction_Flag && (charger->bat_current_direction  == 0) &&	(charger->rest_vol == 100)) {
 			axp_read(charger->master, AXP20_DATA_BUFFER5, &val);
+			Cur_CoulombCounter = Get_Bat_Coulomb_Count(charger);
 			bat_cap	= ABS(Cur_CoulombCounter) /	( 100 -	val) * 100;
 			Buffer_Cou_Set(charger,bat_cap);
 			Cou_Correction_Flag	= 0;
@@ -2319,6 +2342,7 @@ static int axp20_resume(struct platform_device *dev)
 		if(pre_rest_vol	> rt_rest_vol){
 			DBG_PSY_MSG("\n	correct	rest vol!!!\n");
 			charger-> rest_vol = rt_rest_vol;
+			Cur_CoulombCounter = Get_Bat_Coulomb_Count(charger);
 			saved_cap =	rt_rest_vol	- 100* (Cur_CoulombCounter)	/ bat_cap;
 			if((saved_cap >= -127) && (saved_cap <= 127)){
 				Set_Rest_Cap(charger,saved_cap);
