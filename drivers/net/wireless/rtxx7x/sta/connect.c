@@ -181,16 +181,17 @@ VOID MlmeCntlMachinePerformAction(
 								TRUE);
 			}
 #endif /* DOT11N_DRAFT3 */
-#ifdef WPA_SUPPLICANT_SUPPORT
 
-                                if (pAd->IndicateMediaState != NdisMediaStateConnected && (pAd->StaCfg.WpaSupplicantUP != WPA_SUPPLICANT_ENABLE_WITH_WEB_UI) )
-                                {
-                                        BssTableSsidSort(pAd, &pAd->MlmeAux.SsidBssTab, (PCHAR)pAd->MlmeAux.Ssid, pAd->MlmeAux.SsidLen);
-                                        pAd->MlmeAux.BssIdx = 0;
-                                        IterateOnBssTab(pAd);
-                                }
+#ifndef ANDROID_SUPPORT
+#ifdef WPA_SUPPLICANT_SUPPORT 
+				if (pAd->IndicateMediaState != NdisMediaStateConnected && (pAd->StaCfg.WpaSupplicantUP != WPA_SUPPLICANT_ENABLE_WITH_WEB_UI))
+				{
+					BssTableSsidSort(pAd, &pAd->MlmeAux.SsidBssTab, (PCHAR)pAd->MlmeAux.Ssid, pAd->MlmeAux.SsidLen);
+					pAd->MlmeAux.BssIdx = 0;
+					IterateOnBssTab(pAd);
+				}			
 #endif // WPA_SUPPLICANT_SUPPORT //
-
+#endif /* ANDROID_SUPPORT */
 
 				if (Status == MLME_SUCCESS)
 				{
@@ -199,16 +200,13 @@ VOID MlmeCntlMachinePerformAction(
 						MaxBeaconRxTimeDiff: 120 seconds
 						MaxSameBeaconRxTimeCount: 1
 					*/
-					MaintainBssTable(pAd, &pAd->ScanTab, 120, 2);
+					MaintainBssTable(pAd, &pAd->ScanTab, 120, 5);
 					
-				{
-					RTMPSendWirelessEvent(pAd, IW_SCAN_COMPLETED_EVENT_FLAG, NULL, BSS0, 0);
-
-#ifdef WPA_SUPPLICANT_SUPPORT
-					RtmpOSWrielessEventSend(pAd->net_dev, RT_WLAN_EVENT_SCAN, -1, NULL, NULL, 0);
-#endif /* WPA_SUPPLICANT_SUPPORT */
-				}
-
+#if WIRELESS_EXT >= 14
+				RtmpOSWrielessEventSend(pAd->net_dev,
+						RT_WLAN_EVENT_SCAN, -1, NULL,
+						NULL, 0);
+#endif
 			}
 		}
 		break;
@@ -216,9 +214,38 @@ VOID MlmeCntlMachinePerformAction(
 	case CNTL_WAIT_OID_DISASSOC:
 		if (Elem->MsgType == MT2_DISASSOC_CONF) {
 			LinkDown(pAd, FALSE);
+/* 
+for android system , if connect ap1 and want to change to ap2 , 
+when disassoc from ap1 ,and send even_scan will direct connect to ap2 , not need to wait ui to scan and connect
+*/
+#if 0
+#ifdef ANDROID_SUPPORT
+			RtmpOSWrielessEventSend(pAd->net_dev, RT_WLAN_EVENT_SCAN, -1, NULL, NULL, 0);
+#endif /* ANDROID_SUPPORT */			
+#endif
+	
+
 			pAd->Mlme.CntlMachine.CurrState = CNTL_IDLE;
+
 		}
 		break;
+#ifdef ANDROID_SUPPORT
+	case CNTL_WAIT_SCAN_FOR_CONNECT:
+		if (Elem->MsgType == MT2_SCAN_CONF) {
+			USHORT	Status = MLME_SUCCESS;
+			NdisMoveMemory(&Status, Elem->Msg, sizeof(USHORT));				
+			/* Resume TxRing after SCANING complete. We hope the out-of-service time */
+			/* won't be too long to let upper layer time-out the waiting frames */
+			RTMPResumeMsduTransmission(pAd);
+			pAd->Mlme.CntlMachine.CurrState = CNTL_IDLE;
+			BssTableSsidSort(pAd, &pAd->MlmeAux.SsidBssTab, (PCHAR)pAd->MlmeAux.Ssid, pAd->MlmeAux.SsidLen);
+			pAd->MlmeAux.BssIdx = 0;
+			IterateOnBssTab(pAd);
+		}
+
+		break;
+#endif /* ANDROID_SUPPORT */
+#if 0
 #ifdef RTMP_MAC_USB
 		/* */
 		/* This state is for that we want to connect to an AP but */
@@ -254,6 +281,7 @@ VOID MlmeCntlMachinePerformAction(
 		}
 		break;
 #endif /* RTMP_MAC_USB */
+#endif
 	default:
 		DBGPRINT_ERR(("!ERROR! CNTL - Illegal message type(=%ld)",
 			      Elem->MsgType));
@@ -399,6 +427,9 @@ VOID CntlOidSsidProc(
 	MLME_DISASSOC_REQ_STRUCT DisassocReq;
 	ULONG Now;
 
+#ifdef ANDROID_SUPPORT
+	MLME_JOIN_REQ_STRUCT JoinReq;
+#endif			
 
 	/* Step 1. record the desired user settings to MlmeAux */
 	NdisZeroMemory(pAd->MlmeAux.Ssid, MAX_LEN_OF_SSID);
@@ -409,6 +440,13 @@ VOID CntlOidSsidProc(
 	pAd->MlmeAux.BssType = pAd->StaCfg.BssType;
 
 	pAd->StaCfg.bAutoConnectByBssid = FALSE;
+
+#ifdef ANDROID_SUPPORT
+	NdisZeroMemory(pAd->StaARCfg.BssEntry.Ssid, MAX_LEN_OF_SSID);
+	NdisMoveMemory(pAd->StaARCfg.BssEntry.Ssid, pOidSsid->Ssid, pOidSsid->SsidLength);
+	pAd->StaARCfg.BssEntry.SsidLen = pOidSsid->SsidLength;	
+	pAd->StaARCfg.BssEntry.BssType = pAd->StaCfg.BssType;	
+#endif /* ANDROID_SUPPORT */
 
 	/* */
 	/* Update Reconnect Ssid, that user desired to connect. */
@@ -457,7 +495,7 @@ VOID CntlOidSsidProc(
 			/* case 1.1 For WPA, WPA-PSK, if the 1x port is not secured, we have to redo */
 			/*          connection process */
 			DBGPRINT(RT_DEBUG_TRACE,
-				 ("CntlOidSsidProc():CNTL - disassociate with current AP...\n"));
+				 ("CntlOidSsidProc():CNTL - disassociate with current AP...1\n"));
 			DisassocParmFill(pAd, &DisassocReq,
 					 pAd->CommonCfg.Bssid,
 					 REASON_DISASSOC_STA_LEAVING);
@@ -526,7 +564,7 @@ VOID CntlOidSsidProc(
 		/*    then perform a new association with this new SSID, no matter the */
 		/*    new/old SSID are the same or not. */
 		DBGPRINT(RT_DEBUG_TRACE,
-			 ("CntlOidSsidProc():CNTL - disassociate with current AP...\n"));
+			 ("CntlOidSsidProc():CNTL - disassociate with current AP...2\n"));
 		DisassocParmFill(pAd, &DisassocReq, pAd->CommonCfg.Bssid,
 				 REASON_DISASSOC_STA_LEAVING);
 		MlmeEnqueue(pAd, ASSOC_STATE_MACHINE, MT2_MLME_DISASSOC_REQ,
@@ -559,6 +597,44 @@ VOID CntlOidSsidProc(
 			
 			if (pAd->MlmeAux.BssType == BSS_ADHOC)
 				pAd->StaCfg.bNotFirstScan = TRUE;
+
+#ifdef ANDROID_SUPPORT
+//			MLME_JOIN_REQ_STRUCT JoinReq;
+
+			if(pAd->StaARCfg.BssEntry.Channel == 0)		
+			{
+				DBGPRINT(RT_DEBUG_TRACE,
+					 ("ANDROID CntlOidSsidProc():CNTL - No matching BSS, start a new scan\n"));
+				pAd->MlmeAux.Channel = 0;
+				ScanParmFill(pAd, &ScanReq, (PSTRING) pAd->MlmeAux.Ssid,
+					     pAd->MlmeAux.SsidLen, BSS_ANY,
+					     SCAN_ACTIVE);
+				MlmeEnqueue(pAd, SYNC_STATE_MACHINE, MT2_MLME_FORCE_SCAN_REQ,
+					    sizeof (MLME_SCAN_REQ_STRUCT), &ScanReq, 0);
+				pAd->Mlme.CntlMachine.CurrState =
+			    	CNTL_WAIT_SCAN_FOR_CONNECT;
+				/* Reset Missed scan number */
+				pAd->StaCfg.LastScanTime = Now;
+				pAd->StaCfg.bNotFirstScan = TRUE;
+
+			}
+			else
+			{
+				MLME_SCAN_REQ_STRUCT ScanReq;
+				ULONG Now;
+				NdisGetSystemUpTime(&Now);
+				ScanParmFill(pAd, &ScanReq, (PSTRING) pAd->MlmeAux.Ssid,
+					pAd->MlmeAux.SsidLen, BSS_ANY,
+					SCAN_ACTIVE);
+			MlmeEnqueue(pAd, SYNC_STATE_MACHINE, MT2_MLME_FORCE_SCAN_REQ,
+					sizeof (MLME_SCAN_REQ_STRUCT), &ScanReq, 0);
+					pAd->Mlme.CntlMachine.CurrState =	CNTL_WAIT_SCAN_FOR_CONNECT;
+				/* Reset Missed scan number */
+				pAd->StaCfg.LastScanTime = Now;
+				pAd->StaCfg.bNotFirstScan = TRUE;
+
+			}
+#else
 			DBGPRINT(RT_DEBUG_TRACE,
 				 ("CntlOidSsidProc():CNTL - No matching BSS, start a new scan\n"));
 			ScanParmFill(pAd, &ScanReq, (PSTRING) pAd->MlmeAux.Ssid,
@@ -571,6 +647,8 @@ VOID CntlOidSsidProc(
 			/* Reset Missed scan number */
 			pAd->StaCfg.LastScanTime = Now;
 			pAd->StaCfg.bNotFirstScan = TRUE;
+#endif /* ANDROID_SUPPORT */
+
 		} else {
 
 			if ((pAd->MlmeAux.SsidBssTab.
@@ -625,9 +703,30 @@ VOID CntlOidRTBssidProc(
 		return;
 #endif /* RALINK_ATE */
 
+
+	if (/*(!pAd->NicConfig2.field.AntDiversity) ||*/
+		(RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_RESET_IN_PROGRESS))	||
+		(RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_HALT_IN_PROGRESS))	||
+		(RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_RADIO_OFF)) ||
+		(RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_NIC_NOT_EXIST)))
+	{
+		return;
+	}
+
 	/* record user desired settings */
 	COPY_MAC_ADDR(pAd->MlmeAux.Bssid, pOidBssid);
 	pAd->MlmeAux.BssType = pAd->StaCfg.BssType;
+
+#ifdef ANDROID_SUPPORT
+        NdisZeroMemory(pAd->StaARCfg.BssEntry.Bssid, MAC_ADDR_LEN);
+        NdisMoveMemory(pAd->StaARCfg.BssEntry.Bssid , pOidBssid, MAC_ADDR_LEN);
+        DBGPRINT(RT_DEBUG_TRACE, ("ANDROID IOCTL::SIOCSIWAP %02x:%02x:%02x:%02x:%02x:%02x\n",
+        pAd->StaARCfg.BssEntry.Bssid[0], pAd->StaARCfg.BssEntry.Bssid[1], pAd->StaARCfg.BssEntry.Bssid[2],
+        pAd->StaARCfg.BssEntry.Bssid[3], pAd->StaARCfg.BssEntry.Bssid[4], pAd->StaARCfg.BssEntry.Bssid[5]));
+#endif /* ANDROID_SUPPORT */
+
+
+
 
 	/* find the desired BSS in the latest SCAN result table */
 	BssIdx = BssTableSearch(&pAd->ScanTab, pOidBssid, pAd->MlmeAux.Channel);
@@ -656,7 +755,47 @@ VOID CntlOidRTBssidProc(
 		}
 	}
 
+#ifdef ANDROID_SUPPORT
+	if(BssIdx == BSS_NOT_FOUND)
+	{
+			ULONG Now;
+			MLME_SCAN_REQ_STRUCT ScanReq;
+			NdisGetSystemUpTime(&Now);
+			if(pAd->StaARCfg.BssEntry.Channel == 0)
+			{
+				pAd->MlmeAux.Channel = 0;
+				DBGPRINT(RT_DEBUG_TRACE,
+					 ("ANDROID CntlOidRTBssidProc():CNTL - No matching BSS, start a new scan\n"));
+				ScanParmFill(pAd, &ScanReq, (PSTRING) pAd->MlmeAux.Ssid,
+					     pAd->MlmeAux.SsidLen, BSS_ANY,
+					     SCAN_ACTIVE);
+				MlmeEnqueue(pAd, SYNC_STATE_MACHINE, MT2_MLME_FORCE_SCAN_REQ,
+					    sizeof (MLME_SCAN_REQ_STRUCT), &ScanReq, 0);
+				pAd->Mlme.CntlMachine.CurrState =
+			    	CNTL_WAIT_SCAN_FOR_CONNECT;
+				/* Reset Missed scan number */
+				pAd->StaCfg.LastScanTime = Now;
+				pAd->StaCfg.bNotFirstScan = TRUE;
 
+			}
+			else
+			{
+			DBGPRINT(0, ("ANDROID CntlOidRTBssidProc BSSID %02x:%02x:%02x:%02x:%02x:%02x\n",
+       		pAd->StaARCfg.BssEntry.Bssid[0], pAd->StaARCfg.BssEntry.Bssid[1], pAd->StaARCfg.BssEntry.Bssid[2],
+       		pAd->StaARCfg.BssEntry.Bssid[3], pAd->StaARCfg.BssEntry.Bssid[4], pAd->StaARCfg.BssEntry.Bssid[5]));
+			DBGPRINT(RT_DEBUG_TRACE,
+			 ("Android CntlOidRTBssidProc  channel = %d\n", pAd->StaARCfg.BssEntry.Channel));
+
+			pAd->CommonCfg.Channel = pAd->StaARCfg.BssEntry.Channel;
+			MlmeEnqueue(pAd, SYNC_STATE_MACHINE, MT2_MLME_FORCE_JOIN_REQ,
+				    sizeof (MLME_JOIN_REQ_STRUCT), &JoinReq, 0);
+
+			pAd->Mlme.CntlMachine.CurrState = CNTL_WAIT_JOIN;
+			}
+			return;
+}
+	else
+#endif /* ANDROID_SUPPORT */
 	if (BssIdx == BSS_NOT_FOUND) {
 		if ((pAd->StaCfg.BssType == BSS_INFRA) ||
 		    (pAd->StaCfg.bNotFirstScan == FALSE)) {
@@ -1034,12 +1173,7 @@ VOID CntlWaitDisassocProc(
 		}
 		/* case 2. try each matched BSS */
 		else {
-			/*
-			   Some customer would set AP1 & AP2 same SSID, AuthMode & EncrypType but different WPAPSK,
-			   therefore we need to try next AP here.
-			 */
-			/*pAd->MlmeAux.BssIdx = 0;*/
-			pAd->MlmeAux.BssIdx++;
+			pAd->MlmeAux.BssIdx = 0;
 
 				IterateOnBssTab(pAd);
 		}
@@ -1495,8 +1629,8 @@ VOID LinkUp(
 	ULONG Now;
 	UINT32 Data;
 	BOOLEAN Cancelled;
-	UCHAR Value = 0, idx = 0; /*, HashIdx = 0; */
-	MAC_TABLE_ENTRY *pEntry = NULL; /* *pCurrEntry = NULL; */
+	UCHAR Value = 0, idx = 0, HashIdx = 0;
+	MAC_TABLE_ENTRY *pEntry = NULL, *pCurrEntry = NULL;
 
 	/* Init ChannelQuality to prevent DEAD_CQI at initial LinkUp */
 	pAd->Mlme.ChannelQuality = 50;
@@ -1596,9 +1730,7 @@ VOID LinkUp(
 	}
 #endif /* DOT11_N_SUPPORT */
 
-/*
 	NdisZeroMemory(&pAd->DrsCounters, sizeof (COUNTER_DRS));
-*/
 
 	NdisGetSystemUpTime(&Now);
 	pAd->StaCfg.LastBeaconRxTime = Now;	/* last RX timestamp */
@@ -1764,11 +1896,8 @@ VOID LinkUp(
 #ifdef PCIE_PS_SUPPORT
 			RTMP_CLEAR_PSFLAG(pAd, fRTMP_PS_CAN_GO_SLEEP);
 #endif /* PCIE_PS_SUPPORT */
-/*
- 		 for dhcp,issue ,wpa_supplicant ioctl too fast , at link_up, it will add key before driver remove key  
-		 move to assoc.c 
- */
-/*			RTMPWPARemoveAllKeys(pAd);*/
+/*dhcp debug*/
+//			RTMPWPARemoveAllKeys(pAd);
 			pAd->StaCfg.PortSecured = WPA_802_1X_PORT_NOT_SECURED;
 			pAd->StaCfg.PrivacyFilter =
 			    Ndis802_11PrivFilter8021xWEP;
@@ -1787,8 +1916,8 @@ VOID LinkUp(
 			}
 #endif /* SOFT_ENCRYPT */
 
-		}
-
+		} 
+		
 		/* NOTE: */
 		/* the decision of using "short slot time" or not may change dynamically due to */
 		/* new STA association to the AP. so we have to decide that upon parsing BEACON, not here */
@@ -2424,9 +2553,11 @@ VOID LinkDown(
 				/* then we should delete BSSID from BssTable. */
 				/* If we don't delete from entry, roaming will fail. */
 				/* */
+#ifndef ANDROID_SUPPORT
 				BssTableDeleteEntry(&pAd->ScanTab,
 						    pAd->CommonCfg.Bssid,
 						    pAd->CommonCfg.Channel);
+#endif
 			}
 		}
 
@@ -2641,16 +2772,26 @@ VOID LinkDown(
 	else
 		pAd->StaCfg.bAdhocCreator = FALSE;
 
-/*After change from one ap to another , we need to re-init rssi for AdjustTxPower  */
-	pAd->StaCfg.RssiSample.AvgRssi0	= -127;
-	pAd->StaCfg.RssiSample.AvgRssi1	= -127;
-	pAd->StaCfg.RssiSample.AvgRssi2	= -127;
-
-
 #ifdef RTMP_FREQ_CALIBRATION_SUPPORT
 	/*if (IS_RT3593(pAd)) */
 	RTMP_CHIP_ASIC_FREQ_CAL_STOP(pAd);	/* To stop the frequency calibration */
 #endif /* RTMP_FREQ_CALIBRATION_SUPPORT */
+
+	pAd->StaCfg.RssiSample.AvgRssi0	= -127;
+	pAd->StaCfg.RssiSample.AvgRssi1	= -127;
+	pAd->StaCfg.RssiSample.AvgRssi2	= -127;
+
+#ifdef ANDROID_SUPPORT
+	NdisZeroMemory(pAd->StaARCfg.BssEntry.Ssid, MAX_LEN_OF_SSID);
+	NdisZeroMemory(pAd->StaARCfg.BssEntry.Bssid, MAC_ADDR_LEN);
+	pAd->StaARCfg.BssEntry.SsidLen = 0;
+	pAd->StaARCfg.BssEntry.BssType = 1;
+	pAd->StaARCfg.BssEntry.Channel = 0;
+#endif /* ANDROID_SUPPORT */
+
+
+
+
 }
 
 /*
@@ -3356,7 +3497,6 @@ VOID	MaintainBssTable(
 	{
 		PBSS_ENTRY	pBss = &Tab->BssEntry[i];
 
-		bDelEntry = FALSE;
 		if (pBss->LastBeaconRxTimeA != pBss->LastBeaconRxTime)
 		{
 			pBss->LastBeaconRxTimeA = pBss->LastBeaconRxTime;

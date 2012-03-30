@@ -36,13 +36,13 @@ INT ComputeChecksum(
     UINT accum = 0;
 
 	PIN *= 10;
-	accum += 3 * ((PIN / 10000000) % 10); 
-	accum += 1 * ((PIN / 1000000) % 10); 
-	accum += 3 * ((PIN / 100000) % 10); 
-	accum += 1 * ((PIN / 10000) % 10); 
-	accum += 3 * ((PIN / 1000) % 10); 
-	accum += 1 * ((PIN / 100) % 10); 
-	accum += 3 * ((PIN / 10) % 10); 
+	accum += 3 * ((PIN / 10000000) % 10);
+	accum += 1 * ((PIN / 1000000) % 10);
+	accum += 3 * ((PIN / 100000) % 10);
+	accum += 1 * ((PIN / 10000) % 10);
+	accum += 3 * ((PIN / 1000) % 10);
+	accum += 1 * ((PIN / 100) % 10);
+	accum += 3 * ((PIN / 10) % 10);
 
 	digit_s = (accum % 10);
 	return ((10 - digit_s) % 10);
@@ -50,7 +50,7 @@ INT ComputeChecksum(
 
 UINT GenerateWpsPinCode(
 	IN	PRTMP_ADAPTER	pAd,
-    IN  BOOLEAN         bFromApcli,	
+    IN  BOOLEAN         bFromApcli,
 	IN	UCHAR			apidx)
 {
 	UCHAR	macAddr[MAC_ADDR_LEN];
@@ -114,31 +114,31 @@ char* GetBW(
 }
 
 
-/* 
+/*
     ==========================================================================
     Description:
         Set Country Region to pAd->CommonCfg.CountryRegion.
         This command will not work, if the field of CountryRegion in eeprom is programmed.
-        
+
     Return:
         TRUE if all parameters are OK, FALSE otherwise
     ==========================================================================
 */
 INT RT_CfgSetCountryRegion(
-	IN PRTMP_ADAPTER	pAd, 
+	IN PRTMP_ADAPTER	pAd,
 	IN PSTRING			arg,
 	IN INT				band)
 {
 	LONG region;
 	UCHAR *pCountryRegion;
-	
+
 	region = simple_strtol(arg, 0, 10);
 
 	if (band == BAND_24G)
 		pCountryRegion = &pAd->CommonCfg.CountryRegion;
 	else
 		pCountryRegion = &pAd->CommonCfg.CountryRegionForABand;
-	
+
 	/* TODO: Is it neccesay for following check???*/
 	/* Country can be set only when EEPROM not programmed*/
 	if (*pCountryRegion & 0x80)
@@ -147,9 +147,9 @@ INT RT_CfgSetCountryRegion(
 		return FALSE;
 	}
 
-	if((region >= 0) && 
-	   (((band == BAND_24G) &&((region <= REGION_MAXIMUM_BG_BAND) || 
-	   (region == REGION_31_BG_BAND) || (region == REGION_32_BG_BAND) || (region == REGION_33_BG_BAND) )) || 
+	if((region >= 0) &&
+	   (((band == BAND_24G) &&((region <= REGION_MAXIMUM_BG_BAND) ||
+	   (region == REGION_31_BG_BAND) || (region == REGION_32_BG_BAND) || (region == REGION_33_BG_BAND) )) ||
 	    ((band == BAND_5G) && (region <= REGION_MAXIMUM_A_BAND) ))
 	  )
 	{
@@ -162,11 +162,11 @@ INT RT_CfgSetCountryRegion(
 	}
 
 	return TRUE;
-	
+
 }
 
 
-/* 
+/*
     ==========================================================================
     Description:
         Set Wireless Mode
@@ -175,12 +175,12 @@ INT RT_CfgSetCountryRegion(
     ==========================================================================
 */
 INT RT_CfgSetWirelessMode(
-	IN	PRTMP_ADAPTER	pAd, 
+	IN	PRTMP_ADAPTER	pAd,
 	IN	PSTRING			arg)
 {
 	INT		MaxPhyMode = PHY_11G;
 	LONG	WirelessMode;
-	
+
 #ifdef DOT11_N_SUPPORT
 	if (!RTMP_TEST_MORE_FLAG(pAd, fRTMP_ADAPTER_DISABLE_DOT_11N))
 		MaxPhyMode = PHY_11N_5G;
@@ -206,9 +206,9 @@ INT RT_CfgSetWirelessMode(
 		pAd->CommonCfg.DesiredPhyMode = WirelessMode;
 		return TRUE;
 	}
-	
+
 	return FALSE;
-	
+
 }
 
 
@@ -216,7 +216,7 @@ INT RT_CfgSetWirelessMode(
 
 
 INT RT_CfgSetShortSlot(
-	IN	PRTMP_ADAPTER	pAd, 
+	IN	PRTMP_ADAPTER	pAd,
 	IN	PSTRING			arg)
 {
 	LONG ShortSlot;
@@ -234,7 +234,7 @@ INT RT_CfgSetShortSlot(
 }
 
 
-/* 
+/*
     ==========================================================================
     Description:
         Set WEP KEY base on KeyIdx
@@ -243,7 +243,7 @@ INT RT_CfgSetShortSlot(
     ==========================================================================
 */
 INT	RT_CfgSetWepKey(
-	IN	PRTMP_ADAPTER	pAd, 
+	IN	PRTMP_ADAPTER	pAd,
 	IN	PSTRING			keyString,
 	IN	CIPHER_KEY		*pSharedKey,
 	IN	INT				keyIdx)
@@ -264,7 +264,7 @@ INT	RT_CfgSetWepKey(
 			pSharedKey->KeyLen = KeyLen;
 			NdisMoveMemory(pSharedKey->Key, keyString, KeyLen);
 			break;
-			
+
 		case 10: /*wep 40 Hex type*/
 		case 26: /*wep 104 Hex type*/
 			for(i=0; i < KeyLen; i++)
@@ -276,21 +276,21 @@ INT	RT_CfgSetWepKey(
 			pSharedKey->KeyLen = KeyLen/2 ;
 			AtoH(keyString, pSharedKey->Key, pSharedKey->KeyLen);
 			break;
-			
+
 		default: /*Invalid argument */
 			DBGPRINT(RT_DEBUG_TRACE, ("RT_CfgSetWepKey(keyIdx=%d):Invalid argument (arg=%s)\n", keyIdx, keyString));
 			return FALSE;
 	}
 
 	pSharedKey->CipherAlg = ((KeyLen % 5) ? CIPHER_WEP128 : CIPHER_WEP64);
-	DBGPRINT(RT_DEBUG_TRACE, ("RT_CfgSetWepKey:(KeyIdx=%d,type=%s, Alg=%s)\n", 
+	DBGPRINT(RT_DEBUG_TRACE, ("RT_CfgSetWepKey:(KeyIdx=%d,type=%s, Alg=%s)\n",
 						keyIdx, (bKeyIsHex == FALSE ? "Ascii" : "Hex"), CipherName[pSharedKey->CipherAlg]));
 
 	return TRUE;
 }
 
 
-/* 
+/*
     ==========================================================================
     Description:
         Set WPA PSK key
@@ -307,7 +307,7 @@ INT	RT_CfgSetWepKey(
     ==========================================================================
 */
 INT RT_CfgSetWPAPSKKey(
-	IN RTMP_ADAPTER	*pAd, 
+	IN RTMP_ADAPTER	*pAd,
 	IN PSTRING		keyString,
 	IN UCHAR		*pHashStr,
 	IN INT			hashStrLen,
@@ -319,7 +319,7 @@ INT RT_CfgSetWPAPSKKey(
 	keyLen = strlen(keyString);
 	if ((keyLen < 8) || (keyLen > 64))
 	{
-		DBGPRINT(RT_DEBUG_TRACE, ("WPAPSK Key length(%d) error, required 8 ~ 64 characters!(keyStr=%s)\n", 
+		DBGPRINT(RT_DEBUG_TRACE, ("WPAPSK Key length(%d) error, required 8 ~ 64 characters!(keyStr=%s)\n",
 									keyLen, keyString));
 		return FALSE;
 	}
@@ -332,7 +332,7 @@ INT RT_CfgSetWPAPSKKey(
 	else
 	{
 	    RtmpPasswordHash(keyString, pHashStr, hashStrLen, keyMaterial);
-	    NdisMoveMemory(pPMKBuf, keyMaterial, 32);		
+	    NdisMoveMemory(pPMKBuf, keyMaterial, 32);
 	}
 
 	return TRUE;
@@ -347,7 +347,7 @@ INT	RT_CfgSetFixedTxPhyMode(
 	if (strcmp(arg, "OFDM") == 0 || strcmp(arg, "ofdm") == 0)
 	{
 		fix_tx_mode = FIXED_TXMODE_OFDM;
-	}	
+	}
 	else if (strcmp(arg, "CCK") == 0 || strcmp(arg, "cck") == 0)
 	{
 	    fix_tx_mode = FIXED_TXMODE_CCK;
@@ -363,24 +363,24 @@ INT	RT_CfgSetFixedTxPhyMode(
 		/* 2 : OFDM*/
 		/* otherwise : HT*/
 		if (value == FIXED_TXMODE_CCK || value == FIXED_TXMODE_OFDM)
-			fix_tx_mode = value;	
+			fix_tx_mode = value;
 		else
 			fix_tx_mode = FIXED_TXMODE_HT;
 	}
 
 	return fix_tx_mode;
-					
-}	
+
+}
 
 INT	RT_CfgSetMacAddress(
 	IN 	PRTMP_ADAPTER 	pAd,
 	IN	PSTRING			arg)
 {
 	INT	i, mac_len;
-	
+
 	/* Mac address acceptable format 01:02:03:04:05:06 length 17 */
 	mac_len = strlen(arg);
-	if(mac_len != 17)  
+	if(mac_len != 17)
 	{
 		DBGPRINT(RT_DEBUG_ERROR, ("%s : invalid length (%d)\n", __FUNCTION__, mac_len));
 		return FALSE;
@@ -396,7 +396,7 @@ INT	RT_CfgSetMacAddress(
 	{
 		AtoH(arg, &pAd->CurrentAddress[i], 1);
 		arg = arg + 3;
-	}	
+	}
 
 	pAd->bLocalAdminMAC = TRUE;
 	return TRUE;
@@ -408,14 +408,14 @@ INT	RT_CfgSetTxMCSProc(
 {
 	INT	Value = simple_strtol(arg, 0, 10);
 	INT	TxMcs;
-	
+
 	if ((Value >= 0 && Value <= 23) || (Value == 32)) /* 3*3*/
 	{
 		TxMcs = Value;
 		*pAutoRate = FALSE;
 	}
 	else
-	{		
+	{
 		TxMcs = MCS_AUTO;
 		*pAutoRate = TRUE;
 	}
@@ -433,7 +433,7 @@ INT	RT_CfgSetAutoFallBack(
 
 	RTMP_IO_READ32(pAd, TX_RTY_CFG, &tx_rty_cfg.word);
 	tx_rty_cfg.field.TxautoFBEnable = (AutoFallBack) ? 1 : 0;
-	RTMP_IO_WRITE32(pAd, TX_RTY_CFG, tx_rty_cfg.word);	
+	RTMP_IO_WRITE32(pAd, TX_RTY_CFG, tx_rty_cfg.word);
 	DBGPRINT(RT_DEBUG_TRACE, ("RT_CfgSetAutoFallBack::(tx_rty_cfg=0x%x)\n", tx_rty_cfg.word));
 	return TRUE;
 }
@@ -546,6 +546,11 @@ INT RTMP_COM_IoctlHandle(
 			break;
 #endif /* CONFIG_APSTA_MIXED_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
+		case CMD_RTPRIV_IOCTL_ADAPTER_SEND_DISSASSOCIATE:
+		/* clear driver state to fRTMP_ADAPTER_SUSPEND */
+			RtmpOSWrielessEventSend(pAd->net_dev, RT_WLAN_EVENT_CGIWAP, -1, NULL, NULL, 0);
+			break;
+
 #ifdef CONFIG_PM
 #ifdef USB_SUPPORT_SELECTIVE_SUSPEND
                 case CMD_RTPRIV_IOCTL_USB_DEV_GET:
@@ -582,11 +587,13 @@ INT RTMP_COM_IoctlHandle(
 
 		case CMD_RTPRIV_IOCTL_ADAPTER_CPU_SUSPEND_SET:
 		/* set driver state to fRTMP_ADAPTER_CPU_SUSPEND */
+			DBGPRINT(RT_DEBUG_TRACE, ("CMD_RTPRIV_IOCTL_ADAPTER_CPU_SUSPEND_SET\n"));
 			RTMP_SET_FLAG(pAd,fRTMP_ADAPTER_CPU_SUSPEND);
 			break;
 
 		case CMD_RTPRIV_IOCTL_ADAPTER_CPU_SUSPEND_CLEAR:
 		/* clear driver state to fRTMP_ADAPTER_CPU_SUSPEND */
+			DBGPRINT(RT_DEBUG_TRACE, ("CMD_RTPRIV_IOCTL_ADAPTER_CPU_SUSPEND_CLEAR\n"));
 			RTMP_CLEAR_FLAG(pAd,fRTMP_ADAPTER_CPU_SUSPEND);
 			break;
 
@@ -611,7 +618,7 @@ INT RTMP_COM_IoctlHandle(
 			break;
 
 #endif /* USB_SUPPORT_SELECTIVE_SUSPEND */
-#endif /* CONFIG_PM */	
+#endif /* CONFIG_PM */
 
 		case CMD_RTPRIV_IOCTL_AP_BSSID_GET:
 			if (pAd->StaCfg.PortSecured == WPA_802_1X_PORT_NOT_SECURED)
@@ -758,7 +765,7 @@ INT RTMP_COM_IoctlHandle(
 			break;
 
 		case CMD_RTPRIV_IOCTL_INF_PPA_EXIT:
-			if (ppa_hook_directpath_register_dev_fn && pAd->PPAEnable==TRUE) 
+			if (ppa_hook_directpath_register_dev_fn && pAd->PPAEnable==TRUE)
 			{
 				UINT status;
 				status=ppa_hook_directpath_register_dev_fn(&pAd->g_if_id, pAd->net_dev, NULL, 0);
@@ -780,11 +787,13 @@ INT RTMP_COM_IoctlHandle(
 					DBGPRINT(RT_DEBUG_TRACE, ("rt28xx_open return fail!\n"));
 					return NDIS_STATUS_FAILURE;
 				}
+				else
+					VIRTUAL_IF_INC(pAd);
 			}
 			else
 			{
 			}
-			VIRTUAL_IF_INC(pAd);
+			
 		}
 			break;
 
@@ -793,9 +802,12 @@ INT RTMP_COM_IoctlHandle(
 		{
 			RT_CMD_INF_UP_DOWN *pInfConf = (RT_CMD_INF_UP_DOWN *)pData;
 
-			VIRTUAL_IF_DEC(pAd);
-			if (VIRTUAL_IF_NUM(pAd) == 0)
+		
+			if (VIRTUAL_IF_NUM(pAd) > 0)
+				{
 				pInfConf->rt28xx_close(pAd->net_dev);
+				VIRTUAL_IF_DEC(pAd);				
+		  }   
 		}
 			break;
 
@@ -840,7 +852,7 @@ INT RTMP_COM_IoctlHandle(
 			pStats->level = 0;
 			pStats->noise = 0;
 			pStats->pStats = pAd->iw_stats;
-			
+
 #ifdef CONFIG_STA_SUPPORT
 			if (pAd->OpMode == OPMODE_STA)
 			{
@@ -850,7 +862,7 @@ INT RTMP_COM_IoctlHandle(
 
 			/*check if the interface is down*/
 			if(!RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_INTERRUPT_IN_USE))
-				return NDIS_STATUS_FAILURE;	
+				return NDIS_STATUS_FAILURE;
 
 
 #ifdef CONFIG_STA_SUPPORT
@@ -874,8 +886,8 @@ INT RTMP_COM_IoctlHandle(
 #ifdef CONFIG_STA_SUPPORT
 			pStats->noise = RTMPMaxRssi(pAd, pAd->StaCfg.RssiSample.AvgRssi0,
 										pAd->StaCfg.RssiSample.AvgRssi1,
-										pAd->StaCfg.RssiSample.AvgRssi2) - 
-										RTMPMinSnr(pAd, pAd->StaCfg.RssiSample.AvgSnr0, 
+										pAd->StaCfg.RssiSample.AvgRssi2) -
+										RTMPMinSnr(pAd, pAd->StaCfg.RssiSample.AvgSnr0,
 										pAd->StaCfg.RssiSample.AvgSnr1);
 #endif /* CONFIG_STA_SUPPORT */
 		}
@@ -897,7 +909,7 @@ INT RTMP_COM_IoctlHandle(
 		case CMD_RTPRIV_IOCTL_INF_P2P_CHECK:
 			if (Data != INT_P2P)
 				return NDIS_STATUS_FAILURE;
-			break;			
+			break;
 
 
 #ifdef RALINK_ATE
@@ -905,22 +917,22 @@ INT RTMP_COM_IoctlHandle(
 		case CMD_RTPRIV_IOCTL_ATE:
 			RtmpDoAte(pAd, wrq, pData);
 			break;
-#endif /* RALINK_QA */ 
+#endif /* RALINK_QA */
 #endif /* RALINK_ATE */
 
 		case CMD_RTPRIV_IOCTL_MAC_ADDR_GET:
 
 			RT28xx_EEPROM_READ16(pAd, 0x04, Addr01);
 			RT28xx_EEPROM_READ16(pAd, 0x06, Addr23);
-			RT28xx_EEPROM_READ16(pAd, 0x08, Addr45);			
-			
-			PermanentAddress[0] = (UCHAR)(Addr01 & 0xff);		
+			RT28xx_EEPROM_READ16(pAd, 0x08, Addr45);
+
+			PermanentAddress[0] = (UCHAR)(Addr01 & 0xff);
 			PermanentAddress[1] = (UCHAR)(Addr01 >> 8);
 			PermanentAddress[2] = (UCHAR)(Addr23 & 0xff);
 			PermanentAddress[3] = (UCHAR)(Addr23 >> 8);
 			PermanentAddress[4] = (UCHAR)(Addr45 & 0xff);
-			PermanentAddress[5] = (UCHAR)(Addr45 >> 8);				
-			
+			PermanentAddress[5] = (UCHAR)(Addr45 >> 8);
+
 			for(i=0; i<6; i++)
 				*(UCHAR *)(pData+i) = PermanentAddress[i];
 			break;
@@ -1019,7 +1031,7 @@ INT RTMP_COM_IoctlHandle(
 	return Status;
 }
 
-/* 
+/*
     ==========================================================================
     Description:
         Issue a site survey command to driver
@@ -1031,12 +1043,12 @@ INT RTMP_COM_IoctlHandle(
         None
 
     Note:
-        Usage: 
+        Usage:
                1.) iwpriv ra0 set site_survey
     ==========================================================================
 */
 INT Set_SiteSurvey_Proc(
-	IN	PRTMP_ADAPTER	pAd, 
+	IN	PRTMP_ADAPTER	pAd,
 	IN	PSTRING			arg)
 {
 	NDIS_802_11_SSID Ssid;
@@ -1048,7 +1060,7 @@ INT Set_SiteSurvey_Proc(
 	if (!RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_INTERRUPT_IN_USE))
 	{
 		DBGPRINT(RT_DEBUG_TRACE, ("INFO::Network is down!\n"));
-		return -ENETDOWN;   
+		return -ENETDOWN;
 	}
 
 #ifdef CONFIG_STA_SUPPORT
@@ -1068,7 +1080,7 @@ INT Set_SiteSurvey_Proc(
 #ifdef CONFIG_STA_SUPPORT
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 	{
-		Ssid.SsidLength = 0; 
+		Ssid.SsidLength = 0;
 		if ((arg != NULL) &&
 			(strlen(arg) <= MAX_LEN_OF_SSID))
 		{

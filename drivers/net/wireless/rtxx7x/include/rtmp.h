@@ -51,7 +51,9 @@
 #include "client_wds_cmm.h"
 #endif /* CLIENT_WDS */
 
-
+#ifdef	CONFIG_HAS_EARLYSUSPEND
+#include <linux/earlysuspend.h>
+#endif
 
 
 typedef struct _RTMP_ADAPTER RTMP_ADAPTER;
@@ -200,6 +202,11 @@ typedef struct _ATE_INFO {
 	UINT32 TxCount;
 	UINT32 TxDoneCount;	/* Tx DMA Done */
 	UINT32 RFFreqOffset;
+
+//#if defined(RT5370) || defined(RT5372) || defined(RT5390) || defined(RT5392)
+//	UINT32   PreRFXCodeValue;
+//#endif /* defined(RT5370) || defined(RT5372) || defined(RT5390) || defined(RT5392) */
+
 	UINT32 IPG;
 	BOOLEAN bRxFER;		/* Show Rx Frame Error Rate */
 	BOOLEAN	bQAEnabled;	/* QA is used. */
@@ -1599,9 +1606,6 @@ typedef struct _COMMON_CONFIG {
 
 	BOOLEAN NdisRadioStateOff;	/*For HCT 12.0, set this flag to TRUE instead of called MlmeRadioOff. */
 	ABGBAND_STATE BandState;	/* For setting BBP used on B/G or A mode. */
-#ifdef ANT_DIVERSITY_SUPPORT
-	UCHAR bRxAntDiversity;	/* 0:disable, 1:enable Software Rx Antenna Diversity. */
-#endif				/* ANT_DIVERSITY_SUPPORT */
 
 	/* IEEE802.11H--DFS. */
 	RADAR_DETECT_STRUCT RadarDetect;
@@ -1950,6 +1954,14 @@ typedef struct _COMMON_CONFIG {
 #define DBF_UNUSED8000				0x8000	/* unused */
 
 #ifdef CONFIG_STA_SUPPORT
+
+#ifdef ANDROID_SUPPORT
+typedef struct _STA_ANDROID_CONFIG {
+    	BSS_ENTRY       BssEntry;
+} STA_ANDROID_CONFIG, *PSTA_ANDROID_CONFIG;
+
+#endif /* ANDROID_SUPPORT */
+
 /* Modified by Wu Xi-Kun 4/21/2006 */
 /* STA configuration and status */
 typedef struct _STA_ADMIN_CONFIG {
@@ -2967,6 +2979,12 @@ struct _RTMP_ADAPTER {
 	STA_ACTIVE_CONFIG StaActive;	/* valid only when ADHOC_ON(pAd) || INFRA_ON(pAd) */
 	CHAR nickname[IW_ESSID_MAX_SIZE + 1];	/* nickname, only used in the iwconfig i/f */
 	NDIS_MEDIA_STATE PreMediaState;
+
+
+#ifdef ANDROID_SUPPORT
+	STA_ANDROID_CONFIG StaARCfg;	/*Android connect */
+#endif /* ANDROID_SUPPORT */
+
 #endif /* CONFIG_STA_SUPPORT */
 
 /*=======Common=========== */
@@ -3234,7 +3252,21 @@ struct _RTMP_ADAPTER {
 #endif /* OS_ABL_SUPPORT */
 
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
+	struct	early_suspend	early_suspend;
+//	UCHAR	late_resume_flag;
+#endif
+#ifdef	CONFIG_ANDROID_POWER
+	android_early_suspend_t	early_suspend;
+//	UCHAR	late_resume_flag;
+#endif
 
+//	UCHAR PreRFXCodeValue;	/* latch for RF (Freq Cal) value */
+
+#ifdef HW_ANTENNA_DIVERSITY_SUPPORT
+	BOOLEAN bHardwareAntennaDivesity;
+	UCHAR FixDefaultAntenna;
+#endif /* HW_ANTENNA_DIVERSITY_SUPPORT */
 };
 
 
@@ -3986,11 +4018,6 @@ VOID	RTMPReleaseTimer(
 
 VOID RTMPEnableRxTx(
 	IN PRTMP_ADAPTER	pAd);
-
-
-VOID AntCfgInit(
-IN  PRTMP_ADAPTER   pAd);
-
 
 /* */
 /* prototype in action.c */
@@ -5950,7 +5977,13 @@ BOOLEAN GetDesiredTssiAndCurrentTssi(
 VOID InitLookupTable(
 	IN PRTMP_ADAPTER pAd);
 #endif /* RTMP_TEMPERATURE_COMPENSATION */
-
+#if 0
+	void RFMultiStepXoCode(
+	IN	PRTMP_ADAPTER pAd,
+	IN	UCHAR	rfRegID,
+	IN	UCHAR	rfRegValue,
+	IN	UCHAR	rfRegValuePre);
+#endif
 #endif /* defined(RT5370) || defined(RT5372) || defined(RT5390) || defined(RT5392) */
 
 VOID MlmeHandler(
@@ -6150,12 +6183,6 @@ VOID CntlChannelWidth(
 VOID APAsicEvaluateRxAnt(
 	IN PRTMP_ADAPTER	pAd);
 
-#ifdef ANT_DIVERSITY_SUPPORT
-VOID	APAsicAntennaAvg(
-	IN	PRTMP_ADAPTER	pAd,
-	IN	UCHAR	              AntSelect,
-	IN	SHORT	              *RssiAvg);
-#endif /* ANT_DIVERSITY_SUPPORT */
 
 VOID APAsicRxAntEvalTimeout(
 	IN PRTMP_ADAPTER	pAd);
@@ -7019,6 +7046,13 @@ NTSTATUS RTUSBMultiRead(
 	OUT	PUCHAR			pData,
 	IN	USHORT			length);
 
+NTSTATUS RTUSBMultiWrite_nBytes(
+        IN      PRTMP_ADAPTER   pAd,
+        IN      USHORT                  Offset,
+        IN      PUCHAR                  pData,
+        IN      USHORT                  length,
+        IN      USHORT                  batchLen);
+
 NTSTATUS RTUSBMultiWrite(
 	IN	PRTMP_ADAPTER	pAd,
 	IN	USHORT			Offset,
@@ -7734,16 +7768,11 @@ INT RTMP_COM_IoctlHandle(
 	IN	VOID					*pData,
 	IN	ULONG					Data);
 
+#if defined(CONFIG_HAS_EARLYSUSPEND) || defined(CONFIG_ANDROID_POWER)
+#define RT_IS_EARLYSUSPEND_REGISTERED(_p) (_p)->early_suspend.suspend
+void RTRegisterEarlySuspend(PRTMP_ADAPTER	pAd);
+void RTUnregisterEarlySuspend(PRTMP_ADAPTER	pAd);
+#endif //CONFIG_HAS_EARLYSUSPEND || CONFIG_ANDROID_POWER
 
-
-INT	Set_Antenna_Proc(
-	IN	PRTMP_ADAPTER	pAd, 
-	IN	PSTRING			arg);
-
-#ifdef RT5350
-INT Set_Hw_Antenna_Div_Proc(
-	IN	PRTMP_ADAPTER	pAd,
-	IN	PSTRING			arg);
-#endif // RT5350 //
 #endif  /* __RTMP_H__ */
 

@@ -23,6 +23,7 @@ endif
 RTMP_SRC_DIR = $(RT28xx_DIR)/RT$(CHIPSET)
 
 #PLATFORM: Target platform
+#PLATFORM = JZSOC
 #PLATFORM = PC
 #PLATFORM = 5VT
 #PLATFORM = IKANOS_V160
@@ -55,6 +56,8 @@ RTMP_SRC_DIR = $(RT28xx_DIR)/RT$(CHIPSET)
 #PLATFORM = NXP_TV550
 #PLATFORM = MVL5
 #PLATFORM = RALINK_3352
+#LATFORM = IMX51
+#PLATFORM = Telechips
 PLATFORM = sunxi
 
 #APSOC
@@ -169,6 +172,13 @@ LINUX_SRC = /home/sample/Customers/BroadLight/UBB/pmp16/bl234x-linux-2.6.21-smal
 CROSS_COMPILE = mips-wrs-linux-gnu-
 endif
 
+ifeq ($(PLATFORM),JZSOC)
+#LINUX_SRC = /home/qzhliao/workspace/lepus/4760/android-2.2/kernel
+#CROSS_COMPILE = /home/qzhliao/workspace/lepus/4760/android-2.2/prebuilt/linux-x86/toolchain/mips-4.4.3/bin/mips-linux-gnu-
+LINUX_SRC = /android-2.2/kernel
+CROSS_COMPILE = /opt/mips-4.3/bin/mips-linux-gnu-
+endif
+
 ifeq ($(PLATFORM),PC)
 # Linux 2.6
 LINUX_SRC = /lib/modules/$(shell uname -r)/build
@@ -276,6 +286,22 @@ LINUX_SRC = /home2/charlestu/AP-VT3426/linux-2.6.18
 CROSS_COMPILE = /opt/montavista/pro/devkit/arm/v5t_le_mvl5/bin/arm_v5t_le-
 endif
 
+ifeq ($(PLATFORM),IMX51)
+LINUX_SRC = /home/carter/MyAndroid_backup/kernel_imx
+#CROSS_COMPILE = /opt/freescale/usr/local/gcc-4.4.4-glibc-2.11.1-multilib-1.0/arm-fsl-linux-gnueabi/bin/arm-linux-
+#CROSS_COMPILE = /opt/gcc-4.1.2-glibc-2.5-nptl-3/arm-none-linux-gnueabi/bin/arm-linux-
+CROSS_COMPILE = /home/carter/MyWork/imx-android-r9.2/tool/gcc-4.1.2-glibc-2.5-nptl-3/arm-none-linux-gnueabi/bin/arm-linux-
+endif
+
+
+ifeq ($(PLATFORM),Telechips)
+LINUX_SRC = /home/carter/Desktop/Working_2011/Customer/TelechipSDK/gingerbread_rel/kernel
+CROSS_COMPILE = /home/carter/Desktop/Working_2011/Customer/TelechipSDK/gingerbread_rel/prebuilt/linux-x86/toolchain/arm-eabi-4.4.3/bin/arm-eabi-
+endif
+
+
+
+
 ifeq ($(PLATFORM),sunxi)
 #LINUX_SRC = ~/workspace/ics-exdroid/lichee/linux-3.0
 #LINUX_SRC_MODULE = ~/workspace/ics-exdroid/lichee/linux-3.0/drivers/net/wireless
@@ -290,7 +316,7 @@ ifneq ($(KERNELRELEASE),)
 # add source here
 ###############################start of os/linux/config.mk####################################
 # Support ATE function
-HAS_ATE=y
+HAS_ATE=n
 # Support ATE NEW TXCONT solution
 HAS_NEW_TXCONT=n
 
@@ -326,7 +352,7 @@ endif
 #-----------------------------------------------#
 
 # Support QA ATE function
-HAS_QA_SUPPORT=y
+HAS_QA_SUPPORT=n
 
 HAS_RSSI_FEEDBACK=n
 
@@ -362,6 +388,8 @@ HAS_DFS_SUPPORT=n
 #Support Carrier-Sense function
 HAS_CS_SUPPORT=n
 
+#Support USB load firmware by multibyte
+HAS_USB_FIRMWARE_MULTIBYTE_WRITE=y
 
 # Support user specific transmit rate of Multicast packet.
 HAS_MCAST_RATE_SPECIFIC_SUPPORT=n
@@ -387,7 +415,7 @@ HAS_IDS_SUPPORT=n
 HAS_SNMP_SUPPORT=n
 
 #Support features of 802.11n Draft3
-HAS_DOT11N_DRAFT3_SUPPORT=n
+HAS_DOT11N_DRAFT3_SUPPORT=y
 
 #Support features of Single SKU. 
 HAS_SINGLE_SKU_SUPPORT=n
@@ -412,22 +440,27 @@ HAS_KTHREAD_SUPPORT=n
 HAS_AUTO_CH_SELECT_ENHANCE=n
 
 #Support statistics count
-HAS_STATS_COUNT=n
+HAS_STATS_COUNT=y
 
 
 #Support USB_BULK_BUF_ALIGMENT
-HAS_USB_BULK_BUF_ALIGMENT=n
+HAS_USB_BULK_BUF_ALIGMENT=y
+
+
+#Support USB_BULK_BUF_ALIGMENT
+HAS_USB_BULK_BUF_ALIGMENT2=n
+
 
 #Support for USB_SUPPORT_SELECTIVE_SUSPEND
-HAS_USB_SUPPORT_SELECTIVE_SUSPEND=n
+HAS_USB_SUPPORT_SELECTIVE_SUSPEND=y
+
+
+#Support ANDROID_SUPPORT
+HAS_ANDROID_SUPPORT=y
 
 
 
 
-
-
-#Support Antenna Diversity
-HAS_ANTENNA_DIVERSITY_SUPPORT=n
 
 #Client support WDS function
 HAS_CLIENT_WDS_SUPPORT=n
@@ -492,9 +525,9 @@ ifeq ($(HAS_REFUSE_SCAN_QUERY_WHILE_SCANING),y)
 WFLAGS += -DREFUSE_SCAN_QUERY_WHILE_SCANING
 endif
 
-
-
-
+ifeq ($(HAS_USB_FIRMWARE_MULTIBYTE_WRITE),y)
+WFLAGS += -DUSB_FIRMWARE_MULTIBYTE_WRITE -DMULTIWRITE_BYTES=64
+endif
 
 
 ifeq ($(HAS_KTHREAD_SUPPORT),y)
@@ -571,6 +604,20 @@ ifeq ($(HAS_STATS_COUNT),y)
 WFLAGS += -DSTATS_COUNT_SUPPORT
 endif
 
+ifeq ($(HAS_USB_BULK_BUF_ALIGMENT),y)
+WFLAGS += -DUSB_BULK_BUF_ALIGMENT
+endif
+
+ifeq ($(HAS_USB_BULK_BUF_ALIGMENT2),y)
+WFLAGS += -DUSB_BULK_BUF_ALIGMENT2
+endif
+
+
+ifeq ($(HAS_ANDROID_SUPPORT),y)
+WFLAGS += -DANDROID_SUPPORT -DCONFIG_PM
+endif
+
+
 ifeq ($(HAS_USB_SUPPORT_SELECTIVE_SUSPEND),y)
 WFLAGS += -DUSB_SUPPORT_SELECTIVE_SUSPEND -DCONFIG_PM
 endif
@@ -605,9 +652,6 @@ WFLAGS += -DOS_ABL_OS_STA_SUPPORT
 endif
 endif
 
-ifeq ($(HAS_ANTENNA_DIVERSITY_SUPPORT),y)
-WFLAGS += -DANT_DIVERSITY_SUPPORT
-endif
 
 
 ifeq ($(HAS_WIDI_SUPPORT),y)
@@ -1453,6 +1497,7 @@ endif
 else
 # make in the directory,origin
 
+
 export OSABL RT28xx_DIR RT28xx_MODE LINUX_SRC CROSS_COMPILE CROSS_COMPILE_INCLUDE PLATFORM RELEASE CHIPSET RTMP_SRC_DIR LINUX_SRC_MODULE TARGET
 
 # The targets that may be used.
@@ -1528,7 +1573,15 @@ else
 
 ifeq ($(OSABL),YES)
 	cp -f os/linux/Makefile.6.util $(RT28xx_DIR)/os/linux/Makefile
+ifeq ($(PLATFORM),IMX51)
+	$(MAKE) ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) -C  $(LINUX_SRC) SUBDIRS=$(RT28xx_DIR)/os/linux modules
+else
+ifeq ($(PLATFORM),Telechips)
+	$(MAKE) ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) -C  $(LINUX_SRC) SUBDIRS=$(RT28xx_DIR)/os/linux modules
+else
 	$(MAKE) -C $(LINUX_SRC) SUBDIRS=$(RT28xx_DIR)/os/linux modules
+endif
+endif
 endif
 
 	cp -f os/linux/Makefile.6 $(RT28xx_DIR)/os/linux/Makefile
@@ -1538,13 +1591,29 @@ else
 ifeq ($(PLATFORM),FREESCALE8377)
 	$(MAKE) ARCH=powerpc CROSS_COMPILE=$(CROSS_COMPILE) -C  $(LINUX_SRC) SUBDIRS=$(RT28xx_DIR)/os/linux modules
 else
+ifeq ($(PLATFORM),IMX51)
+	$(MAKE) ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) -C  $(LINUX_SRC) SUBDIRS=$(RT28xx_DIR)/os/linux modules
+else
+ifeq ($(PLATFORM),Telechips)
+	$(MAKE) ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) -C  $(LINUX_SRC) SUBDIRS=$(RT28xx_DIR)/os/linux modules
+else
 	$(MAKE) -C $(LINUX_SRC) SUBDIRS=$(RT28xx_DIR)/os/linux modules
+endif
+endif
 endif
 endif
 
 ifeq ($(OSABL),YES)
 	cp -f os/linux/Makefile.6.netif $(RT28xx_DIR)/os/linux/Makefile
+ifeq ($(PLATFORM),IMX51)
+	$(MAKE) ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) -C  $(LINUX_SRC) SUBDIRS=$(RT28xx_DIR)/os/linux modules
+else
+ifeq ($(PLATFORM),Telechips)
+	$(MAKE) ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) -C  $(LINUX_SRC) SUBDIRS=$(RT28xx_DIR)/os/linux modules
+else
 	$(MAKE) -C $(LINUX_SRC) SUBDIRS=$(RT28xx_DIR)/os/linux modules
+endif
+endif
 endif
 
 ifeq ($(RT28xx_MODE),AP)
@@ -1651,7 +1720,15 @@ ifneq (,$(findstring 2.4,$(LINUX_SRC)))
 	$(MAKE) -C $(RT28xx_DIR)/os/linux/
 else
 	cp -f os/linux/Makefile.6.util $(RT28xx_DIR)/os/linux/Makefile
+ifeq ($(PLATFORM),IMX51)
+	$(MAKE) ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) -C  $(LINUX_SRC) SUBDIRS=$(RT28xx_DIR)/os/linux modules
+else
+ifeq ($(PLATFORM),Telechips)
+	$(MAKE) ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) -C  $(LINUX_SRC) SUBDIRS=$(RT28xx_DIR)/os/linux modules
+else
 	$(MAKE) -C $(LINUX_SRC) SUBDIRS=$(RT28xx_DIR)/os/linux modules
+endif
+endif
 endif
 endif
 
@@ -1662,7 +1739,15 @@ ifneq (,$(findstring 2.4,$(LINUX_SRC)))
 	$(MAKE) -C $(RT28xx_DIR)/os/linux/
 else
 	cp -f os/linux/Makefile.6.netif $(RT28xx_DIR)/os/linux/Makefile
+ifeq ($(PLATFORM),IMX51)
+	$(MAKE) ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) -C  $(LINUX_SRC) SUBDIRS=$(RT28xx_DIR)/os/linux modules
+else
+ifeq ($(PLATFORM),Telechips)
+	$(MAKE) ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) -C  $(LINUX_SRC) SUBDIRS=$(RT28xx_DIR)/os/linux modules
+else
 	$(MAKE) -C $(LINUX_SRC) SUBDIRS=$(RT28xx_DIR)/os/linux modules
+endif
+endif
 endif
 endif
 
@@ -1672,7 +1757,15 @@ ifneq (,$(findstring 2.4,$(LINUX_SRC)))
 	$(MAKE) -C $(RT28xx_DIR)/os/linux/
 else
 	cp -f os/linux/Makefile.6 $(RT28xx_DIR)/os/linux/Makefile
+ifeq ($(PLATFORM),IMX51)
+	$(MAKE) ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) -C  $(LINUX_SRC) SUBDIRS=$(RT28xx_DIR)/os/linux modules
+else
+ifeq ($(PLATFORM),Telechips)
+	$(MAKE) ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) -C  $(LINUX_SRC) SUBDIRS=$(RT28xx_DIR)/os/linux modules
+else
 	$(MAKE) -C $(LINUX_SRC) SUBDIRS=$(RT28xx_DIR)/os/linux modules
+endif
+endif
 endif
 
 # Declare the contents of the .PHONY variable as phony.  We keep that information in a variable

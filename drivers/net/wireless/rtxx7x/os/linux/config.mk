@@ -1,5 +1,6 @@
 # Support ATE function
-HAS_ATE=y
+HAS_ATE=n
+
 # Support ATE NEW TXCONT solution
 HAS_NEW_TXCONT=n
 
@@ -35,7 +36,7 @@ endif
 #-----------------------------------------------#
 
 # Support QA ATE function
-HAS_QA_SUPPORT=y
+HAS_QA_SUPPORT=n
 
 HAS_RSSI_FEEDBACK=n
 
@@ -71,6 +72,8 @@ HAS_DFS_SUPPORT=n
 #Support Carrier-Sense function
 HAS_CS_SUPPORT=n
 
+#Support USB load firmware by multibyte
+HAS_USB_FIRMWARE_MULTIBYTE_WRITE=y
 
 # Support user specific transmit rate of Multicast packet.
 HAS_MCAST_RATE_SPECIFIC_SUPPORT=n
@@ -96,7 +99,7 @@ HAS_IDS_SUPPORT=n
 HAS_SNMP_SUPPORT=n
 
 #Support features of 802.11n Draft3
-HAS_DOT11N_DRAFT3_SUPPORT=n
+HAS_DOT11N_DRAFT3_SUPPORT=y
 
 #Support features of Single SKU. 
 HAS_SINGLE_SKU_SUPPORT=n
@@ -121,22 +124,27 @@ HAS_KTHREAD_SUPPORT=n
 HAS_AUTO_CH_SELECT_ENHANCE=n
 
 #Support statistics count
-HAS_STATS_COUNT=n
+HAS_STATS_COUNT=y
 
 
 #Support USB_BULK_BUF_ALIGMENT
 HAS_USB_BULK_BUF_ALIGMENT=n
 
+
+#Support USB_BULK_BUF_ALIGMENT
+HAS_USB_BULK_BUF_ALIGMENT2=n
+
+
 #Support for USB_SUPPORT_SELECTIVE_SUSPEND
-HAS_USB_SUPPORT_SELECTIVE_SUSPEND=n
+HAS_USB_SUPPORT_SELECTIVE_SUSPEND=y
+
+
+#Support ANDROID_SUPPORT
+HAS_ANDROID_SUPPORT=y
 
 
 
 
-
-
-#Support Antenna Diversity
-HAS_ANTENNA_DIVERSITY_SUPPORT=n
 
 #Client support WDS function
 HAS_CLIENT_WDS_SUPPORT=n
@@ -201,9 +209,9 @@ ifeq ($(HAS_REFUSE_SCAN_QUERY_WHILE_SCANING),y)
 WFLAGS += -DREFUSE_SCAN_QUERY_WHILE_SCANING
 endif
 
-
-
-
+ifeq ($(HAS_USB_FIRMWARE_MULTIBYTE_WRITE),y)
+WFLAGS += -DUSB_FIRMWARE_MULTIBYTE_WRITE -DMULTIWRITE_BYTES=64
+endif
 
 
 ifeq ($(HAS_KTHREAD_SUPPORT),y)
@@ -280,6 +288,20 @@ ifeq ($(HAS_STATS_COUNT),y)
 WFLAGS += -DSTATS_COUNT_SUPPORT
 endif
 
+ifeq ($(HAS_USB_BULK_BUF_ALIGMENT),y)
+WFLAGS += -DUSB_BULK_BUF_ALIGMENT
+endif
+
+ifeq ($(HAS_USB_BULK_BUF_ALIGMENT2),y)
+WFLAGS += -DUSB_BULK_BUF_ALIGMENT2
+endif
+
+
+ifeq ($(HAS_ANDROID_SUPPORT),y)
+WFLAGS += -DANDROID_SUPPORT
+endif
+
+
 ifeq ($(HAS_USB_SUPPORT_SELECTIVE_SUSPEND),y)
 WFLAGS += -DUSB_SUPPORT_SELECTIVE_SUSPEND -DCONFIG_PM
 endif
@@ -314,9 +336,6 @@ WFLAGS += -DOS_ABL_OS_STA_SUPPORT
 endif
 endif
 
-ifeq ($(HAS_ANTENNA_DIVERSITY_SUPPORT),y)
-WFLAGS += -DANT_DIVERSITY_SUPPORT
-endif
 
 
 ifeq ($(HAS_WIDI_SUPPORT),y)
@@ -638,6 +657,11 @@ ifeq ($(PLATFORM),ST)
 WFLAGS += -DST
 endif
 
+ifeq ($(PLATFORM),JZSOC)
+        EXTRA_CFLAGS := $(WFLAGS) -I$(RT28xx_DIR)/include
+        export EXTRA_CFLAGS
+endif
+
 #kernel build options for 2.4
 # move to Makefile outside LINUX_SRC := /opt/star/kernel/linux-2.4.27-star
 
@@ -823,8 +847,22 @@ CFLAGS := -D__KERNEL__ -I$(LINUX_SRC)/include/asm-mips/mach-generic -I$(LINUX_SR
 export CFLAGS
 endif
 
+ifeq ($(PLATFORM),IMX51)
+EXTRA_CFLAGS := $(WFLAGS) -I$(RT28xx_DIR)/include -D__KERNEL__ -DMODULE
+export EXTRA_CFLAGS
+endif
+
+ifeq ($(PLATFORM),Telechips)
+EXTRA_CFLAGS := $(WFLAGS) -I$(RT28xx_DIR)/include -D__KERNEL__ -DMODULE -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs -fno-strict-aliasing -fno-common -Werror-implicit-function-declaration -Wno-format-security -fno-delete-null-pointer-checks -Os -marm -mabi=aapcs-linux -mno-thumb-interwork -funwind-tables -D__LINUX_ARM_ARCH__=7 -march=armv7-a -msoft-float -Uarm -Wframe-larger-than=1024 -fno-stack-protector -fomit-frame-pointer -g -Wdeclaration-after-statement -Wno-pointer-sign -fno-strict-overflow -fconserve-stack
+export EXTRA_CFLAGS
+endif
+
 ifeq ($(PLATFORM),sunxi)
 #	EXTRA_CFLAGS := $(WFLAGS) -I$(LINUX_SRC)/include -I$(RT28xx_DIR)/include -I$(src)/include
 	EXTRA_CFLAGS := $(WFLAGS) -O2  -Wno-unused-variable -Wno-unused-value -Wno-unused-label -Wno-unused-parameter -Wno-uninitialized -Wno-unused -Wno-unused-function  -I$(LINUX_SRC)/include -I$(RT28xx_DIR)/include -I$(src)/include -DCONFIG_LITTLE_ENDIAN
 export EXTRA_CFLAGS
 endif
+
+#/home/carter/Desktop/Working_2011/Customer/TelechipSDK/gingerbread_rel/prebuilt/linux-x86/toolchain/arm-eabi-4.4.3/bin/arm-eabi-gcc -Wp,-MD,net/ipv6/.exthdrs.o.d  -nostdinc -isystem /home/carter/Desktop/Working_2011/Customer/TelechipSDK/gingerbread_rel/prebuilt/linux-x86/toolchain/arm-eabi-4.4.3/bin/../lib/gcc/arm-eabi/4.4.3/include -I/home/carter/Desktop/Working_2011/Customer/TelechipSDK/gingerbread_rel/kernel/arch/arm/include -Iinclude  -include include/generated/autoconf.h -D__KERNEL__ -mlittle-endian -Iarch/arm/mach-tcc88xx/include -Iarch/arm/plat-tcc/include -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs -fno-strict-aliasing -fno-common -Werror-implicit-function-declaration -Wno-format-security -fno-delete-null-pointer-checks -Os -marm -mabi=aapcs-linux -mno-thumb-interwork -funwind-tables -D__LINUX_ARM_ARCH__=7 -march=armv7-a -msoft-float -Uarm -Wframe-larger-than=1024 -fno-stack-protector -fomit-frame-pointer -g -Wdeclaration-after-statement -Wno-pointer-sign -fno-strict-overflow -fconserve-stack
+
+#/home/carter/Desktop/Working_2011/Customer/TelechipSDK/gingerbread_rel/prebuilt/linux-x86/toolchain/arm-eabi-4.4.3/bin/arm-eabi-gcc -Wp,-MD,lib/.idr.o.d  -nostdinc -isystem /home/carter/Desktop/Working_2011/Customer/TelechipSDK/gingerbread_rel/prebuilt/linux-x86/toolchain/arm-eabi-4.4.3/bin/../lib/gcc/arm-eabi/4.4.3/include -I/home/carter/Desktop/Working_2011/Customer/TelechipSDK/gingerbread_rel/kernel/arch/arm/include -Iinclude  -include include/generated/autoconf.h -D__KERNEL__ -mlittle-endian -Iarch/arm/mach-tcc93xx/include -Iarch/arm/plat-tcc/include -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs -fno-strict-aliasing -fno-common -Werror-implicit-function-declaration -Wno-format-security -fno-delete-null-pointer-checks -Os -marm -mabi=aapcs-linux -mno-thumb-interwork -funwind-tables -D__LINUX_ARM_ARCH__=6 -march=armv6 -mtune=arm1136j-s -msoft-float -Uarm -Wframe-larger-than=1024 -fno-stack-protector -fomit-frame-pointer -g -Wdeclaration-after-statement -Wno-pointer-sign -fno-strict-overflow -fconserve-stack   -D"KBUILD_STR(s)=#s" -D"KBUILD_BASENAME=KBUILD_STR(idr)"  -D"KBUILD_MODNAME=KBUILD_STR(idr)"  -c -o lib/idr.o lib/idr.c

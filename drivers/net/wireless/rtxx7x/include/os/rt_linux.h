@@ -128,7 +128,8 @@ typedef struct usb_ctrlrequest devctrlrequest;
 
 #ifdef RTMP_MAC_USB
 #define STA_PROFILE_PATH			"/system/vendor/modules/RT2870STA.dat"
-#define STA_DRIVER_VERSION			"2.5.0.3"
+// Carter Modify /etc/Wireless/RT2870STA/RT2870STA.dat"
+#define STA_DRIVER_VERSION			"2.5.0.2.android"
 #ifdef MULTIPLE_CARD_SUPPORT
 #define CARD_INFO_PATH			"/system/vendor/modules/RT2870STACard.dat"
 #endif /* MULTIPLE_CARD_SUPPORT */

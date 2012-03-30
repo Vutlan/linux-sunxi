@@ -31,6 +31,8 @@
 #include "rtmp_comm.h"
 #include "rt_os_util.h"
 #include "rt_os_net.h"
+#include "rt_config.h"
+#include "rtmp.h"
 
 /* add by sw start*/
 #include <mach/sys_config.h>
@@ -54,6 +56,7 @@ MODULE_VERSION(STA_DRIVER_VERSION);
 
 extern USB_DEVICE_ID rtusb_dev_id[];
 extern INT const rtusb_usb_id_len;
+static BOOLEAN	late_resume_flag = FALSE;
 
 static void rt2870_disconnect(
 	IN struct usb_device *dev, 
@@ -214,6 +217,54 @@ static int rt2870_suspend(struct usb_interface *intf, pm_message_t state);
 static int rt2870_resume(struct usb_interface *intf);
 #endif /* CONFIG_PM */
 
+
+/*--------------------------------------------------------------------- */
+/* function declarations                                                                                                */
+/*--------------------------------------------------------------------- */
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static void rt2870_early_suspend(struct early_suspend *early)
+{
+        DBGPRINT(RT_DEBUG_ERROR, ("%s\n", __func__));
+}
+
+static void rt2870_late_resume(struct early_suspend *early)
+{
+        PRTMP_ADAPTER   pAd = container_of(early, RTMP_ADAPTER, early_suspend);
+        DBGPRINT(RT_DEBUG_ERROR, ("%s\n", __func__));
+
+	if (late_resume_flag == TRUE){
+		printk("late_resume_flag is TRUE!!!\n");
+		if (VIRTUAL_IF_UP((VOID *)pAd) != 0)
+                {
+			printk("%s, VIRTUAL_IF_UP != 0, WTF!!!!\n", __func__);
+                }
+		late_resume_flag = FALSE;
+	}
+}
+
+void RTRegisterEarlySuspend(PRTMP_ADAPTER    pAd)
+{
+        DBGPRINT(RT_DEBUG_ERROR, ("%s\n", __func__));
+        pAd->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN;
+        pAd->early_suspend.suspend = rt2870_early_suspend;
+        pAd->early_suspend.resume = rt2870_late_resume;
+        register_early_suspend(&pAd->early_suspend);
+}
+
+void RTUnregisterEarlySuspend(PRTMP_ADAPTER  pAd)
+{
+        DBGPRINT(RT_DEBUG_ERROR, ("%s\n", __func__));
+        late_resume_flag = FALSE;
+
+        if (pAd->early_suspend.suspend)
+                unregister_early_suspend(&pAd->early_suspend);
+
+        pAd->early_suspend.suspend = NULL;
+        pAd->early_suspend.resume = NULL;
+}
+#endif
+
 static int rtusb_probe (struct usb_interface *intf,
 						const USB_DEVICE_ID *id);
 static void rtusb_disconnect(struct usb_interface *intf);
@@ -304,7 +355,21 @@ static int rtusb_probe (struct usb_interface *intf,
 	
 	rv = rt2870_probe(intf, dev, id, &pAd);
 	if (rv != 0)
+	{
 		usb_put_dev(dev);
+	}
+#if 0
+	else
+ 	{
+   		if (VIRTUAL_IF_UP(pAd) != 0)
+   		{
+                     pAd = usb_get_intfdata(intf);
+                     usb_set_intfdata(intf, NULL);
+                     rt2870_disconnect(dev, pAd);
+     			rv = -ENOMEM;
+   		}
+ 	}
+#endif
 	
 	return rv;
 }
@@ -317,9 +382,27 @@ static void rtusb_disconnect(struct usb_interface *intf)
 
 
 	pAd = usb_get_intfdata(intf);
+	//VIRTUAL_IF_DOWN(pAd);
 	usb_set_intfdata(intf, NULL);	
 
 	rt2870_disconnect(dev, pAd);
+
+#ifdef CONFIG_PM
+#ifdef USB_SUPPORT_SELECTIVE_SUSPEND
+	    printk("rtusb_disconnect usb_autopm_put_interface \n");
+
+	    usb_autopm_put_interface(intf);
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,32)
+	 printk(" ^^rt2870_disconnect ====> pm_usage_cnt %d \n", atomic_read(&intf->pm_usage_cnt));
+#else
+	 printk(" rt2870_disconnect ====> pm_usage_cnt %d \n", intf->pm_usage_cnt);
+#endif
+	
+
+#endif /* USB_SUPPORT_SELECTIVE_SUSPEND */
+#endif /* CONFIG_PM */
+
 }
 
 
@@ -338,6 +421,10 @@ struct usb_driver rtusb_driver = {
 #endif /* USB_SUPPORT_SELECTIVE_SUSPEND */
 	suspend:	rt2870_suspend,
 	resume:		rt2870_resume,
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,22)
+	reset_resume:	rt2870_resume,
+#endif
+
 #endif /* CONFIG_PM */
 	};
 
@@ -357,9 +444,24 @@ static int rt2870_suspend(
 	struct net_device *net_dev;
 	VOID *pAd = usb_get_intfdata(intf);
 
+	late_resume_flag = TRUE;
+
 #ifdef USB_SUPPORT_SELECTIVE_SUSPEND
 	UCHAR Flag;
+#endif	
+#if defined(CONFIG_HAS_EARLYSUSPEND) || defined(CONFIG_ANDROID_POWER)
+	if ((RT_IS_EARLYSUSPEND_REGISTERED((PRTMP_ADAPTER)pAd)) && (late_resume_flag == TRUE)){
+		VIRTUAL_IF_DOWN((VOID *)pAd);
+		DBGPRINT(RT_DEBUG_OFF, ("%s, We has already register earlysuspend, make VIRTUAL_IF_DOWN\n", __func__));
+		return 0;
+	}
+#endif
+#ifdef USB_SUPPORT_SELECTIVE_SUSPEND
+//	UCHAR Flag;
 	DBGPRINT(RT_DEBUG_ERROR, ("autosuspend===> rt2870_suspend()\n"));
+/*	RtmpOSWrielessEventSend(pAd->net_dev, RT_WLAN_EVENT_CGIWAP, -1, NULL, NULL, 0);*/
+	RTMP_DRIVER_ADAPTER_END_DISSASSOCIATE(pAd);
+
 /*	if(!RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_IDLE_RADIO_OFF)) */
 	RTMP_DRIVER_ADAPTER_IDLE_RADIO_OFF_TEST(pAd, &Flag);
 	if(!Flag)
@@ -372,11 +474,16 @@ static int rt2870_suspend(
 	}
 		/*RTMP_SET_FLAG(pAd, fRTMP_ADAPTER_SUSPEND); */
 		RTMP_DRIVER_ADAPTER_SUSPEND_SET(pAd);
+	DBGPRINT(RT_DEBUG_ERROR, ("autosuspend <=== rt2870_suspend()\n"));
 	return 0;
 #endif /* USB_SUPPORT_SELECTIVE_SUSPEND */
 
 
 	DBGPRINT(RT_DEBUG_TRACE, ("===> rt2870_suspend()\n"));
+//	RtmpOSWrielessEventSend(pAd->net_dev, RT_WLAN_EVENT_CGIWAP, -1, NULL, NULL, 0);
+//	RTMP_DRIVER_ADAPTER_END_DISSASSOCIATE(pAd);
+
+//	RTMP_DRIVER_ADAPTER_RT28XX_USB_ASICRADIO_OFF(pAd);
 /*	net_dev = pAd->net_dev; */
 	RTMP_DRIVER_NET_DEV_GET(pAd, &net_dev);
 	netif_device_detach(net_dev);
@@ -396,6 +503,19 @@ static int rt2870_resume(
 	struct usb_device		*pUsb_Dev;
 	UCHAR Flag;
 	INT 		pm_usage_cnt;
+#endif
+
+#if defined(CONFIG_HAS_EARLYSUSPEND) || defined(CONFIG_ANDROID_POWER)
+	if ((RT_IS_EARLYSUSPEND_REGISTERED((PRTMP_ADAPTER)pAd)) && (late_resume_flag == TRUE)){
+		DBGPRINT(RT_DEBUG_OFF, ("%s, We has already register earlysuspend, call VIRTUAL_IF_UP\n", __func__));
+		return 0;
+	}
+#endif
+
+#ifdef USB_SUPPORT_SELECTIVE_SUSPEND
+//	struct usb_device		*pUsb_Dev;
+//	UCHAR Flag;
+//	INT 		pm_usage_cnt;
 
 	RTMP_DRIVER_USB_DEV_GET(pAd, &pUsb_Dev);
 	RTMP_DRIVER_USB_INTF_GET(pAd, &intf);
@@ -405,11 +525,12 @@ static int rt2870_resume(
 #else
 	pm_usage_cnt = intf->pm_usage_cnt;
 #endif
-
+#if 0
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,33)
 	if(pUsb_Dev->autosuspend_disabled == 0)
 #else
 	if(pUsb_Dev->auto_pm == 1)
+#endif
 #endif
 	{
 		if(pm_usage_cnt  <= 0)
@@ -417,7 +538,6 @@ static int rt2870_resume(
 
 	}
 	DBGPRINT(RT_DEBUG_ERROR, ("autosuspend===> rt2870_resume()\n"));
-
 	/*RTMP_CLEAR_FLAG(pAd, fRTMP_ADAPTER_SUSPEND); */
 	RTMP_DRIVER_ADAPTER_SUSPEND_CLEAR(pAd);
 
@@ -432,14 +552,13 @@ static int rt2870_resume(
 	/*RT28xxUsbAsicRadioOn(pAd); */
 	RTMP_DRIVER_ADAPTER_RT28XX_USB_ASICRADIO_ON(pAd);
 	DBGPRINT(RT_DEBUG_ERROR, ("autosuspend<===  rt2870_resume()\n"));
-
 	return 0;
 #endif /* USB_SUPPORT_SELECTIVE_SUSPEND */
 
 
 	DBGPRINT(RT_DEBUG_TRACE, ("===> rt2870_resume()\n"));
-
 /*	pAd->PM_FlgSuspend = 0; */
+	//RTMP_DRIVER_ADAPTER_RT28XX_USB_ASICRADIO_ON(pAd);
 	RTMP_DRIVER_USB_RESUME(pAd);
 
 /*	net_dev = pAd->net_dev; */
@@ -570,6 +689,10 @@ static void rt2870_disconnect(struct usb_device *dev, VOID *pAd)
 #endif /* LINUX_VERSION_CODE */
 	udelay(1);
 
+#if defined(CONFIG_HAS_EARLYSUSPEND) || defined(CONFIG_ANDROID_POWER)
+	RTUnregisterEarlySuspend((PRTMP_ADAPTER)pAd);
+#endif
+
 	/* free the root net_device */
 	RtmpOSNetDevFree(net_dev);
 
@@ -589,7 +712,7 @@ static void rt2870_disconnect(struct usb_device *dev, VOID *pAd)
 	usb_put_dev(dev);
 #endif /* LINUX_VERSION_CODE */
 	udelay(1);
-
+	
 	DBGPRINT(RT_DEBUG_ERROR, (" RTUSB disconnect successfully\n"));
 }
 
@@ -612,9 +735,12 @@ static int rt2870_probe(
 	INT		 res =1 ; 
 #endif /* USB_SUPPORT_SELECTIVE_SUSPEND */
 #endif /* CONFIG_PM */	
-
-	
-
+/*
+  rt_intf = intf;
+  rt_usb_dev = usb_dev;
+  rt_dev_id = dev_id;
+ *rt_ppAd = ppAd;	
+*/
 	DBGPRINT(RT_DEBUG_TRACE, ("===>rt2870_probe()!\n"));
 	
 #ifdef CONFIG_PM
@@ -732,6 +858,9 @@ static int rt2870_probe(
 
 	*ppAd = pAd;
 
+
+
+
 #ifdef INF_PPA_SUPPORT
 /*	pAd->pDirectpathCb = (PPA_DIRECTPATH_CB *) kmalloc (sizeof(PPA_DIRECTPATH_CB), GFP_ATOMIC); */
 /*	os_alloc_mem(NULL, (UCHAR **)&(pAd->pDirectpathCb), sizeof(PPA_DIRECTPATH_CB)); */
@@ -745,6 +874,11 @@ static int rt2870_probe(
 	/* Set up the Mac address */
 	RtmpOSNetDevAddrSet(OpMode, net_dev, &PermanentAddress[0], NULL);
 #endif /* PRE_ASSIGN_MAC_ADDR */
+
+#if defined(CONFIG_HAS_EARLYSUSPEND) || defined(CONFIG_ANDROID_POWER)
+	((PRTMP_ADAPTER)pAd)->early_suspend.suspend = NULL;
+	RTRegisterEarlySuspend(pAd);
+#endif
 
 	DBGPRINT(RT_DEBUG_TRACE, ("<===rt2870_probe()!\n"));
 
@@ -763,6 +897,7 @@ err_out:
 	return -1;
 	
 }
+
 
 
 #ifdef OS_ABL_SUPPORT

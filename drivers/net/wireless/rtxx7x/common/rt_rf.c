@@ -285,5 +285,47 @@ VOID NICInitRFRegisters(
 		pAd->chipOps.AsicRfInit(pAd);
 }
 
+
+#if 0
+VOID RFMultiStepXoCode(
+	IN	PRTMP_ADAPTER pAd,
+	IN	UCHAR	rfRegID,
+	IN	UCHAR	rfRegValue,
+	IN	UCHAR	rfRegValuePre)
+{
+	UINT i = 0, count = 0;
+	BOOLEAN bit7IsTrue = (rfRegValue & (0x80));
+
+	rfRegValue &= (0x7F);
+	rfRegValuePre &= (0x7F);
+
+	if (rfRegValuePre == rfRegValue)
+		return;
+
+	DBGPRINT(RT_DEBUG_TRACE, ("RFMultiStepXoCode--> Write Value 0x%02x, previous Value 0x%02x, bit7IsTrue = %d\n",rfRegValue, rfRegValuePre, bit7IsTrue));
+
+		if (rfRegValue>rfRegValuePre)
+	{
+		/* Sequentially */
+		for (i = rfRegValuePre; i<=rfRegValue; i++)
+		{
+			if (bit7IsTrue)
+				i |=0x80;		
+			RT30xxWriteRFRegister(pAd, rfRegID, i);
+			count ++;
+		}
+	}
+	else
+	{
+		/* one step */
+		if (bit7IsTrue)
+			rfRegValue |=0x80;	
+		RT30xxWriteRFRegister(pAd, rfRegID, rfRegValue);
+		count++;
+	}
+		DBGPRINT(RT_DEBUG_TRACE, ("RFMultiStepXoCode<-- Write Value 0x%02x, previous Value 0x%02x, running step count=%d\n",rfRegValue, rfRegValuePre,count));
+
+}
+#endif
 #endif /* RTMP_RF_RW_SUPPORT */
 

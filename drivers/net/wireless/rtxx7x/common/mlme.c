@@ -1115,9 +1115,6 @@ VOID MlmePeriodicExec(
 {
 	ULONG			TxTotalCnt;
 	PRTMP_ADAPTER	pAd = (RTMP_ADAPTER *)FunctionContext;
-#ifdef ANT_DIVERSITY_SUPPORT
-	SHORT	realavgrssi;
-#endif /* ANT_DIVERSITY_SUPPORT */
 
 	/* No More 0x84 MCU CMD from v.30 FW*/
 
@@ -1346,23 +1343,6 @@ VOID MlmePeriodicExec(
 	/*		pAd->RalinkCounters.MgmtRingFullCount = 0;*/
 
 		/* The time period for checking antenna is according to traffic*/
-#ifdef ANT_DIVERSITY_SUPPORT
-		if (((pAd->NicConfig2.field.AntDiversity) 
-#if TXRX_SW_ANTDIV_SUPPORT
-			|| (pAd->chipCap.bTxRxSwAntDiv)	
-#endif
-			) && (pAd->CommonCfg.bRxAntDiversity == ANT_SW_DIVERSITY_ENABLE) && 
-			(!pAd->EepromAccess))
-			AsicAntennaSelect(pAd, pAd->MlmeAux.Channel);
-		else if(pAd->CommonCfg.bRxAntDiversity == ANT_FIX_ANT0 || pAd->CommonCfg.bRxAntDiversity == ANT_FIX_ANT1)
-		{
-#ifdef CONFIG_STA_SUPPORT
-			realavgrssi = (pAd->RxAnt.Pair1AvgRssi[pAd->RxAnt.Pair1PrimaryRxAnt] >> 3);
-#endif /* CONFIG_STA_SUPPORT */
-			DBGPRINT(RT_DEBUG_TRACE,("Ant-realrssi0(%d), Lastrssi0(%d), EvaluateStableCnt=%d\n", realavgrssi, pAd->RxAnt.Pair1LastAvgRssi, pAd->RxAnt.EvaluateStableCnt));
-		}
-		//else if (pAd->CommonCfg.bRxAntDiversity != ANT_HW_DIVERSITY_ENABLE)
-#endif /* ANT_DIVERSITY_SUPPORT */
 		{
 			if (pAd->Mlme.bEnableAutoAntennaCheck)
 			{
@@ -1420,8 +1400,8 @@ VOID MlmePeriodicExec(
 #endif /* VCORECAL_SUPPORT */
 
 #ifdef SPECIFIC_VCORECAL_SUPPORT
-		if (((pAd->Mlme.OneSecPeriodicRound % 10) == 0) 
-		&& (!RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_BSS_SCAN_IN_PROGRESS)))
+   if (((pAd->Mlme.OneSecPeriodicRound % 10) == 0)
+      && (!RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_BSS_SCAN_IN_PROGRESS)))
 		{
 #ifdef RTMP_RF_RW_SUPPORT
 			UCHAR 	RFValue;
@@ -1451,7 +1431,7 @@ VOID MlmePeriodicExec(
 			STAMlmePeriodicExec(pAd);
 #endif /* CONFIG_STA_SUPPORT */
 #if defined(RT5370) || defined(RT5372) || defined(RT5390) || defined(RT5392)
-		if (IS_RT5392(pAd) && ((pAd->MACVersion & 0x0000FFFF) < 0x0223))
+		if (IS_RT5390(pAd))
 		{	
 			AsicCheckForHwRecovery(pAd);
 		}
@@ -2160,11 +2140,11 @@ VOID STAMlmePeriodicExec(
 #endif /* CONFIG_PM */
 		)
 	{
-			RT28xxUsbAsicRadioOff(pAd);
+//			RT28xxUsbAsicRadioOff(pAd);
 #ifdef CONFIG_PM
 #ifdef USB_SUPPORT_SELECTIVE_SUSPEND	
-			if(!RTMP_Usb_AutoPM_Put_Interface(pObj->pUsb_Dev,pObj->intf))
-					RTMP_SET_FLAG(pAd, fRTMP_ADAPTER_SUSPEND);
+	//		if(!RTMP_Usb_AutoPM_Put_Interface(pObj->pUsb_Dev,pObj->intf))
+	//				RTMP_SET_FLAG(pAd, fRTMP_ADAPTER_SUSPEND);
 #endif /* USB_SUPPORT_SELECTIVE_SUSPEND */
 #endif /* CONFIG_PM */
 
@@ -2409,9 +2389,10 @@ VOID STAMlmePeriodicExec(
 #endif /* WPA_SUPPLICANT_SUPPORT */
 			
 #ifdef NATIVE_WPA_SUPPLICANT_SUPPORT
+#ifndef ANDROID_SUPPORT
 		RtmpOSWrielessEventSend(pAd->net_dev, RT_WLAN_EVENT_CGIWAP, -1, NULL, NULL, 0);
-#endif /* NATIVE_WPA_SUPPLICANT_SUPPORT */        
-			
+#endif /* ANDROID_SUPPORT */			
+#endif /* NATIVE_WPA_SUPPLICANT_SUPPORT */        			
 			/* RTMPPatchMacBbpBug(pAd);*/
 			MlmeAutoReconnectLastSSID(pAd);
 		}
@@ -2537,15 +2518,13 @@ VOID STAMlmePeriodicExec(
 				}
 				else
 #endif /* CARRIER_DETECTION_SUPPORT */ 
-				if(RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_IDLE_RADIO_OFF))
-				{
-						if(pAd->Mlme.OneSecPeriodicRound% 20 == 0)
 						{
+#ifdef WPA_SUPPLICANT_SUPPORT
+                                        if(pAd->StaCfg.WpaSupplicantUP != WPA_SUPPLICANT_ENABLE)
+#endif // WPA_SUPPLICANT_SUPPORT //
 							MlmeAutoReconnectLastSSID(pAd);
 						}
-				}
-				else
-					MlmeAutoReconnectLastSSID(pAd);
+
 			}
 		}
 	}
@@ -6600,12 +6579,12 @@ VOID BssTableSsidSort(
 		BOOLEAN	bIsHiddenApIncluded = FALSE;
 
 		if (((pAd->CommonCfg.bIEEE80211H == 1) && 
-		(pAd->MlmeAux.Channel > 14) && 
-		RadarChannelCheck(pAd, pInBss->Channel))
+            (pAd->MlmeAux.Channel > 14) && 
+             RadarChannelCheck(pAd, pInBss->Channel))
 #ifdef CARRIER_DETECTION_SUPPORT /* Roger sync Carrier             */
-		|| (pAd->CommonCfg.CarrierDetect.Enable == TRUE)
+             || (pAd->CommonCfg.CarrierDetect.Enable == TRUE)
 #endif /* CARRIER_DETECTION_SUPPORT */
-		)
+            )
 		{
 			if (pInBss->Hidden)
 				bIsHiddenApIncluded = TRUE;
@@ -6713,10 +6692,13 @@ VOID BssTableSsidSort(
 			{
 				DBGPRINT(RT_DEBUG_TRACE,("StaCfg.WepStatus=%d, while pInBss->WepStatus=%d\n", pAd->StaCfg.WepStatus, pInBss->WepStatus));
 				
-				/* 1. For the SESv2 case, we will not qualify WepStatus.
-				   2. AirPort express AP support OPEN-WEP, Shared-WEP, WPA and WPA2 Mix mode.
-				      shall not block the BSS with same GroupChiper of WPA/WPA2 contained in RSN IE. */
+    /*
+        1. For the SESv2 case, we will not qualify WepStatus.
+        2. AirPort express AP support OPEN-WEP, Shared-WEP, WPA and WPA2 Mix mode.
+            shall not block the BSS with same GroupChiper of WPA/WPA2 contained in RSN IE. */
+
 				
+/*				if (!pInBss->bSES)*/
 				if ((!pInBss->bSES) && (pInBss->WPA.bMixMode == FALSE))
 					continue;
 			}
@@ -8389,43 +8371,9 @@ VOID AsicEvaluateRxAnt(
 							fRTMP_ADAPTER_NIC_NOT_EXIST		|
 							fRTMP_ADAPTER_BSS_SCAN_IN_PROGRESS) ||
 							OPSTATUS_TEST_FLAG(pAd, fOP_STATUS_DOZE) 
-#ifdef ANT_DIVERSITY_SUPPORT
-							|| (pAd->EepromAccess)
-#endif /* ANT_DIVERSITY_SUPPORT */
 							)
 		return;
 	
-#ifdef ANT_DIVERSITY_SUPPORT
-	if (((pAd->NicConfig2.field.AntDiversity) 
-#if TXRX_SW_ANTDIV_SUPPORT
-		|| (pAd->chipCap.bTxRxSwAntDiv)	
-#endif
-		) && (pAd->CommonCfg.bRxAntDiversity == ANT_SW_DIVERSITY_ENABLE))
-	{
-		/* two antenna selection mechanism- one is antenna diversity, the other is failed antenna remove*/
-		/* one is antenna diversity:there is only one antenna can rx and tx*/
-		/* the other is failed antenna remove:two physical antenna can rx and tx*/
-			DBGPRINT(RT_DEBUG_TRACE,("AntDiv - before evaluate Pair1-Ant (%d,%d)\n",
-				pAd->RxAnt.Pair1PrimaryRxAnt, pAd->RxAnt.Pair1SecondaryRxAnt));
-
-			AsicSetRxAnt(pAd, pAd->RxAnt.Pair1SecondaryRxAnt);
-				
-			pAd->RxAnt.EvaluatePeriod = 1; /* 1:Means switch to SecondaryRxAnt, 0:Means switch to Pair1PrimaryRxAnt*/
-			pAd->RxAnt.FirstPktArrivedWhenEvaluate = FALSE;
-			pAd->RxAnt.RcvPktNumWhenEvaluate = 0;
-
-			/* a one-shot timer to end the evalution*/
-			/* dynamic adjust antenna evaluation period according to the traffic*/
-			if (OPSTATUS_TEST_FLAG(pAd, fOP_STATUS_MEDIA_STATE_CONNECTED) ||
-				OPSTATUS_TEST_FLAG(pAd, fOP_AP_STATUS_MEDIA_STATE_CONNECTED))
-#ifdef CONFIG_STA_SUPPORT
-				RTMPSetTimer(&pAd->Mlme.RxAntEvalTimer, 100);
-			else
-#endif /* CONFIG_STA_SUPPORT */
-				RTMPSetTimer(&pAd->Mlme.RxAntEvalTimer, 300);
-		}
-		else
-#endif /* ANT_DIVERSITY_SUPPORT */
 	{
 #ifdef CONFIG_STA_SUPPORT
 		IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
@@ -8498,9 +8446,6 @@ VOID AsicRxAntEvalTimeout(
 	CHAR			larger = -127, rssi0, rssi1, rssi2;
 #endif /* CONFIG_STA_SUPPORT */
 
-#ifdef ANT_DIVERSITY_SUPPORT
-	BOOLEAN			bSwapAnt = FALSE;
-#endif /* ANT_DIVERSITY_SUPPORT */
 
 
 #ifdef RALINK_ATE
@@ -8513,58 +8458,9 @@ VOID AsicRxAntEvalTimeout(
 							fRTMP_ADAPTER_RADIO_OFF			|
 							fRTMP_ADAPTER_NIC_NOT_EXIST) ||
 							OPSTATUS_TEST_FLAG(pAd, fOP_STATUS_DOZE) 
-#ifdef ANT_DIVERSITY_SUPPORT
-							|| (pAd->EepromAccess)
-#endif /* ANT_DIVERSITY_SUPPORT */
 							)
 		return;
 
-#ifdef ANT_DIVERSITY_SUPPORT
-	if (((pAd->NicConfig2.field.AntDiversity) 
-#if TXRX_SW_ANTDIV_SUPPORT
-		|| (pAd->chipCap.bTxRxSwAntDiv)	
-#endif
-	) && (pAd->CommonCfg.bRxAntDiversity == ANT_SW_DIVERSITY_ENABLE))
-	{
-#ifdef CONFIG_STA_SUPPORT
-	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
-			if ((pAd->RxAnt.RcvPktNumWhenEvaluate != 0) && (pAd->RxAnt.Pair1AvgRssi[pAd->RxAnt.Pair1SecondaryRxAnt] >= pAd->RxAnt.Pair1AvgRssi[pAd->RxAnt.Pair1PrimaryRxAnt]))
-				bSwapAnt = TRUE;
-#endif /* CONFIG_STA_SUPPORT */
-		if (bSwapAnt == TRUE)	
-			{
-				UCHAR			temp;
-
-				
-				/* select PrimaryRxAntPair*/
-				/*    Role change, Used Pair1SecondaryRxAnt as PrimaryRxAntPair.*/
-				/*    Since Pair1SecondaryRxAnt Quality good than Pair1PrimaryRxAnt*/
-				
-				temp = pAd->RxAnt.Pair1PrimaryRxAnt;
-				pAd->RxAnt.Pair1PrimaryRxAnt = pAd->RxAnt.Pair1SecondaryRxAnt;
-				pAd->RxAnt.Pair1SecondaryRxAnt = temp;
-
-#ifdef CONFIG_STA_SUPPORT
-				pAd->RxAnt.Pair1LastAvgRssi = (pAd->RxAnt.Pair1AvgRssi[pAd->RxAnt.Pair1SecondaryRxAnt] >> 3);
-#endif /* CONFIG_STA_SUPPORT */
-/*				pAd->RxAnt.EvaluateStableCnt = 0;*/
-			}
-			else
-			{
-				/* if the evaluated antenna is not better than original, switch back to original antenna*/
-				AsicSetRxAnt(pAd, pAd->RxAnt.Pair1PrimaryRxAnt);
-				pAd->RxAnt.EvaluateStableCnt ++;
-			}
-
-			pAd->RxAnt.EvaluatePeriod = 0; /* 1:Means switch to SecondaryRxAnt, 0:Means switch to Pair1PrimaryRxAnt*/
-
-#ifdef CONFIG_STA_SUPPORT
-			DBGPRINT(RT_DEBUG_TRACE,("AsicRxAntEvalAction::After Eval(fix in #%d), <%d, %d>, RcvPktNumWhenEvaluate=%ld\n",
-					pAd->RxAnt.Pair1PrimaryRxAnt, (pAd->RxAnt.Pair1AvgRssi[0] >> 3), (pAd->RxAnt.Pair1AvgRssi[1] >> 3), pAd->RxAnt.RcvPktNumWhenEvaluate));
-#endif /* CONFIG_STA_SUPPORT */
-		}
-		else
-#endif /* ANT_DIVERSITY_SUPPORT */
 	{
 #ifdef CONFIG_STA_SUPPORT
 		IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
@@ -9091,7 +8987,7 @@ VOID AsicCheckForHwRecovery(
 						//Patch Scan no AP issue
 						//Firmware will write RF_R08(xtal_vdd_select) to LDOADC. This is HW issue.
 						//New RT3572(0x35720223) should not have this issue.
-						if (IS_RT5392(pAd))
+						if (IS_RT5390(pAd))
 						{
 							UCHAR RfValue;
 							RT30xxReadRFRegister(pAd, RF_R42, &RfValue);
@@ -9099,7 +8995,7 @@ VOID AsicCheckForHwRecovery(
 							RT30xxWriteRFRegister(pAd, RF_R42, RfValue);
 						}
 
-						AsicResetBBPAgent(pAd);
+						//AsicResetBBPAgent(pAd);
 						pAd->SameRxByteCount=0;
 						pAd->BbpResetCount++;
 				}
