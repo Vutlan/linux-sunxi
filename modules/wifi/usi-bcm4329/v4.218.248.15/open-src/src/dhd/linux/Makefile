@@ -253,7 +253,7 @@ ifneq ($(findstring -sdmmc-,-$(TARGET)-),)
 DFLAGS += -DSDIO_ISR_THREAD
 DFLAGS += -DEMBEDDED_PLATFORM
 #DFLAGS += -DPNO_SUPPORT
-#DFLAGS += -DCSCAN
+DFLAGS += -DCSCAN
 endif
 endif
 endif
