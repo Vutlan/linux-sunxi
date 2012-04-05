@@ -30,33 +30,45 @@
 
 #define GPIO_IRQ  28
 
-
-
+int all_irq_enable	= 0;
 static struct platform_device gpio_sw_dev[256];
 static struct gpio_sw_platdata pdatesw[256];
 /*
 void sunxi_gpio_do_tasklet(unsigned long data)
 {
-	data+=1;
-	printk("this is irp donw dispuse !\n data is %d \n",data);
+	printk("this is irp donw dispuse !\n");
 }
 DECLARE_TASKLET(sunxi_tasklet,sunxi_gpio_do_tasklet,0);
 */
 irqreturn_t sunxi_interrupt(int irq,void *dev_id)
 {
-	unsigned int PIC, PIS;
+	unsigned int PIC, PIS,tmp;
+	int i = 0;
 	PIC = REG_RD(GPIO_TEST_BASE + 0x210 ) ;
 	PIS = REG_RD(GPIO_TEST_BASE + 0x214 ) ;
-	printk("0 PIC is %x \n PIS is %x \n",PIC,PIS);
-	printk("this is irp up dispuse !\n");
-	__raw_writel(PIS, GPIO_TEST_BASE + 0x214 );
-	PIC = REG_RD(GPIO_TEST_BASE + 0x210 ) ;
-	PIS = REG_RD(GPIO_TEST_BASE + 0x214 ) ;
-	printk("1 PIC is %x \n PIS is %x \n",PIC,PIS);
-	//tasklet_schedule(&sunxi_tasklet);
+	tmp	= PIS;
+
+	while(tmp){
+		if(tmp & 0x1){
+		/*if (tmp & 0x1) is true, the i represent NO.i EINT interrupt take place.
+		you can through the value of i to decide to do what*/
+		printk("this is NO.%d gpio INT \n",i);
+		}
+		tmp >>= 1;
+		i++;
+	}
+
+	GPIO_SW_DEBUG("0 PIC is %x \n PIS is %x \n",PIC,PIS);
+	__raw_writel(PIS, GPIO_TEST_BASE + 0x214);
+	GPIO_SW_DEBUG("1 PIC is %x \n PIS is %x \n",PIC,PIS);
+
+	/*this is a interface to connect interrupt top half and bottom half,if want to use bottom half,you can open fanctions sunxi_gpio_do_tasklet and tasklet_schedule*/
+
+	/*
+	tasklet_schedule(&sunxi_tasklet);
+	*/
 	return IRQ_HANDLED;
 }
-
 
 int get_gpio_member_value( u32 gpio_hd , char *name , int member_name )
 {
@@ -96,7 +108,6 @@ int get_gpio_member_value( u32 gpio_hd , char *name , int member_name )
 	return ret;
 
 }
-
 
 struct gpio_sw {
 	struct gpio_sw_classdev		cdev;
@@ -222,37 +233,30 @@ static int  gpio_sw_put_resource(struct gpio_sw *gpio)
 	return 0;
 }
 
-static int gpio_sw_remove(struct platform_device *dev)
+static int __devexit gpio_sw_remove(struct platform_device *dev)
 {
 	struct gpio_sw *gpio = pdev_to_gpio(dev);
-
-	GPIO_SW_DEBUG("pio_hdle is %x \n",gpio->cdev.pio_hdle);
-
+		GPIO_SW_DEBUG("pio_hdle is %x \n",gpio->cdev.pio_hdle);
 	gpio_sw_put_resource(gpio);
-
-	GPIO_SW_DEBUG("gpio_sw_put_resource ok !\n");
-
+		GPIO_SW_DEBUG("gpio_sw_put_resource ok !\n");
 	gpio_sw_classdev_unregister(&gpio->cdev);
-
-	GPIO_SW_DEBUG("gpio_sw_classdev_unregister ok !\n");
-	GPIO_SW_DEBUG("gpio addr is %x !\n" ,gpio);
-
+		GPIO_SW_DEBUG("gpio_sw_classdev_unregister ok !\n");
+		GPIO_SW_DEBUG("gpio addr is %x !\n" ,gpio);
 	kfree(gpio);
-
-	GPIO_SW_DEBUG("kfree ok !\n");
+		GPIO_SW_DEBUG("kfree ok !\n");
 	return 0;
 }
 
-static int gpio_sw_probe(struct platform_device *dev)
+static int __devinit gpio_sw_probe(struct platform_device *dev)
 {
 	struct gpio_sw *gpio;
-	struct gpio_sw_platdata *pd, *pdata = dev->dev.platform_data;
-
+	struct gpio_sw_platdata *pdata = dev->dev.platform_data;
+	unsigned int irq_ctl;
 	int ret;
 	char io_area[16];
 
 	gpio = kzalloc(sizeof(struct gpio_sw), GFP_KERNEL);
-	GPIO_SW_DEBUG("kzalloc ok !\n");
+		GPIO_SW_DEBUG("kzalloc ok !\n");
 
 	if (gpio == NULL) {
 		dev_err(&dev->dev, "No memory for device\n");
@@ -260,22 +264,13 @@ static int gpio_sw_probe(struct platform_device *dev)
 	}
 
 	platform_set_drvdata(dev, gpio);
-	GPIO_SW_DEBUG("platform_set_drvdata ok !\n");
+		GPIO_SW_DEBUG("platform_set_drvdata ok !\n");
 	gpio->pdata = pdata;
-	pd=gpio->pdata;
-
-	GPIO_SW_DEBUG("pdata addr= %x\n",&pdata);
-	GPIO_SW_DEBUG("gpio->pdata addr= %x\n",&gpio->pdata);
-	GPIO_SW_DEBUG("pd addr= %x\n",&pd);
-	GPIO_SW_DEBUG("pdata = %x\n",pdata);
-	GPIO_SW_DEBUG("gpio->pdata = %x\n",gpio->pdata);
-	GPIO_SW_DEBUG("pd = %x\n",pd);
-
 	gpio->cdev.pio_hdle = gpio_request_ex("gpio_para", pdata->name);
 
-	GPIO_SW_DEBUG("pio_hdle is %x \n",gpio->cdev.pio_hdle);
-	GPIO_SW_DEBUG("gpio_num = %s\n",pdata->name);
-	GPIO_SW_DEBUG("pd->name = %s\n",pd->name);
+		GPIO_SW_DEBUG("pio_hdle is %x \n",gpio->cdev.pio_hdle);
+		GPIO_SW_DEBUG("gpio_num = %s\n",pdata->name);
+		GPIO_SW_DEBUG("pd->name = %s\n",gpio->pdata->name);
 
 	gpio->cdev.port = get_gpio_member_value(gpio->cdev.pio_hdle,pdata->name,port_5 );
 	gpio->cdev.port_num = get_gpio_member_value(gpio->cdev.pio_hdle,pdata->name,port_num_6 );
@@ -283,9 +278,10 @@ static int gpio_sw_probe(struct platform_device *dev)
 	gpio->cdev.pull = get_gpio_member_value(gpio->cdev.pio_hdle,pdata->name,pull_2 );
 	gpio->cdev.drv_level = get_gpio_member_value(gpio->cdev.pio_hdle,pdata->name,drv_level_3 );
 	gpio->cdev.data = get_gpio_member_value(gpio->cdev.pio_hdle,pdata->name,data_4 );
+	gpio->cdev.irq_type = 0x0;
 
 	sprintf(io_area,"P%c%d",gpio->cdev.port+'A'-1,gpio->cdev.port_num);
-	GPIO_SW_DEBUG("io_area is %s \n",io_area);
+		GPIO_SW_DEBUG("io_area is %s \n",io_area);
 
 	gpio->cdev.gpio_sw_cfg_set = gpio_sw_cfg_set;
 	gpio->cdev.gpio_sw_pull_set = gpio_sw_pull_set;
@@ -300,15 +296,46 @@ static int gpio_sw_probe(struct platform_device *dev)
 	gpio->cdev.name = io_area;
 	gpio->cdev.flags |= pdata->flags;
 
+	if(gpio->cdev.mul_sel == 6){
+		if(gpio->cdev.port== 'H' - 'A' + 1){
+			if((gpio->cdev.port_num >= 0) && (gpio->cdev.port_num <= 21)){
+			irq_ctl	=	REG_RD(GPIO_TEST_BASE + 0x210);
+			__raw_writel((1 << gpio->cdev.port_num) | irq_ctl, GPIO_TEST_BASE + 0x210);
+			gpio->cdev.irq_num = gpio->cdev.port_num + 1;
+			all_irq_enable = 1;
+			}else{
+			printk("[gpio]: this pin don`t have EINT FUNCTION\n");
+			kfree(gpio);
+			return 1;
+			}
+		}else if(gpio->cdev.port== 'I' - 'A' + 1){
+			if((gpio->cdev.port_num >= 10) && (gpio->cdev.port_num <= 19)){
+			irq_ctl	=	REG_RD(GPIO_TEST_BASE + 0x210);
+			__raw_writel((1 << (gpio->cdev.port_num + 12)) | irq_ctl, GPIO_TEST_BASE + 0x210);
+			gpio->cdev.irq_num = gpio->cdev.port_num + 12 + 1;
+			all_irq_enable = 1;
+			}else{
+			printk("[gpio]: this pin don`t have EINT FUNCTION\n");
+			kfree(gpio);
+			return 1;
+			}
+		}
+		else{
+		printk("[gpio]: this area don`t have EINT FUNCTION\n");
+		kfree(gpio);
+		return 1;
+		}
+	}
+	gpio->cdev.irq=all_irq_enable;
 	ret = gpio_sw_classdev_register(&dev->dev, &gpio->cdev);
-	GPIO_SW_DEBUG("gpio_sw_classdev_register ok !\n");
+		GPIO_SW_DEBUG("gpio_sw_classdev_register ok !\n");
 	if (ret < 0) {
 		dev_err(&dev->dev, "gpio_sw_classdev_register failed\n");
 		kfree(gpio);
 		return ret;
 	}
-	GPIO_SW_DEBUG("pio_hdle is %x \n",gpio->cdev.pio_hdle);
-	GPIO_SW_DEBUG("gpio_sw_classdev_register good !\n");
+		GPIO_SW_DEBUG("pio_hdle is %x \n",gpio->cdev.pio_hdle);
+		GPIO_SW_DEBUG("gpio_sw_classdev_register good !\n");
 	return 0;
 }
 
@@ -317,10 +344,23 @@ static void gpio_sw_release (struct device *dev)
 	GPIO_SW_DEBUG("gpio_sw_release good !\n");
 }
 
+static int gpio_sw_suspend(struct platform_device *dev, pm_message_t state)
+{
+	GPIO_SW_DEBUG("gpio driver gpio_sw_suspend \n");
+	return 0;
+}
+
+static int gpio_sw_resume(struct platform_device *dev)
+{
+	GPIO_SW_DEBUG("gpio driver gpio_sw_resume \n");
+	return 0;
+}
+
 static struct platform_driver gpio_sw_driver = {
 	.probe		= gpio_sw_probe,
 	.remove		= gpio_sw_remove,
-
+	.suspend	= gpio_sw_suspend,
+	.resume		= gpio_sw_resume,
 	.driver		= {
 		.name		= "gpio_sw",
 		.owner		= THIS_MODULE,
@@ -330,12 +370,7 @@ static struct platform_driver gpio_sw_driver = {
 static int __init gpio_sw_init(void)
 {
 	int i, gpio_key_count,gpio_used,ret;
-	unsigned int PIC, PIS,IRQP,IRQP1,IRQPS,EIRQ,MIRQ;
-	unsigned long test = (1 << 25 | 1 << 28);
 	ret = script_parser_fetch("gpio_para", "gpio_used", &gpio_used, sizeof(int));
-		PIC = REG_RD(GPIO_TEST_BASE + 0x210 ) & 0x00ff;
-		PIS = REG_RD(GPIO_TEST_BASE + 0x210 ) & 0x00ff;
-		printk("0 PIC is %x \n PIS is %x \n",PIC,PIS);
 
 	if (ret){
 		GPIO_SW_DEBUG("failed to get gpio's used information\n");
@@ -348,61 +383,38 @@ static int __init gpio_sw_init(void)
 	gpio_key_count = script_parser_mainkey_get_gpio_count("gpio_para");
 	for(i=0;i<gpio_key_count;i++)
 	{
-		pdatesw[i].flags = SW_GPIO_CORE_SUSPENDED;
+		pdatesw[i].flags = 0;
 		sprintf(pdatesw[i].name, "gpio_pin_%d", i+1);
 
 		gpio_sw_dev[i].name = "gpio_sw";
 		gpio_sw_dev[i].id   = i;
-		gpio_sw_dev[i].dev.platform_data = &pdatesw[i];
-		gpio_sw_dev[i].dev.release       = gpio_sw_release;
+		gpio_sw_dev[i].dev.platform_data= &pdatesw[i];
+		gpio_sw_dev[i].dev.release		= gpio_sw_release;
 
 		GPIO_SW_DEBUG("pdatesw[%d].gpio_name = %s\n",i,pdatesw[i].name);
 		GPIO_SW_DEBUG("pdatesw[%d] 1addr = %x \n",i,&pdatesw[i]);
-		GPIO_SW_DEBUG("new pdatesw[0].gpio_name = %s\n",pdatesw[0].name);
-		GPIO_SW_DEBUG("new pdatesw[0] 1addr = %x \n",&pdatesw[0]);		
-		GPIO_SW_DEBUG("new pdatesw[1].gpio_name = %s\n",pdatesw[1].name);
-		GPIO_SW_DEBUG("new pdatesw[1] 1addr = %x \n",&pdatesw[1]);			
-		GPIO_SW_DEBUG("new pdatesw[2].gpio_name = %s\n",pdatesw[2].name);
-		GPIO_SW_DEBUG("new pdatesw[2] 1addr = %x \n",&pdatesw[2]);	
 		GPIO_SW_DEBUG("gpio_sw_dev[%d] addr = %x \n",i,&gpio_sw_dev[i]);
 		platform_device_register(&gpio_sw_dev[i]);
-				printk("test is %x \n ",test);
-		__raw_writel(test ,GPIO_TEST_BASE + 0x210 );
-		IRQP = REG_RD(GPIO_INT_BASE + 0x10 ) ;
-		IRQP1 = REG_RD(GPIO_INT_BASE + 0x20 ) ;
-		IRQPS = REG_RD(GPIO_INT_BASE + 0x30 ) ;
-		EIRQ = REG_RD(GPIO_INT_BASE + 0x40 ) ;
-		MIRQ = REG_RD(GPIO_INT_BASE + 0x50 ) ;
-		printk("1 IRQP is %x \n IRQP1 is %x \n  IRQPS is %x \n EIRQ is %x \n MIRQ is %x \n ",REG_RD(GPIO_INT_BASE + 0x10 ),REG_RD(GPIO_INT_BASE + 0x20 ),REG_RD(GPIO_INT_BASE + 0x30 ),REG_RD(GPIO_INT_BASE + 0x40 ),REG_RD(GPIO_INT_BASE + 0x50 ));
-		ret = request_irq(GPIO_IRQ,sunxi_interrupt,IRQF_DISABLED | IRQF_SHARED,"gpio_sw",&gpio_sw_dev[i]);
-		PIC = REG_RD(GPIO_TEST_BASE + 0x210 ) ;
-		PIS = REG_RD(GPIO_TEST_BASE + 0x214 ) ;
-		IRQP = REG_RD(GPIO_INT_BASE + 0x10 ) ;
-		IRQP1 = REG_RD(GPIO_INT_BASE + 0x20 ) ;
-		IRQPS = REG_RD(GPIO_INT_BASE + 0x30 ) ;
-		EIRQ = REG_RD(GPIO_INT_BASE + 0x40 ) ;
-		MIRQ = REG_RD(GPIO_INT_BASE + 0x50 ) ;
-		printk("1 IRQP is %x \n IRQP1 is %x \n  IRQPS is %x \n EIRQ is %x \n MIRQ is %x \n  ",IRQP,IRQP1,IRQPS,EIRQ,MIRQ);
-		printk("1 PIC is %x \n PIS is %x \n",PIC,PIS);
-		printk("ret is %d  %c\n",ret,ret);
-
 	}
 
-	
 	platform_driver_register(&gpio_sw_driver);
+	if(all_irq_enable)
+	ret =  request_irq(GPIO_IRQ, sunxi_interrupt, IRQF_DISABLED, "gpio_sw", NULL);
+	if (ret) {
+        pr_info( "gpio: request irq failed\n");
+        return ret;
+    }
+
 	GPIO_SW_DEBUG("gpio_sw_driver addr = %x \n",&gpio_sw_driver);
 
 INIT_END:
 	GPIO_SW_DEBUG("gpio_init finish ! \n");
-	printk("IRQ_HANDLED is %d  \n",IRQ_HANDLED);
 	return 0;
-
 }
 
 static void __exit gpio_sw_exit(void)
 {
 	int i, gpio_key_count,gpio_used,ret;
-	unsigned int PIC, PIS,IRQP,IRQP1,IRQPS,EIRQ,MIRQ;
 
 	ret = script_parser_fetch("gpio_para", "gpio_used", &gpio_used, sizeof(int));
 
@@ -416,35 +428,21 @@ static void __exit gpio_sw_exit(void)
 	}
 
 	gpio_key_count = script_parser_mainkey_get_gpio_count("gpio_para");
+
+	if(all_irq_enable){
+	__raw_writel(0x00, GPIO_TEST_BASE + 0x210);
+	free_irq(GPIO_IRQ,NULL);
+	}
 	for(i=0;i<gpio_key_count;i++){
 		GPIO_SW_DEBUG("gpio_sw_dev[%d] addr = %x \n",i,&gpio_sw_dev[i]);
 		gpio_key_count = script_parser_mainkey_get_gpio_count("gpio_para");
-		PIC = REG_RD(GPIO_TEST_BASE + 0x210) ;
-		PIS = REG_RD(GPIO_TEST_BASE + 0x214) ;
-		IRQP = REG_RD(GPIO_INT_BASE + 0x10) ;
-		IRQP1 = REG_RD(GPIO_INT_BASE + 0x20) ;
-		IRQPS = REG_RD(GPIO_INT_BASE + 0x30) ;
-		EIRQ = REG_RD(GPIO_INT_BASE + 0x40) ;
-		MIRQ = REG_RD(GPIO_INT_BASE + 0x50) ;
-		printk("1 IRQP is %x \n IRQP1 is %x \n  IRQPS is %x \n EIRQ is %x \n MIRQ is %x \n  ",IRQP,IRQP1,IRQPS,EIRQ,MIRQ);
-		printk("2 PIC is %x \n PIS is %x \n",PIC,PIS);
-		free_irq(GPIO_IRQ,&gpio_sw_dev[i]);
-		PIC = REG_RD(GPIO_TEST_BASE + 0x210) ;
-		PIS = REG_RD(GPIO_TEST_BASE + 0x214) ;
-		IRQP = REG_RD(GPIO_INT_BASE + 0x10) ;
-		IRQP1 = REG_RD(GPIO_INT_BASE + 0x20) ;
-		IRQPS = REG_RD(GPIO_INT_BASE + 0x30) ;
-		EIRQ = REG_RD(GPIO_INT_BASE + 0x40) ;
-		MIRQ = REG_RD(GPIO_INT_BASE + 0x50) ;
-		printk("1 IRQP is %x \n IRQP1 is %x \n  IRQPS is %x \n EIRQ is %x \n MIRQ is %x \n  ",IRQP,IRQP1,IRQPS,EIRQ,MIRQ);
-		printk("3 PIC is %x \n PIS is %x \n",PIC,PIS);
 		platform_device_unregister(&gpio_sw_dev[i]);
 	}
 
-	GPIO_SW_DEBUG("platform_device_unregister finish !  \n");
-	GPIO_SW_DEBUG("gpio_sw_driver addr = %x \n",&gpio_sw_driver);
+		GPIO_SW_DEBUG("platform_device_unregister finish !  \n");
+		GPIO_SW_DEBUG("gpio_sw_driver addr = %x \n",&gpio_sw_driver);
 	platform_driver_unregister(&gpio_sw_driver);
-	
+
 EXIT_END:
 	GPIO_SW_DEBUG("gpio_exit finish !  \n");
 }
