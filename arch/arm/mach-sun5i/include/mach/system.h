@@ -60,4 +60,14 @@ enum sw_ic_ver {
 enum sw_ic_ver sw_get_ic_ver(void);
 #endif
 
+struct sw_chip_id
+{
+    unsigned int sid_rkey0;
+    unsigned int sid_rkey1;
+    unsigned int sid_rkey2;
+    unsigned int sid_rkey3;
+};
+
+int sw_get_chip_id(struct sw_chip_id *);
+
 #endif
