@@ -44,6 +44,12 @@ config USB_HIDDEV
 
 	  If unsure, say Y.
 
+config USB_WIRELESS_REMOTE
+	tristate "USB 2.4G Wireless Remote support"
+	depends on USB && INPUT
+	---help---
+	  USB 2.4G Wireless Remote support
+
 menu "USB HID Boot Protocol drivers"
 	depends on USB!=n && USB_HID!=y && EXPERT
 

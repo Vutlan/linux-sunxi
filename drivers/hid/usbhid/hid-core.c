@@ -1159,6 +1159,18 @@ static int usbhid_probe(struct usb_interface *intf, const struct usb_device_id *
 	dbg_hid("HID probe called for ifnum %d\n",
 			intf->altsetting->desc.bInterfaceNumber);
 
+#ifdef  CONFIG_USB_WIRELESS_REMOTE
+	if(dev->descriptor.idVendor == 0x1915
+	   && dev->descriptor.idProduct == 0xAF11
+	   && interface->desc.bInterfaceSubClass == 0x00){
+	    printk("HID: 0x%x, 0x%x, 0x%x\n",
+	           dev->descriptor.idVendor,
+	           dev->descriptor.idProduct,
+	           interface->desc.bInterfaceSubClass);
+	    return -1;
+	}
+#endif
+
 	for (n = 0; n < interface->desc.bNumEndpoints; n++)
 		if (usb_endpoint_is_int_in(&interface->endpoint[n].desc))
 			has_in++;

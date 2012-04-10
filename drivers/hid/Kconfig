@@ -588,6 +588,12 @@ config HID_ZYDACRON
 	---help---
 	Support for Zydacron remote control.
 
+config HID_MELE_USB_REMOTE
+	tristate "Mele usb remote control support"
+	depends on USB_HID
+	---help---
+	Support for Mele usb remote control.
+
 endmenu
 
 endif # HID_SUPPORT
