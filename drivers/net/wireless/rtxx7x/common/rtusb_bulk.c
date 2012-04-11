@@ -100,6 +100,9 @@ VOID	RTUSBInitHTTxDesc(
 
 	pSrc = &pTxContext->TransferBuffer->field.WirelessPacket[pTxContext->NextBulkOutPosition];
 
+#ifdef USB_BULK_BUF_ALIGMENT2
+	NdisMoveMemory(pTxContext->pBuf, pSrc, BulkOutSize);
+#endif /* USB_BULK_BUF_ALIGMENT2 */
 	/*Initialize a tx bulk urb*/
 	RTUSB_FILL_HTTX_BULK_URB(pUrb,
 						pObj->pUsb_Dev,
@@ -109,6 +112,9 @@ VOID	RTUSBInitHTTxDesc(
 						Func,
 						pTxContext,
 						(pTxContext->data_dma + pTxContext->NextBulkOutPosition));
+#ifdef USB_BULK_BUF_ALIGMENT2
+	pUrb->transfer_dma = pTxContext->data_dma2;
+#endif /* USB_BULK_BUF_ALIGMENT2 */
 }
 
 VOID	RTUSBInitRxDesc(

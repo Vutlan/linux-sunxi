@@ -31,7 +31,7 @@
 #include "rtmp_comm.h"
 #include "rt_os_util.h"
 #include "rt_os_net.h"
-
+MODULE_LICENSE("GPL");
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24)
 #ifndef SA_SHIRQ
 #define SA_SHIRQ IRQF_SHARED
@@ -39,9 +39,9 @@
 #endif
 
 #ifdef RTMP_MAC_USB
-//#ifdef OS_ABL_SUPPORT
+#ifdef OS_ABL_SUPPORT
 MODULE_LICENSE("GPL");
-//#endif /* OS_ABL_SUPPORT */
+#endif /* OS_ABL_SUPPORT */
 #endif /* RTMP_MAC_USB */
 
 #ifdef CONFIG_APSTA_MIXED_SUPPORT
@@ -158,6 +158,13 @@ int MainVirtualIF_open(IN struct net_device *net_dev)
 	if (pAd == NULL)
 		return 0; /* close ok */
 
+#if 0
+	while (RTMP_DRIVER_IOCTL_SANITY_CHECK(pAd) != NDIS_STATUS_SUCCESS)
+        {
+                OS_WAIT(10);
+                DBGPRINT(RT_DEBUG_TRACE, ("Card not ready, NDIS_STATUS_SUCCESS!\n"));
+        }
+#endif 
 
 	if (VIRTUAL_IF_UP(pAd) != 0)
 		return -1;
@@ -288,11 +295,12 @@ int rt28xx_open(VOID *dev)
 		if(pm_usage_cnt == 0)
 		{
 			int res=1;
-
+#if 0
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,33)
 		if(pUsb_Dev->autosuspend_disabled  ==0)
 #else
 		if(pUsb_Dev->auto_pm ==1)
+#endif
 #endif
 			{
 				res = usb_autopm_get_interface(intf);
@@ -310,6 +318,7 @@ so we must clear fkag here;
 					return (-1);;
 				}			
 			}
+#if 0
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,33)
 			else
 			{
@@ -318,6 +327,7 @@ so we must clear fkag here;
 				RTMP_DRIVER_ADAPTER_SUSPEND_SET(pAd);
 				return (-1);
 			}
+#endif
 #endif
 
 		}
@@ -346,7 +356,8 @@ so we must clear fkag here;
 	}
 #endif /* CONFIG_APSTA_MIXED_SUPPORT */
 
-#if WIRELESS_EXT >= 12
+
+#if 0 //WIRELESS_EXT >= 12
 /*	if (net_dev->priv_flags == INT_MAIN) */
 	if (RTMP_DRIVER_MAIN_INF_CHECK(pAd, net_dev->priv_flags) == NDIS_STATUS_SUCCESS)
 	{
@@ -376,6 +387,22 @@ so we must clear fkag here;
 	/* Chip & other init */
 	if (rt28xx_init(pAd, mac, hostname) == FALSE)
 		goto err;
+
+#if WIRELESS_EXT >= 12
+/*      if (net_dev->priv_flags == INT_MAIN) */
+        if (RTMP_DRIVER_MAIN_INF_CHECK(pAd, net_dev->priv_flags) == NDIS_STATUS_SUCCESS)
+        {
+#ifdef CONFIG_APSTA_MIXED_SUPPORT
+                if (OpMode == OPMODE_AP)
+                        net_dev->wireless_handlers = (struct iw_handler_def *) &rt28xx_ap_iw_handler_def;
+#endif /* CONFIG_APSTA_MIXED_SUPPORT */
+#ifdef CONFIG_STA_SUPPORT
+                if (OpMode == OPMODE_STA)
+                        net_dev->wireless_handlers = (struct iw_handler_def *) &rt28xx_iw_handler_def;
+#endif /* CONFIG_STA_SUPPORT */
+        }
+#endif /* WIRELESS_EXT >= 12 */
+
 
 #ifdef MBSS_SUPPORT
 	/* the function can not be moved to RT2860_probe() even register_netdev()
@@ -555,6 +582,12 @@ int rt28xx_packet_xmit(void *skbsrc)
 	PNDIS_PACKET pPacket = (PNDIS_PACKET) skb;
 
 	GET_PAD_FROM_NET_DEV(pAd, net_dev);	
+
+	if (RTMP_DRIVER_IOCTL_SANITY_CHECK(pAd) != NDIS_STATUS_SUCCESS)
+        {
+                RELEASE_NDIS_PACKET(NULL, (PNDIS_PACKET)pPacket, NDIS_STATUS_FAILURE);
+                return 0;
+        }
 
 	return RTMPSendPackets((NDIS_HANDLE)pAd, (PPNDIS_PACKET) &pPacket, 1,
 							skb->len, RtmpNetEthConvertDevSearch);

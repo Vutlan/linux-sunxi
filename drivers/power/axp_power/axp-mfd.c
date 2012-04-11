@@ -24,6 +24,7 @@
 #include <mach/sys_config.h>
 
 static int power_start;
+int use_cou = 0;
 
 static void axp_mfd_irq_work(struct work_struct *work)
 {
@@ -231,14 +232,14 @@ static void axp_power_off(void)
 		axp_update(&axp->dev, POWER20_VOFF_SET, val, 0x7);
 	}
 	val = 0xff;
-
-	axp_read(&axp->dev, POWER20_COULOMB_CTL, &val);
-	val &= 0x3f;
-	axp_write(&axp->dev, POWER20_COULOMB_CTL, val);
-	val |= 0x80;
-	val &= 0xbf;
-	axp_write(&axp->dev, POWER20_COULOMB_CTL, val);
-
+	if (!use_cou){
+		axp_read(&axp->dev, POWER20_COULOMB_CTL, &val);
+		val &= 0x3f;
+		axp_write(&axp->dev, POWER20_COULOMB_CTL, val);
+		val |= 0x80;
+		val &= 0xbf;
+		axp_write(&axp->dev, POWER20_COULOMB_CTL, val);
+	}
     //led auto
     axp_clr_bits(&axp->dev,0x32,0x38);
 	axp_clr_bits(&axp->dev,0xb9,0x80);

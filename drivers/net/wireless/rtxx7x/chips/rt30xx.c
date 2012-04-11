@@ -91,7 +91,6 @@ VOID RT30xx_Init(
 	*/
 	pChipCap->pRFRegTable = RT3020_RFRegTable;
 	pChipCap->MaxNumOfBbpId = 185;
- 
 
 	/* init operator */
 	if((IS_RT3070(pAd) || IS_RT3071(pAd)) || IS_RT3090(pAd))
@@ -109,13 +108,7 @@ VOID RT30xx_Init(
 		pChipOps->ChipSwitchChannel = RT30xx_ChipSwitchChannel;
 		pChipOps->ChipBBPAdjust = RT30xx_ChipBBPAdjust;
 		pChipOps->RTMPSetAGCInitValue = RT30xx_RTMPSetAGCInitValue;
-
-		/* 1T1R only */
-		if (!IS_RT3071(pAd))
-		{
-			pChipOps->SetRxAnt = RT30xxSetRxAnt; 
-			pAd->Mlme.bEnableAutoAntennaCheck = FALSE;
-		}
+		pChipOps->SetRxAnt = RT30xxSetRxAnt; 
 
 		pChipOps->ChipResumeMsduTransmission = NULL;
 		pChipOps->VdrTuning1 = NULL;
@@ -127,7 +120,7 @@ VOID RT30xx_Init(
 		pChipOps->AsicFreqOffsetGet = NULL;
 #endif /* RTMP_FREQ_CALIBRATION_SUPPORT */
 
-	}
+}
 }
 
 
@@ -157,34 +150,34 @@ VOID RT30xxSetRxAnt(
 	if (IS_RT2070(pAd) || (IS_RT3070(pAd) && pAd->RfIcType == RFIC_3020) ||
 			(IS_RT3090(pAd) && pAd->RfIcType == RFIC_3020))
 	{
-		if (Ant == 0)
-		{
-			/*
-				Main antenna
-				E2PROM_CSR only in PCI bus Reg., USB Bus need MCU commad to control the EESK pin.
-			*/
+	if (Ant == 0)
+	{
+		/*
+			Main antenna
+			E2PROM_CSR only in PCI bus Reg., USB Bus need MCU commad to control the EESK pin.
+		*/
 #ifdef RTMP_MAC_USB
-			AsicSendCommandToMcu(pAd, 0x73, 0xFF, 0x1, 0x0);
+		AsicSendCommandToMcu(pAd, 0x73, 0xFF, 0x1, 0x0);
 #endif /* RTMP_MAC_USB */
 
-			RTMP_IO_READ32(pAd, GPIO_CTRL_CFG, &Value);
-			Value &= ~(0x0808);
-			RTMP_IO_WRITE32(pAd, GPIO_CTRL_CFG, Value);
+		RTMP_IO_READ32(pAd, GPIO_CTRL_CFG, &Value);
+		Value &= ~(0x0808);
+		RTMP_IO_WRITE32(pAd, GPIO_CTRL_CFG, Value);
 			DBGPRINT(RT_DEBUG_TRACE, ("AsicSetRxAnt, switch to main antenna\n"));
-		}
-		else
-		{
-			/*
-				Aux antenna
-			 	E2PROM_CSR only in PCI bus Reg., USB Bus need MCU commad to control the EESK pin.
-			*/
+	}
+	else
+	{
+		/*
+			Aux antenna
+		 	E2PROM_CSR only in PCI bus Reg., USB Bus need MCU commad to control the EESK pin.
+		*/
 #ifdef RTMP_MAC_USB
-			AsicSendCommandToMcu(pAd, 0x73, 0xFF, 0x0, 0x0);
+		AsicSendCommandToMcu(pAd, 0x73, 0xFF, 0x0, 0x0);
 #endif /* RTMP_MAC_USB */
-			RTMP_IO_READ32(pAd, GPIO_CTRL_CFG, &Value);
-			Value &= ~(0x0808);
-			Value |= 0x08;
-			RTMP_IO_WRITE32(pAd, GPIO_CTRL_CFG, Value);
+		RTMP_IO_READ32(pAd, GPIO_CTRL_CFG, &Value);
+		Value &= ~(0x0808);
+		Value |= 0x08;
+		RTMP_IO_WRITE32(pAd, GPIO_CTRL_CFG, Value);
 			DBGPRINT(RT_DEBUG_TRACE, ("AsicSetRxAnt, switch to aux antenna\n"));
 		}
 	}
@@ -697,13 +690,6 @@ VOID RT30xx_ChipSwitchChannel(
 					RFValue |= 0x40;
 				RT30xxWriteRFRegister(pAd, RF_R01, RFValue);
 
-				RT30xxReadRFRegister(pAd, RF_R30, (PUCHAR)&RFValue);
-				RFValue |= 0x80;
-				RT30xxWriteRFRegister(pAd, RF_R30, (UCHAR)RFValue);
-				RTMPusecDelay(1000);
-				RFValue &= 0x7F;
-				RT30xxWriteRFRegister(pAd, RF_R30, (UCHAR)RFValue);
-
 				/* Set RF offset*/
 				RT30xxReadRFRegister(pAd, RF_R23, &RFValue);
 				RFValue = (RFValue & 0x80) | pAd->RfFreqOffset;
@@ -753,13 +739,6 @@ VOID RT30xx_ChipSwitchChannel(
 				RT30xxReadRFRegister(pAd, RF_R07, &RFValue);
 				RFValue = RFValue | 0x1;
 				RT30xxWriteRFRegister(pAd, RF_R07, RFValue);
-				
-                                RT30xxReadRFRegister(pAd, RF_R30, (PUCHAR)&RFValue);
-                                RFValue |= 0x80;
-                                RT30xxWriteRFRegister(pAd, RF_R30, (UCHAR)RFValue);
-                                RTMPusecDelay(1000);
-                                RFValue &= 0x7F;
-                                RT30xxWriteRFRegister(pAd, RF_R30, (UCHAR)RFValue);    
 
 				/* latch channel for future usage.*/
 				pAd->LatchRfRegs.Channel = Channel;

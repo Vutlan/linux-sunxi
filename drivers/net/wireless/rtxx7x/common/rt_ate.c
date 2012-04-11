@@ -1130,12 +1130,6 @@ VOID DefaultATEAsicSwitchChannel(
 				RFValue = RFValue | 0x1;
 				ATE_RF_IO_WRITE8_BY_REG_ID(pAd, RF_R07, (UCHAR)RFValue);
 
-				   ATE_RF_IO_READ8_BY_REG_ID(pAd, RF_R30, (PUCHAR)&RFValue);
-                                RFValue |= 0x80;
-                                ATE_RF_IO_WRITE8_BY_REG_ID(pAd, RF_R30, (UCHAR)RFValue);
-                                RTMPusecDelay(1000);
-                                RFValue &= 0x7F;
-                                ATE_RF_IO_WRITE8_BY_REG_ID(pAd, RF_R30, (UCHAR)RFValue);   
 				/* latch channel for future usage */
 				pAd->LatchRfRegs.Channel = Channel;
  				if (pAd->Antenna.field.RxPath > 1)
@@ -1192,12 +1186,6 @@ VOID DefaultATEAsicSwitchChannel(
 					ATE_RF_IO_WRITE8_BY_REG_ID(pAd, RF_R01, (UCHAR)RFValue);
 					ATE_BBP_IO_WRITE8_BY_REG_ID(pAd, BBP_R1, BbpValue);
 	                     }
-				ATE_RF_IO_READ8_BY_REG_ID(pAd, RF_R30, (PUCHAR)&RFValue);
-				RFValue |= 0x80;
-				ATE_RF_IO_WRITE8_BY_REG_ID(pAd, RF_R30, (UCHAR)RFValue);
-				RTMPusecDelay(1000);
-				RFValue &= 0x7F;
-				ATE_RF_IO_WRITE8_BY_REG_ID(pAd, RF_R30, (UCHAR)RFValue);
 				break;				
 			}
 		}
@@ -1257,12 +1245,6 @@ VOID DefaultATEAsicSwitchChannel(
 				}	
 				ATE_RF_IO_WRITE8_BY_REG_ID(pAd, RF_R01, RFValue);
 
-				ATE_RF_IO_READ8_BY_REG_ID(pAd, RF_R02, (PUCHAR)&RFValue);
-                                RFValue |= 0x80;
-                                ATE_RF_IO_WRITE8_BY_REG_ID(pAd, RF_R02, (UCHAR)RFValue);
-                                RTMPusecDelay(1000);
-                                RFValue &= 0x7F;
-                                ATE_RF_IO_WRITE8_BY_REG_ID(pAd, RF_R02, (UCHAR)RFValue);   
 				{
 					/* Zero patch based on windows driver */
 					if (IS_RT5392(pAd))
@@ -1271,29 +1253,28 @@ VOID DefaultATEAsicSwitchChannel(
 					}/**/
 					
 					ATE_RF_IO_READ8_BY_REG_ID(pAd, RF_R17, (PUCHAR)&RFValue);
-					PreRFValue = RFValue;
-					RFValue = ((RFValue & 0x80) | (pAd->ate.RFFreqOffset & 0x7F)); /* xo_code (C1 value control) - Crystal calibration */
+/*					pAd->PreRFXCodeValue = (UCHAR)RFValue;*/
+					PreRFValue = (UCHAR)RFValue;
+					RFValue = ((RFValue & ~0x7F) | (pAd->RfFreqOffset & 0x7F)); /* xo_code (C1 value control) - Crystal calibration */
 					RFValue = min(RFValue, ((UCHAR)0x5F));// warning!! by sw
+/*					RFMultiStepXoCode(pAd, RF_R17, (UCHAR)RFValue,pAd->PreRFXCodeValue);*/
 					if (PreRFValue != RFValue)
 					{
 						AsicSendCommandToMcu(pAd, 0x74, 0xff, RFValue, PreRFValue);
 					}
-
 					/* Zero patch based on windows driver */
 					if(pAd->ate.TxWI.PHYMODE == MODE_CCK)
 					{
 						ATE_RF_IO_WRITE8_BY_REG_ID(pAd, RF_R32, 0xC0);
 
-						if (IS_RT5390F(pAd)) /* >= RT5390F */
+						if (IS_RT5390F(pAd) || IS_RT5392C(pAd)) /* >= RT5390F */
 						{
-							ATE_RF_IO_WRITE8_BY_REG_ID(pAd, RF_R55, 0x46);
-						}
-						else if (IS_RT5392C(pAd))
 							ATE_RF_IO_WRITE8_BY_REG_ID(pAd, RF_R55, 0x47);
+						}
 					}
 					else
 					{
-						ATE_RF_IO_WRITE8_BY_REG_ID(pAd, RF_R32, 0x20);
+						ATE_RF_IO_WRITE8_BY_REG_ID(pAd, RF_R32, 0x80);
 
 						if (IS_RT5390F(pAd) || IS_RT5392C(pAd)) /* >= RT5390F */
 						{
@@ -5632,7 +5613,7 @@ static INT ATETxPwrHandler(
 				RFValue = ((RFValue & ~0x3F) | (TxPower & 0x3F)); /* tx0_alc */
 				ATE_RF_IO_WRITE8_BY_REG_ID(pAd, ANT_POWER_INDEX, (UCHAR)RFValue);
 				if (!IS_RT5392(pAd))	
-					ATE_RF_IO_WRITE8_BY_REG_ID(pAd, RF_R53, 0x04);
+				ATE_RF_IO_WRITE8_BY_REG_ID(pAd, RF_R53, 0x04);
 		}
 #endif /* defined(RT5370) || defined(RT5372) || defined(RT5390) || defined(RT5392) */
 #endif /* RTMP_RF_RW_SUPPORT */
@@ -7730,8 +7711,9 @@ INT	Set_ATE_TX_FREQOFFSET_Proc(
 #endif /* RTMP_RF_RW_SUPPORT */
 
 #if defined(RT5370) || defined(RT5372) || defined(RT5390) || defined(RT5392)
-	UCHAR PreRFValue = 0;
+	 UCHAR PreRFValue = 0;
 #endif /* defined(RT5370) || defined(RT5372) || defined(RT5390) || defined(RT5392) */
+
 	
 	RFFreqOffset = simple_strtol(arg, 0, 10);
 
@@ -7765,9 +7747,11 @@ INT	Set_ATE_TX_FREQOFFSET_Proc(
 	if ( IS_RT5390(pAd))
 	{
 		ATE_RF_IO_READ8_BY_REG_ID(pAd, RF_R17, (PUCHAR)&RFValue);
-		PreRFValue = RFValue;
+/*		pAd->ate.PreRFXCodeValue = (UCHAR)RFValue;*/
+		PreRFValue = (UCHAR)RFValue;
 		RFValue = ((RFValue & 0x80) | (pAd->ate.RFFreqOffset & 0x7F)); // xo_code (C1 value control) - Crystal calibration
 		RFValue = min(RFValue, ((UCHAR)0x5F));// warning!! by sw
+/*		RFMultiStepXoCode(pAd, RF_R17, (UCHAR)RFValue,pAd->ate.PreRFXCodeValue);*/
 		if (PreRFValue != RFValue)
 		{
 			AsicSendCommandToMcu(pAd, 0x74, 0xff, RFValue, PreRFValue);
@@ -8247,7 +8231,7 @@ INT	Set_ATE_TX_MODE_Proc(
 	if (IS_RT5390F(pAd))
 	{
 		if (pAd->ate.TxWI.PHYMODE == MODE_CCK)
-			ATE_RF_IO_WRITE8_BY_REG_ID(pAd, RF_R55, 0x46);
+			ATE_RF_IO_WRITE8_BY_REG_ID(pAd, RF_R55, 0x47);
 		else			
 			ATE_RF_IO_WRITE8_BY_REG_ID(pAd, RF_R55, 0x43);
 	}
@@ -9480,7 +9464,6 @@ INT Set_ATE_TSSI_CALIBRATION_Proc(
 	IN	PSTRING			arg)
 {    
 	RTMP_CHIP_ATE_TSSI_CALIBRATION(pAd, arg);
-	return TRUE;// warning!! by sw
 }
 
 
@@ -9497,7 +9480,6 @@ INT Set_ATE_TSSI_CALIBRATION_EX_Proc(
 	UCHAR		CurrentChannel;
 	
 	RTMP_CHIP_ATE_TSSI_CALIBRATION_EXTEND(pAd, arg);
-	return TRUE;// warning!! by sw
 }
 #endif /* RTMP_INTERNAL_TX_ALC */
 

@@ -57,7 +57,7 @@ typedef VOID	pregs;
 
 #ifdef RTMP_MAC_USB
 #define STA_PROFILE_PATH			"/system/vendor/modules/RT2870STA.dat"
-#define STA_DRIVER_VERSION			"2.5.0.3"
+#define STA_DRIVER_VERSION			"2.5.0.1"
 #ifdef MULTIPLE_CARD_SUPPORT
 #define CARD_INFO_PATH			"/system/vendor/modules/RT2870STACard.dat"
 #endif /* MULTIPLE_CARD_SUPPORT */
@@ -804,7 +804,7 @@ void RTMP_GetCurrentSystemTime(LARGE_INTEGER *time);
 #ifdef INF_AMAZON_SE
 #define BULKAGGRE_SIZE          30
 #else
-#define BULKAGGRE_SIZE          60
+#define BULKAGGRE_SIZE          100
 #endif /* INF_AMAZON_SE */
 
 /*#define RT28XX_PUT_DEVICE			rausb_put_dev */

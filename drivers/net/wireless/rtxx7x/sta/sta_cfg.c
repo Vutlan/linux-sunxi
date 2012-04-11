@@ -197,13 +197,8 @@ static struct {
 	{"efuseBufferModeWriteBack",		set_eFuseBufferModeWriteBack_Proc},
 #endif /* RALINK_ATE */
 #endif /* RTMP_EFUSE_SUPPORT */
-	{"ant",					Set_Antenna_Proc},
 #endif /* RT30xx */
-
-#ifdef RT5350
-    {"HwAntDiv",                Set_Hw_Antenna_Div_Proc},
-#endif // RT5350 //
-
+/*2008/09/11:KH add to support efuse--> */
 	{"BeaconLostTime",				Set_BeaconLostTime_Proc},
 	{"AutoRoaming",					Set_AutoRoaming_Proc},
 	{"SiteSurvey",					Set_SiteSurvey_Proc},
@@ -271,6 +266,15 @@ INT Set_SSID_Proc(
     BOOLEAN                             StateMachineTouched = FALSE;
     int                                 success = TRUE;
 
+	if (/*(!pAd->NicConfig2.field.AntDiversity) ||*/
+		(RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_RESET_IN_PROGRESS))	||
+		(RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_HALT_IN_PROGRESS))	||
+		(RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_RADIO_OFF)) ||
+		(RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_NIC_NOT_EXIST)))
+	{
+		return NDIS_STATUS_FAILURE;
+	}
+
 	/*
 		Set the AutoReconnectSsid to prevent it reconnect to old SSID
 		Since calling this indicate user don't want to connect to that SSID anymore.
@@ -296,11 +300,13 @@ INT Set_SSID_Proc(
 	}	 
         pSsid = &Ssid;
 
-        if (pAd->Mlme.CntlMachine.CurrState != CNTL_IDLE)
-        {
-            RTMP_MLME_RESET_STATE_MACHINE(pAd);
-            DBGPRINT(RT_DEBUG_TRACE, ("!!! MLME busy, reset MLME state machine !!!\n"));
-        }
+
+         if (pAd->Mlme.CntlMachine.CurrState != CNTL_IDLE)
+         {
+             RTMP_MLME_RESET_STATE_MACHINE(pAd);
+             DBGPRINT(RT_DEBUG_TRACE, ("!!! MLME busy, reset MLME state machine !!!\n"));
+         }
+ 
 
 		if ((pAd->StaCfg.WpaPassPhraseLen >= 8) &&
 			(pAd->StaCfg.WpaPassPhraseLen <= 64))
@@ -331,14 +337,17 @@ INT Set_SSID_Proc(
         pAd->StaCfg.bScanReqIsFromWebUI = FALSE;
 		pAd->bConfigChanged = TRUE;
         pAd->StaCfg.bNotFirstScan = FALSE;     
+        
 
-	MlmeEnqueue(pAd, 
-		MLME_CNTL_STATE_MACHINE, 
-		OID_802_11_SSID,
-		sizeof(NDIS_802_11_SSID),
-		(VOID *)pSsid, 0);
+        MlmeEnqueue(pAd, 
+                    MLME_CNTL_STATE_MACHINE, 
+                    OID_802_11_SSID,
+                    sizeof(NDIS_802_11_SSID),
+                    (VOID *)pSsid, 0);
 
-	StateMachineTouched = TRUE;	
+        StateMachineTouched = TRUE;
+
+        
 
 		if (Ssid.SsidLength == MAX_LEN_OF_SSID)
 			hex_dump("Set_SSID_Proc::Ssid", Ssid.Ssid, Ssid.SsidLength);
@@ -403,7 +412,16 @@ INT Set_NetworkType_Proc(
 {
     UINT32	Value = 0;
 
-    if (strcmp(arg, "Adhoc") == 0)
+	if (/*(!pAd->NicConfig2.field.AntDiversity) ||*/
+		(RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_RESET_IN_PROGRESS))	||
+		(RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_HALT_IN_PROGRESS))	||
+		(RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_RADIO_OFF)) ||
+		(RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_NIC_NOT_EXIST)))
+	{
+		return NDIS_STATUS_FAILURE;
+	}
+
+	if (strcmp(arg, "Adhoc") == 0)
 	{
 		if (pAd->StaCfg.BssType != BSS_ADHOC)
 		{				    
@@ -1740,7 +1758,7 @@ INT RTMPSetInformation(
 			/*Benson add 20080527, when radio off, sta don't need to scan */
 			if (RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_RADIO_OFF))
 				break;
-				
+
 			if (pAd->RalinkCounters.LastOneSecTotalTxCount > 100)
             {
                 DBGPRINT(RT_DEBUG_TRACE, ("!!! Link UP, ignore this set::OID_802_11_BSSID_LIST_SCAN\n"));
@@ -5110,6 +5128,8 @@ VOID RTMPIoctlShow(
 		return RtmpIoctl_rt_ioctl_giwrate(__pAd, __pData, __Data);			\
 	case CMD_RTPRIV_IOCTL_STA_SIOCGIFHWADDR:								\
 		return RtmpIoctl_rt_ioctl_gifhwaddr(__pAd, __pData, __Data);		\
+	case CMD_RTPRIV_IOCTL_STA_SIOCSIWPRIVRSSI:								\
+		return RtmpIoctl_rt_ioctl_rssi(__pAd, __pData, __Data);		\
 	case CMD_RTPRIV_IOCTL_STA_IW_SET_WSC_U32_ITEM:							\
 		return RtmpIoctl_rt_private_set_wsc_u32_item(__pAd, __pData, __Data);\
 	case CMD_RTPRIV_IOCTL_STA_IW_SET_WSC_STR_ITEM:							\
@@ -5143,22 +5163,24 @@ RtmpIoctl_rt_ioctl_siwfreq(
 {
 	RT_CMD_STA_IOCTL_FREQ *pIoctlFreq = (RT_CMD_STA_IOCTL_FREQ *)pData;
 	int 	chan = -1;
-	ULONG	freq;
-	
-	if ( pIoctlFreq->m > 100000000 )
-		freq = pIoctlFreq->m / 100000;
-	else if ( pIoctlFreq->m > 100000 )
-		freq = pIoctlFreq->m / 100;
-	else
-		freq = pIoctlFreq->m;
+ 	ULONG   freq;	
 
 
-	if((pIoctlFreq->e == 0) && (freq <= 1000))
-		chan = pIoctlFreq->m;	/* Setting by channel number */
-	else
-	{
-		MAP_KHZ_TO_CHANNEL_ID( freq , chan); /* Setting by frequency - search the table , like 2.412G, 2.422G, */
-	}
+       if ( pIoctlFreq->m > 100000000 )
+                freq = pIoctlFreq->m / 100000;
+        else if ( pIoctlFreq->m > 100000 )
+                freq = pIoctlFreq->m / 100;
+        else
+                freq = pIoctlFreq->m;
+
+
+        if((pIoctlFreq->e == 0) && (freq <= 1000))
+                chan = pIoctlFreq->m;   /* Setting by channel number */
+        else
+        {
+                MAP_KHZ_TO_CHANNEL_ID( freq , chan); /* Setting by frequency - search the table , like 2.412G, 2.422G, */
+        }
+
 
     if (ChannelSanity(pAd, chan) == TRUE)
     {
@@ -5167,6 +5189,16 @@ RtmpIoctl_rt_ioctl_siwfreq(
 			Save the channel on MlmeAux for CntlOidRTBssidProc used.
 		*/
 		pAd->MlmeAux.Channel = pAd->CommonCfg.Channel;
+
+#ifdef ANDROID_SUPPORT
+
+		pAd->StaARCfg.BssEntry.CentralChannel = pAd->CommonCfg.Channel;	
+		pAd->StaARCfg.BssEntry.Channel= pAd->CommonCfg.Channel;	
+
+#endif /* ANDROID_SUPPORT */
+
+
+
 	DBGPRINT(RT_DEBUG_ERROR, ("==>rt_ioctl_siwfreq::SIOCSIWFREQ(Channel=%d)\n", pAd->CommonCfg.Channel));
     }
     else
@@ -5408,6 +5440,19 @@ RtmpIoctl_rt_ioctl_siwscan(
 	RT_CMD_STA_IOCTL_SCAN *pConfig = (RT_CMD_STA_IOCTL_SCAN *)pData;
 	int Status = NDIS_STATUS_SUCCESS;
 
+#ifdef ANDROID_SUPPORT
+	if ((!RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_INTERRUPT_IN_USE))
+#ifdef IFUP_IN_PROBE
+		|| (RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_RESET_IN_PROGRESS))
+		|| (RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_HALT_IN_PROGRESS))
+		|| (RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_NIC_NOT_EXIST))
+#endif /* IFUP_IN_PROBE */
+	)
+	{
+		RtmpOSWrielessEventSend(pAd->net_dev, RT_WLAN_EVENT_SCAN, -1, NULL, NULL, 0);
+		return NDIS_STATUS_SUCCESS;
+	}
+#endif /* ANDROID_SUPPORT */
 
 	pConfig->Status = 0;
 
@@ -5430,6 +5475,7 @@ RtmpIoctl_rt_ioctl_siwscan(
 	do{
 
 #ifdef WPA_SUPPLICANT_SUPPORT
+#ifndef ANDROID_SUPPORT
 		if (((pAd->StaCfg.WpaSupplicantUP & 0x7F) == WPA_SUPPLICANT_ENABLE) &&
 			(pAd->StaCfg.WpaSupplicantScanCount > 3))
 		{
@@ -5437,8 +5483,9 @@ RtmpIoctl_rt_ioctl_siwscan(
 			Status = NDIS_STATUS_SUCCESS;
 			break;
 		}
+#endif /* ANDROID_SUPPORT */
 #endif /* WPA_SUPPLICANT_SUPPORT */
-
+#ifndef ANDROID_SUPPORT
 		if ((OPSTATUS_TEST_FLAG(pAd, fOP_STATUS_MEDIA_STATE_CONNECTED)) &&
 			((pAd->StaCfg.AuthMode == Ndis802_11AuthModeWPA) || 
 				(pAd->StaCfg.AuthMode == Ndis802_11AuthModeWPAPSK) ||
@@ -5450,7 +5497,7 @@ RtmpIoctl_rt_ioctl_siwscan(
 			Status = NDIS_STATUS_SUCCESS;
 			break;
 		}
-
+#endif /* ANDROID_SUPPORT */
 #ifdef WPA_SUPPLICANT_SUPPORT
 		if (pConfig->FlgScanThisSsid)
 		{
@@ -5463,6 +5510,7 @@ RtmpIoctl_rt_ioctl_siwscan(
 		}
 		else
 #endif /* WPA_SUPPLICANT_SUPPORT */
+#ifndef ANDROID_SUPPORT
                if (pAd->RalinkCounters.LastOneSecTotalTxCount > 30)
                {
                          DBGPRINT(RT_DEBUG_TRACE, ("!!! Link UP, ignore this set::OID_802_11_BSSID_LIST_SCAN\n"));
@@ -5470,6 +5518,7 @@ RtmpIoctl_rt_ioctl_siwscan(
                          break;
                }
                else
+#endif /* ANDROID_SUPPORT */
 		StaSiteSurvey(pAd, NULL, SCAN_ACTIVE);
 	}while(0);
 
@@ -5939,7 +5988,8 @@ RtmpIoctl_rt_ioctl_siwencode(
 				pIoctlSec->flags & RT_CMD_STA_IOCTL_SECURITY_OPEN)
 	{
 	    /*pAd->StaCfg.PortSecured = WPA_802_1X_PORT_SECURED; */
-		STA_PORT_SECURED(pAd);
+	    /*STA_PORT_SECURED(pAd);*/
+		pAd->StaCfg.PortSecured = WPA_802_1X_PORT_SECURED;
 		pAd->StaCfg.PairCipher = Ndis802_11WEPEnabled;
 		pAd->StaCfg.GroupCipher = Ndis802_11WEPEnabled;
 		pAd->StaCfg.WepStatus = Ndis802_11WEPEnabled;
@@ -6141,6 +6191,18 @@ RtmpIoctl_rt_ioctl_siwmlme(
 			break;
 		case RT_CMD_STA_IOCTL_IW_MLME_DISASSOC:
 			DBGPRINT(RT_DEBUG_TRACE, ("====> %s - IW_MLME_DISASSOC\n", __FUNCTION__));
+#ifdef ANDROID_SUPPORT
+			RtmpOSWrielessEventSend(pAd->net_dev, RT_WLAN_EVENT_CGIWAP, -1, NULL, NULL, 0);
+			NdisZeroMemory(pAd->StaARCfg.BssEntry.Ssid, MAX_LEN_OF_SSID);
+			NdisZeroMemory(pAd->StaARCfg.BssEntry.Bssid, MAC_ADDR_LEN);
+			pAd->StaARCfg.BssEntry.SsidLen = 0;
+			pAd->StaARCfg.BssEntry.BssType = 1;
+			pAd->StaARCfg.BssEntry.Channel = 0;
+//                        RTMPSendWirelessEvent(pAd, IW_SCAN_COMPLETED_EVENT_FLAG, NULL, BSS0, 0);
+//			RTMP_MLME_RESET_STATE_MACHINE(pAd);
+//			printk("IW_MLME_DISASSOC  RTMP_MLME_RESET_STATE_MACHINE \n");
+#endif /* ANDROID_SUPPORT */
+
 			COPY_MAC_ADDR(DisAssocReq.Addr, pAd->CommonCfg.Bssid);
 			DisAssocReq.Reason =  reason_code;
 
@@ -6185,6 +6247,14 @@ RtmpIoctl_rt_ioctl_siwauth(
 {
 	RT_CMD_STA_IOCTL_SECURITY_ADV *pIoctlWpa = (RT_CMD_STA_IOCTL_SECURITY_ADV *)pData;
 
+	if (/*(!pAd->NicConfig2.field.AntDiversity) ||*/
+		(RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_RESET_IN_PROGRESS))	||
+		(RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_HALT_IN_PROGRESS))	||
+		(RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_RADIO_OFF)) ||
+		(RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_NIC_NOT_EXIST)))
+	{
+		return NDIS_STATUS_FAILURE;
+	}
 
 	switch (pIoctlWpa->flags)
 	{
@@ -6280,8 +6350,9 @@ RtmpIoctl_rt_ioctl_siwauth(
 #endif /* NATIVE_WPA_SUPPLICANT_SUPPORT */
             else if (pIoctlWpa->value == 0)
             {
-                /*pAd->StaCfg.PortSecured = WPA_802_1X_PORT_SECURED; */
-				STA_PORT_SECURED(pAd);
+		/*ralink debug*/
+                pAd->StaCfg.PortSecured = WPA_802_1X_PORT_SECURED;
+		/*		STA_PORT_SECURED(pAd);*/
             }
             DBGPRINT(RT_DEBUG_TRACE, ("%s::IW_AUTH_KEY_MGMT - param->value = %d!\n", __FUNCTION__, pIoctlWpa->value));
             break;
@@ -6302,18 +6373,23 @@ RtmpIoctl_rt_ioctl_siwauth(
                 pAd->StaCfg.PortSecured = WPA_802_1X_PORT_NOT_SECURED;
 			else
 			{
-                /*pAd->StaCfg.PortSecured = WPA_802_1X_PORT_SECURED; */
-				STA_PORT_SECURED(pAd);
+		/*ralink debug*/
+                pAd->StaCfg.PortSecured = WPA_802_1X_PORT_SECURED; 
+			/*	STA_PORT_SECURED(pAd);*/
 			}
             DBGPRINT(RT_DEBUG_TRACE, ("%s::IW_AUTH_DROP_UNENCRYPTED - param->value = %d!\n", __FUNCTION__, pIoctlWpa->value));
     		break;
     	case RT_CMD_STA_IOCTL_WPA_AUTH_80211_AUTH_ALG: 
+/*ralink debug*/
+/*
 			if (pIoctlWpa->value == RT_CMD_STA_IOCTL_WPA_AUTH_80211_AUTH_ALG_OPEN)
 				pAd->StaCfg.AuthMode = Ndis802_11AuthModeOpen;
 			else if (pIoctlWpa->value == RT_CMD_STA_IOCTL_WPA_AUTH_80211_AUTH_ALG_SHARED)
 				pAd->StaCfg.AuthMode = Ndis802_11AuthModeShared;
             else
+*/
 				pAd->StaCfg.AuthMode = Ndis802_11AuthModeAutoSwitch;
+
             DBGPRINT(RT_DEBUG_TRACE, ("%s::IW_AUTH_80211_AUTH_ALG - param->value = %d!\n", __FUNCTION__, pIoctlWpa->value));
 			break;
     	case RT_CMD_STA_IOCTL_WPA_AUTH_WPA_ENABLED:
@@ -6442,6 +6518,14 @@ RtmpIoctl_rt_ioctl_siwencodeext(
 	RT_CMD_STA_IOCTL_SECURITY *pIoctlSec = (RT_CMD_STA_IOCTL_SECURITY *)pData;
     int keyIdx;
 
+	if (/*(!pAd->NicConfig2.field.AntDiversity) ||*/
+		(RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_RESET_IN_PROGRESS))	||
+		(RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_HALT_IN_PROGRESS))	||
+		(RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_RADIO_OFF)) ||
+		(RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_NIC_NOT_EXIST)))
+	{
+		return NDIS_STATUS_FAILURE;
+	}
 
     if (pIoctlSec->flags == RT_CMD_STA_IOCTL_SECURITY_DISABLED)
 	{
@@ -6694,6 +6778,14 @@ RtmpIoctl_rt_ioctl_siwgenie(
 #ifdef WPA_SUPPLICANT_SUPPORT
 	ULONG length = (ULONG)Data;
 
+	if (/*(!pAd->NicConfig2.field.AntDiversity) ||*/
+		(RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_RESET_IN_PROGRESS))	||
+		(RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_HALT_IN_PROGRESS))	||
+		(RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_RADIO_OFF)) ||
+		(RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_NIC_NOT_EXIST)))
+	{
+		return NDIS_STATUS_FAILURE;
+	}
 
 	if (pAd->StaCfg.WpaSupplicantUP != WPA_SUPPLICANT_DISABLE)
 	{
@@ -7044,6 +7136,33 @@ RtmpIoctl_rt_ioctl_gifhwaddr(
 	IN	ULONG					Data)
 {
 	memcpy(pData, pAd->CurrentAddress, ETH_ALEN);
+	return NDIS_STATUS_SUCCESS;
+}
+
+/*
+========================================================================
+Routine Description:
+	Handler for CMD_RTPRIV_IOCTL_STA_SIOCSIWPRIVRSSI.
+
+Arguments:
+	pAd				- WLAN control block pointer
+	*pData			- the communication data pointer
+	Data			- the communication data
+
+Return Value:
+	NDIS_STATUS_SUCCESS or NDIS_STATUS_FAILURE
+
+Note:
+========================================================================
+*/
+INT
+RtmpIoctl_rt_ioctl_rssi(
+	IN	RTMP_ADAPTER			*pAd,
+	IN	VOID					*pData,
+	IN	ULONG					Data)
+{
+
+        (*(CHAR *)pData) =  pAd->StaCfg.RssiSample.AvgRssi0;
 	return NDIS_STATUS_SUCCESS;
 }
 

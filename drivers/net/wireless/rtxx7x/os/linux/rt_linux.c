@@ -50,7 +50,8 @@
 #define RT_CONFIG_IF_OPMODE_ON_STA(__OpMode)
 #endif
 
-ULONG RTDebugLevel = RT_DEBUG_ERROR;
+ULONG RTDebugLevel = 1;
+
 
 #ifdef OS_ABL_FUNC_SUPPORT
 ULONG RTPktOffsetData = 0, RTPktOffsetLen = 0, RTPktOffsetCB = 0;
@@ -69,8 +70,8 @@ ULONG OS_NumOfPktAlloc = 0, OS_NumOfPktFree = 0;
  * path so throughput should not be impacted
  */
 BOOLEAN FlgIsUtilInit = FALSE;
+/*NDIS_SPIN_LOCK UtilSemLock;*/
 OS_NDIS_SPIN_LOCK UtilSemLock;
-
 
 /*
 ========================================================================
@@ -1964,7 +1965,7 @@ VOID RtmpDrvAllE2PPrint(IN VOID *pReserved,
 
 					printk("%s", msg);
 					eepAddr += AddrStep;
-					pMacContent += (AddrStep/2);
+					pMacContent += AddrStep;
 				}
 				sprintf(msg, "\nDump all EEPROM values to %s\n",
 					fileName);

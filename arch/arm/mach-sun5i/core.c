@@ -56,7 +56,8 @@
 
 static struct map_desc sw_io_desc[] __initdata = {
 	{ SW_VA_SRAM_BASE, __phys_to_pfn(SW_PA_SRAM_BASE),  (SZ_128K + SZ_64K), MT_MEMORY_ITCM  },
-	{ SW_VA_IO_BASE,   __phys_to_pfn(SW_PA_IO_BASE),    (SZ_1M + SZ_2M),    MT_DEVICE    },
+	{ SW_VA_IO_BASE,   __phys_to_pfn(SW_PA_IO_BASE),    (SZ_1M + SZ_2M),    MT_DEVICE       },
+	{ SW_VA_BROM_BASE, __phys_to_pfn(SW_PA_BROM_BASE),  (SZ_64K),           MT_MEMORY_ITCM  },
 };
 
 void __init sw_core_map_io(void)
@@ -390,6 +391,17 @@ enum sw_ic_ver sw_get_ic_ver(void)
 }
 EXPORT_SYMBOL(sw_get_ic_ver);
 #endif
+
+int sw_get_chip_id(struct sw_chip_id *chip_id)
+{
+    chip_id->sid_rkey0 = readl(SW_VA_SID_IO_BASE);
+    chip_id->sid_rkey1 = readl(SW_VA_SID_IO_BASE+0x04);
+    chip_id->sid_rkey2 = readl(SW_VA_SID_IO_BASE+0x08);
+    chip_id->sid_rkey3 = readl(SW_VA_SID_IO_BASE+0x0C);
+
+    return 0;
+}
+EXPORT_SYMBOL(sw_get_chip_id);
 
 /**
  * Arch Required Implementations

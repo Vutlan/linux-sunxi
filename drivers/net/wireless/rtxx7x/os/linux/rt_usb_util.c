@@ -33,9 +33,9 @@
 #include "rt_os_util.h"
 
 #ifdef RTMP_MAC_USB
-//#ifdef OS_ABL_SUPPORT
+#ifdef OS_ABL_SUPPORT
 MODULE_LICENSE("GPL");
-//#endif /* OS_ABL_SUPPORT */
+#endif /* OS_ABL_SUPPORT */
 
 #ifdef RESOURCE_BOOT_ALLOC
 #include <linux/usb.h>
@@ -484,15 +484,18 @@ struct usb_interface	*intf =(struct usb_interface *)intfsrc;
 
 		if(pm_usage_cnt == 1)
 		{
+#if 0
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,33)
 			if(pUsb_Dev->autosuspend_disabled  ==0)
 #else
 			if(pUsb_Dev->auto_pm ==1)
 #endif
+#endif
 			{
 					rausb_autopm_put_interface(intf);
 			}
 	
+#if 0
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,33)
 			else
 			{
@@ -501,6 +504,7 @@ struct usb_interface	*intf =(struct usb_interface *)intfsrc;
 /*				RTMP_DRIVER_ADAPTER_SUSPEND_SET(pAd); */
 				return (-1);
 			}
+#endif
 #endif
                 }
 
@@ -545,11 +549,12 @@ int RTMP_Usb_AutoPM_Get_Interface (
 		if(pm_usage_cnt == 0)
 		{
 			int res=1;
-
+#if 0
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,33)
 		if(pUsb_Dev->autosuspend_disabled  ==0)
 #else
 		if(pUsb_Dev->auto_pm ==1)
+#endif
 #endif
 			{
 				res = rausb_autopm_get_interface(intf);
@@ -568,6 +573,7 @@ so we must clear fkag here;
 					return (-1);
 				}			
 			}
+#if 0
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,33)
 			else
 			{
@@ -575,6 +581,7 @@ so we must clear fkag here;
 /*				RTMP_SET_FLAG(pAd, fRTMP_ADAPTER_SUSPEND); */
 				return (-1);
 			}
+#endif
 #endif
 			return 1;
 		}
