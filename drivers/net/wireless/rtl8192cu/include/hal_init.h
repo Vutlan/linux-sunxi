@@ -169,7 +169,7 @@ struct hal_ops {
 	void	(*UpdateRAMaskHandler)(PADAPTER Adapter, u32 mac_id);
 	void	(*SetBeaconRelatedRegistersHandler)(PADAPTER Adapter);
 
-	void	(*Add_RateATid)(PADAPTER Adapter, u32 bitmap, u8 arg);
+	void	(*Add_RateATid)(PADAPTER Adapter, u32 bitmap, u8 arg, u8 mac_id);
 
 #ifdef CONFIG_ANTENNA_DIVERSITY
 	u8	(*SwAntDivBeforeLinkHandler)(PADAPTER Adapter);
@@ -272,13 +272,16 @@ typedef enum _wowlan_subcode{
 	WOWLAN_SET_PATTERN   = 4,
 	WOWLAN_DUMP_REG      = 5,
 	WOWLAN_ENABLE        = 6,
-	WOWLAN_DISABLE       = 7
+	WOWLAN_DISABLE       = 7,
+	WOWLAN_STATUS		= 8
 }wowlan_subcode;
 
 struct wowlan_ioctl_param{
-	wowlan_subcode subcode;
+	unsigned int subcode;
+	unsigned int subcode_value;
+	unsigned int wakeup_reason;
 	unsigned int len;
-	unsigned char data[0];
+	unsigned char pattern[0];
 };
 void	rtw_dm_init(_adapter *padapter);
 void	rtw_sw_led_init(_adapter *padapter);

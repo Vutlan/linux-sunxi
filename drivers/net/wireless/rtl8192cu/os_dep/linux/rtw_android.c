@@ -27,21 +27,8 @@
 #include <ioctl_cfg80211.h>
 #include <rtw_ioctl_set.h>
 
-#if 0
-#include <wldev_common.h>
-#include <wlioctl.h>
-#include <bcmutils.h>
-#include <linux_osl.h>
-#include <dhd_dbg.h>
-#include <dngl_stats.h>
-#include <dhd.h>
-#include <bcmsdbus.h>
-#ifdef WL_CFG80211
-#include <wl_cfg80211.h>
-#endif
-#endif
 
-#if defined(CONFIG_WIFI_CONTROL_FUNC)
+#if defined(CONFIG_WIFI_CONTROL_FUNC) && 0
 #include <linux/platform_device.h>
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 35))
 #include <linux/wlan_plat.h>
@@ -49,13 +36,6 @@
 #include <linux/wifi_tiwlan.h>
 #endif
 #endif /* CONFIG_WIFI_CONTROL_FUNC */
-
-
-
-/*
- * Android private command strings, PLEASE define new private commands here
- * so they can be updated easily in the future (if needed)
- */
 
 const char *android_wifi_cmd_str[ANDROID_WIFI_CMD_MAX] = {
 	"START",
@@ -90,6 +70,8 @@ const char *android_wifi_cmd_str[ANDROID_WIFI_CMD_MAX] = {
 
 	"MACADDR",
 
+	"BLOCK",
+
 };
 
 #ifdef PNO_SUPPORT
@@ -117,35 +99,6 @@ typedef struct android_wifi_priv_cmd {
 } android_wifi_priv_cmd;
 
 
-#if 0
-/**
- * Extern function declarations (TODO: move them to dhd_linux.h)
- */
-void dhd_customer_gpio_wlan_ctrl(int onoff);
-uint dhd_dev_reset(struct net_device *dev, uint8 flag);
-void dhd_dev_init_ioctl(struct net_device *dev);
-#ifdef WL_CFG80211
-int wl_cfg80211_get_p2p_dev_addr(struct net_device *net, struct ether_addr *p2pdev_addr);
-int wl_cfg80211_set_btcoex_dhcp(struct net_device *dev, char *command);
-#else
-int wl_cfg80211_get_p2p_dev_addr(struct net_device *net, struct ether_addr *p2pdev_addr)
-{ return 0; }
-int wl_cfg80211_set_p2p_noa(struct net_device *net, char* buf, int len)
-{ return 0; }
-int wl_cfg80211_get_p2p_noa(struct net_device *net, char* buf, int len)
-{ return 0; }
-int wl_cfg80211_set_p2p_ps(struct net_device *net, char* buf, int len)
-{ return 0; }
-#endif
-extern int dhd_os_check_if_up(void *dhdp);
-extern void *bcmsdh_get_drvdata(void);
-
-extern bool ap_fw_loaded;
-#ifdef CUSTOMER_HW2
-extern char iface_name[IFNAMSIZ];
-#endif
-#endif
-
 /**
  * Local (static) functions and variables
  */
@@ -156,87 +109,6 @@ extern char iface_name[IFNAMSIZ];
  */
 static int g_wifi_on = _TRUE;
 
-/**
- * Local (static) function definitions
- */
- #if 0
-static int wl_android_get_link_speed(struct net_device *net, char *command, int total_len)
-{
-	int link_speed;
-	int bytes_written;
-	int error;
-
-	error = wldev_get_link_speed(net, &link_speed);
-	if (error)
-		return -1;
-
-	/* Convert Kbps to Android Mbps */
-	link_speed = link_speed / 1000;
-	bytes_written = snprintf(command, total_len, "LinkSpeed %d", link_speed);
-	DHD_INFO(("%s: command result is %s\n", __FUNCTION__, command));
-	return bytes_written;
-}
-
-static int wl_android_get_rssi(struct net_device *net, char *command, int total_len)
-{
-	wlc_ssid_t ssid = {0};
-	int rssi;
-	int bytes_written = 0;
-	int error;
-
-	error = wldev_get_rssi(net, &rssi);
-	if (error)
-		return -1;
-
-	error = wldev_get_ssid(net, &ssid);
-	if (error)
-		return -1;
-	if ((ssid.SSID_len == 0) || (ssid.SSID_len > DOT11_MAX_SSID_LEN)) {
-		DHD_ERROR(("%s: wldev_get_ssid failed\n", __FUNCTION__));
-	} else {
-		memcpy(command, ssid.SSID, ssid.SSID_len);
-		bytes_written = ssid.SSID_len;
-	}
-	bytes_written += snprintf(&command[bytes_written], total_len, " rssi %d", rssi);
-	DHD_INFO(("%s: command result is %s (%d)\n", __FUNCTION__, command, bytes_written));
-	return bytes_written;
-}
-
-static int wl_android_set_suspendopt(struct net_device *dev, char *command, int total_len)
-{
-	int suspend_flag;
-	int ret_now;
-	int ret = 0;
-
-	suspend_flag = *(command + strlen(CMD_SETSUSPENDOPT) + 1) - '0';
-
-	if (suspend_flag != 0)
-		suspend_flag = 1;
-	ret_now = net_os_set_suspend_disable(dev, suspend_flag);
-
-	if (ret_now != suspend_flag) {
-		if (!(ret = net_os_set_suspend(dev, ret_now)))
-			DHD_INFO(("%s: Suspend Flag %d -> %d\n",
-				__FUNCTION__, ret_now, suspend_flag));
-		else
-			DHD_ERROR(("%s: failed %d\n", __FUNCTION__, ret));
-	}
-	return ret;
-}
-
-static int wl_android_get_band(struct net_device *dev, char *command, int total_len)
-{
-	uint band;
-	int bytes_written;
-	int error;
-
-	error = wldev_get_band(dev, &band);
-	if (error)
-		return -1;
-	bytes_written = snprintf(command, total_len, "Band %d", band);
-	return bytes_written;
-}
-#endif
 
 #ifdef PNO_SUPPORT
 static int wl_android_set_pno_setup(struct net_device *dev, char *command, int total_len)
@@ -346,73 +218,6 @@ exit_proc:
 }
 #endif /* PNO_SUPPORT */
 
-#if 0
-static int wl_android_get_p2p_dev_addr(struct net_device *ndev, char *command, int total_len)
-{
-	int ret;
-	int bytes_written = 0;
-
-	ret = wl_cfg80211_get_p2p_dev_addr(ndev, (struct ether_addr*)command);
-	if (ret)
-		return 0;
-	bytes_written = sizeof(struct ether_addr);
-	return bytes_written;
-}
-#endif
-
-/**
- * Global function definitions (declared in wl_android.h)
- */
-
-#if 0
-int wl_android_wifi_on(struct net_device *dev)
-{
-	int ret = 0;
-
-	printk("%s in\n", __FUNCTION__);
-	if (!dev) {
-		DHD_ERROR(("%s: dev is null\n", __FUNCTION__));
-		return -EINVAL;
-	}
-
-	dhd_net_if_lock(dev);
-	if (!g_wifi_on) {
-		dhd_customer_gpio_wlan_ctrl(WLAN_RESET_ON);
-		sdioh_start(NULL, 0);
-		ret = dhd_dev_reset(dev, FALSE);
-		sdioh_start(NULL, 1);
-		if (!ret)
-			dhd_dev_init_ioctl(dev);
-		g_wifi_on = 1;
-	}
-	dhd_net_if_unlock(dev);
-
-	return ret;
-}
-
-int wl_android_wifi_off(struct net_device *dev)
-{
-	int ret = 0;
-
-	printk("%s in\n", __FUNCTION__);
-	if (!dev) {
-		DHD_TRACE(("%s: dev is null\n", __FUNCTION__));
-		return -EINVAL;
-	}
-
-	dhd_net_if_lock(dev);
-	if (g_wifi_on) {
-		ret = dhd_dev_reset(dev, TRUE);
-		sdioh_stop(NULL);
-		dhd_customer_gpio_wlan_ctrl(WLAN_RESET_OFF);
-		g_wifi_on = 0;
-	}
-	dhd_net_if_unlock(dev);
-
-	return ret;
-}
-#endif
-
 int rtw_android_cmdstr_to_num(char *cmdstr)
 {
 	int cmd_num;
@@ -452,6 +257,15 @@ int rtw_android_get_link_speed(struct net_device *net, char *command, int total_
 	return bytes_written;
 }
 
+int rtw_android_get_macaddr(struct net_device *net, char *command, int total_len)
+{
+	_adapter *adapter = (_adapter *)rtw_netdev_priv(net);
+	int bytes_written = 0;
+	
+	bytes_written = snprintf(command, total_len, "Macaddr = "MAC_FMT, MAC_ARG(net->dev_addr));
+	return bytes_written;
+}
+
 int rtw_android_set_country(struct net_device *net, char *command, int total_len)
 {
 	_adapter *adapter = (_adapter *)rtw_netdev_priv(net);
@@ -473,6 +287,19 @@ int rtw_android_get_p2p_dev_addr(struct net_device *net, char *command, int tota
 	
 	bytes_written = ETH_ALEN;
 	return bytes_written;
+}
+
+int rtw_android_set_block(struct net_device *net, char *command, int total_len)
+{
+	int ret;
+	_adapter *adapter = (_adapter *)rtw_netdev_priv(net);
+	char *block_value = command + strlen(android_wifi_cmd_str[ANDROID_WIFI_CMD_BLOCK]) + 1;
+
+	#ifdef CONFIG_IOCTL_CFG80211
+	wdev_to_priv(adapter->rtw_wdev)->block = (*block_value=='0')?_FALSE:_TRUE;
+	#endif
+	
+	return 0;
 }
 
 int rtw_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
@@ -543,6 +370,14 @@ int rtw_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 		break;
 	case ANDROID_WIFI_CMD_LINKSPEED:
 		bytes_written = rtw_android_get_link_speed(net, command, priv_cmd.total_len);
+		break;
+
+	case ANDROID_WIFI_CMD_MACADDR:
+		bytes_written = rtw_android_get_macaddr(net, command, priv_cmd.total_len);
+		break;
+		
+	case ANDROID_WIFI_CMD_BLOCK:
+		bytes_written = rtw_android_set_block(net, command, priv_cmd.total_len);
 		break;
 		
 	case ANDROID_WIFI_CMD_RXFILTER_START:
@@ -667,60 +502,11 @@ exit:
 	return ret;
 }
 
-#if 0
-int wl_android_init(void)
-{
-	int ret = 0;
-
-	dhd_msg_level = DHD_ERROR_VAL;
-#ifdef ENABLE_INSMOD_NO_FW_LOAD
-	dhd_download_fw_on_driverload = FALSE;
-#endif /* ENABLE_INSMOD_NO_FW_LOAD */
-#ifdef CUSTOMER_HW2
-	if (!iface_name[0]) {
-		memset(iface_name, 0, IFNAMSIZ);
-		bcm_strncpy_s(iface_name, IFNAMSIZ, "wlan", IFNAMSIZ);
-	}
-#endif /* CUSTOMER_HW2 */
-	return ret;
-}
-
-int wl_android_exit(void)
-{
-	int ret = 0;
-
-	return ret;
-}
-
-int wl_android_post_init(void)
-{
-	struct net_device *ndev;
-	int ret = 0;
-	char buf[IFNAMSIZ];
-	if (!dhd_download_fw_on_driverload) {
-		/* Call customer gpio to turn off power with WL_REG_ON signal */
-		dhd_customer_gpio_wlan_ctrl(WLAN_RESET_OFF);
-		g_wifi_on = 0;
-	} else {
-		memset(buf, 0, IFNAMSIZ);
-#ifdef CUSTOMER_HW2
-		snprintf(buf, IFNAMSIZ, "%s%d", iface_name, 0);
-#else
-		snprintf(buf, IFNAMSIZ, "%s%d", "eth", 0);
-#endif
-		if ((ndev = dev_get_by_name (&init_net, buf)) != NULL) {
-			dhd_dev_init_ioctl(ndev);
-			dev_put(ndev);
-		}
-	}
-	return ret;
-}
-#endif
 
 /**
  * Functions for Android WiFi card detection
  */
-#if defined(CONFIG_WIFI_CONTROL_FUNC)
+#if defined(CONFIG_WIFI_CONTROL_FUNC) && 0
 
 static int g_wifidev_registered = 0;
 static struct semaphore wifi_control_sem;
@@ -924,3 +710,4 @@ static void wifi_del_dev(void)
 	platform_driver_unregister(&wifi_device_legacy);
 }
 #endif /* defined(CONFIG_WIFI_CONTROL_FUNC) */
+

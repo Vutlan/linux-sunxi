@@ -445,18 +445,67 @@ _func_exit_;
 
 }
 
+u8 rtl8192c_set_ext_macid_period_cmd(_adapter*padapter,  u8 period)
+{	
+	u8	ext_macid_period=0;
+	u8	res=_SUCCESS;
+	
+_func_enter_;	
+	
+	ext_macid_period=period;
+
+	rtl8192c_FillH2CCmd(padapter, EXT_MACID_PERIOD_EID, 1, &ext_macid_period);
+	
+_func_exit_;
+
+	return res;
+
+}
+
+u8 rtl8192c_set_raid64_cmd(_adapter*padapter, u32 mask, u8 arg)
+{	
+	u8	buf[5];
+	u8	res=_SUCCESS;
+	
+_func_enter_;	
+	
+	_rtw_memset(buf, 0, 5);
+	mask = cpu_to_le32( mask );
+	_rtw_memcpy(buf, &mask, 4);
+	buf[4]  = arg;
+
+	rtl8192c_FillH2CCmd(padapter, MACID64_CONFIG_EID, 5, buf);
+	
+_func_exit_;
+
+	return res;
+
+}
 //bitmap[0:27] = tx_rate_bitmap
 //bitmap[28:31]= Rate Adaptive id
 //arg[0:4] = macid
 //arg[5] = Short GI
-void rtl8192c_Add_RateATid(PADAPTER pAdapter, u32 bitmap, u8 arg)
+void rtl8192c_Add_RateATid(PADAPTER pAdapter, u32 bitmap, u8 arg, u8 mac_id)
 {	
 	
 	HAL_DATA_TYPE	*pHalData = GET_HAL_DATA(pAdapter);
 		
 	if(pHalData->fw_ractrl == _TRUE)
 	{
-		rtl8192c_set_raid_cmd(pAdapter, bitmap, arg);
+		DBG_8192C("%s() pHalData->fw_ractrl == _TRUE\n",__FUNCTION__);
+#ifdef SUPPORT_64_STA
+		if(mac_id >=FW_CTRL_MACID){
+			rtl8192c_set_ext_macid_period_cmd(pAdapter,20);
+			rtl8192c_set_raid64_cmd(pAdapter, bitmap, arg);
+			DBG_8192C("%s() rtl8192c_set_raid64_cmd, bitmap=0x%x, arg =0x%x\n",__FUNCTION__,bitmap,arg);
+		}
+		else		
+#endif	//SUPPORT_64_STA		
+		{
+			rtl8192c_set_raid_cmd(pAdapter, bitmap, arg);
+			DBG_8192C("%s() rtl8192c_set_raid_cmd, bitmap=0x%x, arg =0x%x\n",__FUNCTION__,bitmap,arg);
+		}
+
 	}
 	else
 	{
@@ -483,7 +532,7 @@ void rtl8192c_set_FwPwrMode_cmd(_adapter*padapter, u8 Mode)
 	
 _func_enter_;
 
-	DBG_871X("%s(): Mode = %d, SmartPS = %d\n", __FUNCTION__,Mode,pwrpriv->smart_ps);
+	//DBG_871X("%s(): Mode = %d, SmartPS = %d\n", __FUNCTION__,Mode,pwrpriv->smart_ps);
 
 	H2CSetPwrMode.Mode = Mode;
 
@@ -1213,7 +1262,7 @@ int rtl8192c_IOL_exec_cmds_sync(ADAPTER *adapter, struct xmit_frame *xmit_frame,
 		DBG_871X("%s io-offloading complete, in %ums: 0x%08x\n", __FUNCTION__, passing_time_ms, c2h_evt);
 		rtw_write8(adapter, REG_C2HEVT_CLEAR, 0x0);
 		#else// 0x1c3
-		//DBG_871X("%s IOF complete in %ums\n", __FUNCTION__, passing_time_ms);
+		DBG_871X("IOL %s complete in %ums\n", __FUNCTION__, passing_time_ms);
 		rtw_write8(adapter, 0x1c3, 0x0);
 		#endif
 	}
@@ -1236,42 +1285,62 @@ void rtl8192c_set_wowlan_cmd(_adapter* padapter)
 _func_enter_;
 
 	pwowlan_parm.mode =0;
-	pwowlan_parm.gpio_num=0;
+	pwowlan_parm.gpio_index=0;
 	pwowlan_parm.gpio_duration=0;
+	pwowlan_parm.second_mode =0;
+	pwowlan_parm.reserve=0;
 	
 	if(pwrpriv->wowlan_mode ==_TRUE){
-		pwowlan_parm.mode |=BIT(0);
-		printk("\n %s 1.pwowlan_parm.mode=0x%x \n",__FUNCTION__,pwowlan_parm.mode );
+		pwowlan_parm.mode |=FW_WOWLAN_FUN_EN;
+		//printk("\n %s 1.pwowlan_parm.mode=0x%x \n",__FUNCTION__,pwowlan_parm.mode );
 		if(pwrpriv->wowlan_pattern ==_TRUE){
-			pwowlan_parm.mode |=BIT(1);
-		printk("\n %s 2.pwowlan_parm.mode=0x%x \n",__FUNCTION__,pwowlan_parm.mode );
+			pwowlan_parm.mode |= FW_WOWLAN_PATTERN_MATCH;
+		//printk("\n %s 2.pwowlan_parm.mode=0x%x \n",__FUNCTION__,pwowlan_parm.mode );
 		}
 		if(pwrpriv->wowlan_magic ==_TRUE){
-			pwowlan_parm.mode |=BIT(2);
-		printk("\n %s 3.pwowlan_parm.mode=0x%x \n",__FUNCTION__,pwowlan_parm.mode );
+			pwowlan_parm.mode |=FW_WOWLAN_MAGIC_PKT;
+		//printk("\n %s 3.pwowlan_parm.mode=0x%x \n",__FUNCTION__,pwowlan_parm.mode );
 		}
 		if(pwrpriv->wowlan_unicast ==_TRUE){
-			pwowlan_parm.mode |=BIT(3);
-		printk("\n %s 4.pwowlan_parm.mode=0x%x \n",__FUNCTION__,pwowlan_parm.mode );
+			pwowlan_parm.mode |=FW_WOWLAN_UNICAST;
+		//printk("\n %s 4.pwowlan_parm.mode=0x%x \n",__FUNCTION__,pwowlan_parm.mode );
 		}
-		pwowlan_parm.mode |=BIT(6);
-		pwowlan_parm.mode |=BIT(7);
-		printk("\n %s 5.pwowlan_parm.mode=0x%x \n",__FUNCTION__,pwowlan_parm.mode );
+		//WOWLAN_GPIO_ACTIVE means GPIO high active
+		//pwowlan_parm.mode |=FW_WOWLAN_GPIO_ACTIVE;
+		pwowlan_parm.mode |=FW_WOWLAN_REKEY_WAKEUP;
+		pwowlan_parm.mode |=FW_WOWLAN_DEAUTH_WAKEUP;
+		
+		//GPIO3
+		pwowlan_parm.gpio_index=3;
+		
+		//duration unit is 64us
+		pwowlan_parm.gpio_duration=0xff;
+		//
+		pwowlan_parm.second_mode|=FW_WOWLAN_GPIO_WAKEUP_EN;
+		//printk("\n %s 5.pwowlan_parm.mode=0x%x \n",__FUNCTION__,pwowlan_parm.mode );
 		{	u8 *ptr=(u8 *)&pwowlan_parm;
-			printk("\n %s H2C_WO_WLAN=%x %x:%x:%x \n",__FUNCTION__,H2C_WO_WLAN_CMD,ptr[0],ptr[1],ptr[2] );
+			printk("\n %s H2C_WO_WLAN=%x %02x:%02x:%02x:%02x:%02x \n",__FUNCTION__,H2C_WO_WLAN_CMD,ptr[0],ptr[1],ptr[2],ptr[3],ptr[4] );
 		}
-		rtl8192c_FillH2CCmd(padapter, H2C_WO_WLAN_CMD, 3, (u8 *)&pwowlan_parm);
-			
+		rtl8192c_FillH2CCmd(padapter, H2C_WO_WLAN_CMD, 4, (u8 *)&pwowlan_parm);
+
 		rtl8192c_set_FwJoinBssReport_cmd( padapter, 1);
+		//keep alive period = 3 * 10 BCN interval
 		pwowlan_parm.mode =3;
-		pwowlan_parm.gpio_num=3;
-		rtl8192c_FillH2CCmd(padapter, KEEP_ALIVE_CONTROL_CMD, 3, (u8 *)&pwowlan_parm);
+		pwowlan_parm.gpio_index=3;
+		rtl8192c_FillH2CCmd(padapter, KEEP_ALIVE_CONTROL_CMD, 2, (u8 *)&pwowlan_parm);
 		printk("%s after KEEP_ALIVE_CONTROL_CMD register 0x81=%x \n",__FUNCTION__,rtw_read8(padapter, 0x81));
+
 		pwowlan_parm.mode =1;
-		pwowlan_parm.gpio_num=0;
+		pwowlan_parm.gpio_index=0;
+		pwowlan_parm.gpio_duration=0;
 		rtl8192c_FillH2CCmd(padapter, DISCONNECT_DECISION_CTRL_CMD, 3, (u8 *)&pwowlan_parm);
 		printk("%s after DISCONNECT_DECISION_CTRL_CMD register 0x81=%x \n",__FUNCTION__,rtw_read8(padapter, 0x81));
-
+		
+		//enable GPIO wakeup
+		pwowlan_parm.mode =1;
+		pwowlan_parm.gpio_index=0;
+		pwowlan_parm.gpio_duration=0;
+		rtl8192c_FillH2CCmd(padapter, REMOTE_WAKE_CTRL_CMD, 3, (u8 *)&pwowlan_parm);
 	}
 	else
 		rtl8192c_FillH2CCmd(padapter, H2C_WO_WLAN_CMD, 3, (u8 *)&pwowlan_parm);

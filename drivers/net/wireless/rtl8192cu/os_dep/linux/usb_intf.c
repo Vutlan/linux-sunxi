@@ -162,6 +162,7 @@ static struct usb_device_id rtw_usb_id_tbl[] ={
 	{USB_DEVICE(USB_VENDER_ID_REALTEK, 0x8194)},//8192DU-VS
 	{USB_DEVICE(USB_VENDER_ID_REALTEK, 0x8111)},//Realtek 5G dongle for WiFi Display
 	{USB_DEVICE(USB_VENDER_ID_REALTEK, 0x0193)},//8192DE-VAU
+	{USB_DEVICE(USB_VENDER_ID_REALTEK, 0x8171)},//8192DU-VC
 	
 	/*=== Customer ID ===*/
 	/****** 8192DU-VC ********/
@@ -1373,7 +1374,6 @@ _func_exit_;
 	
 		DBG_8192C("+rtw_dev_remove\n");
 		RT_TRACE(_module_hci_intfs_c_,_drv_err_,("+dev_remove()\n"));
-
 #if defined(CONFIG_HAS_EARLYSUSPEND ) || defined(CONFIG_ANDROID_POWER)
 		rtw_unregister_early_suspend(&padapter->pwrctrlpriv);
 #endif

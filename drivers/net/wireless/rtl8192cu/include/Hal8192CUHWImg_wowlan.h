@@ -23,11 +23,11 @@
 /*Created on  2011/11/ 8, 14:15*/
 
 
-#define TSMCWWImgArrayLength 15044
+#define TSMCWWImgArrayLength 13458
 extern u8 Rtl8192CUFwTSMCWWImgArray[TSMCWWImgArrayLength];
-#define UMCACutWWImgArrayLength 15044
+#define UMCACutWWImgArrayLength 13458
 extern u8 Rtl8192CUFwUMCACutWWImgArray[UMCACutWWImgArrayLength];
-#define UMCBCutWWImgArrayLength 15024
+#define UMCBCutWWImgArrayLength 13446
 extern u8 Rtl8192CUFwUMCBCutWWImgArray[UMCBCutWWImgArrayLength];
 
 #endif //__INC_HAL8192CU_FW_IMG_WOWLAN_H

@@ -350,7 +350,7 @@ _func_exit_;
 //bitmap[28:31]= Rate Adaptive id
 //arg[0:4] = macid
 //arg[5] = Short GI
-void rtl8192d_Add_RateATid(PADAPTER pAdapter, u32 bitmap, u8 arg)
+void rtl8192d_Add_RateATid(PADAPTER pAdapter, u32 bitmap, u8 arg, u8 mac_id)
 {	
 	
 	HAL_DATA_TYPE	*pHalData = GET_HAL_DATA(pAdapter);
@@ -386,7 +386,7 @@ void rtl8192d_set_FwPwrMode_cmd(_adapter*padapter, u8 Mode)
 	
 _func_enter_;
 
-	DBG_871X("%s(): Mode = %d, SmartPS = %d\n", __FUNCTION__,Mode,pwrpriv->smart_ps);
+	//DBG_871X("%s(): Mode = %d, SmartPS = %d\n", __FUNCTION__,Mode,pwrpriv->smart_ps);
 
 	SET_H2CCMD_PWRMODE_PARM_MODE(u1H2CSetPwrMode, Mode);
 	SET_H2CCMD_PWRMODE_PARM_SMART_PS(u1H2CSetPwrMode, pwrpriv->smart_ps);
