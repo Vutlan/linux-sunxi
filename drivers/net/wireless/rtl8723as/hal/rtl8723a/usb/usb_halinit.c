@@ -1016,7 +1016,7 @@ _InitWMACSetting(
 
 	//pHalData->ReceiveConfig = AAP | APM | AM | AB | APP_ICV | ADF | AMF | APP_FCS | HTC_LOC_CTRL | APP_MIC | APP_PHYSTS;
 	pHalData->ReceiveConfig = RCR_AAP | RCR_APM | RCR_AM | RCR_AB |RCR_CBSSID_DATA| RCR_CBSSID_BCN| RCR_APP_ICV | RCR_AMF | RCR_HTC_LOC_CTRL | RCR_APP_MIC | RCR_APP_PHYSTS;
-#if (0 == RTL8192C_RX_PACKET_NO_INCLUDE_CRC)
+#if (1 == RTL8192C_RX_PACKET_INCLUDE_CRC)
 	pHalData->ReceiveConfig |= ACRC32;
 #endif
 
@@ -2218,12 +2218,7 @@ HAL_INIT_PROFILE_TAG(HAL_INIT_STAGES_MISC11);
 	// 2010/12/17 MH We need to set TX power according to EFUSE content at first.
 	PHY_SetTxPowerLevel8192C(Adapter, pHalData->CurrentChannel);
 
-#if 0
-	if (!IS_92C_SERIAL( pHalData->VersionID) && (pHalData->AntDivCfg!=0))
-	{ //for 88CU ,1T1R
-		_InitAntenna_Selection(Adapter);
-	}
-#endif
+	rtl8723a_InitAntenna_Selection(Adapter);
 
 	// HW SEQ CTRL
 	//set 0x0 to 0xFF by tynli. Default enable HW SEQ NUM.

@@ -20,6 +20,12 @@
 #ifndef __IOCTL_CFG80211_H__
 #define __IOCTL_CFG80211_H__ 
 
+#if defined(CONFIG_IOCTL_CFG80211) && !defined(CONFIG_CFG80211) && !defined(CONFIG_CFG80211_MODULE)
+	#error "Can't define CONFIG_IOCTL_CFG80211 because neither CONFIG_CFG80211 nor CONFIG_CFG80211_MODULE is defined in kernel"
+#endif
+#if defined(CONFIG_IOCTL_CFG80211) && LINUX_VERSION_CODE < KERNEL_VERSION(2,6,35)
+	#error "We haven't verify our cfg80211 solution below kernel version 2.6.35"
+#endif
 
 struct rtw_wdev_priv
 {	
@@ -37,9 +43,11 @@ struct rtw_wdev_priv
 
 	u8 provdisc_req_issued;
 
+	bool block;
+
 };
 
-#define wdev_to_priv(w) (struct rtw_wdev_priv *)(wdev_priv(w))
+#define wdev_to_priv(w) ((struct rtw_wdev_priv *)(wdev_priv(w)))
 
 #define wiphy_to_adapter(x) (_adapter *)(((struct rtw_wdev_priv*)wiphy_priv(x))->padapter)
 
@@ -62,9 +70,6 @@ void rtw_cfg80211_indicate_scan_done(struct rtw_wdev_priv *pwdev_priv, bool abor
 void rtw_cfg80211_indicate_sta_assoc(_adapter *padapter, u8 *pmgmt_frame, uint frame_len);
 void rtw_cfg80211_indicate_sta_disassoc(_adapter *padapter, unsigned char *da, unsigned short reason);
 #endif //CONFIG_AP_MODE
-
-
-int rtw_cfg80211_do_ioctl(struct net_device *dev, struct ifreq *rq, int cmd);
 
 void rtw_cfg80211_issue_p2p_provision_request(_adapter *padapter, const u8 *buf, size_t len);
 void rtw_cfg80211_rx_p2p_action_public(_adapter *padapter, u8 *pmgmt_frame, uint frame_len);

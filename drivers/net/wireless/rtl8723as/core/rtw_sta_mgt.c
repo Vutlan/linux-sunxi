@@ -391,7 +391,7 @@ u32	rtw_free_stainfo(_adapter *padapter , struct sta_info *psta)
 	struct	sta_xmit_priv	*pstaxmitpriv;
 	struct	xmit_priv	*pxmitpriv= &padapter->xmitpriv;
 	struct	sta_priv *pstapriv = &padapter->stapriv;
-	
+
 
 _func_enter_;	
 	
@@ -506,6 +506,7 @@ _func_enter_;
 	DBG_871X("%s\n",__FUNCTION__);
 	if(padapter->HalFunc.SetHalODMVarHandler)
 		padapter->HalFunc.SetHalODMVarHandler(padapter,HAL_ODM_STA_INFO,psta,_FALSE);
+			
 #ifdef CONFIG_AP_MODE
 
 	_enter_critical_bh(&pstapriv->asoc_list_lock, &irqL0);
@@ -536,7 +537,7 @@ _func_enter_;
 
 	//rtw_indicate_sta_disassoc_event(padapter, psta);
 
-	if (pstapriv->sta_aid[psta->aid - 1] == psta)
+	if ((psta->aid >0)&&(pstapriv->sta_aid[psta->aid - 1] == psta))
 	{
 		pstapriv->sta_aid[psta->aid - 1] = NULL;
 		psta->aid = 0;

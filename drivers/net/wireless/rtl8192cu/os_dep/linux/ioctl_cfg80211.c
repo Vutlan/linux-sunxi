@@ -811,6 +811,8 @@ static int rtw_cfg80211_ap_set_encryption(struct net_device *dev, struct ieee_pa
 					
 				psta->ieee8021x_blocked = _FALSE;
 					
+				psta->bpairwise_key_installed = _TRUE;
+					
 			}			
 			else//group key???
 			{ 
@@ -1322,10 +1324,12 @@ static int cfg80211_rtw_get_station(struct wiphy *wiphy,
 		return -ENOENT;
 	}
 
+#ifdef CONFIG_DEBUG_CFG80211
 	DBG_871X("%s, mac="MAC_FMT"\n", __func__, MAC_ARG(mac));
+#endif
 
 	//for infra./P2PClient mode
-	if(	check_fwstate(pmlmepriv, WIFI_STATION_STATE)
+	if(check_fwstate(pmlmepriv, WIFI_STATION_STATE)
 		&& check_fwstate(pmlmepriv, _FW_LINKED)
 	)
 	{
@@ -1345,9 +1349,9 @@ static int cfg80211_rtw_get_station(struct wiphy *wiphy,
 	}
 	
 	//for Ad-Hoc/AP mode
-	if (	(	check_fwstate(pmlmepriv, WIFI_ADHOC_STATE)
-			||check_fwstate(pmlmepriv, WIFI_ADHOC_MASTER_STATE)
-			||check_fwstate(pmlmepriv, WIFI_AP_STATE) )
+	if ((check_fwstate(pmlmepriv, WIFI_ADHOC_STATE)
+		||check_fwstate(pmlmepriv, WIFI_ADHOC_MASTER_STATE)
+		||check_fwstate(pmlmepriv, WIFI_AP_STATE) )
 		&& check_fwstate(pmlmepriv, _FW_LINKED)
 	)
 	{
@@ -1367,6 +1371,8 @@ static int cfg80211_rtw_get_station(struct wiphy *wiphy,
 	return 0;
 }
 
+extern int netdev_open(struct net_device *pnetdev);
+
 static int cfg80211_rtw_change_iface(struct wiphy *wiphy,
 				     struct net_device *ndev,
 				     enum nl80211_iftype type, u32 *flags,
@@ -1379,6 +1385,13 @@ static int cfg80211_rtw_change_iface(struct wiphy *wiphy,
 	struct wifidirect_info *pwdinfo= &(padapter->wdinfo);		
 	int ret = 0;
 	u8 change = _FALSE;
+
+
+	DBG_871X("%s call netdev_open\n", __FUNCTION__);
+	if(netdev_open(ndev) != 0) {
+		ret= -EPERM;
+		goto exit;
+	}
 
 	if(_FAIL == rtw_pwr_wakeup(padapter)) {
 		ret= -EPERM;
@@ -1487,7 +1500,8 @@ void rtw_cfg80211_surveydone_event_callback(_adapter *padapter)
 #ifdef CONFIG_DEBUG_CFG80211
 	printk("%s\n", __func__);
 #endif
-	
+
+#if 0
 	if(padapter->pwrctrlpriv.brfoffbyhw && padapter->bDriverStopped)
 	{
 		return;
@@ -1524,6 +1538,7 @@ void rtw_cfg80211_surveydone_event_callback(_adapter *padapter)
 		if(cnt > wait_for_surveydone )
 			break;
 	}
+#endif
 
 	_enter_critical_bh(&(pmlmepriv->scanned_queue.lock), &irqL);
 
@@ -1554,7 +1569,7 @@ void rtw_cfg80211_surveydone_event_callback(_adapter *padapter)
 	
 	_exit_critical_bh(&(pmlmepriv->scanned_queue.lock), &irqL);
 
-
+	#if 0
 	//	Disable P2P Listen State
 	if(!rtw_p2p_chk_state(pwdinfo, P2P_STATE_NONE))
 	{
@@ -1572,6 +1587,7 @@ void rtw_cfg80211_surveydone_event_callback(_adapter *padapter)
 			rtw_set_pwr_state_check_timer(pwrpriv);
 		}
 	}
+	#endif
 
 	//call this after other things have been done
 	rtw_indicate_scan_done(padapter, _FALSE);
@@ -1584,7 +1600,7 @@ static int rtw_cfg80211_set_probe_req_wpsp2pie(struct net_device *net, char *buf
 	uint wps_ielen = 0;
 	u8 *wps_ie;
 	u32	p2p_ielen = 0;	
-	u8	p2p_ie[ MAX_P2P_IE_LEN ] = { 0xFF };
+	u8 *p2p_ie;
 	_adapter *padapter = (_adapter *)rtw_netdev_priv(net);
 	struct mlme_priv *pmlmepriv = &(padapter->mlmepriv);	
 
@@ -1595,51 +1611,53 @@ static int rtw_cfg80211_set_probe_req_wpsp2pie(struct net_device *net, char *buf
 	if(len>0)
 	{
 		if((wps_ie = rtw_get_wps_ie(buf, len, NULL, &wps_ielen)))
-		{	
+		{
+			#ifdef CONFIG_DEBUG_CFG80211
+			printk("probe_req_wps_ielen=%d\n", wps_ielen);
+			#endif
+			
 			if(pmlmepriv->wps_probe_req_ie)
 			{
-				rtw_mfree(pmlmepriv->wps_probe_req_ie, pmlmepriv->wps_probe_req_ie_len);
+				u32 free_len = pmlmepriv->wps_probe_req_ie_len;
+				pmlmepriv->wps_probe_req_ie_len = 0;
+				rtw_mfree(pmlmepriv->wps_probe_req_ie, free_len);
 				pmlmepriv->wps_probe_req_ie = NULL;			
 			}	
 
 			pmlmepriv->wps_probe_req_ie = rtw_malloc(wps_ielen);
-			pmlmepriv->wps_probe_req_ie_len = wps_ielen;
 			if ( pmlmepriv->wps_probe_req_ie == NULL) {
 				printk("%s()-%d: rtw_malloc() ERROR!\n", __FUNCTION__, __LINE__);
 				return -EINVAL;
 			
 			}
-
-			#ifdef CONFIG_DEBUG_CFG80211
-			printk("probe_req_wps_ielen=%d\n", wps_ielen);
-			#endif
-			
 			_rtw_memcpy(pmlmepriv->wps_probe_req_ie, wps_ie, wps_ielen);
+			pmlmepriv->wps_probe_req_ie_len = wps_ielen;
 		}
 
 		buf += wps_ielen;
 		len -= wps_ielen;
-		if(rtw_get_p2p_ie(buf, len, p2p_ie, &p2p_ielen)) 
+		if((p2p_ie=rtw_get_p2p_ie(buf, len, NULL, &p2p_ielen))) 
 		{
+			#ifdef CONFIG_DEBUG_CFG80211
+			printk("probe_req_p2p_ielen=%d\n", p2p_ielen);
+			#endif
+			
 			if(pmlmepriv->p2p_probe_req_ie)
 			{
-				rtw_mfree(pmlmepriv->p2p_probe_req_ie, pmlmepriv->p2p_probe_req_ie_len);
+				u32 free_len = pmlmepriv->p2p_probe_req_ie_len;
+				pmlmepriv->p2p_probe_req_ie_len = 0;
+				rtw_mfree(pmlmepriv->p2p_probe_req_ie, free_len);
 				pmlmepriv->p2p_probe_req_ie = NULL;
 			}	
 
 			pmlmepriv->p2p_probe_req_ie = rtw_malloc(len);
-			pmlmepriv->p2p_probe_req_ie_len = p2p_ielen;
 			if ( pmlmepriv->p2p_probe_req_ie == NULL) {
 				printk("%s()-%d: rtw_malloc() ERROR!\n", __FUNCTION__, __LINE__);
 				return -EINVAL;
 			
 			}
-
-			#ifdef CONFIG_DEBUG_CFG80211
-			printk("probe_req_p2p_ielen=%d\n", p2p_ielen);
-			#endif
-			
 			_rtw_memcpy(pmlmepriv->p2p_probe_req_ie, p2p_ie, p2p_ielen);
+			pmlmepriv->p2p_probe_req_ie_len = p2p_ielen;
 		}		
 		
 	}
@@ -1659,7 +1677,7 @@ static void rtw_cfg80211_scan_abort(_adapter *padapter)
 	printk("%s\n", __func__);
 #endif
 
-	wait_for_surveydone = 5;
+	wait_for_surveydone = 10;
 			
 	pmlmeext->scan_abort = _TRUE;
 
@@ -1701,8 +1719,6 @@ static int cfg80211_rtw_scan(struct wiphy *wiphy, struct net_device *ndev,
 	struct cfg80211_ssid *ssids = request->ssids;
 	struct ieee80211_channel *pchannel = request->channels[0];
 	int social_channel = 0, j = 0;
-	u8 ie[ 255 ] = { 0x00 };
-	const u8 *pie = request->ie;
 	bool need_indicate_scan_done = _FALSE;
 
 #ifdef CONFIG_DEBUG_CFG80211
@@ -1734,29 +1750,22 @@ static int cfg80211_rtw_scan(struct wiphy *wiphy, struct net_device *ndev,
 
 	if( ssids->ssid != NULL )
 	{
-		if( _rtw_memcmp(ssids->ssid, "DIRECT-", 7) )
+		if( _rtw_memcmp(ssids->ssid, "DIRECT-", 7)
+			&& rtw_get_p2p_ie((u8 *)request->ie, request->ie_len, NULL, NULL)
+		)
 		{
 			//if(!rtw_p2p_chk_role(pwdinfo, P2P_ROLE_CLIENT) && !rtw_p2p_chk_role(pwdinfo, P2P_ROLE_GO))
 			if(rtw_p2p_chk_state(pwdinfo, P2P_STATE_NONE))
 			{
 				rtw_p2p_enable(padapter, P2P_ROLE_DEVICE);
+				wdev_to_priv(padapter->rtw_wdev)->p2p_enabled = _TRUE;
 			}
 			else
 			{
 				rtw_p2p_set_pre_state(pwdinfo, rtw_p2p_state(pwdinfo));
-#ifdef CONFIG_DEBUG_CFG80211
+				#ifdef CONFIG_DEBUG_CFG80211
 				printk("%s, role=%d, p2p_state=%d\n", __func__, rtw_p2p_role(pwdinfo), rtw_p2p_state(pwdinfo));
-#endif
-			}
-
-			if(rtw_get_p2p_ie((u8*)pie, request->ie_len, NULL, NULL))
-			{
-				if(pwdev_priv->p2p_enabled == _FALSE)
-				{					
-					pwdev_priv->p2p_enabled = _TRUE;	
-
-					printk("%s, p2p_enabled == _TRUE\n", __func__);
-				}	
+				#endif
 			}
 
 			rtw_p2p_set_state(pwdinfo, P2P_STATE_LISTEN);
@@ -1772,26 +1781,13 @@ static int cfg80211_rtw_scan(struct wiphy *wiphy, struct net_device *ndev,
 		}
 	}
 
-	if(request->ie_len <= ( 255 ) )
+	if(request->ie && request->ie_len>0)
 	{
-		for( j=0; j < request->ie_len; j++ )
-		{
-			ie[ j ] = *(pie+j);
-		}
-		
-		rtw_cfg80211_set_probe_req_wpsp2pie( ndev, ie, request->ie_len );
-	}
-	else
-	{
-		printk("scan request ie_len is more than 255\n");
+		rtw_cfg80211_set_probe_req_wpsp2pie( ndev, (u8 *)request->ie, request->ie_len );
 	}
 
-	// When Busy Traffic, driver do not site survey. So driver return success.
-	// wpa_supplicant will not issue SIOCSIWSCAN cmd again after scan timeout.
-	// modify by thomas 2011-02-22.
 	if (pmlmepriv->LinkDetectInfo.bBusyTraffic == _TRUE)
 	{
-		//indicate_wx_scan_complete_event(padapter);
 		printk("%s, bBusyTraffic == _TRUE\n", __func__);
 		need_indicate_scan_done = _TRUE;
 		goto check_need_indicate_scan_done;
@@ -1799,33 +1795,12 @@ static int cfg80211_rtw_scan(struct wiphy *wiphy, struct net_device *ndev,
 
 	if (check_fwstate(pmlmepriv, _FW_UNDER_SURVEY|_FW_UNDER_LINKING) == _TRUE)
 	{
-		//indicate_wx_scan_complete_event(padapter);
 		printk("%s, fwstate=0x%x\n", __func__, pmlmepriv->fw_state);
 		need_indicate_scan_done = _TRUE;
 		goto check_need_indicate_scan_done;
 	} 
 
-#ifdef CONFIG_DEBUG_CFG80211
-	//debug: parsing ie, ie_len
-	if(request->ie_len > 0) {
-		DBG_871X("%s ie_len:%u\n", __FUNCTION__, request->ie_len);
-		//dump_ie(request->ie, request->ie_len);
-	
-		//check wps ie if inclued
-		if( (wps_ie=rtw_get_wps_ie((u8*)request->ie, request->ie_len, NULL, &wps_ielen)) ) {
-			DBG_871X("wps_ielen=%u\n", wps_ielen);
-		}
-		//check if p2p ie inclueded
-		if( rtw_get_p2p_ie((u8*)request->ie, request->ie_len, NULL, &p2p_ielen) ) {
-			DBG_871X("p2p_ielen=%u\n", p2p_ielen);
-		}
-	}
-#endif //CONFIG_DEBUG_CFG80211
 
-//	Mareded by Albert 20101103
-//	For the DMP WiFi Display project, the driver won't to scan because
-//	the pmlmepriv->scan_interval is always equal to 3.
-//	So, the wpa_supplicant won't find out the WPS SoftAP.
 #ifdef CONFIG_P2P
 	if(!rtw_p2p_chk_state(pwdinfo, P2P_STATE_NONE) && !rtw_p2p_chk_state(pwdinfo, P2P_STATE_IDLE))
 	{
@@ -1841,8 +1816,8 @@ static int cfg80211_rtw_scan(struct wiphy *wiphy, struct net_device *ndev,
 	}
 #endif //CONFIG_P2P
 
-	_rtw_memset(ssid, 0, sizeof(NDIS_802_11_SSID)*RTW_SSID_SCAN_AMOUNT);
 
+	_rtw_memset(ssid, 0, sizeof(NDIS_802_11_SSID)*RTW_SSID_SCAN_AMOUNT);
 	//parsing request ssids, n_ssids
 	for (i = 0; i < request->n_ssids && i < RTW_SSID_SCAN_AMOUNT; i++) {
 		#ifdef CONFIG_DEBUG_CFG80211
@@ -1851,6 +1826,7 @@ static int cfg80211_rtw_scan(struct wiphy *wiphy, struct net_device *ndev,
 		_rtw_memcpy(ssid[i].Ssid, ssids[i].ssid, ssids[i].ssid_len);
 		ssid[i].SsidLength = ssids[i].ssid_len;	
 	}
+	
 
 #ifdef CONFIG_DEBUG_CFG80211
 	//parsing channels, n_channels
@@ -2228,7 +2204,7 @@ static int rtw_cfg80211_set_wpa_ie(_adapter *padapter, u8 *pie, size_t ielen)
 		{//set wps_ie	
 			u16 cnt = 0;	
 			u8 eid, wps_oui[4]={0x0,0x50,0xf2,0x04};
-			int wps_ielen=0;			
+			uint wps_ielen=0;			
 			u8 *pwps;
 
 			pwps = rtw_get_wps_ie(buf, ielen, NULL, &wps_ielen);
@@ -2271,30 +2247,31 @@ static int rtw_cfg80211_set_wpa_ie(_adapter *padapter, u8 *pie, size_t ielen)
 
 		{//check p2p_ie for assoc req; 
 			uint p2p_ielen=0;
-			u8 p2p_ie[MAX_P2P_IE_LEN];
+			u8 *p2p_ie;
 			struct mlme_priv *pmlmepriv = &(padapter->mlmepriv);	
 
-			if(rtw_get_p2p_ie(buf, ielen, p2p_ie, &p2p_ielen))
+			if((p2p_ie=rtw_get_p2p_ie(buf, ielen, NULL, &p2p_ielen)))
 			{
-				printk("got p2p_ie for connect()-assoc req, len=%d\n", p2p_ielen);
+				#ifdef CONFIG_DEBUG_CFG80211
+				printk("%s p2p_assoc_req_ielen=%d\n", __FUNCTION__, p2p_ielen);
+				#endif
 			
 				if(pmlmepriv->p2p_assoc_req_ie)
 				{
-					rtw_mfree(pmlmepriv->p2p_assoc_req_ie, pmlmepriv->p2p_assoc_req_ie_len);
+					u32 free_len = pmlmepriv->p2p_assoc_req_ie_len;
+					pmlmepriv->p2p_assoc_req_ie_len = 0;
+					rtw_mfree(pmlmepriv->p2p_assoc_req_ie, free_len);
 					pmlmepriv->p2p_assoc_req_ie = NULL;
 				}
 
 				pmlmepriv->p2p_assoc_req_ie = rtw_malloc(p2p_ielen);
-				pmlmepriv->p2p_assoc_req_ie_len = p2p_ielen;
 				if ( pmlmepriv->p2p_assoc_req_ie == NULL) {
 					printk("%s()-%d: rtw_malloc() ERROR!\n", __FUNCTION__, __LINE__);
 					goto exit;
 			
 				}
-			
-				printk("p2p_assoc_req_ielen=%d\n", p2p_ielen);
-			
 				_rtw_memcpy(pmlmepriv->p2p_assoc_req_ie, p2p_ie, p2p_ielen);
+				pmlmepriv->p2p_assoc_req_ie_len = p2p_ielen;
 				
 			}
 		}
@@ -2338,6 +2315,12 @@ static int cfg80211_rtw_connect(struct wiphy *wiphy, struct net_device *dev,
 	printk("privacy=%d, key=%p, key_len=%d, key_idx=%d\n", sme->privacy, sme->key, sme->key_len, sme->key_idx);
 
 
+	if(wdev_to_priv(padapter->rtw_wdev)->block == _TRUE)
+	{
+		ret = -EBUSY;
+		DBG_871X("%s wdev_priv.block is set\n", __FUNCTION__);
+		goto exit;
+	}
 
 	if(_FAIL == rtw_pwr_wakeup(padapter)) {
 		ret= -EPERM;
@@ -2483,11 +2466,13 @@ static int cfg80211_rtw_connect(struct wiphy *wiphy, struct net_device *dev,
 	}
 
 	//For WEP Shared auth
-	if(psecuritypriv->dot11AuthAlgrthm == dot11AuthAlgrthm_Shared)
+	if(psecuritypriv->dot11AuthAlgrthm == dot11AuthAlgrthm_Shared
+		|| psecuritypriv->dot11AuthAlgrthm == dot11AuthAlgrthm_Auto
+	)
 	{
 		u32 wep_key_idx, wep_key_len,wep_total_len;
 		NDIS_802_11_WEP	 *pwep = NULL;
-		DBG_871X("%s(): Shared WEP\n",__FUNCTION__);
+		DBG_871X("%s(): Shared/Auto WEP\n",__FUNCTION__);
 
 		wep_key_idx = sme->key_idx;
 		wep_key_len = sme->key_len;
@@ -3173,7 +3158,7 @@ static int	cfg80211_rtw_add_beacon(struct wiphy *wiphy, struct net_device *dev,
 	u8 *pbuf = NULL;
 	uint len, wps_ielen=0;	
 	uint p2p_ielen=0;
-	u8 p2p_ie[MAX_P2P_IE_LEN];
+	u8 *p2p_ie;
 	_adapter *padapter = wiphy_to_adapter(wiphy);
 	struct mlme_priv *pmlmepriv = &(padapter->mlmepriv);
 	//struct sta_priv *pstapriv = &padapter->stapriv;
@@ -3222,7 +3207,7 @@ static int	cfg80211_rtw_add_beacon(struct wiphy *wiphy, struct net_device *dev,
 	{
 #ifdef  CONFIG_P2P		
 		//check p2p if enable
-		if(rtw_get_p2p_ie(pbuf+_FIXED_IE_LENGTH_, len-_FIXED_IE_LENGTH_, p2p_ie, &p2p_ielen))
+		if((p2p_ie=rtw_get_p2p_ie(pbuf+_FIXED_IE_LENGTH_, len-_FIXED_IE_LENGTH_, NULL, &p2p_ielen)))
 		{
 			struct mlme_ext_priv *pmlmeext = &padapter->mlmeextpriv;
 			struct wifidirect_info *pwdinfo= &(padapter->wdinfo);		
@@ -3231,7 +3216,7 @@ static int	cfg80211_rtw_add_beacon(struct wiphy *wiphy, struct net_device *dev,
 			{
 				printk("Enable P2P function for the first time\n");
 				rtw_p2p_enable(padapter, P2P_ROLE_GO);
-				//pwdinfo->p2p_enable = _TRUE;
+				wdev_to_priv(padapter->rtw_wdev)->p2p_enabled = _TRUE;
 			}
 			else
 			{
@@ -3301,12 +3286,14 @@ static int	cfg80211_rtw_del_station(struct wiphy *wiphy, struct net_device *dev,
 			       u8 *mac)
 {
 	int ret=0;	
+	_irqL irqL;
+	_list	*phead, *plist;
 	struct sta_info *psta = NULL;
 	_adapter *padapter = (_adapter *)rtw_netdev_priv(dev);
 	struct mlme_priv *pmlmepriv = &(padapter->mlmepriv);
 	struct sta_priv *pstapriv = &padapter->stapriv;
 
-	printk("%s\n", __func__);
+	printk("+%s\n", __func__);
 
 	if(check_fwstate(pmlmepriv, (_FW_LINKED|WIFI_AP_STATE)) != _TRUE)		
 	{
@@ -3336,13 +3323,63 @@ static int	cfg80211_rtw_del_station(struct wiphy *wiphy, struct net_device *dev,
 		return -EINVAL;	
 	}
 
+
+	_enter_critical_bh(&pstapriv->asoc_list_lock, &irqL);
+	
+	phead = &pstapriv->asoc_list;
+	plist = get_next(phead);
+
+	//check asoc_queue
+	while ((rtw_end_of_queue_search(phead, plist)) == _FALSE)	
+	{
+		psta = LIST_CONTAINOR(plist, struct sta_info, asoc_list);
+		
+		plist = get_next(plist);	
+	
+		if(_rtw_memcmp(mac, psta->hwaddr, ETH_ALEN))		
+		{
+			if(psta->dot8021xalg == 1 && psta->bpairwise_key_installed == _FALSE)
+			{
+				DBG_8192C("%s, sta's dot8021xalg = 1 and key_installed = _FALSE\n", __func__);
+			}
+			else
+			{
+				DBG_8192C("free psta=%p, aid=%d\n", psta, psta->aid);
+
+				rtw_list_delete(&psta->asoc_list);
+
+				//_exit_critical_bh(&pstapriv->asoc_list_lock, &irqL);
+				ap_free_sta(padapter, psta);
+				//_enter_critical_bh(&pstapriv->asoc_list_lock, &irqL);
+
+				psta = NULL;
+
+				break;
+			}		
+					
+		}
+		
+	}
+
+	_exit_critical_bh(&pstapriv->asoc_list_lock, &irqL);
+
+	
+#if 0
 	psta = rtw_get_stainfo(pstapriv, mac);
 	if(psta)
 	{
 		//DBG_8192C("free psta=%p, aid=%d\n", psta, psta->aid);
+		
+		_enter_critical_bh(&pstapriv->asoc_list_lock, &irqL);
+		if(rtw_is_list_empty(&psta->asoc_list)==_FALSE)
+		{			
+			rtw_list_delete(&psta->asoc_list);
 		ap_free_sta(padapter, psta);
 
 		psta = NULL;
+
+		}
+		_exit_critical_bh(&pstapriv->asoc_list_lock, &irqL);
 		
 	}
 	else
@@ -3351,7 +3388,9 @@ static int	cfg80211_rtw_del_station(struct wiphy *wiphy, struct net_device *dev,
 		
 		//ret = -1;
 	}
+#endif	
 	
+	printk("-%s\n", __func__);
 	
 	return ret;	
 
@@ -3528,7 +3567,7 @@ void rtw_cfg80211_issue_p2p_provision_request(_adapter *padapter, const u8 *buf,
 	
 	pwdinfo->tx_prov_disc_info.wps_config_method_request = WPS_CM_PUSH_BUTTON;
 		
-	rtw_get_wps_ie_p2p( frame_body + _PUBLIC_ACTION_IE_OFFSET_, frame_body_len - _PUBLIC_ACTION_IE_OFFSET_, wpsie, &wpsielen);
+	rtw_get_wps_ie( frame_body + _PUBLIC_ACTION_IE_OFFSET_, frame_body_len - _PUBLIC_ACTION_IE_OFFSET_, wpsie, &wpsielen);
 	rtw_get_wps_attr_content( wpsie, wpsielen, WPS_ATTR_DEVICE_PWID, (u8*) &wps_devicepassword_id, &wps_devicepassword_id_len);
 	wps_devicepassword_id = be16_to_cpu( wps_devicepassword_id );
 
@@ -3951,16 +3990,24 @@ static s32 cfg80211_rtw_remain_on_channel(struct wiphy *wiphy, struct net_device
 
 	pcfg80211_wdinfo->restore_channel = pmlmeext->cur_channel;
 
+	if(check_fwstate(&padapter->mlmepriv, _FW_UNDER_SURVEY))
+		rtw_cfg80211_scan_abort(padapter);
+
 	if( remain_ch != pmlmeext->cur_channel )
 	{
-		pmlmeext->cur_channel = remain_ch;
-		set_channel_bwmode(padapter, pmlmeext->cur_channel, HAL_PRIME_CHNL_OFFSET_DONT_CARE, HT_CHANNEL_WIDTH_20);
+		if(rtw_is_channel_set_contains_channel(pmlmeext->channel_set, remain_ch)) {
+			pmlmeext->cur_channel = remain_ch;
+			set_channel_bwmode(padapter, pmlmeext->cur_channel, HAL_PRIME_CHNL_OFFSET_DONT_CARE, HT_CHANNEL_WIDTH_20);
+		} else {
+			DBG_871X("%s remain_ch:%u not in channel plan!!!!\n", __FUNCTION__, remain_ch);
+		}
 	}
 
 	//if(!rtw_p2p_chk_role(pwdinfo, P2P_ROLE_CLIENT) && !rtw_p2p_chk_role(pwdinfo, P2P_ROLE_GO))
 	if(rtw_p2p_chk_state(pwdinfo, P2P_STATE_NONE))
 	{
 		rtw_p2p_enable(padapter, P2P_ROLE_DEVICE);
+		wdev_to_priv(padapter->rtw_wdev)->p2p_enabled = _TRUE;
 	}
 	else
 	{
@@ -4027,7 +4074,9 @@ static void cfg80211_rtw_mgmt_frame_register(struct wiphy *wiphy, struct net_dev
 	u16 frame_type, bool reg)
 {
 
+#ifdef CONFIG_DEBUG_CFG80211
 	printk("%s: frame_type: %x, reg: %d\n", __func__, frame_type, reg);
+#endif
 
 	if (frame_type != (IEEE80211_FTYPE_MGMT | IEEE80211_STYPE_PROBE_REQ))
 		return;
@@ -4042,7 +4091,7 @@ static int rtw_cfg80211_set_beacon_wpsp2pie(struct net_device *net, char *buf, i
 	u8 *wps_ie;
 	u32	p2p_ielen = 0;
 	u8 wps_oui[8]={0x0,0x50,0xf2,0x04};	
-	u8	p2p_ie[ MAX_P2P_IE_LEN ] = { 0xFF };
+	u8 *p2p_ie;
 	_adapter *padapter = (_adapter *)rtw_netdev_priv(net);
 	struct mlme_priv *pmlmepriv = &(padapter->mlmepriv);
 	struct mlme_ext_priv *pmlmeext = &(padapter->mlmeextpriv);
@@ -4053,23 +4102,27 @@ static int rtw_cfg80211_set_beacon_wpsp2pie(struct net_device *net, char *buf, i
 	{
 		if((wps_ie = rtw_get_wps_ie(buf, len, NULL, &wps_ielen)))
 		{	
+			#ifdef CONFIG_DEBUG_CFG80211
+			printk("bcn_wps_ielen=%d\n", wps_ielen);
+			#endif
+		
 			if(pmlmepriv->wps_beacon_ie)
 			{
-				rtw_mfree(pmlmepriv->wps_beacon_ie, pmlmepriv->wps_beacon_ie_len);
+				u32 free_len = pmlmepriv->wps_beacon_ie_len;
+				pmlmepriv->wps_beacon_ie_len = 0;
+				rtw_mfree(pmlmepriv->wps_beacon_ie, free_len);
 				pmlmepriv->wps_beacon_ie = NULL;			
 			}	
 
 			pmlmepriv->wps_beacon_ie = rtw_malloc(wps_ielen);
-			pmlmepriv->wps_beacon_ie_len = wps_ielen;
 			if ( pmlmepriv->wps_beacon_ie == NULL) {
 				printk("%s()-%d: rtw_malloc() ERROR!\n", __FUNCTION__, __LINE__);
 				return -EINVAL;
 			
 			}
 			
-			printk("bcn_wps_ielen=%d\n", wps_ielen);
-			
 			_rtw_memcpy(pmlmepriv->wps_beacon_ie, wps_ie, wps_ielen);
+			pmlmepriv->wps_beacon_ie_len = wps_ielen;
 	
 			update_beacon(padapter, _VENDOR_SPECIFIC_IE_, wps_oui, _TRUE);
 
@@ -4077,26 +4130,31 @@ static int rtw_cfg80211_set_beacon_wpsp2pie(struct net_device *net, char *buf, i
 
 		buf += wps_ielen;
 		len -= wps_ielen;
-		if(rtw_get_p2p_ie(buf, len, p2p_ie, &p2p_ielen))
+		
+		if((p2p_ie=rtw_get_p2p_ie(buf, len, NULL, &p2p_ielen)))
 		{
+			#ifdef CONFIG_DEBUG_CFG80211
+			printk("bcn_p2p_ielen=%d\n", p2p_ielen);
+			#endif
+		
 			if(pmlmepriv->p2p_beacon_ie)
 			{
-				rtw_mfree(pmlmepriv->p2p_beacon_ie, pmlmepriv->p2p_beacon_ie_len);
+				u32 free_len = pmlmepriv->p2p_beacon_ie_len;
+				pmlmepriv->p2p_beacon_ie_len = 0;
+				rtw_mfree(pmlmepriv->p2p_beacon_ie, free_len);
 				pmlmepriv->p2p_beacon_ie = NULL;			
 			}	
 
 			pmlmepriv->p2p_beacon_ie = rtw_malloc(p2p_ielen);
-			pmlmepriv->p2p_beacon_ie_len = p2p_ielen;
 			if ( pmlmepriv->p2p_beacon_ie == NULL) {
 				printk("%s()-%d: rtw_malloc() ERROR!\n", __FUNCTION__, __LINE__);
 				return -EINVAL;
 			
 			}
 			
-			printk("bcn_p2p_ielen=%d\n", p2p_ielen);
-			
 			_rtw_memcpy(pmlmepriv->p2p_beacon_ie, p2p_ie, p2p_ielen);
-
+			pmlmepriv->p2p_beacon_ie_len = p2p_ielen;
+			
 		}
 		
 		pmlmeext->bstart_bss = _TRUE;
@@ -4113,7 +4171,7 @@ static int rtw_cfg80211_set_probe_resp_wpsp2pie(struct net_device *net, char *bu
 	uint wps_ielen = 0;
 	u8 *wps_ie;
 	u32	p2p_ielen = 0;	
-	u8	p2p_ie[ MAX_P2P_IE_LEN ] = { 0xFF };
+	u8 *p2p_ie;
 	_adapter *padapter = (_adapter *)rtw_netdev_priv(net);
 	struct mlme_priv *pmlmepriv = &(padapter->mlmepriv);	
 
@@ -4127,30 +4185,33 @@ static int rtw_cfg80211_set_probe_resp_wpsp2pie(struct net_device *net, char *bu
 		{	
 			uint	attr_contentlen = 0;
 			u16	uconfig_method, *puconfig_method = NULL;
+
+			#ifdef CONFIG_DEBUG_CFG80211			
+			printk("probe_resp_wps_ielen=%d\n", wps_ielen);
+			#endif
 		
 			if(pmlmepriv->wps_probe_resp_ie)
 			{
-				rtw_mfree(pmlmepriv->wps_probe_resp_ie, pmlmepriv->wps_probe_resp_ie_len);
+				u32 free_len = pmlmepriv->wps_probe_resp_ie_len;
+				pmlmepriv->wps_probe_resp_ie_len = 0;
+				rtw_mfree(pmlmepriv->wps_probe_resp_ie, free_len);
 				pmlmepriv->wps_probe_resp_ie = NULL;			
 			}	
 
 			pmlmepriv->wps_probe_resp_ie = rtw_malloc(wps_ielen);
-			pmlmepriv->wps_probe_resp_ie_len = wps_ielen;
 			if ( pmlmepriv->wps_probe_resp_ie == NULL) {
 				printk("%s()-%d: rtw_malloc() ERROR!\n", __FUNCTION__, __LINE__);
 				return -EINVAL;
 			
 			}
 			
-#ifdef CONFIG_DEBUG_CFG80211			
-			printk("probe_resp_wps_ielen=%d\n", wps_ielen);
-#endif
 			//add PUSH_BUTTON config_method by driver self in wpsie of probe_resp at GO Mode 
-			if ( (puconfig_method = (u16*)rtw_get_wps_attr_content_ex( wps_ie, wps_ielen, WPS_ATTR_CONF_METHOD , NULL, &attr_contentlen)) != NULL )
+			if ( (puconfig_method = (u16*)rtw_get_wps_attr_content( wps_ie, wps_ielen, WPS_ATTR_CONF_METHOD , NULL, &attr_contentlen)) != NULL )
 			{
-#ifdef CONFIG_DEBUG_CFG80211		
+				#ifdef CONFIG_DEBUG_CFG80211		
 				//printk("config_method in wpsie of probe_resp = 0x%x\n", be16_to_cpu(*puconfig_method));
-#endif				
+				#endif
+				
 				uconfig_method = WPS_CM_PUSH_BUTTON;
 				uconfig_method = cpu_to_be16( uconfig_method );
 
@@ -4158,19 +4219,22 @@ static int rtw_cfg80211_set_probe_resp_wpsp2pie(struct net_device *net, char *bu
 			}
 			
 			_rtw_memcpy(pmlmepriv->wps_probe_resp_ie, wps_ie, wps_ielen);
+			pmlmepriv->wps_probe_resp_ie_len = wps_ielen;
+			
 		}
 
 		buf += wps_ielen;
 		len -= wps_ielen;
-		if(rtw_get_p2p_ie(buf, len, p2p_ie, &p2p_ielen)) 
+		
+		if((p2p_ie=rtw_get_p2p_ie(buf, len, NULL, &p2p_ielen))) 
 		{
 			u8 is_GO = _FALSE;			
 			u32 attr_contentlen = 0;
 			u16 cap_attr=0;
 
-#ifdef CONFIG_DEBUG_CFG80211
+			#ifdef CONFIG_DEBUG_CFG80211
 			printk("probe_resp_p2p_ielen=%d\n", p2p_ielen);
-#endif			
+			#endif			
 
 			//Check P2P Capability ATTR
 			if( rtw_get_p2p_attr_content( p2p_ie, p2p_ielen, P2P_ATTR_CAPABILITY, (u8*)&cap_attr, (uint*) &attr_contentlen) )
@@ -4189,39 +4253,41 @@ static int rtw_cfg80211_set_probe_resp_wpsp2pie(struct net_device *net, char *bu
 
 			if(is_GO == _FALSE)
 			{
-			if(pmlmepriv->p2p_probe_resp_ie)
-			{
-				rtw_mfree(pmlmepriv->p2p_probe_resp_ie, pmlmepriv->p2p_probe_resp_ie_len);
-				pmlmepriv->p2p_probe_resp_ie = NULL;			
-			}	
+				if(pmlmepriv->p2p_probe_resp_ie)
+				{
+					u32 free_len = pmlmepriv->p2p_probe_resp_ie_len;
+					pmlmepriv->p2p_probe_resp_ie_len = 0;
+					rtw_mfree(pmlmepriv->p2p_probe_resp_ie, free_len);
+					pmlmepriv->p2p_probe_resp_ie = NULL;		
+				}	
 
-			pmlmepriv->p2p_probe_resp_ie = rtw_malloc(p2p_ielen);
-			pmlmepriv->p2p_probe_resp_ie_len = p2p_ielen;
-			if ( pmlmepriv->p2p_probe_resp_ie == NULL) {
-				printk("%s()-%d: rtw_malloc() ERROR!\n", __FUNCTION__, __LINE__);
-				return -EINVAL;
-			
-			}
-			
-			_rtw_memcpy(pmlmepriv->p2p_probe_resp_ie, p2p_ie, p2p_ielen);
-		}		
+				pmlmepriv->p2p_probe_resp_ie = rtw_malloc(p2p_ielen);
+				if ( pmlmepriv->p2p_probe_resp_ie == NULL) {
+					printk("%s()-%d: rtw_malloc() ERROR!\n", __FUNCTION__, __LINE__);
+					return -EINVAL;
+				
+				}
+				_rtw_memcpy(pmlmepriv->p2p_probe_resp_ie, p2p_ie, p2p_ielen);
+				pmlmepriv->p2p_probe_resp_ie_len = p2p_ielen;
+			}		
 			else
 			{
 				if(pmlmepriv->p2p_go_probe_resp_ie)
 				{
-					rtw_mfree(pmlmepriv->p2p_go_probe_resp_ie, pmlmepriv->p2p_go_probe_resp_ie_len);
+					u32 free_len = pmlmepriv->p2p_go_probe_resp_ie_len;
+					pmlmepriv->p2p_go_probe_resp_ie_len = 0;
+					rtw_mfree(pmlmepriv->p2p_go_probe_resp_ie, free_len);
 					pmlmepriv->p2p_go_probe_resp_ie = NULL;			
 				}	
 
 				pmlmepriv->p2p_go_probe_resp_ie = rtw_malloc(p2p_ielen);
-				pmlmepriv->p2p_go_probe_resp_ie_len = p2p_ielen;
 				if ( pmlmepriv->p2p_go_probe_resp_ie == NULL) {
 					printk("%s()-%d: rtw_malloc() ERROR!\n", __FUNCTION__, __LINE__);
 					return -EINVAL;
 			
 				}
-			
-				_rtw_memcpy(pmlmepriv->p2p_go_probe_resp_ie, p2p_ie, p2p_ielen);				
+				_rtw_memcpy(pmlmepriv->p2p_go_probe_resp_ie, p2p_ie, p2p_ielen);
+				pmlmepriv->p2p_go_probe_resp_ie_len = p2p_ielen;
 			}
 			
 		}		
@@ -4244,19 +4310,20 @@ static int rtw_cfg80211_set_assoc_resp_wpsp2pie(struct net_device *net, char *bu
 	{
 		if(pmlmepriv->wps_assoc_resp_ie)
 		{
-			rtw_mfree(pmlmepriv->wps_assoc_resp_ie, pmlmepriv->wps_assoc_resp_ie_len);
-			pmlmepriv->wps_assoc_resp_ie = NULL;			
+			u32 free_len = pmlmepriv->wps_assoc_resp_ie_len;
+			pmlmepriv->wps_assoc_resp_ie_len = 0;
+			rtw_mfree(pmlmepriv->wps_assoc_resp_ie, free_len);
+			pmlmepriv->wps_assoc_resp_ie = NULL;
 		}	
 
 		pmlmepriv->wps_assoc_resp_ie = rtw_malloc(len);
-		pmlmepriv->wps_assoc_resp_ie_len = len;
 		if ( pmlmepriv->wps_assoc_resp_ie == NULL) {
 			printk("%s()-%d: rtw_malloc() ERROR!\n", __FUNCTION__, __LINE__);
 			return -EINVAL;
 			
 		}
-			
 		_rtw_memcpy(pmlmepriv->wps_assoc_resp_ie, buf, len);
+		pmlmepriv->wps_assoc_resp_ie_len = len;
 	}
 
 	return ret;
@@ -4268,16 +4335,14 @@ int rtw_cfg80211_set_mgnt_wpsp2pie(struct net_device *net, char *buf, int len,
 {
 	int ret = 0;
 	uint wps_ielen = 0;
-	u8 *wps_ie;
 	u32	p2p_ielen = 0;
-	//u8	p2p_ie[ MAX_P2P_IE_LEN ] = { 0xFF };
 
 #ifdef CONFIG_DEBUG_CFG80211
 	printk("%s, ielen=%d\n", __func__, len);
 #endif
 
-	if(((wps_ie = rtw_get_wps_ie(buf, len, NULL, &wps_ielen)) && (wps_ielen>0))  ||
-		(rtw_get_p2p_ie(buf, len, NULL, &p2p_ielen) && (p2p_ielen>0)))
+	if((rtw_get_wps_ie(buf, len, NULL, &wps_ielen) && (wps_ielen>0))  ||
+		(rtw_get_p2p_ie(buf, len, NULL, &p2p_ielen) && (p2p_ielen>0)) )
 	{	
 		if (net != NULL) 
 		{
@@ -4299,40 +4364,6 @@ int rtw_cfg80211_set_mgnt_wpsp2pie(struct net_device *net, char *buf, int len,
 	return ret;
 	
 }
-
-#include <rtw_android.h>
-int rtw_cfg80211_do_ioctl(struct net_device *dev, struct ifreq *rq, int cmd)
-{
-	//_adapter *padapter = (_adapter *)rtw_netdev_priv(dev);
-	struct iwreq *wrq = (struct iwreq *)rq;
-	int ret=0;
-
-#ifdef CONFIG_DEBUG_CFG80211
-	printk("%s, cmd=0x%x\n", __func__, cmd);
-#endif
-
-	switch (cmd)
-	{
-		case (SIOCDEVPRIVATE+1):
-				ret = rtw_android_priv_cmd(dev, rq, cmd);
-				break;
-		//case RTL_IOCTL_WPA_SUPPLICANT:	
-				//ret = wpa_supplicant_ioctl(dev, &wrq->u.data);
-		//		break;
-#ifdef CONFIG_AP_MODE
-				case RTL_IOCTL_HOSTAPD:
-				//ret = rtw_hostapd_ioctl(dev, &wrq->u.data);			
-				break;
-#endif
-	  	  default:
-				ret = -EOPNOTSUPP;
-				break;
-	}
-	
-	return ret;
-	
-}
-
 
 static struct cfg80211_ops rtw_cfg80211_ops = {
 	.change_virtual_intf = cfg80211_rtw_change_iface,
@@ -4531,7 +4562,7 @@ int rtw_wdev_alloc(_adapter *padapter, struct device *dev)
 	pwdev_priv->provdisc_req_issued = _FALSE;
 		
 	wdev->netdev = pnetdev;
-	wdev->iftype = NL80211_IFTYPE_STATION;
+	wdev->iftype = NL80211_IFTYPE_MONITOR;
 
 	rtw_cfg80211_preinit_wiphy(padapter, wdev->wiphy);
 

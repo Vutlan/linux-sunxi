@@ -3456,6 +3456,20 @@ void rtl8723a_set_hal_ops(struct hal_ops *pHalFunc)
 	pHalFunc->SetHalODMVarHandler = &rtl8723a_SetHalODMVar;
 }
 
+void rtl8723a_InitAntenna_Selection(PADAPTER padapter)
+{
+	PHAL_DATA_TYPE pHalData;
+	u8 val;
+
+
+	pHalData = GET_HAL_DATA(padapter);
+
+	val = rtw_read8(padapter, REG_LEDCFG2);
+	// Let 8051 take control antenna settting
+	val |= BIT(7); // DPDT_SEL_EN, 0x4C[23]
+	rtw_write8(padapter, REG_LEDCFG2, val);
+}
+
 u8 GetEEPROMSize8723A(PADAPTER padapter)
 {
 	u8 size = 0;
@@ -5008,6 +5022,30 @@ static void hw_var_set_correct_tsf(PADAPTER padapter, u8 variable, u8 *val)
 	rtw_write32(padapter, reg_tsftr, tsf);
 	rtw_write32(padapter, reg_tsftr+4, tsf>>32);
 
+#ifdef CONFIG_CONCURRENT_MODE
+
+	// Update buddy port's TSF if it is SoftAP for beacon TX issue!
+	if ( (pmlmeinfo->state&0x03) == WIFI_FW_STATION_STATE
+		&& check_fwstate(&padapter->pbuddy_adapter->mlmepriv, WIFI_AP_STATE)
+	) { 
+		//disable related TSF function
+		SetBcnCtrlReg(padapter->pbuddy_adapter, 0, EN_BCN_FUNCTION);
+			if (padapter->iface_type == IFACE_PORT1)
+		{
+			reg_tsftr = REG_TSFTR;
+		}
+		else
+		{
+			reg_tsftr = REG_TSFTR1;
+		}
+		
+		rtw_write32(padapter, reg_tsftr, tsf);
+		rtw_write32(padapter, reg_tsftr+4, tsf>>32);
+
+		//enable related TSF function
+		SetBcnCtrlReg(padapter->pbuddy_adapter,  EN_BCN_FUNCTION,0);
+	}		
+#endif
 	//enable related TSF function
 	SetBcnCtrlReg(padapter, EN_BCN_FUNCTION, 0);
 
@@ -5113,12 +5151,14 @@ static void hw_var_set_mlme_sitesurvey(PADAPTER padapter, u8 variable, u8 *val)
 			(check_fwstate(pbuddy_mlmepriv, _FW_LINKED) == _TRUE))
 		{
 			ResumeTxBeacon(padapter);
-
+#if 0
 			// reset TSF 1/2 after ResumeTxBeacon
 			if (pbuddy_adapter->iface_type == IFACE_PORT1)
 				rtw_write8(padapter, REG_DUAL_TSF_RST, BIT(1));
 			else
 				rtw_write8(padapter, REG_DUAL_TSF_RST, BIT(0));
+#endif			
+			
 		}
 	}
 }
@@ -5233,7 +5273,7 @@ static void process_c2h_event(PADAPTER padapter,u8	*c2hBuf){
 	C2hEvent.CmdID = c2hBuf[0] & 0xF;
 	C2hEvent.CmdLen = (c2hBuf[0] & 0xF0) >> 4;
 	C2hEvent.CmdSeq =c2hBuf[1];
-	printk("%s CmdSeq=%d\n",__FUNCTION__,C2hEvent.CmdSeq);
+//	printk("%s CmdSeq=%d\n",__FUNCTION__,C2hEvent.CmdSeq);
 #if 0
 	//
 	// Because the EDCA queue field here is different from the definition in the tx desc,

@@ -55,7 +55,11 @@ enum{
 #endif //PLATFORM_LINUX
 
 #ifdef CONFIG_RTL8192C
+void rtl8192cu_set_hw_type(_adapter *padapter);
+#define hal_set_hw_type rtl8192cu_set_hw_type
+
 void rtl8192cu_set_intf_ops(struct _io_ops *pops);
+#define usb_set_intf_ops	rtl8192cu_set_intf_ops
 
 void rtl8192cu_recv_tasklet(void *priv);
 
@@ -63,7 +67,11 @@ void rtl8192cu_xmit_tasklet(void *priv);
 #endif
 
 #ifdef CONFIG_RTL8723A
-void rtl8192cu_set_intf_ops(struct _io_ops *pops);
+void rtl8723au_set_hw_type(_adapter *padapter);
+#define hal_set_hw_type rtl8723au_set_hw_type
+
+void rtl8723au_set_intf_ops(struct _io_ops *pops);
+#define usb_set_intf_ops rtl8723au_set_intf_ops
 
 void rtl8192cu_recv_tasklet(void *priv);
 
@@ -71,8 +79,10 @@ void rtl8192cu_xmit_tasklet(void *priv);
 #endif
 
 #ifdef CONFIG_RTL8192D
+void rtl8192du_set_hw_type(_adapter *padapter);
+#define hal_set_hw_type rtl8192du_set_hw_type
 void rtl8192du_set_intf_ops(struct _io_ops *pops);
-
+#define usb_set_intf_ops  rtl8192du_set_intf_ops
 #ifndef PLATFORM_FREEBSD
 void rtl8192du_recv_tasklet(void *priv);
 #else	// PLATFORM_FREEBSD
@@ -83,6 +93,13 @@ void rtw_rx_indicate_tasklet(void *priv, int npending);
 #endif	// PLATFORM_FREEBSD
 
 void rtl8192du_xmit_tasklet(void *priv);
+#endif
+
+#ifdef CONFIG_RTL8188E
+void rtl8188eu_set_hw_type(_adapter *padapter);
+#define hal_set_hw_type rtl8188eu_set_hw_type
+void rtl8188eu_set_intf_ops(struct _io_ops *pops);
+#define usb_set_intf_ops rtl8188eu_set_intf_ops
 #endif
 
 /*

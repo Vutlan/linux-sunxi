@@ -68,6 +68,8 @@ _func_enter_;
 	
 	psta->capability = 0;
 
+	psta->bpairwise_key_installed = _FALSE;
+
 
 #ifdef CONFIG_NATIVEAP_MLME
 	psta->nonerp_set = 0;
@@ -502,9 +504,11 @@ _func_enter_;
 
 #ifdef CONFIG_AP_MODE
 
+/*
 	_enter_critical_bh(&pstapriv->asoc_list_lock, &irqL0);
 	rtw_list_delete(&psta->asoc_list);	
 	_exit_critical_bh(&pstapriv->asoc_list_lock, &irqL0);
+*/
 
 	_enter_critical_bh(&pstapriv->auth_list_lock, &irqL0);
 	rtw_list_delete(&psta->auth_list);

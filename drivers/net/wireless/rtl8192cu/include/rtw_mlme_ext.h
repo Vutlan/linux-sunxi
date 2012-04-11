@@ -351,7 +351,6 @@ struct mlme_ext_priv
 
 	u8 scan_abort;
 
-	u32	linked_to;//linked timeout
 	u32	retry; //retry for issue probereq
 	
 	u64 TSFValue;

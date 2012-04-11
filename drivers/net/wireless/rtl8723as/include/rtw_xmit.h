@@ -142,45 +142,7 @@ do{\
 #define TX_DESC_NEXT_DESC_OFFSET	40
 #endif
 
-//
-//defined for TX DESC Operation
-//
 
-#define MAX_TID (15)
-
-//OFFSET 0
-#define OFFSET_SZ	0
-#define OFFSET_SHT	16
-#define BMC		BIT(24)
-#define LSG		BIT(26)
-#define FSG		BIT(27)
-#define OWN 		BIT(31)
-
-//OFFSET 4
-#define PKT_OFFSET_SZ	0
-#define BK		BIT(6)
-#define QSEL_SHT	8
-#define Rate_ID_SHT	16
-#define NAVUSEHDR	BIT(20)
-#define PKT_OFFSET_SHT	26
-#define HWPC		BIT(31)
-
-//OFFSET 8
-#define AGG_EN		BIT(29)
-
-//OFFSET 12
-#define SEQ_SHT		16
-
-//OFFSET 16
-#define QoS		BIT(6)
-#define HW_SEQ_EN	BIT(7)
-#define USERATE		BIT(8)
-#define DISDATAFB	BIT(10)
-#define DATA_SHORT	BIT(24)
-#define DATA_BW		BIT(25)
-
-//OFFSET 20
-#define SGI		BIT(6)
 
 struct tx_desc{
 
@@ -480,7 +442,7 @@ struct xmit_frame
 #ifdef CONFIG_USB_TX_AGGREGATION
 	u8	agg_num;
 #endif
-	u8	pkt_offset;
+	s8	pkt_offset;
 #ifdef CONFIG_RTL8192D
 	u8	EMPktNum;
 	u16	EMPktLen[5];//The max value by HW

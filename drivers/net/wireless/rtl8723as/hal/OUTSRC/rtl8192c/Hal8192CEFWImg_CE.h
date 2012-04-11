@@ -22,11 +22,11 @@
 
 /*Created on  2011/ 6/15,  5:45*/
 
-#define TSMCImgArrayLength 14964 //v75 2011-06-15
+#define TSMCImgArrayLength 15428 //v83 TSMC P2PPS 2012-03-22
 extern u8 Rtl8192CEFwTSMCImgArray[TSMCImgArrayLength];
-#define UMCACutImgArrayLength 14964 //v75 2011-06-15
+#define UMCACutImgArrayLength 16404 //v79 UMC A Cut P2PPS 2011-10-06
 extern u8 Rtl8192CEFwUMCACutImgArray[UMCACutImgArrayLength];
-#define UMCBCutImgArrayLength 14946 //v75 2011-06-15
+#define UMCBCutImgArrayLength 15406 //v83 UMC B Cut P2PPS 2012-03-22
 extern u8 Rtl8192CEFwUMCBCutImgArray[UMCBCutImgArrayLength];
 
 

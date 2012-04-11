@@ -407,12 +407,7 @@ void	PHY_SwChnlPhy8192D(	IN	PADAPTER		pAdapter,
 
 extern void ChkFwCmdIoDone(	IN	PADAPTER	Adapter);
 
-#ifdef USE_WORKITEM	
-//extern 	void SetIOWorkItemCallback( IN PVOID            pContext );
-#else
-//extern	void SetIOTimerCallback( IN PRT_TIMER		pTimer);
-#endif	
-				
+	
 //
 // BB/MAC/RF other monitor API
 //

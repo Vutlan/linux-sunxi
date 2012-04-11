@@ -381,52 +381,12 @@ int rtw_init_io_priv(_adapter *padapter)
 	set_intf_ops = &sdio_set_intf_ops;
 #endif //END OF CONFIG_SDIO_HCI
 
-
 #ifdef CONFIG_USB_HCI
-
-	if(padapter->chip_type == RTL8188C_8192C)
-	{
-#ifdef CONFIG_RTL8192C
-		set_intf_ops = &rtl8192cu_set_intf_ops;
-#endif
-	}
-	else if(padapter->chip_type == RTL8192D)
-	{
-#ifdef CONFIG_RTL8192D
-		set_intf_ops = &rtl8192du_set_intf_ops;
-#endif
-	}
-	else if(padapter->chip_type == RTL8723A)
-	{
-#ifdef CONFIG_RTL8723A
-		set_intf_ops = &rtl8192cu_set_intf_ops;
-#endif
-	}
-
-	else
-	{
-		set_intf_ops = NULL;
-	}
+	set_intf_ops = &usb_set_intf_ops;
 #endif //END OF CONFIG_USB_HCI
 
 #ifdef CONFIG_PCI_HCI
-
-	if(padapter->chip_type == RTL8188C_8192C)
-	{
-#ifdef CONFIG_RTL8192C
-		set_intf_ops = &rtl8192ce_set_intf_ops;
-#endif
-	}
-	else if(padapter->chip_type == RTL8192D)
-	{
-#ifdef CONFIG_RTL8192D
-		set_intf_ops = &rtl8192de_set_intf_ops;
-#endif
-	}
-	else
-	{
-		set_intf_ops = NULL;
-	}
+	set_intf_ops = &pci_set_intf_ops;
 #endif //END OF CONFIG_PCI_HCI
 
 

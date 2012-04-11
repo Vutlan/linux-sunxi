@@ -4569,7 +4569,8 @@ int rtw_wdev_alloc(_adapter *padapter, struct device *dev)
 	pwdev_priv->provdisc_req_issued = _FALSE;
 		
 	wdev->netdev = pnetdev;
-	wdev->iftype = NL80211_IFTYPE_STATION;
+	//wdev->iftype = NL80211_IFTYPE_STATION;
+	wdev->iftype = NL80211_IFTYPE_MONITOR; // for rtw_setopmode_cmd() in cfg80211_rtw_change_iface()
 
 	rtw_cfg80211_preinit_wiphy(padapter, wdev->wiphy);
 

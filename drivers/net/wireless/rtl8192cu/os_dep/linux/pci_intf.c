@@ -1776,6 +1776,7 @@ _func_exit_;
 #if defined(CONFIG_HAS_EARLYSUSPEND ) || defined(CONFIG_ANDROID_POWER)
 	rtw_unregister_early_suspend(&padapter->pwrctrlpriv);
 #endif
+
 	LeaveAllPowerSaveMode(padapter);
 
 #ifdef RTK_DMP_PLATFORM    

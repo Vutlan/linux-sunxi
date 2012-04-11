@@ -62,19 +62,20 @@ static u4Byte edca_setting_DL_GMode[HT_IOT_PEER_MAX] =
 //avoid to warn in FreeBSD ==> To DO modify
 u4Byte EDCAParam[HT_IOT_PEER_MAX][3] =
 {          // UL			DL
-	{0x5ea42b, 0x5ea42b, 0x5ea42b}, //unknown AP
-	{0xa44f, 0x5ea44f, 0x5e431c}, //realtek AP
-	{0x5ea42b, 0x5ea42b, 0x5ea42b}, //unknown AP => realtek_92SE	
-	{0x5ea32b, 0x5ea42b, 0x5e4322}, //broadcom AP
-	{0x5ea422, 0x00a44f, 0x00a44f}, //ralink AP
-	{0x5ea322, 0x00a630, 0x00a44f}, //atheros AP
-	{0x5ea42b, 0x5ea42b, 0x5ea42b},//cisco AP
-	//{0x3ea430, 0x00a630, 0x3ea44f}, //cisco AP
-	{0x5ea44f, 0x00a44f, 0x5ea42b}, //marvell AP
-	//{0x5ea44f, 0x5ea44f, 0x5ea44f}, //realtek AP
-	{0x5ea42b, 0x5ea42b, 0x5ea42b}, //unknown AP=> 92U AP
-	{0x5ea42b, 0xa630, 0x5e431c}, //airgocap AP
-//	{0x5e4322, 0x00a44f, 0x5ea44f}, //unknown AP
+	{0x5ea42b, 0x5ea42b, 0x5ea42b}, //0:unknown AP
+	{0xa44f, 0x5ea44f, 0x5e431c}, // 1:realtek AP
+	{0x5ea42b, 0x5ea42b, 0x5ea42b}, // 2:unknown AP => realtek_92SE	
+	{0x5ea32b, 0x5ea42b, 0x5e4322}, // 3:broadcom AP
+	{0x5ea422, 0x00a44f, 0x00a44f}, // 4:ralink AP
+	{0x5ea322, 0x00a630, 0x00a44f}, // 5:atheros AP
+	//{0x5ea42b, 0x5ea42b, 0x5ea42b},// 6:cisco AP
+	{0x5e4322, 0x5e4322, 0x5e4322},// 6:cisco AP
+	//{0x3ea430, 0x00a630, 0x3ea44f}, // 7:cisco AP
+	{0x5ea44f, 0x00a44f, 0x5ea42b}, // 8:marvell AP
+	//{0x5ea44f, 0x5ea44f, 0x5ea44f}, // 9realtek AP
+	{0x5ea42b, 0x5ea42b, 0x5ea42b}, // 10:unknown AP=> 92U AP
+	{0x5ea42b, 0xa630, 0x5e431c}, // 11:airgocap AP
+//	{0x5e4322, 0x00a44f, 0x5ea44f}, // 12:unknown AP
 };
 //============================================================
 // EDCA Paramter for AP/ADSL   by Mingzhi 2011-11-22

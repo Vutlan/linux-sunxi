@@ -601,7 +601,7 @@ typedef struct hal_data_8723a
 	struct dm_priv	dmpriv;
 	DM_ODM_T 		odmpriv;
 	//_lock			odm_stainfo_lock;
-#ifdef SILENT_RESET_FOR_SPECIFIC_PLATFOM
+#ifdef DBG_CONFIG_ERROR_DETECT
 	struct sreset_priv srestpriv;
 #endif
 
@@ -956,6 +956,8 @@ typedef struct phystatus_8723a
 s32 rtl8723a_FirmwareDownload(PADAPTER padapter);
 void rtl8723a_FirmwareSelfReset(PADAPTER padapter);
 void rtl8723a_InitializeFirmwareVars(PADAPTER padapter);
+
+void rtl8723a_InitAntenna_Selection(PADAPTER padapter);
 
 s32 InitLLTTable(PADAPTER padapter, u32 boundary);
 

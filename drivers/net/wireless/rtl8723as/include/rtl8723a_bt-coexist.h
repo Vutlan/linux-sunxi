@@ -1285,8 +1285,9 @@ typedef struct _BTDM_8723A_2ANT
 	u8		traTdmaNav;
 	// PS TDMA
 	u8		bPsTdmaOn;
-	u8		psTdmaByte[4];
-
+	u8		psTdmaByte[5];
+	u8		bIgnoreWlanAct;
+	
 	u8		bPtaOn;
 	u32		val0x6c0;
 	u32		val0x6c8;
@@ -1374,7 +1375,7 @@ typedef struct _BT_COEXIST_8723A
 
 void BTDM_SetFwChnlInfo(PADAPTER padapter, RT_MEDIA_STATUS mstatus);
 u8 BTDM_IsWifiConnectionExist(PADAPTER padapter);
-void BTDM_SetFw3a(PADAPTER padapter, u8 byte1, u8 byte2, u8 byte3, u8 byte4);
+void BTDM_SetFw3a(PADAPTER padapter, u8 byte1, u8 byte2, u8 byte3, u8 byte4, u8 byte5);
 void BTDM_QueryBtInformation(PADAPTER padapter);
 void BTDM_SetSwRfRxLpfCorner(PADAPTER padapter, u8 type);
 void BTDM_SetSwPenaltyTxRateAdaptive(PADAPTER padapter, u8 raType);

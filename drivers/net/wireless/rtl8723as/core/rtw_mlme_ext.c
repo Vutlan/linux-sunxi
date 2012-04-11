@@ -117,33 +117,28 @@ unsigned char	MCS_rate_1R[16] = {0xff, 0x00, 0x0, 0x0, 0x01, 0x0, 0x0, 0x0, 0x0,
 ChannelPlan definitions
 *********************************************************/
 static RT_CHANNEL_PLAN	DefaultChannelPlan[RT_CHANNEL_DOMAIN_MAX] = {
-							{{1,2,3,4,5,6,7,8,9,10,11,36,40,44,48,52,56,60,64,100,104,108,112,116,132,136,140,149,153,157,161,165},32},	// 0x00, RT_CHANNEL_DOMAIN_FCC
-							{{1,2,3,4,5,6,7,8,9,10,11,36,40,44,48,52,56,60,64,100,104,108,112,116,136,140,149,153,157,161,165},31},					// 0x01, RT_CHANNEL_DOMAIN_IC
-							{{1,2,3,4,5,6,7,8,9,10,11,12,13,36,40,44,48,52,56,60,64,100,104,108,112,116,120,124,128,132,136,140},32},				// 0x02, RT_CHANNEL_DOMAIN_ETSI
-							{{1,2,3,4,5,6,7,8,9,10,11,12,13},13},												// 0x03, RT_CHANNEL_DOMAIN_SPAIN
-							{{1,2,3,4,5,6,7,8,9,10,11,12,13},13},												// 0x04, RT_CHANNEL_DOMAIN_FRANCE
-							{{1,2,3,4,5,6,7,8,9,10,11,12,13,14,36,40,44,48,52,56,60,64},22},						// 0x05, RT_CHANNEL_DOMAIN_MKK
-							{{1,2,3,4,5,6,7,8,9,10,11,12,13,14,36,40,44,48,52,56,60,64},22},						// 0x06, RT_CHANNEL_DOMAIN_MKK1
-							{{1,2,3,4,5,6,7,8,9,10,11,12,13,36,40,44,48,52,56,60,64},21},							// 0x07, RT_CHANNEL_DOMAIN_ISRAEL
-							{{1,2,3,4,5,6,7,8,9,10,11,12,13,14,36,40,44,48,52,56,60,64},22},						// 0x08, RT_CHANNEL_DOMAIN_TELEC
-#if 0 /* Not using EEPROM_CHANNEL_PLAN directly */
-							{{1,2,3,4,5,6,7,8,9,10,11,12,13,36,40,44,48,52,56,60,64},21},							// 0x09, RT_CHANNEL_DOMAIN_MIC
-							{{1,2,3,4,5,6,7,8,9,10,11,12,13,14},14},									// 0x0A, RT_CHANNEL_DOMAIN_GLOBAL_DOAMIN
-							{{1,2,3,4,5,6,7,8,9,10,11,12,13},13},										// 0x0B, RT_CHANNEL_DOMAIN_WORLD_WIDE_13
-							{{1,2,3,4,5,6,7,8,9,10,11,12,13,36,40,44,48,52,56,60,64},21},							// 0x0C, RT_CHANNEL_DOMAIN_TELEC_NETGEAR
-							{{1,2,3,4,5,6,7,8,9,10,11,36,40,44,48,52,56,60,64,149,153,157,161,165},24},					// 0x0D, RT_CHANNEL_DOMAIN_NCC
-#endif /* Not using EEPROM_CHANNEL_PLAN directly */
-							{{1,2,3,4,5,6,7,8,9,10,11,12,13,14},14},									// 0x09, RT_CHANNEL_DOMAIN_GLOBAL_DOAMIN
-							{{1,2,3,4,5,6,7,8,9,10,11,12,13},13},										// 0x0A, RT_CHANNEL_DOMAIN_WORLD_WIDE_13
-							{{1,2,3,4,5,6,7,8,9,10,11,56,60,64,100,104,108,112,116,136,140,149,153,157,161,165},26},			// 0x0B, RT_CHANNEL_DOMAIN_NCC
-							{{1,2,3,4,5,6,7,8,9,10,11,149,153,157,161,165},16},								// 0x0C, RT_CHANNEL_DOMAIN_CHINA
-							{{1,2,3,4,5,6,7,8,9,10,11,36,40,44,48,52,56,60,64,149,153,157,161,165},24},					// 0x0D, RT_CHANNEL_DOMAIN__SINGAPORE_INDIA_MEXICO
-							{{1,2,3,4,5,6,7,8,9,10,11,36,40,44,48,52,56,60,64,100,104,108,112,116,120,124,149,153,157,161,165},31},		// 0x0E, RT_CHANNEL_DOMAIN_KOREA
-							{{1,2,3,4,5,6,7,8,9,10,11,36,40,44,48,52,56,60,64},19},								// 0x0F, RT_CHANNEL_DOMAIN_TURKEY
-							{{1,2,3,4,5,6,7,8,9,10,11,12,13,36,40,44,48,52,56,60,64,100,104,108,112,116,120,124,128,132,136,140},32},	// 0x10, RT_CHANNEL_DOMAIN_JAPAN
-							{{1,2,3,4,5,6,7,8,9,10,11,36,40,44,48,149,153,157,161,165},20},							// 0x11, RT_CHANNEL_DOMAIN_FCC_NO_DFS
-							{{1,2,3,4,5,6,7,8,9,10,11,12,13,36,40,44,48,52,56,60,64,100,104,108,112,116,120,124,128,132,136,140,149,153,157,161,165},37},	// 0x12, RT_CHANNEL_DOMAIN_WORLD_WIDE37
-							};
+	{{1,2,3,4,5,6,7,8,9,10,11,36,40,44,48,52,56,60,64,100,104,108,112,116,132,136,140,149,153,157,161,165},32},					// 0x00, RT_CHANNEL_DOMAIN_FCC
+	{{1,2,3,4,5,6,7,8,9,10,11,36,40,44,48,52,56,60,64,100,104,108,112,116,136,140,149,153,157,161,165},31},						// 0x01, RT_CHANNEL_DOMAIN_IC
+	{{1,2,3,4,5,6,7,8,9,10,11,12,13,36,40,44,48,52,56,60,64,100,104,108,112,116,120,124,128,132,136,140},32},						// 0x02, RT_CHANNEL_DOMAIN_ETSI
+	{{1,2,3,4,5,6,7,8,9,10,11,12,13},13},																					// 0x03, RT_CHANNEL_DOMAIN_SPAIN
+	{{1,2,3,4,5,6,7,8,9,10,11,12,13},13},																					// 0x04, RT_CHANNEL_DOMAIN_FRANCE
+	{{1,2,3,4,5,6,7,8,9,10,11,12,13,14,36,40,44,48,52,56,60,64},22},															// 0x05, RT_CHANNEL_DOMAIN_MKK
+	{{1,2,3,4,5,6,7,8,9,10,11,12,13,14,36,40,44,48,52,56,60,64},22},															// 0x06, RT_CHANNEL_DOMAIN_MKK1
+	{{1,2,3,4,5,6,7,8,9,10,11,12,13,36,40,44,48,52,56,60,64},21},																// 0x07, RT_CHANNEL_DOMAIN_ISRAEL
+	{{1,2,3,4,5,6,7,8,9,10,11,12,13,14,36,40,44,48,52,56,60,64},22},															// 0x08, RT_CHANNEL_DOMAIN_TELEC
+	{{1,2,3,4,5,6,7,8,9,10,11,12,13,14},14},																				// 0x09, RT_CHANNEL_DOMAIN_GLOBAL_DOAMIN
+	{{1,2,3,4,5,6,7,8,9,10,11,12,13},13},																					// 0x0A, RT_CHANNEL_DOMAIN_WORLD_WIDE_13
+	{{1,2,3,4,5,6,7,8,9,10,11,56,60,64,100,104,108,112,116,136,140,149,153,157,161,165},26},									// 0x0B, RT_CHANNEL_DOMAIN_TAIWAN
+	{{1,2,3,4,5,6,7,8,9,10,11,149,153,157,161,165},16},																		// 0x0C, RT_CHANNEL_DOMAIN_CHINA
+	{{1,2,3,4,5,6,7,8,9,10,11,36,40,44,48,52,56,60,64,149,153,157,161,165},24},												// 0x0D, RT_CHANNEL_DOMAIN_SINGAPORE_INDIA_MEXICO
+	{{1,2,3,4,5,6,7,8,9,10,11,36,40,44,48,52,56,60,64,100,104,108,112,116,120,124,149,153,157,161,165},31},						// 0x0E, RT_CHANNEL_DOMAIN_KOREA
+	{{1,2,3,4,5,6,7,8,9,10,11,36,40,44,48,52,56,60,64},19},																	// 0x0F, RT_CHANNEL_DOMAIN_TURKEY
+	{{1,2,3,4,5,6,7,8,9,10,11,12,13,36,40,44,48,52,56,60,64,100,104,108,112,116,120,124,128,132,136,140},32},						// 0x10, RT_CHANNEL_DOMAIN_JAPAN
+	{{1,2,3,4,5,6,7,8,9,10,11,36,40,44,48,149,153,157,161,165},20},															// 0x11, RT_CHANNEL_DOMAIN_FCC_NO_DFS
+	{{1,2,3,4,5,6,7,8,9,10,11,12,13,36,40,44,48},17},																		// 0x12, RT_CHANNEL_DOMAIN_JAPAN_NO_DFS
+	{{1,2,3,4,5,6,7,8,9,10,11,12,13,36,40,44,48,52,56,60,64,100,104,108,112,116,120,124,128,132,136,140,149,153,157,161,165},37},	// 0x13, RT_CHANNEL_DOMAIN_WORLD_WIDE_5G
+	{{1,2,3,4,5,6,7,8,9,10,11,56,60,64,149,153,157,161,165},19},																// 0x14, RT_CHANNEL_DOMAIN_TAIWAN_NO_DFS
+	};
 
 
 /*
@@ -271,7 +266,7 @@ static u8 init_channel_set(_adapter* padapter, u8 ChannelPlan, RT_CHANNEL_INFO *
 					channel_set[chanset_size].ScanType  = SCAN_PASSIVE;			
 			}
 			else if(RT_CHANNEL_DOMAIN_WORLD_WIDE_13 == ChannelPlan ||
-				RT_CHANNEL_DOMAIN_WORLD_WIDE37 == ChannelPlan)// channel 12~13, passive scan
+				RT_CHANNEL_DOMAIN_WORLD_WIDE_5G == ChannelPlan)// channel 12~13, passive scan
 			{
 				if(channel_set[chanset_size].ChannelNum <= 11)
 					channel_set[chanset_size].ScanType = SCAN_ACTIVE;
@@ -292,10 +287,10 @@ static u8 init_channel_set(_adapter* padapter, u8 ChannelPlan, RT_CHANNEL_INFO *
 			if ( channel_set[chanset_size].ChannelNum <= 48 
 				|| channel_set[chanset_size].ChannelNum >= 149 )
 			{
-				if(RT_CHANNEL_DOMAIN_WORLD_WIDE37 == ChannelPlan)//passive scan for all 5G channels
+				if(RT_CHANNEL_DOMAIN_WORLD_WIDE_5G == ChannelPlan)//passive scan for all 5G channels
 					channel_set[chanset_size].ScanType = SCAN_PASSIVE;
 				else
-				channel_set[chanset_size].ScanType = SCAN_ACTIVE;
+					channel_set[chanset_size].ScanType = SCAN_ACTIVE;
 			}
 			else
 			{
@@ -306,10 +301,10 @@ static u8 init_channel_set(_adapter* padapter, u8 ChannelPlan, RT_CHANNEL_INFO *
 			if ( DefaultChannelPlan[ChannelPlan].Channel[index] <= 48 
 				|| DefaultChannelPlan[ChannelPlan].Channel[index] >= 149 ) {
 				channel_set[chanset_size].ChannelNum = DefaultChannelPlan[ChannelPlan].Channel[index];
-				if(RT_CHANNEL_DOMAIN_WORLD_WIDE37 == ChannelPlan)//passive scan for all 5G channels
+				if(RT_CHANNEL_DOMAIN_WORLD_WIDE_5G == ChannelPlan)//passive scan for all 5G channels
 					channel_set[chanset_size].ScanType = SCAN_PASSIVE;
 				else
-				channel_set[chanset_size].ScanType = SCAN_ACTIVE;
+					channel_set[chanset_size].ScanType = SCAN_ACTIVE;
 				DBG_871X("%s(): channel_set[%d].ChannelNum = %d\n", __FUNCTION__, chanset_size, channel_set[chanset_size].ChannelNum);
 				chanset_size++;
 			}
@@ -967,8 +962,8 @@ unsigned int OnAuth(_adapter *padapter, union recv_frame *precv_frame)
 	sa = GetAddr2Ptr(pframe);
 	
 	auth_mode = psecuritypriv->dot11AuthAlgrthm;
-	seq = cpu_to_le16(*(unsigned short *)((unsigned int)pframe + WLAN_HDR_A3_LEN + 2));
-	algorithm = cpu_to_le16(*(unsigned short *)((unsigned int)pframe + WLAN_HDR_A3_LEN));
+	seq = cpu_to_le16(*(u16*)((SIZE_PTR)pframe + WLAN_HDR_A3_LEN + 2));
+	algorithm = cpu_to_le16(*(u16*)((SIZE_PTR)pframe + WLAN_HDR_A3_LEN));
 
 	if (GetPrivacy(pframe))
 	{	
@@ -4944,10 +4939,10 @@ void issue_tdls_setup_req(_adapter *padapter, u8 *mac_addr)
 //                  //for tdls; ptdls_sta->aid is used to fill dialogtoken
 //    ptdls_sta->aid = pattrib->nr_frags;	
 			ptdls_sta->mac_id = ptdlsinfo->cam_entry_to_write ;// TDLS ID from 6 ~ to 14 ptdls_sta->aid+1;
-		    DBG_871X("%s\n",__FUNCTION__);
-		    if(padapter->HalFunc.SetHalODMVarHandler)
+		   	DBG_871X("%s\n",__FUNCTION__);
+		   	if(padapter->HalFunc.SetHalODMVarHandler)
 				padapter->HalFunc.SetHalODMVarHandler(padapter,HAL_ODM_STA_INFO,ptdls_sta,_TRUE);
-/*
+/*  connot IO
 			#if (RATE_ADAPTIVE_SUPPORT==1)	//for 88E RA	
 			if(padapter->HalFunc.SetHwRegHandler)
 				padapter->HalFunc.SetHwRegHandler(padapter,HW_VAR_TX_RPT_MAX_MACID, (u8*)&ptdls_sta->mac_id);
@@ -7435,10 +7430,6 @@ void site_survey(_adapter *padapter)
 		ScanType = pmlmeext->channel_set[pmlmeext->sitesurvey_res.channel_idx].ScanType;
 	}
 #endif //CONFIG_P2P
-	{
-		survey_channel = pmlmeext->channel_set[pmlmeext->sitesurvey_res.channel_idx].ChannelNum;
-		ScanType = pmlmeext->channel_set[pmlmeext->sitesurvey_res.channel_idx].ScanType;
-	}
 
 	if(survey_channel != 0)
 	{
@@ -7548,7 +7539,7 @@ void site_survey(_adapter *padapter)
 			pmlmeext->sitesurvey_res.state = SCAN_DISABLE;
 
 			initialgain = 0xff; //restore RX GAIN
-			//padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_INITIAL_GAIN, (u8 *)(&initialgain));	
+			padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_INITIAL_GAIN, (u8 *)(&initialgain));	
 			//turn on dynamic functions
 			Restore_DM_Func_Flag(padapter);
 			//Switch_DM_Func(padapter, DYNAMIC_FUNC_DIG|DYNAMIC_FUNC_HP|DYNAMIC_FUNC_SS, _TRUE);
@@ -7626,7 +7617,7 @@ void site_survey(_adapter *padapter)
 			Set_MSR(padapter, (pmlmeinfo->state & 0x3));
 
 			initialgain = 0xff; //restore RX GAIN
-			//padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_INITIAL_GAIN, (u8 *)(&initialgain));	
+			padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_INITIAL_GAIN, (u8 *)(&initialgain));	
 			//turn on dynamic functions
 			Restore_DM_Func_Flag(padapter);
 			//Switch_DM_Func(padapter, DYNAMIC_ALL_FUNC_ENABLE, _TRUE);
@@ -8747,6 +8738,7 @@ void mlmeext_joinbss_event_callback(_adapter *padapter, int join_res)
 	WLAN_BSSID_EX 		*cur_network = &(pmlmeinfo->network);
 	struct sta_priv		*pstapriv = &padapter->stapriv;
 	u8	join_type;
+	u16 media_status;
 #ifdef CONFIG_CONCURRENT_MODE	
 	PADAPTER pbuddy_adapter = padapter->pbuddy_adapter;
 	struct mlme_priv *pbuddy_mlmepriv = &(pbuddy_adapter->mlmepriv);
@@ -8759,7 +8751,7 @@ void mlmeext_joinbss_event_callback(_adapter *padapter, int join_res)
 	{
 		join_type = 1;
 		padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_MLME_JOIN, (u8 *)(&join_type));
-		padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_BSSID, null_addr);
+		padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_BSSID, null_addr);	
 
 		goto exit_mlmeext_joinbss_event_callback;
 	}
@@ -8810,13 +8802,17 @@ void mlmeext_joinbss_event_callback(_adapter *padapter, int join_res)
 		//DBG_871X("set_sta_rate\n");
 	
 		//set per sta rate after updating HT cap.
-		set_sta_rate(padapter, psta);		
+		set_sta_rate(padapter, psta);	
+
+		
 		#if (RATE_ADAPTIVE_SUPPORT==1)	//for 88E RA	
 		if(padapter->HalFunc.SetHwRegHandler){
 			printk("%s ==>",__FUNCTION__);
 			padapter->HalFunc.SetHwRegHandler(padapter,HW_VAR_TX_RPT_MAX_MACID, (u8*)&psta->mac_id);
 		}
 		#endif
+		media_status = (psta->mac_id<<8)|1; //  MACID|OPMODE: 1 means connect
+		padapter->HalFunc.SetHwRegHandler(padapter,HW_VAR_H2C_MEDIA_STATUS_RPT,(u8 *)&media_status);
 	}
 
 	join_type = 2;
@@ -9113,7 +9109,10 @@ Following are the functions for the timer handlers
 void _linked_rx_signal_strehgth_display(_adapter *padapter);
 void _linked_rx_signal_strehgth_display(_adapter *padapter)
 {
+	struct mlme_ext_priv    *pmlmeext = &padapter->mlmeextpriv;
+        struct mlme_ext_info    *pmlmeinfo = &(pmlmeext->mlmext_info);
 	int	UndecoratedSmoothedPWDB;
+	#if 0
 	DBG_871X("============ linked status check ===================\n");
 	DBG_871X("pathA Rx SNRdb:%d\n",padapter->recvpriv.RxSNRdB[0]);
 	DBG_871X("pathA Rx PWDB:%d\n",padapter->recvpriv.rxpwdb);		
@@ -9123,12 +9122,21 @@ void _linked_rx_signal_strehgth_display(_adapter *padapter)
 	DBG_871X("Rx Signal_strength:%d\n",padapter->recvpriv.signal_strength);
 	DBG_871X("Rx Signal_qual:%d \n",padapter->recvpriv.signal_qual);
 	DBG_871X("============ linked status check ===================\n");
+	#endif
+	if((pmlmeinfo->state&0x03) == WIFI_FW_STATION_STATE)
+	{
+		//		DBG_871X("============ STA Mode RA status check ===================\n");
+		padapter->HalFunc.GetHalDefVarHandler(padapter, HW_DEF_RA_INFO_DUMP,&UndecoratedSmoothedPWDB);	
+	}
+	
+	DBG_871X("============ RX GAIN / FALSE ALARM  ===================\n");
 	DBG_871X(" DIG PATH-A(0x%02x), PATH-B(0x%02x)\n",rtw_read8(padapter,0xc50),rtw_read8(padapter,0xc58));
 	DBG_871X(" OFDM -Alarm DA2(0x%04x),DA4(0x%04x),DA6(0x%04x),DA8(0x%04x)\n",
 		rtw_read16(padapter,0xDA2),rtw_read16(padapter,0xDA4),rtw_read16(padapter,0xDA6),rtw_read16(padapter,0xDA8));
 
 	DBG_871X(" CCK -Alarm A5B(0x%02x),A5C(0x%02x)\n",rtw_read8(padapter,0xA5B),rtw_read8(padapter,0xA5C));
 	
+
 }
 
 void linked_status_chk(_adapter *padapter)
@@ -9546,7 +9554,7 @@ u8 createbss_hdl(_adapter *padapter, u8 *pbuf)
 	struct mlme_ext_info	*pmlmeinfo = &(pmlmeext->mlmext_info);
 	WLAN_BSSID_EX	*pnetwork = (WLAN_BSSID_EX*)(&(pmlmeinfo->network));
 	struct joinbss_parm *pparm = (struct joinbss_parm *)pbuf;
-	u32	initialgain;
+	//u32	initialgain;
 
 	
 	if(pparm->network.InfrastructureMode == Ndis802_11APMode)
@@ -9583,7 +9591,7 @@ u8 createbss_hdl(_adapter *padapter, u8 *pbuf)
 		Switch_DM_Func(padapter, DYNAMIC_FUNC_DISABLE, _FALSE);
 
 		//config the initial gain under linking, need to write the BB registers
-		initialgain = 0x1E;
+		//initialgain = 0x1E;
 		//padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_INITIAL_GAIN, (u8 *)(&initialgain));
 
 		//cancel link timer 
@@ -9619,7 +9627,8 @@ u8 join_cmd_hdl(_adapter *padapter, u8 *pbuf)
 #ifdef CONFIG_ANTENNA_DIVERSITY
 	struct joinbss_parm	*pparm = (struct joinbss_parm *)pbuf;
 #endif //CONFIG_ANTENNA_DIVERSITY
-	u32	initialgain, i;
+	u32 i;
+        //u32	initialgain;
 	//u32	acparm;
 
 	//check already connecting to AP or not
@@ -9766,7 +9775,7 @@ u8 join_cmd_hdl(_adapter *padapter, u8 *pbuf)
 	//Switch_DM_Func(padapter, DYNAMIC_FUNC_DISABLE, _FALSE);
 
 	//config the initial gain under linking, need to write the BB registers
-	initialgain = 0x1E;
+	//initialgain = 0x1E;
 	//padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_INITIAL_GAIN, (u8 *)(&initialgain));
 
 	padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_BSSID, pmlmeinfo->network.MacAddress);
@@ -9937,9 +9946,9 @@ u8 sitesurvey_cmd_hdl(_adapter *padapter, u8 *pbuf)
 			initialgain = 0x30;
 		else
 #endif			
-		initialgain = 0x17;
+		initialgain = 0x1E;
 
-		//padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_INITIAL_GAIN, (u8 *)(&initialgain));
+		padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_INITIAL_GAIN, (u8 *)(&initialgain));
 		
 		//set MSR to no link state
 		Set_MSR(padapter, _HW_STATE_NOLINK_);
@@ -11700,21 +11709,17 @@ void update_sta_info_apmode(_adapter *padapter, struct sta_info *psta)
 	struct mlme_ext_priv	*pmlmeext = &(padapter->mlmeextpriv);
 	struct ht_priv	*phtpriv_ap = &pmlmepriv->htpriv;
 	struct ht_priv	*phtpriv_sta = &psta->htpriv;
-
+	
 	//set intf_tag to if1
 	//psta->intf_tag = 0;
 
 	//psta->mac_id = psta->aid+4;
 	psta->mac_id = psta->aid+1; 
-	DBG_871X("%s\n",__FUNCTION__);
-	if(padapter->HalFunc.SetHalODMVarHandler)
+	DBG_871X("%s\n",__FUNCTION__);	
+
+	if(padapter->HalFunc.SetHalODMVarHandler)//ap mode
 		padapter->HalFunc.SetHalODMVarHandler(padapter,HAL_ODM_STA_INFO,psta,_TRUE);
 	
-	#if (RATE_ADAPTIVE_SUPPORT==1)	//for 88E RA	
-	if(padapter->HalFunc.SetHwRegHandler)
-		padapter->HalFunc.SetHwRegHandler(padapter,HW_VAR_TX_RPT_MAX_MACID, (u8*)&psta->mac_id);
-	#endif
-
 	if(psecuritypriv->dot11AuthAlgrthm==dot11AuthAlgrthm_8021X)
 		psta->ieee8021x_blocked = _TRUE;
 	else
@@ -11929,9 +11934,9 @@ static void start_bss_network(_adapter *padapter, u8 *pbuf)
 
 	if(pmlmepriv->cur_network.join_res != _TRUE) //setting only at  first time
 	{
-		u32 initialgain;
+		//u32 initialgain;
 
-		initialgain = 0x1e;
+		//initialgain = 0x1e;
 
 
 		//disable dynamic functions, such as high power, DIG

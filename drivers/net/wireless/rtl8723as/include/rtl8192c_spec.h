@@ -224,6 +224,10 @@
 #define REG_RD_RESP_PKT_TH				0x0463
 #define REG_INIRTS_RATE_SEL			0x0480
 #define REG_INIDATA_RATE_SEL			0x0484
+
+#define REG_FW_TSF_SYNC_CNT				0x04A0
+#define REG_FW_BCN_DIS_CNT				0x04A1
+
 #define REG_POWER_STATUS				0x04A4
 #define REG_POWER_STAGE1				0x04B4
 #define REG_POWER_STAGE2				0x04B8
@@ -1663,6 +1667,7 @@ Current IOREG MAP
 #define EN_MBSSID						BIT(1)
 #define EN_TXBCN_RPT					BIT(2)
 #define	EN_BCN_FUNCTION				BIT(3)
+#define DIS_TSF_UPDATE				BIT(3)
 
 // The same function but different bit field.
 #define	DIS_TSF_UDT0_NORMAL_CHIP	BIT(4)

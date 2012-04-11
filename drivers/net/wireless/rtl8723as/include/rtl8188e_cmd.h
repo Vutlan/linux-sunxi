@@ -89,7 +89,7 @@ enum{
 typedef struct _SETPWRMODE_PARM {
 	u8 Mode;//0:Active,1:LPS,2:WMMPS
 	//u8 RLBM:4;//0:Min,1:Max,2: User define
-	u8 RLBM_SmartPS;//LPS=0:PS_Poll,1:PS_Poll,2:NullData,WMM=0:PS_Poll,1:NullData
+	u8 SmartPS_RLBM;//LPS=0:PS_Poll,1:PS_Poll,2:NullData,WMM=0:PS_Poll,1:NullData
 	u8 AwakeInterval;	// unit: beacon interval
 	u8 bAllQueueUAPSD;
 	u8 PwrState;//AllON(0x0c),RFON(0x04),RFOFF(0x00)
@@ -103,7 +103,6 @@ struct H2C_SS_RFOFF_PARAM{
 
 typedef struct JOINBSSRPT_PARM{
 	u8 OpMode;	// RT_MEDIA_STATUS
-	u8 MACID;
 }JOINBSSRPT_PARM, *PJOINBSSRPT_PARM;
 
 typedef struct _RSVDPAGE_LOC {
@@ -134,13 +133,10 @@ struct P2P_PS_CTWPeriod_t {
 void rtl8188e_set_FwPwrMode_cmd(PADAPTER padapter, u8 Mode);
 void rtl8188e_set_FwJoinBssReport_cmd(PADAPTER padapter, u8 mstatus);
 u8 rtl8188e_set_rssi_cmd(PADAPTER padapter, u8 *param);
-//u8 rtl8723a_set_rssi_cmd(PADAPTER padapter, u8 *param);
 u8 rtl8188e_set_raid_cmd(PADAPTER padapter, u32 mask);
-//u8 rtl8723a_set_raid_cmd(PADAPTER padapter, u32 mask, u8 arg);
 void rtl8188e_Add_RateATid(PADAPTER padapter, u32 bitmap, u8 arg);
-//void rtl8723a_Add_RateATid(PADAPTER padapter, u32 bitmap, u8 arg);
-u8 rtl8192c_set_FwSelectSuspend_cmd(PADAPTER padapter, u8 bfwpoll, u16 period);
-//u8 rtl8723a_set_FwSelectSuspend_cmd(PADAPTER padapter, u8 bfwpoll, u16 period);
+//u8 rtl8192c_set_FwSelectSuspend_cmd(PADAPTER padapter, u8 bfwpoll, u16 period);
+
 
 #ifdef CONFIG_P2P
 void rtl8192c_set_p2p_ps_offload_cmd(PADAPTER padapter, u8 p2p_ps_state);
@@ -148,7 +144,7 @@ void rtl8192c_set_p2p_ps_offload_cmd(PADAPTER padapter, u8 p2p_ps_state);
 #endif //CONFIG_P2P
 
 void CheckFwRsvdPageContent(PADAPTER padapter);
-
+void rtl8188e_set_FwMediaStatus_cmd(PADAPTER padapter, u16 mstatus_rpt );
 #endif//__RTL8188E_CMD_H__
 
 

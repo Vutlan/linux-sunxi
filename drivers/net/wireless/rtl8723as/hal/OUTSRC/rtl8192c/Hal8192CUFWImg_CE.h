@@ -23,9 +23,9 @@
 /*Created on  2011/ 6/15,  5:45*/
 
 #ifdef CONFIG_BT_COEXIST
-#define TSMCImgArrayLength 16248 //v79 TSMC COMMON 2011-10-06
+#define TSMCImgArrayLength 16334 //v83 TSMC COMMON 2012-03-22
 #else //#ifdef CONFIG_P2P
-#define TSMCImgArrayLength 16404 //v79 TSMC P2PPS 2011-10-06
+#define TSMCImgArrayLength 15428 //v83 TSMC P2PPS 2012-03-22
 #endif
 extern u8 Rtl8192CUFwTSMCImgArray[TSMCImgArrayLength];
 
@@ -37,9 +37,9 @@ extern u8 Rtl8192CUFwTSMCImgArray[TSMCImgArrayLength];
 extern u8 Rtl8192CUFwUMCACutImgArray[UMCACutImgArrayLength];
 
 #ifdef CONFIG_BT_COEXIST
-#define UMCBCutImgArrayLength 16254 //v79 UMC B Cut COMMON 2011-10-06
+#define UMCBCutImgArrayLength 16314 //v83 UMC B Cut COMMON 2012-03-22
 #else //#ifdef CONFIG_P2P
-#define UMCBCutImgArrayLength 16386 //v79 UMC B Cut P2PPS 2011-10-06
+#define UMCBCutImgArrayLength 15406 //v83 UMC B Cut P2PPS 2012-03-22
 #endif
 extern u8 Rtl8192CUFwUMCBCutImgArray[UMCBCutImgArrayLength];
 

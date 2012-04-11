@@ -1510,8 +1510,8 @@ static struct sta_info *rtw_joinbss_update_stainfo(_adapter *padapter, struct wl
 				psta->mac_id=2;
 #else
 			psta->mac_id=0;
-#endif						
-		if(padapter->HalFunc.SetHalODMVarHandler)
+#endif		
+		if(padapter->HalFunc.SetHalODMVarHandler)//sta mode
 			padapter->HalFunc.SetHalODMVarHandler(padapter,HAL_ODM_STA_INFO,psta,_TRUE);
 
 		//security related
@@ -1889,6 +1889,60 @@ _func_enter_;
 _func_exit_;
 }
 
+
+u8 search_max_mac_id(_adapter *padapter)
+{
+	u8 mac_id;
+#if (RATE_ADAPTIVE_SUPPORT==1)	//for 88E RA		
+	struct mlme_priv *pmlmepriv = &(padapter->mlmepriv);
+	struct mlme_ext_priv *pmlmeext = &(padapter->mlmeextpriv);
+	struct mlme_ext_info	*pmlmeinfo = &(pmlmeext->mlmext_info);
+	struct sta_priv *pstapriv = &padapter->stapriv;
+
+#if defined (CONFIG_AP_MODE) && defined (CONFIG_NATIVEAP_MLME)	
+	if(check_fwstate(pmlmepriv, WIFI_AP_STATE)){		
+		//id = n~ 0
+		for (mac_id = (pstapriv->max_num_sta-1); mac_id >= 0; mac_id--)
+		{
+			if (pstapriv->sta_aid[mac_id] != NULL)
+				break;
+		}	
+		//aid_id = mac_id+1;//mac_id = aid -1
+	}
+	else
+#endif
+	{//adhoc  id =  31~2
+		for (mac_id = (NUM_STA-1); mac_id >= IBSS_START_MAC_ID ; mac_id--)
+		{
+			if (pmlmeinfo->FW_sta_info[mac_id].status == 1)
+			{
+				break;
+			}
+		}
+	}
+#endif	
+	return mac_id;
+
+}		
+
+//FOR AP ,AD-HOC mode
+void rtw_stassoc_hw_rpt(_adapter *adapter,struct sta_info *psta)
+{
+	u16 media_status;
+
+	if(psta==NULL)	return;
+
+	#if (RATE_ADAPTIVE_SUPPORT==1)	//for 88E RA	
+	{
+		u8 macid = search_max_mac_id(adapter);				
+		if(adapter->HalFunc.SetHwRegHandler)
+			adapter->HalFunc.SetHwRegHandler(adapter,HW_VAR_TX_RPT_MAX_MACID, (u8*)&macid);
+	}
+	#endif
+	media_status = (psta->mac_id<<8)|1; //  MACID|OPMODE:1 connect				
+	adapter->HalFunc.SetHwRegHandler(adapter,HW_VAR_H2C_MEDIA_STATUS_RPT,(u8 *)&media_status);			
+}
+
 void rtw_stassoc_event_callback(_adapter *adapter, u8 *pbuf)
 {
 	_irqL irqL;	
@@ -1897,7 +1951,7 @@ void rtw_stassoc_event_callback(_adapter *adapter, u8 *pbuf)
 	struct stassoc_event	*pstassoc	= (struct stassoc_event*)pbuf;
 	struct wlan_network 	*cur_network = &(pmlmepriv->cur_network);
 	struct wlan_network	*ptarget_wlan = NULL;
-
+	
 _func_enter_;	
 	
 	// to do: 
@@ -1943,12 +1997,15 @@ _func_enter_;
 			//bss_cap_update(adapter, psta);
 			//sta_info_update(adapter, psta);
 			ap_sta_info_defer_update(adapter, psta);
+
+			rtw_stassoc_hw_rpt(adapter,psta);
+
 		}	
 		
 		goto exit;
 	}	
 #endif	
-
+	//for AD-HOC mode
 	psta = rtw_get_stainfo(&adapter->stapriv, pstassoc->macaddr);	
 	if( psta != NULL)
 	{
@@ -1971,13 +2028,10 @@ _func_enter_;
 	//psta->aid = (uint)pstassoc->cam_id;
 	DBG_871X("%s\n",__FUNCTION__);
 	
-	if(adapter->HalFunc.SetHalODMVarHandler)
+	if(adapter->HalFunc.SetHalODMVarHandler)//for ad-hoc mode
 		adapter->HalFunc.SetHalODMVarHandler(adapter,HAL_ODM_STA_INFO,psta,_TRUE);
 
-	#if (RATE_ADAPTIVE_SUPPORT==1)	//for 88E RA	
-		if(adapter->HalFunc.SetHwRegHandler)
-			adapter->HalFunc.SetHwRegHandler(adapter,HW_VAR_TX_RPT_MAX_MACID, (u8*)&psta->mac_id);
-	#endif
+	rtw_stassoc_hw_rpt(adapter,psta);	
 	
 	if(adapter->securitypriv.dot11AuthAlgrthm==dot11AuthAlgrthm_8021X)
 		psta->dot118021XPrivacy = adapter->securitypriv.dot11PrivacyAlgrthm;
@@ -2030,6 +2084,14 @@ void rtw_stadel_event_callback(_adapter *adapter, u8 *pbuf)
 	struct wlan_network *tgt_network = &(pmlmepriv->cur_network);
 	
 _func_enter_;	
+	
+	psta = rtw_get_stainfo(&adapter->stapriv, pstadel->macaddr);
+	if(psta){
+		u16 media_status;
+		media_status = (psta->mac_id<<8)|0; //  MACID|OPMODE:0 means disconnect
+		//for STA,AP,ADHOC mode ,report disconnect stauts to FW
+		adapter->HalFunc.SetHwRegHandler(adapter,HW_VAR_H2C_MEDIA_STATUS_RPT,(u8 *)&media_status);
+	}		
 
         if(check_fwstate(pmlmepriv, WIFI_AP_STATE))
         {
@@ -2056,7 +2118,7 @@ _func_enter_;
 
 		if(*((unsigned short *)(pstadel->rsvd)) !=65535 ) //if stadel_event isn't caused by no rx
 			pmlmepriv->to_roaming=0; // don't roam
-		#endif //CONFIG_LAYER2_ROAMING
+		#endif //CONFIG_LAYER2_ROAMING		
 
 
 		rtw_free_assoc_resources(adapter, 1);
@@ -2078,7 +2140,6 @@ _func_enter_;
 	if ( check_fwstate(pmlmepriv,WIFI_ADHOC_MASTER_STATE) || 
 	      check_fwstate(pmlmepriv,WIFI_ADHOC_STATE))
 	{
-		psta = rtw_get_stainfo(&adapter->stapriv, pstadel->macaddr);
 		
 		_enter_critical_bh(&(pstapriv->sta_hash_lock), &irqL);
 		rtw_free_stainfo(adapter,  psta);

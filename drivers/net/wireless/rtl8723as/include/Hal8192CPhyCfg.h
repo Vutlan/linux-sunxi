@@ -354,12 +354,6 @@ void	PHY_SwChnlPhy8192C(	IN	PADAPTER		pAdapter,
 									IN	u8			channel	);
 
 void ChkFwCmdIoDone(	IN	PADAPTER	Adapter);
-
-#ifdef USE_WORKITEM	
-//extern 	void SetIOWorkItemCallback( IN PVOID            pContext );
-#else
-//extern	void SetIOTimerCallback( IN PRT_TIMER		pTimer);
-#endif	
 				
 //
 // BB/MAC/RF other monitor API

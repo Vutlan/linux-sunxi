@@ -454,7 +454,7 @@ static char *translate_scan(_adapter *padapter,
 		}
 		else//default MCS7
 		{
-			DBG_871X("wx_get_scan, mcs_rate_bitmap=0x%x\n", mcs_rate);
+			//DBG_871X("wx_get_scan, mcs_rate_bitmap=0x%x\n", mcs_rate);
 			max_rate = (bw_40MHz) ? ((short_GI)?150:135):((short_GI)?72:65);
 		}
 
@@ -526,7 +526,7 @@ static char *translate_scan(_adapter *padapter,
 
 		while(cnt < total_ielen)
 		{
-                                if(rtw_is_wps_ie(&ie_ptr[cnt], &wps_ielen) && (wps_ielen>2))			
+                   if(rtw_is_wps_ie(&ie_ptr[cnt], &wps_ielen) && (wps_ielen>2))			
 			{
 				wpsie_ptr = &ie_ptr[cnt];
 				iwe.cmd =IWEVGENIE;
@@ -5717,6 +5717,15 @@ static int rtw_dbg_port(struct net_device *dev,
 						padapter->bRxRSSIDisplay = extra_arg ;						
 					}
 					break;
+			#if (RATE_ADAPTIVE_SUPPORT==1)
+				case 0xaa:
+					{
+						if(extra_arg> 0x13) extra_arg = 0xFF;
+						DBG_871X("chang data rate to :0x%02x\n",extra_arg);
+						padapter->fix_rate = extra_arg;
+					}
+					break;
+			#endif
 #if 1
 				case 0xdd://registers dump , 0 for mac reg,1 for bb reg, 2 for rf reg
 					{						

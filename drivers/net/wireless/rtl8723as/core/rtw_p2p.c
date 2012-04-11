@@ -3658,7 +3658,8 @@ int rtw_p2p_enable(_adapter *padapter, enum P2P_ROLE role)
 			_cancel_timer_ex( &pwdinfo->ap_p2p_switch_timer);
 			#endif
 			rtw_p2p_set_state(pwdinfo, P2P_STATE_NONE);
-			_rtw_memset(pwdinfo, 0x00, sizeof(struct wifidirect_info));
+			rtw_p2p_set_role(pwdinfo, P2P_ROLE_DISABLE);
+			_rtw_memset(&pwdinfo->rx_prov_disc_info, 0x00, sizeof(struct rx_provdisc_req_info));
 		}
 
 		if(padapter->HalFunc.SetHalODMVarHandler){

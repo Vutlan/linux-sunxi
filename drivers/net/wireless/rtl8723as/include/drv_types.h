@@ -549,6 +549,9 @@ struct _ADAPTER{
 	PLOOPBACKDATA ploopback;
 #endif
 
+  	#if (RATE_ADAPTIVE_SUPPORT == 1)
+        u8    fix_rate;
+    #endif
 };	
   
 __inline static u8 *myid(struct eeprom_priv *peepriv)

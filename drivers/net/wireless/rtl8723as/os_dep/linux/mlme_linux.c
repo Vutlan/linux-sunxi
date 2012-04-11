@@ -230,12 +230,13 @@ void rtw_os_indicate_disconnect( _adapter *adapter )
   
 _func_enter_;
 
+	netif_carrier_off(adapter->pnetdev); // Do it first for tx broadcast pkt after disconnection issue!
+
 #ifdef CONFIG_IOCTL_CFG80211
 	rtw_cfg80211_indicate_disconnect(adapter); 	
 #endif //CONFIG_IOCTL_CFG80211
 
 	rtw_indicate_wx_disassoc_event(adapter);	
-	netif_carrier_off(adapter->pnetdev);
 
 #ifdef RTK_DMP_PLATFORM
 	_set_workitem(&adapter->mlmepriv.Linkdown_workitem);

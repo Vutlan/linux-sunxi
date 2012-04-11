@@ -53,7 +53,7 @@
 
 //#define CONFIG_P2P	1
 
-#define CONFIG_IOCTL_CFG80211 1	// enable this will disable wext ioctl support
+//#define CONFIG_IOCTL_CFG80211 1	// enable this will disable wext ioctl support
 
 
 //#define CONFIG_TDLS	1
@@ -182,7 +182,7 @@
  * HAL  Related Config
  */
 
-#define RTL8192C_RX_PACKET_NO_INCLUDE_CRC	1
+#define RTL8192C_RX_PACKET_INCLUDE_CRC	0
 
 #define SUPPORTED_BLOCK_IO
 
@@ -190,7 +190,7 @@
 
 #define RTL8192CU_FW_DOWNLOAD_ENABLE	1
 
-#define CONFIG_ONLY_ONE_OUT_EP_TO_LOW	0
+//#define CONFIG_ONLY_ONE_OUT_EP_TO_LOW	0
 
 #define CONFIG_OUT_EP_WIFI_MODE	0
 

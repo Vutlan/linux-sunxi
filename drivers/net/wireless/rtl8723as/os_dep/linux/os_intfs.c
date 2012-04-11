@@ -1406,6 +1406,7 @@ int rtw_drv_if2_init(_adapter *primary_padapter)
 	_adapter *padapter = NULL;
 	struct dvobj_priv *pdvobjpriv;
 	u8 mac[ETH_ALEN];
+	void (*set_hal_ops)(_adapter * padapter);
 #ifdef CONFIG_USB_HCI
 	struct usb_interface *pusb_intf;
 	struct usb_device *pusbdev;
@@ -1450,8 +1451,8 @@ int rtw_drv_if2_init(_adapter *primary_padapter)
 	padapter->isprimary = _FALSE;
 	padapter->adapter_type = SECONDARY_ADAPTER;
 
-	//padapter->iface_type = IFACE_PORT0;//
-	padapter->iface_type = IFACE_PORT1;//
+	padapter->iface_type = IFACE_PORT0;//
+	//padapter->iface_type = IFACE_PORT1;//
 	
 	padapter->pbuddy_adapter = primary_padapter;
 
@@ -1474,22 +1475,13 @@ int rtw_drv_if2_init(_adapter *primary_padapter)
 	padapter->interface_type = primary_padapter->interface_type;		
 	padapter->chip_type = primary_padapter->chip_type;
 	padapter->HardwareType = primary_padapter->HardwareType;
-
 	
 	//set hal data & hal ops
-	if(padapter->chip_type == RTL8188C_8192C)
-	{
-#ifdef CONFIG_RTL8192C
-		rtl8192cu_set_hal_ops(padapter);
-#endif
-	}
-	else if(padapter->chip_type == RTL8192D)
-	{
-#ifdef CONFIG_RTL8192D
-		rtl8192du_set_hal_ops(padapter);
-#endif
-	}
-
+	set_hal_ops =&hal_set_hal_ops;
+	if(set_hal_ops == NULL)
+		goto error_rtw_drv_if2_init;
+	set_hal_ops(padapter);
+	
 	padapter->HalFunc.inirp_init = NULL;
 	padapter->HalFunc.inirp_deinit = NULL;
 
@@ -1549,8 +1541,8 @@ int rtw_drv_if2_init(_adapter *primary_padapter)
 	//set adapter_type/iface type for primary padapter
 	primary_padapter->isprimary = _TRUE;
 	primary_padapter->adapter_type = PRIMARY_ADAPTER;	
-	primary_padapter->iface_type = IFACE_PORT0;//
-	//primary_padapter->iface_type = IFACE_PORT1;//
+	//primary_padapter->iface_type = IFACE_PORT0;//
+	primary_padapter->iface_type = IFACE_PORT1;//
 	
 	/* Tell the network stack we exist */
 	if (register_netdev(pnetdev) != 0) 
@@ -1657,7 +1649,7 @@ static int netdev_open(struct net_device *pnetdev)
 	_enter_critical_mutex(padapter->hw_init_mutex, NULL);
 #endif //CONFIG_CONCURRENT_MODE
 	if(padapter->bup == _FALSE)
-    	{    
+	{    
 		padapter->bDriverStopped = _FALSE;
 	 	padapter->bSurpriseRemoved = _FALSE;	 
 		padapter->bCardDisableWOHSM = _FALSE;        	

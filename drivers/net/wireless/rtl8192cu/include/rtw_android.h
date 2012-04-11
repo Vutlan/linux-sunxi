@@ -1,52 +1,28 @@
-/*
- * Linux cfg80211 driver - Android related functions
+/******************************************************************************
  *
- * Copyright (C) 1999-2011, Broadcom Corporation
+ * Copyright(c) 2007 - 2011 Realtek Corporation. All rights reserved.
+ *                                        
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
  *
- *         Unless you and Broadcom execute a separate written software license
- * agreement governing use of this software, this software is licensed to you
- * under the terms of the GNU General Public License version 2 (the "GPL"),
- * available at http://www.broadcom.com/licenses/GPLv2.php, with the
- * following added to such license:
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
  *
- *      As a special exception, the copyright holders of this software give you
- * permission to link this software with independent modules, and to copy and
- * distribute the resulting executable under terms of your choice, provided that
- * you also meet, for each linked independent module, the terms and conditions of
- * the license of that module.  An independent module is a module which is not
- * derived from this software.  The special exception does not apply to any
- * modifications of the software.
+ * You should have received a copy of the GNU General Public License along with
+ * this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110, USA
  *
- *      Notwithstanding the above, under no circumstances may you combine this
- * software in any way with any other Broadcom software provided under a license
- * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: wl_android.c,v 1.1.4.1.2.14 2011/02/09 01:40:07 Exp $
- */
+ ******************************************************************************/
+ 
+#ifndef __RTW_ANDROID_H__
+#define __RTW_ANDROID_H__
 
 #include <linux/module.h>
 #include <linux/netdevice.h>
-#if 0
-#include <wldev_common.h>
-#endif
-
-/**
- * Android platform dependent functions, feel free to add Android specific functions here
- * (save the macros in dhd). Please do NOT declare functions that are NOT exposed to dhd
- * or cfg, define them as static in wl_android.c
- */
-
-#if 0
-/**
- * wl_android_init will be called from module init function (dhd_module_init now), similarly
- * wl_android_exit will be called from module exit function (dhd_module_cleanup now)
- */
-int wl_android_init(void);
-int wl_android_exit(void);
-int wl_android_post_init(void);
-int wl_android_wifi_on(struct net_device *dev);
-int wl_android_wifi_off(struct net_device *dev);
-#endif
 
 enum ANDROID_WIFI_CMD {
 	ANDROID_WIFI_CMD_START,				
@@ -81,13 +57,15 @@ enum ANDROID_WIFI_CMD {
 
 	ANDROID_WIFI_CMD_MACADDR,
 
+	ANDROID_WIFI_CMD_BLOCK,
+
 	ANDROID_WIFI_CMD_MAX
 };
 
 int rtw_android_cmdstr_to_num(char *cmdstr);
 int rtw_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd);
 
-#if defined(CONFIG_WIFI_CONTROL_FUNC)
+#if defined(CONFIG_WIFI_CONTROL_FUNC) && 0
 int wl_android_wifictrl_func_add(void);
 void wl_android_wifictrl_func_del(void);
 void* wl_android_prealloc(int section, unsigned long size);
@@ -97,3 +75,6 @@ int wifi_set_power(int on, unsigned long msec);
 int wifi_get_mac_addr(unsigned char *buf);
 void *wifi_get_country_code(char *ccode);
 #endif /* CONFIG_WIFI_CONTROL_FUNC */
+
+#endif //__RTW_ANDROID_H__
+
