@@ -286,8 +286,25 @@ static void _update_txdesc(struct xmit_frame *pxmitframe, u8 *pmem, int sz)
 			ptxdesc->txdw5 |= cpu_to_le32(0x0001ff00);
 			//ptxdesc->txdw5 |= cpu_to_le32(0x0000000b);//DataRate - 54M
 
+			#ifdef SUPPORT_64_STA
+				if(pattrib->mac_id>FW_CTRL_MACID ){
+					ptxdesc->txdw5 |= cpu_to_le32(pattrib->psta->init_rate);
+					ptxdesc->txdw4 |=cpu_to_le32(0x00000100);   //USE RATE
+					ptxdesc->txdw3 |=cpu_to_le32(BIT(28));   //PKT_ID
+					//printk("%s pattrib->mac_id=%d ptxdesc->txdw3=0x%x,ptxdesc->txdw4=0x%x,ptxdesc->txdw5=0x%x\n",__FUNCTION__,pattrib->mac_id,ptxdesc->txdw3,ptxdesc->txdw4,ptxdesc->txdw5);
+				}
+				else  //use REG_INIDATA_RATE_SEL value
+					ptxdesc->txdw5 |= cpu_to_le32(pdmpriv->INIDATA_RATE[pattrib->mac_id]);
+				if(pattrib->mac_id==1){
+					//bcmc sta
+					ptxdesc->txdw5 |= cpu_to_le32(padapter->registrypriv.bcmc_rate);
+					ptxdesc->txdw4 |=cpu_to_le32(0x00000100);   //USE RATE
+				}
+			#else	//SUPPORT_64_STA	
+
 			//use REG_INIDATA_RATE_SEL value
 			ptxdesc->txdw5 |= cpu_to_le32(pdmpriv->INIDATA_RATE[pattrib->mac_id]);
+			#endif //SUPPORT_64_STA
 
 			if (0)//for driver dbg
 			{
@@ -463,9 +480,26 @@ static s32 update_txdesc(struct xmit_frame *pxmitframe, u8 *pmem, s32 sz)
 			ptxdesc->txdw5 |= cpu_to_le32(0x0001ff00);//
 			//ptxdesc->txdw5 |= cpu_to_le32(0x0000000b);//DataRate - 54M
 
+
+			#ifdef SUPPORT_64_STA
+				if(pattrib->mac_id>=FW_CTRL_MACID ){
+					ptxdesc->txdw5 |= cpu_to_le32(pattrib->psta->init_rate);
+					ptxdesc->txdw4 |=cpu_to_le32(0x00000100);   //USE RATE
+					ptxdesc->txdw3 |=cpu_to_le32(BIT(28));   //PKT_ID
+					//printk("%s pattrib->mac_id=%d\n",__FUNCTION__,pattrib->mac_id);
+					//printk("%s pattrib->mac_id=%d ptxdesc->txdw1=0x%x,ptxdesc->txdw3=0x%x,\nptxdesc->txdw4=0x%x,ptxdesc->txdw5=0x%x\n",__FUNCTION__,pattrib->mac_id,ptxdesc->txdw1,ptxdesc->txdw3,ptxdesc->txdw4,ptxdesc->txdw5);
+				}
+				else  //use REG_INIDATA_RATE_SEL value
+					ptxdesc->txdw5 |= cpu_to_le32(pdmpriv->INIDATA_RATE[pattrib->mac_id]);
+				if(pattrib->mac_id==1){
+					//bcmc sta
+					ptxdesc->txdw5 |= cpu_to_le32(padapter->registrypriv.bcmc_rate);
+					ptxdesc->txdw4 |=cpu_to_le32(0x00000100);   //USE RATE
+				}
+			#else	//SUPPORT_64_STA	
 			//use REG_INIDATA_RATE_SEL value
 			ptxdesc->txdw5 |= cpu_to_le32(pdmpriv->INIDATA_RATE[pattrib->mac_id]);
-
+			#endif //SUPPORT_64_STA
               	if(0)//for driver dbg
 			{
 				ptxdesc->txdw4 |= cpu_to_le32(BIT(8));//driver uses rate
@@ -491,11 +525,7 @@ static s32 update_txdesc(struct xmit_frame *pxmitframe, u8 *pmem, s32 sz)
 			//	Added by Albert 2011/03/22
 			//	In the P2P mode, the driver should not support the b mode.
 			//	So, the Tx packet shouldn't use the CCK rate
-#ifdef CONFIG_IOCTL_CFG80211
-			if((wdev_to_priv(padapter->rtw_wdev))->p2p_enabled == _TRUE)
-#else //CONFIG_IOCTL_CFG80211			
 			if(!rtw_p2p_chk_state(pwdinfo, P2P_STATE_NONE))
-#endif //CONFIG_IOCTL_CFG80211		
 			{
 				ptxdesc->txdw5 |= cpu_to_le32( 0x04 );	//	Use the 6M data rate.
 			}
@@ -547,11 +577,7 @@ static s32 update_txdesc(struct xmit_frame *pxmitframe, u8 *pmem, s32 sz)
 		//	Added by Albert 2011/03/17
 		//	In the P2P mode, the driver should not support the b mode.
 		//	So, the Tx packet shouldn't use the CCK rate
-#ifdef CONFIG_IOCTL_CFG80211
-		if((wdev_to_priv(padapter->rtw_wdev))->p2p_enabled == _TRUE)
-#else //CONFIG_IOCTL_CFG80211
 		if(!rtw_p2p_chk_state(pwdinfo, P2P_STATE_NONE))
-#endif //CONFIG_IOCTL_CFG80211
 		{
 			ptxdesc->txdw5 |= cpu_to_le32( 0x04 );	//	Use the 6M data rate.
 		}

@@ -496,6 +496,8 @@ static void update_attrib_vcs_info(_adapter *padapter, struct xmit_frame *pxmitf
 			break;
 		}
 	}
+	if(padapter->registrypriv.intel_class_mode==1)
+		pattrib->vcs_mode = RTS_CTS;
 }
 
 static void update_attrib_phy_info(struct pkt_attrib *pattrib, struct sta_info *psta)
