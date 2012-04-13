@@ -464,7 +464,8 @@ __s32 DE_BE_Set_Enhance(__u8 sel, __u32 out_csc, __u32 out_color_range, __s32 br
 	else if(out_csc == 2)
 	{
 	    __scal_matrix4x4 matrix_16_255;
-
+	    
+#if 0
 	    //rgb to rgb
 		ptmatrix = (__scal_matrix4x4 *)((__u32)image_enhance_tab + (2<<7));
 		iDE_SCAL_Matrix_Mul(matrixEn, *ptmatrix, &matrixresult);
@@ -489,6 +490,32 @@ __s32 DE_BE_Set_Enhance(__u8 sel, __u32 out_csc, __u32 out_color_range, __s32 br
         matrix_16_255.x32 = 0;
         matrix_16_255.x33 = 0;            
         iDE_SCAL_Matrix_Mul(matrix_16_255, matrixresult, &matrixresult);
+#else
+		
+		//RGB2YUV when Er = 19%, Eg = 65%, Eb = 16%.
+		matrix_16_255.x00 = 0x00C3; 				
+		matrix_16_255.x01 = 0x029A; 				
+		matrix_16_255.x02 = 0x00A4; 				
+		matrix_16_255.x03 = 0x0000; 				
+		matrix_16_255.x10 = 0xFFFFFF8C; 			
+		matrix_16_255.x11 = 0xFFFFFE74; 			
+		matrix_16_255.x12 = 0x0200; 				
+		matrix_16_255.x13 = 0x20000; //0x0800;		
+		matrix_16_255.x20 = 0x0200; 				
+		matrix_16_255.x21 = 0xFFFFFE65; 			
+		matrix_16_255.x22 = 0xFFFFFF9B; 			
+		matrix_16_255.x23 = 0x20000; //0x0800;		
+		matrix_16_255.x30 = 0x0000; 				
+		matrix_16_255.x31 = 0x0000; 				
+		matrix_16_255.x32 = 0x0000; 				
+		matrix_16_255.x33 = 0x0000; 				
+
+		
+		ptmatrix = &matrix_16_255;
+		iDE_SCAL_Matrix_Mul(matrixEn, *ptmatrix, &matrixresult);
+        
+#endif
+
 	}
 
 	if(out_color_range == 0)//[16,255]

@@ -37,7 +37,7 @@ void LCD_vbi_event_proc(__u32 sel, __u32 tcon_index)
     __u32 i = 0;
     
 	Video_Operation_In_Vblanking(sel, tcon_index);
-	IEP_Operation_In_Vblanking(sel, tcon_index);
+
 
     cur_line = LCDC_get_cur_line(sel, tcon_index);
     start_delay = LCDC_get_start_delay(sel, tcon_index);
@@ -47,6 +47,8 @@ void LCD_vbi_event_proc(__u32 sel, __u32 tcon_index)
 		return ;
 	}
 
+	IEP_Operation_In_Vblanking(sel, tcon_index);
+		
     if(gdisp.screen[sel].LCD_CPUIF_ISR)
     {
     	(*gdisp.screen[sel].LCD_CPUIF_ISR)();

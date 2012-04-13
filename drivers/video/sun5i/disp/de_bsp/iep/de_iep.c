@@ -117,6 +117,7 @@ __s32 DE_IEP_Set_Csc_Coeff(__u32 sel, __u32 mod)
 		}
 		else if(mod==3)
 		{
+#if 0
 			//IGB to RGB
 			iep_dev->cscygcoff[0].bits.csc_yg_coff = 0x0c00; 
 			iep_dev->cscygcoff[1].bits.csc_yg_coff = 0x1c00; 
@@ -130,6 +131,22 @@ __s32 DE_IEP_Set_Csc_Coeff(__u32 sel, __u32 mod)
 			iep_dev->cscvbcoff[1].bits.csc_vb_coff = 0x0000; 
 			iep_dev->cscvbcoff[2].bits.csc_vb_coff = 0x0400;
 			iep_dev->cscvbcon.bits.csc_vb_con =      0x0000;
+#else
+			//YUV2RGB when Er = 19%, Eg = 65%, Eb = 16%.
+			iep_dev->cscygcoff[0].bits.csc_yg_coff = 0x0400;         
+   			iep_dev->cscygcoff[1].bits.csc_yg_coff = 0x0000;         
+   			iep_dev->cscygcoff[2].bits.csc_yg_coff = 0x067B;  
+   			iep_dev->cscygcon.bits.csc_yg_con = 	 0x330A;  
+   			iep_dev->cscurcoff[0].bits.csc_ur_coff = 0x0400;  
+   			iep_dev->cscurcoff[1].bits.csc_ur_coff = 0x1E59;  
+   			iep_dev->cscurcoff[2].bits.csc_ur_coff = 0x1E1B;  
+   			iep_dev->cscurcon.bits.csc_ur_con = 	 0x0719;  
+   			iep_dev->cscvbcoff[0].bits.csc_vb_coff = 0x0400;  
+   			iep_dev->cscvbcoff[1].bits.csc_vb_coff = 0x06B8;  
+   			iep_dev->cscvbcoff[2].bits.csc_vb_coff = 0x0000;  
+   			iep_dev->cscvbcon.bits.csc_vb_con = 	 0x328F; 
+
+#endif
 		}
 		else		//yuv2yuv	for de-flicker mode
 		{
