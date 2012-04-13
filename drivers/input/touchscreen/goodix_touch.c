@@ -935,10 +935,10 @@ static irqreturn_t goodix_ts_irq_handler(int irq, void *dev_id)
 	//clear the IRQ_EINT21 interrupt pending
 	reg_val = readl(gpio_addr + PIO_INT_STAT_OFFSET);
      
-	if(reg_val&(1<<(IRQ_EINT21)))
+	if(reg_val&(1<<(CTP_IRQ_NO)))
 	{	
-		print_int_info("==IRQ_EINT21=\n");
-		writel(reg_val&(1<<(IRQ_EINT21)),gpio_addr + PIO_INT_STAT_OFFSET);
+		print_int_info("==CTP_IRQ_NO=\n");
+		writel(reg_val&(1<<(CTP_IRQ_NO)),gpio_addr + PIO_INT_STAT_OFFSET);
 		queue_work(goodix_wq, &ts->work);
 	}
 	else

@@ -392,17 +392,17 @@ __s32 Disp_drc_init(__u32 sel)
 
 	if(sel == 0)
 	{	
-		BSP_disp_cfg_start(sel); //to prevent BE OUTCSC output YUV when IEP CSC not ready	
+		//BSP_disp_cfg_start(sel); //to prevent BE OUTCSC output YUV when IEP CSC not ready	
 		//IEP clk
 		iep_clk_open(sel);
 		
 		//another module		
 		//DE_BE_Output_Cfg_Csc_Coeff(sel, DISP_OUTPUT_TYPE_TV, 0);	//when running drc mode, debe must output yuv format		
-        BSP_disp_set_output_csc(sel, gdisp.screen[sel].output_type, 1);
+        //BSP_disp_set_output_csc(sel, gdisp.screen[sel].output_type, 1);
 		//IEP module 		
 		DE_IEP_Set_Mode(sel, 2);		
 		DE_IEP_Set_Display_Size(sel, scn_width, scn_height);
-		DE_IEP_Set_Csc_Coeff(sel, 3);		
+		//DE_IEP_Set_Csc_Coeff(sel, 3);		
 		DE_IEP_Drc_Set_Spa_Coeff(sel, spatial_coeff);
 		DE_IEP_Drc_Set_Int_Coeff(sel, intensity_coeff);
 		
@@ -426,7 +426,7 @@ __s32 Disp_drc_init(__u32 sel)
 		giep[sel].waitframe = 1;	//set 1 to make sure first frame wont get a random lgc table
 		giep[sel].runframe = 0;
 		
-		BSP_disp_cfg_finish(sel); //to prevent BE OUTCSC output YUV when IEP CSC not ready
+		//BSP_disp_cfg_finish(sel); //to prevent BE OUTCSC output YUV when IEP CSC not ready
 		
 		return 0;
 	}
@@ -744,6 +744,8 @@ __s32 Disp_drc_proc(__u32 sel, __u32 tcon_index)
 			
 			DE_IEP_Set_Demo_Win_Para(sel, top, bot, left, right);
 			DE_IEP_Demo_Win_Enable(sel, 1);		//enable here
+			DE_IEP_Set_Csc_Coeff(sel, 3);		//12-04-01 debug flicker in LCD opening
+			BSP_disp_set_output_csc(sel, gdisp.screen[sel].output_type, 1);
 			
 			lgcaddr = (__u32)pttab + ((128-1)<<9);
 			lgcaddr = __pa(lgcaddr);
