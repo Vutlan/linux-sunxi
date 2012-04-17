@@ -103,12 +103,16 @@ static int __uvc_free_buffers(struct uvc_video_queue *queue)
 			return -EBUSY;
 	}
 
+#ifndef USE_RESERVED_MEM
 	if (queue->count) {
 		uvc_queue_cancel(queue, 0);
 		INIT_LIST_HEAD(&queue->mainqueue);
 		vfree(queue->mem);
 		queue->count = 0;
 	}
+#else
+	queue->count = 0;
+#endif // USE_RESERVED_MEM
 
 	return 0;
 }
@@ -152,6 +156,7 @@ int uvc_alloc_buffers(struct uvc_video_queue *queue, unsigned int nbuffers,
 	if (nbuffers == 0)
 		goto done;
 
+#ifndef USE_RESERVED_MEM
 	/* Decrement the number of buffers until allocation succeeds. */
 	for (; nbuffers > 0; --nbuffers) {
 		mem = vmalloc_32(nbuffers * bufsize);
@@ -175,6 +180,22 @@ int uvc_alloc_buffers(struct uvc_video_queue *queue, unsigned int nbuffers,
 		queue->buffer[i].buf.flags = 0;
 		init_waitqueue_head(&queue->buffer[i].wait);
 	}
+#else
+	int start_addr_phy = (ve_start + ve_size - 16*1024*1024 + 4095) & (~(4095));	// not used
+	uvc_dbg("start_addr_phy: %x, vir: %x\n", start_addr_phy, start_addr_phy + 0x80000000);
+	mem = (void *)(start_addr_phy + 0x80000000);	// not used
+	for (i = 0; i < nbuffers; ++i) {
+		memset(&queue->buffer[i], 0, sizeof queue->buffer[i]);
+		queue->buffer[i].buf.index = i;
+		queue->buffer[i].buf.m.offset = i * bufsize;
+		queue->buffer[i].buf.length = buflength;
+		queue->buffer[i].buf.type = queue->type;
+		queue->buffer[i].buf.field = V4L2_FIELD_NONE;
+		queue->buffer[i].buf.memory = V4L2_MEMORY_MMAP;
+		queue->buffer[i].buf.flags = 0;
+		init_waitqueue_head(&queue->buffer[i].wait);
+	}
+#endif
 
 	queue->mem = mem;
 	queue->count = nbuffers;
@@ -193,9 +214,11 @@ int uvc_queue_allocated(struct uvc_video_queue *queue)
 {
 	int allocated;
 
+#ifndef USE_RESERVED_MEM
 	mutex_lock(&queue->mutex);
 	allocated = queue->count != 0;
 	mutex_unlock(&queue->mutex);
+#endif // USE_RESERVED_MEM
 
 	return allocated;
 }
@@ -376,6 +399,10 @@ int uvc_dequeue_buffer(struct uvc_video_queue *queue,
 	list_del(&buf->stream);
 	__uvc_query_buffer(buf, v4l2_buf);
 
+#ifdef USE_RESERVED_MEM
+	v4l2_buf->m.offset = queue->mem + v4l2_buf->m.offset - 0x80000000;
+#endif // USE_RESERVED_MEM
+
 done:
 	mutex_unlock(&queue->mutex);
 	return ret;
@@ -430,7 +457,8 @@ int uvc_queue_mmap(struct uvc_video_queue *queue, struct vm_area_struct *vma)
 		ret = -EINVAL;
 		goto done;
 	}
-
+	
+#ifndef USE_RESERVED_MEM
 	/*
 	 * VM_IO marks the area as being an mmaped region for I/O to a
 	 * device. It also prevents the region from being core dumped.
@@ -453,6 +481,26 @@ int uvc_queue_mmap(struct uvc_video_queue *queue, struct vm_area_struct *vma)
 	vma->vm_ops = &uvc_vm_ops;
 	vma->vm_private_data = buffer;
 	uvc_vm_open(vma);
+
+#else
+
+	addr = (unsigned long)queue->mem + buffer->buf.m.offset;
+	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
+	ret = remap_pfn_range(vma, vma->vm_start,
+				 (addr - 0x80000000) >> PAGE_SHIFT,
+				 size, vma->vm_page_prot);
+	if (ret) {
+		uvc_err("mmap: remap failed with error %d. ", ret);
+		goto done;
+	}
+
+	vma->vm_ops = &uvc_vm_ops;
+	vma->vm_flags |= VM_DONTEXPAND;
+	vma->vm_private_data = buffer;
+
+	uvc_vm_open(vma);
+	
+#endif	// USE_RESERVED_MEM
 
 done:
 	mutex_unlock(&queue->mutex);
