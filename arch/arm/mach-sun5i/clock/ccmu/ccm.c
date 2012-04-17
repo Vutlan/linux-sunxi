@@ -107,7 +107,7 @@ void fix_timer_clock(void)
     if(timer_clk_version == 1) {
         if(__reg_value(0xf1c20064)&(1<<4)) {
             tmpValue = (__reg_value(0xf1c0c048) & 0x07ff) * ((__reg_value(0xf1c0c048)>>16) & 0x07ff);
-            __reg_value(0xf1c20060) = (tmpValue > 0x321*0x200)?     \
+            __reg_value(0xf1c20060) = (tmpValue > 0x321*0x260)?     \
                             (__reg_value(0xf1c20060) & 0xffff3fff) : __reg_value(0xf1c20060);
         }
     }
