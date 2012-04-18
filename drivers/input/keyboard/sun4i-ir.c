@@ -29,6 +29,8 @@
 
 #include "ir-keymap.h"
 
+#define REPORT_REPEAT_KEY_VALUE
+
 static struct clk *apb_ir_clk;
 static struct clk *ir_clk;
 static u32 ir_gpio_hdle;
