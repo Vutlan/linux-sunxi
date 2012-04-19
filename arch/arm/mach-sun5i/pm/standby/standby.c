@@ -48,11 +48,11 @@ static void check_version(void)
     if(err_flag == 1) {
         if(__reg_value(0xf1c20064)&(1<<4)) {
             err_flag = (__reg_value(0xf1c0c048) & 0x07ff) * ((__reg_value(0xf1c0c048)>>16) & 0x07ff);
-            err_flag = (err_flag > 0x321*0x1f1)? -1 : 0;
+            err_flag = (err_flag > 0x321*0x260)? -1 : 0;
         } else {
             __reg_value(0xf1c20064) |= (1<<4);
             err_flag = (__reg_value(0xf1c0c048) & 0x07ff) * ((__reg_value(0xf1c0c048)>>16) & 0x07ff);
-            err_flag = (err_flag > 0x321*0x1f1)? -1 : 0;
+            err_flag = (err_flag > 0x321*0x260)? -1 : 0;
             __reg_value(0xf1c20064) &= ~(1<<4);
         }
     } else {
