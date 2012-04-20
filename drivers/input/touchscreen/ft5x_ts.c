@@ -180,13 +180,11 @@ static int ctp_get_pendown_state(void)
 static void ctp_clear_penirq(void)
 {
 	int reg_val;
-	//clear the IRQ_EINT29 interrupt pending
-	//pr_info("clear pend irq pending\n");
+
 	reg_val = readl(gpio_addr + PIO_INT_STAT_OFFSET);
-	//writel(reg_val,gpio_addr + PIO_INT_STAT_OFFSET);
-	//writel(reg_val&(1<<(IRQ_EINT21)),gpio_addr + PIO_INT_STAT_OFFSET);
+
 	if((reg_val = (reg_val&(1<<(CTP_IRQ_NO))))){
-		print_int_info("==CTP_IRQ_NO=\n");              
+		print_int_info("==CTP_IRQ_NO:%d=\n",CTP_IRQ_NO);              
 		writel(reg_val,gpio_addr + PIO_INT_STAT_OFFSET);
 	}
 	return;
@@ -901,7 +899,7 @@ E_UPGRADE_ERR_TYPE  fts_ctpm_fw_upgrade(u8* pbt_buf, u16 dw_lenth)
         i++;
         delay_ms(5);
         pr_info("Step 3: CTPM ID,ID1 = 0x%x,ID2 = 0x%x\n",reg_val[0],reg_val[1]);
-    }while(reg_val[1] != 0x03);//while(reg_val[0] != 0x79 || reg_val[1] != 0x03);
+    }while((reg_val[1] != 0x03)&&(reg_val[1] != 0x06));//while(reg_val[0] != 0x79 || reg_val[1] != 0x03);
 
      /*********Step 4:erase app*******************************/
     cmd_write(0x61,0x00,0x00,0x00,1);
@@ -1583,7 +1581,7 @@ static irqreturn_t ft5x_ts_interrupt(int irq, void *dev_id)
 		
 	print_int_info("==========------ft5x_ts TS Interrupt-----============\n"); 
 	if(!ctp_ops.judge_int_occur()){
-		print_int_info("==IRQ_EINT21=\n");
+		print_int_info("==IRQ_EINT%d=\n",CTP_IRQ_NO);
 		ctp_ops.clear_penirq();
 		if (!work_pending(&ft5x_ts->pen_event_work)) 
 		{
