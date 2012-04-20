@@ -31,6 +31,7 @@
 
 #include <mach/clock.h>
 #include <mach/system.h>
+#include <mach/sys_config.h>
 
 /* we predefine the count here, but it's ugly, maybe malloc is better */
 #define MAX_SYSTEM_CLK_CNT  (32)
@@ -40,11 +41,10 @@
 #undef CCU_ERR
 #if (0)
     #define CCU_DBG     printk
-    #define CCU_ERR     printk
 #else
     #define CCU_DBG(...)
-    #define CCU_ERR(...)
 #endif
+#define CCU_ERR     printk
 
 
 // alloc memory for store clock informatioin, maybe malloc is better
@@ -76,8 +76,9 @@ static DEFINE_SPINLOCK(clockfw_lock);
 */
 int clk_init(void)
 {
-    __s32           i;
+    __s32           i, tmpFreq;
     struct clk      *tmpSclk;
+    char            *script_base = (char *)(PAGE_OFFSET + 0x3000000);
 
     CCU_DBG("aw clock manager init!\n");
 
@@ -157,73 +158,75 @@ int clk_init(void)
     tmpSclk->clk->onoff = AW_CCU_CLK_ON;
     tmpSclk->set_clk(tmpSclk->clk);
 
-    if(MAGIC_VER_C == sw_get_ic_ver()) {
-        /* initiate PLL4 */
-        #if(USE_PLL6M_REPLACE_PLL4)
+    /* init pll4 frequency */
+    if((MAGIC_VER_C == sw_get_ic_ver()) && USE_PLL6M_REPLACE_PLL4)
+    {
         tmpSclk = &ccu_sys_clk[AW_SYS_CLK_PLL4];
         tmpSclk->clk->onoff = AW_CCU_CLK_OFF;
         tmpSclk->set_clk(tmpSclk->clk);
-        #else
+    }
+    else
+    {
+        tmpFreq = sw_cfg_get_int(script_base, "target", "pll4_freq");
+        if (tmpFreq == -1) {
+            /* try to get pll4 frequency failed, set to default value */
+            CCU_ERR("try to parse pll4 frequency from script faild!\n");
+            tmpFreq = 960;
+        } else {
+            /* check if the value is valid */
+            if ((tmpFreq < 120) || (tmpFreq > 1200)) {
+                /* pll4 frequency is invalid, set to default value */
+                CCU_ERR("pll4 frequency config is invalid!\n");
+                tmpFreq = 960;
+            }
+            CCU_DBG("pll4 frequency is configed to %dMhz!\n", tmpFreq);
+        }
         tmpSclk = &ccu_sys_clk[AW_SYS_CLK_PLL4];
-        tmpSclk->clk->rate  = 960000000;
-        tmpSclk->set_clk(tmpSclk->clk);
-        tmpSclk->clk->onoff = AW_CCU_CLK_ON;
-        tmpSclk->set_clk(tmpSclk->clk);
-        #endif
-
-        /* sata pll set to 960mhz for c ver. */
-        tmpSclk = &ccu_sys_clk[AW_SYS_CLK_PLL6];
-        #if(USE_PLL6M_REPLACE_PLL4)
-        tmpSclk->clk->rate  = 960000000;
-        #else
-        tmpSclk->clk->rate  = 600000000;
-        #endif
-        tmpSclk->set_clk(tmpSclk->clk);
-        tmpSclk->clk->onoff = AW_CCU_CLK_ON;
-        tmpSclk->set_clk(tmpSclk->clk);
-        tmpSclk = &ccu_sys_clk[AW_SYS_CLK_PLL6M];
-        #if(USE_PLL6M_REPLACE_PLL4)
-        tmpSclk->clk->rate  = 160000000;
-        #else
-        tmpSclk->clk->rate  = 100000000;
-        #endif
-        tmpSclk->set_clk(tmpSclk->clk);
-        tmpSclk->clk->onoff = AW_CCU_CLK_ON;
-        tmpSclk->set_clk(tmpSclk->clk);
-        tmpSclk = &ccu_sys_clk[AW_SYS_CLK_PLL62];
-        #if(USE_PLL6M_REPLACE_PLL4)
-        tmpSclk->clk->rate  = 480000000;
-        #else
-        tmpSclk->clk->rate  = 300000000;
-        #endif
-        tmpSclk->set_clk(tmpSclk->clk);
-        tmpSclk->clk->onoff = AW_CCU_CLK_ON;
-        tmpSclk->set_clk(tmpSclk->clk);
-    } else {
-        /* initiate PLL4 */
-        tmpSclk = &ccu_sys_clk[AW_SYS_CLK_PLL4];
-        tmpSclk->clk->rate  = 960000000;
-        tmpSclk->set_clk(tmpSclk->clk);
-        tmpSclk->clk->onoff = AW_CCU_CLK_ON;
-        tmpSclk->set_clk(tmpSclk->clk);
-
-        /* initiate PLL6 */
-        tmpSclk = &ccu_sys_clk[AW_SYS_CLK_PLL6];
-        tmpSclk->clk->rate  = 600000000;
-        tmpSclk->set_clk(tmpSclk->clk);
-        tmpSclk->clk->onoff = AW_CCU_CLK_ON;
-        tmpSclk->set_clk(tmpSclk->clk);
-        tmpSclk = &ccu_sys_clk[AW_SYS_CLK_PLL6M];
-        tmpSclk->clk->rate  = 100000000;
-        tmpSclk->set_clk(tmpSclk->clk);
-        tmpSclk->clk->onoff = AW_CCU_CLK_ON;
-        tmpSclk->set_clk(tmpSclk->clk);
-        tmpSclk = &ccu_sys_clk[AW_SYS_CLK_PLL62];
-        tmpSclk->clk->rate  = 300000000;
+        tmpSclk->clk->rate  = tmpFreq * 1000000;
         tmpSclk->set_clk(tmpSclk->clk);
         tmpSclk->clk->onoff = AW_CCU_CLK_ON;
         tmpSclk->set_clk(tmpSclk->clk);
     }
+
+    /* init pll6 frequency */
+    tmpFreq = sw_cfg_get_int(script_base, "target", "pll6_freq");
+    if (tmpFreq == -1) {
+        /* try to get pll6 frequency failed, set to default value */
+        CCU_ERR("try to parse pll6 frequency from script faild!\n");
+        tmpFreq = 600;
+    } else {
+        /* check if the value is valid */
+        if ((tmpFreq < 120) || (tmpFreq > 2000)) {
+            /* pll6 frequency is invalid, set to default value */
+            CCU_ERR("pll6 frequency config is invalid!\n");
+            tmpFreq = 600;
+        }
+        CCU_DBG("pll6 frequency is configed to %dMhz!\n", tmpFreq);
+    }
+    tmpSclk = &ccu_sys_clk[AW_SYS_CLK_PLL6];
+    tmpSclk->clk->rate  = tmpFreq * 1000000;
+    tmpSclk->set_clk(tmpSclk->clk);
+    tmpSclk->clk->onoff = AW_CCU_CLK_ON;
+    tmpSclk->set_clk(tmpSclk->clk);
+    tmpSclk = &ccu_sys_clk[AW_SYS_CLK_PLL6M];
+    if((tmpFreq/100)*100 == tmpFreq)
+    {
+        /* set cloce to 100Mhz */
+        tmpSclk->clk->rate  = 100 * 1000000;
+    }
+    else
+    {
+        /* not divide the clock */
+        tmpSclk->clk->rate  = (tmpFreq/6) * 1000000;
+    }
+    tmpSclk->set_clk(tmpSclk->clk);
+    tmpSclk->clk->onoff = AW_CCU_CLK_ON;
+    tmpSclk->set_clk(tmpSclk->clk);
+    tmpSclk = &ccu_sys_clk[AW_SYS_CLK_PLL62];
+    tmpSclk->clk->rate  = (tmpFreq/2) * 1000000;
+    tmpSclk->set_clk(tmpSclk->clk);
+    tmpSclk->clk->onoff = AW_CCU_CLK_ON;
+    tmpSclk->set_clk(tmpSclk->clk);
 
     tmpSclk = &ccu_sys_clk[AW_SYS_CLK_PLL7];
     tmpSclk->clk->onoff = AW_CCU_CLK_ON;
