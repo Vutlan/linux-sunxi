@@ -26,6 +26,13 @@ config SENSORS_MXC622X
 	help
 	  If you say yes here you get support for the MEMSIC accelerometer sensor
 
+config SENSORS_DMARD06
+	tristate "DMARD06 acceleration sensor support"
+	depends on I2C
+	help
+	  If you say yes here you get support for Bosch Sensortec's 
+	  acceleration sensors DMARD06.
+
 
 ###### not supported yet ######
 if 0
