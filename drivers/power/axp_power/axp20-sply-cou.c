@@ -1341,7 +1341,7 @@ static void axp_charging_monitor(struct work_struct *work)
 	axp_charger_update_state(charger);
 	axp_charger_update(charger);
 
-	if((v[0] == 0x11 || v[0] == 0x21) && charger->is_on && axp20_icharge_to_mA(charger->adc->ichar_res) > 200 && charger->vbat > 3600 && charger->disvbat != 0){
+	if(charger->is_on && axp20_icharge_to_mA(charger->adc->ichar_res) > 200 && charger->vbat > 3600 && charger->disvbat != 0){
 		if((((v[1] >> 7) == 0) || (((v[1] >> 3) & 0x1) == 0)) && count_rdc >= 3){
 			axp_set_bits(charger->master,AXP20_CAP,0x80);
 			axp_clr_bits(charger->master,0xBA,0x80);
