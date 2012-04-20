@@ -1557,6 +1557,9 @@ static void rtl8723as_init_default_value(PADAPTER padapter)
 	pdmpriv->ThermalValue_HP_index = 0;
 	for(i = 0; i < HP_THERMAL_NUM; i++)
 		pdmpriv->ThermalValue_HP[i] = 0;
+
+	// interface related variable
+	pHalData->SdioRxFIFOCnt = 0;
 }
 #if 0
 static VOID

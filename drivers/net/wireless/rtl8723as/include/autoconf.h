@@ -145,7 +145,7 @@
 
 #ifdef CONFIG_POWER_SAVING
 
-//#define CONFIG_IPS		1  //ignore this will consumes power when disconnected.2012-4-11 14:24:09
+#define CONFIG_IPS		1  //ignore this will consumes power when disconnected.2012-4-11 14:24:09
 #define CONFIG_LPS		1
 
 #if defined(CONFIG_LPS) && defined(CONFIG_SDIO_HCI)
