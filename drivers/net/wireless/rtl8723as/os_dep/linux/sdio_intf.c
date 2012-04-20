@@ -727,6 +727,7 @@ int rtw_resume_process(_adapter *padapter)
 	}	
 
 	#ifdef CONFIG_LAYER2_ROAMING_RESUME
+	rtw_msleep_os(50);
 	rtw_roaming(padapter, NULL);
 	#endif	
 	
