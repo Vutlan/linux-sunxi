@@ -64,7 +64,22 @@ void dram_power_save_process(void);
 unsigned int dram_power_up_process(void);
 
 
-#define DRAM_HOST_CFG_BASE          (SW_VA_DRAM_IO_BASE + 0x250)
+#if defined CONFIG_ARCH_SUN4I
+    #define HOST_PORT_SIZE 21
+#elif defined CONFIG_ARCH_SUN5I
+    #define HOST_PORT_SIZE 14
+#endif
+
+#define DRAM_HOST_CFG_BASE  (SW_VA_DRAM_IO_BASE + 0x250)
+#define DRAM_HOST_CFG_PORT  ((__dram_host_cfg_reg_t *)(DRAM_HOST_CFG_BASE + 4*port))
+
+#define HOST_PORT_ATTR(_name)       \
+{									\
+	.attr = { .name = #_name,.mode = 0644 },    \
+	.show =  _name##_show,          \
+	.store = _name##_store,         \
+}
+
 typedef struct __DRAM_HOST_CFG_REG{
     unsigned int    AcsEn:1;    //bit0, host port access enable
     unsigned int    reserved0:1;    //bit1
@@ -93,6 +108,16 @@ typedef enum __DRAM_HOST_PORT{
     DRAM_HOST_GPS   = 30,
 } __dram_host_port_e;
 
+
+int dram_host_port_cmd_num_set(__dram_host_port_e port, unsigned int num);
+int dram_host_port_cmd_num_get(__dram_host_port_e port);
+int dram_host_port_wait_state_set(__dram_host_port_e port, unsigned int state);
+int dram_host_port_wait_state_get(__dram_host_port_e port);
+int dram_host_port_prio_level_set(__dram_host_port_e port, unsigned int level);
+int dram_host_port_prio_level_get(__dram_host_port_e port);
+int dram_host_port_acs_enable(__dram_host_port_e port);
+int dram_host_port_acs_disable(__dram_host_port_e port);
+int dram_host_port_acs_get(__dram_host_port_e port);
 
 #endif  /* __AW_DRAM_H__ */
 
