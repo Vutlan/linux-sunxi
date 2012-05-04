@@ -57,6 +57,8 @@
 #define SYS_FPGA_SIM
 #endif
 
+static DEFINE_SPINLOCK(dvfs_lock);
+
 /* aw_i2c_adapter: transfer status */
 enum
 {
@@ -559,6 +561,43 @@ static int aw_twi_send_clk_9pulse(void *base_addr)
     }
 }
 
+/* set cpu busy bit to 1, only i2c-0 */
+static void aw_twi_set_cpu_busy(void *base_addr)
+{
+    unsigned int reg_val = 0;
+    unsigned int timeout = 2000;
+    unsigned long flags;
+
+    do{
+        spin_lock_irqsave(&dvfs_lock, flags);
+
+        /* query dvfs busy is 0 */
+        reg_val = readl(base_addr + TWI_DVFS_REG);
+        reg_val &= 0x1;
+
+        if(reg_val == 0){
+            /* set cpu busy to 1 */
+            reg_val = readl(base_addr + TWI_DVFS_REG);
+            reg_val |= 0x2;
+            writel(reg_val, base_addr + TWI_DVFS_REG);
+
+            spin_unlock_irqrestore(&dvfs_lock, flags);
+            break;
+        }else{
+            spin_unlock_irqrestore(&dvfs_lock, flags);
+        }
+        msleep(10);
+    }while(timeout--);
+}
+
+/* clear cpu busy bit to 1, only i2c-0 */
+static inline void aw_twi_clear_cpu_busy(void *base_addr)
+{
+    unsigned int reg_val = readl(base_addr + TWI_DVFS_REG);
+    reg_val &= (~(1 << 1));
+    writel(reg_val, base_addr + TWI_DVFS_REG);
+}
+
 /*
 ****************************************************************************************************
 *
@@ -843,6 +882,10 @@ static int i2c_sunxi_do_xfer(struct sunxi_i2c *i2c, struct i2c_msg *msgs, int nu
 	int ret = AWXX_I2C_FAIL;
 	//int i = 0, j =0;
 
+    if(i2c->bus_num == 0){
+        /* set cpu busy */
+        aw_twi_set_cpu_busy(i2c->base_addr);
+    }
 	aw_twi_soft_reset(i2c->base_addr);
 	udelay(100);
 
@@ -850,7 +893,7 @@ static int i2c_sunxi_do_xfer(struct sunxi_i2c *i2c, struct i2c_msg *msgs, int nu
 	while( TWI_STAT_IDLE != aw_twi_query_irq_status(i2c->base_addr)&&
 	       TWI_STAT_BUS_ERR != aw_twi_query_irq_status(i2c->base_addr) &&
 	       TWI_STAT_ARBLOST_SLAR_ACK != aw_twi_query_irq_status(i2c->base_addr) ) {
-		i2c_dbg("bus is busy, status = %x\n", aw_twi_query_irq_status(i2c->base_addr));
+		i2c_dbg("[i2c%d] bus is busy, status = %x\n", i2c->bus_num, aw_twi_query_irq_status(i2c->base_addr));
         if( AWXX_I2C_OK == aw_twi_send_clk_9pulse(i2c->base_addr) )
         {
             break;
@@ -903,11 +946,15 @@ static int i2c_sunxi_do_xfer(struct sunxi_i2c *i2c, struct i2c_msg *msgs, int nu
 		ret = -ETIME;
 	}
 	else if (ret != num){
-		printk("incomplete xfer (0x%x)\n", ret);
+		printk("[i2c%d] incomplete xfer (0x%x)\n", i2c->bus_num, ret);
 		ret = -ECOMM;
 		//dev_dbg(i2c->adap.dev, "incomplete xfer (%d)\n", ret);
 	}
 out:
+	if(i2c->bus_num == 0){
+	    /* clear cpu busy */
+	    aw_twi_clear_cpu_busy(i2c->base_addr);
+	}
 	return ret;
 }
 

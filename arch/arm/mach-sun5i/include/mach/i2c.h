@@ -29,6 +29,7 @@
 #define TWI_SRST_REG    	(0x18) 	/*  31:1bit reserved;0bit,write 1 to clear 0. */
 #define TWI_EFR_REG     	(0x1C) 	/*  31:2bit reserved,1:0 bit data byte follow read comand */
 #define TWI_LCR_REG     	(0x20) 	/*  31:6bits reserved  5:0bit for sda&scl control*/
+#define TWI_DVFS_REG        (0x24)  /*  31:3bits reserved  2:0bit for dvfs control */
 
 /* TWI address register */
 #define TWI_GCE_EN      	(0x1 <<0) /* general call address enable for slave mode */
