@@ -355,7 +355,9 @@ static int fuse_release(struct inode *inode, struct file *file)
 {
 	struct fuse_conn *fc = get_fuse_conn(inode);
 	flush_cache_req(fc);
-	kthread_stop(req_task);
+	if(req_task != NULL){
+		kthread_stop(req_task);
+	}
 	fuse_release_common(file, FUSE_RELEASE);
 
 	/* return value is ignored by VFS */
@@ -1100,7 +1102,7 @@ static ssize_t fuse_perform_write(struct file *file,
 			err = count;
 		} else {
 			size_t num_written;
-			printk("1038 pos:%lld count:%d \n", pos, count);
+			//printk("1038 pos:%lld count:%d \n", pos, count);
 #if CACHE_REQ_ENABLE
 			pos += count;
 			res += count;
