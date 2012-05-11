@@ -3,7 +3,7 @@
  * (C) Copyright 2007-2011
  * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
  * Aaron.Maoye <leafy.myeh@allwinnertech.com>
- * 
+ *
  * description for this code
  *
  * This program is free software; you can redistribute it and/or
@@ -65,7 +65,7 @@ enum mclk_src {
 	SMC_MCLK_SRC_SATAPLL,
 	SMC_MCLK_SRC_DRAMPLL
 };
-#define SMC_MAX_MOD_CLOCK(n)    (104000000)
+#define SMC_MAX_MOD_CLOCK(n)    (90000000)
 #define SMC_MAX_IO_CLOCK(n)     (52000000)
 #define SMC_MOD_CLK_SRC(n)      (SMC_MCLK_SRC_SATAPLL)
 
