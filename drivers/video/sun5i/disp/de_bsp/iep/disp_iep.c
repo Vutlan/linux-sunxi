@@ -648,6 +648,10 @@ __s32 Disp_iep_init(__u32 sel)
 #ifdef DRC_DEFAULT_ENABLE
 	__disp_rect_t regn;
 #endif
+	__u32 lcdgamma;
+    int  value = 1;
+    char primary_key[20];
+    int  ret;
 
 	memset(giep, 0, sizeof(giep));
 	memset(gpwrsv, 0, sizeof(gpwrsv));
@@ -657,7 +661,29 @@ __s32 Disp_iep_init(__u32 sel)
 		iep_clk_init(sel);
         pttab = kmalloc(sizeof(pwrsv_lgc_tab), GFP_KERNEL | __GFP_ZERO);
 
-        memcpy(pttab, pwrsv_lgc_tab, sizeof(pwrsv_lgc_tab));
+		sprintf(primary_key, "lcd%d_para", sel);
+
+		ret = OSAL_Script_FetchParser_Data(primary_key, "lcdgamma4iep", &value, 1);
+	    if(ret < 0)
+	    {
+	        DE_WRN("lcdgamma4iep not exit.\n");
+	        lcdgamma = 6; //default gamma = 2.2;
+	    }
+	    else
+	    {
+	        DE_INF("lcdgamma4iep = %d.\n", value);
+	        if(value > 30 || value < 10)
+	        {
+	        	DE_WRN("lcdgamma4iep too small or too large. default value 22 will be set. please set it between 10 and 30 to make it valid.\n");
+				lcdgamma = 6;//default gamma = 2.2;
+	        }
+	        else
+	        {
+	        	lcdgamma = (value - 10)/2;
+	        }
+	    }		
+
+        memcpy(pttab, pwrsv_lgc_tab[128*lcdgamma], sizeof(pwrsv_lgc_tab));
         
 #ifdef DRC_DEFAULT_ENABLE
 #ifdef DRC_DEMO
