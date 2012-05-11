@@ -38,6 +38,8 @@
 //#define  KEY_DEBUG_LEVEL2
 #define  PRINT_SUSPEND_INFO
 
+#define INPUT_DEV_NAME	("sun4i-keyboard")
+
 #define  KEY_MAX_CNT  		(13)
  
 #define  KEY_BASSADDRESS	(0xf1c22800)
@@ -91,8 +93,8 @@
 //standard of key maping
 //0.2V mode	 
 
-#define REPORT_START_NUM			(5)
-#define REPORT_KEY_LOW_LIMIT_COUNT		(3)
+#define REPORT_START_NUM			(2)
+#define REPORT_KEY_LOW_LIMIT_COUNT		(1)
 #define MAX_CYCLE_COUNTER			(100)
 //#define REPORT_REPEAT_KEY_BY_INPUT_CORE
 //#define REPORT_REPEAT_KEY_FROM_HW
@@ -192,8 +194,7 @@ static void sun4i_keyboard_resume(struct early_suspend *h)
 #ifdef PRINT_SUSPEND_INFO
 	printk("enter laterresume: sun4i_keyboard_resume. \n");
 #endif
-
-	writel(FIRST_CONCERT_DLY|LEVELB_VOL|KEY_MODE_SELECT|LRADC_HOLD_EN|ADC_CHAN_SELECT|LRADC_SAMPLE_62HZ|LRADC_EN,KEY_BASSADDRESS + LRADC_CTRL);
+	writel(FIRST_CONCERT_DLY|LEVELB_VOL|KEY_MODE_SELECT|LRADC_HOLD_EN|ADC_CHAN_SELECT|LRADC_SAMPLE_125HZ|LRADC_EN,KEY_BASSADDRESS + LRADC_CTRL);
 	return ; 
 }
 #else
@@ -212,6 +213,7 @@ static irqreturn_t sun4i_isr_key(int irq, void *dummy)
   	#endif
 	reg_val  = readl(KEY_BASSADDRESS + LRADC_INT_STA);
 	//writel(reg_val,KEY_BASSADDRESS + LRADC_INT_STA);
+
 	if(reg_val&LRADC_ADC0_DOWNPEND)
 	{
 		#ifdef KEY_DEBUG
@@ -222,20 +224,19 @@ static irqreturn_t sun4i_isr_key(int irq, void *dummy)
 	if(reg_val&LRADC_ADC0_DATAPEND)
 	{
 		key_val = readl(KEY_BASSADDRESS+LRADC_DATA0);
+		
 		if(key_val < 0x3f)
 		{
-		/*key_val = readl(KEY_BASSADDRESS + LRADC_DATA0);
-		cancode = keypad_mapindex[key_val&0x3f];
-#ifdef KEY_DEBUG
-		printk("raw data: key_val == %u , scancode == %u \n", key_val, scancode);
-#endif
-		*/
+
 		cycle_buffer[key_cnt%REPORT_START_NUM] = key_val&0x3f;
+
 		if((key_cnt + 1) < REPORT_START_NUM)
 		{
+
 			//do not report key message
 
 		}else{
+		   // printk("key_cnt = %d \n",key_cnt);
 			//scancode = cycle_buffer[(key_cnt-2)%REPORT_START_NUM];
 			if(cycle_buffer[(key_cnt - REPORT_START_NUM + 1)%REPORT_START_NUM] \
 			== cycle_buffer[(key_cnt - REPORT_START_NUM + 2)%REPORT_START_NUM])
@@ -245,14 +246,18 @@ static irqreturn_t sun4i_isr_key(int irq, void *dummy)
 			judge_flag = 1;
 
 			}  
-			if((!judge_flag) && cycle_buffer[(key_cnt - REPORT_START_NUM + 4)%REPORT_START_NUM] \
-			== cycle_buffer[(key_cnt - REPORT_START_NUM + 5)%REPORT_START_NUM])
+#ifdef KEY_DEBUG
+			printk("cycle_buffer[(key_cnt - 1)] = 0x%x,cycle_buffer[(key_cnt -  2)]) = 0x%x\n",cycle_buffer[(key_cnt -  1)],cycle_buffer[(key_cnt -  2)]);
+#endif
+			if((!judge_flag) && (cycle_buffer[(key_cnt - REPORT_START_NUM + 1)%REPORT_START_NUM] \
+			== cycle_buffer[(key_cnt - REPORT_START_NUM + 2)%REPORT_START_NUM]))
 			{
-			key_val = cycle_buffer[(key_cnt - REPORT_START_NUM + 5)%REPORT_START_NUM];
+
+			key_val = cycle_buffer[(key_cnt - REPORT_START_NUM + 1)%REPORT_START_NUM];
 			scancode = keypad_mapindex[key_val&0x3f];
 			judge_flag = 1;
 			                           
-			}  
+			} 
 			if(1 == judge_flag)
 			{
 #ifdef KEY_DEBUG_LEVEL2
@@ -270,7 +275,7 @@ static irqreturn_t sun4i_isr_key(int irq, void *dummy)
 #else
 				//do not report key value
 #endif
-				}else if(INITIAL_VALUE != transfer_code){                                 
+				}else if(INITIAL_VALUE != transfer_code){                               
 				//report previous key value up signal + report current key value down
 				input_report_key(sun4ikbd_dev, sun4i_scankeycodes[transfer_code], 0);
 				input_sync(sun4ikbd_dev);
@@ -309,7 +314,7 @@ static irqreturn_t sun4i_isr_key(int irq, void *dummy)
 			input_sync(sun4ikbd_dev);
 			}
 
-		}else if((key_cnt + 1) >= REPORT_KEY_LOW_LIMIT_COUNT){   
+		}else if( key_cnt >= REPORT_KEY_LOW_LIMIT_COUNT){   
 			//rely on hardware first_delay work, need to be verified!
 			if(cycle_buffer[0] == cycle_buffer[1]){
 				key_val = cycle_buffer[0];
@@ -358,7 +363,7 @@ static int __init sun4ikbd_init(void)
 		goto fail1;
 	}
 
-	sun4ikbd_dev->name = "sun4i-keyboard";  
+	sun4ikbd_dev->name = INPUT_DEV_NAME;  
 	sun4ikbd_dev->phys = "sun4ikbd/input0"; 
 	sun4ikbd_dev->id.bustype = BUS_HOST;      
 	sun4ikbd_dev->id.vendor = 0x0001;
@@ -377,7 +382,7 @@ static int __init sun4ikbd_init(void)
 	
 #ifdef ONE_CHANNEL
 	writel(LRADC_ADC0_DOWN_EN|LRADC_ADC0_UP_EN|LRADC_ADC0_DATA_EN,KEY_BASSADDRESS + LRADC_INTC);	
-	writel(FIRST_CONCERT_DLY|LEVELB_VOL|KEY_MODE_SELECT|LRADC_HOLD_EN|ADC_CHAN_SELECT|LRADC_SAMPLE_62HZ|LRADC_EN,KEY_BASSADDRESS + LRADC_CTRL);
+	writel(FIRST_CONCERT_DLY|LEVELB_VOL|KEY_MODE_SELECT|LRADC_HOLD_EN|ADC_CHAN_SELECT|LRADC_SAMPLE_125HZ|LRADC_EN,KEY_BASSADDRESS + LRADC_CTRL);
 	//writel(FIRST_CONCERT_DLY|LEVELB_VOL|KEY_MODE_SELECT|ADC_CHAN_SELECT|LRADC_SAMPLE_62HZ|LRADC_EN,KEY_BASSADDRESS + LRADC_CTRL);
 
 #else
@@ -441,4 +446,6 @@ module_exit(sun4ikbd_exit);
 MODULE_AUTHOR(" <@>");
 MODULE_DESCRIPTION("sun4i-keyboard driver");
 MODULE_LICENSE("GPL");
+
+
 
