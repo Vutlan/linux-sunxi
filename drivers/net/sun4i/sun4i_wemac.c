@@ -2047,7 +2047,7 @@ static int __init set_mac_addr(char *str)
 
 	return 0;
 }
-__setup("set_mac_addr", set_mac_addr);
+__setup("mac_addr=", set_mac_addr);
 
 static int __init wemac_init(void)
 {
