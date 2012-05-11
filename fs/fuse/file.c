@@ -19,7 +19,13 @@
 #include <trace/events/writeback.h>
 
 static const struct file_operations fuse_direct_io_file_operations;
-static struct task_struct *req_task = NULL;
+struct  file_thread_struct file_thread_info = {
+												0,
+												NULL,
+												NULL,
+												NULL
+												};
+
 
 size_t fuse_send_write_pages(struct fuse_req *req, struct file *file,
 				    struct inode *inode, loff_t pos,
@@ -203,6 +209,7 @@ static int flush_cache_req(struct fuse_conn *fc ){
 	if(fc->cache_req.req != NULL){
 		cache_req = list_entry(fc->cache_req.req, struct fuse_req, list);
 		if(cache_req != NULL){
+			fc->cache_req.req  = NULL;
 //			printk("%s %d \n", __func__, __LINE__);
 			fuse_send_write_pages(cache_req, fc->cache_req.file, fc->cache_req.inode, fc->cache_req.pos, fc->cache_req.count);
 			fuse_put_request(fc, cache_req);
@@ -218,9 +225,10 @@ int fuse_flush_req_thread(void *data)
 {
 	unsigned num_pages = 0;
 	loff_t pos = 0;
-	struct fuse_conn *fc = data;
+	struct file_thread_struct *file_str = data;
+	struct fuse_conn *fc = NULL;
 	struct fuse_req *cache_req = NULL;
-
+	struct file_thread_info *file_info = NULL;
 	/*
 	 * Our parent may run at a different priority, just set us to normal
 	 */
@@ -228,38 +236,44 @@ int fuse_flush_req_thread(void *data)
 
 	trace_writeback_thread_start(fc);
 
-	while (!kthread_should_stop()) {
-
-		if(fc && fc->cache_req.req != NULL && fc->cache_req.lock != 1){
-			cache_req = list_entry(fc->cache_req.req, struct fuse_req, list);
-			if(cache_req != NULL){
-				pos       = fc->cache_req.pos;
-				num_pages = cache_req->num_pages;
-			}
-		}
-		
-		set_current_state(TASK_UNINTERRUPTIBLE);
-		schedule_timeout(msecs_to_jiffies(100));
 #if CACHE_REQ_ENABLE
-		if(fc && fc->cache_req.req != NULL && fc->cache_req.lock != 1){
-			cache_req = list_entry(fc->cache_req.req, struct fuse_req, list);
-			if(cache_req != NULL && (fc->cache_req.lock == 0) && (cache_req->num_pages == num_pages) && (pos == fc->cache_req.pos) && (num_pages > 0)){
-				__set_current_state(TASK_RUNNING);
-				//current->backing_dev_info = &fc->bdi;
-				//file_remove_suid(fc->cache_req.file);
-				//file_update_time(fc->cache_req.file);
-				fc->cache_req.lock = 1;
-				flush_cache_req(fc);
-				fc->cache_req.req = NULL;
-				printk(" f 1 \n");
-//				printk(" f 1 %s \n",  fc->cache_req.file->f_path.dentry->d_name.name);
-				//current->backing_dev_info = NULL;
+	while (!kthread_should_stop()) {
+        if(file_str == NULL || file_str->file_info == NULL){
+			continue;
+		}
+		file_info = file_str->file_info;
+		while(file_info){
+			fc = file_info->f_conn;
+			file_info = file_info->next;
+			if(fc && fc->cache_req.req != NULL && fc->cache_req.lock != 1){
+				cache_req = list_entry(fc->cache_req.req, struct fuse_req, list);
+				if(cache_req != NULL){
+					pos       = fc->cache_req.pos;
+					num_pages = cache_req->num_pages;
+				}
+			}
+			
+			set_current_state(TASK_UNINTERRUPTIBLE);
+			schedule_timeout(msecs_to_jiffies(100));
+			if(fc && fc->cache_req.req != NULL && fc->cache_req.lock != 1){
+				cache_req = list_entry(fc->cache_req.req, struct fuse_req, list);
+				if(cache_req != NULL && (fc->cache_req.lock == 0) && (cache_req->num_pages == num_pages) && (pos == fc->cache_req.pos) && (num_pages > 0)){
+					__set_current_state(TASK_RUNNING);
+					//current->backing_dev_info = &fc->bdi;
+					//file_remove_suid(fc->cache_req.file);
+					//file_update_time(fc->cache_req.file);
+					fc->cache_req.lock = 1;
+					flush_cache_req(fc);
+					fc->cache_req.req = NULL;
+					printk(" f 1 \n");
+//					printk(" f 1 %s \n",  fc->cache_req.file->f_path.dentry->d_name.name);
+					//current->backing_dev_info = NULL;
+				}
 			}
 		}
-#endif
 		try_to_freeze();
 	}
-	
+#endif
 	trace_writeback_thread_stop(fc);
 	return 0;
 }
@@ -283,15 +297,34 @@ int fuse_open_common(struct inode *inode, struct file *file, bool isdir)
 
 	fuse_finish_open(inode, file);
 
+#if CACHE_REQ_ENABLE
 	if(!isdir){
-		req_task = kthread_create(fuse_flush_req_thread, fc, "req-flush-%s", "fuse");
-		if (IS_ERR(req_task)) {
-			err = PTR_ERR(req_task);
-			return err;
+		if(file_thread_info.file_num == 0){
+			file_thread_info.file_info =kmalloc(sizeof(struct file_thread_info), GFP_KERNEL);
+			file_thread_info.file_info_curr = file_thread_info.file_info;
+			file_thread_info.file_info->prev = NULL;
+			file_thread_info.file_info->next = NULL;
+
+			file_thread_info.file_info->f_conn = fc;
+			file_thread_info.file_info->file   = file;
+			file_thread_info.req_task = kthread_create(fuse_flush_req_thread, &file_thread_info, "req-flush-%s", "fuse");
+			if (IS_ERR(file_thread_info.req_task)) {
+				err = PTR_ERR(file_thread_info.req_task);
+				return err;
+			}
+			wake_up_process(file_thread_info.req_task);
+
+		}else{
+			file_thread_info.file_info_curr->next  = kmalloc(sizeof(struct file_thread_info), GFP_KERNEL);
+			file_thread_info.file_info_curr->next->prev  = file_thread_info.file_info_curr;
+			file_thread_info.file_info_curr = file_thread_info.file_info_curr->next;
+			file_thread_info.file_info_curr->next = NULL;
+			file_thread_info.file_info_curr->f_conn = fc;
+			file_thread_info.file_info_curr->file   = file;
 		}
-		wake_up_process(req_task);
+		file_thread_info.file_num ++;
 	}
-	
+#endif	
 	return 0;
 }
 
@@ -354,10 +387,33 @@ static int fuse_open(struct inode *inode, struct file *file)
 static int fuse_release(struct inode *inode, struct file *file)
 {
 	struct fuse_conn *fc = get_fuse_conn(inode);
+	struct file_thread_info *tmp_file = NULL;
+#if CACHE_REQ_ENABLE
 	flush_cache_req(fc);
-	if(req_task != NULL){
-		kthread_stop(req_task);
+	tmp_file = file_thread_info.file_info;
+	while(tmp_file){
+		if(tmp_file->f_conn == fc){
+			if(tmp_file->prev == NULL){
+				file_thread_info.file_info = tmp_file->next;
+			}
+			if(tmp_file->next == NULL){
+				file_thread_info.file_info_curr = tmp_file->prev;
+			}
+			if(tmp_file->next != NULL && tmp_file->prev != NULL){
+				tmp_file->prev->next = tmp_file->next;
+				tmp_file->next->prev = tmp_file->prev;
+			}
+			kfree(tmp_file);
+			break;
+		}
+		tmp_file = tmp_file->next;
 	}
+	file_thread_info.file_num--;
+	if(file_thread_info.req_task != NULL && file_thread_info.file_num == 0){
+		kthread_stop(file_thread_info.req_task);
+		file_thread_info.req_task = NULL;
+	}
+#endif
 	fuse_release_common(file, FUSE_RELEASE);
 
 	/* return value is ignored by VFS */
@@ -452,7 +508,9 @@ static int fuse_flush(struct file *file, fl_owner_t id)
 	if (is_bad_inode(inode))
 		return -EIO;
 
+#if CACHE_REQ_ENABLE
 	flush_cache_req(fc);
+#endif
 	if (fc->no_flush)
 		return 0;
 
@@ -499,10 +557,11 @@ int fuse_fsync_common(struct file *file, int datasync, int isdir)
 	struct fuse_req *req;
 	struct fuse_fsync_in inarg;
 	int err;
+#if CACHE_REQ_ENABLE
 	if(fc){
 		flush_cache_req(fc);
 	}
-
+#endif
 	if (is_bad_inode(inode))
 		return -EIO;
 
@@ -793,8 +852,9 @@ static ssize_t fuse_file_aio_read(struct kiocb *iocb, const struct iovec *iov,
 		if (err)
 			return err;
 	}
+#if CACHE_REQ_ENABLE
 	flush_cache_req(get_fuse_conn(inode));
-
+#endif
 	return generic_file_aio_read(iocb, iov, nr_segs, pos);
 }
 
