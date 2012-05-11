@@ -525,6 +525,18 @@ struct fuse_conn {
 	struct rw_semaphore killsb;
 };
 
+struct file_thread_info {
+    struct file *file;
+	struct fuse_conn *f_conn;
+	struct file_thread_info *next, *prev;
+};
+
+struct  file_thread_struct{
+	int    file_num;
+	struct file_thread_info *file_info;
+	struct file_thread_info *file_info_curr;
+	struct task_struct *req_task;
+};
 static inline struct fuse_conn *get_fuse_conn_super(struct super_block *sb)
 {
 	return sb->s_fs_info;
