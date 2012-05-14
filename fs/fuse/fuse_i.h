@@ -44,7 +44,6 @@
     doing the mount will be allowed to access the filesystem */
 #define FUSE_ALLOW_OTHER         (1 << 1)
 
-#define CACHE_REQ_ENABLE 1
 /** List of active connections */
 extern struct list_head fuse_conn_list;
 
@@ -309,14 +308,7 @@ struct fuse_req {
 	/** Request is stolen from fuse_file->reserved_req */
 	struct file *stolen_file;
 };
-struct cache_req_list{
-	loff_t pos;
-	ssize_t count;
-	ssize_t lock;
-	struct inode *inode;
-	struct file *file;
-	struct list_head *req;
-};
+
 /**
  * A Fuse connection.
  *
@@ -358,8 +350,6 @@ struct fuse_conn {
 	/** The list of requests being processed */
 	struct list_head processing;
 
-	/**The list of req to merge */
-	struct cache_req_list cache_req;
 	/** The list of requests under I/O */
 	struct list_head io;
 
@@ -525,18 +515,6 @@ struct fuse_conn {
 	struct rw_semaphore killsb;
 };
 
-struct file_thread_info {
-    struct file *file;
-	struct fuse_conn *f_conn;
-	struct file_thread_info *next, *prev;
-};
-
-struct  file_thread_struct{
-	int    file_num;
-	struct file_thread_info *file_info;
-	struct file_thread_info *file_info_curr;
-	struct task_struct *req_task;
-};
 static inline struct fuse_conn *get_fuse_conn_super(struct super_block *sb)
 {
 	return sb->s_fs_info;
