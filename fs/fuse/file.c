@@ -14,22 +14,8 @@
 #include <linux/sched.h>
 #include <linux/module.h>
 #include <linux/compat.h>
-#include <linux/kthread.h>
-#include <linux/freezer.h>
-#include <trace/events/writeback.h>
 
 static const struct file_operations fuse_direct_io_file_operations;
-struct  file_thread_struct file_thread_info = {
-												0,
-												NULL,
-												NULL,
-												NULL
-												};
-
-
-size_t fuse_send_write_pages(struct fuse_req *req, struct file *file,
-				    struct inode *inode, loff_t pos,
-				    size_t count);
 
 static int fuse_send_open(struct fuse_conn *fc, u64 nodeid, struct file *file,
 			  int opcode, struct fuse_open_out *outargp)
@@ -202,82 +188,6 @@ void fuse_finish_open(struct inode *inode, struct file *file)
 	}
 }
 
-static int flush_cache_req(struct fuse_conn *fc ){
-	int ret = 0;
-	struct fuse_req *cache_req;
-
-	if(fc->cache_req.req != NULL){
-		cache_req = list_entry(fc->cache_req.req, struct fuse_req, list);
-		if(cache_req != NULL){
-			fc->cache_req.req  = NULL;
-//			printk("%s %d \n", __func__, __LINE__);
-			fuse_send_write_pages(cache_req, fc->cache_req.file, fc->cache_req.inode, fc->cache_req.pos, fc->cache_req.count);
-			fuse_put_request(fc, cache_req);
-			ret = cache_req->out.h.error;
-		}
-	}
-//	printk("%s %d \n", __func__, __LINE__);
-
-	return ret;
-}
-
-int fuse_flush_req_thread(void *data)
-{
-	unsigned num_pages = 0;
-	loff_t pos = 0;
-	struct file_thread_struct *file_str = data;
-	struct fuse_conn *fc = NULL;
-	struct fuse_req *cache_req = NULL;
-	struct file_thread_info *file_info = NULL;
-	/*
-	 * Our parent may run at a different priority, just set us to normal
-	 */
-	set_user_nice(current, 0);
-
-	trace_writeback_thread_start(fc);
-
-#if CACHE_REQ_ENABLE
-	while (!kthread_should_stop()) {
-        if(file_str == NULL || file_str->file_info == NULL){
-			continue;
-		}
-		file_info = file_str->file_info;
-		while(file_info){
-			fc = file_info->f_conn;
-			file_info = file_info->next;
-			if(fc && fc->cache_req.req != NULL && fc->cache_req.lock != 1){
-				cache_req = list_entry(fc->cache_req.req, struct fuse_req, list);
-				if(cache_req != NULL){
-					pos       = fc->cache_req.pos;
-					num_pages = cache_req->num_pages;
-				}
-			}
-			
-			set_current_state(TASK_UNINTERRUPTIBLE);
-			schedule_timeout(msecs_to_jiffies(100));
-			if(fc && fc->cache_req.req != NULL && fc->cache_req.lock != 1){
-				cache_req = list_entry(fc->cache_req.req, struct fuse_req, list);
-				if(cache_req != NULL && (fc->cache_req.lock == 0) && (cache_req->num_pages == num_pages) && (pos == fc->cache_req.pos) && (num_pages > 0)){
-					__set_current_state(TASK_RUNNING);
-					//current->backing_dev_info = &fc->bdi;
-					//file_remove_suid(fc->cache_req.file);
-					//file_update_time(fc->cache_req.file);
-					fc->cache_req.lock = 1;
-					flush_cache_req(fc);
-					fc->cache_req.req = NULL;
-					printk(" f 1 \n");
-//					printk(" f 1 %s \n",  fc->cache_req.file->f_path.dentry->d_name.name);
-					//current->backing_dev_info = NULL;
-				}
-			}
-		}
-		try_to_freeze();
-	}
-#endif
-	trace_writeback_thread_stop(fc);
-	return 0;
-}
-
 int fuse_open_common(struct inode *inode, struct file *file, bool isdir)
 {
 	struct fuse_conn *fc = get_fuse_conn(inode);
@@ -297,34 +207,6 @@ int fuse_open_common(struct inode *inode, struct file *file, bool isdir)
 
 	fuse_finish_open(inode, file);
 
-#if CACHE_REQ_ENABLE
-	if(!isdir){
-		if(file_thread_info.file_num == 0){
-			file_thread_info.file_info =kmalloc(sizeof(struct file_thread_info), GFP_KERNEL);
-			file_thread_info.file_info_curr = file_thread_info.file_info;
-			file_thread_info.file_info->prev = NULL;
-			file_thread_info.file_info->next = NULL;
-
-			file_thread_info.file_info->f_conn = fc;
-			file_thread_info.file_info->file   = file;
-			file_thread_info.req_task = kthread_create(fuse_flush_req_thread, &file_thread_info, "req-flush-%s", "fuse");
-			if (IS_ERR(file_thread_info.req_task)) {
-				err = PTR_ERR(file_thread_info.req_task);
-				return err;
-			}
-			wake_up_process(file_thread_info.req_task);
-
-		}else{
-			file_thread_info.file_info_curr->next  = kmalloc(sizeof(struct file_thread_info), GFP_KERNEL);
-			file_thread_info.file_info_curr->next->prev  = file_thread_info.file_info_curr;
-			file_thread_info.file_info_curr = file_thread_info.file_info_curr->next;
-			file_thread_info.file_info_curr->next = NULL;
-			file_thread_info.file_info_curr->f_conn = fc;
-			file_thread_info.file_info_curr->file   = file;
-		}
-		file_thread_info.file_num ++;
-	}
-#endif	
 	return 0;
 }
 
@@ -386,34 +268,6 @@ static int fuse_open(struct inode *inode, struct file *file)
 
 static int fuse_release(struct inode *inode, struct file *file)
 {
-	struct fuse_conn *fc = get_fuse_conn(inode);
-	struct file_thread_info *tmp_file = NULL;
-#if CACHE_REQ_ENABLE
-	flush_cache_req(fc);
-	tmp_file = file_thread_info.file_info;
-	while(tmp_file){
-		if(tmp_file->f_conn == fc){
-			if(tmp_file->prev == NULL){
-				file_thread_info.file_info = tmp_file->next;
-			}
-			if(tmp_file->next == NULL){
-				file_thread_info.file_info_curr = tmp_file->prev;
-			}
-			if(tmp_file->next != NULL && tmp_file->prev != NULL){
-				tmp_file->prev->next = tmp_file->next;
-				tmp_file->next->prev = tmp_file->prev;
-			}
-			kfree(tmp_file);
-			break;
-		}
-		tmp_file = tmp_file->next;
-	}
-	file_thread_info.file_num--;
-	if(file_thread_info.req_task != NULL && file_thread_info.file_num == 0){
-		kthread_stop(file_thread_info.req_task);
-		file_thread_info.req_task = NULL;
-	}
-#endif
 	fuse_release_common(file, FUSE_RELEASE);
 
 	/* return value is ignored by VFS */
@@ -508,9 +362,6 @@ static int fuse_flush(struct file *file, fl_owner_t id)
 	if (is_bad_inode(inode))
 		return -EIO;
 
-#if CACHE_REQ_ENABLE
-	flush_cache_req(fc);
-#endif
 	if (fc->no_flush)
 		return 0;
 
@@ -557,11 +408,7 @@ int fuse_fsync_common(struct file *file, int datasync, int isdir)
 	struct fuse_req *req;
 	struct fuse_fsync_in inarg;
 	int err;
-#if CACHE_REQ_ENABLE
-	if(fc){
-		flush_cache_req(fc);
-	}
-#endif
+
 	if (is_bad_inode(inode))
 		return -EIO;
 
@@ -852,9 +699,7 @@ static ssize_t fuse_file_aio_read(struct kiocb *iocb, const struct iovec *iov,
 		if (err)
 			return err;
 	}
-#if CACHE_REQ_ENABLE
-	flush_cache_req(get_fuse_conn(inode));
-#endif
+
 	return generic_file_aio_read(iocb, iov, nr_segs, pos);
 }
 
@@ -978,7 +823,7 @@ static int fuse_write_end(struct file *file, struct address_space *mapping,
 	return res;
 }
 
-size_t fuse_send_write_pages(struct fuse_req *req, struct file *file,
+static size_t fuse_send_write_pages(struct fuse_req *req, struct file *file,
 				    struct inode *inode, loff_t pos,
 				    size_t count)
 {
@@ -1022,9 +867,7 @@ static ssize_t fuse_fill_write_pages(struct fuse_req *req,
 	int err;
 
 	req->in.argpages = 1;
-	if(req->page_offset == 0){
-		req->page_offset = offset;
-	}
+	req->page_offset = offset;
 
 	do {
 		size_t tmp;
@@ -1087,119 +930,39 @@ static ssize_t fuse_perform_write(struct file *file,
 	struct fuse_conn *fc = get_fuse_conn(inode);
 	int err = 0;
 	ssize_t res = 0;
-	long val1, val2;
 
 	if (is_bad_inode(inode))
-		return -EIO;	
+		return -EIO;
 
 	do {
+		struct fuse_req *req;
 		ssize_t count;
-		struct fuse_req *req, *cache_req = NULL;
-		struct cache_req_list *cache_req_list = NULL;
-		//printk("969 pos:%lld \n", pos);
 
-#if CACHE_REQ_ENABLE
-		
-		if(fc->cache_req.req != NULL){
-			cache_req = list_entry(fc->cache_req.req, struct fuse_req, list);
-		}
-		if(cache_req != NULL) 
-			val1 = cache_req->pages[cache_req->num_pages - 1]->index;
-		val2 = (long)(pos >> PAGE_CACHE_SHIFT) - 1;
-		
-		if(cache_req != NULL){
-		//	printk("%s %d num pages:%u index:%lu pos:%lld, %lu last pos:%lld offset:%lld \n", __func__, __LINE__, cache_req->num_pages,
-		//	cache_req->pages[cache_req->num_pages - 1]->index, pos, (unsigned long)(pos >> PAGE_CACHE_SHIFT) - 1, fc->cache_req.pos, pos & (PAGE_CACHE_SIZE - 1));		
-		//	printk("%s %d, %d %d %d \n", __func__, __LINE__, val1, val2, val1 == val2);
-		}		
-		if((cache_req != NULL) && ((pos & (PAGE_CACHE_SIZE - 1)) == (loff_t)0) && val1 == val2){
-				req = cache_req;
-		}
-		else{
-			if(cache_req != NULL){
-				size_t num_written;
-				
-				//printk("990 \n");
-				
-				num_written = fuse_send_write_pages(cache_req, fc->cache_req.file, fc->cache_req.inode,
-								    fc->cache_req.pos, fc->cache_req.count);
-				err = cache_req->out.h.error;
-				if (!err) {
-					//res += num_written;
-					//pos += num_written;
-
-					/* break out of the loop on short write */
-					//if (num_written != count)
-					//	err = -EIO;
-				}
-				fuse_put_request(fc, cache_req);
-			}
-			
-			req = fuse_get_req(fc);
-			if (IS_ERR(req)) {
-				err = PTR_ERR(req);
-				break;
-			}
-			fc->cache_req.req = &req->list;
-			fc->cache_req.count = 0;
-			fc->cache_req.file = file;
-			fc->cache_req.inode = inode;
-			fc->cache_req.pos = pos;
-			fc->cache_req.lock = 0;
-			cache_req = list_entry(fc->cache_req.req, struct fuse_req, list);
-		}	
-#else
 		req = fuse_get_req(fc);
 		if (IS_ERR(req)) {
 			err = PTR_ERR(req);
 			break;
-		}		
-#endif
-		//printk("f 1025\n");
+		}
 
 		count = fuse_fill_write_pages(req, mapping, ii, pos);
 		if (count <= 0) {
 			err = count;
 		} else {
 			size_t num_written;
-			//printk("1038 pos:%lld count:%d \n", pos, count);
-#if CACHE_REQ_ENABLE
-			pos += count;
-			res += count;
-			fc->cache_req.count += count;
-			if(req->num_pages < FUSE_MAX_PAGES_PER_REQ || fc->cache_req.lock == 1){
-				continue;
+
+			num_written = fuse_send_write_pages(req, file, inode,
+							    pos, count);
+			err = req->out.h.error;
+			if (!err) {
+				res += num_written;
+				pos += num_written;
+
+				/* break out of the loop on short write */
+				if (num_written != count)
+					err = -EIO;
 			}
-#endif
-			//printk("%s %d num pages:%u index:%lu pos:%lld, %lld, count:%d \n", __func__, __LINE__, req->num_pages,
-			//req->pages[req->num_pages - 1]->index, pos, pos >> PAGE_CACHE_SHIFT, count);
-			if(fc->cache_req.req != NULL){
-				fc->cache_req.lock = 1;
-				fc->cache_req.req = NULL;
-				num_written = fuse_send_write_pages(req, file, inode,
-								    fc->cache_req.pos, fc->cache_req.count);
-				err = req->out.h.error;
-				
-#if !CACHE_REQ_ENABLE
-				if (!err) {
-					res += num_written;
-					pos += num_written;
-
-					/* break out of the loop on short write */
-					if (num_written != count)
-						err = -EIO;
-				}
-#endif
-
-#if CACHE_REQ_ENABLE
-				if (err){
-					pos -= count;
-				}
-#endif
-				fuse_put_request(fc, req);			
-			}
-
 		}
+		fuse_put_request(fc, req);
 	} while (!err && iov_iter_count(ii));
 
 	if (res > 0)
