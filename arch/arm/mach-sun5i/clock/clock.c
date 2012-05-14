@@ -218,6 +218,47 @@ int clk_init(void)
     tmpSclk->clk->onoff = AW_CCU_CLK_ON;
     tmpSclk->set_clk(tmpSclk->clk);
 
+    tmpFreq = sw_cfg_get_int(script_base, "target", "apb_freq");
+    if (tmpFreq == -1) {
+        /* try to get apb frequency failed, set to default value */
+        CCU_ERR("try to parse apb frequency from script faild!\n");
+        tmpFreq = 24;
+    } else {
+        /* check if the value is valid */
+        if ((tmpFreq < 6) || (tmpFreq > 120)) {
+            /* apb frequency is invalid, set to default value */
+            CCU_ERR("apb frequency config is invalid!\n");
+            tmpFreq = 24;
+        }
+        CCU_DBG("apb frequency is configed to %dMhz!\n", tmpFreq);
+    }
+    tmpSclk = clk_get(NULL, "apb1");
+    if(tmpSclk) {
+        struct clk      *tmpClk;
+        if(tmpFreq == 24) {
+            /* config apb clock source to OSC24M */
+            tmpClk = clk_get(NULL, "hosc");
+            if(tmpClk) {
+                clk_set_parent(tmpSclk, tmpClk);
+                clk_set_rate(tmpSclk, tmpFreq*1000000);
+            } else {
+                CCU_ERR("try to get hosc clock handle failed!\n");
+            }
+        } else {
+            /* config apb clock source to PLL6 */
+            tmpClk = clk_get(NULL, "sata_pll_2");
+            if(tmpClk) {
+                clk_set_rate(tmpSclk, 1000000);
+                clk_set_parent(tmpSclk, tmpClk);
+                clk_set_rate(tmpSclk, tmpFreq*1000000);
+            } else {
+                CCU_ERR("try to get hosc clock handle failed!\n");
+            }
+        }
+    } else {
+        CCU_ERR("try to get apb1 clock handle failed!\n");
+    }
+
     return 0;
 }
 arch_initcall(clk_init);
