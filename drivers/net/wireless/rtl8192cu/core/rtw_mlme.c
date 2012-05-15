@@ -624,7 +624,7 @@ _func_enter_;
 _func_exit_;			
 
 	return ((src->Ssid.SsidLength == dst->Ssid.SsidLength) &&
-			(src->Configuration.DSConfig == dst->Configuration.DSConfig) &&
+		//	(src->Configuration.DSConfig == dst->Configuration.DSConfig) &&
 			( (_rtw_memcmp(src->MacAddress, dst->MacAddress, ETH_ALEN)) == _TRUE) &&
 			( (_rtw_memcmp(src->Ssid.Ssid, dst->Ssid.Ssid, src->Ssid.SsidLength)) == _TRUE) &&
 			((s_cap & WLAN_CAPABILITY_IBSS) == 

@@ -65,7 +65,7 @@
 #define		HAL_PS_TIMER_INT_DELAY	50		//  50 microseconds
 #define		HAL_92C_NAV_UPPER_UNIT	128		// micro-second
 
-
+#define MAC_ADDR_LEN					6
 // 8188E PKT_BUFF_ACCESS_CTRL value
 #define TXPKT_BUF_SELECT				0x69
 #define RXPKT_BUF_SELECT				0xA5
@@ -1560,22 +1560,22 @@ Current IOREG MAP
 //========================================================
 // General definitions
 //========================================================
-#if (HAL_8195A_USB == 1)
-#define LAST_ENTRY_OF_TX_PKT_BUFFER		255
-#else
+//#if (HAL_8195A_USB == 1)
+//#define LAST_ENTRY_OF_TX_PKT_BUFFER		255
+//#else
 #define LAST_ENTRY_OF_TX_PKT_BUFFER		176 // 22k 22528 bytes
-#endif
+//#endif
 
 #define POLLING_LLT_THRESHOLD				20
-#if RTL8188E_FOR_MP_TEST == 1
-#define POLLING_READY_TIMEOUT_COUNT		3000
-#else
+//#if RTL8188E_FOR_MP_TEST == 1
+//#define POLLING_READY_TIMEOUT_COUNT		3000
+//#else
 #define POLLING_READY_TIMEOUT_COUNT		1000 
-#endif
+//#endif
 // GPIO BIT
 #define	HAL_8192C_HW_GPIO_WPS_BIT		BIT2
 
-#if 0//(HAL_SUPPORT_88E == 1)
+#if 0//(RTL8188E_SUPPORT == 1)
 ////////////////////////////////ONLY for 88EE/////////////////////////////////
 //
 //	Host Interrupt Status Registers	 (Offset: 0x00B4-00B7, 0x00BC-00BF)
@@ -1635,7 +1635,7 @@ Current IOREG MAP
 
 
 ////////////////////////////////ONLY for 88EE/////////////////////////////////
-#endif //(HAL_SUPPORT_88E == 1)
+#endif //(RTL8188E_SUPPORT == 1)
 
 
 //----------------------------------------------------------------------------
@@ -1674,7 +1674,7 @@ Current IOREG MAP
 #define	EEPROM_CUSTOMER_ID					0x7F
 #define	EEPROM_CUSTOMER_ID_92C				0x7F
 
-#define	EEPROM_NORMAL_CHANNEL_PLAN		0x75
+//#define	EEPROM_NORMAL_CHANNEL_PLAN		0x75
 #define	EEPROM_NORMAL_BoardType_92C		EEPROM_RF_OPT1_92C
 #define	BOARD_TYPE_NORMAL_MASK			0xE0
 #define	BOARD_TYPE_TEST_MASK				0xF
@@ -1734,7 +1734,12 @@ Current IOREG MAP
 
 #define EEPROM_Default_AntTxPowerDiff		0x0
 #define EEPROM_Default_TxPwDiff_CrystalCap	0x5
+#if (RTL8188ES_SUPPORT==1) //for SDIO 
 #define EEPROM_Default_TxPowerLevel			0x25
+#else	//for USB/PCIE
+#define EEPROM_Default_TxPowerLevel			0x2A
+#endif
+
 #define EEPROM_Default_HT40_2SDiff			0x0
 #define EEPROM_Default_HT20_Diff			2	// HT20<->40 default Tx Power Index Difference
 #define EEPROM_Default_LegacyHTTxPowerDiff	0x3

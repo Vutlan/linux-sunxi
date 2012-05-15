@@ -10,7 +10,7 @@ extern unsigned long ve_start;
 extern unsigned long ve_size;
 
 //for internel driver debug
-#define DBG_EN   		0 	
+#define DBG_EN   		0
 
 //for internel driver debug
 #if(DBG_EN==1)		

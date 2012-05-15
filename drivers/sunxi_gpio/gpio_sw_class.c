@@ -49,7 +49,6 @@ static ssize_t data_show(struct device *dev,
 {
 	struct gpio_sw_classdev *gpio_sw_cdev = dev_get_drvdata(dev);
 	gpio_sw_cdev->data = data_get(gpio_sw_cdev);
-	
 	return sprintf(buf, "%u\n", gpio_sw_cdev->data);
 }
 
@@ -67,13 +66,11 @@ static ssize_t mul_sel_store(struct device *dev,
 
 	if (count == size) {
 		ret = count;
-		
 		mul_sel_set(gpio_sw_cdev, in_out);
 	}
 
 	return ret;
 }
-
 
 static ssize_t pull_store(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t size)
@@ -89,7 +86,6 @@ static ssize_t pull_store(struct device *dev,
 
 	if (count == size) {
 		ret = count;
-		
 		pull_set(gpio_sw_cdev, pull);
 	}
 
@@ -110,13 +106,12 @@ static ssize_t drv_level_store(struct device *dev,
 
 	if (count == size) {
 		ret = count;
-		
+
 		drv_level_set(gpio_sw_cdev, drv_level);
 	}
 
 	return ret;
 }
-
 
 static ssize_t data_store(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t size)
@@ -141,13 +136,13 @@ static ssize_t data_store(struct device *dev,
 void gpio_sw_classdev_suspend(struct gpio_sw_classdev *gpio_sw_cdev)
 {
 	gpio_sw_cdev->flags |= SW_GPIO_SUSPENDED;
-	printk("gpio_sw_classdev_suspend OK!");
+	GPIO_SW_DEBUG("gpio_sw_classdev_suspend OK!");
 }
 EXPORT_SYMBOL_GPL(gpio_sw_classdev_suspend);
 
 void gpio_sw_classdev_resume(struct gpio_sw_classdev *gpio_sw_cdev)
 {
-	printk("gpio_sw_classdev_resume OK!");
+	GPIO_SW_DEBUG("gpio_sw_classdev_resume OK!");
 	gpio_sw_cdev->flags &= ~SW_GPIO_SUSPENDED;
 }
 EXPORT_SYMBOL_GPL(gpio_sw_classdev_resume);
@@ -155,7 +150,7 @@ EXPORT_SYMBOL_GPL(gpio_sw_classdev_resume);
 static int gpio_sw_suspend(struct device *dev, pm_message_t state)
 {
 	struct gpio_sw_classdev *gpio_sw_cdev = dev_get_drvdata(dev);
-
+		GPIO_SW_DEBUG("gpio class suspend \n");
 	if (gpio_sw_cdev->flags & SW_GPIO_CORE_SUSPENDED)
 		gpio_sw_classdev_suspend(gpio_sw_cdev);
 
@@ -165,18 +160,71 @@ static int gpio_sw_suspend(struct device *dev, pm_message_t state)
 static int gpio_sw_resume(struct device *dev)
 {
 	struct gpio_sw_classdev *gpio_sw_cdev = dev_get_drvdata(dev);
-
+		GPIO_SW_DEBUG("gpio class resume \n");
 	if (gpio_sw_cdev->flags & SW_GPIO_CORE_SUSPENDED)
 		gpio_sw_classdev_resume(gpio_sw_cdev);
 
 	return 0;
 }
 
+static const struct {
+	const char *name;
+	u32 flags;
+}trigger_types[] = {
+	{ "positive",	SW_GPIO_TRIGER_POSITIVE },
+	{ "negative",	SW_GPIO_TRIGER_NEGATIVE},
+	{ "high",		SW_GPIO_TRIGER_HIGH },
+	{ "low",		SW_GPIO_TRIGER_LOW },
+	{ "double",		SW_GPIO_TRIGER_DOUBLE},
+};
+
+static ssize_t trigger_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct gpio_sw_classdev *gpio_sw_cdev = dev_get_drvdata(dev);
+	int i,len=0;
+
+	if (!gpio_sw_cdev->irq)
+		len += sprintf(buf+len, "[none] ");
+	else
+		len += sprintf(buf+len, "none ");
+
+	for (i = 0; i < ARRAY_SIZE(trigger_types); i++){
+		if(gpio_sw_cdev->irq_type == trigger_types[i].flags)
+		len += sprintf(buf+len, "[%s] ", trigger_types[i].name);
+		else
+		len += sprintf(buf+len, "%s ", trigger_types[i].name);
+	}
+
+	len += sprintf(buf+len, "\n");
+	return  len;
+}
+
+static ssize_t trigger_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+	struct gpio_sw_classdev *gpio_sw_cdev = dev_get_drvdata(dev);
+	int i,ret=-1;
+
+	for (i = 0; i < ARRAY_SIZE(trigger_types); i++){
+		GPIO_SW_DEBUG("trigger_types[i].name is %s\n",trigger_types[i].name);
+		GPIO_SW_DEBUG("trigger_types[i].name is %s\n",buf);
+		if(sysfs_streq(buf,trigger_types[i].name)){
+		ret = set_trigger_types(gpio_sw_cdev, trigger_types[i].flags);
+		gpio_sw_cdev->irq_type=trigger_types[i].flags;
+		break;
+		}
+	}
+	GPIO_SW_DEBUG("loop is %d\n",ARRAY_SIZE(trigger_types));
+	return size;
+}
+
 static struct device_attribute gpio_sw_class_attrs[] = {
-	__ATTR(mul_sel, 0666, mul_sel_show, mul_sel_store),
-	__ATTR(pull, 0666, pull_show, pull_store),
-	__ATTR(drv_level, 0666, drv_level_show, drv_level_store),
-	__ATTR(data, 0666, data_show, data_store),
+	__ATTR(mul_sel, 0644, mul_sel_show, mul_sel_store),
+	__ATTR(pull, 0644, pull_show, pull_store),
+	__ATTR(drv_level, 0644, drv_level_show, drv_level_store),
+	__ATTR(data, 0644, data_show, data_store),
+	__ATTR(trigger, 0644,trigger_show,trigger_store),
 	__ATTR_NULL,
 };
 
@@ -209,9 +257,9 @@ static int __init gpio_sw_init(void)
 	gpio_sw_class = class_create(THIS_MODULE, "gpio_sw");
 	if (IS_ERR(gpio_sw_class))
 		return PTR_ERR(gpio_sw_class);
-	gpio_sw_class->suspend = gpio_sw_suspend;
-	gpio_sw_class->resume = gpio_sw_resume;
-	gpio_sw_class->dev_attrs = gpio_sw_class_attrs;
+	gpio_sw_class->suspend		= gpio_sw_suspend;
+	gpio_sw_class->resume		= gpio_sw_resume;
+	gpio_sw_class->dev_attrs 	= gpio_sw_class_attrs;
 	return 0;
 }
 

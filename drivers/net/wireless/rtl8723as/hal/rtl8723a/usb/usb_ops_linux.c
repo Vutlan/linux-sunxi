@@ -805,20 +805,16 @@ InterruptRecognized8723AU(
 	if(buffer[0]!= 0){
 		_rtw_memcpy(&(pHalData->C2hArray[0]), &(buffer[0]), 16);
 	}
-	else{
-		printk("%s c2h buffer[0-3]:0x%x:0x%x:0x%x:0x%x HISR value:0x%x:0x%x:0x%x:0x%x \n",__FUNCTION__,
-			buffer[0],buffer[1],buffer[2],buffer[3],buffer[USB_INTR_CONTENT_HISR_OFFSET],buffer[USB_INTR_CONTENT_HISR_OFFSET+1],
-			buffer[USB_INTR_CONTENT_HISR_OFFSET+2],buffer[USB_INTR_CONTENT_HISR_OFFSET+3]);
-	}	
+
 	_rtw_memcpy(&(pHalData->IntArray[0]), &(buffer[USB_INTR_CONTENT_HISR_OFFSET]), 4);
 //	PlatformMoveMemory(&(pHalData->IntArray[0]), &(buffer[USB_INTR_CONTENT_HISR_OFFSET]), sizeof(u4Byte));
-	DBG_8192C("InterruptRecognized8723AU HISR = 0x%x HIMR = 0x%x\n", pHalData->IntArray[0],pHalData->IntrMask[0]);	
+//	DBG_8192C("InterruptRecognized8723AU HISR = 0x%x HIMR = 0x%x\n", pHalData->IntArray[0],pHalData->IntrMask[0]);	
 	pHalData->IntArray[0] &= pHalData->IntrMask[0];
 
 	//For HISR extension. Added by tynli. 2009.10.07.
 	_rtw_memcpy(&(pHalData->IntArray[1]), &(buffer[USB_INTR_CONTENT_HISRE_OFFSET]), 4);
 //	PlatformMoveMemory(&(pHalData->IntArray[1]), &(buffer[USB_INTR_CONTENT_HISRE_OFFSET]), sizeof(u4Byte));	
-	DBG_8192C("InterruptRecognized8192CUsb HISRE = 0x%x HIMRE = 0x%x\n", pHalData->IntArray[1], pHalData->IntrMask[1]); 
+//	DBG_8192C("InterruptRecognized8192CUsb HISRE = 0x%x HIMRE = 0x%x\n", pHalData->IntArray[1], pHalData->IntrMask[1]); 
 	pHalData->IntArray[1] &= pHalData->IntrMask[1];	
 
 	// We sholud remove this function later because DDK suggest not to executing too many operations in MPISR
@@ -830,10 +826,10 @@ InterruptRecognized8723AU(
 		_rtw_memcpy(&report.state, &(buffer[USB_INTR_CPWM_OFFSET]), 1);
 #ifdef CONFIG_LPS_LCLK
 		if( ((pHalData->IntArray[0])&UHIMR_CPWM)){
-			DBG_8192C("%s HIMR=0x%x\n",__func__,pHalData->IntArray[0]);
+//			DBG_8192C("%s HIMR=0x%x\n",__func__,pHalData->IntArray[0]);
 			cpwm_int_hdl(Adapter, &report);
 			pHalData->IntArray[0]&= ~UHIMR_CPWM;
-			DBG_8192C("%s HIMR=0x%x\n",__func__,pHalData->IntArray[0]);
+//			DBG_8192C("%s HIMR=0x%x\n",__func__,pHalData->IntArray[0]);
 		}
 #endif
 	}
@@ -987,7 +983,14 @@ static int recvbuf2recvframe(_adapter *padapter, struct recv_buf *precvbuf)
 
 //		rtl8192c_query_rx_desc_status(precvframe, prxstat);
 		update_recvframe_attrib(precvframe, prxstat);
+
 		pattrib = &precvframe->u.hdr.attrib;
+		
+		if(pattrib->crc_err){
+			DBG_8192C("%s()-%d: RX Warning! rx CRC ERROR !!\n", __FUNCTION__, __LINE__);	
+			rtw_free_recvframe(precvframe, pfree_recv_queue);
+			goto _exit_recvbuf2recvframe;
+		}			
 
 		pkt_offset = pattrib->pkt_len + pattrib->drvinfo_sz + RXDESC_SIZE;
 
@@ -1526,7 +1529,14 @@ static int recvbuf2recvframe(_adapter *padapter, _pkt *pskb)
 
 //		rtl8192c_query_rx_desc_status(precvframe, prxstat);
 		update_recvframe_attrib(precvframe, prxstat);
+
 		pattrib = &precvframe->u.hdr.attrib;
+		
+		if(pattrib->crc_err){
+			DBG_8192C("%s()-%d: RX Warning! rx CRC ERROR !!\n", __FUNCTION__, __LINE__);	
+			rtw_free_recvframe(precvframe, pfree_recv_queue);
+			goto _exit_recvbuf2recvframe;
+		}			
 
 		pkt_offset = pattrib->pkt_len + pattrib->drvinfo_sz + RXDESC_SIZE;
 
@@ -2397,7 +2407,7 @@ static void usb_write_port_cancel(struct intf_hdl *pintfhdl)
 	}
 }
 
-void rtl8192cu_set_intf_ops(struct _io_ops	*pops)
+void rtl8723au_set_intf_ops(struct _io_ops	*pops)
 {
 	_func_enter_;
 	
@@ -2433,4 +2443,9 @@ void rtl8192cu_set_intf_ops(struct _io_ops	*pops)
 	_func_exit_;
 
 }
-
+void rtl8723au_set_hw_type(_adapter *padapter)
+{
+	padapter->chip_type = RTL8723A;
+	padapter->HardwareType = HARDWARE_TYPE_RTL8723AU;
+	DBG_871X("CHIP TYPE: RTL8188C_8192C\n");
+}

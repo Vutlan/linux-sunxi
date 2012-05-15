@@ -58,6 +58,15 @@ config BT_HCIUART_BCSP
 
 	  Say Y here to compile support for HCI BCSP protocol.
 
+config BT_RTK_BCSP
+	bool "BT Patch for Realtek rtl8723as"
+	depends on BT_HCIUART_BCSP
+	help
+	  Only used for Realtek rtl8723as bluetooth function.
+
+	  Say Y to add PATCH for Realtek rtl8723as combo chipset.
+	  Say N for other Bluetooth chipset.
+
 config BT_HCIUART_ATH3K
 	bool "Atheros AR300x serial support"
 	depends on BT_HCIUART

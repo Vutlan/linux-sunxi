@@ -126,7 +126,11 @@
 	#elif(RTL8723AU_SUPPORT==1)
 	#include "rtl8723a/Hal8723UHWImg_CE.h"	 
 	#elif(RTL8188ES_SUPPORT==1)
+	#include "rtl8188e/Hal8188EFWImg_CE.h"
 	#include "rtl8188e/Hal8188ESHWImg_CE.h"
+	#elif(RTL8188EU_SUPPORT==1)
+	#include "rtl8188e/Hal8188EFWImg_CE.h"
+	#include "rtl8188e/Hal8188EUHWImg_CE.h"
 	#endif
 #elif (DM_ODM_SUPPORT_TYPE == ODM_MP)
 

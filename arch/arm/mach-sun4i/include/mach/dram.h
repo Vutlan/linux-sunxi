@@ -20,6 +20,7 @@
 #define __AW_DRAM_H__
 
 #include <linux/kernel.h>
+#include <mach/platform.h>
 
 struct dram_para_t
 {
@@ -61,6 +62,69 @@ unsigned int dram_hostport_check_ahb_fifo_status(unsigned int port_idx);
 void dram_hostport_setup(unsigned int port, unsigned int prio, unsigned int wait_cycle, unsigned int cmd_num);
 void dram_power_save_process(void);
 unsigned int dram_power_up_process(void);
+
+
+#if defined CONFIG_ARCH_SUN4I
+    #define HOST_PORT_SIZE 21
+#elif defined CONFIG_ARCH_SUN5I
+    #define HOST_PORT_SIZE 14
+#endif
+
+#define DRAM_HOST_CFG_BASE  (SW_VA_DRAM_IO_BASE + 0x250)
+#define DRAM_HOST_CFG_PORT  ((__dram_host_cfg_reg_t *)(DRAM_HOST_CFG_BASE + 4*port))
+
+#define HOST_PORT_ATTR(_name)       \
+{									\
+	.attr = { .name = #_name,.mode = 0644 },    \
+	.show =  _name##_show,          \
+	.store = _name##_store,         \
+}
+
+typedef struct __DRAM_HOST_CFG_REG{
+    unsigned int    AcsEn:1;    //bit0, host port access enable
+    unsigned int    reserved0:1;    //bit1
+    unsigned int    PrioLevel:2;    //bit2, host port poriority level
+    unsigned int    WaitState:4;    //bit4, host port wait state
+    unsigned int    CmdNum:8;       //bit8, host port command number
+    unsigned int    reserved1:14;   //bit16
+    unsigned int    WrCntEn:1;      //bit30, host port write counter enable
+    unsigned int    RdCntEn:1;      //bit31, host port read counter enable
+} __dram_host_cfg_reg_t;
+
+typedef enum __DRAM_HOST_PORT{
+    DRAM_HOST_NDMA  = 0,
+    DRAM_HOST_ATH   = 1,
+    DRAM_HOST_SATA  = 2,
+    DRAM_HOST_SDHC  = 3,
+    DRAM_HOST_USB1  = 4,
+    DRAM_HOST_USB2  = 5,
+    DRAM_HOST_CPU   = 16,
+    DRAM_HOST_GPU   = 17,
+    DRAM_HOST_BE0   = 18,
+    DRAM_HOST_FE0   = 19,
+    DRAM_HOST_CSI0  = 20,
+    DRAM_HOST_TSC   = 21,
+    DRAM_HOST_VE    = 22,
+    DRAM_HOST_BE1   = 23,
+    DRAM_HOST_FE1   = 24,
+    DRAM_HOST_MP    = 25,
+    DRAM_HOST_TVIN  = 26,
+    DRAM_HOST_CSI1  = 27,
+    DRAM_HOST_ACE   = 28,
+    DRAM_HOST_DDMA  = 29,
+    DRAM_HOST_GPS   = 30,
+} __dram_host_port_e;
+
+
+int dram_host_port_cmd_num_set(__dram_host_port_e port, unsigned int num);
+int dram_host_port_cmd_num_get(__dram_host_port_e port);
+int dram_host_port_wait_state_set(__dram_host_port_e port, unsigned int state);
+int dram_host_port_wait_state_get(__dram_host_port_e port);
+int dram_host_port_prio_level_set(__dram_host_port_e port, unsigned int level);
+int dram_host_port_prio_level_get(__dram_host_port_e port);
+int dram_host_port_acs_enable(__dram_host_port_e port);
+int dram_host_port_acs_disable(__dram_host_port_e port);
+int dram_host_port_acs_get(__dram_host_port_e port);
 
 #endif  /* __AW_DRAM_H__ */
 

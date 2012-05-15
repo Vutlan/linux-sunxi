@@ -1467,7 +1467,7 @@ sint On_TDLS_Peer_Traffic_Rsp(_adapter *adapter, union recv_frame *precv_frame)
 	u8 wmmps_ac=0, state=TDLS_check_ch_state(ptdls_sta->tdls_sta_state);
 	int i;
 	
-	ptdls_sta->sta_stats.rx_pkts++;
+	ptdls_sta->sta_stats.rx_data_pkts++;
 
 	//receive peer traffic response frame, sleeping STA wakes up
 	//ptdls_sta->tdls_sta_state &= ~(TDLS_PEER_SLEEP_STATE);
@@ -1794,7 +1794,7 @@ static void count_rx_stats(_adapter *padapter, union recv_frame *prframe, struct
 	{
 		pstats = &psta->sta_stats;
 
-		pstats->rx_pkts++;
+		pstats->rx_data_pkts++;
 		pstats->rx_bytes += sz;
 	}
 
@@ -2313,7 +2313,7 @@ static sint validate_recv_ctrl_frame(_adapter *padapter, union recv_frame *precv
 		}
 
 		//for rx pkt statistics
-		psta->sta_stats.rx_pkts++;
+		psta->sta_stats.rx_ctrl_pkts++;
 
 		switch(pattrib->priority)
 		{
@@ -2443,14 +2443,13 @@ static sint validate_recv_mgnt_frame(_adapter *adapter, union recv_frame *precv_
 	}
 #endif
 
-#ifdef CONFIG_AP_MODE
 	{
 		//for rx pkt statistics
 		struct sta_info *psta = rtw_get_stainfo(&adapter->stapriv, GetAddr2Ptr(precv_frame->u.hdr.rx_data));
 		if(psta)
-			psta->sta_stats.rx_pkts++;	
+			psta->sta_stats.rx_mgnt_pkts++;
 	}
-#endif
+
 
 #ifdef CONFIG_INTEL_PROXIM
 	if(adapter->proximity.proxim_on==_TRUE)

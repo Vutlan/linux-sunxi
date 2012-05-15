@@ -1806,6 +1806,8 @@ static void traffic_status_watchdog(_adapter *padapter)
 {
 #ifdef CONFIG_LPS
 	u8	bEnterPS;
+	u32 trx_threshold;
+	u32 rx_threshold;
 #endif
 	u8	bBusyTraffic = _FALSE, bTxBusyTraffic = _FALSE, bRxBusyTraffic = _FALSE;
 	u8	bHigherBusyTraffic = _FALSE, bHigherBusyRxTraffic = _FALSE, bHigherBusyTxTraffic = _FALSE;
@@ -1858,8 +1860,16 @@ static void traffic_status_watchdog(_adapter *padapter)
 		
 #ifdef CONFIG_LPS
 		// check traffic for  powersaving.
-		if( ((pmlmepriv->LinkDetectInfo.NumRxUnicastOkInPeriod + pmlmepriv->LinkDetectInfo.NumTxOkInPeriod) > 8 ) ||
-			(pmlmepriv->LinkDetectInfo.NumRxUnicastOkInPeriod > 2) )
+		if(padapter->registrypriv.intel_class_mode==1){
+			trx_threshold=1;
+			rx_threshold=1;
+		}
+		else{
+			trx_threshold=8;
+			rx_threshold=2;
+		}
+		if( ((pmlmepriv->LinkDetectInfo.NumRxUnicastOkInPeriod + pmlmepriv->LinkDetectInfo.NumTxOkInPeriod) > trx_threshold ) ||
+			(pmlmepriv->LinkDetectInfo.NumRxUnicastOkInPeriod > rx_threshold) )
 		{
 			//DBG_8192C("Tx = %d, Rx = %d \n",pmlmepriv->LinkDetectInfo.NumTxOkInPeriod,pmlmepriv->LinkDetectInfo.NumRxUnicastOkInPeriod);
 			bEnterPS= _FALSE;
@@ -1906,15 +1916,9 @@ void dynamic_chk_wk_hdl(_adapter *padapter, u8 *pbuf, int sz)
 		padapter->HalFunc.sreset_xmit_status_check(padapter);		
 	#endif	
 
-	if(check_fwstate(pmlmepriv, _FW_UNDER_LINKING|_FW_UNDER_SURVEY)==_FALSE)
+	//if(check_fwstate(pmlmepriv, _FW_UNDER_LINKING|_FW_UNDER_SURVEY)==_FALSE)
 	{
-		//if(pmlmeext->linked_to > 0)
-		//{
-		//	pmlmeext->linked_to--;	
-		//	if(pmlmeext->linked_to==0)
-			    linked_status_chk(padapter);		
-		//}
-
+		linked_status_chk(padapter);	
 		traffic_status_watchdog(padapter);
 	}
 

@@ -73,7 +73,7 @@ static void rtw_dev_remove(struct usb_interface *pusb_intf);
 static struct usb_device_id rtw_usb_id_tbl[] ={
 #ifdef CONFIG_RTL8192C
 	/*=== Realtek demoboard ===*/		
-	{USB_DEVICE(0x0BDA, 0x8191)},//Default ID
+	{USB_DEVICE(USB_VENDER_ID_REALTEK, 0x8191)},//Default ID
 
 	/****** 8188CUS ********/
 	{USB_DEVICE(USB_VENDER_ID_REALTEK, 0x8176)},//8188cu 1*1 dongole
@@ -180,6 +180,10 @@ static struct usb_device_id rtw_usb_id_tbl[] ={
 #endif
 #ifdef CONFIG_RTL8723A
 	{USB_DEVICE_AND_INTERFACE_INFO(USB_VENDER_ID_REALTEK, 0x8724,0xff,0xff,0xff)}, //8723AU 1*1
+#endif
+#ifdef CONFIG_RTL8188E
+	/*=== Realtek demoboard ===*/		
+	{USB_DEVICE(USB_VENDER_ID_REALTEK, 0x8179)},//Default ID	
 #endif
 	{}	/* Terminating entry */
 };
@@ -552,24 +556,7 @@ static void decide_chip_type_by_usb_device_id(_adapter *padapter, const struct u
 	//pid = pdid->idProduct;
 
 	//TODO: dynamic judge 92c or 92d according to usb vid and pid.
-#ifdef CONFIG_RTL8192C
-	padapter->chip_type = RTL8188C_8192C;
-	padapter->HardwareType = HARDWARE_TYPE_RTL8192CU;
-	DBG_871X("CHIP TYPE: RTL8188C_8192C\n");
-#endif
-
-#ifdef CONFIG_RTL8192D
-	padapter->chip_type = RTL8192D;
-	padapter->HardwareType = HARDWARE_TYPE_RTL8192DU;
-	DBG_871X("CHIP TYPE: RTL8192D\n");
-#endif
-
-#ifdef CONFIG_RTL8723A
-	padapter->chip_type = RTL8723A;
-	padapter->HardwareType = HARDWARE_TYPE_RTL8723AU;
-	DBG_871X("CHIP TYPE: RTL8723A\n");
-#endif
-
+	hal_set_hw_type(padapter);//cannot support dynamic judgment
 }
 
 static void usb_intf_start(_adapter *padapter)
@@ -1176,7 +1163,8 @@ static int rtw_drv_init(struct usb_interface *pusb_intf, const struct usb_device
 	_adapter *padapter = NULL;
 	struct dvobj_priv *pdvobjpriv;
 	struct net_device *pnetdev;
-
+	void (*set_hal_ops)(_adapter * padapter);
+	
 	RT_TRACE(_module_hci_intfs_c_, _drv_err_, ("+rtw_drv_init\n"));
 	//DBG_871X("+rtw_drv_init\n");
 
@@ -1216,32 +1204,15 @@ static int rtw_drv_init(struct usb_interface *pusb_intf, const struct usb_device
 	//step 1-1., decide the chip_type via vid/pid
 	decide_chip_type_by_usb_device_id(padapter, pdid);
 
-	//step 2.	
-	if(padapter->chip_type == RTL8188C_8192C)
-	{
-#ifdef CONFIG_RTL8192C
-		rtl8192cu_set_hal_ops(padapter);
-#endif
-	}
-	else if(padapter->chip_type == RTL8192D)
-	{
-#ifdef CONFIG_RTL8192D
-		rtl8192du_set_hal_ops(padapter);
-#endif
-	}
-	else if(padapter->chip_type == RTL8723A)
-	{
-#ifdef CONFIG_RTL8723A
-		rtl8723au_set_hal_ops(padapter);
-#endif
-	}	
-	
-	else
+	//step 2.
+	set_hal_ops =&hal_set_hal_ops;
+	if(set_hal_ops == NULL)
 	{
 		DBG_871X("Detect NULL_CHIP_TYPE\n");
 		status = _FAIL;
 		goto error;
 	}
+	set_hal_ops(padapter);	
 
 	//step 3.	initialize the dvobj_priv 
 	padapter->dvobj_init=&usb_dvobj_init;

@@ -1055,7 +1055,7 @@ _HalMapChannelPlan8192C(
 			break;			
 #endif /* Not using EEPROM_CHANNEL_PLAN directly */
 		default:
-			if(HalChannelPlan == 0xFF)
+			if(!rtw_is_channel_plan_valid(HalChannelPlan)) //by softwinners 2012-4-20 13:55:41
 				rtChannelDomain = RT_CHANNEL_DOMAIN_WORLD_WIDE_13;
 			else
 				rtChannelDomain = (RT_CHANNEL_DOMAIN)HalChannelPlan;

@@ -30,6 +30,16 @@ struct gpio_sw_classdev{
 	int drv_level;				/*GPIO的驱动能力 有0到3四个等级 */
 	int data;					/*GPIO的电平 */
 	int flags;
+	char irq;
+	char irq_num;
+	u8 irq_type;
+
+	#define SW_GPIO_TRIGER_POSITIVE		0x0
+	#define SW_GPIO_TRIGER_NEGATIVE		0x1
+	#define SW_GPIO_TRIGER_HIGH			0x2
+	#define SW_GPIO_TRIGER_LOW			0x3
+	#define SW_GPIO_TRIGER_DOUBLE		0x4
+
 	#define SW_GPIO_SUSPENDED		(1 << 0)
 	#define SW_GPIO_CORE_SUSPENDED		(1 << 16)
 	int		(*gpio_sw_cfg_set)(struct gpio_sw_classdev *gpio_sw_cdev,

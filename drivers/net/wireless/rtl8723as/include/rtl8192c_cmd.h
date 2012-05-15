@@ -36,6 +36,8 @@ enum cmd_msg_element_id
 	SELECTIVE_SUSPEND_ROF_CMD=9,
 	P2P_PS_CTW_CMD_EID=32,
 	H2C_92C_IO_OFFLOAD=44,
+	H2C_92C_TSF_SYNC=67,
+	H2C_92C_DISABLE_BCN_FUNC=68,
 	H2C_92C_CMD_MAX
 };
 
@@ -100,5 +102,14 @@ typedef struct _IO_OFFLOAD_LOC{
 int rtl8192c_IOL_exec_cmds_sync(ADAPTER *adapter, struct xmit_frame *xmit_frame, u32 max_wating_ms);
 #endif //CONFIG_IOL
 
-#endif
+#ifdef CONFIG_BEACON_DISABLE_OFFLOAD
+u8 rtl8192c_dis_beacon_fun_cmd(_adapter* padapter);
+#endif  // CONFIG_BEACON_DISABLE_OFFLOAD
+
+#ifdef CONFIG_TSF_SYNC_OFFLOAD
+// bcn0 will sync to bcn1 with TSFTF_SYNC_OFFSET
+u8 rtl8192c_sync_tsf_cmd(_adapter* padapter, u64 tsf);
+#endif	// CONFIG_TSF_SYNC_OFFLOAD
+
+#endif	// __RTL8192C_CMD_H_
 

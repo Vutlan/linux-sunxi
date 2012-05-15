@@ -8073,98 +8073,98 @@ btdm_1AntPsTdma(
 				if (btdm_Is1AntPsTdmaStateChange(padapter))
 				{
 					btdm_SetFwIgnoreWlanAct(padapter, _FALSE);		// bt don't ignore Wlan_Act
-					BTDM_SetFw3a(padapter, 0x23, 0x15, 0x15, 0x0);	// cmd_id, value
+					BTDM_SetFw3a(padapter, 0x23, 0x15, 0x15, 0x0, 0);	// cmd_id, value
 				}
 				break;
 			case 2:	// ACL high-retry type
 				if (btdm_Is1AntPsTdmaStateChange(padapter))
 				{
 					btdm_SetFwIgnoreWlanAct(padapter, _FALSE);		// bt don't ignore Wlan_Act
-					BTDM_SetFw3a(padapter, 0x23, 0xf, 0xf, 0x0);	// cmd_id, value
+					BTDM_SetFw3a(padapter, 0x23, 0xf, 0xf, 0x0, 0x0);	// cmd_id, value
 				}
 				break;
 			case 3:	// SCO/eSCO type
 				if (btdm_Is1AntPsTdmaStateChange(padapter))
 				{
 					btdm_SetFwIgnoreWlanAct(padapter, _TRUE);		// bt ignore Wlan_Act
-					BTDM_SetFw3a(padapter, 0xab, 0x15, 0x3, 0x30);	// protect 3 beacons in 3-beacon period & Tx pause at BT slot
+					BTDM_SetFw3a(padapter, 0x23, 0x15, 0x15, 0x0, 0x0);	// protect 3 beacons in 3-beacon period & Tx pause at BT slot
 				}
 				break;
 			case 4:	// for wifi scan at wifi at connect state
 				if (btdm_Is1AntPsTdmaStateChange(padapter))
 				{
 					btdm_SetFwIgnoreWlanAct(padapter, _FALSE);		// bt don't ignore Wlan_Act
-					BTDM_SetFw3a(padapter, 0xab, 0x15, 0x3, 0x30);	// protect 3 beacons in 3-beacon period & Tx pause at BT slot
+					BTDM_SetFw3a(padapter, 0x63, 0xf, 0xf, 0x0, 0x0);	// protect 3 beacons in 3-beacon period & Tx pause at BT slot
 				}
 				break;
 			case 5:	// for BT is no-connect case, wifi DHCP
 				if (btdm_Is1AntPsTdmaStateChange(padapter))
 				{
 					btdm_SetFwIgnoreWlanAct(padapter, _FALSE);		// bt don't ignore Wlan_Act
-					BTDM_SetFw3a(padapter, 0x23, 0x13, 0x13, 0x0);	// cmd_id, value
+					BTDM_SetFw3a(padapter, 0x23, 0x13, 0x13, 0x0, 0x0);	// cmd_id, value
 				}
 				break;
 			case 6:	// for wifi is connect idle case
 				if (btdm_Is1AntPsTdmaStateChange(padapter))
 				{
 					btdm_SetFwIgnoreWlanAct(padapter, _FALSE);		// bt don't ignore Wlan_Act
-					BTDM_SetFw3a(padapter, 0x23, 0xa, 0x3, 0x0);	// cmd_id, value
+					BTDM_SetFw3a(padapter, 0x23, 0x8, 0x3, 0x0, 0x0);	// cmd_id, value
 				}
 				break;
 			case 7: // for wifi is at low rssi case
 				if (btdm_Is1AntPsTdmaStateChange(padapter))
 				{
 					btdm_SetFwIgnoreWlanAct(padapter, _FALSE);		// bt don't ignore Wlan_Act
-					BTDM_SetFw3a(padapter, 0x23, 0xc, 0x5, 0x0);	// cmd_id, value
+					BTDM_SetFw3a(padapter, 0x23, 0xc, 0x5, 0x0, 0x0);	// cmd_id, value
 				}
 				break;
 			case 8: // for SCO/eSCO type  + wifi DHCP
 				if (btdm_Is1AntPsTdmaStateChange(padapter))
 				{
 					btdm_SetFwIgnoreWlanAct(padapter, _TRUE);		// bt don't ignore Wlan_Act
-					BTDM_SetFw3a(padapter, 0xab, 0x15, 0x3, 0x30);	// protect 3 beacons in 3-beacon period & Tx pause at BT slot
+					BTDM_SetFw3a(padapter, 0x63, 0x15, 0x15, 0x0, 0x0);	// protect 3 beacons in 3-beacon period & Tx pause at BT slot
 				}
 				break;
 			case 9:	// ACL high-retry type-2
 				if (btdm_Is1AntPsTdmaStateChange(padapter))
 				{
 					btdm_SetFwIgnoreWlanAct(padapter, _FALSE);		// bt don't ignore Wlan_Act
-					BTDM_SetFw3a(padapter, 0x23, 0xa, 0xa, 0x0);	// cmd_id, value
+					BTDM_SetFw3a(padapter, 0x23, 0xa, 0xa, 0x0, 0x0);	// cmd_id, value
 				}
 				break;
 			case 10:	// ACL high-retry type-3
 				if (btdm_Is1AntPsTdmaStateChange(padapter))
 				{
 					btdm_SetFwIgnoreWlanAct(padapter, _FALSE);		// bt don't ignore Wlan_Act
-					BTDM_SetFw3a(padapter, 0x23, 0x5, 0x5, 0x0);	// cmd_id, value
+					BTDM_SetFw3a(padapter, 0x23, 0x5, 0x5, 0x0, 0x0);	// cmd_id, value
 				}
 				break;
 			case 11:	// HID
 				if (btdm_Is1AntPsTdmaStateChange(padapter))
 				{
 					btdm_SetFwIgnoreWlanAct(padapter, _TRUE);		// bt ignore Wlan_Act
-					BTDM_SetFw3a(padapter, 0x23, 0x15, 0x15, 0x0);	// cmd_id, value
+					BTDM_SetFw3a(padapter, 0x23, 0x15, 0x15, 0x0, 0x0);	// cmd_id, value
 				}
 				break;
 			case 12:	// inquiry + wifi busy
 				if (btdm_Is1AntPsTdmaStateChange(padapter))
 				{
 					btdm_SetFwIgnoreWlanAct(padapter, _FALSE);		// bt don't ignore Wlan_Act
-					BTDM_SetFw3a(padapter, 0x21, 0x15, 0x15, 0x0);	// cmd_id, value
+					BTDM_SetFw3a(padapter, 0x21, 0x15, 0x15, 0x0, 0x0);	// cmd_id, value
 				}
 				break;
 			case 13:	// inquiry + wifi idle
 				if (btdm_Is1AntPsTdmaStateChange(padapter))
 				{
 					btdm_SetFwIgnoreWlanAct(padapter, _FALSE);		// bt don't ignore Wlan_Act
-					BTDM_SetFw3a(padapter, 0x21, 0x8, 0x3, 0x0);	// cmd_id, value
+					BTDM_SetFw3a(padapter, 0x21, 0x8, 0x3, 0x0, 0x0);	// cmd_id, value
 				}
 				break;
 			case 14:	// bt connected idle
 				if (btdm_Is1AntPsTdmaStateChange(padapter))
 				{
 					btdm_SetFwIgnoreWlanAct(padapter, _FALSE);		// bt don't ignore Wlan_Act
-					BTDM_SetFw3a(padapter, 0xab, 0x15, 0x3, 0x30);	// protect 3 beacons in 3-beacon period & Tx pause at BT slot
+					BTDM_SetFw3a(padapter,  0x63, 0x15, 0x15, 0x0, 0x0);	// protect 3 beacons in 3-beacon period & Tx pause at BT slot
 				}
 				break;
 		}
@@ -8176,7 +8176,7 @@ btdm_1AntPsTdma(
 			if (btdm_Is1AntPsTdmaStateChange(padapter))
 			{
 				btdm_SetFwIgnoreWlanAct(padapter, _FALSE);		// bt don't ignore Wlan_Act
-				BTDM_SetFw3a(padapter, 0x8, 0x0, 0x0, 0x0);		// Antenna control by PTA, 0x870 = 0x310.
+				BTDM_SetFw3a(padapter, 0x8, 0x0, 0x0, 0x8, 0x0);		// Antenna control by PTA, 0x870 = 0x310.
 			}
 		}
 		else if (type == 9)
@@ -8184,7 +8184,7 @@ btdm_1AntPsTdma(
 			if (btdm_Is1AntPsTdmaStateChange(padapter))
 			{
 				btdm_SetFwIgnoreWlanAct(padapter, _TRUE);		// bt ignore Wlan_Act
-				BTDM_SetFw3a(padapter, 0x0, 0x0, 0x0, 0x0);		// Antenna control by PTA, 0x870 = 0x300.
+				BTDM_SetFw3a(padapter, 0x0, 0x0, 0x0, 0x8, 0x0);		// Antenna control by PTA, 0x870 = 0x300.
 			}
 			rtw_write16(padapter, 0x860, 0x210);
 		}
@@ -8193,7 +8193,7 @@ btdm_1AntPsTdma(
 			if (btdm_Is1AntPsTdmaStateChange(padapter))
 			{
 				btdm_SetFwIgnoreWlanAct(padapter, _FALSE);		// bt don't ignore Wlan_Act
-				BTDM_SetFw3a(padapter, 0x0, 0x0, 0x0, 0x0);		// Antenna switch at bt side, 0x870 = 0x300
+				BTDM_SetFw3a(padapter, 0x0, 0x0, 0x0, 0x8, 0x0);		// Antenna switch at bt side, 0x870 = 0x300
 			}
 			rtw_write16(padapter, 0x860, 0x210);
 		}
@@ -8807,6 +8807,7 @@ btdm_BtdmStrctureReload(
 	pBtdm->bTraTdmaOn = _FALSE;
 	pBtdm->traTdmaAnt = TDMA_2ANT;
 	pBtdm->traTdmaNav = TDMA_NAV_OFF;
+	pBtdm->bIgnoreWlanAct = _FALSE;
 
 	pBtdm->bPsTdmaOn = _FALSE;
 	pBtdm->psTdmaByte[0] = 0x0;
@@ -9235,9 +9236,13 @@ btdm_SetBtdm(
 	//
 	if (pBtMgnt->ExtConfig.bHoldForBtOperation)
 	{
+#if 0//cosa test for Jenyu
 		RTPRINT(FBT, BT_TRACE, ("[BTCoex], disable TDMA for bt operation!!\n"));
 		btdm_SetFwTraTdmaCtrl(padapter, _FALSE, TDMA_2ANT, TDMA_NAV_OFF);
 		btdm_SetFwTdmaCtrl(padapter, _FALSE, TDMA_2ANT, TDMA_NAV_OFF, TDMA_DAC_SWING_OFF);
+#endif
+		RTPRINT(FBT, BT_TRACE, ("[BTCoex], set to ignore wlanAct for BT OP!!\n"));
+		btdm_SetFwIgnoreWlanAct(padapter, _TRUE);
 		return;
 	}
 
@@ -9278,16 +9283,74 @@ btdm_SetBtdm(
 	btdm_SetCoexTable(padapter, pBtdm->val0x6c0, pBtdm->val0x6c8, pBtdm->val0x6cc);
 	btdm_SetHwPtaMode(padapter, pBtdm->bPtaOn);
 
-	// NOTE1: Only one of PsTDMA and old TDMA can be ON!!!!
-	// PsTDMA : ON	====> old TDMA should be OFF!!!
-	// old TDMA ON ====> PsTDMA should be OFF!!!
+	// NOTE1: Only one of the following mechanism can be Turn ON!!!
+	// 1)PsTDMA 2)old TDMA 3)2AntHid
+	// NOTE2: When turn on, should turn off other mechanisms.
+	// 
 
-	//
-	// Note: There is a constraint between TDMA and 2AntHID
-	// Only one of 2AntHid and tdma can be turn on
-	// We should turn off those mechanisms should be turned off first
-	// and then turn on those mechanisms should be turned on.
-	//
+#if 1
+	if(pBtdm->b2AntHidEn)
+	{
+		// turn off tdma
+		btdm_SetFwTraTdmaCtrl(padapter, pBtdm->bTraTdmaOn, pBtdm->traTdmaAnt, pBtdm->traTdmaNav);
+		btdm_SetFwTdmaCtrl(padapter, _FALSE, pBtdm->tdmaAnt, pBtdm->tdmaNav, pBtdm->tdmaDacSwing);
+
+		// turn off Pstdma
+		btdm_SetFwIgnoreWlanAct(padapter, pBtdm->bIgnoreWlanAct);
+		BTDM_SetFw3a(padapter, 0x0, 0x0, 0x0, 0x8, 0x0); 	// Antenna control by PTA, 0x870 = 0x300.
+
+		// turn on 2AntHid
+		btdm_SetFwBtHidInfo(padapter, _TRUE);
+		btdm_SetFw2AntHID(padapter, _TRUE, _TRUE);
+	}
+	else if(pBtdm->bTdmaOn)
+	{
+		// turn off 2AntHid
+		btdm_SetFwBtHidInfo(padapter, _FALSE);
+		btdm_SetFw2AntHID(padapter, _FALSE, _FALSE);
+
+		// turn off pstdma
+		btdm_SetFwIgnoreWlanAct(padapter, pBtdm->bIgnoreWlanAct);
+		BTDM_SetFw3a(padapter, 0x0, 0x0, 0x0, 0x8, 0x0); 	// Antenna control by PTA, 0x870 = 0x300.
+
+		// turn on tdma
+		btdm_SetFwTraTdmaCtrl(padapter, pBtdm->bTraTdmaOn, pBtdm->traTdmaAnt, pBtdm->traTdmaNav);
+		btdm_SetFwTdmaCtrl(padapter, _TRUE, pBtdm->tdmaAnt, pBtdm->tdmaNav, pBtdm->tdmaDacSwing);
+	}
+	else if(pBtdm->bPsTdmaOn)
+	{
+		// turn off 2AntHid
+		btdm_SetFwBtHidInfo(padapter, _FALSE);
+		btdm_SetFw2AntHID(padapter, _FALSE, _FALSE);
+
+		// turn off tdma
+		btdm_SetFwTraTdmaCtrl(padapter, pBtdm->bTraTdmaOn, pBtdm->traTdmaAnt, pBtdm->traTdmaNav);
+		btdm_SetFwTdmaCtrl(padapter, _FALSE, pBtdm->tdmaAnt, pBtdm->tdmaNav, pBtdm->tdmaDacSwing);
+
+		// turn on pstdma
+		btdm_SetFwIgnoreWlanAct(padapter, pBtdm->bIgnoreWlanAct);
+		BTDM_SetFw3a(padapter, 
+			pBtdm->psTdmaByte[0], 
+			pBtdm->psTdmaByte[1], 
+			pBtdm->psTdmaByte[2],
+			pBtdm->psTdmaByte[3],
+			pBtdm->psTdmaByte[4]);
+	}
+	else
+	{
+		// turn off 2AntHid
+		btdm_SetFwBtHidInfo(padapter, _FALSE);
+		btdm_SetFw2AntHID(padapter, _FALSE, _FALSE);
+
+		// turn off tdma
+		btdm_SetFwTraTdmaCtrl(padapter, pBtdm->bTraTdmaOn, pBtdm->traTdmaAnt, pBtdm->traTdmaNav);
+		btdm_SetFwTdmaCtrl(padapter, _FALSE, pBtdm->tdmaAnt, pBtdm->tdmaNav, pBtdm->tdmaDacSwing);
+
+		// turn off pstdma
+		btdm_SetFwIgnoreWlanAct(padapter, pBtdm->bIgnoreWlanAct);
+		BTDM_SetFw3a(padapter, 0x0, 0x0, 0x0, 0x8, 0x0); 	// Antenna control by PTA, 0x870 = 0x300.
+	}
+#else
 	if (pBtdm->bTdmaOn)
 	{
 		if (pBtdm->bPsTdmaOn)
@@ -9298,6 +9361,7 @@ btdm_SetBtdm(
 		else
 		{
 			// NOTE: When turn on old TDMA, we should turn OFF PsTDMA first
+			BTDM_SetFwIgnoreWlanAct(padapter, pBtdm->bIgnoreWlanAct);
 			BTDM_SetFw3a(padapter, 0x0, 0x0, 0x0, 0x8); 	// Antenna control by PTA, 0x870 = 0x300.
 		}
 
@@ -9326,18 +9390,21 @@ btdm_SetBtdm(
 		// NOTE: When turn on PsTDMA, we should turn OFF old TDMA first
 		if (pBtdm->bPsTdmaOn)
 		{
+			BTDM_SetFwIgnoreWlanAct(padapter, pBtdm->bIgnoreWlanAct);
 			BTDM_SetFw3a(padapter,
 				pBtdm->psTdmaByte[0],
 				pBtdm->psTdmaByte[1],
 				pBtdm->psTdmaByte[2],
-				pBtdm->psTdmaByte[3]);
+				pBtdm->psTdmaByte[3],
+				pBtdm->psTdmaByte[4]);
 		}
 		else
 		{
-			BTDM_SetFw3a(padapter, 0x0, 0x0, 0x0, 0x8); 	// Antenna control by PTA, 0x870 = 0x300.
+			BTDM_SetFwIgnoreWlanAct(padapter, pBtdm->bIgnoreWlanAct);
+			BTDM_SetFw3a(padapter, 0x0, 0x0, 0x0, 0x8, 0x0); 	// Antenna control by PTA, 0x870 = 0x300.
 		}
 	}
-
+#endif
 	//
 	// Note:
 	// We should add delay for making sure sw DacSwing can be set sucessfully.
@@ -9542,13 +9609,17 @@ void btdm_2Ant8723ASCOAction(PADAPTER padapter)
 		btdm8723.val0x6c0 = 0x5a5aaaaa;
 		btdm8723.val0x6c8 = 0xcc;
 		btdm8723.val0x6cc = 0x3;
+		btdm8723.bIgnoreWlanAct = _TRUE;
 		// sw mechanism
 		btdm8723.bAgcTableEn = _FALSE;
 		btdm8723.bAdcBackOffOn = _TRUE;
 		btdm8723.bSwDacSwingOn = _FALSE;
 		// fw mechanism
+		btdm8723.bPsTdmaOn = _FALSE;
+		btdm8723.bTraTdmaOn = _FALSE;
 		btdm8723.bTdmaOn = _FALSE;
 		btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
+		btdm8723.b2AntHidEn = _FALSE;
 	}
 	else
 	{
@@ -9559,6 +9630,7 @@ void btdm_2Ant8723ASCOAction(PADAPTER padapter)
 		btdm8723.val0x6c0 = 0x5a5aaaaa;
 		btdm8723.val0x6c8 = 0xcc;
 		btdm8723.val0x6cc = 0x3;
+		btdm8723.bIgnoreWlanAct = _TRUE;
 		// sw mechanism
 		if ((btRssiState == BT_RSSI_STATE_HIGH) ||
 			(btRssiState == BT_RSSI_STATE_STAY_HIGH))
@@ -9576,8 +9648,11 @@ void btdm_2Ant8723ASCOAction(PADAPTER padapter)
 			btdm8723.bSwDacSwingOn = _FALSE;
 		}
 		// fw mechanism
+		btdm8723.bPsTdmaOn = _FALSE;
+		btdm8723.bTraTdmaOn = _FALSE;
 		btdm8723.bTdmaOn = _FALSE;
 		btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
+		btdm8723.b2AntHidEn = _FALSE;
 	}
 
 	if (btdm_NeedToDecBtPwr(padapter))
@@ -9603,36 +9678,71 @@ void btdm_2Ant8723AHIDAction(PADAPTER padapter)
 	btdm8723.bLowPenaltyRateAdaptive = _TRUE;
 	btdm8723.bRejectAggrePkt = _FALSE;
 
-	btRssiState = BTDM_CheckCoexRSSIState(padapter, 2, BT_FW_COEX_THRESH_50, 0);
+//	btRssiState = BTDM_CheckCoexRSSIState(padapter, 2, BT_FW_COEX_THRESH_50, 0);
 
 	// coex table
 	btdm8723.val0x6c0 = 0x55555555;
 	btdm8723.val0x6c8 = 0xffff;
 	btdm8723.val0x6cc = 0x3;
+	btdm8723.bIgnoreWlanAct = _TRUE;
 
-	// sw mechanism
-	btdm8723.bAgcTableEn = _FALSE;
-	btdm8723.bAdcBackOffOn = _FALSE;
-	btdm8723.bSwDacSwingOn = _FALSE;
-
-	if ((btRssiState == BT_RSSI_STATE_HIGH) ||
-		(btRssiState == BT_RSSI_STATE_STAY_HIGH))
+	if(BTDM_IsHT40(padapter))
 	{
-		RTPRINT(FBT, BT_TRACE, ("Wifi rssi high \n"));
+		RTPRINT(FBT, BT_TRACE, ("HT40\n"));		
+		// sw mechanism
+		btdm8723.bAgcTableEn = _FALSE;
+		btdm8723.bAdcBackOffOn = _FALSE;
+		btdm8723.bSwDacSwingOn = _FALSE;
+
 		// fw mechanism
+		btdm8723.bPsTdmaOn = _TRUE;
+		btdm8723.psTdmaByte[0] = 0xa3;
+		btdm8723.psTdmaByte[1] = 0xf;
+		btdm8723.psTdmaByte[2] = 0xf;
+		btdm8723.psTdmaByte[3] = 0x0;
+		btdm8723.psTdmaByte[4] = 0x80;
+		
+		btdm8723.bTraTdmaOn = _FALSE;
 		btdm8723.bTdmaOn = _FALSE;
 		btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
-		btdm8723.b2AntHidEn = _TRUE;
-		btdm8723.fwDacSwingLvl = 0x40;
+		btdm8723.b2AntHidEn = _FALSE;
 	}
 	else
 	{
-		RTPRINT(FBT, BT_TRACE, ("Wifi rssi low \n"));
-		// fw mechanism
-		btdm8723.bTdmaOn = _FALSE;
-		btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
-		btdm8723.b2AntHidEn = _TRUE;
-		btdm8723.fwDacSwingLvl = 0x20;
+		RTPRINT(FBT, BT_TRACE, ("HT20 or Legacy\n"));
+		btRssiState = BTDM_CheckCoexRSSIState(padapter, 2, 47, 0);
+
+		if ((btRssiState == BT_RSSI_STATE_HIGH) ||
+			(btRssiState == BT_RSSI_STATE_STAY_HIGH))
+		{
+			RTPRINT(FBT, BT_TRACE, ("Wifi rssi high \n"));
+			// sw mechanism
+			btdm8723.bAgcTableEn = _FALSE;
+			btdm8723.bAdcBackOffOn = _FALSE;
+			btdm8723.bSwDacSwingOn = _TRUE;
+			btdm8723.swDacSwingLvl = 0x20;
+				
+			// fw mechanism
+			btdm8723.bPsTdmaOn = _FALSE;
+			btdm8723.bTdmaOn = _FALSE;
+			btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
+			btdm8723.b2AntHidEn = _FALSE;
+		}
+		else
+		{
+			RTPRINT(FBT, BT_TRACE, ("Wifi rssi low \n"));
+			// sw mechanism
+			btdm8723.bAgcTableEn = _FALSE;
+			btdm8723.bAdcBackOffOn = _FALSE;
+			btdm8723.bSwDacSwingOn = _FALSE;
+
+			// fw mechanism
+			btdm8723.bPsTdmaOn = _FALSE;
+			btdm8723.bTdmaOn = _FALSE;
+			btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
+			btdm8723.b2AntHidEn = _TRUE;
+			btdm8723.fwDacSwingLvl = 0x20;
+		}
 	}
 
 	if (btdm_NeedToDecBtPwr(padapter))
@@ -9827,231 +9937,119 @@ void btdm_2Ant8723AAclOnlyBusy(PADAPTER padapter)
 	btdm8723.bLowPenaltyRateAdaptive = _TRUE;
 	btdm8723.bRejectAggrePkt = _FALSE;
 
-	btRssiState = BTDM_CheckCoexRSSIState(padapter, 2, 42, 0);
-
 	if (BTDM_IsHT40(padapter))
 	{
 		RTPRINT(FBT, BT_TRACE, ("HT40\n"));
+		btRssiState = BTDM_CheckCoexRSSIState(padapter, 2, 37, 0);
 
-		if (BTDM_IsWifiUplink(padapter))
-		{
-			RTPRINT(FBT, BT_TRACE, ("Wifi Uplink\n"));
-			// coex table
-			btdm8723.val0x6c0 = 0x5a5a5a5a;
-			btdm8723.val0x6c8 = 0xcccc;
-			btdm8723.val0x6cc = 0x3;
-			// sw mechanism
-			btdm8723.bAgcTableEn = _FALSE;
-			btdm8723.bAdcBackOffOn = _TRUE;
-			btdm8723.bSwDacSwingOn = _FALSE;
-			// fw mechanism
-			if ((btRssiState == BT_RSSI_STATE_HIGH) ||
+		// coex table
+		btdm8723.val0x6c0 = 0x55555555;
+		btdm8723.val0x6c8 = 0xffff;
+		btdm8723.val0x6cc = 0x3;
+		btdm8723.bIgnoreWlanAct = _FALSE;
+		// sw mechanism
+		btdm8723.bAgcTableEn = _FALSE;
+		btdm8723.bAdcBackOffOn = _TRUE;
+		btdm8723.bSwDacSwingOn = _FALSE;
+		// fw mechanism
+		if ((btRssiState == BT_RSSI_STATE_HIGH) ||
 				(btRssiState == BT_RSSI_STATE_STAY_HIGH))
-			{
-				RTPRINT(FBT, BT_TRACE, ("Wifi rssi high \n"));
-				// only rssi high we need to do this,
-				// when rssi low, the value will modified by fw
-				rtw_write8(padapter, 0x883, 0x40);
+		{
+			RTPRINT(FBT, BT_TRACE, ("Wifi rssi high \n"));
+			// only rssi high we need to do this,
+			// when rssi low, the value will modified by fw
+			rtw_write8(padapter, 0x883, 0x40);
 
-				btdm8723.bPsTdmaOn = _FALSE;
+			btdm8723.bPsTdmaOn = _TRUE;
+			btdm8723.psTdmaByte[0] = 0xa3;
+			btdm8723.psTdmaByte[1] = 0xf;
+			btdm8723.psTdmaByte[2] = 0xf;
+			btdm8723.psTdmaByte[3] = 0x81;
+			btdm8723.psTdmaByte[4] = 0x80;
 
-				btdm8723.bTraTdmaOn = _TRUE;
-				btdm8723.bTdmaOn = _TRUE;
-				btdm8723.tdmaDacSwing = TDMA_DAC_SWING_ON;
-				btdm8723.b2AntHidEn = _FALSE;
-				btdm8723.wlanActHi = 0x10;
-				btdm8723.wlanActLo = 0x10;
-				btdm8723.btRetryIndex = 2;
-				btdm8723.fwDacSwingLvl = 0x20;
-			}
-			else
-			{
-				RTPRINT(FBT, BT_TRACE, ("Wifi rssi low \n"));
-				btdm8723.bPsTdmaOn = _TRUE;
-				btdm8723.psTdmaByte[0] = 0xa3;
-				btdm8723.psTdmaByte[1] = 0x15;
-				btdm8723.psTdmaByte[2] = 0x15;
-				btdm8723.psTdmaByte[3] = 0x00;
-
-				btdm8723.bTraTdmaOn = _FALSE;
-				btdm8723.bTdmaOn = _FALSE;
-				btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
-				btdm8723.b2AntHidEn = _FALSE;
-			}
+			btdm8723.bTraTdmaOn = _FALSE;
+			btdm8723.bTdmaOn = _FALSE;
+			btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
+			btdm8723.b2AntHidEn = _FALSE;
 		}
 		else
 		{
-			RTPRINT(FBT, BT_TRACE, ("Wifi Downlink\n"));
-			// coex table
-			btdm8723.val0x6c0 = 0x5a5a5a5a;
-			btdm8723.val0x6c8 = 0xcc;
-			btdm8723.val0x6cc = 0x3;
-			// sw mechanism
-			btdm8723.bAgcTableEn = _FALSE;
-			btdm8723.bAdcBackOffOn = _TRUE;
-			btdm8723.bSwDacSwingOn = _FALSE;
-			// fw mechanism
-			btdm8723.bTraTdmaOn = _TRUE;
-			btdm8723.bTdmaOn = _TRUE;
-			btdm8723.tdmaDacSwing = TDMA_DAC_SWING_ON;
+			RTPRINT(FBT, BT_TRACE, ("Wifi rssi low \n"));
+			btdm8723.bPsTdmaOn = _TRUE;
+			btdm8723.psTdmaByte[0] = 0xa3;
+			btdm8723.psTdmaByte[1] = 0xf;
+			btdm8723.psTdmaByte[2] = 0xf;
+			btdm8723.psTdmaByte[3] = 0x0;
+			btdm8723.psTdmaByte[4] = 0x80;
+	
+			btdm8723.bTraTdmaOn = _FALSE;
+			btdm8723.bTdmaOn = _FALSE;
+			btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
 			btdm8723.b2AntHidEn = _FALSE;
-			// fw mechanism
-			if ( (btRssiState == BT_RSSI_STATE_HIGH) ||
-				(btRssiState == BT_RSSI_STATE_STAY_HIGH) )
-			{
-				RTPRINT(FBT, BT_TRACE, ("Wifi rssi high \n"));
-				// only rssi high we need to do this,
-				// when rssi low, the value will modified by fw
-				rtw_write8(padapter, 0x883, 0x40);
-
-				btdm8723.bPsTdmaOn = _FALSE;
-
-				btdm8723.bTraTdmaOn = _TRUE;
-				btdm8723.bTdmaOn = _TRUE;
-				btdm8723.tdmaDacSwing = TDMA_DAC_SWING_ON;
-				btdm8723.b2AntHidEn = _FALSE;
-				btdm8723.wlanActHi = 0x10;
-				btdm8723.wlanActLo = 0x10;
-				btdm8723.btRetryIndex = 2;
-				btdm8723.fwDacSwingLvl = 0x30;
-			}
-			else
-			{
-				RTPRINT(FBT, BT_TRACE, ("Wifi rssi low \n"));
-				btdm8723.bPsTdmaOn = _TRUE;
-				btdm8723.psTdmaByte[0] = 0xa3;
-				btdm8723.psTdmaByte[1] = 0x15;
-				btdm8723.psTdmaByte[2] = 0x15;
-				btdm8723.psTdmaByte[3] = 0x00;
-
-				btdm8723.bTraTdmaOn = _FALSE;
-				btdm8723.bTdmaOn = _FALSE;
-				btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
-				btdm8723.b2AntHidEn = _FALSE;
-			}
 		}
 	}
 	else
 	{
 		RTPRINT(FBT, BT_TRACE, ("HT20 or Legacy\n"));
-
+		btRssiState = BTDM_CheckCoexRSSIState(padapter, 2, 47, 0);
 		btRssiState1 = BTDM_CheckCoexRSSIState1(padapter, 2, 27, 0);
 
-		if (BTDM_IsWifiUplink(padapter))
+		// coex table
+		btdm8723.val0x6c0 = 0x55555555;
+		btdm8723.val0x6c8 = 0xffff;
+		btdm8723.val0x6cc = 0x3;
+		btdm8723.bIgnoreWlanAct = _FALSE;
+		// sw mechanism
+		if ((btRssiState == BT_RSSI_STATE_HIGH) ||
+			(btRssiState == BT_RSSI_STATE_STAY_HIGH))
 		{
-			RTPRINT(FBT, BT_TRACE, ("Wifi Uplink\n"));
-			// coex table
-			btdm8723.val0x6c0 = 0x5a5a5a5a;
-			btdm8723.val0x6c8 = 0xcccc;
-			btdm8723.val0x6cc = 0x3;
-			// sw mechanism
-			if ((btRssiState1 == BT_RSSI_STATE_HIGH) ||
-				(btRssiState1 == BT_RSSI_STATE_STAY_HIGH))
-			{
-				RTPRINT(FBT, BT_TRACE, ("Wifi rssi-1 high \n"));
-				btdm8723.bAgcTableEn = _TRUE;
-				btdm8723.bAdcBackOffOn = _TRUE;
-				btdm8723.bSwDacSwingOn = _FALSE;
-			}
-			else
-			{
-				RTPRINT(FBT, BT_TRACE, ("Wifi rssi-1 low \n"));
-				btdm8723.bAgcTableEn = _FALSE;
-				btdm8723.bAdcBackOffOn = _FALSE;
-				btdm8723.bSwDacSwingOn = _FALSE;
-			}
-			// fw mechanism
-			if ((btRssiState == BT_RSSI_STATE_HIGH) ||
-				(btRssiState == BT_RSSI_STATE_STAY_HIGH))
-			{
-				RTPRINT(FBT, BT_TRACE, ("Wifi rssi high \n"));
-				// only rssi high we need to do this,
-				// when rssi low, the value will modified by fw
-				rtw_write8(padapter, 0x883, 0x40);
-
-				btdm8723.bPsTdmaOn = _FALSE;
-
-				btdm8723.bTraTdmaOn = _TRUE;
-				btdm8723.bTdmaOn = _TRUE;
-				btdm8723.tdmaDacSwing = TDMA_DAC_SWING_ON;
-				btdm8723.b2AntHidEn = _FALSE;
-				btdm8723.wlanActHi = 0x10;
-				btdm8723.wlanActLo = 0x10;
-				btdm8723.btRetryIndex = 2;
-				btdm8723.fwDacSwingLvl = 0x20;
-			}
-			else
-			{
-				RTPRINT(FBT, BT_TRACE, ("Wifi rssi low \n"));
-				btdm8723.bPsTdmaOn = _TRUE;
-				btdm8723.psTdmaByte[0] = 0xa3;
-				btdm8723.psTdmaByte[1] = 0x15;
-				btdm8723.psTdmaByte[2] = 0x15;
-				btdm8723.psTdmaByte[3] = 0x00;
-
-				btdm8723.bTraTdmaOn = _FALSE;
-				btdm8723.bTdmaOn = _FALSE;
-				btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
-				btdm8723.b2AntHidEn = _FALSE;
-			}
+			RTPRINT(FBT, BT_TRACE, ("Wifi rssi-1 high \n"));
+			btdm8723.bAgcTableEn = _TRUE;
+			btdm8723.bAdcBackOffOn = _TRUE;
+			btdm8723.bSwDacSwingOn = _FALSE;
 		}
 		else
 		{
-			RTPRINT(FBT, BT_TRACE, ("Wifi Downlink\n"));
-			// coex table
-			btdm8723.val0x6c0 = 0x5a5a5a5a;
-			btdm8723.val0x6c8 = 0xcc;
-			btdm8723.val0x6cc = 0x3;
-			// sw mechanism
-			if ((btRssiState1 == BT_RSSI_STATE_HIGH) ||
-				(btRssiState1 == BT_RSSI_STATE_STAY_HIGH))
-			{
-				RTPRINT(FBT, BT_TRACE, ("Wifi rssi-1 high \n"));
-				btdm8723.bAgcTableEn = _TRUE;
-				btdm8723.bAdcBackOffOn = _TRUE;
-				btdm8723.bSwDacSwingOn = _FALSE;
-			}
-			else
-			{
-				RTPRINT(FBT, BT_TRACE, ("Wifi rssi-1 low \n"));
-				btdm8723.bAgcTableEn = _FALSE;
-				btdm8723.bAdcBackOffOn = _FALSE;
-				btdm8723.bSwDacSwingOn = _FALSE;
-			}
-			// fw mechanism
-			if ((btRssiState == BT_RSSI_STATE_HIGH) ||
-				(btRssiState == BT_RSSI_STATE_STAY_HIGH))
-			{
-				RTPRINT(FBT, BT_TRACE, ("Wifi rssi high \n"));
-				// only rssi high we need to do this,
-				// when rssi low, the value will modified by fw
-				rtw_write8(padapter, 0x883, 0x40);
+			RTPRINT(FBT, BT_TRACE, ("Wifi rssi-1 low \n"));
+			btdm8723.bAgcTableEn = _FALSE;
+			btdm8723.bAdcBackOffOn = _FALSE;
+			btdm8723.bSwDacSwingOn = _FALSE;
+		}
+		// fw mechanism
+		if ((btRssiState == BT_RSSI_STATE_HIGH) ||
+			(btRssiState == BT_RSSI_STATE_STAY_HIGH))
+		{
+			RTPRINT(FBT, BT_TRACE, ("Wifi rssi high \n"));
+			// only rssi high we need to do this,
+			// when rssi low, the value will modified by fw
+			rtw_write8(padapter, 0x883, 0x40);
 
-				btdm8723.bPsTdmaOn = _FALSE;
+			btdm8723.bPsTdmaOn = _TRUE;
+			btdm8723.psTdmaByte[0] = 0xa3;
+			btdm8723.psTdmaByte[1] = 0xf;
+			btdm8723.psTdmaByte[2] = 0xf;
+			btdm8723.psTdmaByte[3] = 0x81;
+			btdm8723.psTdmaByte[4] = 0x80;
 
-				btdm8723.bTraTdmaOn = _TRUE;
-				btdm8723.bTdmaOn = _TRUE;
-				btdm8723.tdmaDacSwing = TDMA_DAC_SWING_ON;
-				btdm8723.b2AntHidEn = _FALSE;
-				btdm8723.wlanActHi = 0x10;
-				btdm8723.wlanActLo = 0x10;
-				btdm8723.btRetryIndex = 2;
-				btdm8723.fwDacSwingLvl = 0x30;
-			}
-			else
-			{
-				RTPRINT(FBT, BT_TRACE, ("Wifi rssi low \n"));
-				btdm8723.bPsTdmaOn = _TRUE;
-				btdm8723.psTdmaByte[0] = 0xa3;
-				btdm8723.psTdmaByte[1] = 0x15;
-				btdm8723.psTdmaByte[2] = 0x15;
-				btdm8723.psTdmaByte[3] = 0x00;
+			btdm8723.bTraTdmaOn = _FALSE;
+			btdm8723.bTdmaOn = _FALSE;
+			btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
+			btdm8723.b2AntHidEn = _FALSE;
+		}
+		else
+		{
+			RTPRINT(FBT, BT_TRACE, ("Wifi rssi low \n"));
+			btdm8723.bPsTdmaOn = _TRUE;
+			btdm8723.psTdmaByte[0] = 0xa3;
+			btdm8723.psTdmaByte[1] = 0xf;
+			btdm8723.psTdmaByte[2] = 0xf;
+			btdm8723.psTdmaByte[3] = 0x0;
+			btdm8723.psTdmaByte[4] = 0x80;
 
-				btdm8723.bTraTdmaOn = _FALSE;
-				btdm8723.bTdmaOn = _FALSE;
-				btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
-				btdm8723.b2AntHidEn = _FALSE;
-			}
+			btdm8723.bTraTdmaOn = _FALSE;
+			btdm8723.bTdmaOn = _FALSE;
+			btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
+			btdm8723.b2AntHidEn = _FALSE;
 		}
 	}
 
@@ -10070,7 +10068,6 @@ void btdm_2Ant8723AA2dpSinkActionNoProfile(PADAPTER padapter)
 {
 	BTDM_8723A_2ANT		btdm8723;
 	u8	btRssiState, btSpec;
-
 
 	btdm_BtdmStrctureReload(padapter, &btdm8723);
 
@@ -10199,17 +10196,164 @@ void btdm_2Ant8723AA2dpSinkActionNoProfile(PADAPTER padapter)
 		btdm_SetBtdm(padapter, &btdm8723);
 	}
 }
-
+#if 1
 void btdm_2Ant8723APANAction(PADAPTER padapter)
 {
 	BTDM_8723A_2ANT		btdm8723;
-	u8			btSpec, btRssiState;
+	u8			btRssiState, btRssiState1, btSpec;
 
 	btdm_BtdmStrctureReload(padapter, &btdm8723);
 
 	btdm8723.bRfRxLpfShrink = _TRUE;
 	btdm8723.bLowPenaltyRateAdaptive = _TRUE;
 	btdm8723.bRejectAggrePkt = _FALSE;
+
+	if(BTDM_IsBTHSMode(padapter))
+	{
+		RTPRINT(FBT, BT_TRACE, ("[BT 3.0]\n"));
+		btdm_BtdmStrctureReloadAllOff(padapter, &btdm8723);
+	}
+	else
+	{
+		if(BTDM_IsHT40(padapter))
+		{
+			RTPRINT(FBT, BT_TRACE, ("HT40\n"));
+			btRssiState = BTDM_CheckCoexRSSIState(padapter, 2, 37, 0);
+
+			// coex table
+			btdm8723.val0x6c0 = 0x55555555;
+			btdm8723.val0x6c8 = 0xffff;
+			btdm8723.val0x6cc = 0x3;
+			btdm8723.bIgnoreWlanAct = _FALSE;
+			// sw mechanism
+			btdm8723.bAgcTableEn = _FALSE;
+			btdm8723.bAdcBackOffOn = _TRUE;
+			btdm8723.bSwDacSwingOn = _FALSE;
+			// fw mechanism
+			if( (btRssiState == BT_RSSI_STATE_HIGH) ||
+				(btRssiState == BT_RSSI_STATE_STAY_HIGH) )
+			{
+				RTPRINT(FBT, BT_TRACE, ("Wifi rssi high \n"));
+				// only rssi high we need to do this, 
+				// when rssi low, the value will modified by fw
+				rtw_write8(padapter, 0x883, 0x40);
+
+				btdm8723.bPsTdmaOn = _TRUE;
+				btdm8723.psTdmaByte[0] = 0xa3;
+				btdm8723.psTdmaByte[1] = 0xf;
+				btdm8723.psTdmaByte[2] = 0xf;
+				btdm8723.psTdmaByte[3] = 0x81;
+				btdm8723.psTdmaByte[4] = 0x80;
+				
+				btdm8723.bTraTdmaOn = _FALSE;
+				btdm8723.bTdmaOn = _FALSE;
+				btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
+				btdm8723.b2AntHidEn = _FALSE;
+			}
+			else
+			{
+				RTPRINT(FBT, BT_TRACE, ("Wifi rssi low \n"));
+				btdm8723.bPsTdmaOn = _TRUE;
+				btdm8723.psTdmaByte[0] = 0xa3;
+				btdm8723.psTdmaByte[1] = 0xf;
+				btdm8723.psTdmaByte[2] = 0xf;
+				btdm8723.psTdmaByte[3] = 0x0;
+				btdm8723.psTdmaByte[4] = 0x80;
+				
+				btdm8723.bTraTdmaOn = _FALSE;
+				btdm8723.bTdmaOn = _FALSE;
+				btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
+				btdm8723.b2AntHidEn = _FALSE;
+			}
+		}
+		else
+		{
+			RTPRINT(FBT, BT_TRACE, ("HT20 or Legacy\n"));
+			btRssiState = BTDM_CheckCoexRSSIState(padapter, 2, 47, 0);
+			btRssiState1 = BTDM_CheckCoexRSSIState1(padapter, 2, 27, 0);
+			
+			// coex table
+			btdm8723.val0x6c0 = 0x55555555;
+			btdm8723.val0x6c8 = 0xffff;
+			btdm8723.val0x6cc = 0x3;
+			btdm8723.bIgnoreWlanAct = _FALSE;
+			// sw mechanism
+			if( (btRssiState == BT_RSSI_STATE_HIGH) ||
+				(btRssiState == BT_RSSI_STATE_STAY_HIGH) )
+			{
+				RTPRINT(FBT, BT_TRACE, ("Wifi rssi-1 high \n"));
+				btdm8723.bAgcTableEn = _TRUE;
+				btdm8723.bAdcBackOffOn = _TRUE;
+				btdm8723.bSwDacSwingOn = _FALSE;
+			}
+			else
+{
+				RTPRINT(FBT, BT_TRACE, ("Wifi rssi-1 low \n"));
+				btdm8723.bAgcTableEn = _FALSE;
+				btdm8723.bAdcBackOffOn = _FALSE;
+				btdm8723.bSwDacSwingOn = _FALSE;
+			}
+			// fw mechanism
+			if( (btRssiState1 == BT_RSSI_STATE_HIGH) ||
+				(btRssiState1 == BT_RSSI_STATE_STAY_HIGH) )
+			{
+				RTPRINT(FBT, BT_TRACE, ("Wifi rssi high \n"));
+				// only rssi high we need to do this, 
+				// when rssi low, the value will modified by fw
+				rtw_write8(padapter, 0x883, 0x40);
+
+				btdm8723.bPsTdmaOn = _TRUE;
+				btdm8723.psTdmaByte[0] = 0xa3;
+				btdm8723.psTdmaByte[1] = 0xf;
+				btdm8723.psTdmaByte[2] = 0xf;
+				btdm8723.psTdmaByte[3] = 0x81;
+				btdm8723.psTdmaByte[4] = 0x80;
+				
+				btdm8723.bTraTdmaOn = _FALSE;
+				btdm8723.bTdmaOn = _FALSE;
+				btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
+				btdm8723.b2AntHidEn = _FALSE;
+			}
+			else
+			{
+				RTPRINT(FBT, BT_TRACE, ("Wifi rssi low \n"));
+				btdm8723.bPsTdmaOn = _TRUE;
+				btdm8723.psTdmaByte[0] = 0xa3;
+				btdm8723.psTdmaByte[1] = 0xf;
+				btdm8723.psTdmaByte[2] = 0xf;
+				btdm8723.psTdmaByte[3] = 0x0;
+				btdm8723.psTdmaByte[4] = 0x80;
+
+				btdm8723.bTraTdmaOn = _FALSE;
+				btdm8723.bTdmaOn = _FALSE;
+				btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
+				btdm8723.b2AntHidEn = _FALSE;
+			}
+		}
+	}
+
+	if(btdm_NeedToDecBtPwr(padapter))
+	{
+		btdm8723.bDecBtPwr = _TRUE;
+	}
+
+	if(BTDM_IsCoexistStateChanged(padapter))
+	{
+		btdm_SetBtdm(padapter, &btdm8723);
+	}
+}
+
+#else
+void btdm_2Ant8723APANAction(PADAPTER Adapter)
+{
+	BTDM_8723_2ANT		btdm8723;
+	u8			btSpec, btRssiState;
+
+	btdm_BtdmStrctureReload(Adapter, &btdm8723);
+
+	btdm8723.bRfRxLpfShrink = TRUE;
+	btdm8723.bLowPenaltyRateAdaptive = TRUE;
+	btdm8723.bRejectAggrePkt = FALSE;
 
 	if (BTDM_IsBTHSMode(padapter))
 	{
@@ -10763,6 +10907,7 @@ void btdm_2Ant8723APANAction(PADAPTER padapter)
 		btdm_SetBtdm(padapter, &btdm8723);
 	}
 }
+#endif
 void
 btdm_2Ant8723AHIDA2DPAction(
 	PADAPTER	padapter
@@ -10782,28 +10927,48 @@ btdm_2Ant8723AHIDA2DPAction(
 		btRssiState = BTDM_CheckCoexRSSIState(padapter, 2, BT_FW_COEX_THRESH_40, 0);
 		RTPRINT(FBT, BT_TRACE, ("HT40\n"));
 		// coex table
+		btdm8723.val0x6c0 = 0x55555555;
+		btdm8723.val0x6c8 = 0xffff;
+		btdm8723.val0x6cc = 0x3;
+		btdm8723.bIgnoreWlanAct = _TRUE;
+		// sw mechanism
+		btdm8723.bAgcTableEn = _FALSE;
+		btdm8723.bAdcBackOffOn = _FALSE;
+		btdm8723.bSwDacSwingOn = _FALSE;
+		// fw mechanism
+		btdm8723.bPsTdmaOn = _TRUE;
+		btdm8723.psTdmaByte[0] = 0xa3;
+		btdm8723.psTdmaByte[1] = 0xf;
+		btdm8723.psTdmaByte[2] = 0xf;
+		btdm8723.psTdmaByte[3] = 0x0;
+		btdm8723.psTdmaByte[4] = 0x80;
+		
+		btdm8723.bTraTdmaOn = _FALSE;
+		btdm8723.bTdmaOn = _FALSE;
+		btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
+		btdm8723.b2AntHidEn = _FALSE;
+	}
+	else
+	{
+		RTPRINT(FBT, BT_TRACE, ("HT20 or Legacy\n"));
+		btRssiState = BTDM_CheckCoexRSSIState(padapter, 2, BT_FW_COEX_THRESH_47, 0);
+		// coex table
 		btdm8723.val0x6c0 = 0x5a5a5a5a;
 		btdm8723.val0x6c8 = 0xcccc;
 		btdm8723.val0x6cc = 0x3;
+		btdm8723.bIgnoreWlanAct = _TRUE;
 		// sw mechanism
 		if ((btRssiState == BT_RSSI_STATE_HIGH) ||
 			(btRssiState == BT_RSSI_STATE_STAY_HIGH))
 		{
 			RTPRINT(FBT, BT_TRACE, ("Wifi rssi high\n"));
-			btdm8723.bAgcTableEn = _FALSE;
-			btdm8723.bAdcBackOffOn = _FALSE;
+			btdm8723.bAgcTableEn = _TRUE;
+			btdm8723.bAdcBackOffOn = _TRUE;
 			btdm8723.bSwDacSwingOn = _TRUE;
-			if (BTDM_IsWifiUplink(padapter))
-			{
-				RTPRINT(FBT, BT_TRACE, ("Wifi Uplink\n"));
-				btdm8723.swDacSwingLvl = 0x20;
-			}
-			else
-			{
-				RTPRINT(FBT, BT_TRACE, ("Wifi Downlink\n"));
-				btdm8723.swDacSwingLvl = 0x20;
-			}
+			btdm8723.swDacSwingLvl = 0x20;
 			// fw mechanism
+			btdm8723.bPsTdmaOn = _FALSE;
+			btdm8723.bTraTdmaOn = _FALSE;
 			btdm8723.bTdmaOn = _FALSE;
 			btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
 			btdm8723.b2AntHidEn = _FALSE;
@@ -10816,83 +10981,10 @@ btdm_2Ant8723AHIDA2DPAction(
 			btdm8723.bSwDacSwingOn = _FALSE;
 			// fw mechanism
 			btdm8723.bTdmaOn = _FALSE;
+			btdm8723.bPsTdmaOn = _FALSE;
 			btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
 			btdm8723.b2AntHidEn = _TRUE;
 			btdm8723.fwDacSwingLvl = 0x20;
-		}
-	}
-	else
-	{
-		RTPRINT(FBT, BT_TRACE, ("HT20 or Legacy\n"));
-		if (BTDM_IsWifiUplink(padapter))
-		{
-			RTPRINT(FBT, BT_TRACE, ("Wifi Uplink\n"));
-			btRssiState = BTDM_CheckCoexRSSIState(padapter, 2, BT_FW_COEX_THRESH_40, 0);
-			// coex table
-			btdm8723.val0x6c0 = 0x5a5a5a5a;
-			btdm8723.val0x6c8 = 0xcccc;
-			btdm8723.val0x6cc = 0x3;
-			// sw mechanism
-			if ((btRssiState == BT_RSSI_STATE_HIGH) ||
-				(btRssiState == BT_RSSI_STATE_STAY_HIGH))
-			{
-				RTPRINT(FBT, BT_TRACE, ("Wifi rssi high\n"));
-				btdm8723.bAgcTableEn = _TRUE;
-				btdm8723.bAdcBackOffOn = _TRUE;
-				btdm8723.bSwDacSwingOn = _TRUE;
-				btdm8723.swDacSwingLvl = 0x20;
-				// fw mechanism
-				btdm8723.bTdmaOn = _FALSE;
-				btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
-				btdm8723.b2AntHidEn = _FALSE;
-			}
-			else
-			{
-				RTPRINT(FBT, BT_TRACE, ("Wifi rssi low\n"));
-				btdm8723.bAgcTableEn = _FALSE;
-				btdm8723.bAdcBackOffOn = _FALSE;
-				btdm8723.bSwDacSwingOn = _FALSE;
-				// fw mechanism
-				btdm8723.bTdmaOn = _FALSE;
-				btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
-				btdm8723.b2AntHidEn = _TRUE;
-				btdm8723.fwDacSwingLvl = 0x20;
-			}
-		}
-		else
-		{
-			RTPRINT(FBT, BT_TRACE, ("Wifi Downlink\n"));
-			btRssiState = BTDM_CheckCoexRSSIState(padapter, 2, BT_FW_COEX_THRESH_40, 0);
-			// coex table
-			btdm8723.val0x6c0 = 0x5a5a5a5a;
-			btdm8723.val0x6c8 = 0xcccc;
-			btdm8723.val0x6cc = 0x3;
-			// sw mechanism
-			if ((btRssiState == BT_RSSI_STATE_HIGH) ||
-				(btRssiState == BT_RSSI_STATE_STAY_HIGH))
-			{
-				RTPRINT(FBT, BT_TRACE, ("Wifi rssi high\n"));
-				btdm8723.bAgcTableEn = _TRUE;
-				btdm8723.bAdcBackOffOn = _TRUE;
-				btdm8723.bSwDacSwingOn = _TRUE;
-				btdm8723.swDacSwingLvl = 0x20;
-				// fw mechanism
-				btdm8723.bTdmaOn = _FALSE;
-				btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
-				btdm8723.b2AntHidEn = _FALSE;
-			}
-			else
-			{
-				RTPRINT(FBT, BT_TRACE, ("Wifi rssi low\n"));
-				btdm8723.bAgcTableEn = _FALSE;
-				btdm8723.bAdcBackOffOn = _FALSE;
-				btdm8723.bSwDacSwingOn = _FALSE;
-				// fw mechanism
-				btdm8723.bTdmaOn = _FALSE;
-				btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
-				btdm8723.b2AntHidEn = _TRUE;
-				btdm8723.fwDacSwingLvl = 0x20;
-			}
 		}
 	}
 
@@ -10917,10 +11009,80 @@ btdm_2Ant8723AHIDPANAction(
 
 	btdm_BtdmStrctureReload(padapter, &btdm8723);
 
+	btdm8723.bRfRxLpfShrink = _TRUE;
+	btdm8723.bLowPenaltyRateAdaptive = _TRUE;
+	btdm8723.bRejectAggrePkt = _FALSE;
+
 	if (BTDM_IsBTHSMode(padapter))
 	{
 		RTPRINT(FBT, BT_TRACE, ("[BT 3.0]\n"));
-		btdm8723.bSwDacSwingOn= _TRUE;
+		if(BTDM_IsHT40(padapter))
+		{
+			RTPRINT(FBT, BT_TRACE, ("HT40\n"));
+			// coex table
+			btdm8723.val0x6c0 = 0x55555555;
+			btdm8723.val0x6c8 = 0xffff;
+			btdm8723.val0x6cc = 0x3;
+			btdm8723.bIgnoreWlanAct = _TRUE;
+			// sw mechanism
+			btdm8723.bAgcTableEn = _FALSE;
+			btdm8723.bAdcBackOffOn = _FALSE;
+			btdm8723.bSwDacSwingOn = _FALSE;
+			// fw mechanism
+			btdm8723.bPsTdmaOn = _TRUE;
+			btdm8723.psTdmaByte[0] = 0xa3;
+			btdm8723.psTdmaByte[1] = 0xf;
+			btdm8723.psTdmaByte[2] = 0xf;
+			btdm8723.psTdmaByte[3] = 0x0;
+			btdm8723.psTdmaByte[4] = 0x80;
+		
+			btdm8723.bTraTdmaOn = _FALSE;
+			btdm8723.bTdmaOn = _FALSE;
+			btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
+			btdm8723.b2AntHidEn = _FALSE;
+		}
+		else
+		{
+			RTPRINT(FBT, BT_TRACE, ("HT20 or Legacy\n"));
+			// coex table
+			btdm8723.val0x6c0 = 0x55555555;
+			btdm8723.val0x6c8 = 0xffff;
+			btdm8723.val0x6cc = 0x3;
+			btdm8723.bIgnoreWlanAct = _TRUE;
+
+			btRssiState = BTDM_CheckCoexRSSIState(padapter, 2, 47, 0);
+			
+			if( (btRssiState == BT_RSSI_STATE_HIGH) ||
+				(btRssiState == BT_RSSI_STATE_STAY_HIGH) )
+			{
+				RTPRINT(FBT, BT_TRACE, ("Wifi rssi high \n"));
+				// sw mechanism
+				btdm8723.bAgcTableEn = _TRUE;
+				btdm8723.bAdcBackOffOn = _TRUE;
+				btdm8723.bSwDacSwingOn = _TRUE;
+				btdm8723.swDacSwingLvl = 0x20;
+				// fw mechanism
+				btdm8723.bPsTdmaOn = _FALSE;
+				btdm8723.bTraTdmaOn = _FALSE;
+				btdm8723.bTdmaOn = _FALSE;
+				btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
+				btdm8723.b2AntHidEn = _FALSE;
+			}
+			else
+			{
+				RTPRINT(FBT, BT_TRACE, ("Wifi rssi low \n"));
+				// sw mechanism
+				btdm8723.bAgcTableEn = _FALSE;
+				btdm8723.bAdcBackOffOn = _FALSE;
+				btdm8723.bSwDacSwingOn = _FALSE;
+				// fw mechanism
+				btdm8723.bTdmaOn = _FALSE;
+				btdm8723.bPsTdmaOn = _FALSE;
+				btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
+				btdm8723.b2AntHidEn = _TRUE;
+				btdm8723.fwDacSwingLvl = 0x20;
+			}
+		}
 	}
 	else
 	{
@@ -10928,77 +11090,50 @@ btdm_2Ant8723AHIDPANAction(
 		if (BTDM_IsHT40(padapter))
 		{
 			RTPRINT(FBT, BT_TRACE, ("HT40\n"));
-			btRssiState = BTDM_CheckCoexRSSIState(padapter, 2, BT_FW_COEX_THRESH_25, 0);
-
-			if ((btRssiState == BT_RSSI_STATE_HIGH) ||
-				(btRssiState == BT_RSSI_STATE_STAY_HIGH))
-			{
-				RTPRINT(FBT, BT_TRACE, ("Wifi rssi high \n"));
-				// coex table
-				btdm8723.val0x6c0 = 0x5a5a5a5a;
-				btdm8723.val0x6c8 = 0xcc;
-				btdm8723.val0x6cc = 0x3;
-				// sw mechanism
-				btdm8723.bAgcTableEn = _FALSE;
-				btdm8723.bAdcBackOffOn = _TRUE;
-				btdm8723.bSwDacSwingOn = _TRUE;
-				btdm8723.swDacSwingLvl = 0x20;
-				// fw mechanism
-				btdm8723.bTraTdmaOn = _FALSE;
-				btdm8723.bTdmaOn = _FALSE;
-				btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
-				btdm8723.b2AntHidEn = _FALSE;
-			}
-			else
-			{
-				RTPRINT(FBT, BT_TRACE, ("Wifi rssi low \n"));
-				// coex table
-				btdm8723.val0x6c0 = 0x5a5a5a5a;
-				btdm8723.val0x6c8 = 0xcc;
-				btdm8723.val0x6cc = 0x3;
-				// sw mechanism
-				btdm8723.bAgcTableEn = _FALSE;
-				btdm8723.bAdcBackOffOn = _FALSE;
-				btdm8723.bSwDacSwingOn = _FALSE;
-				// fw mechanism
-				btdm8723.bTraTdmaOn = _TRUE;
-				btdm8723.bTdmaOn = _TRUE;
-				btdm8723.tdmaDacSwing = TDMA_DAC_SWING_ON;
-				btSpec = BTHCI_GetBTCoreSpecByProf(padapter, BT_PROFILE_PAN);
-				if (btSpec >= BT_SPEC_2_1_EDR)
-				{
-					btdm8723.wlanActHi = 0x10;
-					btdm8723.wlanActLo = 0x18;
-				}
-				else
-				{
-					btdm8723.wlanActHi = 0x10;
-					btdm8723.wlanActLo = 0x30;
-				}
-				btdm8723.btRetryIndex = 2;
-				btdm8723.fwDacSwingLvl = 0x20;
-				btdm8723.b2AntHidEn = _FALSE;
-			}
+			// coex table
+			btdm8723.val0x6c0 = 0x55555555;
+			btdm8723.val0x6c8 = 0xffff;
+			btdm8723.val0x6cc = 0x3;
+			btdm8723.bIgnoreWlanAct = _TRUE;
+			// sw mechanism
+			btdm8723.bAgcTableEn = _FALSE;
+			btdm8723.bAdcBackOffOn = _FALSE;
+			btdm8723.bSwDacSwingOn = _FALSE;
+			// fw mechanism
+			btdm8723.bPsTdmaOn = _TRUE;
+			btdm8723.psTdmaByte[0] = 0xa3;
+			btdm8723.psTdmaByte[1] = 0xa;
+			btdm8723.psTdmaByte[2] = 0xa;
+			btdm8723.psTdmaByte[3] = 0x0;
+			btdm8723.psTdmaByte[4] = 0x80;
+		
+			btdm8723.bTraTdmaOn = _FALSE;
+			btdm8723.bTdmaOn = _FALSE;
+			btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
+			btdm8723.b2AntHidEn = _FALSE;
 		}
 		else
 		{
-			RTPRINT(FBT, BT_TRACE, ("HT20\n"));
-			btRssiState = BTDM_CheckCoexRSSIState(padapter, 2, BT_FW_COEX_THRESH_25, 0);
+			RTPRINT(FBT, BT_TRACE, ("HT20 or Legacy\n"));
+			// coex table
+			btdm8723.val0x6c0 = 0x5a5a5a5a;
+			btdm8723.val0x6c8 = 0xcccc;
+			btdm8723.val0x6cc = 0x3;
+			btdm8723.bIgnoreWlanAct = _TRUE;
+
+			btRssiState = BTDM_CheckCoexRSSIState(padapter, 2, 47, 0);
 
 			if ((btRssiState == BT_RSSI_STATE_HIGH) ||
 				(btRssiState == BT_RSSI_STATE_STAY_HIGH))
 			{
 				RTPRINT(FBT, BT_TRACE, ("Wifi rssi high \n"));
-				// coex table
-				btdm8723.val0x6c0 = 0x5a5a5a5a;
-				btdm8723.val0x6c8 = 0xcc;
-				btdm8723.val0x6cc = 0x3;
 				// sw mechanism
-				btdm8723.bAgcTableEn = _TRUE;
-				btdm8723.bAdcBackOffOn = _TRUE;
+				btdm8723.bAgcTableEn = _FALSE;
+				btdm8723.bAdcBackOffOn = _FALSE;
 				btdm8723.bSwDacSwingOn = _TRUE;
 				btdm8723.swDacSwingLvl = 0x20;
 				// fw mechanism
+				btdm8723.bPsTdmaOn = _FALSE;
 				btdm8723.bTraTdmaOn = _FALSE;
 				btdm8723.bTdmaOn = _FALSE;
 				btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
@@ -11007,32 +11142,16 @@ btdm_2Ant8723AHIDPANAction(
 			else
 			{
 				RTPRINT(FBT, BT_TRACE, ("Wifi rssi low \n"));
-				// coex table
-				btdm8723.val0x6c0 = 0x5a5a5a5a;
-				btdm8723.val0x6c8 = 0xcc;
-				btdm8723.val0x6cc = 0x3;
 				// sw mechanism
 				btdm8723.bAgcTableEn = _FALSE;
 				btdm8723.bAdcBackOffOn = _FALSE;
 				btdm8723.bSwDacSwingOn = _FALSE;
 				// fw mechanism
-				btdm8723.bTraTdmaOn = _TRUE;
-				btdm8723.bTdmaOn = _TRUE;
-				btdm8723.tdmaDacSwing = TDMA_DAC_SWING_ON;
-				btSpec = BTHCI_GetBTCoreSpecByProf(padapter, BT_PROFILE_PAN);
-				if (btSpec >= BT_SPEC_2_1_EDR)
-				{
-					btdm8723.wlanActHi = 0x10;
-					btdm8723.wlanActLo = 0x18;
-				}
-				else
-				{
-					btdm8723.wlanActHi = 0x10;
-					btdm8723.wlanActLo = 0x30;
-				}
-				btdm8723.btRetryIndex = 2;
+				btdm8723.bTdmaOn = _FALSE;
+				btdm8723.bPsTdmaOn = _FALSE;
+				btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
+				btdm8723.b2AntHidEn = _TRUE;
 				btdm8723.fwDacSwingLvl = 0x20;
-				btdm8723.b2AntHidEn = _FALSE;
 			}
 		}
 	}
@@ -11054,7 +11173,7 @@ btdm_2Ant8723APANA2DPAction(
 	)
 {
 	BTDM_8723A_2ANT		btdm8723;
-	u8			btSpec, btRssiState;
+	u8			btSpec, btRssiState, btRssiState1;
 
 	btdm_BtdmStrctureReload(padapter, &btdm8723);
 
@@ -11065,13 +11184,116 @@ btdm_2Ant8723APANA2DPAction(
 	if (BTDM_IsBTHSMode(padapter))
 	{
 		RTPRINT(FBT, BT_TRACE, ("[BT 3.0]\n"));
-		// coex table
-		btdm8723.val0x6c0 = 0x5a5a5a5a;
-		btdm8723.val0x6c8 = 0xcccc;
-		btdm8723.val0x6cc = 0x3;
+		if(BTDM_IsHT40(padapter))
+		{
+			RTPRINT(FBT, BT_TRACE, ("HT40\n"));
+			btRssiState = BTDM_CheckCoexRSSIState(padapter, 2, 37, 0);
+			// coex table
+			btdm8723.val0x6c0 = 0x55555555;
+			btdm8723.val0x6c8 = 0xffff;
+			btdm8723.val0x6cc = 0x3;
+			btdm8723.bIgnoreWlanAct = _FALSE;
+			// sw mechanism
+			btdm8723.bAgcTableEn = _FALSE;
+			btdm8723.bAdcBackOffOn = _TRUE;
+			btdm8723.bSwDacSwingOn = _FALSE;			
+			if( (btRssiState == BT_RSSI_STATE_HIGH) ||
+				(btRssiState == BT_RSSI_STATE_STAY_HIGH) )
+			{
+				RTPRINT(FBT, BT_TRACE, ("Wifi rssi high \n"));
+				rtw_write8(padapter, 0x883, 0x40);
 
-		btdm8723.bSwDacSwingOn = _TRUE;
-		btdm8723.swDacSwingLvl = 0x80;
+				// fw mechanism
+				btdm8723.bPsTdmaOn = _TRUE;
+				btdm8723.psTdmaByte[0] = 0xa3;
+				btdm8723.psTdmaByte[1] = 0xf;
+				btdm8723.psTdmaByte[2] = 0xf;
+				btdm8723.psTdmaByte[3] = 0x81;
+				btdm8723.psTdmaByte[4] = 0x80;
+			
+				btdm8723.bTraTdmaOn = _FALSE;
+				btdm8723.bTdmaOn = _FALSE;
+				btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
+				btdm8723.b2AntHidEn = _FALSE;
+			}
+			else
+			{
+				RTPRINT(FBT, BT_TRACE, ("Wifi rssi low \n"));
+				// fw mechanism
+				btdm8723.bPsTdmaOn = _TRUE;
+				btdm8723.psTdmaByte[0] = 0xa3;
+				btdm8723.psTdmaByte[1] = 0xf;
+				btdm8723.psTdmaByte[2] = 0xf;
+				btdm8723.psTdmaByte[3] = 0x0;
+				btdm8723.psTdmaByte[4] = 0x80;
+			
+				btdm8723.bTraTdmaOn = _FALSE;
+				btdm8723.bTdmaOn = _FALSE;
+				btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
+				btdm8723.b2AntHidEn = _FALSE;
+			}
+		}
+		else
+		{
+			RTPRINT(FBT, BT_TRACE, ("HT20 or Legacy\n"));
+			// coex table
+			btdm8723.val0x6c0 = 0x55555555;
+			btdm8723.val0x6c8 = 0xffff;
+			btdm8723.val0x6cc = 0x3;
+			btdm8723.bIgnoreWlanAct = _FALSE;
+
+			// sw mechanism
+			btRssiState = BTDM_CheckCoexRSSIState(padapter, 2, 47, 0);
+			if( (btRssiState == BT_RSSI_STATE_HIGH) ||
+				(btRssiState == BT_RSSI_STATE_STAY_HIGH) )
+			{
+				RTPRINT(FBT, BT_TRACE, ("Wifi rssi high \n"));
+				btdm8723.bAgcTableEn = _TRUE;
+				btdm8723.bAdcBackOffOn = _TRUE;
+				btdm8723.bSwDacSwingOn = _FALSE;
+			}
+			else
+			{
+				RTPRINT(FBT, BT_TRACE, ("Wifi rssi low \n"));
+				btdm8723.bAgcTableEn = _FALSE;
+				btdm8723.bAdcBackOffOn = _FALSE;
+				btdm8723.bSwDacSwingOn = _FALSE;
+			}
+			
+			// fw mechanism
+			btRssiState1 = BTDM_CheckCoexRSSIState1(padapter, 2, 27, 0);
+			if( (btRssiState1 == BT_RSSI_STATE_HIGH) ||
+				(btRssiState1 == BT_RSSI_STATE_STAY_HIGH) )
+			{
+				RTPRINT(FBT, BT_TRACE, ("Wifi rssi high \n"));
+				btdm8723.bPsTdmaOn = _TRUE;
+				btdm8723.psTdmaByte[0] = 0xa3;
+				btdm8723.psTdmaByte[1] = 0xf;
+				btdm8723.psTdmaByte[2] = 0xf;
+				btdm8723.psTdmaByte[3] = 0x81;
+				btdm8723.psTdmaByte[4] = 0x80;
+				
+				btdm8723.bTraTdmaOn = _FALSE;
+				btdm8723.bTdmaOn = _FALSE;
+				btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
+				btdm8723.b2AntHidEn = _FALSE;
+			}
+			else
+			{
+				RTPRINT(FBT, BT_TRACE, ("Wifi rssi low \n"));
+				btdm8723.bPsTdmaOn = _TRUE;
+				btdm8723.psTdmaByte[0] = 0xa3;
+				btdm8723.psTdmaByte[1] = 0xf;
+				btdm8723.psTdmaByte[2] = 0xf;
+				btdm8723.psTdmaByte[3] = 0x0;
+				btdm8723.psTdmaByte[4] = 0x80;
+				
+				btdm8723.bTraTdmaOn = _FALSE;
+				btdm8723.bTdmaOn = _FALSE;
+				btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
+				btdm8723.b2AntHidEn = _FALSE;
+			}
+		}
 	}
 	else
 	{
@@ -11079,38 +11301,113 @@ btdm_2Ant8723APANA2DPAction(
 		if (BTDM_IsHT40(padapter))
 		{
 			RTPRINT(FBT, BT_TRACE, ("HT40\n"));
+			btRssiState = BTDM_CheckCoexRSSIState(padapter, 2, 27, 0);
 			// coex table
-			btdm8723.val0x6c0 = 0x5a5a5a5a;
-			btdm8723.val0x6c8 = 0xcc;
+			btdm8723.val0x6c0 = 0x55555555;
+			btdm8723.val0x6c8 = 0xffff;
 			btdm8723.val0x6cc = 0x3;
-			// sw mechanism
-			btdm8723.bAgcTableEn = _FALSE;
-			btdm8723.bAdcBackOffOn = _TRUE;
-			btdm8723.bSwDacSwingOn = _TRUE;
-			btdm8723.swDacSwingLvl = 0x20;
-			// fw mechanism
-			btdm8723.bTraTdmaOn = _FALSE;
-			btdm8723.bTdmaOn = _FALSE;
-			btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
-			btdm8723.b2AntHidEn = _FALSE;
+			btdm8723.bIgnoreWlanAct = _TRUE;
+			
+			if( (btRssiState == BT_RSSI_STATE_HIGH) ||
+				(btRssiState == BT_RSSI_STATE_STAY_HIGH) )
+			{
+				RTPRINT(FBT, BT_TRACE, ("Wifi rssi high \n"));
+				// sw mechanism
+				btdm8723.bAgcTableEn = _FALSE;
+				btdm8723.bAdcBackOffOn = _TRUE;
+				btdm8723.bSwDacSwingOn = _TRUE;
+				btdm8723.swDacSwingLvl = 0x20;
+				// fw mechanism
+				btdm8723.bPsTdmaOn = _FALSE;
+				btdm8723.bTraTdmaOn = _FALSE;
+				btdm8723.bTdmaOn = _FALSE;
+				btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
+				btdm8723.b2AntHidEn = _FALSE;
+			}
+			else
+			{
+				RTPRINT(FBT, BT_TRACE, ("Wifi rssi low \n"));
+				// sw mechanism
+				btdm8723.bAgcTableEn = _FALSE;
+				btdm8723.bAdcBackOffOn = _TRUE;
+				btdm8723.bSwDacSwingOn = _FALSE;	
+				
+				// fw mechanism
+				btdm8723.bPsTdmaOn = _TRUE;
+				btdm8723.psTdmaByte[0] = 0xa3;
+				btdm8723.psTdmaByte[1] = 0x5;
+				btdm8723.psTdmaByte[2] = 0x5;
+				btdm8723.psTdmaByte[3] = 0x0;
+				btdm8723.psTdmaByte[4] = 0x80;
+			
+				btdm8723.bTraTdmaOn = _FALSE;
+				btdm8723.bTdmaOn = _FALSE;
+				btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
+				btdm8723.b2AntHidEn = _FALSE;
+			}
 		}
 		else
 		{
-			RTPRINT(FBT, BT_TRACE, ("HT20\n"));
+			RTPRINT(FBT, BT_TRACE, ("HT20 or Legacy\n"));
 			// coex table
-			btdm8723.val0x6c0 = 0x5a5a5a5a;
-			btdm8723.val0x6c8 = 0xcc;
+			btdm8723.val0x6c0 = 0x55555555;
+			btdm8723.val0x6c8 = 0xffff;
 			btdm8723.val0x6cc = 0x3;
-			// sw mechanism
-			btdm8723.bAgcTableEn = _TRUE;
-			btdm8723.bAdcBackOffOn = _TRUE;
-			btdm8723.bSwDacSwingOn = _TRUE;
-			btdm8723.swDacSwingLvl = 0x20;
-			// fw mechanism
-			btdm8723.bTraTdmaOn = _FALSE;
-			btdm8723.bTdmaOn = _FALSE;
-			btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
-			btdm8723.b2AntHidEn = _FALSE;
+			btdm8723.bIgnoreWlanAct = _TRUE;
+
+			btRssiState = BTDM_CheckCoexRSSIState(padapter, 2, 47, 0);
+			if( (btRssiState == BT_RSSI_STATE_HIGH) ||
+				(btRssiState == BT_RSSI_STATE_STAY_HIGH) )
+			{
+				RTPRINT(FBT, BT_TRACE, ("Wifi rssi high \n"));
+				// sw mechanism
+				btdm8723.bAgcTableEn = _TRUE;
+				btdm8723.bAdcBackOffOn = _TRUE;
+			}
+			else
+			{
+				RTPRINT(FBT, BT_TRACE, ("Wifi rssi low \n"));
+				// sw mechanism
+				btdm8723.bAgcTableEn = _FALSE;
+				btdm8723.bAdcBackOffOn = _FALSE;
+			}
+
+			btRssiState1 = BTDM_CheckCoexRSSIState1(padapter, 2, 27, 0);
+			
+			if( (btRssiState1 == BT_RSSI_STATE_HIGH) ||
+				(btRssiState1 == BT_RSSI_STATE_STAY_HIGH) )
+			{
+				RTPRINT(FBT, BT_TRACE, ("Wifi rssi high \n"));
+				// sw mechanism
+				btdm8723.bSwDacSwingOn = _TRUE;
+				btdm8723.swDacSwingLvl = 0x20;
+
+				// fw mechanism
+				btdm8723.bPsTdmaOn = _FALSE;
+				btdm8723.bTraTdmaOn = _FALSE;
+				btdm8723.bTdmaOn = _FALSE;
+				btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
+				btdm8723.b2AntHidEn = _FALSE;
+			}
+			else
+			{
+				RTPRINT(FBT, BT_TRACE, ("Wifi rssi low \n"));
+				// sw mechanism
+				btdm8723.bSwDacSwingOn = _FALSE;
+
+				// fw mechanism
+				btdm8723.bPsTdmaOn = _TRUE;
+				btdm8723.psTdmaByte[0] = 0xa3;
+				btdm8723.psTdmaByte[1] = 0x5;
+				btdm8723.psTdmaByte[2] = 0x5;
+				btdm8723.psTdmaByte[3] = 0x0;
+				btdm8723.psTdmaByte[4] = 0x80;
+				
+				btdm8723.bTraTdmaOn = _FALSE;
+				btdm8723.bTdmaOn = _FALSE;
+				btdm8723.tdmaDacSwing = TDMA_DAC_SWING_OFF;
+				btdm8723.b2AntHidEn = _FALSE;
+			}
 		}
 	}
 
@@ -11124,7 +11421,6 @@ btdm_2Ant8723APANA2DPAction(
 		btdm_SetBtdm(padapter, &btdm8723);
 	}
 }
-
 //============================================================
 // extern function start with BTDM_
 //============================================================
@@ -11150,6 +11446,7 @@ BTDM_2AntAdjustForBtInqOrPag(
 	PBTDM_8723A_2ANT	pBtdm8723 = &pHalData->bt_coexist.halCoex8723.btdm2Ant;
 	BTDM_8723A_2ANT	btdmAdjust;
 
+	return;//cosa temp test for Jenyu's request
 	if (pBtMgnt->ExtConfig.bManualControl)
 		return;
 
@@ -11158,11 +11455,19 @@ BTDM_2AntAdjustForBtInqOrPag(
 	{
 		pBtMgnt->ExtConfig.bHoldForBtOperation = _TRUE;
 		pHalData->bt_coexist.CurrentState |= BT_COEX_STATE_HOLD_FOR_BT_OPERATION;
+#if 0//cosa test for Jenyu
 		if (pBtdm8723->bTdmaOn)
 		{
 			RTPRINT(FIOCTL, IOCTL_BT_HCICMD_EXT, ("[bt operation] : TDMA ON, need to turn it OFF!!\n"));
 			btdmAdjust.bTdmaOn = _FALSE;
 			btdmAdjust.tdmaDacSwing = TDMA_DAC_SWING_OFF;
+			btdm_SetBtdm(padapter, &btdmAdjust);
+		}
+#endif
+		if(!pBtdm8723->bIgnoreWlanAct)
+		{
+			RTPRINT(FIOCTL, IOCTL_BT_HCICMD_EXT, ("[bt operation] : need to ignore wlanAct!!\n"));
+			btdmAdjust.bIgnoreWlanAct = _TRUE;
 			btdm_SetBtdm(padapter, &btdmAdjust);
 		}
 	}
@@ -11189,7 +11494,7 @@ void BTDM_2AntHwCoexAllOff8723A(PADAPTER padapter)
 
 void BTDM_2AntFwCoexAllOff8723A(PADAPTER padapter)
 {
-	BTDM_SetFw3a(padapter, 0x0, 0x0, 0x0, 0x8); 	// Antenna control by PTA, 0x870 = 0x300.
+	BTDM_SetFw3a(padapter, 0x0, 0x0, 0x0, 0x8, 0x0); 	// Antenna control by PTA, 0x870 = 0x300.
 	btdm_SetFw2AntHID(padapter, _FALSE, _FALSE);
 	btdm_SetFwTraTdmaCtrl(padapter, _FALSE, TDMA_2ANT, TDMA_NAV_OFF);
 	btdm_SetFwTdmaCtrl(padapter, _FALSE, TDMA_2ANT, TDMA_NAV_OFF, TDMA_DAC_SWING_OFF);
@@ -11229,11 +11534,19 @@ void BTDM_2AntAdjustForBtOperation8723(PADAPTER padapter)
 			RTPRINT(FIOCTL, IOCTL_BT_HCICMD_EXT, ("[bt operation] : Adjust for Inquire start!!\n"));
 			pBtMgnt->ExtConfig.bHoldForBtOperation = _TRUE;
 			pHalData->bt_coexist.CurrentState |= BT_COEX_STATE_HOLD_FOR_BT_OPERATION;
+#if 0//cosa test for Jenyu
 			if (pBtdm8723->bTdmaOn)
 			{
 				RTPRINT(FIOCTL, IOCTL_BT_HCICMD_EXT, ("[bt operation] : TDMA ON, need to turn it OFF!!\n"));
 				btdmAdjust.bTdmaOn = _FALSE;
 				btdmAdjust.tdmaDacSwing = TDMA_DAC_SWING_OFF;
+				btdm_SetBtdm(padapter, &btdmAdjust);
+			}
+#endif
+			if(!pBtdm8723->bIgnoreWlanAct)
+			{
+				RTPRINT(FIOCTL, IOCTL_BT_HCICMD_EXT, ("[bt operation] : need to ignore wlanAct!!\n"));
+				btdmAdjust.bIgnoreWlanAct = _TRUE;
 				btdm_SetBtdm(padapter, &btdmAdjust);
 			}
 			break;
@@ -11246,11 +11559,19 @@ void BTDM_2AntAdjustForBtOperation8723(PADAPTER padapter)
 			RTPRINT(FIOCTL, IOCTL_BT_HCICMD_EXT, ("[bt operation] : Adjust for paging start!!\n"));
 			pBtMgnt->ExtConfig.bHoldForBtOperation = _TRUE;
 			pHalData->bt_coexist.CurrentState |= BT_COEX_STATE_HOLD_FOR_BT_OPERATION;
+#if 0//cosa test for Jenyu
 			if (pBtdm8723->bTdmaOn)
 			{
 				RTPRINT(FIOCTL, IOCTL_BT_HCICMD_EXT, ("[bt operation] : TDMA ON, need to turn it OFF!!\n"));
 				btdmAdjust.bTdmaOn = _FALSE;
 				btdmAdjust.tdmaDacSwing = TDMA_DAC_SWING_OFF;
+				btdm_SetBtdm(padapter, &btdmAdjust);
+			}
+#endif
+			if(!pBtdm8723->bIgnoreWlanAct)
+			{
+				RTPRINT(FIOCTL, IOCTL_BT_HCICMD_EXT, ("[bt operation] : need to ignore wlanAct!!\n"));
+				btdmAdjust.bIgnoreWlanAct = _TRUE;
 				btdm_SetBtdm(padapter, &btdmAdjust);
 			}
 			break;
@@ -11268,11 +11589,19 @@ void BTDM_2AntAdjustForBtOperation8723(PADAPTER padapter)
 			RTPRINT(FIOCTL, IOCTL_BT_HCICMD_EXT, ("[bt operation] : Adjust for Pairing start!!\n"));
 			pBtMgnt->ExtConfig.bHoldForBtOperation = _TRUE;
 			pHalData->bt_coexist.CurrentState |= BT_COEX_STATE_HOLD_FOR_BT_OPERATION;
+#if 0//cosa test for Jenyu
 			if (pBtdm8723->bTdmaOn)
 			{
 				RTPRINT(FIOCTL, IOCTL_BT_HCICMD_EXT, ("[bt operation] : TDMA ON, need to turn it OFF!!\n"));
 				btdmAdjust.bTdmaOn = _FALSE;
 				btdmAdjust.tdmaDacSwing = TDMA_DAC_SWING_OFF;
+				btdm_SetBtdm(padapter, &btdmAdjust);
+			}
+#endif
+			if(!pBtdm8723->bIgnoreWlanAct)
+			{
+				RTPRINT(FIOCTL, IOCTL_BT_HCICMD_EXT, ("[bt operation] : need to ignore wlanAct!!\n"));
+				btdmAdjust.bIgnoreWlanAct = _TRUE;
 				btdm_SetBtdm(padapter, &btdmAdjust);
 			}
 			break;
@@ -11717,20 +12046,23 @@ void BTDM_SetFw3a(
 	u8		byte1,
 	u8		byte2,
 	u8		byte3,
-	u8		byte4
+	u8		byte4,
+	u8		byte5
 	)
 {
-	u8			H2C_Parameter[4] = {0};
+	u8			H2C_Parameter[5] = {0};
 
 	H2C_Parameter[0] = byte1;
 	H2C_Parameter[1] = byte2;
 	H2C_Parameter[2] = byte3;
 	H2C_Parameter[3] = byte4;
+	H2C_Parameter[4] = byte5;
 
-	RTPRINT(FBT, BT_TRACE, ("[BTCoex], FW write 0x3a=0x%08x\n",
-		H2C_Parameter[0]<<24|H2C_Parameter[1]<<16|H2C_Parameter[2]<<8|H2C_Parameter[3]));
+	RTPRINT(FBT, BT_TRACE, ("[BTCoex], FW write 0x3a(5bytes)=0x%x%08x\n",
+		H2C_Parameter[0], 
+		H2C_Parameter[1]<<24|H2C_Parameter[2]<<16|H2C_Parameter[3]<<8|H2C_Parameter[4]));
 
-	FillH2CCmd(padapter, 0x3a, 4, H2C_Parameter);
+	FillH2CCmd(padapter, 0x3a, 5, H2C_Parameter);
 }
 
 void BTDM_ForceBtCoexMechanism(PADAPTER	padapter, u8 type)
@@ -17768,15 +18100,6 @@ void halbt_SetBTSwitchCtrl(PADAPTER padapter)
 }
 #endif
 
-void halbt_InitBTVars8723A1Ant(PADAPTER padapter)
-{
-	u8 val;
-
-	val = rtw_read8(padapter, REG_LEDCFG2);
-	val |= BIT(7); // DPDT_SEL_EN, 0x4C[23]
-	rtw_write8(padapter, REG_LEDCFG2, val);
-}
-
 void halbt_InitHwConfig8723A(PADAPTER padapter)
 {
 }
@@ -17858,7 +18181,6 @@ void HALBT_InitBTVars8723A(PADAPTER padapter)
 		else if (pHalData->bt_coexist.BT_Ant_Num == Ant_x1)
 		{
 			BTDM_SetBtCoexCurrAntNum(padapter, 1);
-			halbt_InitBTVars8723A1Ant(padapter);
 			RT_TRACE(_module_hal_init_c_, _drv_info_,("BlueTooth BT_Ant_Num = Antx1\n"));
 		}
 		pHalData->bt_coexist.bBTBusyTraffic = _FALSE;

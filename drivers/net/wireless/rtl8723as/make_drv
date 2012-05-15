@@ -107,6 +107,13 @@ ch_obj_es()
 	cp -f Kconfig_rtl8188e_sdio_linux Kconfig
 }
 
+ch_obj_eu()
+{
+	sed -i '/obj-$(CONFIG_RTL/c\obj-$(CONFIG_RTL8188EU) := $(MODULE_NAME).o' Makefile
+	sed -i '/export CONFIG_RTL/c\export CONFIG_RTL8188EU = m' Makefile
+
+	cp -f Kconfig_rtl8188e_usb_linux Kconfig
+}
 get_svn_revision()
 {
 	if [ -z "$svn_rev" ] && [ -f .svn/entries ]; then
@@ -203,6 +210,11 @@ case "$card" in
 	nic_8188e;
 	intf_sdio;
 	ch_obj_es;;
+	[Rr][Tt][Ll]8188[Ee][Uu])
+	conf_driver;
+	nic_8188e;
+	intf_usb;
+	ch_obj_eu;;	
 	*)
 	echo "Unknown NIC type"
 	;;

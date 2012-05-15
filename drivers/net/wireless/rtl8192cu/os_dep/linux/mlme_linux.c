@@ -428,7 +428,7 @@ void _tdls_alive_timer_phase1_hdl(void *FunctionContext)
 	DBG_8192C("issue_tdls_dis_req to check alive\n");
 	issue_tdls_dis_req( padapter, ptdls_sta->hwaddr);
 	rtw_tdls_cmd(padapter, ptdls_sta->hwaddr, TDLS_CKALV_PH1);
-	ptdls_sta->sta_stats.last_rx_pkts = ptdls_sta->sta_stats.rx_pkts;
+	sta_update_last_rx_pkts(ptdls_sta);
 
 	if (	ptdls_sta->timer_flag == 2 )
 		rtw_tdls_cmd(padapter, ptdls_sta->hwaddr, TDLS_FREE_STA);		
@@ -453,7 +453,7 @@ void _tdls_alive_timer_phase2_hdl(void *FunctionContext)
 	_exit_critical_bh(&ptdlsinfo->hdl_lock, &irqL);
 
 	if( (ptdls_sta->tdls_sta_state & TDLS_ALIVE_STATE) && 
-		(ptdls_sta->sta_stats.last_rx_pkts + 3 <= ptdls_sta->sta_stats.rx_pkts) )
+		(sta_last_rx_pkts(ptdls_sta) + 3 <= sta_rx_pkts(ptdls_sta)) )
 	{
 		DBG_8192C("TDLS STA ALIVE\n");
 		ptdls_sta->alive_count = 0;

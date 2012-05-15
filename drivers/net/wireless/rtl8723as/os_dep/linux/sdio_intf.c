@@ -90,6 +90,16 @@ static const struct sdio_device_id sdio_ids[] = {
 
 typedef struct _driver_priv {
 	struct sdio_driver r871xs_drv;
+
+	int drv_registered;
+
+#if defined(CONFIG_CONCURRENT_MODE) || defined(CONFIG_DUALMAC_CONCURRENT)
+	//global variable
+	_mutex h2c_fwcmd_mutex;
+	_mutex setch_mutex;
+	_mutex setbw_mutex;
+	_mutex hw_init_mutex;
+#endif	
 } drv_priv, *pdrv_priv;
 
 static void sd_sync_int_hdl(struct sdio_func *func)
@@ -686,7 +696,7 @@ int rtw_resume_process(_adapter *padapter)
 	u8 is_directly_called_by_auto_resume;
 	int ret = 0;
 	u32 start_time = rtw_get_current_time();
-
+	
 	_func_enter_;
 
 	DBG_871X("==> %s (%s:%d)\n",__FUNCTION__, current->comm, current->pid);
@@ -717,6 +727,7 @@ int rtw_resume_process(_adapter *padapter)
 	}	
 
 	#ifdef CONFIG_LAYER2_ROAMING_RESUME
+	rtw_msleep_os(50);
 	rtw_roaming(padapter, NULL);
 	#endif	
 	
@@ -774,21 +785,23 @@ static int rtw_sdio_resume(struct device *dev)
 
 }
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,29)) 
 static const struct dev_pm_ops rtw_sdio_pm_ops = {
 	.suspend	= rtw_sdio_suspend,
 	.resume	= rtw_sdio_resume,
 };
-
+#endif
 
 static drv_priv drvpriv = {
 	.r871xs_drv.probe = rtw_drv_init,
 	.r871xs_drv.remove = rtw_dev_remove,
 	.r871xs_drv.name = (char*)DRV_NAME,
 	.r871xs_drv.id_table = sdio_ids,
-
+	#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,29)) 
 	.r871xs_drv.drv = {
 		.pm = &rtw_sdio_pm_ops,
 	}
+	#endif
 };
 
 static int __init rtw_drv_entry(void)
@@ -810,11 +823,22 @@ static int __init rtw_drv_entry(void)
 	if(ret != 0)
 		goto exit;
 
-	rtw_suspend_lock_init();
-	
 //	DBG_871X(KERN_INFO "+%s", __func__);
 	RT_TRACE(_module_hci_intfs_c_, _drv_notice_, ("+rtw_drv_entry\n"));
 	DBG_871X(KERN_NOTICE DRV_NAME " driver version " DRIVERVERSION "\n");
+	
+	rtw_suspend_lock_init();
+
+#if defined(CONFIG_CONCURRENT_MODE) || defined(CONFIG_DUALMAC_CONCURRENT)
+	//init global variable
+	_rtw_mutex_init(&drvpriv.h2c_fwcmd_mutex);
+	_rtw_mutex_init(&drvpriv.setch_mutex);
+	_rtw_mutex_init(&drvpriv.setbw_mutex);
+	_rtw_mutex_init(&drvpriv.hw_init_mutex);
+#endif
+	
+	drvpriv.drv_registered = _TRUE;
+
 	ret = sdio_register_driver(&drvpriv.r871xs_drv);
 
 exit:
@@ -826,10 +850,20 @@ exit:
 
 static void __exit rtw_drv_halt(void)
 {
-	rtw_suspend_lock_uninit();
 //	DBG_871X(KERN_INFO "+%s", __func__);
 	RT_TRACE(_module_hci_intfs_c_, _drv_notice_, ("+rtw_drv_halt\n"));
+
+	rtw_suspend_lock_uninit();
+	drvpriv.drv_registered = _FALSE;
+
 	sdio_unregister_driver(&drvpriv.r871xs_drv);
+
+#if defined(CONFIG_CONCURRENT_MODE) || defined(CONFIG_DUALMAC_CONCURRENT)
+	_rtw_mutex_free(&drvpriv.h2c_fwcmd_mutex);
+	_rtw_mutex_free(&drvpriv.setch_mutex);
+	_rtw_mutex_free(&drvpriv.setbw_mutex);
+	_rtw_mutex_free(&drvpriv.hw_init_mutex);
+#endif
 
 #if defined(CONFIG_MMC_SUNXI_POWER_CONTROL)
 	sunximmc_rescan_card(SDIOID, 0);

@@ -729,6 +729,7 @@ static u8 InitLLTTable(
 	u32		i;
 
 #ifdef CONFIG_IOL_LLT
+	if(Adapter->registrypriv.force_iol || !Adapter->dvobjpriv.ishighspeed)
 	{
 		struct xmit_frame	*xmit_frame;
 		if((xmit_frame=rtw_IOL_accquire_xmit_frame(Adapter)) == NULL)
@@ -737,36 +738,38 @@ static u8 InitLLTTable(
 		rtw_IOL_append_LLT_cmd(xmit_frame, boundary);
 		status = rtw_IOL_exec_cmds_sync(Adapter, xmit_frame, 1000);
 	}
-#else
-	for(i = 0 ; i < (boundary - 1) ; i++){
-		status = _LLTWrite(Adapter, i , i + 1);
-		if(_SUCCESS != status){
-			return status;
-		}
-	}
-
-	// end of list
-	status = _LLTWrite(Adapter, (boundary - 1), 0xFF); 
-	if(_SUCCESS != status){
-		return status;
-	}
-
-	// Make the other pages as ring buffer
-	// This ring buffer is used as beacon buffer if we config this MAC as two MAC transfer.
-	// Otherwise used as local loopback buffer. 
-	for(i = boundary ; i < LAST_ENTRY_OF_TX_PKT_BUFFER ; i++){
-		status = _LLTWrite(Adapter, i, (i + 1)); 
-		if(_SUCCESS != status){
-			return status;
-		}
-	}
-	
-	// Let last entry point to the start entry of ring buffer
-	status = _LLTWrite(Adapter, LAST_ENTRY_OF_TX_PKT_BUFFER, boundary);
-	if(_SUCCESS != status){
-		return status;
-	}
+	else
 #endif
+	{
+		for(i = 0 ; i < (boundary - 1) ; i++){
+			status = _LLTWrite(Adapter, i , i + 1);
+			if(_SUCCESS != status){
+				return status;
+			}
+		}
+
+		// end of list
+		status = _LLTWrite(Adapter, (boundary - 1), 0xFF); 
+		if(_SUCCESS != status){
+			return status;
+		}
+
+		// Make the other pages as ring buffer
+		// This ring buffer is used as beacon buffer if we config this MAC as two MAC transfer.
+		// Otherwise used as local loopback buffer. 
+		for(i = boundary ; i < LAST_ENTRY_OF_TX_PKT_BUFFER ; i++){
+			status = _LLTWrite(Adapter, i, (i + 1)); 
+			if(_SUCCESS != status){
+				return status;
+			}
+		}
+		
+		// Let last entry point to the start entry of ring buffer
+		status = _LLTWrite(Adapter, LAST_ENTRY_OF_TX_PKT_BUFFER, boundary);
+		if(_SUCCESS != status){
+			return status;
+		}
+	}
 
 	return status;
 	
@@ -4462,7 +4465,7 @@ static int rtw_wowlan_set_pattern(_adapter *padapter ,u8* pbuf){
 	config=pbuf[0];
 	bc=config & BIT(3)?1:0;
 	mc=config & BIT(4)?1:0;
-	uc=config &BIT(5)?1:0;
+	uc=config & BIT(5)?1:0;
 	idx=config & 0x7;
 	crc=config & BIT(6)?1:0;
 	valid=config & BIT(7)?1:0;
@@ -4478,11 +4481,11 @@ static int rtw_wowlan_set_pattern(_adapter *padapter ,u8* pbuf){
 	else{	
 		content=0;
 	}
-	printk("\n\n\n\nrtw_wowlan_set_pattern offset[0]  content  0x%x  [cpu_to_le32  0x%x]\n", content,__cpu_to_le32(content));
-	rtw_write32(padapter, REG_WKFMCAM_RWD, __cpu_to_le32(content));
+	DBG_8192C("\nrtw_wowlan_set_pattern offset[0]  content  0x%x  [cpu_to_le32  0x%x]\n", content,__cpu_to_le32(content));
+	//rtw_write32(padapter, REG_WKFMCAM_RWD, __cpu_to_le32(content));
 	pwrpriv->wowlan_pattern_context[idx][0]= __cpu_to_le32(content);
-	cmd=BIT(31)|BIT(16)|(idx+0);
-	rtw_write32(padapter, REG_WKFMCAM_CMD, cmd);
+	//cmd=BIT(31)|BIT(16)|(idx+0);
+	//rtw_write32(padapter, REG_WKFMCAM_CMD, cmd);
 	//offset 4
 	if(pattern_len>=8){
 		content=pdata[2];
@@ -4490,12 +4493,12 @@ static int rtw_wowlan_set_pattern(_adapter *padapter ,u8* pbuf){
 	else{	
 		content=0;
 	}
-	printk("rtw_wowlan_set_pattern offset[4]  content  0x%x  [cpu_to_le32  0x%x]\n", content,__cpu_to_le32(content));
-	rtw_write32(padapter, REG_WKFMCAM_RWD, __cpu_to_le32(content));
+	DBG_8192C("rtw_wowlan_set_pattern offset[4]  content  0x%x  [cpu_to_le32  0x%x]\n", content,__cpu_to_le32(content));
+	//rtw_write32(padapter, REG_WKFMCAM_RWD, __cpu_to_le32(content));
 	pwrpriv->wowlan_pattern_context[idx][1]= __cpu_to_le32(content);
 
-	cmd=BIT(31)|BIT(16)|(idx+1);
-	rtw_write32(padapter, REG_WKFMCAM_CMD, cmd);
+	//cmd=BIT(31)|BIT(16)|(idx+1);
+	//rtw_write32(padapter, REG_WKFMCAM_CMD, cmd);
 	//offset 8
 	if(pattern_len>=12){
 		content=pdata[3];
@@ -4503,11 +4506,11 @@ static int rtw_wowlan_set_pattern(_adapter *padapter ,u8* pbuf){
 	else{	
 		content=0;
 	}
-	printk("rtw_wowlan_set_pattern offset[8]  content  0x%x  [cpu_to_le32  0x%x]\n", content,__cpu_to_le32(content));
-	rtw_write32(padapter, REG_WKFMCAM_RWD, __cpu_to_le32(content));
+	DBG_8192C("rtw_wowlan_set_pattern offset[8]  content  0x%x  [cpu_to_le32  0x%x]\n", content,__cpu_to_le32(content));
+	//rtw_write32(padapter, REG_WKFMCAM_RWD, __cpu_to_le32(content));
 	pwrpriv->wowlan_pattern_context[idx][2]= __cpu_to_le32(content);
-	cmd=BIT(31)|BIT(16)|(idx+2);
-	rtw_write32(padapter, REG_WKFMCAM_CMD, cmd);
+	//cmd=BIT(31)|BIT(16)|(idx+2);
+	//rtw_write32(padapter, REG_WKFMCAM_CMD, cmd);
 	//offset 12
 	if(pattern_len>=16){
 		content=pdata[4];
@@ -4515,22 +4518,21 @@ static int rtw_wowlan_set_pattern(_adapter *padapter ,u8* pbuf){
 	else{	
 		content=0;
 	}
-	printk("rtw_wowlan_set_pattern offset[12]  content  0x%x  [cpu_to_le32  0x%x]\n", content,__cpu_to_le32(content));
-	rtw_write32(padapter, REG_WKFMCAM_RWD, __cpu_to_le32(content));
+	DBG_8192C("rtw_wowlan_set_pattern offset[12]  content  0x%x  [cpu_to_le32  0x%x]\n", content,__cpu_to_le32(content));
+	//rtw_write32(padapter, REG_WKFMCAM_RWD, __cpu_to_le32(content));
 	pwrpriv->wowlan_pattern_context[idx][3]= __cpu_to_le32(content);
-	cmd=BIT(31)|BIT(16)|(idx+3);
-	rtw_write32(padapter, REG_WKFMCAM_CMD, cmd);
+	//cmd=BIT(31)|BIT(16)|(idx+3);
+	//rtw_write32(padapter, REG_WKFMCAM_CMD, cmd);
 
 	if(crc){
 		// Have the CRC value
 		crc_val=*(u16 *)(&pbuf[2]);
-		printk("rtw_wowlan_set_pattern crc_val  0x%x  \n", crc_val);
+		DBG_8192C("rtw_wowlan_set_pattern crc_val  0x%x  \n", crc_val);
 		crc_val=__cpu_to_le16(crc_val);
-		printk("rtw_wowlan_set_pattern crc_val  after 0x%x  \n", crc_val);
-
+		DBG_8192C("rtw_wowlan_set_pattern crc_val  after 0x%x  \n", crc_val);
 	}
 	else{
-		printk("+rtw_wowlan_set_pattern   crc=0[%x]  Should calculate the CRC\n", crc);
+		DBG_8192C("+rtw_wowlan_set_pattern   crc=0[%x]  Should calculate the CRC\n", crc);
 		// calculate the CRC the write to the Wakeup CAM
 		crc_idx=0;
 		for(i=0;i<packet_len;i++){
@@ -4550,8 +4552,8 @@ static int rtw_wowlan_set_pattern(_adapter *padapter ,u8* pbuf){
 	printk("rtw_wowlan_set_pattern offset[16]  content  0x%x \n", content);
 	rtw_write32(padapter, REG_WKFMCAM_RWD,content);
 	pwrpriv->wowlan_pattern_context[idx][4]= content;
-	cmd=BIT(31)|BIT(16)|(idx+4);
-	rtw_write32(padapter, REG_WKFMCAM_CMD, cmd);
+	//cmd=BIT(31)|BIT(16)|(idx+4);
+	//rtw_write32(padapter, REG_WKFMCAM_CMD, cmd);
 	pwrpriv->wowlan_pattern_idx|=BIT(idx);
 	
 _rtw_wowlan_set_pattern_exit:
@@ -5386,15 +5388,16 @@ _func_enter_;
 				struct wowlan_ioctl_param *poidparam;
 
 				int res;
+
 				poidparam = (struct wowlan_ioctl_param *)val;
 				switch (poidparam->subcode){
 					case WOWLAN_PATTERN_MATCH:
 						//Turn on the Pattern Match feature
-						printk("\n poidparam->data[0]=%d\n",poidparam->data[0]);
-						if(poidparam->data[0]==1){
+						DBG_8192C("\n PATTERN_MATCH poidparam->subcode_value=%d\n",poidparam->subcode_value);
+						if(poidparam->subcode_value==1){
 							//rtw_write8(Adapter, REG_WOW_CTRL, (rtw_read8(Adapter, REG_WOW_CTRL)|BIT(1)));
 							Adapter->pwrctrlpriv.wowlan_pattern=_TRUE; 
-							printk("%s Adapter->pwrctrlpriv.wowlan_pattern=%x\n",__FUNCTION__,Adapter->pwrctrlpriv.wowlan_pattern); 
+							DBG_8192C("%s Adapter->pwrctrlpriv.wowlan_pattern=%x\n",__FUNCTION__,Adapter->pwrctrlpriv.wowlan_pattern); 
 						}
 						else{
 							//rtw_write8(Adapter, REG_WOW_CTRL, (rtw_read8(Adapter, REG_WOW_CTRL)&~BIT(1)));
@@ -5403,11 +5406,11 @@ _func_enter_;
 						break;
 					case WOWLAN_MAGIC_PACKET:
 						//Turn on the Magic Packet feature
-						printk("\n poidparam->data[0]=%d\n",poidparam->data[0]);
-						if(poidparam->data[0]==1){
+						DBG_8192C("\n MAGIC_PACKET poidparam->subcode_value=%d\n",poidparam->subcode_value);
+						if(poidparam->subcode_value==1){
 							//rtw_write8(Adapter, REG_WOW_CTRL, (rtw_read8(Adapter, REG_WOW_CTRL)|BIT(2)));
 							Adapter->pwrctrlpriv.wowlan_magic=_TRUE; 
-							printk("%s Adapter->pwrctrlpriv.wowlan_magic=%x\n",__FUNCTION__,Adapter->pwrctrlpriv.wowlan_magic); 
+							DBG_8192C("%s Adapter->pwrctrlpriv.wowlan_magic=%x\n",__FUNCTION__,Adapter->pwrctrlpriv.wowlan_magic); 
 						}
 						else{
 							//rtw_write8(Adapter, REG_WOW_CTRL, (rtw_read8(Adapter, REG_WOW_CTRL)&~BIT(2)));
@@ -5416,53 +5419,59 @@ _func_enter_;
 						break;
 					case WOWLAN_UNICAST:
 						//Turn on the Unicast wakeup feature
-						if(poidparam->data[0]==1){
+						if(poidparam->subcode_value==1){
 							//rtw_write8(Adapter, REG_WOW_CTRL, (rtw_read8(Adapter, REG_WOW_CTRL)|BIT(3)));
 							Adapter->pwrctrlpriv.wowlan_unicast=_TRUE; 
 						}
 						else{
 							//rtw_write8(Adapter, REG_WOW_CTRL, (rtw_read8(Adapter, REG_WOW_CTRL)&~BIT(3)));
 							Adapter->pwrctrlpriv.wowlan_unicast=_FALSE; 
-							printk("%s Adapter->pwrctrlpriv.wowlan_unicast=%x\n",__FUNCTION__,Adapter->pwrctrlpriv.wowlan_unicast); 
+							DBG_8192C("%s Adapter->pwrctrlpriv.wowlan_unicast=%x\n",__FUNCTION__,Adapter->pwrctrlpriv.wowlan_unicast); 
 						}
 						break;
 					case WOWLAN_SET_PATTERN:
 						//Setting the Pattern for wowlan
-						res=rtw_wowlan_set_pattern(Adapter,poidparam->data);
+						res=rtw_wowlan_set_pattern(Adapter,poidparam->pattern);
 						if(res)
-							printk("rtw_wowlan_set_pattern retern value=0x%x",res);
+							DBG_8192C("rtw_wowlan_set_pattern retern value=0x%x",res);
 						break;
 					case WOWLAN_DUMP_REG:
 						//dump the WKFMCAM and WOW_CTRL register
-						printk("\n\n\n\n rtw_wowlan_ctrl: WOW_CTRL=0x%x \n",rtw_read8(Adapter, REG_WOW_CTRL));
-						printk("print WKFMCAM index =%d ",poidparam->data[0]);
+						/*DBG_8192C("\n\n\n\n rtw_wowlan_ctrl: WOW_CTRL=0x%x \n",rtw_read8(Adapter, REG_WOW_CTRL));
+						DBG_8192C("print WKFMCAM index =%d ",poidparam->data[0]);
 						{	int cmd=0,offset=0;
 							for(offset=0;offset<5;offset++){
 								cmd=BIT(31)|(poidparam->data[0]+offset);
 								rtw_write32(Adapter, REG_WKFMCAM_CMD, cmd);
-								printk("offset[%d]=0x%.8x  ",offset,rtw_read32(Adapter, REG_WKFMCAM_RWD));
-								printk("offset[%d]=MSB 0x%x:0x%x:0x%x:0x%x  ",offset,rtw_read8(Adapter, REG_WKFMCAM_RWD+3),rtw_read8(Adapter, REG_WKFMCAM_RWD+2),rtw_read8(Adapter, REG_WKFMCAM_RWD+1),rtw_read8(Adapter, REG_WKFMCAM_RWD));
+								DBG_8192C("offset[%d]=0x%.8x  ",offset,rtw_read32(Adapter, REG_WKFMCAM_RWD));
+								DBG_8192C("offset[%d]=MSB 0x%x:0x%x:0x%x:0x%x  ",offset,rtw_read8(Adapter, REG_WKFMCAM_RWD+3),rtw_read8(Adapter, REG_WKFMCAM_RWD+2),rtw_read8(Adapter, REG_WKFMCAM_RWD+1),rtw_read8(Adapter, REG_WKFMCAM_RWD));
 							}
-						}
+						}*/
 					
 						break;
 					case WOWLAN_ENABLE:
 						SetFwRelatedForWoWLAN8192CU(Adapter, _TRUE);
 						//Set Pattern
-						rtw_wowlan_reload_pattern(Adapter);
+						if(Adapter->pwrctrlpriv.wowlan_pattern==_TRUE)
+							rtw_wowlan_reload_pattern(Adapter);
 						rtl8192c_set_wowlan_cmd(Adapter);
 						rtw_write8(Adapter, 0x6, rtw_read8(Adapter, 0x6)|BIT(3));
 						rtw_msleep_os(10);
-						printk(" \n REG_WOW_CTRL=0x%x \n",rtw_read8(Adapter, REG_WOW_CTRL));
+						//DBG_8192C(" \n REG_WOW_CTRL=0x%x \n",rtw_read8(Adapter, REG_WOW_CTRL));
 //						if(rtw_read8(Adapter, REG_WOW_CTRL)==0)
 //							rtw_write8(Adapter, REG_WOW_CTRL, (rtw_read8(Adapter, REG_WOW_CTRL)|BIT(1)|BIT(2)|BIT(3)));
-						printk(" \n REG_WOW_CTRL=0x%x \n",rtw_read8(Adapter, REG_WOW_CTRL));
+						//DBG_8192C(" \n REG_WOW_CTRL=0x%x \n",rtw_read8(Adapter, REG_WOW_CTRL));
 						break;
 	
 					case WOWLAN_DISABLE:
 						Adapter->pwrctrlpriv.wowlan_mode=_FALSE;
 						rtl8192c_set_wowlan_cmd(Adapter);
 						rtw_msleep_os(10);
+						break;
+					
+					case WOWLAN_STATUS:
+						poidparam->wakeup_reason = rtw_read8(Adapter, REG_WOWLAN_REASON);
+						DBG_8192C("wake on wlan reason 0x%02x\n", poidparam->wakeup_reason);
 						break;
 	
 					default:

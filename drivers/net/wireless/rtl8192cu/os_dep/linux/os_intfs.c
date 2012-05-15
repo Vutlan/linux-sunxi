@@ -215,6 +215,22 @@ module_param(rtw_max_roaming_times, uint, 0644);
 MODULE_PARM_DESC(rtw_max_roaming_times,"The max roaming times to try");
 #endif //CONFIG_LAYER2_ROAMING
 
+#ifdef CONFIG_IOL
+bool rtw_force_iol=_FALSE;
+module_param(rtw_force_iol, bool, 0644);
+MODULE_PARM_DESC(rtw_force_iol,"Force to enable IOL");
+#endif //CONFIG_IOL
+
+#ifdef SUPPORT_64_STA
+uint rtw_bcmc_rate=8;
+module_param(rtw_bcmc_rate, uint, 0644);
+MODULE_PARM_DESC(rtw_bcmc_rate,"The bc/mc data rate");
+#endif // SUPPORT_64_STA
+
+uint rtw_intel_class_mode=0;
+module_param(rtw_intel_class_mode, uint, 0644);
+MODULE_PARM_DESC(rtw_intel_class_mode,"The intel class mode [0: off, 1: on]");
+
 #ifdef CONFIG_FILE_FWIMG
 char *rtw_fw_file_path= "";
 module_param(rtw_fw_file_path, charp, 0644);
@@ -226,7 +242,7 @@ module_param(rtw_mc2u_disable, int, 0644);
 #endif	// CONFIG_TX_MCAST2UNI
 
 static uint loadparam( _adapter *padapter,  _nic_hdl	pnetdev);
-static int netdev_open (struct net_device *pnetdev);
+int netdev_open (struct net_device *pnetdev);
 static int netdev_close (struct net_device *pnetdev);
 
 //#ifdef RTK_DMP_PLATFORM
@@ -595,6 +611,14 @@ _func_enter_;
 	registry_par->max_roaming_times = (u8)rtw_max_roaming_times;
 #endif
 
+#ifdef CONFIG_IOL
+	registry_par->force_iol = rtw_force_iol;
+#endif
+
+#ifdef SUPPORT_64_STA
+	registry_par->bcmc_rate= (u8)rtw_bcmc_rate;
+#endif
+	registry_par->intel_class_mode= (u8)rtw_intel_class_mode;
 _func_exit_;
 
 	return status;
@@ -641,11 +665,7 @@ static const struct net_device_ops rtw_netdev_ops = {
 	.ndo_start_xmit = rtw_xmit_entry,
 	.ndo_set_mac_address = rtw_net_set_mac_address,
 	.ndo_get_stats = rtw_net_get_stats,
-#ifdef CONFIG_IOCTL_CFG80211
-	.ndo_do_ioctl = rtw_cfg80211_do_ioctl,
-#else //CONFIG_IOCTL_CFG80211
 	.ndo_do_ioctl = rtw_ioctl,
-#endif //CONFIG_IOCTL_CFG80211
 };
 #endif
 
@@ -724,26 +744,17 @@ struct net_device *rtw_init_netdev(_adapter *old_padapter)
 #endif
 	
 	//pnetdev->init = NULL;
+	
 #if (LINUX_VERSION_CODE>=KERNEL_VERSION(2,6,29))
-
 	DBG_8192C("register rtw_netdev_ops to netdev_ops\n");
 	pnetdev->netdev_ops = &rtw_netdev_ops;
-
 #else
 	pnetdev->open = netdev_open;
 	pnetdev->stop = netdev_close;	
-	
 	pnetdev->hard_start_xmit = rtw_xmit_entry;
-
 	pnetdev->set_mac_address = rtw_net_set_mac_address;
 	pnetdev->get_stats = rtw_net_get_stats;
-
-#ifdef CONFIG_IOCTL_CFG80211
-	pnetdev->do_ioctl = rtw_cfg80211_do_ioctl;
-#else //CONFIG_IOCTL_CFG80211
 	pnetdev->do_ioctl = rtw_ioctl;
-#endif //CONFIG_IOCTL_CFG80211
-
 #endif
 
 
@@ -753,14 +764,8 @@ struct net_device *rtw_init_netdev(_adapter *old_padapter)
 	//pnetdev->tx_timeout = NULL;
 	pnetdev->watchdog_timeo = HZ*3; /* 3 second timeout */
 	
+	pnetdev->wireless_handlers = (struct iw_handler_def *)&rtw_handlers_def;
 
-//#ifdef CONFIG_IOCTL_CFG80211
-//	pnetdev->wireless_handlers = NULL;
-//#else //CONFIG_IOCTL_CFG80211
-	pnetdev->wireless_handlers = (struct iw_handler_def *)&rtw_handlers_def;  
-//#endif //CONFIG_IOCTL_CFG80211
-
-	
 #ifdef WIRELESS_SPY
 	//priv->wireless_data.spy_data = &priv->spy_data;
 	//pnetdev->wireless_data = &priv->wireless_data;
@@ -926,8 +931,7 @@ u8 rtw_reset_drv_sw(_adapter *padapter)
 	padapter->bWritePortCancel = _FALSE;
 	padapter->bRxRSSIDisplay = 0;
 	pmlmepriv->scan_interval = SCAN_INTERVAL;// 30*2 sec = 60sec
-	pmlmepriv->scan_mode = SCAN_ACTIVE; // 1: active scan ,0 passive scan
-
+	
 	pwrctrlpriv->bips_processing = _FALSE;		
 	pwrctrlpriv->rf_pwrstate = rf_on;
 	pwrctrlpriv->bInSuspend = _FALSE;
@@ -1201,7 +1205,7 @@ u8 rtw_free_drv_sw(_adapter *padapter)
 	
 }
 
-static int netdev_open(struct net_device *pnetdev)
+int netdev_open(struct net_device *pnetdev)
 {
 	uint status;	
 	_adapter *padapter = (_adapter *)rtw_netdev_priv(pnetdev);
@@ -1512,20 +1516,19 @@ static int netdev_close(struct net_device *pnetdev)
 	}
 #endif	// CONFIG_BR_EXT
 
+#ifdef CONFIG_P2P
+	#ifdef CONFIG_IOCTL_CFG80211
+	if(wdev_to_priv(padapter->rtw_wdev)->p2p_enabled == _TRUE)
+		wdev_to_priv(padapter->rtw_wdev)->p2p_enabled = _FALSE;
+	#endif
+	rtw_p2p_enable(padapter, P2P_ROLE_DISABLE);
+#endif //CONFIG_P2P
 
 #ifdef CONFIG_IOCTL_CFG80211
 	DBG_871X("call rtw_indicate_scan_done when drv_close\n");
 	rtw_indicate_scan_done(padapter, _TRUE);
-	if((wdev_to_priv(padapter->rtw_wdev))->p2p_enabled == _TRUE)
-	{
-		DBG_871X("p2p_enabled state is _FALSE\n");
-		(wdev_to_priv(padapter->rtw_wdev))->p2p_enabled = _FALSE;
-	}
+	padapter->rtw_wdev->iftype = NL80211_IFTYPE_MONITOR; //set this at the end
 #endif
-
-	#ifdef CONFIG_P2P
-	rtw_p2p_enable(padapter, P2P_ROLE_DISABLE);
-	#endif
 	
 	RT_TRACE(_module_os_intfs_c_,_drv_info_,("-871x_drv - drv_close\n"));
 	DBG_8192C("-871x_drv - drv_close, bup=%d\n", padapter->bup);

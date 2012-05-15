@@ -31,18 +31,21 @@
 #include "rtl8188e_xmit.h"
 #include "rtl8188e_cmd.h"
 #include "Hal8188EPwrSeq.h"
+#ifdef DBG_CONFIG_ERROR_DETECT
+#include "rtl8192c_sreset.h"
+#endif
 
 #include "../hal/OUTSRC/odm_precomp.h"
+
+	// Fw Array
+	#define Rtl8188E_FwImageArray				Rtl8188EFwImgArray
+	#define Rtl8188E_FWImgArrayLength			Rtl8188EFWImgArrayLength
+	
 #ifdef CONFIG_SDIO_HCI
 	
 	//TODO: We should define 8188ES firmware related macro settings here!!
-	#define RTL819X_DEFAULT_RF_TYPE			RF_1T1R
-	#define RTL819X_TOTAL_RF_PATH				1
-
-
 	//TODO:  The following need to check!!
 	#define RTL8188E_FW_UMC_IMG				"rtl8188E\\rtl8188efw.bin"
-
 	#define RTL8188E_PHY_REG					"rtl8188E\\PHY_REG_1T.txt"
 	#define RTL8188E_PHY_RADIO_A				"rtl8188E\\radio_a_1T.txt"
 	#define RTL8188E_PHY_RADIO_B				"rtl8188E\\radio_b_1T.txt"
@@ -55,64 +58,15 @@
 //		RTL8723S From header
 //---------------------------------------------------------------------
 	#define Rtl8188E_PHY_REG_Array_PG			Rtl8188ESPHY_REG_Array_PG
-	#define Rtl8188E_PHY_REG_Array_PGLength	Rtl8188ESPHY_REG_Array_PGLength
-	
-	// Fw Array
-	#define Rtl8188E_FwImageArray				Rtl8188ESFwImgArray
-	#define Rtl8188E_FWImgArrayLength			Rtl8188ESFWImgArrayLength
+	#define Rtl8188E_PHY_REG_Array_PGLength	Rtl8188ESPHY_REG_Array_PGLength	
+
 		
 	#ifndef CONFIG_PHY_SETTING_WITH_ODM		
-	// MAC/BB/PHY Array
-	#define Rtl8188E_MAC_Array					Rtl8188ESMAC_1T_Array
-	#define Rtl8188E_PHY_REG_1TArray			Rtl8188ESPHY_REG_1TArray
-	#define Rtl8188E_AGCTAB_1TArray				Rtl8188ESAGCTAB_1TArray
-	#define Rtl8188E_RadioA_1TArray				Rtl8188ESRadioA_1TArray
-	#define Rtl8188E_RadioB_1TArray				Rtl8188ESRadioB_1TArray
-	
-	#define Rtl8188E_PHY_REG_Array_MP 			Rtl8188ESPHY_REG_Array_MP
-		
-	// Array length
-	
-	#define Rtl8188E_MAC_ArrayLength			Rtl8188ESMAC_1T_ArrayLength
-	#define Rtl8188E_PHY_REG_1TArrayLength 		Rtl8188ESPHY_REG_1TArrayLength
-	#define Rtl8188E_AGCTAB_1TArrayLength		Rtl8188ESAGCTAB_1TArrayLength
-	#define Rtl8188E_RadioA_1TArrayLength		Rtl8188ESRadioA_1TArrayLength
-	#define Rtl8188E_RadioB_1TArrayLength		Rtl8188ESRadioB_1TArrayLength
-	
-	#define Rtl8188E_PHY_REG_Array_MPLength	Rtl8188ESPHY_REG_Array_MPLength
-
 	#if MP_DRIVER == 1
 	#define Rtl8188ES_PHY_REG_Array_MP 			Rtl8188ESPHY_REG_Array_MP
 	#endif
 	#endif
-		
-/*
-	// Fw Array
-	#define Rtl8723_FwImageArray				Rtl8723SFwImgArray
 
-	// MAC/BB/PHY Array
-	#define Rtl8723_MAC_Array					Rtl8723SMAC_2T_Array
-	#define Rtl8723_AGCTAB_2TArray				Rtl8723SAGCTAB_2TArray
-	#define Rtl8723_AGCTAB_1TArray				Rtl8723SAGCTAB_1TArray
-	#define Rtl8723_PHY_REG_2TArray				Rtl8723SPHY_REG_2TArray
-	#define Rtl8723_PHY_REG_1TArray				Rtl8723SPHY_REG_1TArray
-	#define Rtl8723_RadioA_2TArray				Rtl8723SRadioA_2TArray
-	#define Rtl8723_RadioA_1TArray				Rtl8723SRadioA_1TArray
-	#define Rtl8723_RadioB_2TArray				Rtl8723SRadioB_2TArray
-	#define Rtl8723_RadioB_1TArray				Rtl8723SRadioB_1TArray
-	#define Rtl8723_PHY_REG_Array_PG 			Rtl8723SPHY_REG_Array_PG
-	#define Rtl8723_PHY_REG_Array_MP 			Rtl8723SPHY_REG_Array_MP
-
-	// Array length
-	#define Rtl8723_ImgArrayLength				Rtl8723SImgArrayLength
-	#define Rtl8723_MAC_ArrayLength				Rtl8723SMAC_2T_ArrayLength
-	#define Rtl8723_AGCTAB_1TArrayLength		Rtl8723SAGCTAB_1TArrayLength
-	#define Rtl8723_PHY_REG_1TArrayLength 		Rtl8723SPHY_REG_1TArrayLength
-	#define Rtl8723_PHY_REG_Array_MPLength		Rtl8723SPHY_REG_Array_MPLength
-	#define Rtl8723_PHY_REG_Array_PGLength		Rtl8723SPHY_REG_Array_PGLength
-	#define Rtl8723_RadioA_1TArrayLength			Rtl8723SRadioA_1TArrayLength
-	#define Rtl8723_RadioB_1TArrayLength			Rtl8723SRadioB_1TArrayLength
-*/
 	//---------------------------------------------------------------------
 	//		RTL8188E Power Configuration CMDs for USB/SDIO interfaces
 	//---------------------------------------------------------------------
@@ -126,11 +80,43 @@
 	#define Rtl8188E_NIC_LPS_ENTER_FLOW			rtl8188E_enter_lps_flow
 	#define Rtl8188E_NIC_LPS_LEAVE_FLOW			rtl8188E_leave_lps_flow
 
+#elif defined(CONFIG_USB_HCI)
+	#define RTL8188E_FW_UMC_IMG				"rtl8188E\\rtl8188efw.bin"
+	#define RTL8188E_PHY_REG					"rtl8188E\\PHY_REG_1T.txt"
+	#define RTL8188E_PHY_RADIO_A				"rtl8188E\\radio_a_1T.txt"
+	#define RTL8188E_PHY_RADIO_B				"rtl8188E\\radio_b_1T.txt"
+	#define RTL8188E_AGC_TAB					"rtl8188E\\AGC_TAB_1T.txt"
+	#define RTL8188E_PHY_MACREG 				"rtl8188E\\MAC_REG.txt"
+	#define RTL8188E_PHY_REG_PG				"rtl8188E\\PHY_REG_PG.txt"
+	#define RTL8188E_PHY_REG_MP				"rtl8188E\\PHY_REG_MP.txt"
 
-#endif //CONFIG_SDIO_HCI
+	#define Rtl8188E_PHY_REG_Array_PG			Rtl8188EUPHY_REG_Array_PG
+	#define Rtl8188E_PHY_REG_Array_PGLength	Rtl8188EUPHY_REG_Array_PGLength	
+
+		
+	#ifndef CONFIG_PHY_SETTING_WITH_ODM		
+	#if MP_DRIVER == 1
+	#define Rtl8188ES_PHY_REG_Array_MP 			Rtl8188ESPHY_REG_Array_MP
+	#endif
+	#endif
+	
+	//---------------------------------------------------------------------
+	//		RTL8188E Power Configuration CMDs for USB/SDIO interfaces
+	//---------------------------------------------------------------------
+	#define Rtl8188E_NIC_PWR_ON_FLOW				rtl8188E_power_on_flow
+	#define Rtl8188E_NIC_RF_OFF_FLOW				rtl8188E_radio_off_flow
+	#define Rtl8188E_NIC_DISABLE_FLOW				rtl8188E_card_disable_flow
+	#define Rtl8188E_NIC_ENABLE_FLOW				rtl8188E_card_enable_flow
+	#define Rtl8188E_NIC_SUSPEND_FLOW				rtl8188E_suspend_flow
+	#define Rtl8188E_NIC_RESUME_FLOW				rtl8188E_resume_flow
+	#define Rtl8188E_NIC_PDN_FLOW					rtl8188E_hwpdn_flow
+	#define Rtl8188E_NIC_LPS_ENTER_FLOW			rtl8188E_enter_lps_flow
+	#define Rtl8188E_NIC_LPS_LEAVE_FLOW			rtl8188E_leave_lps_flow
+
+#endif //CONFIG_***_HCI
 
 
-//#define DRVINFO_SZ	4 // unit is 8bytes
+#define DRVINFO_SZ	4 // unit is 8bytes
 #define PageNum_128(_Len)		(u32)(((_Len)>>7) + ((_Len)&0x7F ? 1:0))
 
 
@@ -164,7 +150,7 @@ typedef struct _RT_FIRMWARE {
 //
 // This structure must be cared byte-ordering
 //
-// Added by tynli. 2009.12.04.
+
 typedef struct _RT_8188E_FIRMWARE_HDR
 {
 	// 8-byte alinment required
@@ -215,15 +201,8 @@ typedef enum _USB_RX_AGG_MODE{
 #endif
 
 
-#if HAL_SUPPORT_88E == 1
-	#if RTL8188E_FOR_MP_TEST == 1
-	#define MAX_RX_DMA_BUFFER_SIZE	        0x2400 //9k for 88E nornal chip
-	#else
-	#define MAX_RX_DMA_BUFFER_SIZE		0x1c00	//7k for 88E test chip
-	#endif
-#else
-#define	MAX_RX_DMA_BUFFER_SIZE		10240		// 10K for 8192C RX DMA buffer
-#endif
+#define MAX_RX_DMA_BUFFER_SIZE_88E	      0x2400 //9k for 88E nornal chip
+
 #define MAX_TX_REPORT_BUFFER_SIZE			0x0400 // 1k 
 
 
@@ -239,44 +218,20 @@ typedef enum _USB_RX_AGG_MODE{
 // must reserved about 7 pages for LPS =>  176-7 = 169 (0xA9)
 // 2*BCN / 1*ps-poll / 1*null-data /1*prob_rsp /1*QOS null-data /1*BT QOS null-data 
 
-#if (DOWNLOAD_FW_TO_TXPKT_BUF == 1)
-	#define TX_TOTAL_PAGE_NUMBER_88E		0x9A
-#else
-	#define TX_TOTAL_PAGE_NUMBER_88E		0xA9//  169 (21632=> 21k)
-#endif
+#define TX_TOTAL_PAGE_NUMBER_88E		0xA9//  169 (21632=> 21k)
 
 
 #ifdef RTL8188ES_MAC_LOOPBACK
-#define TX_PAGE_BOUNDARY 0x48 //72
-#define MAC_LOOPBACK_PAGE_NUM_PUBQ		0x26
-#define MAC_LOOPBACK_PAGE_NUM_HPQ		0x0b
-#define MAC_LOOPBACK_PAGE_NUM_LPQ		0x0b
-#define MAC_LOOPBACK_PAGE_NUM_NPQ		0x0b
+#define TX_PAGE_BOUNDARY_88E 0x48 //72
 #else //TX_PAGE_BOUNDARY_LOOPBACK_MODE
-
-#define TX_PAGE_BOUNDARY (TX_TOTAL_PAGE_NUMBER_88E + 1)
-
+#define TX_PAGE_BOUNDARY_88E (TX_TOTAL_PAGE_NUMBER_88E + 1)
 #endif
-
-#define TX_PAGE_LOAD_FW_BOUNDARY	0xA5
-
-// For Normal Chip Setting
-// (HPQ + LPQ + NPQ + PUBQ) shall be TX_TOTAL_PAGE_NUMBER_88E
-#define NORMAL_PAGE_NUM_PUBQ		0xE7
-#define NORMAL_PAGE_NUM_HPQ			0x0C
-#define NORMAL_PAGE_NUM_LPQ			0x02
-#define NORMAL_PAGE_NUM_NPQ			0x02
-
 
 
 //Note: For Normal Chip Setting ,modify later
 #define WMM_NORMAL_TX_TOTAL_PAGE_NUMBER	TX_TOTAL_PAGE_NUMBER_88E  //0xA9 , 0xb0=>176=>22k
-#define WMM_NORMAL_TX_PAGE_BOUNDARY		(WMM_NORMAL_TX_TOTAL_PAGE_NUMBER + 1) //0xA9
+#define WMM_NORMAL_TX_PAGE_BOUNDARY_88E	(WMM_NORMAL_TX_TOTAL_PAGE_NUMBER + 1) //0xA9
 
-#define WMM_NORMAL_PAGE_NUM_PUBQ		0xB0
-#define WMM_NORMAL_PAGE_NUM_HPQ		0x29
-#define WMM_NORMAL_PAGE_NUM_LPQ		0x1C
-#define WMM_NORMAL_PAGE_NUM_NPQ		0x1C
 
 
 //-------------------------------------------------------------------------
@@ -290,96 +245,7 @@ typedef enum _USB_RX_AGG_MODE{
 #include "HalVerDef.h"
 #include "hal_com.h"
 #else
-//
-// 2011.01.06. Define new structure of chip version for RTL8723 and so on. Added by tynli.
-//
-/*
-     | BIT15:12           |  BIT11:8        | BIT 7              |  BIT6:4  |      BIT3          | BIT2:0  |
-     |-------------+-----------+-----------+-------+-----------+-------|
-     | IC version(CUT)  | ROM version  | Manufacturer  | RF type  |  Chip type       | IC Type |
-     |                           |                      | TSMC/UMC    |              | TEST/NORMAL|             |
-*/
-// [15:12] IC version(CUT): A-cut=0, B-cut=1, C-cut=2, D-cut=3
-// [7] Manufacturer: TSMC=0, UMC=1
-// [6:4] RF type: 1T1R=0, 1T2R=1, 2T2R=2
-// [3] Chip type: TEST=0, NORMAL=1
-// [2:0] IC type: 81xxC=0, 8723=1, 92D=2
-
-#define CHIP_8723						BIT(0)
-#define CHIP_92D						BIT(1)
-#define NORMAL_CHIP  					BIT(3)
-#define RF_TYPE_1T1R					(~(BIT(4)|BIT(5)|BIT(6)))
-#define RF_TYPE_1T2R					BIT(4)
-#define RF_TYPE_2T2R					BIT(5)
-#define CHIP_VENDOR_UMC				BIT(7)
-#define B_CUT_VERSION					BIT(12)
-#define C_CUT_VERSION					BIT(13)
-#define D_CUT_VERSION					((BIT(13)|BIT(14)))
-
-
-// MASK
-#define IC_TYPE_MASK					(BIT(0)|BIT(1)|BIT(2))
-#define CHIP_TYPE_MASK 				BIT(3)
-#define RF_TYPE_MASK					(BIT(4)|BIT(5)|BIT(6))
-#define MANUFACTUER_MASK			BIT(7)	
-#define ROM_VERSION_MASK				(BIT(11)|BIT(10)|BIT(9)|BIT(8))
-#define CUT_VERSION_MASK				(BIT(15)|BIT(14)|BIT(13)|BIT(12))
-
-// Get element
-#define GET_CVID_IC_TYPE(version)			((version) & IC_TYPE_MASK)
-#define GET_CVID_CHIP_TYPE(version)			((version) & CHIP_TYPE_MASK)
-#define GET_CVID_RF_TYPE(version)			((version) & RF_TYPE_MASK)
-#define GET_CVID_MANUFACTUER(version)		((version) & MANUFACTUER_MASK)
-#define GET_CVID_ROM_VERSION(version)		((version) & ROM_VERSION_MASK)
-#define GET_CVID_CUT_VERSION(version)		((version) & CUT_VERSION_MASK)
-
-#define IS_81XXC(version)					((GET_CVID_IC_TYPE(version) == 0)? _TRUE : _FALSE)
-#define IS_8723_SERIES(version)				((GET_CVID_IC_TYPE(version) == CHIP_8723)? _TRUE : _FALSE)
-#define IS_92D(version)						((GET_CVID_IC_TYPE(version) == CHIP_92D)? _TRUE : _FALSE)
-#define IS_1T1R(version)						((GET_CVID_RF_TYPE(version))? _FALSE : _TRUE)
-#define IS_1T2R(version)						((GET_CVID_RF_TYPE(version) == RF_TYPE_1T2R)? _TRUE : _FALSE)
-#define IS_2T2R(version)						((GET_CVID_RF_TYPE(version) == RF_TYPE_2T2R)? _TRUE : _FALSE)
-#define IS_NORMAL_CHIP(version)				((GET_CVID_CHIP_TYPE(version))? _TRUE: _FALSE)
-#define IS_CHIP_VENDOR_UMC(version)			((GET_CVID_MANUFACTUER(version))? _TRUE: _FALSE)
-
-#define IS_81XXC_TEST_CHIP(version)			((IS_81XXC(version) && (!IS_NORMAL_CHIP(version)))? _TRUE: _FALSE)
-#define IS_92D_TEST_CHIP(version)				((IS_92D(version) && (!IS_NORMAL_CHIP(version)))? _TRUE: _FALSE)
-#define IS_92C_SERIAL(version)   				((IS_81XXC(version) && IS_2T2R(version)) ? _TRUE : _FALSE)
-#define IS_VENDOR_UMC_A_CUT(version)		((IS_CHIP_VENDOR_UMC(version)) ? ((GET_CVID_CUT_VERSION(version)) ? _FALSE : _TRUE) : _FALSE)
-#define IS_VENDOR_8723_A_CUT(version)		((IS_8723_SERIES(version)) ? ((GET_CVID_CUT_VERSION(version)) ? _FALSE : _TRUE) : _FALSE)
-// <tynli_Note> 88/92C UMC B-cut vendor is set to TSMC so we need to check CHIP_VENDOR_UMC bit is not 1. 
-#define IS_81xxC_VENDOR_UMC_B_CUT(version)	((IS_CHIP_VENDOR_UMC(version)) ? ((GET_CVID_CUT_VERSION(version) == B_CUT_VERSION) ? _TRUE : _FALSE):_FALSE)
-#define IS_92D_SINGLEPHY(version)     			((IS_92D(version)) ? (IS_2T2R(version) ? _TRUE: _FALSE) : _FALSE)
-#define IS_92D_C_CUT(version)    				((IS_92D(version)) ? ((GET_CVID_CUT_VERSION(version) == 0x2) ? _TRUE : _FALSE) : _FALSE)
-#define IS_92D_D_CUT(version)    				((IS_92D(version)) ? ((GET_CVID_CUT_VERSION(version) == 0x3) ? _TRUE : _FALSE) : _FALSE)
-
-
-typedef enum _VERSION_8192C
-{
-	VERSION_TEST_CHIP_88C = 0x0000,
-	VERSION_TEST_CHIP_92C = 0x0020,
-	VERSION_TEST_UMC_CHIP_8723 = 0x0081,
-	VERSION_NORMAL_TSMC_CHIP_88C = 0x0008, 
-	VERSION_NORMAL_TSMC_CHIP_92C = 0x0028,
-	VERSION_NORMAL_TSMC_CHIP_92C_1T2R = 0x0018,
-	VERSION_NORMAL_UMC_CHIP_88C_A_CUT = 0x0088,
-	VERSION_NORMAL_UMC_CHIP_92C_A_CUT = 0x00a8,
-	VERSION_NORMAL_UMC_CHIP_92C_1T2R_A_CUT = 0x0098,		
-	VERSION_NORMAL_UMC_CHIP_8723_1T1R_A_CUT = 0x0089,
-	VERSION_NORMAL_UMC_CHIP_8723_1T1R_B_CUT = 0x1089,	
-	VERSION_NORMAL_UMC_CHIP_88C_B_CUT = 0x1088, 
-	VERSION_NORMAL_UMC_CHIP_92C_B_CUT = 0x10a8, 
-	VERSION_NORMAL_UMC_CHIP_92C_1T2R_B_CUT = 0x1090, 
-	VERSION_TEST_CHIP_92D_SINGLEPHY= 0x0022,
-	VERSION_TEST_CHIP_92D_DUALPHY = 0x0002,
-	VERSION_NORMAL_CHIP_92D_SINGLEPHY= 0x002a,
-	VERSION_NORMAL_CHIP_92D_DUALPHY = 0x000a,
-	VERSION_NORMAL_CHIP_92D_C_CUT_SINGLEPHY = 0x202a,
-	VERSION_NORMAL_CHIP_92D_C_CUT_DUALPHY = 0x200a,
-	VERSION_NORMAL_CHIP_92D_D_CUT_SINGLEPHY = 0x302a,
-	VERSION_NORMAL_CHIP_92D_D_CUT_DUALPHY = 0x300a,
-}VERSION_8192C, *PVERSION_8192C;
-
+//do nothing
 #endif //CONFIG_CHIP_VER_INTEGRATION
 //-------------------------------------------------------------------------
 //	Channel Plan
@@ -581,7 +447,7 @@ typedef struct hal_data_8188e
 	struct dm_priv	dmpriv;
 	DM_ODM_T 		odmpriv;
 	//_lock			odm_stainfo_lock;
-#ifdef SILENT_RESET_FOR_SPECIFIC_PLATFOM
+#ifdef DBG_CONFIG_ERROR_DETECT
 	struct sreset_priv srestpriv;
 #endif
 
@@ -653,6 +519,34 @@ typedef struct hal_data_8188e
 	u8			SdioRxFIFOCnt;
 	u16			SdioRxFIFOSize;
 #endif //CONFIG_SDIO_HCI
+
+#ifdef CONFIG_USB_HCI
+	u32	UsbBulkOutSize;
+
+	int	RtBulkOutPipe[3];
+	int	RtBulkInPipe;
+	int	RtIntInPipe;
+	// Interrupt relatd register information.
+	u32	IntArray[2];
+	u32	IntrMask[2];
+	u8	C2hArray[16];
+#ifdef CONFIG_USB_TX_AGGREGATION
+	u8	UsbTxAggMode;
+	u8	UsbTxAggDescNum;
+#endif
+#ifdef CONFIG_USB_RX_AGGREGATION
+	u16	HwRxPageSize;				// Hardware setting
+	u32	MaxUsbRxAggBlock;
+
+	USB_RX_AGG_MODE	UsbRxAggMode;
+	u8	UsbRxAggBlockCount;			// USB Block count. Block size is 512-byte in hight speed and 64-byte in full speed
+	u8	UsbRxAggBlockTimeout;
+	u8	UsbRxAggPageCount;			// 8192C DMA page count
+	u8	UsbRxAggPageTimeout;
+#endif
+
+
+#endif
 #ifdef CONFIG_TX_EARLY_MODE
 	u8 			bEarlyModeEnable;
 #endif
@@ -667,193 +561,6 @@ typedef struct hal_data_8188e HAL_DATA_TYPE, *PHAL_DATA_TYPE;
 #define INCLUDE_MULTI_FUNC_BT(_Adapter)		(GET_HAL_DATA(_Adapter)->MultiFunc & RT_MULTI_FUNC_BT)
 #define INCLUDE_MULTI_FUNC_GPS(_Adapter)	(GET_HAL_DATA(_Adapter)->MultiFunc & RT_MULTI_FUNC_GPS)
 
-typedef struct txdescriptor_8188e
-{
-	//Offset 0
-	u32 pktlen:16;
-	u32 offset:8;
-	u32 bmc:1;
-	u32 htc:1;
-	u32 ls:1;
-	u32 fs:1;
-	u32 linip:1;
-	u32 noacm:1;
-	u32 gf:1;
-	u32 own:1;
-
-	//Offset 4
-	u32 macid:6;
-	u32 rsvd0406:2;	
-	u32 qsel:5;
-	u32 rd_nav_ext:1;
-	u32 lsig_txop_en:1;
-	u32 pifs:1;
-	u32 rate_id:4;
-	u32 navusehdr:1;
-	u32 en_desc_id:1;
-	u32 sectype:2;
-	u32 rsvd0424:2;
-	u32 pkt_offset:5;	// unit: 8 bytes
-	u32 rsvd0431:1;
-
-	//Offset 8
-	u32 rts_rc:6;
-	u32 data_rc:6;
-	u32 agg_en:1;
-	u32 rd_en:1;
-	u32 bar_rty_th:2;
-	u32 bk:1;
-	u32 morefrag:1;
-	u32 raw:1;
-	u32 ccx:1;
-	u32 ampdu_density:3;
-	u32 bt_null:1;
-	u32 ant_sel_a:1;
-	u32 ant_sel_b:1;
-	u32 tx_ant_cck:2;
-	u32 tx_antl:2;
-	u32 tx_ant_ht:2;
-
-	//Offset 12
-	u32 nextheadpage:8;
-	u32 tailpage:8;
-	u32 seq:12;
-	u32 cpu_handle:1;
-	u32 tag1:1;
-	u32 trigger_int:1;
-	u32 hwseq_en:1;
-
-	//Offset 16
-	u32 rtsrate:5;
-	u32 ap_dcfe:1;
-	u32 hwseq_sel:2;
-	u32 userate:1;
-	u32 disrtsfb:1;
-	u32 disdatafb:1;
-	u32 cts2self:1;
-	u32 rtsen:1;
-	u32 hw_rts_en:1;
-	u32 port_id:1;	
-	u32 pwr_status:3;
-	u32 wait_dcts:1;
-	u32 cts2ap_en:1;
-	u32 data_sc:2;
-	u32 data_stbc:2;
-	u32 data_short:1;
-	u32 data_bw:1;
-	u32 rts_short:1;
-	u32 rts_bw:1;
-	u32 rts_sc:2;
-	u32 vcs_stbc:2;
-
-	//Offset 20
-	u32 datarate:6;
-	u32 sgi:1;
-	u32 try_rate:1;
-	u32 data_ratefb_lmt:5;
-	u32 rts_ratefb_lmt:4;
-	u32 rty_lmt_en:1;
-	u32 data_rt_lmt:6;
-	u32 usb_txagg_num:8;
-
-	//Offset 24
-	u32 txagg_a:5;
-	u32 txagg_b:5;
-	u32 use_max_len:1;
-	u32 max_agg_num:5;
-	u32 mcsg1_max_len:4;
-	u32 mcsg2_max_len:4;
-	u32 mcsg3_max_len:4;
-	u32 mcs7_sgi_max_len:4;
-
-	//Offset 28
-	u32 checksum:16;	// TxBuffSize(PCIe)/CheckSum(USB)
-	u32 mcsg4_max_len:4;
-	u32 mcsg5_max_len:4;
-	u32 mcsg6_max_len:4;
-	u32 mcs15_sgi_max_len:4;
-}TXDESC, *PTXDESC;
-
-typedef struct rxreport_8188e
-{
-	//Offset 0
-	u32 pktlen:14;
-	u32 crc32:1;
-	u32 icverr:1;
-	u32 drvinfosize:4;
-	u32 security:3;
-	u32 qos:1;
-	u32 shift:2;
-	u32 physt:1;
-	u32 swdec:1;
-	u32 ls:1;
-	u32 fs:1;
-	u32 eor:1;
-	u32 own:1;
-
-	//Offset 4
-	u32 macid:5;
-	u32 tid:4;
-	u32 hwrsvd:4;
-	u32 amsdu:1;
-	u32 paggr:1;
-	u32 faggr:1;
-	u32 a1fit:4;
-	u32 a2fit:4;
-	u32 pam:1;
-	u32 pwr:1;
-	u32 md:1;
-	u32 mf:1;
-	u32 type:2;
-	u32 mc:1;
-	u32 bc:1;
-
-	//Offset 8
-	u32 seq:12;
-	u32 frag:4;
-	u32 nextpktlen:14;
-	u32 nextind:1;
-	u32 rsvd0831:1;
-
-	//Offset 12
-	u32 rxmcs:6;
-	u32 rxht:1;
-	u32 gf:1;
-	u32 splcp:1;
-	u32 bw:1;
-	u32 htc:1;
-	u32 eosp:1;
-	u32 bssidfit:2;
-	u32 rpt_sel:2;
-	u32 rsvd1216:13;
-	u32 pattern_match:1;
-	u32 unicastwake:1;
-	u32 magicwake:1;
-
-	//Offset 16
-	u32 pattern0match:1;
-	u32 pattern1match:1;
-	u32 pattern2match:1;
-	u32 pattern3match:1;
-	u32 pattern4match:1;
-	u32 pattern5match:1;
-	u32 pattern6match:1;
-	u32 pattern7match:1;
-	u32 pattern8match:1;
-	u32 pattern9match:1;
-	u32 patternamatch:1;
-	u32 patternbmatch:1;
-	u32 patterncmatch:1;
-	u32 rsvd1613:19;
-
-	//Offset 20
-	u32 tsfl;
-
-	//Offset 24
-	u32 bassn:12;
-	u32 bavld:1;
-	u32 rsvd2413:19;
-} RXREPORT, *PRXREPORT;
 
 // rtl8188e_hal_init.c
 s32 rtl8188e_FirmwareDownload(PADAPTER padapter);
@@ -881,7 +588,7 @@ void Hal_EfuseParseRateIndicationOption(PADAPTER padapter, u8 *hwinfo, BOOLEAN A
 //RT_CHANNEL_DOMAIN rtl8723a_HalMapChannelPlan(PADAPTER padapter, u8 HalChannelPlan);
 //VERSION_8192C rtl8723a_ReadChipVersion(PADAPTER padapter);
 //void rtl8723a_ReadBluetoothCoexistInfo(PADAPTER padapter, u8 *PROMContent, BOOLEAN AutoloadFail);
-void rtl8192c_HalSetBrateCfg(PADAPTER padapter, u8 *mBratesOS, u16 *pBrateCfg);
+void rtl8188e_HalSetBrateCfg(PADAPTER padapter, u8 *mBratesOS, u16 *pBrateCfg);
 void Hal_InitChannelPlan(PADAPTER padapter);
 
 void rtl8188e_set_hal_ops(struct hal_ops *pHalFunc);

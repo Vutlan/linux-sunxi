@@ -54,8 +54,15 @@ static int hciextn = 1;
 
 #define BCSP_TXWINSIZE	4
 
+#if !defined(CONFIG_BT_RTK_BCSP)
 #define BCSP_ACK_PKT	0x05
 #define BCSP_LE_PKT	0x06
+#else /* Updateed by Wallice for 3-wire packet type. 2011/04/16   */
+#define BCSP_ACK_PKT	0x00
+#define BCSP_LE_PKT	    0x0F
+#define H5_VDRSPEC_PKT	0x0E
+#endif
+/* End Updated by Wallice for 3-wire packet type. 2011/04/16   */
 
 struct bcsp_struct {
 	struct sk_buff_head unack;	/* Unack'ed packets queue */
@@ -134,7 +141,12 @@ static void bcsp_slip_one_byte(struct sk_buff *skb, u8 c)
 {
 	const char esc_c0[2] = { 0xdb, 0xdc };
 	const char esc_db[2] = { 0xdb, 0xdd };
-
+#if defined(CONFIG_BT_RTK_BCSP)
+/*  Added by Wallice for 3-wire UART protocol.  2011/04/16  */
+	const char esc_11[2] = { 0xdb, 0xde };
+	const char esc_13[2] = { 0xdb, 0xdf };
+/*  End Added by Wallice for 3-wire UART protocol.  2011/04/16  */
+#endif	
 	switch (c) {
 	case 0xc0:
 		memcpy(skb_put(skb, 2), &esc_c0, 2);
@@ -142,6 +154,16 @@ static void bcsp_slip_one_byte(struct sk_buff *skb, u8 c)
 	case 0xdb:
 		memcpy(skb_put(skb, 2), &esc_db, 2);
 		break;
+#if defined(CONFIG_BT_RTK_BCSP)
+/*  Added by Wallice for 3-wire UART protocol.  2011/04/16  */
+    case 0x11:
+	    memcpy(skb_put(skb, 2), &esc_11, 2);
+	    break;
+    case 0x13:
+	    memcpy(skb_put(skb, 2), &esc_13, 2);
+	    break;
+/*  End Added by Wallice for 3-wire UART protocol.  2011/04/16  */
+#endif
 	default:
 		memcpy(skb_put(skb, 1), &c, 1);
 	}
@@ -166,7 +188,15 @@ static int bcsp_enqueue(struct hci_uart *hu, struct sk_buff *skb)
 	case HCI_SCODATA_PKT:
 		skb_queue_tail(&bcsp->unrel, skb);
 		break;
-
+#if defined(CONFIG_BT_RTK_BCSP)
+/*  Added by Wallice for 3-wire UART protocol.  2011/04/16  */
+    case BCSP_LE_PKT:
+    case BCSP_ACK_PKT:
+    case H5_VDRSPEC_PKT:
+	    skb_queue_tail(&bcsp->unrel, skb);	/* 3-wire LinkEstablishment*/
+	    break;
+/*  End Added by Wallice for 3-wire UART protocol.  2011/04/16  */
+#endif
 	default:
 		BT_ERR("Unknown packet type");
 		kfree_skb(skb);
@@ -176,6 +206,108 @@ static int bcsp_enqueue(struct hci_uart *hu, struct sk_buff *skb)
 	return 0;
 }
 
+#if defined(CONFIG_BT_RTK_BCSP)
+static struct sk_buff *bcsp_prepare_pkt(struct bcsp_struct *bcsp, u8 *data,
+		int len, int pkt_type)
+{
+	struct sk_buff *nskb;
+	u8 hdr[4], chan;
+	u16 BCSP_CRC_INIT(bcsp_txmsg_crc);
+	int rel, i;
+
+	switch (pkt_type)
+    {
+	    case HCI_ACLDATA_PKT:
+			chan = 2;	/* 3-wire ACL channel */
+			rel = 1;	/* reliable channel */
+			break;
+	    case HCI_COMMAND_PKT:
+			chan = 1;	/* 3-wire cmd channel */
+			rel = 1;	/* reliable channel */
+			break;
+		case HCI_EVENT_PKT:
+			chan = 4;	/* 3-wire cmd channel */
+			rel = 1;	/* reliable channel */
+			break;
+		case HCI_SCODATA_PKT:
+			chan = 3;	/* 3-wire SCO channel */
+			rel = 0;	/* unreliable channel */   
+			break;
+		case BCSP_LE_PKT:
+			chan = 15;	/* 3-wire LinkEstablishment channel */
+			rel = 0;	/* unreliable channel */
+			break;
+		case BCSP_ACK_PKT:
+			chan = 0;	/* BCSP internal channel */
+			rel = 0;	/* unreliable channel */
+			break;
+	    case H5_VDRSPEC_PKT:
+		    chan = 14;	/* 3-wire Vendor Specific channel */
+		    rel = 0;	/* unreliable channel */
+		    break;
+	default:
+		BT_ERR("Unknown packet type");
+		return NULL;
+	}
+/*  End Updated by Wallice for 3-wire protocol. 2011/04/16  */
+
+	/* Max len of packet: (original len +4(bcsp hdr) +2(crc))*2
+	   (because bytes 0xc0 and 0xdb are escaped, worst case is
+	   when the packet is all made of 0xc0 and 0xdb :) )
+	   + 2 (0xc0 delimiters at start and end). */
+
+	nskb = alloc_skb((len + 6) * 2 + 2, GFP_ATOMIC);
+	if (!nskb)
+		return NULL;
+
+	bt_cb(nskb)->pkt_type = pkt_type;
+
+	bcsp_slip_msgdelim(nskb);
+
+	hdr[0] = bcsp->rxseq_txack << 3;
+	bcsp->txack_req = 0;
+	BT_DBG("We request packet no %u to card", bcsp->rxseq_txack);
+
+	if (rel) {
+		hdr[0] |= 0x80 + bcsp->msgq_txseq;
+		//BT_INFO("Sending packet with seqno %u", bcsp->msgq_txseq);
+		bcsp->msgq_txseq = ++(bcsp->msgq_txseq) & 0x07;
+	}
+
+	if (bcsp->use_crc)
+		hdr[0] |= 0x40;
+
+	hdr[1] = ((len << 4) & 0xff) | chan;
+	hdr[2] = len >> 4;
+	hdr[3] = ~(hdr[0] + hdr[1] + hdr[2]);
+
+	/* Put BCSP header */
+	for (i = 0; i < 4; i++) {
+		bcsp_slip_one_byte(nskb, hdr[i]);
+
+		if (bcsp->use_crc)
+			bcsp_crc_update(&bcsp_txmsg_crc, hdr[i]);
+	}
+
+	/* Put payload */
+	for (i = 0; i < len; i++) {
+		bcsp_slip_one_byte(nskb, data[i]);
+
+		if (bcsp->use_crc)
+			bcsp_crc_update(&bcsp_txmsg_crc, data[i]);
+	}
+
+	/* Put CRC */
+	if (bcsp->use_crc) {
+		bcsp_txmsg_crc = bitrev16(bcsp_txmsg_crc);
+		bcsp_slip_one_byte(nskb, (u8) ((bcsp_txmsg_crc >> 8) & 0x00ff));
+		bcsp_slip_one_byte(nskb, (u8) (bcsp_txmsg_crc & 0x00ff));
+	}
+
+	bcsp_slip_msgdelim(nskb);
+	return nskb;
+}
+#else
 static struct sk_buff *bcsp_prepare_pkt(struct bcsp_struct *bcsp, u8 *data,
 		int len, int pkt_type)
 {
@@ -280,6 +412,7 @@ static struct sk_buff *bcsp_prepare_pkt(struct bcsp_struct *bcsp, u8 *data,
 	bcsp_slip_msgdelim(nskb);
 	return nskb;
 }
+#endif
 
 /* This is a rewrite of pkt_avail in ABCSP */
 static struct sk_buff *bcsp_dequeue(struct hci_uart *hu)
@@ -390,6 +523,97 @@ static void bcsp_pkt_cull(struct bcsp_struct *bcsp)
 		BT_ERR("Removed only %u out of %u pkts", i, pkts_to_be_removed);
 }
 
+#if defined(CONFIG_BT_RTK_BCSP)
+/* Handle BCSP link-establishment packets. When we
+   detect a "sync" packet, symptom that the BT module has reset,
+   we do nothing :) (yet) */
+/*  Updated by Wallice for 3-wire UART transport.   2011/04/16  */
+static void bcsp_handle_le_pkt(struct hci_uart *hu)
+{
+	struct bcsp_struct *bcsp = hu->priv;
+	//BT_INFO("HCI 3wire bcsp_handle_le_pkt");
+	u8 conf_pkt[2]     = { 0x03, 0xfc};
+	u8 conf_rsp_pkt[3] = { 0x04, 0x7b, 0x00};
+	u8 sync_pkt[2]     = { 0x01, 0x7e};
+	u8 sync_rsp_pkt[2] = { 0x02, 0x7d};
+
+	u8 wakeup_pkt[2]   = { 0x05, 0xfa};
+	u8 woken_pkt[2]    = { 0x06, 0xf9};
+	u8 sleep_pkt[2]    = { 0x07, 0x78};
+
+	/* spot "conf" pkts and reply with a "conf rsp" pkt */
+	if (bcsp->rx_skb->data[1] >> 4 == 2 && bcsp->rx_skb->data[2] == 0 &&
+			!memcmp(&bcsp->rx_skb->data[4], conf_pkt, 2)) 
+    {
+		struct sk_buff *nskb = alloc_skb(3, GFP_ATOMIC);
+
+		BT_DBG("Found a LE conf pkt");
+		if (!nskb)
+			return;
+
+        conf_rsp_pkt[2] |= txcrc << 0x4; //crc check enable, version no = 0. needed to be as avariable.
+		memcpy(skb_put(nskb, 3), conf_rsp_pkt, 3);
+		bt_cb(nskb)->pkt_type = BCSP_LE_PKT;
+
+		skb_queue_head(&bcsp->unrel, nskb);
+		hci_uart_tx_wakeup(hu);
+	}
+	/* spot "conf resp" pkts*/
+	else if (bcsp->rx_skb->data[1] >> 4 == 2 && bcsp->rx_skb->data[2] == 0 &&
+			!memcmp(&bcsp->rx_skb->data[4], conf_rsp_pkt, 2)) 
+    {
+
+		BT_DBG("Found a LE conf resp pkt, device go into active state");
+        txcrc = (bcsp->rx_skb->data[6] >> 0x4) & 0x1;
+	}
+
+	/* Spot "sync" pkts. If we find one...disaster! */
+	else if (bcsp->rx_skb->data[1] >> 4 == 2 && bcsp->rx_skb->data[2] == 0 &&
+			!memcmp(&bcsp->rx_skb->data[4], sync_pkt, 2)) 
+    {
+		BT_ERR("Found a LE sync pkt, card has reset");
+//      DO Something here
+	}
+	/* Spot "sync resp" pkts. If we find one...disaster! */
+	else if (bcsp->rx_skb->data[1] >> 4 == 2 && bcsp->rx_skb->data[2] == 0 &&
+			!memcmp(&bcsp->rx_skb->data[4], sync_rsp_pkt, 2)) 
+    {
+		BT_ERR("Found a LE sync resp pkt, device go into initialized state");
+//      DO Something here
+	}
+	/* Spot "wakeup" pkts. reply woken message when in active mode */
+	else if (bcsp->rx_skb->data[1] >> 4 == 2 && bcsp->rx_skb->data[2] == 0 &&
+			!memcmp(&bcsp->rx_skb->data[4], wakeup_pkt, 2)) 
+    {
+		struct sk_buff *nskb = alloc_skb(2, GFP_ATOMIC);
+
+		BT_ERR("Found a LE Wakeup pkt, and reply woken message");
+//      DO Something here
+
+		memcpy(skb_put(nskb, 2), woken_pkt, 2);
+		bt_cb(nskb)->pkt_type = BCSP_LE_PKT;
+
+		skb_queue_head(&bcsp->unrel, nskb);
+		hci_uart_tx_wakeup(hu);
+	}
+	/* Spot "woken" pkts. receive woken message from device */
+	else if (bcsp->rx_skb->data[1] >> 4 == 2 && bcsp->rx_skb->data[2] == 0 &&
+			!memcmp(&bcsp->rx_skb->data[4], woken_pkt, 2)) 
+    {
+		BT_ERR("Found a LE woken pkt from device");
+//      DO Something here
+	}
+	/* Spot "Sleep" pkts*/
+	else if (bcsp->rx_skb->data[1] >> 4 == 2 && bcsp->rx_skb->data[2] == 0 &&
+			!memcmp(&bcsp->rx_skb->data[4], sleep_pkt, 2)) 
+    {
+		BT_ERR("Found a LE Sleep pkt");
+//      DO Something here
+	}
+
+}
+/*  End Updated by Wallice for 3-wire UART transport.   2011/04/16  */
+#else
 /* Handle BCSP link-establishment packets. When we
    detect a "sync" packet, symptom that the BT module has reset,
    we do nothing :) (yet) */
@@ -420,10 +644,16 @@ static void bcsp_handle_le_pkt(struct hci_uart *hu)
 		BT_ERR("Found a LE sync pkt, card has reset");
 	}
 }
+#endif
 
 static inline void bcsp_unslip_one_byte(struct bcsp_struct *bcsp, unsigned char byte)
 {
 	const u8 c0 = 0xc0, db = 0xdb;
+#if defined(CONFIG_BT_RTK_BCSP)
+/*  Added by Wallice for OOF software flow control. 2011/04/16  */
+	const u8 oof1 = 0x11, oof2 = 0x13;
+/*  End Added by Wallice for OOF software flow control. 2011/04/16  */
+#endif
 
 	switch (bcsp->rx_esc_state) {
 	case BCSP_ESCSTATE_NOESC:
@@ -459,7 +689,25 @@ static inline void bcsp_unslip_one_byte(struct bcsp_struct *bcsp, unsigned char 
 			bcsp->rx_esc_state = BCSP_ESCSTATE_NOESC;
 			bcsp->rx_count--;
 			break;
+#if defined(CONFIG_BT_RTK_BCSP)
+/*  Added by Wallice for OOF software flow control. 2011/04/16  */
+        case 0xde:
+	        memcpy(skb_put(bcsp->rx_skb, 1), &oof1, 1);
+	        if ((bcsp->rx_skb-> data[0] & 0x40) != 0 && bcsp->rx_state != BCSP_W4_CRC)
+		        bcsp_crc_update(&bcsp-> message_crc, oof1);
+	        bcsp->rx_esc_state = BCSP_ESCSTATE_NOESC;
+	        bcsp->rx_count--;
+	        break;
 
+        case 0xdf:
+	        memcpy(skb_put(bcsp->rx_skb, 1), &oof2, 1);
+	        if ((bcsp->rx_skb-> data[0] & 0x40) != 0 && bcsp->rx_state != BCSP_W4_CRC) 
+		        bcsp_crc_update(&bcsp-> message_crc, oof2);
+	        bcsp->rx_esc_state = BCSP_ESCSTATE_NOESC;
+	        bcsp->rx_count--;
+	        break;
+/*  End Added by Wallice for OOF software flow control. 2011/04/16  */
+#endif
 		default:
 			BT_ERR ("Invalid byte %02x after esc byte", byte);
 			kfree_skb(bcsp->rx_skb);
@@ -470,6 +718,98 @@ static inline void bcsp_unslip_one_byte(struct bcsp_struct *bcsp, unsigned char 
 	}
 }
 
+#if defined(CONFIG_BT_RTK_BCSP)
+static void bcsp_complete_rx_pkt(struct hci_uart *hu)
+{
+	struct bcsp_struct *bcsp = hu->priv;
+	int pass_up;
+
+	if (bcsp->rx_skb->data[0] & 0x80) {	/* reliable pkt */
+		BT_DBG("Received seqno %u from card", bcsp->rxseq_txack);
+		bcsp->rxseq_txack++;
+		bcsp->rxseq_txack %= 0x8;
+		bcsp->txack_req    = 1;
+
+		/* If needed, transmit an ack pkt */
+		hci_uart_tx_wakeup(hu);
+	}
+
+	bcsp->rxack = (bcsp->rx_skb->data[0] >> 3) & 0x07;
+	BT_DBG("Request for pkt %u from card", bcsp->rxack);
+
+	bcsp_pkt_cull(bcsp);
+
+/*  Updated by Wallice for 3-wire spec. 2011/04/16  */
+	if ((bcsp->rx_skb->data[1] & 0x0f) == 2 && bcsp->rx_skb->data[0] & 0x80) 
+    {
+		bt_cb(bcsp->rx_skb)->pkt_type = HCI_ACLDATA_PKT;
+		pass_up = 1;
+	} 
+    else if ((bcsp->rx_skb->data[1] & 0x0f) == 4 && bcsp->rx_skb->data[0] & 0x80) 
+    {
+		bt_cb(bcsp->rx_skb)->pkt_type = HCI_EVENT_PKT;
+		pass_up = 1;
+	} 
+    else if ((bcsp->rx_skb->data[1] & 0x0f) == 3) 
+    {
+		bt_cb(bcsp->rx_skb)->pkt_type = HCI_SCODATA_PKT;
+		pass_up = 1;
+	} 
+    else if ((bcsp->rx_skb->data[1] & 0x0f) == 15 && !(bcsp->rx_skb->data[0] & 0x80)) 
+    {
+		pass_up = 0;
+	}
+    else if ((bcsp->rx_skb->data[1] & 0x0f) == 1 && bcsp->rx_skb->data[0] & 0x80) 
+    {
+		bt_cb(bcsp->rx_skb)->pkt_type = HCI_COMMAND_PKT;
+		pass_up = 1;
+	}
+    else if ((bcsp->rx_skb->data[1] & 0x0f) == 14) 
+    {
+		bt_cb(bcsp->rx_skb)->pkt_type = H5_VDRSPEC_PKT;
+		pass_up = 1;
+	} 
+/*  End Updated by Wallice for 3-wire spec. 2011/04/16  */
+    else
+		pass_up = 0; 
+
+	if (!pass_up) 
+    {
+		struct hci_event_hdr hdr;
+
+		u8 desc = (bcsp->rx_skb->data[1] & 0x0f);
+
+		if (desc != BCSP_ACK_PKT && desc != BCSP_LE_PKT) 
+        {
+			if (hciextn) 
+            {
+				desc |= 0xc0;
+				skb_pull(bcsp->rx_skb, 4);
+				memcpy(skb_push(bcsp->rx_skb, 1), &desc, 1);
+
+				hdr.evt = 0xff;
+				hdr.plen = bcsp->rx_skb->len;
+				memcpy(skb_push(bcsp->rx_skb, HCI_EVENT_HDR_SIZE), &hdr, HCI_EVENT_HDR_SIZE);
+				bt_cb(bcsp->rx_skb)->pkt_type = HCI_EVENT_PKT;
+
+				hci_recv_frame(bcsp->rx_skb);
+			} 
+		} 
+        else
+			kfree_skb(bcsp->rx_skb);
+	} 
+    else 
+    {
+		/* Pull out BCSP hdr */
+		skb_pull(bcsp->rx_skb, 4);
+
+		hci_recv_frame(bcsp->rx_skb);
+	}
+
+	bcsp->rx_state = BCSP_W4_PKT_DELIMITER;
+	bcsp->rx_skb = NULL;
+}
+#else
 static void bcsp_complete_rx_pkt(struct hci_uart *hu)
 {
 	struct bcsp_struct *bcsp = hu->priv;
@@ -542,6 +882,7 @@ static void bcsp_complete_rx_pkt(struct hci_uart *hu)
 	bcsp->rx_state = BCSP_W4_PKT_DELIMITER;
 	bcsp->rx_skb = NULL;
 }
+#endif
 
 static u16 bscp_get_crc(struct bcsp_struct *bcsp)
 {
@@ -586,7 +927,12 @@ static int bcsp_recv(struct hci_uart *hu, void *data, int count)
 			    		&& (bcsp->rx_skb->data[0] & 0x07) != bcsp->rxseq_txack) {
 				BT_ERR ("Out-of-order packet arrived, got %u expected %u",
 					bcsp->rx_skb->data[0] & 0x07, bcsp->rxseq_txack);
-
+#if defined(CONFIG_BT_RTK_BCSP)
+/*	Added by Wallice for Debug.	2011/05/11*/
+                bcsp->txack_req    = 1;
+				hci_uart_tx_wakeup(hu);
+/*	End Added by Wallice for Debug.	2011/05/11*/
+#endif
 				kfree_skb(bcsp->rx_skb);
 				bcsp->rx_state = BCSP_W4_PKT_DELIMITER;
 				bcsp->rx_count = 0;

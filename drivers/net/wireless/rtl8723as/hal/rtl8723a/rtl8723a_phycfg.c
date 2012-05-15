@@ -2806,15 +2806,13 @@ PHY_SetBWMode8192C(
 
 	if((!Adapter->bDriverStopped) && (!Adapter->bSurpriseRemoved))
 	{
-#ifdef USE_WORKITEM
-		//PlatformScheduleWorkItem(&(pHalData->SetBWModeWorkItem));
-#else
+
 	#if 0
 		//PlatformSetTimer(Adapter, &(pHalData->SetBWModeTimer), 0);
 	#else
 		_PHY_SetBWMode92C(Adapter);
 	#endif
-#endif
+
 	}
 	else
 	{
@@ -2907,15 +2905,13 @@ PHY_SwChnl8192C(	// Call after initialization
 
 	if((!Adapter->bDriverStopped) && (!Adapter->bSurpriseRemoved))
 	{
-#ifdef USE_WORKITEM
-		//bResult = PlatformScheduleWorkItem(&(pHalData->SwChnlWorkItem));
-#else
+
 		#if 0
 		//PlatformSetTimer(Adapter, &(pHalData->SwChnlTimer), 0);
 		#else
 		_PHY_SwChnl8192C(Adapter, channel);
 		#endif
-#endif
+
 		if(bResult)
 		{
 			//RT_TRACE(COMP_SCAN, DBG_LOUD, ("PHY_SwChnl8192C SwChnlInProgress TRUE schdule workitem done\n"));

@@ -231,6 +231,22 @@ static void rtl8723as_recv_tasklet(void *priv)
 			pattrib = &phdr->attrib;
 
 			update_recvframe_attrib(precvframe, (struct recv_stat*)ptr);
+			if(pattrib->crc_err){
+				DBG_8192C("%s()-%d: RX Warning! rx CRC ERROR !!\n", __FUNCTION__, __LINE__);	
+				rtw_free_recvframe(precvframe, &precvpriv->free_recv_queue);
+				rtw_enqueue_recvbuf_to_head(precvbuf, &precvpriv->recv_buf_pending_queue);
+
+				// The case of can't allocte skb is serious and may never be recovered,
+				// once bDriverStopped is enable, this task should be stopped.
+				if (padapter->bDriverStopped == _FALSE) {
+#ifdef PLATFORM_LINUX
+					tasklet_schedule(&precvpriv->recv_tasklet);
+#endif
+				}
+
+				return;				
+			}	
+			
 			pkt_offset = RXDESC_SIZE + pattrib->drvinfo_sz + pattrib->pkt_len;
 #if 0 // reduce check to speed up
 			if ((ptr + pkt_offset) > precvbuf->ptail) {

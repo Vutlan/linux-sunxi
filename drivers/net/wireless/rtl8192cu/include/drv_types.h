@@ -192,6 +192,15 @@ struct registry_priv
 #ifdef CONFIG_LAYER2_ROAMING
 	u8	max_roaming_times; // the max number driver will try to roaming
 #endif
+
+#ifdef CONFIG_IOL
+	bool force_iol; //enable iol without other concern
+#endif
+
+#ifdef SUPPORT_64_STA
+	u8	bcmc_rate;
+#endif
+	u8	intel_class_mode;
 };
 
 

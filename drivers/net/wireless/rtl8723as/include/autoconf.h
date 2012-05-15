@@ -145,7 +145,7 @@
 
 #ifdef CONFIG_POWER_SAVING
 
-#define CONFIG_IPS		1
+#define CONFIG_IPS		1  //ignore this will consumes power when disconnected.2012-4-11 14:24:09
 #define CONFIG_LPS		1
 
 #if defined(CONFIG_LPS) && defined(CONFIG_SDIO_HCI)
@@ -193,7 +193,7 @@
 
 #define DBG	0
 #ifdef CONFIG_DEBUG
-#define CONFIG_DEBUG_RTL871X 1
+//#define CONFIG_DEBUG_RTL871X 1
 #define CONFIG_DEBUG_RTL819X 1
 //#define CONFIG_PROC_DEBUG 1
 #endif

@@ -1223,16 +1223,8 @@ static u32 rtl8723as_hal_init(PADAPTER padapter)
 
 // Move by Neo for USB SS to below setp
 //_RfPowerSave(padapter);
-#if 1 //ANTENNA_SELECTION_STATIC_SETTING
-#ifdef CONFIG_ANTENNA_DIVERSITY
-	if (IS_1T1R(pHalData->VersionID) && 
-		((pHalData->AntDivCfg != 0)
-		 /*|| GET_EEPROM_EFUSE_PRIV(padapter)->bautoload_fail_flag*/))
-	{ //for 88CU ,1T1R
-		_InitAntenna_Selection(padapter);
-	}
-#endif
-#endif
+
+	rtl8723a_InitAntenna_Selection(padapter);
 
 	//
 	// Disable BAR, suggested by Scott
@@ -1565,6 +1557,9 @@ static void rtl8723as_init_default_value(PADAPTER padapter)
 	pdmpriv->ThermalValue_HP_index = 0;
 	for(i = 0; i < HP_THERMAL_NUM; i++)
 		pdmpriv->ThermalValue_HP[i] = 0;
+
+	// interface related variable
+	pHalData->SdioRxFIFOCnt = 0;
 }
 #if 0
 static VOID

@@ -2832,7 +2832,7 @@ _func_enter_;
 		rtw_list_delete(&(pxframe->list));
 	}
 
-	if (pxframe !=  NULL)
+	if (pxframe !=  NULL)//default value setting
 	{
 		pxmitpriv->free_xmitframe_cnt--;
 

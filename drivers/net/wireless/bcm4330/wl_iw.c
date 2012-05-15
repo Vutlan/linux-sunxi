@@ -124,7 +124,7 @@ typedef const struct si_pub  si_t;
 #include <linux/rtnetlink.h>
 
 #define WL_IW_USE_ISCAN  1
-#define ENABLE_ACTIVE_PASSIVE_SCAN_SUPPRESS  1
+//#define ENABLE_ACTIVE_PASSIVE_SCAN_SUPPRESS  1
 
 #ifdef OEM_CHROMIUMOS
 bool g_set_essid_before_scan = TRUE;
