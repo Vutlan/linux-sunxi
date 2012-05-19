@@ -768,7 +768,6 @@ static void snd_pcm_free_stream(struct snd_pcm_str * pstr)
 		substream_next = substream->next;
 		snd_pcm_timer_done(substream);
 		snd_pcm_substream_proc_done(substream);
-		kfree(substream->ops);
 		kfree(substream);
 		substream = substream_next;
 	}
@@ -785,7 +784,6 @@ static void snd_pcm_free_stream(struct snd_pcm_str * pstr)
 static int snd_pcm_free(struct snd_pcm *pcm)
 {
 	struct snd_pcm_notify *notify;
-
 	if (!pcm)
 		return 0;
 	list_for_each_entry(notify, &snd_pcm_notify_list, list) {
