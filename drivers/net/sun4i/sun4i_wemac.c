@@ -55,7 +55,8 @@
 #define DRV_VERSION	"1.00"
 #define DMA_CPU_TRRESHOLD 2000
 #define TOLOWER(x) ((x) | 0x20)
-#define PHY_POWER 1
+#define PHY_POWER 0
+#undef	SCRIPT_MAC_ADDRESS
 /*
  * Transmit timeout, default 5 seconds.
  */
@@ -869,6 +870,7 @@ unsigned int wemac_powerup(struct net_device *ndev )
 	//set up EMAC
 	emac_setup(ndev);
 
+#ifdef SCRIPT_MAC_ADDRESS
 	/* set mac_address to chip */
 	if(SCRIPT_PARSER_OK != script_parser_fetch("dynamic", "MAC", (int *)emac_mac, 3)){
 		printk(KERN_WARNING "emac MAC isn't valid!\n");
@@ -879,8 +881,10 @@ unsigned int wemac_powerup(struct net_device *ndev )
 			memcpy(emac_tmp, (char *)(emac_mac+i*2), 2);
 			emac_tmp[2]=':';
 			mac_addr[i] = simple_strtoul(emac_tmp, NULL, 16);
+			printk(KERN_ERR "mac%d: %02x\n", i, mac_addr[i]);
 		}
 	}
+#endif
 	writel(mac_addr[0]<<16 | mac_addr[1]<<8 | mac_addr[2],
 			db->emac_vbase + EMAC_MAC_A1_REG);
 	writel(mac_addr[3]<<16 | mac_addr[4]<<8 | mac_addr[5],
@@ -2044,6 +2048,7 @@ static int __init set_mac_addr(char *str)
 
 	for(i=0;i<6;i++,p++)
 		mac_addr[i] = simple_strtoul(p, &p, 16);
+	printk("MAC_ADDRESS: %s\n", str);
 
 	return 0;
 }
