@@ -35,6 +35,8 @@
 #include <linux/sched.h>
 extern struct __NandStorageInfo_t  NandStorageInfo;
 extern struct __NandDriverGlobal_t NandDriverInfo;
+extern __u32 nand_current_dev_num;
+extern int part_secur[MAX_PART_COUNT];
 
 struct nand_disk disk_array[MAX_PART_COUNT];
 
@@ -98,6 +100,7 @@ static struct clk *ahb_nand_clk = NULL;
 static struct clk *mod_nand_clk = NULL;
 
 static int nand_flush(struct nand_blk_dev *dev);
+static int nand_flush_force(__u32 dev_num);
 
 spinlock_t     nand_rb_lock;
 
@@ -467,9 +470,11 @@ static int nand_blktrans_thread(void *arg)
 					down(&nandr->nand_ops_mutex);
 				#if NAND_TEST_TICK
 					tick = jiffies;
+					nand_current_dev_num = dev->devnum;
 					nand_transfer(dev, sector,  rq_len>>9, buffer, rw_flag);
 					nand_rw_time += jiffies - tick;
 				#else
+					nand_current_dev_num = dev->devnum;
 					nand_transfer(dev, sector, rq_len>>9, buffer, rw_flag);
 				#endif
 					up(&nandr->nand_ops_mutex);
@@ -494,9 +499,11 @@ static int nand_blktrans_thread(void *arg)
 							down(&nandr->nand_ops_mutex);
 						#if NAND_TEST_TICK
 							tick = jiffies;
+							nand_current_dev_num = dev->devnum;
 							nand_transfer(dev, sector,  rq_len>>9, buffer, rw_flag);
 							nand_rw_time += jiffies - tick;
 						#else
+							nand_current_dev_num = dev->devnum;
 							nand_transfer(dev, sector, rq_len>>9, buffer, rw_flag);
 						#endif
 							up(&nandr->nand_ops_mutex);
@@ -516,9 +523,11 @@ static int nand_blktrans_thread(void *arg)
 			down(&nandr->nand_ops_mutex);
 		#if NAND_TEST_TICK
 			tick = jiffies;
+			nand_current_dev_num = dev->devnum;
 			nand_transfer(dev, sector,  rq_len>>9, buffer, rw_flag);
 			nand_rw_time += jiffies - tick;
 		#else
+			nand_current_dev_num = dev->devnum;
 			nand_transfer(dev, sector, rq_len>>9, buffer, rw_flag);
 		#endif
 			up(&nandr->nand_ops_mutex);
@@ -531,13 +540,24 @@ static int nand_blktrans_thread(void *arg)
 		#if NAND_TEST_TICK
 		printk("[N]ticks=%ld\n",nand_rw_time);
 		#endif
+		
+
+		if((req->cmd_flags&REQ_SYNC)&&(req->cmd_flags&REQ_WRITE)&&(part_secur[dev->devnum]== 1)){
+		    //printk("req sync: 0x%x form part: 0x%x \n", req->cmd_flags, dev->devnum);
+		    spin_unlock_irq(rq->queue_lock);
+			down(&nandr->nand_ops_mutex);
+			nand_current_dev_num = dev->devnum;
+		    nand_flush_force(nand_current_dev_num);
+		    up(&nandr->nand_ops_mutex);
+			spin_lock_irq(rq->queue_lock);
+		}
 
 		#ifdef NAND_CACHE_FLUSH_EVERY_SEC
 		if(rw_flag == REQ_WRITE)
 			after_write = 1;
-		if(req->cmd_flags&REQ_SYNC){
+		if((req->cmd_flags&REQ_SYNC)&&(req->cmd_flags&REQ_WRITE))
 			wake_up_interruptible(&collect_arg.wait);
-		}
+
 		#endif
 
 		//spin_lock_irq(rq->queue_lock);
@@ -1026,6 +1046,19 @@ static int nand_flush(struct nand_blk_dev *dev)
 	}
 	return 0;
 }
+static int nand_flush_force(__u32 dev_num)
+{
+    //printk("nf \n");
+	#ifdef NAND_CACHE_RW
+		NAND_CacheFlushDev(dev_num);
+	#else
+		LML_FlushPageCache();
+	#endif
+	//printk("e\n");
+
+	return 0;
+}
+
 
 
 static void nand_flush_all(void)
