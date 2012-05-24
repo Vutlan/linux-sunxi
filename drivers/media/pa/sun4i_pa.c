@@ -118,7 +118,11 @@ static int __init pa_dev_init(void)
 
 	if ((err = platform_driver_register(&sun4i_pa_driver)) < 0)
 		return err;
-  	
+    gpio_pa_shutdown = gpio_request_ex("audio_para", "audio_pa_ctrl");
+    if (!gpio_pa_shutdown) {
+		printk("audio codec_wakeup request gpio fail!\n");
+		return err;
+    }
     alloc_chrdev_region(&dev_num, 0, 1, "pa_chrdev");
     pa_dev = cdev_alloc();
     cdev_init(pa_dev, &pa_dev_fops);
@@ -138,6 +142,7 @@ module_init(pa_dev_init);
 
 static void __exit pa_dev_exit(void)
 {
+	gpio_release(gpio_pa_shutdown, 1);
     device_destroy(pa_dev_class,  dev_num);
     class_destroy(pa_dev_class);
     platform_driver_unregister(&sun4i_pa_driver);

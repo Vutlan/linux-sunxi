@@ -176,6 +176,7 @@ static int sun4i_sndspdif_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
 	int ret = 0;
 	unsigned long rate = params_rate(params);
+	unsigned int fmt = 0;
 	u32 mclk_div=0, mpll=0, bclk_div=0, mult_fs=0;
 
 	get_clock_divder(rate, 32, &mclk_div, &mpll, &bclk_div, &mult_fs);
@@ -185,7 +186,19 @@ static int sun4i_sndspdif_hw_params(struct snd_pcm_substream *substream,
 	if (ret < 0)
 		return ret;
 
-	ret = snd_soc_dai_set_fmt(cpu_dai, 0);
+	/*add the pcm and raw data select interface*/
+	switch(params_channels(params)) {
+		case 1:/*pcm mode*/
+		case 2:
+			fmt = 0;
+			break;
+		case 4:/*raw data mode*/
+			fmt = 1;
+			break;
+		default:
+			return -EINVAL;
+	}
+	ret = snd_soc_dai_set_fmt(cpu_dai, fmt);//0:pcm,1:raw data
 	if (ret < 0)
 		return ret;
 

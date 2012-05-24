@@ -326,7 +326,7 @@ static  int codec_init(void)
 	int device_lr_change = 0;
 	enum sw_ic_ver  codec_chip_ver = sw_get_ic_ver();
 	//enable dac digital 
-	codec_wr_control(SUN4I_DAC_DPC, 0x1, DAC_EN, 0x1);  
+	//codec_wr_control(SUN4I_DAC_DPC, 0x1, DAC_EN, 0x1);  放在外面控制
 
 	codec_wr_control(SUN4I_DAC_FIFOC ,  0x1,28, 0x1);
 	//set digital volume to maximum
@@ -338,6 +338,9 @@ static  int codec_init(void)
 	//enable PA
 	codec_wr_control(SUN4I_ADC_ACTL, 0x1, PA_ENABLE, 0x1);
 	codec_wr_control(SUN4I_DAC_FIFOC, 0x3, DRA_LEVEL,0x3);
+	/*dither*/
+	codec_wr_control(SUN4I_ADC_ACTL, 0x1, 8, 0x0);
+
 	//set volume
 	if(codec_chip_ver == MAGIC_VER_A){
 		codec_wr_control(SUN4I_DAC_ACTL, 0x6, VOLUME, 0x01);
@@ -358,7 +361,9 @@ static  int codec_init(void)
 }
 
 static int codec_play_open(struct snd_pcm_substream *substream)
-{	
+{
+	//pa mute
+	codec_wr_control(SUN4I_DAC_ACTL, 0x1, PA_MUTE, 0x0);
 	codec_wr_control(SUN4I_DAC_DPC ,  0x1, DAC_EN, 0x1);  
 	codec_wr_control(SUN4I_DAC_FIFOC ,0x1, DAC_FIFO_FLUSH, 0x1);
 	//set TX FIFO send drq level
@@ -376,18 +381,18 @@ static int codec_play_open(struct snd_pcm_substream *substream)
 	codec_wr_control(SUN4I_DAC_ACTL, 0x1, 	DACAEN_L, 0x1);
 	codec_wr_control(SUN4I_DAC_ACTL, 0x1, 	DACAEN_R, 0x1);
 	//enable dac to pa
-	codec_wr_control(SUN4I_DAC_ACTL, 0x1, 	DACPAS, 0x1);
+	//codec_wr_control(SUN4I_DAC_ACTL, 0x1, 	DACPAS, 0x1);//移到外部控制
 	return 0;
 }
 
 static int codec_capture_open(void)
 {
 	 //enable mic1 pa
-	 codec_wr_control(SUN4I_ADC_ACTL, 0x1, MIC1_EN, 0x1);
+	 //codec_wr_control(SUN4I_ADC_ACTL, 0x1, MIC1_EN, 0x1);//移到外部控制
 	 //mic1 gain 32dB
 	 codec_wr_control(SUN4I_ADC_ACTL, 0x3,25,0x1);
 	  //enable VMIC
-	 codec_wr_control(SUN4I_ADC_ACTL, 0x1, VMIC_EN, 0x1);
+	 //codec_wr_control(SUN4I_ADC_ACTL, 0x1, VMIC_EN, 0x1);//移到外部控制
 	 
 	 //enable adc digital
 	 codec_wr_control(SUN4I_ADC_FIFOC, 0x1,ADC_DIG_EN, 0x1);
@@ -398,7 +403,8 @@ static int codec_capture_open(void)
 	 //set RX FIFO rec drq level
 	 codec_wr_control(SUN4I_ADC_FIFOC, 0xf, RX_TRI_LEVEL, 0x7);
 	 //enable adc1 analog
-	 codec_wr_control(SUN4I_ADC_ACTL, 0x3,  ADC_EN, 0x3);
+	 //codec_wr_control(SUN4I_ADC_ACTL, 0x3,  ADC_EN, 0x3);////移到外部控制
+
 	 return 0;
 }
 
@@ -421,9 +427,11 @@ static int codec_play_stop(void)
 	//disable dac drq
 	codec_wr_control(SUN4I_DAC_FIFOC ,0x1, DAC_DRQ, 0x0);
 	//pa mute
-	codec_wr_control(SUN4I_DAC_ACTL, 0x1, PA_MUTE, 0x0);
 	codec_wr_control(SUN4I_DAC_ACTL, 0x1, 	DACAEN_L, 0x0);
 	codec_wr_control(SUN4I_DAC_ACTL, 0x1, 	DACAEN_R, 0x0);	
+
+	codec_wr_control(SUN4I_DAC_DPC ,  0x1, DAC_EN, 0x0); 	// it will cause noise
+
 	return 0;
 }
 
@@ -440,10 +448,10 @@ static int codec_capture_stop(void)
 	//disable adc drq
 	codec_wr_control(SUN4I_ADC_FIFOC ,0x1, ADC_DRQ, 0x0);
 	//enable mic1 pa
-	codec_wr_control(SUN4I_ADC_ACTL, 0x1, MIC1_EN, 0x0);
+	// codec_wr_control(SUN4I_ADC_ACTL, 0x1, MIC1_EN, 0x0);//移到外部控制
 
 	//enable VMIC
-	codec_wr_control(SUN4I_ADC_ACTL, 0x1, VMIC_EN, 0x0);
+	//codec_wr_control(SUN4I_ADC_ACTL, 0x1, VMIC_EN, 0x0);//移到外部控制
 	//enable adc digital
 	codec_wr_control(SUN4I_ADC_FIFOC, 0x1,ADC_DIG_EN, 0x0);
 	//set RX FIFO mode
@@ -465,42 +473,239 @@ static int codec_dev_free(struct snd_device *device)
 */
 static const struct snd_kcontrol_new codec_snd_controls_b_c[] = {
 	//FOR B C VERSION
+	/*SUN4I_DAC_ACTL = 0x10,PAVOL*/	
 	CODEC_SINGLE("Master Playback Volume", SUN4I_DAC_ACTL,0,0x3f,0),
-	CODEC_SINGLE("Playback Switch", SUN4I_DAC_ACTL,6,1,0),//全局输出开关
-	CODEC_SINGLE("Capture Volume",SUN4I_ADC_ACTL,20,7,0),//录音音量
-	CODEC_SINGLE("Fm Volume",SUN4I_DAC_ACTL,23,7,0),//Fm 音量
-	CODEC_SINGLE("Line Volume",SUN4I_DAC_ACTL,26,1,0),//Line音量
-	CODEC_SINGLE("MicL Volume",SUN4I_ADC_ACTL,25,3,0),//mic左音量
-	CODEC_SINGLE("MicR Volume",SUN4I_ADC_ACTL,23,3,0),//mic右音量
-	CODEC_SINGLE("FmL Switch",SUN4I_DAC_ACTL,17,1,0),//Fm左开关
-	CODEC_SINGLE("FmR Switch",SUN4I_DAC_ACTL,16,1,0),//Fm右开关
-	CODEC_SINGLE("LineL Switch",SUN4I_DAC_ACTL,19,1,0),//Line左开关
-	CODEC_SINGLE("LineR Switch",SUN4I_DAC_ACTL,18,1,0),//Line右开关
-	CODEC_SINGLE("Ldac Left Mixer",SUN4I_DAC_ACTL,15,1,0),
-	CODEC_SINGLE("Rdac Right Mixer",SUN4I_DAC_ACTL,14,1,0),
+	/*total output switch PAMUTE,if set this bit to 0, the voice is mute*/
+	CODEC_SINGLE("Playback PAMUTE SWITCH", SUN4I_DAC_ACTL,6,1,0),
+	/*mixer output switch MIXPAS*/
+	CODEC_SINGLE("Playback MIXPAS", SUN4I_DAC_ACTL,7,1,0),
+	/*system digital voice output switch DACPAS*/
+	CODEC_SINGLE("Playback DACPAS", SUN4I_DAC_ACTL,8,1,0),
+	/*from bit 9 to bit 12.Mic1/2 output switch.
+			MIC1LS 		MIC1RS 		MIC2LS 		MIC2RS
+	0x0   	mute  		mute    	mute   		mute
+	0x3     mute    	mute    	not mute 	not mute
+	0x12    not mute 	not mute    mute    	mute
+	0x15	not mute	not mute	not mute	not mute
+	0x0*/
+	CODEC_SINGLE("Mic Output Mix",SUN4I_DAC_ACTL,9,15,0),
+	/*Left DAC to right output mixer mute*/
 	CODEC_SINGLE("Ldac Right Mixer",SUN4I_DAC_ACTL,13,1,0),
-	CODEC_SINGLE("Mic Input Mux",SUN4I_DAC_ACTL,9,15,0),//from bit 9 to bit 12.Mic（麦克风）输入静音
-	CODEC_SINGLE("ADC Input Mux",SUN4I_ADC_ACTL,17,7,0),//ADC输入静音
+	/*Right DAC to right output mixer mute*/
+	CODEC_SINGLE("Rdac Right Mixer",SUN4I_DAC_ACTL,14,1,0),
+	/*Left DAC to left output mixer mute*/
+	CODEC_SINGLE("Ldac Left Mixer",SUN4I_DAC_ACTL,15,1,0),
+	/*right FM to right output mixer mute*/
+	CODEC_SINGLE("FmR Switch",SUN4I_DAC_ACTL,16,1,0),//Fm right switch
+	/*Left FM to left output mixer mute*/
+	CODEC_SINGLE("FmL Switch",SUN4I_DAC_ACTL,17,1,0),//Fm left switch
+	/* 	Right LINEIN gain stage to right output mixer mite,
+	*	When LNRDF is 0, right select LINEINR
+	*	When LNRDF is 1, right select LINEINL-LINEINR
+	*/
+	CODEC_SINGLE("LineR Switch",SUN4I_DAC_ACTL,18,1,0),//Line right switch
+	/* 	Left LINEIN gain stage to left output mixer mite,
+	*	When LNRDF is 0, left select LINEINL
+	*	When LNRDF is 1, left select LINEINL-LINEINR
+	*/
+	CODEC_SINGLE("LineL Switch",SUN4I_DAC_ACTL,19,1,0),//Line left switch
+	/*	MIC1/2 gain stage to output mixer Gain Control
+	* 	From -4.5db to 6db,1.5db/step,default is 0db
+	*	-4.5db:0x0,-3.0db:0x1,-1.5db:0x2,0db:0x3
+	*	1.5db:0x4,3.0db:0x5,4.5db:0x6,6db:0x7
+	*/
+	CODEC_SINGLE("MIC output volume",SUN4I_DAC_ACTL,20,7,0),
+	/*	FM Input to output mixer Gain Control
+	* 	From -4.5db to 6db,1.5db/step,default is 0db
+	*	-4.5db:0x0,-3.0db:0x1,-1.5db:0x2,0db:0x3
+	*	1.5db:0x4,3.0db:0x5,4.5db:0x6,6db:0x7
+	*/
+	CODEC_SINGLE("Fm output Volume",SUN4I_DAC_ACTL,23,7,0),//Fm output volume
+	/*	Line-in gain stage to output mixer Gain Control
+	*	0:-1.5db,1:0db
+	*/
+	CODEC_SINGLE("Line output Volume",SUN4I_DAC_ACTL,26,1,0),//Line output volume
+	/*Analog Output Mixer Enable*/
+	CODEC_SINGLE("MIX Enable",SUN4I_DAC_ACTL,29,1,0),
+	/*Internal DAC Analog Left channel Enable*/
+	CODEC_SINGLE("DACALEN Enable",SUN4I_DAC_ACTL,30,1,0),
+	/*Internal DAC Analog Right channel Enable*/
+	CODEC_SINGLE("DACAREN Enable",SUN4I_DAC_ACTL,31,1,0),
+
+	CODEC_SINGLE("PA Enable",SUN4I_ADC_ACTL,4,1,0),
+
+	/*
+	*	dither enable
+	*/
+	CODEC_SINGLE("dither enable",SUN4I_ADC_ACTL,8,1,0),	
+
+	CODEC_SINGLE("Mic1outn Enable",SUN4I_ADC_ACTL,12,1,0),
+	CODEC_SINGLE("LINEIN APM Volume", SUN4I_ADC_ACTL,13,0x7,0),
+	/*
+	*0:Line-in right channel which is independent of line-in left channel
+	*1:negative input of line-in left channel for fully differential application
+	*/
+	CODEC_SINGLE("Line-in-r function define",SUN4I_ADC_ACTL,16,1,0),
+	/*ADC Input source select
+	* 000:left select LINEINL, right select LINEINR; or, both select LINEINL-LINEINR,depending on LNRDF(bit 16)
+	* 001:left channel select FMINL & right channel select FMINR
+	* 010:both MIC1
+	* 011:both MIC2	
+	* 101:MIC1+MIC2 capture
+	* 110:left select output mixer L & right select 
+	* 111:left select LINEINL or LINEINL-LINEINR, depending on LNRDF(bit 16),right select MIC1 gain stage	
+	*/
+	CODEC_SINGLE("ADC Input source",SUN4I_ADC_ACTL,17,7,0),
+
+	/*ADC Input Gain Control, capture volume
+	* 000:-4.5db,001:-3db,010:-1.5db,011:0db,100:1.5db,101:3db,110:4.5db,111:6db
+	*/
+	CODEC_SINGLE("Capture Volume",SUN4I_ADC_ACTL,20,7,0),
+	/*
+	*	MIC2 pre-amplifier Gain Control
+	*	00:0db,01:35db,10:38db,11:41db
+	*/
+	CODEC_SINGLE("Mic2 gain Volume",SUN4I_ADC_ACTL,23,3,0),
+	/*
+	*	MIC1 pre-amplifier Gain Control
+	*	00:0db,01:35db,10:38db,11:41db
+	*/
+	CODEC_SINGLE("Mic1 gain Volume",SUN4I_ADC_ACTL,25,3,0),
+	/*
+	*	VMic enable
+	*/
+	CODEC_SINGLE("VMic enable",SUN4I_ADC_ACTL,27,1,0),
+	/*
+	*	MIC2 pre-amplifier enable
+	*/
+	CODEC_SINGLE("Mic2 amplifier enable",SUN4I_ADC_ACTL,28,1,0),
+	/*
+	*	MIC1 pre-amplifier enable
+	*/
+	CODEC_SINGLE("Mic1 amplifier enable",SUN4I_ADC_ACTL,29,1,0),
+	/*
+	*	ADC Left Channel enable
+	*/
+	CODEC_SINGLE("ADCL enable",SUN4I_ADC_ACTL,30,1,0),
+	/*
+	*	ADC Right enable
+	*/
+	CODEC_SINGLE("ADCR enable",SUN4I_ADC_ACTL,31,1,0),
 };
  
 static const struct snd_kcontrol_new codec_snd_controls_a[] = {
 	//For A VERSION
 	CODEC_SINGLE("Master Playback Volume", SUN4I_DAC_DPC,12,0x3f,0),//62 steps, 3e + 1 = 3f 主音量控制
-	CODEC_SINGLE("Playback Switch", SUN4I_DAC_ACTL,6,1,0),//全局输出开关
-	CODEC_SINGLE("Capture Volume",SUN4I_ADC_ACTL,20,7,0),//录音音量
-	CODEC_SINGLE("Fm Volume",SUN4I_DAC_ACTL,23,7,0),//Fm 音量
-	CODEC_SINGLE("Line Volume",SUN4I_DAC_ACTL,26,1,0),//Line音量
-	CODEC_SINGLE("MicL Volume",SUN4I_ADC_ACTL,25,3,0),//mic左音量
-	CODEC_SINGLE("MicR Volume",SUN4I_ADC_ACTL,23,3,0),//mic右音量
-	CODEC_SINGLE("FmL Switch",SUN4I_DAC_ACTL,17,1,0),//Fm左开关
-	CODEC_SINGLE("FmR Switch",SUN4I_DAC_ACTL,16,1,0),//Fm右开关
-	CODEC_SINGLE("LineL Switch",SUN4I_DAC_ACTL,19,1,0),//Line左开关
-	CODEC_SINGLE("LineR Switch",SUN4I_DAC_ACTL,18,1,0),//Line右开关
-	CODEC_SINGLE("Ldac Left Mixer",SUN4I_DAC_ACTL,15,1,0),
-	CODEC_SINGLE("Rdac Right Mixer",SUN4I_DAC_ACTL,14,1,0),
+		/*total output switch PAMUTE,if set this bit to 0, the voice is mute*/
+	CODEC_SINGLE("Playback PAMUTE SWITCH", SUN4I_DAC_ACTL,6,1,0),
+	/*mixer output switch MIXPAS*/
+	CODEC_SINGLE("Playback MIXPAS", SUN4I_DAC_ACTL,7,1,0),
+	/*system digital voice output switch DACPAS*/
+	CODEC_SINGLE("Playback DACPAS", SUN4I_DAC_ACTL,8,1,0),
+	/*from bit 9 to bit 12.Mic1/2 output switch.
+	  		MIC1LS 		MIC1RS 		MIC2LS 		MIC2RS
+	0x0   	mute  		mute    	mute   		mute
+	0x3     mute    	mute    	not mute 	not mute	
+	0x12    not mute 	not mute    mute    	mute
+	0x15	not mute	not mute	not mute	not mute
+	0x0*/
+	CODEC_SINGLE("Mic Output Mix",SUN4I_DAC_ACTL,9,15,0),
+	/*Left DAC to right output mixer mute*/
 	CODEC_SINGLE("Ldac Right Mixer",SUN4I_DAC_ACTL,13,1,0),
-	CODEC_SINGLE("Mic Input Mux",SUN4I_DAC_ACTL,9,15,0),//from bit 9 to bit 12.Mic（麦克风）输入静音
-	CODEC_SINGLE("ADC Input Mux",SUN4I_ADC_ACTL,17,7,0),//ADC输入静音
+	/*Right DAC to right output mixer mute*/
+	CODEC_SINGLE("Rdac Right Mixer",SUN4I_DAC_ACTL,14,1,0),
+	/*Left DAC to left output mixer mute*/
+	CODEC_SINGLE("Ldac Left Mixer",SUN4I_DAC_ACTL,15,1,0),
+	/*right FM to right output mixer mute*/
+	CODEC_SINGLE("FmR Switch",SUN4I_DAC_ACTL,16,1,0),//Fm right switch
+	/*Left FM to left output mixer mute*/
+	CODEC_SINGLE("FmL Switch",SUN4I_DAC_ACTL,17,1,0),//Fm left switch
+	/* 	Right LINEIN gain stage to right output mixer mite,
+	*	When LNRDF is 0, right select LINEINR
+	*	When LNRDF is 1, right select LINEINL-LINEINR
+	*/
+	CODEC_SINGLE("LineR Switch",SUN4I_DAC_ACTL,18,1,0),//Line right switch
+	/* 	Left LINEIN gain stage to left output mixer mite,
+	*	When LNRDF is 0, left select LINEINL
+	*	When LNRDF is 1, left select LINEINL-LINEINR
+	*/	
+	CODEC_SINGLE("LineL Switch",SUN4I_DAC_ACTL,19,1,0),//Line left switch
+	/*	MIC1/2 gain stage to output mixer Gain Control
+	* 	From -4.5db to 6db,1.5db/step,default is 0db
+	*	-4.5db:0x0,-3.0db:0x1,-1.5db:0x2,0db:0x3
+	*	1.5db:0x4,3.0db:0x5,4.5db:0x6,6db:0x7
+	*/
+	CODEC_SINGLE("MIC output volume",SUN4I_DAC_ACTL,20,7,0),
+	/*	FM Input to output mixer Gain Control
+	* 	From -4.5db to 6db,1.5db/step,default is 0db
+	*	-4.5db:0x0,-3.0db:0x1,-1.5db:0x2,0db:0x3
+	*	1.5db:0x4,3.0db:0x5,4.5db:0x6,6db:0x7
+	*/
+	CODEC_SINGLE("Fm output Volume",SUN4I_DAC_ACTL,23,7,0),//Fm output volume
+	/*	Line-in gain stage to output mixer Gain Control
+	*	0:-1.5db,1:0db
+	*/
+	CODEC_SINGLE("Line output Volume",SUN4I_DAC_ACTL,26,1,0),//Line output volume
+	/*Analog Output Mixer Enable*/
+	CODEC_SINGLE("MIX Enable",SUN4I_DAC_ACTL,29,1,0),
+	/*Internal DAC Analog Left channel Enable*/
+	CODEC_SINGLE("DACALEN Enable",SUN4I_DAC_ACTL,30,1,0),
+	/*Internal DAC Analog Right channel Enable*/
+	CODEC_SINGLE("DACAREN Enable",SUN4I_DAC_ACTL,31,1,0),
+
+	CODEC_SINGLE("PA Enable",SUN4I_ADC_ACTL,4,1,0),
+
+	/*
+	*	dither enable
+	*/
+	CODEC_SINGLE("dither enable",SUN4I_ADC_ACTL,8,1,0),	
+
+	CODEC_SINGLE("Mic1outn Enable",SUN4I_ADC_ACTL,12,1,0),
+	CODEC_SINGLE("LINEIN APM Volume", SUN4I_ADC_ACTL,13,0x7,0),
+
+	/*
+	*0:Line-in right channel which is independent of line-in left channel
+	*1:negative input of line-in left channel for fully differential application
+	*/
+	CODEC_SINGLE("Line-in-r function define",SUN4I_ADC_ACTL,16,1,0),
+	/*ADC Input source select*/
+	CODEC_SINGLE("ADC Input source",SUN4I_ADC_ACTL,17,7,0),
+
+	/*ADC Input Gain Control, capture volume
+	* 000:-4.5db,001:-3db,010:-1.5db,011:0db,100:1.5db,101:3db,110:4.5db,111:6db
+	*/
+	CODEC_SINGLE("Capture Volume",SUN4I_ADC_ACTL,20,7,0),
+	/*
+	*	MIC2 pre-amplifier Gain Control
+	*	00:0db,01:35db,10:38db,11:41db
+	*/
+	CODEC_SINGLE("Mic2 gain Volume",SUN4I_ADC_ACTL,23,3,0),
+	/*
+	*	MIC1 pre-amplifier Gain Control
+	*	00:0db,01:35db,10:38db,11:41db
+	*/
+	CODEC_SINGLE("Mic1 gain Volume",SUN4I_ADC_ACTL,25,3,0),
+	/*
+	*	VMic enable
+	*/
+	CODEC_SINGLE("VMic enable",SUN4I_ADC_ACTL,27,1,0),
+	/*
+	*	MIC2 pre-amplifier enable
+	*/
+
+	CODEC_SINGLE("Mic2 amplifier enable",SUN4I_ADC_ACTL,28,1,0),
+	/*
+	*	MIC1 pre-amplifier enable
+	*/
+	CODEC_SINGLE("Mic1 amplifier enable",SUN4I_ADC_ACTL,29,1,0),
+	/*
+	*	ADC Left Channel enable
+	*/
+	CODEC_SINGLE("ADCL enable",SUN4I_ADC_ACTL,30,1,0),
+	/*
+	*	ADC Right enable
+	*/
+	CODEC_SINGLE("ADCR enable",SUN4I_ADC_ACTL,31,1,0),
 };
 
 int __init snd_chip_codec_mixer_new(struct snd_card *card)
@@ -988,7 +1193,7 @@ static int snd_sun4i_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SUN4I_ADC_FIFOC);		
 				break;
 		}
-		
+/*		
 		switch(substream->runtime->channels){
 			case 1:
 				reg_val = readl(baseaddr + SUN4I_ADC_FIFOC);
@@ -1006,6 +1211,7 @@ static int snd_sun4i_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SUN4I_ADC_FIFOC);
 			break;
 		}        	
+*/
 	}
    if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK){
    	 	play_prtd = substream->runtime->private_data;
@@ -1269,7 +1475,7 @@ void snd_sun4i_codec_free(struct snd_card *card)
 static void codec_resume_events(struct work_struct *work)
 {
 	printk("%s,%d\n",__func__,__LINE__);
-	codec_wr_control(SUN4I_DAC_DPC ,  0x1, DAC_EN, 0x1);
+	//codec_wr_control(SUN4I_DAC_DPC ,  0x1, DAC_EN, 0x1);
 	msleep(20);
 	//enable PA
 	codec_wr_control(SUN4I_ADC_ACTL, 0x1, PA_ENABLE, 0x1);
