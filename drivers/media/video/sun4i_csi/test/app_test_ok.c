@@ -597,6 +597,8 @@ int main_test (void)
 	unsigned int i;
 	enum v4l2_buf_type type;
 	struct v4l2_cropcap cropcap;
+	struct v4l2_input inp;
+	struct v4l2_streamparm parms;
 	
 	//fd = open (dev_name, O_RDWR /* required */ | O_NONBLOCK, 0);//打开设备
 	//fd = open (dev_name, O_RDWR /* required */ | O_NONBLOCK, 0);//打开设备
@@ -608,6 +610,15 @@ int main_test (void)
 		if(-1 == ioctl (fd, 0xff, &cropcap))
 			printf("invalid_ops return error\n");
 	}
+	
+	inp.index = 0;
+
+	if (inp.type == V4L2_INPUT_TYPE_CAMERA)
+		printf("enuminput type is V4L2_INPUT_TYPE_CAMERA!\n");
+	
+	if (-1 == ioctl (fd, VIDIOC_S_INPUT, &inp))	//设置输入index
+		printf("VIDIOC_S_INPUT error!\n");
+	
 	if(ioctl_test==1)
 	{
 			//Test VIDIOC_QUERYCAP
@@ -738,6 +749,15 @@ int main_test (void)
 			printf("fmt.fmt.pix.sizeimage = %d\n",fmt.fmt.pix.sizeimage);
 		}
 	
+	
+	
+	parms.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	parms.parm.capture.timeperframe.denominator = 1;
+	parms.parm.capture.timeperframe.denominator = fps;
+	
+	if (-1 == ioctl (fd, VIDIOC_S_PARM, &parms)) //获取帧率
+			printf ("VIDIOC_S_PARM error\n");
+					
 	if(fps_test==1)
 	{
 		//Test VIDIOC_G_PARM
@@ -1073,80 +1093,80 @@ printf("********************************************************************Read
 //	 	main_test();
 //		control_test=0;
 //		
-printf("********************************************************************resolution and format test start,press to continue\n");
-		getchar();
-		
-		read_num=200;
-		
-		for(i=0;i<30;i++)		//16 //30
-		{
-			test_ptr = &test_case_set[i];
-			input_size.width = test_ptr->input_width;
-			input_size.height = test_ptr->input_height;
-//			disp_size.width = test_ptr->disp_width;
-//			disp_size.height = test_ptr->disp_height;
-			csi_format = test_ptr->csi_format;
-			disp_format = test_ptr->disp_format;
-			disp_mode=test_ptr->disp_mode;
-			disp_seq=test_ptr->disp_seq;
-		
-			printf("***************************************************************************************\ninput size:%dx%d\n",
-			input_size.width,input_size.height);
-			
-			switch(csi_format){
-			case V4L2_PIX_FMT_YUV422P:
-    		printf("format: V4L2_PIX_FMT_YUV422P\n");
-    		break;
-    	case V4L2_PIX_FMT_YUV420:
-    		printf("format: V4L2_PIX_FMT_YUV420\n");
-    		break;
-    	case V4L2_PIX_FMT_NV16:
-    		printf("format: V4L2_PIX_FMT_NV16\n");
-    		break;
-    	case V4L2_PIX_FMT_NV12:	
-    		printf("format: V4L2_PIX_FMT_NV12\n");
-    		break;
-    	case V4L2_PIX_FMT_HM12:
-    		printf("format: V4L2_PIX_FMT_HM12\n");
-    		break;
-    	case V4L2_PIX_FMT_YUYV:
-    		printf("format: V4L2_PIX_FMT_YUYV\n");	
-    		break;
-    	case V4L2_PIX_FMT_YVYU:
-    		printf("format: V4L2_PIX_FMT_YVYU\n");	
-    		break;
-    	case V4L2_PIX_FMT_UYVY:
-    		printf("format: V4L2_PIX_FMT_UYVY\n");	
-    		break;
-    	case V4L2_PIX_FMT_VYUY:
-    		printf("format: V4L2_PIX_FMT_VYUY\n");	
-    		break;
-    	default:
-    		printf("format: error\n");
-    		break;
-    	}
-    	
-			printf("***************************************************************************************\n");			
-			main_test();
-			printf("press to continue\n");	
-			getchar();
-		}
-
-printf("********************************************************************lost frame test start,press to continue\n");
-		getchar();	
-		lost_frame_test=1;
-		fps=30;
-		read_num=200;
-		req_frame_num = 4;
-		input_size.width = 640;
-		input_size.height = 480;
-		disp_size.width = 640;
-		disp_size.height = 480;
-		csi_format=V4L2_PIX_FMT_NV16;
-		disp_format=DISP_FORMAT_YUV422;
-		disp_mode=DISP_MOD_NON_MB_UV_COMBINED;
-		disp_seq=DISP_SEQ_UVUV;
-		main_test();
+//printf("********************************************************************resolution and format test start,press to continue\n");
+//		getchar();
+//		
+//		read_num=200;
+//		
+//		for(i=0;i<30;i++)		//16 //30
+//		{
+//			test_ptr = &test_case_set[i];
+//			input_size.width = test_ptr->input_width;
+//			input_size.height = test_ptr->input_height;
+////			disp_size.width = test_ptr->disp_width;
+////			disp_size.height = test_ptr->disp_height;
+//			csi_format = test_ptr->csi_format;
+//			disp_format = test_ptr->disp_format;
+//			disp_mode=test_ptr->disp_mode;
+//			disp_seq=test_ptr->disp_seq;
+//		
+//			printf("***************************************************************************************\ninput size:%dx%d\n",
+//			input_size.width,input_size.height);
+//			
+//			switch(csi_format){
+//			case V4L2_PIX_FMT_YUV422P:
+//    		printf("format: V4L2_PIX_FMT_YUV422P\n");
+//    		break;
+//    	case V4L2_PIX_FMT_YUV420:
+//    		printf("format: V4L2_PIX_FMT_YUV420\n");
+//    		break;
+//    	case V4L2_PIX_FMT_NV16:
+//    		printf("format: V4L2_PIX_FMT_NV16\n");
+//    		break;
+//    	case V4L2_PIX_FMT_NV12:	
+//    		printf("format: V4L2_PIX_FMT_NV12\n");
+//    		break;
+//    	case V4L2_PIX_FMT_HM12:
+//    		printf("format: V4L2_PIX_FMT_HM12\n");
+//    		break;
+//    	case V4L2_PIX_FMT_YUYV:
+//    		printf("format: V4L2_PIX_FMT_YUYV\n");	
+//    		break;
+//    	case V4L2_PIX_FMT_YVYU:
+//    		printf("format: V4L2_PIX_FMT_YVYU\n");	
+//    		break;
+//    	case V4L2_PIX_FMT_UYVY:
+//    		printf("format: V4L2_PIX_FMT_UYVY\n");	
+//    		break;
+//    	case V4L2_PIX_FMT_VYUY:
+//    		printf("format: V4L2_PIX_FMT_VYUY\n");	
+//    		break;
+//    	default:
+//    		printf("format: error\n");
+//    		break;
+//    	}
+//    	
+//			printf("***************************************************************************************\n");			
+//			main_test();
+//			printf("press to continue\n");	
+//			getchar();
+//		}
+//
+//printf("********************************************************************lost frame test start,press to continue\n");
+//		getchar();	
+//		lost_frame_test=1;
+//		fps=30;
+//		read_num=200;
+//		req_frame_num = 4;
+//		input_size.width = 640;
+//		input_size.height = 480;
+//		disp_size.width = 640;
+//		disp_size.height = 480;
+//		csi_format=V4L2_PIX_FMT_NV16;
+//		disp_format=DISP_FORMAT_YUV422;
+//		disp_mode=DISP_MOD_NON_MB_UV_COMBINED;
+//		disp_seq=DISP_SEQ_UVUV;
+//		main_test();
 //		
 //		
 //printf("********************************************************************fps test start,press to continue\n");

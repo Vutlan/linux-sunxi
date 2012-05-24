@@ -118,6 +118,7 @@ struct sensor_info {
 	__csi_subdev_info_t *ccm_info;
 	int	width;
 	int	height;
+	unsigned int capture_mode;		//0:video 1:capture
 	int brightness;
 	int	contrast;
 	int saturation;
@@ -1328,6 +1329,91 @@ static long sensor_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
 		return ret;
 }
 
+/* stuff about exposure when capturing image */
+
+static int sensor_set_exposure(struct v4l2_subdev *sd)
+{
+#if 1
+	//////////////james added////////
+	int ret=0;
+//	unsigned int temp_reg1, temp_reg2,test ;
+//	int   ret23;
+//	char value;
+	unsigned   int pid=0,shutter=0;
+//	unsigned int  hb_ori, hb_total=298;
+	unsigned int  hb_total=298;
+	unsigned int  temp_reg;
+	struct regval_list regs;
+	
+	csi_dev_dbg("sensor_set_exposure\n");
+	
+	regs.reg_num[0] = 0xfe;
+	regs.value[0] = 0x00; //PAGE 0x00
+	ret = sensor_write(sd, regs.reg_num, regs.value);
+
+	regs.reg_num[0] = 0x4f;
+	regs.value[0] = 0x00; //turn off aec
+	ret= sensor_write(sd, regs.reg_num, regs.value);
+
+	regs.reg_num[0] = 0x42;
+	regs.value[0] = 0x74; //turn off awb
+	ret= sensor_write(sd, regs.reg_num, regs.value);
+
+	/* check if it is an sensor sensor */
+	regs.reg_num[0] = 0x03;
+	ret = sensor_read(sd, regs.reg_num, regs.value);
+	pid = (regs.value[0] * 256);
+
+	regs.reg_num[0] = 0x04;	
+	ret = sensor_read(sd, regs.reg_num,regs.value);
+	shutter = pid + regs.value[0];
+	
+	regs.reg_num[0] = 0x12;
+	regs.value[0] = ((hb_total>>8)&0xff); //
+	ret= sensor_write(sd, regs.reg_num, regs.value);
+
+	regs.reg_num[0] = 0x13;
+	regs.value[0] = (hb_total&0xff); //
+	ret= sensor_write(sd, regs.reg_num, regs.value);	
+
+	temp_reg = shutter * (1702 + 298 ) * 10  / ( 15 * (1702 + 298 ));
+
+	if(temp_reg < 1) temp_reg = 1;
+
+	regs.reg_num[0] = 0x03;
+	regs.value[0] =  ((temp_reg>>8)&0xff); //
+	ret= sensor_write(sd, regs.reg_num, regs.value);
+
+	regs.reg_num[0] = 0x04;
+	regs.value[0] =  (temp_reg&0xff); // write shutter
+	ret= sensor_write(sd, regs.reg_num, regs.value);
+
+	regs.reg_num[0] = 0x6e;
+	regs.value[0] = 0x19; //
+	ret= sensor_write(sd, regs.reg_num, regs.value);
+
+	regs.reg_num[0] = 0x6f;
+	regs.value[0] = 0x10; //
+	ret= sensor_write(sd, regs.reg_num, regs.value);
+
+	regs.reg_num[0] = 0x70;
+	regs.value[0] = 0x19; //
+	ret= sensor_write(sd, regs.reg_num, regs.value);
+
+	regs.reg_num[0] = 0x71;
+	regs.value[0] = 0x10; //
+	ret= sensor_write(sd, regs.reg_num, regs.value);
+
+	mdelay(100);
+
+	regs.reg_num[0] = 0x45;
+	regs.value[0] = 0x0f;
+	ret= sensor_write(sd, regs.reg_num, regs.value);  // open output
+	/////////james added end//////
+#endif	
+
+	return ret;
+}
 
 /*
  * Store information about the video data format. 
@@ -1531,59 +1617,28 @@ static int sensor_s_fmt(struct v4l2_subdev *sd,
 	struct sensor_format_struct *sensor_fmt;
 	struct sensor_win_size *wsize;
 	struct sensor_info *info = to_state(sd);
-	
-	#if 1
-	//////////////james added////////
-	int ret1=0;
-	int   capture_cal_exp=0;
-//	unsigned int temp_reg1, temp_reg2,test ;
-//	int   ret23;
-//	char value;
-	unsigned   int pid=0,shutter=0;
-//	unsigned int  hb_ori, hb_total=298;
-	unsigned int  hb_total=298;
-	unsigned int  temp_reg;
-
-	struct regval_list regs;
-	
-	regs.reg_num[0] = 0xfe;
-	regs.value[0] = 0x00; //PAGE 0x00
-	ret = sensor_write(sd, regs.reg_num, regs.value);
-
-	if((wsize->width==1600)&&(wsize->height==1200))  //capture mode  >800*600
-	{
-	
-       /// james  added///
-		capture_cal_exp  =2;
-
-		regs.reg_num[0] = 0x4f;
-		regs.value[0] = 0x00; //turn off aec
-		ret1= sensor_write(sd, regs.reg_num, regs.value);
-	
-		regs.reg_num[0] = 0x42;
-		regs.value[0] = 0x74; //turn off awb
-		ret1= sensor_write(sd, regs.reg_num, regs.value);
-	
-		/* check if it is an sensor sensor */
-		regs.reg_num[0] = 0x03;
-		ret1 = sensor_read(sd, regs.reg_num, regs.value);
-		pid |= (ret1 << 8);
-
-		regs.reg_num[0] = 0x04;	
-		ret1 = sensor_read(sd, regs.reg_num,regs.value);
-		pid |= (ret1 & 0xff);
-		shutter=pid;
-	
-	}
-	#endif
-	///////////////////james added end/////
-	
+		
 	csi_dev_dbg("sensor_s_fmt\n");
 	
 	ret = sensor_try_fmt_internal(sd, fmt, &sensor_fmt, &wsize);
 	if (ret)
 		return ret;
 	
+	if(info->capture_mode == V4L2_MODE_VIDEO)
+	{
+		//video
+		
+	}
+	else if(info->capture_mode == V4L2_MODE_IMAGE)
+	{
+		//capture
+		ret = sensor_set_exposure(sd);
+		if (ret < 0)
+		{
+			csi_dev_err("sensor_set_exposure err !\n");
+			return ret;
+		}	
+	}
 	
 	sensor_write_array(sd, sensor_fmt->regs , sensor_fmt->regs_size);
 	
@@ -1606,58 +1661,6 @@ static int sensor_s_fmt(struct v4l2_subdev *sd,
 	info->width = wsize->width;
 	info->height = wsize->height;
 	
-#if 1
-/////james added/////
-	if(capture_cal_exp==2) //capture mode  james added
-	{
-	#if  1
-
-		regs.reg_num[0] = 0x12;
-		regs.value[0] = ((hb_total>>8)&0xff); //
-		ret1= sensor_write(sd, regs.reg_num, regs.value);
-
-		regs.reg_num[0] = 0x13;
-		regs.value[0] = (hb_total&0xff); //
-		ret1= sensor_write(sd, regs.reg_num, regs.value);	
-	
-		temp_reg = shutter * (1702 + 298 ) * 10  / ( 15 * (1702 + 298 ));
-
-		if(temp_reg < 1) temp_reg = 1;
-
-		regs.reg_num[0] = 0x03;
-		regs.value[0] =  ((temp_reg>>8)&0xff); //
-		ret1= sensor_write(sd, regs.reg_num, regs.value);
-	
-		regs.reg_num[0] = 0x04;
-		regs.value[0] =  (temp_reg&0xff); // write shutter
-		ret1= sensor_write(sd, regs.reg_num, regs.value);
-	
-		regs.reg_num[0] = 0x6e;
-		regs.value[0] = 0x19; //
-		ret1= sensor_write(sd, regs.reg_num, regs.value);
-	
-		regs.reg_num[0] = 0x6f;
-		regs.value[0] = 0x10; //
-		ret1= sensor_write(sd, regs.reg_num, regs.value);
-	
-		regs.reg_num[0] = 0x70;
-		regs.value[0] = 0x19; //
-		ret1= sensor_write(sd, regs.reg_num, regs.value);
-	
-		regs.reg_num[0] = 0x71;
-		regs.value[0] = 0x10; //
-		ret1= sensor_write(sd, regs.reg_num, regs.value);
-
-	#endif
-			mdelay(100);
-
-	}
-	regs.reg_num[0] = 0x45;
-	regs.value[0] = 0x0f;
-	ret1= sensor_write(sd, regs.reg_num, regs.value);  // open output
-	/////////james added end//////
-#endif	
-
 	return 0;
 }
 
@@ -1675,6 +1678,7 @@ static int sensor_g_parm(struct v4l2_subdev *sd, struct v4l2_streamparm *parms)
 
 	memset(cp, 0, sizeof(struct v4l2_captureparm));
 	cp->capability = V4L2_CAP_TIMEPERFRAME;
+	cp->capturemode = info->capture_mode;
 	cp->timeperframe.numerator = 1;
 	
 	if (info->width > SVGA_WIDTH && info->height > SVGA_HEIGHT) {
@@ -1689,10 +1693,12 @@ static int sensor_g_parm(struct v4l2_subdev *sd, struct v4l2_streamparm *parms)
 
 static int sensor_s_parm(struct v4l2_subdev *sd, struct v4l2_streamparm *parms)
 {
-//	struct v4l2_captureparm *cp = &parms->parm.capture;
+	struct v4l2_captureparm *cp = &parms->parm.capture;
 //	struct v4l2_fract *tpf = &cp->timeperframe;
-//	struct sensor_info *info = to_state(sd);
+	struct sensor_info *info = to_state(sd);
 //	int div;
+
+	csi_dev_dbg("sensor_s_parm\n");
 
 //	if (parms->type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
 //		return -EINVAL;
@@ -1722,7 +1728,10 @@ static int sensor_s_parm(struct v4l2_subdev *sd, struct v4l2_streamparm *parms)
 //	tpf->denominator = sensor_FRAME_RATE/div;
 //	
 //	sensor_write(sd, REG_CLKRC, info->clkrc);
-	return -EINVAL;
+
+	info->capture_mode = cp->capturemode;
+	
+	return 0;
 }
 
 
