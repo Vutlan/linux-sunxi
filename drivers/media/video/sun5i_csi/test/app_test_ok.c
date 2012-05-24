@@ -597,6 +597,8 @@ int main_test (void)
 	unsigned int i;
 	enum v4l2_buf_type type;
 	struct v4l2_cropcap cropcap;
+	struct v4l2_input inp;
+	struct v4l2_streamparm parms;
 	
 	//fd = open (dev_name, O_RDWR /* required */ | O_NONBLOCK, 0);//打开设备
 	//fd = open (dev_name, O_RDWR /* required */ | O_NONBLOCK, 0);//打开设备
@@ -608,6 +610,15 @@ int main_test (void)
 		if(-1 == ioctl (fd, 0xff, &cropcap))
 			printf("invalid_ops return error\n");
 	}
+	
+	inp.index = 0;
+
+	if (inp.type == V4L2_INPUT_TYPE_CAMERA)
+		printf("enuminput type is V4L2_INPUT_TYPE_CAMERA!\n");
+	
+	if (-1 == ioctl (fd, VIDIOC_S_INPUT, &inp))	//设置输入index
+		printf("VIDIOC_S_INPUT error!\n");
+	
 	if(ioctl_test==1)
 	{
 			//Test VIDIOC_QUERYCAP
@@ -738,6 +749,15 @@ int main_test (void)
 			printf("fmt.fmt.pix.sizeimage = %d\n",fmt.fmt.pix.sizeimage);
 		}
 	
+	
+	
+	parms.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	parms.parm.capture.timeperframe.denominator = 1;
+	parms.parm.capture.timeperframe.denominator = fps;
+	
+	if (-1 == ioctl (fd, VIDIOC_S_PARM, &parms)) //获取帧率
+			printf ("VIDIOC_S_PARM error\n");
+					
 	if(fps_test==1)
 	{
 		//Test VIDIOC_G_PARM

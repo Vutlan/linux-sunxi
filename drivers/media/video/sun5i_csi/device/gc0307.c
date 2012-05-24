@@ -1658,7 +1658,7 @@ static int sensor_s_parm(struct v4l2_subdev *sd, struct v4l2_streamparm *parms)
 //	tpf->numerator = 1;
 //	tpf->denominator = sensor_FRAME_RATE/div;
 //sensor_write(sd, REG_CLKRC, info->clkrc);
-	return -EINVAL;
+	return 0;
 }
 
 

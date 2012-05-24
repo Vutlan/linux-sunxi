@@ -1,10 +1,10 @@
 ===========================================
 
-Version: V1_13
+Version: V1_20
 
 Author:  raymonxiu
 
-Date:     2012-3-12 10:14:50
+Date:     2012-5-24 17:18:36
 
 Description:
 
@@ -24,6 +24,16 @@ insmod sun4i_csiX.ko ccm="ov5640" i2c_addr=0x78
 insmod sun4i_csiX.ko ccm="gc2015" i2c_addr=0x60
 insmod sun4i_csiX.ko ccm="ov2643" i2c_addr=0x60
 insmod sun4i_csiX.ko ccm="gc0329" i2c_addr=0x62
+
+V1_20
+CSI: Fine tune ov5640 and add autofocus function
+1) Fine tune ov5640
+2) Add autofocus function
+3) Modify the buffer number to 1 when capturing still image
+4) Return 0 when s_parm do nothing
+5) Fix hi253 adn hi704 to 27MHz (settting from hynix)
+6) Fix gc2015 crash bug on capture picture
+7) Modify app_test.c to match the new driver
 
 V1_13
 CSI: Fix bugs and add new module gc0309 support 
