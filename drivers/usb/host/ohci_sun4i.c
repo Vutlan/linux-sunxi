@@ -35,6 +35,8 @@
 #include  <mach/clock.h>
 #include "sw_hci_sun4i.h"
 
+#include  "sw_usb_mu509.h"
+
 /*.......................................................................................*/
 //                               全局信息定义
 /*.......................................................................................*/
@@ -386,6 +388,14 @@ static int sw_ohci_hcd_probe(struct platform_device *pdev)
         }
     }
 
+#ifdef  CONFIG_USB_SW_MU509
+    if(is_suspport_mu509(sw_ohci->usbc_no, SW_USB_OHCI)){
+        mu509_vbat(sw_ohci->usbc_no, 1);
+        mu509_wakeup_sleep(sw_ohci->usbc_no, 0);
+        mu509_power(sw_ohci->usbc_no, 1);
+    }
+#endif
+
     return 0;
 
 ERR3:
@@ -444,6 +454,13 @@ static int sw_ohci_hcd_remove(struct platform_device *pdev)
 	DMSG_INFO("[%s%d]: remove, pdev->name: %s, pdev->id: %d, sw_ohci: 0x%p\n",
 		      ohci_name, sw_ohci->usbc_no, pdev->name, pdev->id, sw_ohci);
 
+#ifdef  CONFIG_USB_SW_MU509
+    if(is_suspport_mu509(sw_ohci->usbc_no, SW_USB_OHCI)){
+        mu509_power(sw_ohci->usbc_no, 0);
+        mu509_vbat(sw_ohci->usbc_no, 0);
+    }
+#endif
+
 	usb_remove_hcd(hcd);
 
 	sw_stop_ohc(sw_ohci);
@@ -500,8 +517,14 @@ void sw_ohci_hcd_shutdown(struct platform_device* pdev)
  	DMSG_INFO("[%s]: ohci shutdown start\n", sw_ohci->hci_name);
 
     usb_hcd_platform_shutdown(pdev);
-
     sw_stop_ohc(sw_ohci);
+
+#ifdef  CONFIG_USB_SW_MU509
+    if(is_suspport_mu509(sw_ohci->usbc_no, SW_USB_OHCI)){
+        mu509_power(sw_ohci->usbc_no, 0);
+        mu509_vbat(sw_ohci->usbc_no, 0);
+    }
+#endif
 
  	DMSG_INFO("[%s]: ohci shutdown end\n", sw_ohci->hci_name);
 
@@ -583,6 +606,12 @@ static int sw_ohci_hcd_suspend(struct device *dev)
 
     spin_unlock_irqrestore(&ohci->lock, flags);
 
+#ifdef  CONFIG_USB_SW_MU509
+    if(is_suspport_mu509(sw_ohci->usbc_no, SW_USB_OHCI)){
+        mu509_wakeup_sleep(sw_ohci->usbc_no, 1);
+    }
+#endif
+
     sw_stop_ohc(sw_ohci);
 
     return rc;
@@ -635,6 +664,12 @@ static int sw_ohci_hcd_resume(struct device *dev)
 	}
 
  	DMSG_INFO("[%s]: sw_ohci_hcd_resume\n", sw_ohci->hci_name);
+
+#ifdef  CONFIG_USB_SW_MU509
+    if(is_suspport_mu509(sw_ohci->usbc_no, SW_USB_OHCI)){
+        mu509_wakeup_sleep(sw_ohci->usbc_no, 0);
+    }
+#endif
 
 	sw_start_ohc(sw_ohci);
 
