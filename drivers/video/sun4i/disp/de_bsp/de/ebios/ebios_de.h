@@ -207,6 +207,10 @@ typedef struct __SCAL_OUT_SIZE
 {
     __u32   width;
     __u32   height;  //when ouput interlace enable,  the height is the 2x height of scale, for example, ouput is 480i, this value is 480
+    __u32   x_off;
+    __u32   y_off;
+    __u32   fb_width;
+    __u32   fb_height;
 }__scal_out_size_t;
 
 typedef struct _SCAL_BUF_ADDR
@@ -253,6 +257,9 @@ __s32 DE_SCAL_Set_Filtercoef_Ready(__u8 sel);
 __s32 DE_SCAL_Output_Select(__u8 sel, __u8 out);
 __s32 DE_SCAL_Writeback_Enable(__u8 sel);
 __s32 DE_SCAL_Writeback_Disable(__u8 sel);
+__s32 DE_SCAL_Writeback_Linestride_Enable(__u8 sel);
+__s32 DE_SCAL_Writeback_Linestride_Disable(__u8 sel);
+__s32 DE_SCAL_Set_Writeback_Addr_ex(__u32 sel, __scal_buf_addr_t *addr, __scal_out_size_t *size,__scal_out_type_t *type);
 __s32 DE_SCAL_Set_Writeback_Addr(__u8 sel, __scal_buf_addr_t *addr);
 __s32 DE_SCAL_Set_CSC_Coef_Enhance(__u8 sel, __u8 in_csc_mode, __u8 out_csc_mode, __u8 incs, __u8 outcs,
                                                    __s32  bright, __s32 contrast, __s32 saturaion, __s32 hue,

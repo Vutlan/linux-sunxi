@@ -172,10 +172,10 @@ __s32 BSP_disp_set_output_csc(__u32 sel, __disp_output_type_t type)
         {
             enhance_en = 1;
             
-            bright = 50;
-            contrast = 50;
-            saturation = 57;
-            hue = 50;
+            bright = gdisp.screen[sel].lcd_cfg.lcd_bright;
+            contrast = gdisp.screen[sel].lcd_cfg.lcd_contrast;
+            saturation = gdisp.screen[sel].lcd_cfg.lcd_saturation;
+            hue = gdisp.screen[sel].lcd_cfg.lcd_hue;
         }
     }
 

@@ -162,6 +162,8 @@ typedef enum
     DISP_TV_MOD_1080P_24HZ_3D_FP    = 0x17,
     DISP_TV_MOD_720P_50HZ_3D_FP     = 0x18,
     DISP_TV_MOD_720P_60HZ_3D_FP     = 0x19,
+    DISP_TV_MOD_1080P_25HZ          = 0x1a,
+    DISP_TV_MOD_1080P_30HZ          = 0x1b,
     DISP_TV_MOD_PAL                 = 0xb,
     DISP_TV_MOD_PAL_SVIDEO          = 0xc,
     DISP_TV_MOD_NTSC                = 0xe,
@@ -170,7 +172,7 @@ typedef enum
     DISP_TV_MOD_PAL_M_SVIDEO        = 0x12,
     DISP_TV_MOD_PAL_NC              = 0x14,
     DISP_TV_MOD_PAL_NC_SVIDEO       = 0x15,
-    DISP_TV_MODE_NUM               = 0x1a,
+    DISP_TV_MODE_NUM               = 0x1c,
 }__disp_tv_mode_t;
 
 typedef enum
@@ -351,7 +353,7 @@ typedef struct
     __disp_fb_t     input_fb;
     __disp_rect_t   source_regn;
     __disp_fb_t     output_fb;
-    //__disp_rect_t   out_regn;
+    __disp_rect_t   out_regn;
 }__disp_scaler_para_t;
 
 typedef struct
@@ -663,6 +665,7 @@ typedef enum tag_DISP_CMD
     DISP_CMD_SCALER_REQUEST = 0x80,
     DISP_CMD_SCALER_RELEASE = 0x81,
     DISP_CMD_SCALER_EXECUTE = 0x82,
+    DISP_CMD_SCALER_EXECUTE_EX = 0x83,
 
 //----hwc----
     DISP_CMD_HWC_OPEN = 0xc0,

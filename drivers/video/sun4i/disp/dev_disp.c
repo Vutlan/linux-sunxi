@@ -371,7 +371,7 @@ static int __init disp_probe(struct platform_device *pdev)//called when platform
 	fb_info_t * info = NULL;
 
 	__inf("disp_probe call\n");
-
+    
 	info = &g_fbi;
 	info->dev = &pdev->dev;
 	platform_set_drvdata(pdev,info);
@@ -1069,6 +1069,19 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     			return  -EFAULT;
     		}
     		ret = BSP_disp_scaler_start(ubuffer[1],&para);
+    		break;
+        }
+
+        case DISP_CMD_SCALER_EXECUTE_EX:
+    	{
+    	    __disp_scaler_para_t para;
+
+    		if(copy_from_user(&para, (void __user *)ubuffer[2],sizeof(__disp_scaler_para_t)))
+    		{
+    		    __wrn("copy_from_user fail\n");
+    			return  -EFAULT;
+    		}
+    		ret = BSP_disp_scaler_start_ex(ubuffer[1],&para);
     		break;
         }
 

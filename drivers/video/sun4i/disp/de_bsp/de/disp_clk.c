@@ -79,8 +79,8 @@ __disp_clk_tab clk_tab = //record tv/vga/hdmi mode clock requirement
 {
 //LCDx_CH1_CLK2, CLK2/CLK1,    HDMI_CLK,	   PLL_CLK	 ,     PLLX2 req	  //	TV_VGA_MODE 		//INDEX, FOLLOW enum order
 	//TV mode and HDMI mode 
-   {{27000000	  ,	2	    , 	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_480I 			        //0x0	   
-	{27000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_576I 			        //0x1   
+   {{27000000	  ,	2	    , 	27000000,		297000000	,	0	},	 //    DISP_TV_MOD_480I 			        //0x0	   
+	{27000000	  ,	2	    ,	27000000,		297000000	,	0	},	 //    DISP_TV_MOD_576I 			        //0x1   
 	{54000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_480P 			        //0x2   
 	{54000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_576P 			        //0x3   
 	{74250000	  ,	1	    ,	74250000,		297000000	,	0	},	 //    DISP_TV_MOD_720P_50HZ		        //0x4   
@@ -90,23 +90,23 @@ __disp_clk_tab clk_tab = //record tv/vga/hdmi mode clock requirement
 	{74250000	  ,	1	    ,	74250000,		297000000	,	0	},	 //    DISP_TV_MOD_1080P_24HZ	        //0x8   
 	{148500000	  ,	1	    ,  148500000, 		297000000	,	0	},	 //    DISP_TV_MOD_1080P_50HZ	        //0x9   
 	{148500000	  ,	1	    ,  148500000, 		297000000	,	0	},	 //    DISP_TV_MOD_1080P_60HZ	        //0xa 
-	{27000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_PAL			        //0xb 
-	{27000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_PAL_SVIDEO	        //0xc 
+	{27000000	  ,	2	    ,	27000000,		297000000	,	0	},	 //    DISP_TV_MOD_PAL			        //0xb 
+	{27000000	  ,	2	    ,	27000000,		297000000	,	0	},	 //    DISP_TV_MOD_PAL_SVIDEO	        //0xc 
 	{		0	  ,	1	    ,	       0,		        0	,	0	},	 //    reserved  //0xd 
-	{27000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_NTSC 			        //0xe 
-	{27000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_NTSC_SVIDEO	        //0xf
+	{27000000	  ,	2	    ,	27000000,		297000000	,	0	},	 //    DISP_TV_MOD_NTSC 			        //0xe 
+	{27000000	  ,	2	    ,	27000000,		297000000	,	0	},	 //    DISP_TV_MOD_NTSC_SVIDEO	        //0xf
 	{		0	  ,	1	    ,	       0,		        0	,	0	},	 //    reserved    //0x10
-	{27000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_PAL_M			        //0x11
-	{27000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_PAL_M_SVIDEO 	        //0x12
+	{27000000	  ,	2	    ,	27000000,		297000000	,	0	},	 //    DISP_TV_MOD_PAL_M			        //0x11
+	{27000000	  ,	2	    ,	27000000,		297000000	,	0	},	 //    DISP_TV_MOD_PAL_M_SVIDEO 	        //0x12
 	{		0	  ,	1	    ,	       0,		        0	,	0	},	 //    reserved   //0x13
-	{27000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_PAL_NC		        //0x14
-	{27000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_PAL_NC_SVIDEO	        //0x15
+	{27000000	  ,	2	    ,	27000000,		297000000	,	0	},	 //    DISP_TV_MOD_PAL_NC		        //0x14
+	{27000000	  ,	2	    ,	27000000,		297000000	,	0	},	 //    DISP_TV_MOD_PAL_NC_SVIDEO	        //0x15
 	{		0	  ,	1	    ,	       0,		        0	,	0	},	 //    reserved  //0x16		
 	{148500000	  ,	1	    ,  148500000, 		297000000	,	0	},	 //    DISP_TV_MOD_1080P_24HZ_3D_FP    //0x17
 	{148500000	  ,	1	    ,  148500000,		297000000	,	0	},	 //    DISP_TV_MOD_720P_50HZ_3D_FP 	 //0x18
 	{148500000	  ,	1	    ,  148500000,		297000000	,	0	},	 //    DISP_TV_MOD_720P_60HZ_3D_FP 	 //0x19
-	{		0	  ,	1	    ,	       0,		        0	,	0	},	 //    reserved 					        //0x1a
-	{		0	  ,	1	    ,	       0,		        0	,	0	},	 //    reserved 					        //0x1b
+	{74250000	  ,	1	    ,	74250000,		297000000	,	0	},	 //    DISP_TV_MOD_1080P_25HZ 		 //0x1a
+	{74250000	  ,	1	    ,	74250000,		297000000	,	0	},	 //    DISP_TV_MOD_1080P_30HZ 		//0x1b
 	{		0	  ,	1	    ,	       0,		        0	,	0	},	 //    reserved 					        //0x1c
 	{		0	  ,	1	    ,	       0,		        0	,	0	}},  //    reserved 					        //0x1d
 	//VGA mode               	 				
