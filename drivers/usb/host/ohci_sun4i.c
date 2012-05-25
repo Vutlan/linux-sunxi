@@ -35,7 +35,9 @@
 #include  <mach/clock.h>
 #include "sw_hci_sun4i.h"
 
+#ifdef  CONFIG_USB_SW_MU509
 #include  "sw_usb_mu509.h"
+#endif
 
 /*.......................................................................................*/
 //                               全局信息定义
