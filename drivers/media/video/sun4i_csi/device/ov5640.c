@@ -465,7 +465,7 @@ static struct regval_list sensor_qsxga_regs[] = { //qsxga: 2592*1936
 	{{0x30,0x37},{0x13}},                            	    
 	{{0x31,0x08},{0x01}},                            	    
 	{{0x38,0x24},{0x01}},                            	    
-	{{0xff,0xff},{0xc8}},//delay 200ms,//delay 100ms                   
+	{{0xff,0xff},{0x32}},//delay 50ms,//delay 100ms                   
 	//timing                                              
 	//2592*1936                                           
 	{{0x38,0x08},{0x0a}}, //H size MSB                    
@@ -522,7 +522,7 @@ static struct regval_list sensor_qsxga_regs[] = { //qsxga: 2592*1936
 	{{0x48,0x37},{0x2c}},//PCLK period                    
 	{{0x50,0x01},{0xa3}},//ISP effect    
 	
-	{{0x30,0x2c},{0x42}},//bit[7:6]: output drive capability
+	{{0x30,0x2c},{0xc2}},//bit[7:6]: output drive capability
 						//00: 1x   01: 2x  10: 3x  11: 4x 	   
 							
 	//power down release
@@ -541,7 +541,7 @@ static struct regval_list sensor_qxga_regs[] = { //qxga: 2048*1536
 	{{0x30,0x37},{0x13}},                            	 
 	{{0x31,0x08},{0x01}},                            	 
 	{{0x38,0x24},{0x01}},                            	 
-	{{0xff,0xff},{0xc8}},//delay 200ms,//delay 100ms                
+	{{0xff,0xff},{0x32}},//delay 50ms,//delay 100ms                
 	//timing                                           
 	//2048*1536                                        
 	{{0x38,0x08},{0x08}}, //H size MSB                 
@@ -597,7 +597,7 @@ static struct regval_list sensor_qxga_regs[] = { //qxga: 2048*1536
 	{{0x40,0x04},{0x06}}, //BLC line number                                         
 	{{0x48,0x37},{0x2c}},//PCLK period                              
 	{{0x50,0x01},{0xa3}},//ISP effect  
-	{{0x30,0x2c},{0x42}},//bit[7:6]: output drive capability
+	{{0x30,0x2c},{0xc2}},//bit[7:6]: output drive capability
 						//00: 1x   01: 2x  10: 3x  11: 4x   
 	//power down release
 	{{0x30,0x08},{0x02}},     
@@ -672,7 +672,7 @@ static struct regval_list sensor_uxga_regs[] = { //UXGA: 1600*1200
                                                                                                                        
 	{{0x48,0x37},{0x2c}}, //PCLK period                                                                                                  
 	{{0x50,0x01},{0xa3}}, //ISP effect  
-	{{0x30,0x2c},{0x42}},//bit[7:6]: output drive capability
+	{{0x30,0x2c},{0xc2}},//bit[7:6]: output drive capability
 						//00: 1x   01: 2x  10: 3x  11: 4x                                                                                  
 	//power down release
 	{{0x30,0x08},{0x02}},     
@@ -690,7 +690,7 @@ static struct regval_list sensor_sxga_regs[] = { //SXGA: 1280*960
 	{{0x30,0x37},{0x13}},                                       	              
 	{{0x31,0x08},{0x01}},                                       	              
 	{{0x38,0x24},{0x01}},                                       	              
-	{{0xff,0xff},{0xc8}},//delay 200ms,//delay 100ms                                       	
+	{{0xff,0xff},{0x32}},//delay 50ms,//delay 100ms                                       	
 	//timing                                                                  	                              
 	//1280*960                                                                	                              
 	{{0x38,0x08},{0x05}}, //H size MSB                                                                  
@@ -746,7 +746,7 @@ static struct regval_list sensor_sxga_regs[] = { //SXGA: 1280*960
                                                                	             
 	{{0x48,0x37},{0x2c}}, //PCLK period
 	{{0x50,0x01},{0xa3}}, //ISP effect   
-	{{0x30,0x2c},{0x42}},//bit[7:6]: output drive capability
+	{{0x30,0x2c},{0xc2}},//bit[7:6]: output drive capability
 						//00: 1x   01: 2x  10: 3x  11: 4x   
 	//power down release
 	{{0x30,0x08},{0x02}},     
@@ -764,7 +764,7 @@ static struct regval_list sensor_xga_regs[] = { //XGA: 1024*768
 	{{0x30,0x37},{0x13}},
 	{{0x31,0x08},{0x01}},
 	{{0x38,0x24},{0x01}},
-	{{0xff,0xff},{0xc8}},//delay 200ms,//delay 100ms
+	{{0xff,0xff},{0x32}},//delay 50ms,//delay 100ms
 	//timing
 	//1024*768
 	{{0x38,0x08},{0x04}}, //H size MSB
@@ -834,7 +834,7 @@ static struct regval_list sensor_xga_regs[] = { //XGA: 1024*768
 	{{0x48,0x37},{0x2c}}, //PCLK period 
 	{{0x50,0x01},{0xa3}}, //ISP effect
 	
-	{{0x30,0x2c},{0x42}},//bit[7:6]: output drive capability
+	{{0x30,0x2c},{0xc2}},//bit[7:6]: output drive capability
 						//00: 1x   01: 2x  10: 3x  11: 4x 
 	//power down release
 	{{0x30,0x08},{0x02}},     
@@ -852,7 +852,7 @@ static struct regval_list sensor_1080p_regs[] = { //1080: 1920*1080
 	{{0x30,0x37},{0x13}},
 	{{0x31,0x08},{0x01}},
 	{{0x38,0x24},{0x01}},
-	{{0xff,0xff},{0xc8}},//delay 200ms,//delay 100ms
+	{{0xff,0xff},{0x32}},//delay 50ms,//delay 100ms
 	//timing
 	//1920x1080
 	{{0x38,0x08},{0x07}},	//H size MSB
@@ -910,11 +910,11 @@ static struct regval_list sensor_1080p_regs[] = { //1080: 1920*1080
 	{{0x50,0x01},{0x83}}, //ISP effect
 	{{0x35,0x03},{0x00}},//AEC enable
 	
-	{{0x30,0x2c},{0x82}},//bit[7:6]: output drive capability
+	{{0x30,0x2c},{0xc2}},//bit[7:6]: output drive capability
 						//00: 1x   01: 2x  10: 3x  11: 4x 
 	//power down release
 	{{0x30,0x08},{0x02}},     
-	{{0xff,0xff},{0x64}},//delay 100ms
+	{{0xff,0xff},{0x32}},//delay 50ms
 };
 
 static struct regval_list sensor_720p_regs[] = { //1280*720
@@ -927,7 +927,7 @@ static struct regval_list sensor_720p_regs[] = { //1280*720
 	{{0x30,0x37},{0x13}},
 	{{0x31,0x08},{0x01}},
 	{{0x38,0x24},{0x01}},
-	{{0xff,0xff},{0xc8}},//delay 200ms,//delay 100ms
+	{{0xff,0xff},{0x32}},//delay 50ms,//delay 100ms
 	//timing
 	//1280x720
 	{{0x38,0x08},{0x05}},	//H size MSB
@@ -985,11 +985,11 @@ static struct regval_list sensor_720p_regs[] = { //1280*720
 	{{0x50,0x01},{0x83}}, //ISP effect
 	{{0x35,0x03},{0x00}},//AEC enable
 	
-	{{0x30,0x2c},{0x82}},//bit[7:6]: output drive capability
+	{{0x30,0x2c},{0xc2}},//bit[7:6]: output drive capability
 						//00: 1x   01: 2x  10: 3x  11: 4x 
 	//power down release
 	{{0x30,0x08},{0x02}},     
-	{{0xff,0xff},{0x64}},//delay 100ms
+	{{0xff,0xff},{0x32}},//delay 50ms
 };
 
 static struct regval_list sensor_svga_regs[] = { //SVGA: 800*600
@@ -1002,7 +1002,7 @@ static struct regval_list sensor_svga_regs[] = { //SVGA: 800*600
 	{{0x30,0x37},{0x13}},                
 	{{0x31,0x08},{0x01}},                
 	{{0x38,0x24},{0x01}},                
-	{{0xff,0xff},{0xc8}},//delay 200ms,//delay 100ms  
+	{{0xff,0xff},{0x32}},//delay 50ms,//delay 100ms  
 	//timing                             
 	//800x600                            
 	{{0x38,0x08},{0x3 }}, //H size MSB   
@@ -1057,11 +1057,11 @@ static struct regval_list sensor_svga_regs[] = { //SVGA: 800*600
 	{{0x48,0x37},{0x22}},  //PCLK period    
 	{{0x50,0x01},{0xa3}},  //ISP effect
 	
-	{{0x30,0x2c},{0x42}},//bit[7:6]: output drive capability
+	{{0x30,0x2c},{0xc2}},//bit[7:6]: output drive capability
 						//00: 1x   01: 2x  10: 3x  11: 4x 
 	//power down release
 	{{0x30,0x08},{0x02}},     
-	{{0xff,0xff},{0x64}},//delay 100ms
+	{{0xff,0xff},{0x32}},//delay 50ms
 };
 
 static struct regval_list sensor_vga_regs[] = { //VGA:  640*480
@@ -1077,7 +1077,7 @@ static struct regval_list sensor_vga_regs[] = { //VGA:  640*480
 	{{0x30,0x37},{0x13}},                
 	{{0x31,0x08},{0x01}},                
 	{{0x38,0x24},{0x01}},                
-	{{0xff,0xff},{0x64}}, //delay 100ms 
+	{{0xff,0xff},{0x32}}, //delay 50ms 
 	                         
 	{{0x38,0x08},{0x02}}, //H size MSB   
 	{{0x38,0x09},{0x80}}, //H size LSB   
@@ -1133,11 +1133,11 @@ static struct regval_list sensor_vga_regs[] = { //VGA:  640*480
 	{{0x48,0x37},{0x22}},  //PCLK period    
 	{{0x50,0x01},{0xa3}},  //ISP effect
 	
-	{{0x30,0x2c},{0x42}},//bit[7:6]: output drive capability
+	{{0x30,0x2c},{0xc2}},//bit[7:6]: output drive capability
 						//00: 1x   01: 2x  10: 3x  11: 4x 
 	//power down release
 	{{0x30,0x08},{0x02}},     
-	{{0xff,0xff},{0x64}},//delay 100ms
+	{{0xff,0xff},{0x32}},//delay 50ms
 };
 
 //misc
@@ -2383,7 +2383,7 @@ static int sensor_set_exposure(struct v4l2_subdev *sd)
 	
 	if(info->tpf.numerator!=0)
 		preview_fps = info->tpf.denominator/info->tpf.numerator*100;    
-	
+
 	regs.reg_num[0] = 0x35;
 	regs.reg_num[1] = 0x03;
 	regs.value[0] = 0x07;
@@ -3785,149 +3785,15 @@ static int sensor_try_fmt(struct v4l2_subdev *sd,
 	return sensor_try_fmt_internal(sd, fmt, NULL, NULL);
 }
 
-
 /*
- * Set a format.
+ * Set fps
  */
-static int sensor_s_fmt(struct v4l2_subdev *sd, 
-             struct v4l2_mbus_framefmt *fmt)//linux-3.0
+
+static int sensor_s_fps(struct v4l2_subdev *sd)
 {
-	int ret;
-	struct sensor_format_struct *sensor_fmt;
-	struct sensor_win_size *wsize;
-	struct sensor_info *info = to_state(sd);
-	
-	csi_dev_dbg("sensor_s_fmt\n");
-	
-	ret = sensor_try_fmt_internal(sd, fmt, &sensor_fmt, &wsize);
-	if (ret)
-		return ret;
-	
-	if(info->fmt == sensor_fmt && info->width == wsize->width && info->height == wsize->height)
-	{
-		csi_dev_print("format and size remain the same\n");
-		goto update;
-	}
-		
-	if(info->capture_mode == V4L2_MODE_VIDEO)
-	{
-		//video
-		if(info->af_mode != V4L2_AF_FIXED) {
-			ret = sensor_s_release_af(sd);
-			if (ret < 0)
-			{
-				csi_dev_err("sensor_s_release_af err !\n");
-				return ret;
-			}	
-		}
-	}
-	else if(info->capture_mode == V4L2_MODE_IMAGE)
-	{
-		//capture
-		ret = sensor_set_exposure(sd);
-		if (ret < 0)
-		{
-			csi_dev_err("sensor_set_exposure err !\n");
-			return ret;
-		}	
-	}
-	
-	sensor_write_array(sd, sensor_fmt->regs , sensor_fmt->regs_size);
-	
-	ret = 0;
-	if (wsize->regs)
-	{
-		ret = sensor_write_array(sd, wsize->regs , wsize->regs_size);
-		if (ret < 0)
-			return ret;
-	}
-	
-	if (wsize->set_size)
-	{
-		ret = wsize->set_size(sd);
-		if (ret < 0)
-			return ret;
-	}
-	
-	if(info->capture_mode == V4L2_MODE_VIDEO)
-	{
-		//video
-		if(info->af_mode != V4L2_AF_FIXED) {
-
-#if 0
-			if(info->af_mode != V4L2_AF_TOUCH && info->af_mode != V4L2_AF_FACE) {				
-				ret = sensor_s_relaunch_af_zone(sd);	//set af zone to default zone
-				if (ret < 0) {
-					csi_dev_err("sensor_s_relaunch_af_zone err !\n");
-					return ret;
-				}	
-			}
-#endif
-			
-			if(info->af_mode != V4L2_AF_INFINITY) {
-				ret = sensor_s_continueous_af(sd);		//set continueous af
-				if (ret < 0) {
-					csi_dev_err("sensor_s_continueous_af err !\n");
-					return ret;
-				}
-			}
-		}
-	}
-	
-#if DEV_DBG_EN == 1	
-	{
-		int i;
-		struct regval_list dbg_regs[] = {
-			{{0x30,0x34},{0xee}},
-			{{0x30,0x35},{0xee}},
-			{{0x30,0x36},{0xee}},
-			{{0x30,0x37},{0xee}},
-			{{0x31,0x08},{0xee}},
-			{{0x38,0x24},{0xee}},
-		};
-		for(i=0;i<6;i++) {
-			sensor_read(sd,dbg_regs[i].reg_num,dbg_regs[i].value);
-			csi_dev_print("address 0x%2x%2x = %4x",dbg_regs[i].reg_num[0],dbg_regs[i].reg_num[1],dbg_regs[i].value[0]);
-		}
-	}
-#endif		
-
-update:
-	info->fmt = sensor_fmt;
-	info->width = wsize->width;
-	info->height = wsize->height;
-	
-	csi_dev_print("s_fmt set width = %d, height = %d\n",wsize->width,wsize->height);
-		
-	return 0;
-}
-
-/*
- * Implement G/S_PARM.  There is a "high quality" mode we could try
- * to do someday; for now, we just do the frame rate tweak.
- */
-static int sensor_g_parm(struct v4l2_subdev *sd, struct v4l2_streamparm *parms)
-{
-	struct v4l2_captureparm *cp = &parms->parm.capture;
-	struct sensor_info *info = to_state(sd);
-
-	if (parms->type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
-		return -EINVAL;
-	
-	memset(cp, 0, sizeof(struct v4l2_captureparm));
-	cp->capability = V4L2_CAP_TIMEPERFRAME;
-	cp->capturemode = info->capture_mode;
-	
-	cp->timeperframe.numerator = info->tpf.numerator;
-	cp->timeperframe.denominator = info->tpf.denominator;
-	 
-	return 0;
-}
-
-static int sensor_s_parm(struct v4l2_subdev *sd, struct v4l2_streamparm *parms)
-{
-	struct v4l2_captureparm *cp = &parms->parm.capture;
-	struct v4l2_fract *tpf = &cp->timeperframe;
+	//struct v4l2_streamparm parms;
+	//struct v4l2_captureparm *cp = &parms->parm.capture;
+	//struct v4l2_fract *tpf = &cp->timeperframe;
 	struct sensor_info *info = to_state(sd);
 	char div,sys_div;
 	char band_50_high,band_50_low,band_60_high,band_60_low;
@@ -3945,27 +3811,12 @@ static int sensor_s_parm(struct v4l2_subdev *sd, struct v4l2_streamparm *parms)
 		{{0x3a,0x0d},{0xee}},//60HZ step max 
 	};
 
-	csi_dev_dbg("sensor_s_parm\n");
+	csi_dev_dbg("sensor_s_fps\n");
 	
-	if (parms->type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
+	if (info->tpf.numerator == 0)
 		return -EINVAL;
-	
-	info->capture_mode = cp->capturemode;
-	
-	if (info->capture_mode == V4L2_MODE_IMAGE) {
-		csi_dev_dbg("capture mode is not video mode,can not set frame rate!\n");
-		return 0;
-	}
 		
-	if (tpf->numerator == 0 || tpf->denominator == 0)	{
-		tpf->numerator = 1;
-		tpf->denominator = 30;/* Reset to full rate */
-		csi_dev_err("sensor frame rate reset to full rate!\n");
-	}
-	
-	div = SENSOR_FRAME_RATE/(tpf->denominator/tpf->numerator);
-	if(div > 15) 
-		return -EINVAL;
+	div = info->tpf.numerator;
 	
 	//power down
 	regs.reg_num[0] = 0x30;
@@ -4097,7 +3948,176 @@ static int sensor_s_parm(struct v4l2_subdev *sd, struct v4l2_streamparm *parms)
 		return ret;
 	}
 	
-	mdelay(50);
+	msleep(500);
+		
+	csi_dev_dbg("set frame rate %d\n",info->tpf.denominator/info->tpf.numerator);
+	
+	return 0;
+}
+
+/*
+ * Set a format.
+ */
+static int sensor_s_fmt(struct v4l2_subdev *sd, 
+             struct v4l2_mbus_framefmt *fmt)//linux-3.0
+{
+	int ret;
+	struct sensor_format_struct *sensor_fmt;
+	struct sensor_win_size *wsize;
+	struct sensor_info *info = to_state(sd);
+	
+	csi_dev_dbg("sensor_s_fmt\n");
+	
+	ret = sensor_try_fmt_internal(sd, fmt, &sensor_fmt, &wsize);
+	if (ret)
+		return ret;
+		
+	if(info->capture_mode == V4L2_MODE_VIDEO)
+	{
+		//video
+		if(info->af_mode != V4L2_AF_FIXED) {
+			ret = sensor_s_release_af(sd);
+			if (ret < 0)
+			{
+				csi_dev_err("sensor_s_release_af err !\n");
+				return ret;
+			}	
+		}
+	}
+	else if(info->capture_mode == V4L2_MODE_IMAGE)
+	{
+		//capture
+		ret = sensor_set_exposure(sd);
+		if (ret < 0)
+		{
+			csi_dev_err("sensor_set_exposure err !\n");
+			return ret;
+		}	
+	}
+	
+	sensor_write_array(sd, sensor_fmt->regs , sensor_fmt->regs_size);
+	
+	ret = 0;
+	if (wsize->regs)
+	{
+		ret = sensor_write_array(sd, wsize->regs , wsize->regs_size);
+		if (ret < 0)
+			return ret;
+	}
+	
+	if (wsize->set_size)
+	{
+		ret = wsize->set_size(sd);
+		if (ret < 0)
+			return ret;
+	}
+	
+	if(info->capture_mode == V4L2_MODE_VIDEO)
+	{
+		//video
+		if(info->af_mode != V4L2_AF_FIXED) {
+
+#if 0
+			if(info->af_mode != V4L2_AF_TOUCH && info->af_mode != V4L2_AF_FACE) {				
+				ret = sensor_s_relaunch_af_zone(sd);	//set af zone to default zone
+				if (ret < 0) {
+					csi_dev_err("sensor_s_relaunch_af_zone err !\n");
+					return ret;
+				}	
+			}
+#endif
+			
+			if(info->af_mode != V4L2_AF_INFINITY) {
+				ret = sensor_s_continueous_af(sd);		//set continueous af
+				if (ret < 0) {
+					csi_dev_err("sensor_s_continueous_af err !\n");
+					return ret;
+				}
+			}
+		}
+		sensor_s_fps(sd);	
+	}
+	
+#if DEV_DBG_EN == 1	
+	{
+		int i;
+		struct regval_list dbg_regs[] = {
+			{{0x30,0x34},{0xee}},
+			{{0x30,0x35},{0xee}},
+			{{0x30,0x36},{0xee}},
+			{{0x30,0x37},{0xee}},
+			{{0x31,0x08},{0xee}},
+			{{0x38,0x24},{0xee}},
+		};
+		for(i=0;i<6;i++) {
+			sensor_read(sd,dbg_regs[i].reg_num,dbg_regs[i].value);
+			csi_dev_print("address 0x%2x%2x = %4x",dbg_regs[i].reg_num[0],dbg_regs[i].reg_num[1],dbg_regs[i].value[0]);
+		}
+	}
+#endif
+		
+	info->fmt = sensor_fmt;
+	info->width = wsize->width;
+	info->height = wsize->height;
+	
+	csi_dev_print("s_fmt set width = %d, height = %d\n",wsize->width,wsize->height);
+	
+	return 0;
+}
+
+/*
+ * Implement G/S_PARM.  There is a "high quality" mode we could try
+ * to do someday; for now, we just do the frame rate tweak.
+ */
+static int sensor_g_parm(struct v4l2_subdev *sd, struct v4l2_streamparm *parms)
+{
+	struct v4l2_captureparm *cp = &parms->parm.capture;
+	struct sensor_info *info = to_state(sd);
+
+	if (parms->type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
+		return -EINVAL;
+	
+	memset(cp, 0, sizeof(struct v4l2_captureparm));
+	cp->capability = V4L2_CAP_TIMEPERFRAME;
+	cp->capturemode = info->capture_mode;
+	
+	cp->timeperframe.numerator = info->tpf.numerator;
+	cp->timeperframe.denominator = info->tpf.denominator;
+	 
+	return 0;
+}
+
+static int sensor_s_parm(struct v4l2_subdev *sd, struct v4l2_streamparm *parms)
+{
+	struct v4l2_captureparm *cp = &parms->parm.capture;
+	struct v4l2_fract *tpf = &cp->timeperframe;
+	struct sensor_info *info = to_state(sd);
+	unsigned char div;
+	
+	csi_dev_dbg("sensor_s_parm\n");
+	
+	if (parms->type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
+		return -EINVAL;
+	
+	if (info->tpf.numerator == 0)
+		return -EINVAL;
+		
+	info->capture_mode = cp->capturemode;
+	
+	if (info->capture_mode == V4L2_MODE_IMAGE) {
+		csi_dev_dbg("capture mode is not video mode,can not set frame rate!\n");
+		return 0;
+	}
+		
+	if (tpf->numerator == 0 || tpf->denominator == 0)	{
+		tpf->numerator = 1;
+		tpf->denominator = 30;/* Reset to full rate */
+		csi_dev_err("sensor frame rate reset to full rate!\n");
+	}
+	
+	div = SENSOR_FRAME_RATE/(tpf->denominator/tpf->numerator);
+	if(div > 15) 
+		return -EINVAL;
 	
 	csi_dev_dbg("set frame rate %d\n",tpf->denominator/tpf->numerator);
 	
