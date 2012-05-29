@@ -1,10 +1,10 @@
 ===========================================
 
-Version: V1_20
+Version: V1_21
 
 Author:  raymonxiu
 
-Date:     2012-5-24 17:18:36
+Date:     2012-5-29 15:23:25
 
 Description:
 
@@ -24,6 +24,12 @@ insmod sun4i_csiX.ko ccm="ov5640" i2c_addr=0x78
 insmod sun4i_csiX.ko ccm="gc2015" i2c_addr=0x60
 insmod sun4i_csiX.ko ccm="ov2643" i2c_addr=0x60
 insmod sun4i_csiX.ko ccm="gc0329" i2c_addr=0x62
+insmod sun4i_csiX.ko ccm="gc0309" i2c_addr=0x42
+
+V1_21
+CSI: Adjust the ov5640 io drive cap to maximum
+1) Adjust io drive
+2) Add s_fps function
 
 V1_20
 CSI: Fine tune ov5640 and add autofocus function
