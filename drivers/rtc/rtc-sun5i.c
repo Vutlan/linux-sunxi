@@ -219,12 +219,11 @@ static int pcf8563_set_datetime(struct i2c_client *client, struct rtc_time *tm)
     *the input para tm->tm_year is the offset related 1900;
     */
 	leap_year = tm->tm_year + 1900;
-	if(leap_year > 2073 || leap_year < 2010) {
-		dev_err(&client->dev, "rtc only supports 63£¨2010¡«2073£© years\n");
+	if(leap_year > 2069 || leap_year < 1970) {
+		dev_err(&client->dev, "rtc only supports 100£¨1970¡«2069£© years\n");
 		return -EINVAL;
 	}
-	/*hardware base time:1900, but now set the default start time to 2010*/
-	tm->tm_year -= 110;
+
 	/* month is 1..12 in RTC but 0..11 in linux*/
 	tm->tm_mon  += 1;
 
@@ -384,7 +383,7 @@ static int pcf8563_get_datetime(struct i2c_client *client, struct rtc_time *tm)
 	tm->tm_mon = bcd2bin(buf[PCF8563_REG_MO] & 0x1F) - 1; /* month is 1..12 in RTC but 0..11 in linux*/
 	tm->tm_year = bcd2bin(buf[PCF8563_REG_YR]);
 	if (tm->tm_year < 70)
-		tm->tm_year += 110;	/* assume we are in 2010...2079 */
+		tm->tm_year += 100;	/* assume we are in 1970...2069 */
 	/* detect the polarity heuristically. see note above. */
 	pcf8563->c_polarity = (buf[PCF8563_REG_MO] & PCF8563_MO_C) ?
 		(tm->tm_year >= 100) : (tm->tm_year < 100);
@@ -396,7 +395,6 @@ static int pcf8563_get_datetime(struct i2c_client *client, struct rtc_time *tm)
 		ret = pcf8563_set_datetime(client, tm);
 	}
 	#endif
-
 	/* the clock can give out invalid datetime, but we cannot return
 	 * -EINVAL otherwise hwclock will refuse to set the time on bootup.
 	 */
@@ -591,7 +589,7 @@ out:
 static irqreturn_t pcf8563_irq_handle(int irq, void *dev_id)
 {
 	struct pcf8563 *pcf8563 = dev_id;
-	//printk("%s,%d,irq:%d\n", __func__, __LINE__, irq);
+
 	(void)schedule_work(&pcf8563->work);
 	return IRQ_HANDLED;
 }
@@ -676,7 +674,7 @@ static int pcf8563_read_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 	stat_year = ret;
 	alm_tm->tm_year = bcd2bin(stat_year & 0xFF);
 	if (alm_tm->tm_year < 70) {
-		alm_tm->tm_year += 110;	/* assume we are in 2010...2079 */
+		alm_tm->tm_year += 100;	/* assume we are in 1970...2069 */
 	}
 	ret = 0;
 
