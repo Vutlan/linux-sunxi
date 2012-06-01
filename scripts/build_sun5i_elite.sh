@@ -53,7 +53,7 @@ build_kernel()
 {
 	if [ ! -e .config ]; then
 		echo -e "\n\t\tUsing default config... ...!\n"
-		cp arch/arm/configs/a12_nuclear_defconfig .config
+		cp arch/arm/configs/sun5i_elite_defconfig .config
 	fi
 
 	build_standby
