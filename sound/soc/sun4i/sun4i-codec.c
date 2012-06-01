@@ -36,7 +36,6 @@
 #include <mach/system.h>
 
 #define SCRIPT_AUDIO_OK (0)
-static int gpio_pa_shutdown = 0;
 struct clk *codec_apbclk,*codec_pll2clk,*codec_moduleclk;
 
 static volatile unsigned int capture_dmasrc = 0;
@@ -410,7 +409,6 @@ static int codec_capture_open(void)
 
 static int codec_play_start(void)
 {
-	gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");
 	//flush TX FIFO
 	codec_wr_control(SUN4I_DAC_FIFOC ,0x1, DAC_FIFO_FLUSH, 0x1);
 	//enable dac drq
@@ -419,9 +417,7 @@ static int codec_play_start(void)
 }
 
 static int codec_play_stop(void)
-{	
-	//pa mute
-	gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");
+{
 	codec_wr_control(SUN4I_DAC_ACTL, 0x1, PA_MUTE, 0x0);
 	mdelay(5);
 	//disable dac drq
@@ -438,7 +434,6 @@ static int codec_play_stop(void)
 static int codec_capture_start(void)
 {
 	//enable adc drq
-	gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");
 	codec_wr_control(SUN4I_ADC_FIFOC ,0x1, ADC_DRQ, 0x1);
 	return 0;
 }
@@ -1486,8 +1481,7 @@ static void codec_resume_events(struct work_struct *work)
 		
 	codec_wr_control(SUN4I_DAC_ACTL, 0x1, 	DACPAS, 0x1);	
     msleep(50);
-	printk("====pa turn on===\n");	
-	gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");		
+	printk("====pa turn on===\n");
 }
 
 static int __init sun4i_codec_probe(struct platform_device *pdev)
@@ -1499,7 +1493,7 @@ static int __init sun4i_codec_probe(struct platform_device *pdev)
 	struct codec_board_info  *db;    
     printk("enter sun4i Audio codec!!!\n"); 
 	/* register the soundcard */
-	ret = snd_card_create(0, "sun4i-codec", THIS_MODULE, sizeof(struct sun4i_codec), 
+	ret = snd_card_create(SNDRV_DEFAULT_IDX1, SNDRV_DEFAULT_STR1, THIS_MODULE, sizeof(struct sun4i_codec),
 			      &card);
 	if (ret != 0) {
 		return -ENOMEM;
@@ -1586,20 +1580,14 @@ static int __init sun4i_codec_probe(struct platform_device *pdev)
 	 }
 
 	 kfree(db);
-	 gpio_pa_shutdown = gpio_request_ex("audio_para", "audio_pa_ctrl");
-	 if(!gpio_pa_shutdown) {
-		printk("audio codec_wakeup request gpio fail!\n");
-		goto out;
-	}
-	 gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");	
-	 codec_init(); 
-	 gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");	 
+	 codec_init();
 	 resume_work_queue = create_singlethread_workqueue("codec_resume");
 	 if (resume_work_queue == NULL) {
         printk("[su4i-codec] try to create workqueue for codec failed!\n");
 		ret = -ENOMEM;
 		goto err_resume_work_queue;
 	}
+
 	 printk("sun4i Audio codec successfully loaded..\n");
 	 return 0;
      err_resume_work_queue:
@@ -1618,8 +1606,6 @@ static int __init sun4i_codec_probe(struct platform_device *pdev)
 static int snd_sun4i_codec_suspend(struct platform_device *pdev,pm_message_t state)
 {
 	printk("[audio codec]:suspend start5000\n");
-	gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");
-	mdelay(50);
 	codec_wr_control(SUN4I_ADC_ACTL, 0x1, PA_ENABLE, 0x0);
 	mdelay(100);
 	//pa mute
@@ -1671,8 +1657,6 @@ static int __devexit sun4i_codec_remove(struct platform_device *devptr)
 
 static void sun4i_codec_shutdown(struct platform_device *devptr)
 {	
-	gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");
-	mdelay(50);
 	codec_wr_control(SUN4I_ADC_ACTL, 0x1, PA_ENABLE, 0x0);
 	mdelay(100);
 	//pa mute
