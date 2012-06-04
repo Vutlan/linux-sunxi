@@ -43,11 +43,11 @@ struct cpufreq_dvfs {
     unsigned int    volt;   /* voltage for the frequency    */
 };
 static struct cpufreq_dvfs dvfs_table[] = {
-    {.freq = 1104000000, .volt = 1500}, /* core vdd is 1.40v if cpu frequency is (1008Mhz, 1104Mhz] */
-    {.freq = 1008000000, .volt = 1400}, /* core vdd is 1.35v if cpu frequency is (912Mhz, 1008Mhz]  */
-    {.freq = 912000000,  .volt = 1350}, /* core vdd is 1.30v if cpu frequency is (864Mhz, 912Mhz]   */
-    {.freq = 864000000,  .volt = 1300}, /* core vdd is 1.20v if cpu frequency is (624Mhz, 864Mhz]   */
-    {.freq = 624000000,  .volt = 1200}, /* core vdd is 1.10v if cpu frequency is (576Mhz, 624Mhz]   */
+    {.freq = 1104000000, .volt = 1500}, /* core vdd is 1.50v if cpu frequency is (1008Mhz, 1104Mhz] */
+    {.freq = 1008000000, .volt = 1400}, /* core vdd is 1.40v if cpu frequency is (912Mhz, 1008Mhz]  */
+    {.freq = 912000000,  .volt = 1350}, /* core vdd is 1.35v if cpu frequency is (864Mhz, 912Mhz]   */
+    {.freq = 864000000,  .volt = 1300}, /* core vdd is 1.30v if cpu frequency is (624Mhz, 864Mhz]   */
+    {.freq = 624000000,  .volt = 1200}, /* core vdd is 1.20v if cpu frequency is (576Mhz, 624Mhz]   */
     {.freq = 576000000,  .volt = 1100}, /* core vdd is 1.10v if cpu frequency is (432Mhz, 576Mhz]   */
     {.freq = 432000000,  .volt = 1000}, /* core vdd is 1.00v if cpu frequency is (240Mhz, 432Mhz]   */
 //    {.freq = 240000000,  .volt = 900 }, /* core vdd is 0.90v if cpu frequency is (150Mhz, 240Mhz    */
