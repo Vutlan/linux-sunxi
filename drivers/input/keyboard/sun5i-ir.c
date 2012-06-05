@@ -42,6 +42,8 @@ static u32 ir_gpio_hdle;
 #define SYS_CLK_CFG_EN
 #endif
 
+#define REPORT_REPEAT_KEY_VALUE
+
 #define SYS_GPIO_CFG_EN
 //#define DEBUG_IR
 #define PRINT_SUSPEND_INFO
