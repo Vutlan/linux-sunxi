@@ -54,7 +54,7 @@ static struct plat_serial8250_port debug_uart_platform_data[] = {
 		.flags          = 0,
 	}
  };
- 
+
 static struct platform_device debug_uart = {
 	.name = "serial8250",
 	.id = PLAT8250_DEV_PLATFORM,
