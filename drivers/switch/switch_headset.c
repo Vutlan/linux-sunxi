@@ -53,7 +53,7 @@
 static int gpio_earphone_switch = 0;
 static void __iomem *tpadc_base;
 static int count_state;
-//static int switch_state = 0;
+static int switch_used = 0;
 
 struct gpio_switch_data {
 	struct switch_dev sdev;
@@ -298,20 +298,31 @@ static struct platform_device gpio_switch_device = {
 static int __init gpio_switch_init(void)
 {
 	int ret = 0;
-
-	ret = platform_device_register(&gpio_switch_device);
-	if (ret == 0) {
-		ret = platform_driver_register(&gpio_switch_driver);
+	ret = script_parser_fetch("switch_para","switch_used", &switch_used, sizeof(int));
+	if (ret) {
+        printk("[switch]switch_headset init fetch para using configuration failed\n");
+        return -1;
+    }
+    if (switch_used) {
+		ret = platform_device_register(&gpio_switch_device);
+		if (ret == 0) {
+			ret = platform_driver_register(&gpio_switch_driver);
+		}
+	} else {
+		SWITCH_DBG("[switch]switch headset cannot find any using configuration for controllers, return directly!\n");
+		return 0;
 	}
-
 	return ret;
 }
 
 static void __exit gpio_switch_exit(void)
 {
 	SWITCH_DBG("enter:%s,line:%d\n", __func__, __LINE__);
-	platform_driver_unregister(&gpio_switch_driver);
-	platform_device_unregister(&gpio_switch_device);
+	if (switch_used) {
+		switch_used = 0;
+		platform_driver_unregister(&gpio_switch_driver);
+		platform_device_unregister(&gpio_switch_device);
+	}
 }
 module_init(gpio_switch_init);
 module_exit(gpio_switch_exit);

@@ -242,7 +242,7 @@ static struct snd_soc_dai_link sun4i_sndspdif_dai_link = {
 };
 
 static struct snd_soc_card snd_soc_sun4i_sndspdif = {
-	.name 		= "sun4i-sndspdif",
+	.name 		= "sndspdif",
 	.dai_link 	= &sun4i_sndspdif_dai_link,
 	.num_links 	= 1,
 };
@@ -253,7 +253,7 @@ static int __init sun4i_sndspdif_init(void)
 {
 	int ret;
 	int ret2;
-	
+
 	ret2 = script_parser_fetch("spdif_para","spdif_used", &spdif_used, sizeof(int));
 	if (ret2) {
         printk("[SPDIF]sun4i_sndspdif_init fetch spdif using configuration failed\n");

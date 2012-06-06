@@ -36,6 +36,7 @@
 #include <mach/system.h>
 
 #define SCRIPT_AUDIO_OK (0)
+static int capture_used = 0;
 struct clk *codec_apbclk,*codec_pll2clk,*codec_moduleclk;
 
 static volatile unsigned int capture_dmasrc = 0;
@@ -1448,12 +1449,21 @@ static int __init snd_card_sun4i_codec_pcm(struct sun4i_codec *sun4i_codec, int 
 	snd_pcm_lib_preallocate_pages_for_all(pcm, SNDRV_DMA_TYPE_DEV, 
 					      snd_dma_isa_data(),
 					      32*1024, 32*1024);
+
+	err = script_parser_fetch("audio_para","capture_used", &capture_used, sizeof(int));
+	if (err) {
+		return -1;
+        printk("[audiocodec]capture using configuration failed\n");
+    }
+
 	/*
 	*	设置PCM操作，第1个参数是snd_pcm的指针，第2 个参数是SNDRV_PCM_STREAM_PLAYBACK
 	*	或SNDRV_ PCM_STREAM_CAPTURE，而第3 个参数是PCM 操作结构体snd_pcm_ops
 	*/
 	snd_pcm_set_ops(pcm, SNDRV_PCM_STREAM_PLAYBACK, &sun4i_pcm_playback_ops);
-	snd_pcm_set_ops(pcm, SNDRV_PCM_STREAM_CAPTURE, &sun4i_pcm_capture_ops);
+	if (capture_used) {
+		snd_pcm_set_ops(pcm, SNDRV_PCM_STREAM_CAPTURE, &sun4i_pcm_capture_ops);
+	}
 	pcm->private_data = sun4i_codec;//置pcm->private_data为芯片特定数据
 	pcm->info_flags = 0;
 	strcpy(pcm->name, "sun4i PCM");
@@ -1504,26 +1514,24 @@ static int __init sun4i_codec_probe(struct platform_device *pdev)
 	card->private_free = snd_sun4i_codec_free;//card私有数据释放
 	chip->card = card;
 	chip->samplerate = AUDIO_RATE_DEFAULT;
-
 	/* 
 	*	mixer,注册control(mixer)接口
 	*	创建一个control至少要实现snd_kcontrol_new中的info(),get()和put()这三个成员函数
 	*/
 	if ((err = snd_chip_codec_mixer_new(card)))
 		goto nodev;
-
 	/* 
 	*	PCM,录音放音相关，注册PCM接口
 	*/
 	if ((err = snd_card_sun4i_codec_pcm(chip, 0)) < 0)
 	    goto nodev;
-        
+
 	strcpy(card->driver, "sun4i-CODEC");
-	strcpy(card->shortname, "sun4i-CODEC");
+	strcpy(card->shortname, "audiocodec");
 	sprintf(card->longname, "sun4i-CODEC  Audio Codec");
-        
+
 	snd_card_set_dev(card, &pdev->dev);
-	
+
 	//注册card
 	if ((err = snd_card_register(card)) == 0) {
 		printk( KERN_INFO "sun4i audio support initialized\n" );
@@ -1534,7 +1542,7 @@ static int __init sun4i_codec_probe(struct platform_device *pdev)
 
 	db = kzalloc(sizeof(*db), GFP_KERNEL);
 	if (!db)
-		return -ENOMEM; 
+		return -ENOMEM;
   	/* codec_apbclk */
 	codec_apbclk = clk_get(NULL,"apb_audio_codec");
 	if (-1 == clk_enable(codec_apbclk)) {
