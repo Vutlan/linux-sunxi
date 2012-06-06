@@ -105,7 +105,7 @@ u32 csp_dma_chan_get_status(struct dma_channel_t * pchan)
 
 /**
  * csp_dma_chan_get_cur_srcaddr - get dma channel's cur src addr reg value
- * 
+ *
  * Returns the channel's cur src addr reg value
  */
 u32 csp_dma_chan_get_cur_srcaddr(struct dma_channel_t * pchan)
@@ -116,7 +116,7 @@ u32 csp_dma_chan_get_cur_srcaddr(struct dma_channel_t * pchan)
 /**
  * csp_dma_chan_get_cur_dstaddr - get dma channel's cur dst addr reg value
  * @pchan:	dma channel handle
- * 
+ *
  * Returns the channel's cur dst addr reg value
  */
 u32 csp_dma_chan_get_cur_dstaddr(struct dma_channel_t * pchan)
@@ -127,7 +127,7 @@ u32 csp_dma_chan_get_cur_dstaddr(struct dma_channel_t * pchan)
 /**
  * csp_dma_chan_get_left_bytecnt - get dma channel's left byte cnt
  * @pchan:	dma channel handle
- * 
+ *
  * Returns the channel's left byte cnt
  */
 u32 csp_dma_chan_get_left_bytecnt(struct dma_channel_t * pchan)
@@ -138,7 +138,7 @@ u32 csp_dma_chan_get_left_bytecnt(struct dma_channel_t * pchan)
 /**
  * csp_dma_chan_get_startaddr - get dma channel's start address reg value
  * @pchan:	dma channel handle
- * 
+ *
  * Returns the dma channel's start address reg value
  */
 u32 csp_dma_chan_get_startaddr(struct dma_channel_t *pchan)
@@ -171,7 +171,7 @@ void csp_dma_chan_irq_enable(struct dma_channel_t * pchan, u32 irq_type)
 /**
  * csp_dma_chan_get_status - get dma channel irq pending val
  * @pchan:	dma channel handle
- * 
+ *
  * Returns the irq pend value, eg: 0b101
  */
 u32 csp_dma_chan_get_irqpend(struct dma_channel_t * pchan)
@@ -195,7 +195,7 @@ u32 csp_dma_chan_get_irqpend(struct dma_channel_t * pchan)
  * csp_dma_chan_config - config the dma channel, then can start dma
  * @pchan:	dma channel handle
  * @pCfg:	dma config para
- * 
+ *
  * should be called before start dma.
  */
 void csp_dma_chan_config(struct dma_channel_t * pchan, struct dma_config_t * pCfg)
@@ -204,7 +204,7 @@ void csp_dma_chan_config(struct dma_channel_t * pchan, struct dma_config_t * pCf
 
 	/* src/dst burst length and data width */
 	uConfig |= xfer_arr[pCfg->xfer_type];
-	
+
 	/* src/dst address mode */
 	uConfig |= addrtype_arr[pCfg->address_type];
 
@@ -215,7 +215,7 @@ void csp_dma_chan_config(struct dma_channel_t * pchan, struct dma_config_t * pCf
 
 	/* irq enable */
 	csp_dma_chan_irq_enable(pchan, pCfg->irq_spt);
-	
+
 	/* para reg */
 	DMA_WRITE_REG(pCfg->para, pchan->reg_base + DMA_OFF_REG_PARA);
 }
@@ -244,14 +244,14 @@ void csp_dma_chan_clear_irqpend(struct dma_channel_t * pchan, u32 irq_type)
 /**
  * csp_dma_clear_irqpend - clear dma irq pending register
  * @index:	irq pend reg index, 0 or 1
- * 
+ *
  * Returns the irq pend value before cleared, 0xffffffff if failed
  */
 u32 csp_dma_clear_irqpend(u32 index)
 {
 	u32 	uret = 0;
 	u32 	ureg_addr = 0;
-	
+
 	if(0 == index) {
 		ureg_addr = (u32)DMA_IRQ_PEND_REG0;
 	} else if(1 == index){
@@ -260,10 +260,10 @@ u32 csp_dma_clear_irqpend(u32 index)
 		DMA_ERR_FUN_LINE;
 		return 0xffffffff;
 	}
-	
+
 	uret = DMA_READ_REG(ureg_addr);
 	DMA_WRITE_REG(uret, ureg_addr);
-	
+
 	return uret;
 }
 

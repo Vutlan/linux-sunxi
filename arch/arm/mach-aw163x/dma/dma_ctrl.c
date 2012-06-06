@@ -25,13 +25,13 @@ void __dma_dump_buf_chain(struct dma_channel_t *pchan)
 	struct des_mgr_t *pdes_mgr = pchan->pdes_mgr;
 
 	DMA_INF("+++++++++++%s+++++++++++\n", __FUNCTION__);
-	
+
 	while(NULL != pdes_mgr) {
 		if(0 == pdes_mgr->des_num) {
 			DMA_DBG_FUN_LINE; /* des_num never be 0 since pdes_mgr valid */
 			break;
 		}
-		
+
 		DMA_INF("pdes_mgr 0x%08x, des_num %d\n", (u32)pdes_mgr, pdes_mgr->des_num);
 		for(i = 0; i < pdes_mgr->des_num; i++) {
 			DMA_INF("cofig/saddr/daddr/bcnt/param/pnext:0x%08x, 0x%08x, 0x%08x, 0x%08x, 0x%08x, 0x%08x\n", \
@@ -39,10 +39,10 @@ void __dma_dump_buf_chain(struct dma_channel_t *pchan)
 				pdes_mgr->pdes[i].bcnt, pdes_mgr->pdes[i].param, (u32)pdes_mgr->pdes[i].pnext);
 		}
 		DMA_INF("\n");
-		
+
 		pdes_mgr = pdes_mgr->pnext;
 	}
-	
+
 	DMA_INF("-----------%s-----------\n", __FUNCTION__);
 }
 
@@ -51,14 +51,14 @@ void __dma_dump_buf_chain(struct dma_channel_t *pchan)
  * @dma_hdl:	dma handle
  *
  * Returns 0 if sucess, the err line number if failed.
- * 
+ *
  * start op can in these state:
  * idle: 	the first start, or after stop. make sure queue is valid.
  * wait_qd: 	need restart so state from running to wait_qd in hd_cb/fd_cb/qd_cb/normal queueing, des is new.
  *  		  so let __dma_chan_handle_qd start the new queue(from begin of des)
  * done: 	__dma_chan_handle_qd has done the queue, and no new buffer queued, handle_qd
  * 		 will clear des, change state to done, if sw_dma_enqueue(normal) queued new buffer after
- *		 that, it will start the buffer. 
+ *		 that, it will start the buffer.
  */
 u32 dma_start(dm_hdl_t dma_hdl)
 {
@@ -66,7 +66,7 @@ u32 dma_start(dm_hdl_t dma_hdl)
 	u32 	udes_paddr = 0;
 	struct dma_channel_t *pchan = (struct dma_channel_t *)dma_hdl;
 
-	if(NULL == pchan || NULL == pchan->pdes_mgr 
+	if(NULL == pchan || NULL == pchan->pdes_mgr
 		|| NULL == pchan->pdes_mgr->pdes
 		|| 0 == pchan->pdes_mgr->des_pa) {
 		uRet = __LINE__;
@@ -81,7 +81,7 @@ u32 dma_start(dm_hdl_t dma_hdl)
 	//udes_paddr = virt_to_phys((void *)pchan->pdes_mgr->pdes); /* err */
 	udes_paddr = pchan->pdes_mgr->des_pa;
 	DMA_WRITE_REG(udes_paddr, pchan->reg_base + DMA_OFF_REG_START);
-	
+
 	//DMA_DBG("%s: write 0x%08x to reg 0x%08x\n", __FUNCTION__, udes_paddr, pchan->reg_base + DMA_OFF_REG_START);
 
 	/* start dma */
@@ -106,7 +106,7 @@ End:
  */
 u32 dma_pause(dm_hdl_t dma_hdl)
 {
-	/* 
+	/*
 	 * do something if needed...
 	 */
 
@@ -122,7 +122,7 @@ u32 dma_pause(dm_hdl_t dma_hdl)
  */
 u32 dma_resume(dm_hdl_t dma_hdl)
 {
-	/* 
+	/*
 	 * do something if needed...
 	 */
 
@@ -214,7 +214,7 @@ End:
  */
 u32 dma_get_status(dm_hdl_t dma_hdl, u32 *pval)
 {
-	/* 
+	/*
 	 * do something if needed...
 	 */
 
@@ -230,7 +230,7 @@ u32 dma_get_status(dm_hdl_t dma_hdl, u32 *pval)
  */
 u32 dma_get_cur_src_addr(dm_hdl_t dma_hdl, u32 *pval)
 {
-	/* 
+	/*
 	 * do something if needed...
 	 */
 
@@ -246,7 +246,7 @@ u32 dma_get_cur_src_addr(dm_hdl_t dma_hdl, u32 *pval)
  */
 u32 dma_get_cur_dst_addr(dm_hdl_t dma_hdl, u32 *pval)
 {
-	/* 
+	/*
 	 * do something if needed...
 	 */
 
@@ -262,7 +262,7 @@ u32 dma_get_cur_dst_addr(dm_hdl_t dma_hdl, u32 *pval)
  */
 u32 dma_get_left_bytecnt(dm_hdl_t dma_hdl, u32 *pval)
 {
-	/* 
+	/*
 	 * do something if needed...
 	 */
 

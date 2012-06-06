@@ -18,7 +18,7 @@
 /**
  * dma_drv_probe - dma driver inital function.
  * @dev:	XXXXXXX
- * 
+ *
  * Returns 0 if success, otherwise return the err line number.
  */
 static int __devinit dma_drv_probe(struct platform_device *dev)

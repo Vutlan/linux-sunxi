@@ -32,12 +32,12 @@
 	#define DMA_INF(format,args...)   printk("[dma-inf] "format,##args)
 	#define DMA_ERR(format,args...)   printk("[dma-err] "format,##args)
 #elif (DMA_DBG_LEVEL == 2)
-	#define DMA_DBG(format,args...)   
+	#define DMA_DBG(format,args...)
 	#define DMA_INF(format,args...)   printk("[dma-inf] "format,##args)
 	#define DMA_ERR(format,args...)   printk("[dma-err] "format,##args)
 #elif (DMA_DBG_LEVEL == 3)
-	#define DMA_DBG(format,args...)   
-	#define DMA_INF(format,args...)   
+	#define DMA_DBG(format,args...)
+	#define DMA_INF(format,args...)
 	#define DMA_ERR(format,args...)   printk("[dma-err] "format,##args)
 #endif
 
@@ -132,7 +132,7 @@ struct dma_channel_t {
 	u32		reg_base;	/* regs base addr */
 	u32		bconti_mode;	/* cotinue mode */
 
-	/* channel irq supprot type, used for irq handler 
+	/* channel irq supprot type, used for irq handler
 	 * only enabled then can call irq callback function
 	 */
 	u32 		irq_spt;
@@ -141,10 +141,10 @@ struct dma_channel_t {
 	struct dma_cb_t		fd_cb;		/* full done call back func */
 	struct dma_cb_t		qd_cb;		/* queue done call back func */
 	struct dma_op_cb_t	op_cb;		/* dma operation call back func */
-	
+
 	struct des_mgr_t	*pdes_mgr;	/* dma config descriptor manager */
 	struct des_save_info_t	des_info_save;	/* save the last descriptor for enqueue, when enqueue with no
-						 * no config/para: 
+						 * no config/para:
 						 * (1) state is running or idle, use the above des's config/para
 						 * (2) state is done, des are all cleared, use des_info_save, so
 						 *	we should bkup des_info_save when done.

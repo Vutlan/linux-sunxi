@@ -51,7 +51,7 @@ bool __need_restart_dma(struct dma_channel_t *pchan)
 bool __des_chain_is_empty(struct dma_channel_t *pchan)
 {
 #ifdef DBG_DMA
-	if(NULL == pchan->pdes_mgr 
+	if(NULL == pchan->pdes_mgr
 		|| NULL == pchan->pdes_mgr->pdes
 		|| 0 == pchan->pdes_mgr->des_pa) {
 		DMA_ERR_FUN_LINE;
@@ -86,12 +86,12 @@ u32 __add_des_to_chain(struct dma_channel_t *pchan, struct cofig_des_t *pdes)
 	struct des_mgr_t 	*pdes_mgr = NULL;
 	struct cofig_des_t	*pdes_new = NULL;
 	struct des_mgr_t 	*pdes_mgr_new = NULL;
-	
+
 	/*
-	 * add a des to the end of the chain. 
+	 * add a des to the end of the chain.
 	 * NOTE: not consider pdes->pnext. so it's common for conti-mod/not_conti-mod.
 	 *	the lase des's pnext is 0xFFFFF800(not_continue_mode) or not_0xFFFFF800(continue_mode)
-	 * 
+	 *
 	 * (1) des chain is empty, queue to pchan->pdes_mgr->pdes[0], pchan->pdes_mgr->des_num++
 	 * (2) des chain not empty:
 	 * 	1. there are empty space in cur pdes_mgr, just enqueue to end, des_num++
@@ -107,7 +107,7 @@ u32 __add_des_to_chain(struct dma_channel_t *pchan, struct cofig_des_t *pdes)
 	 */
 
 #ifdef DBG_DMA
-	if(NULL == pchan->pdes_mgr 
+	if(NULL == pchan->pdes_mgr
 		|| NULL == pchan->pdes_mgr->pdes
 		|| 0 == pchan->pdes_mgr->des_pa) {
 		uret = __LINE__;
@@ -129,7 +129,7 @@ u32 __add_des_to_chain(struct dma_channel_t *pchan, struct cofig_des_t *pdes)
 	pdes_mgr = pchan->pdes_mgr;
 	while(NULL != pdes_mgr->pnext)
 		pdes_mgr = pdes_mgr->pnext;
-	
+
 	/* check if there is space left */
 	des_num = pdes_mgr->des_num;
 #ifdef DBG_DMA
@@ -159,10 +159,10 @@ u32 __add_des_to_chain(struct dma_channel_t *pchan, struct cofig_des_t *pdes)
 			uret = __LINE__;
 			goto End;
 		}
-		
+
 		DMA_INF("%s: dma_pool_alloc return va 0x%08x, pa 0x%08x, virt_to_phys(va) 0x%08x\n", \
 			__FUNCTION__, (u32)pdes_new, des_new_paddr, (u32)virt_to_phys(pdes_new));
-		
+
 		pdes_mgr_new = kmem_cache_alloc(g_pdma_des_mgr, GFP_ATOMIC);
 		if (NULL == pdes_mgr_new) {
 			uret = __LINE__;
@@ -174,7 +174,7 @@ u32 __add_des_to_chain(struct dma_channel_t *pchan, struct cofig_des_t *pdes)
 		pdes_mgr_new->des_num = 0;
 		pdes_mgr_new->pnext = NULL;
 #endif /* DBG_DMA */
-		
+
 		/* install des to the pdes_mgr_new's head */
 		memcpy(&pdes_new[0], pdes, sizeof(struct cofig_des_t));
 
@@ -201,7 +201,7 @@ End:
 		DMA_ERR("%s err, line %d\n", __FUNCTION__, uret);
 
 		DMA_DBG_FUN_LINE_TODO;
-		
+
 		/* free des and des mgr alloced */
 		if (NULL != pdes_new) {
 			dma_pool_free(g_pdma_pool, pdes_new, des_new_paddr);
@@ -215,7 +215,6 @@ End:
 	}
 
 	return uret;
-	
 }
 
 /**
@@ -229,7 +228,7 @@ u32 dma_chan_init_main_des(struct dma_channel_t *pchan)
 {
 //#ifdef DBG_DMA
 #if 0	/* already checked outside */
-	if(NULL == pchan 
+	if(NULL == pchan
 		|| NULL == pchan->pdes_mgr
 		|| NULL == pchan->pdes_mgr->pdes
 		|| 0 == pchan->pdes_mgr->des_pa) {
@@ -237,7 +236,7 @@ u32 dma_chan_init_main_des(struct dma_channel_t *pchan)
 		return __LINE__;
 	}
 #endif /* DBG_DMA */
-	
+
 	/* clear main des */
 	DMA_DBG_FUN_LINE_TOCHECK; /* todo: just clear the first des */
 	memset(pchan->pdes_mgr->pdes, 0, DES_AREA_LEN);
@@ -263,8 +262,8 @@ u32 dma_clean_des(struct dma_channel_t *pchan)
 
 #ifdef DBG_DMA
 	/* para check */
-	if(NULL == pchan 
-		|| NULL == pchan->pdes_mgr 
+	if(NULL == pchan
+		|| NULL == pchan->pdes_mgr
 		|| NULL == pchan->pdes_mgr->pdes
 		|| 0 == pchan->pdes_mgr->des_pa) {
 		DMA_ERR_FUN_LINE;
@@ -285,7 +284,7 @@ u32 dma_clean_des(struct dma_channel_t *pchan)
 		return 0;
 	} else {
 		DMA_DBG_FUN_LINE;
-		
+
 		pcur = pchan->pdes_mgr->pnext;
 		pnext = pcur->pnext;
 
@@ -300,7 +299,7 @@ u32 dma_clean_des(struct dma_channel_t *pchan)
 				break;
 			} else {
 				DMA_INF("%s, line %d\n", __FUNCTION__, __LINE__);
-				
+
 				/* free pcur */
 				dma_pool_free(g_pdma_pool, pcur->pdes, pcur->des_pa);
 				kmem_cache_free(g_pdma_des_mgr, pcur);
@@ -313,7 +312,7 @@ u32 dma_clean_des(struct dma_channel_t *pchan)
 		/* init main des/des_mgr */
 		dma_chan_init_main_des(pchan);
 	}
-	
+
 End:
 	if(0 != uRet) {
 		DMA_ERR("%s err, line %d\n", __FUNCTION__, uRet);
@@ -335,13 +334,13 @@ u32 __dma_enqueue_contimode(dm_hdl_t dma_hdl, struct cofig_des_t *pdes)
 	u32 	upaddr = 0;
 	struct dma_channel_t *pchan = (struct dma_channel_t *)dma_hdl;
 
-	/* 
-	 * when continue mode: never queue done, start address reg never be 0xfffff800, 
-	 * so just pause->queue->resume 
+	/*
+	 * when continue mode: never queue done, start address reg never be 0xfffff800,
+	 * so just pause->queue->resume
 	 */
-	
-	/* 
-	 * change pdes->pnext to physcal address of &pchan->pdes_mgr->pdes[0] 
+
+	/*
+	 * change pdes->pnext to physcal address of &pchan->pdes_mgr->pdes[0]
 	 */
 #ifdef DBG_DMA
 	if(NULL == pdes) {
@@ -364,7 +363,7 @@ u32 __dma_enqueue_contimode(dm_hdl_t dma_hdl, struct cofig_des_t *pdes)
 			goto End;
 		}
 		break;
-	
+
 	case DMA_CHAN_STA_RUNING:
 		DMA_DBG("%s: state running, make sure des chain is NOT empty\n", __FUNCTION__);
 #ifdef DBG_DMA
@@ -395,10 +394,10 @@ u32 __dma_enqueue_contimode(dm_hdl_t dma_hdl, struct cofig_des_t *pdes)
 			uret = __LINE__;
 			goto End;
 		}
-		
+
 		//pchan->state = DMA_CHAN_STA_RUNING; /* state remain running */
 		break;
-	
+
 	default: /* never be wait_qd/done state */
 		uret = __LINE__;
 		goto End;
@@ -411,7 +410,7 @@ End:
 
 	return uret;
 }
-	
+
 /**
  * __dma_enqueue_phase_normal - XXXXXX
  * XXXXXX
@@ -423,7 +422,7 @@ u32 __dma_enqueue_phase_normal(dm_hdl_t dma_hdl, struct cofig_des_t *pdes)
 {
 	u32 	uret = 0;
 	struct dma_channel_t *pchan = (struct dma_channel_t *)dma_hdl;
-	
+
 	/*
 	 * called from app
 	 * so state:
@@ -448,7 +447,7 @@ u32 __dma_enqueue_phase_normal(dm_hdl_t dma_hdl, struct cofig_des_t *pdes)
 			goto End;
 		}
 		break;
-	
+
 	case DMA_CHAN_STA_RUNING:
 		DMA_DBG("%s: state running, make sure des chain is NOT empty\n", __FUNCTION__);
 		if(true == __need_restart_dma(pchan)) { /* cannot queue to end, need restart but qd irq not yet handled */
@@ -486,11 +485,11 @@ u32 __dma_enqueue_phase_normal(dm_hdl_t dma_hdl, struct cofig_des_t *pdes)
 				uret = __LINE__;
 				goto End;
 			}
-			
+
 			//pchan->state = DMA_CHAN_STA_RUNING; /* state remain running */
 		}
 		break;
-	
+
 	case DMA_CHAN_STA_WAIT_QD:
 		DMA_DBG("%s: state wait_qd, make sure des chain is NOT empty\n", __FUNCTION__);
 #ifdef DBG_DMA
@@ -509,7 +508,7 @@ u32 __dma_enqueue_phase_normal(dm_hdl_t dma_hdl, struct cofig_des_t *pdes)
 			goto End;
 		}
 		break;
-	
+
 	case DMA_CHAN_STA_DONE:
 		DMA_DBG("%s: state done, make sure des chain is empty\n", __FUNCTION__);
 #ifdef DBG_DMA
@@ -536,7 +535,7 @@ u32 __dma_enqueue_phase_normal(dm_hdl_t dma_hdl, struct cofig_des_t *pdes)
 			goto End;
 		}
 		break;
-	
+
 	default:
 		uret = __LINE__;
 		goto End;
@@ -566,7 +565,7 @@ u32 __dma_enqueue_phase_hd(dm_hdl_t dma_hdl, struct cofig_des_t *pdes)
 	 * called from hd_cb
 	 * so state:
 	 * 	idle: 	  maybe stopped somewhere, err
-	 * 	running:  
+	 * 	running:
 	 *		(1) need restart(start addr reg is 0xfffff800): clear/free des, enqueue the first new des, state -> wait_qd, 
 	 *		(2) not need start(reg not 0xfffff800): pause -> enqueue -> resume
 	 * 	wait_qd:  
@@ -581,7 +580,7 @@ u32 __dma_enqueue_phase_hd(dm_hdl_t dma_hdl, struct cofig_des_t *pdes)
 		DMA_ERR("%s: state idle, maybe stopped somewhere, err\n", __FUNCTION__);
 		uret = __LINE__;
 		goto End;
-	
+
 	case DMA_CHAN_STA_RUNING:
 		DMA_DBG("%s: state running, make sure des chain is NOT empty\n", __FUNCTION__);
 #ifdef DBG_DMA
@@ -629,7 +628,7 @@ u32 __dma_enqueue_phase_hd(dm_hdl_t dma_hdl, struct cofig_des_t *pdes)
 			//pchan->state = DMA_CHAN_STA_RUNING; /* state remain running */
 		}
 		break;
-	
+
 	case DMA_CHAN_STA_WAIT_QD:
 		DMA_DBG("%s: state wait_qd, make sure des chain is NOT empty\n", __FUNCTION__);
 #ifdef DBG_DMA
@@ -648,12 +647,12 @@ u32 __dma_enqueue_phase_hd(dm_hdl_t dma_hdl, struct cofig_des_t *pdes)
 			goto End;
 		}
 		break;
-	
+
 	case DMA_CHAN_STA_DONE:
 		DMA_ERR("%s: state done, err\n", __FUNCTION__);
 		uret = __LINE__;
 		goto End;
-	
+
 	default:
 		uret = __LINE__;
 		goto End;
@@ -683,10 +682,10 @@ u32 __dma_enqueue_phase_fd(dm_hdl_t dma_hdl, struct cofig_des_t *pdes)
 	 * called from fd_cb
 	 * so state:
 	 * 	idle: 	  maybe stopped somewhere, err
-	 * 	running:  
+	 * 	running:
 	 *		(1) need restart(start addr reg is 0xfffff800): clear/free des, enqueue the first new des, state -> wait_qd, 
 	 *		(2) not need start(reg not 0xfffff800): pause -> enqueue -> resume
-	 * 	wait_qd:  
+	 * 	wait_qd:
 	 *		assert des not idle, just enqueue to end, not need pause
 	 * 	done:
 	 *		print err
@@ -698,7 +697,7 @@ u32 __dma_enqueue_phase_fd(dm_hdl_t dma_hdl, struct cofig_des_t *pdes)
 		DMA_ERR("%s: state idle, maybe stopped somewhere, err\n", __FUNCTION__);
 		uret = __LINE__;
 		goto End;
-	
+
 	case DMA_CHAN_STA_RUNING:
 		DMA_DBG("%s: state running, make sure des chain is NOT empty\n", __FUNCTION__);
 #ifdef DBG_DMA
@@ -742,11 +741,11 @@ u32 __dma_enqueue_phase_fd(dm_hdl_t dma_hdl, struct cofig_des_t *pdes)
 				uret = __LINE__;
 				goto End;
 			}
-			
+
 			//pchan->state = DMA_CHAN_STA_RUNING; /* state remain running */
 		}
 		break;
-	
+
 	case DMA_CHAN_STA_WAIT_QD:
 		DMA_DBG("%s: state wait_qd, make sure des chain is NOT empty\n", __FUNCTION__);
 #ifdef DBG_DMA
@@ -765,12 +764,12 @@ u32 __dma_enqueue_phase_fd(dm_hdl_t dma_hdl, struct cofig_des_t *pdes)
 			goto End;
 		}
 		break;
-	
+
 	case DMA_CHAN_STA_DONE:
 		DMA_ERR("%s: state done, err\n", __FUNCTION__);
 		uret = __LINE__;
 		goto End;
-	
+
 	default:
 		uret = __LINE__;
 		goto End;
@@ -800,15 +799,15 @@ u32 __dma_enqueue_phase_qd(dm_hdl_t dma_hdl, struct cofig_des_t *pdes)
 	 * called from qd_cb
 	 * so state:
 	 * 	idle: 	  maybe stopped somewhere, err
-	 * 	running(normal case, not changed to wait_qd before):  
-	 *		assert des not idle: clear/free des, enqueue the first new des, state -> wait_qd, 
+	 * 	running(normal case, not changed to wait_qd before):
+	 *		assert des not idle: clear/free des, enqueue the first new des, state -> wait_qd,
 	 * 	wait_qd(maybe from above(running) or from hd_cb/fd_cb/normal queueing):
 	 *		assert des not idle, just enqueue to end, not need start, will start behind
 	 * 	done:
 	 *		print err
 	 * Returns 0 if sucess, the err line number if failed.
 	 */
-	
+
 	switch(pchan->state) {
 	case DMA_CHAN_STA_IDLE:
 		DMA_ERR("%s: state idle, maybe stopped somewhere, err\n", __FUNCTION__);
@@ -842,7 +841,7 @@ u32 __dma_enqueue_phase_qd(dm_hdl_t dma_hdl, struct cofig_des_t *pdes)
 		/* change state to wait_qd */
 		pchan->state = DMA_CHAN_STA_WAIT_QD;
 		break;
-	
+
 	case DMA_CHAN_STA_WAIT_QD:
 		DMA_DBG("%s: state wait_qd, make sure des chain is NOT empty\n", __FUNCTION__);
 #ifdef DBG_DMA
@@ -861,12 +860,12 @@ u32 __dma_enqueue_phase_qd(dm_hdl_t dma_hdl, struct cofig_des_t *pdes)
 			goto End;
 		}
 		break;
-	
+
 	case DMA_CHAN_STA_DONE:
 		DMA_ERR("%s: state done, err\n", __FUNCTION__);
 		uret = __LINE__;
 		goto End;
-	
+
 	default:
 		uret = __LINE__;
 		goto End;
@@ -889,15 +888,15 @@ End:
  */
 u32 dma_enqueue(dm_hdl_t dma_hdl, struct cofig_des_t *pdes, enum dma_enque_phase_e phase)
 {
-	/* 
-	 * when continue mode: never queue done, start address reg never be 0xfffff800, 
-	 * so just pause->queue->resume 
+	/*
+	 * when continue mode: never queue done, start address reg never be 0xfffff800,
+	 * so just pause->queue->resume
 	 */
 	if(true == ((struct dma_channel_t *)dma_hdl)->bconti_mode) {
 		DMA_DBG_FUN_LINE;
 		return __dma_enqueue_contimode(dma_hdl, pdes);
 	}
-	
+
 	switch(phase) {
 	case ENQUE_PHASE_NORMAL:
 		return __dma_enqueue_phase_normal(dma_hdl, pdes);

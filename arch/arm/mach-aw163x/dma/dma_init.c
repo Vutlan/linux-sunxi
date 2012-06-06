@@ -66,11 +66,11 @@ int dma_init(struct platform_device *device)
 		memset(&pchan->des_info_save, 0, sizeof(pchan->des_info_save));
 		pchan->pdes_mgr = NULL;*/
 	}
-	
+
 	DMA_DBG_FUN_LINE_TOCHECK;
-	
+
 	/* alloc des mgr area */
-	g_pdma_des_mgr = kmem_cache_create("dma_des_mgr", sizeof(struct des_mgr_t), 0, 
+	g_pdma_des_mgr = kmem_cache_create("dma_des_mgr", sizeof(struct des_mgr_t), 0,
 					SLAB_HWCACHE_ALIGN, __des_mgr_cache_ctor);
 	if(NULL == g_pdma_des_mgr) {
 		ret = __LINE__;
@@ -112,7 +112,7 @@ End:
 			DMA_CHAN_LOCK_DEINIT(&g_dma_mgr.chnl[i].lock);
 		}
 	}
-	
+
 	return ret;
 }
 
@@ -130,7 +130,7 @@ int dma_deinit(void)
 
 	/* free dma irq */
 	free_irq(AW_IRQ_DMA, (void *)&g_dma_mgr);
-	
+
 	if (NULL != g_pdma_pool) {
 		dma_pool_destroy(g_pdma_pool);
 		g_pdma_pool = NULL;
@@ -151,7 +151,7 @@ int dma_deinit(void)
 	/* unmap dma reg base */
 	iounmap(g_dma_reg_vbase);
 	g_dma_reg_vbase = 0;
-	
+
 	return ret;
 }
 
