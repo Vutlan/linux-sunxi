@@ -80,11 +80,11 @@ static int __dma_test_thread(void * arg)
 	case DTC_2T_MEM_2_MEM:
 		uResult = __dtc_2t_mem_2_mem();
 		break;
-	
+
 	case DTC_2T_USB_COPY_MANUAL:
 		/*
 		 * dma test case two-thread usb read/write nand
-		 * eg: one thread copy files from PC to nand-udisk, the other thread 
+		 * eg: one thread copy files from PC to nand-udisk, the other thread
 		 * copy files from nand to PC, use beyond compare to check if transfer correct.
 		 *
 		 * Returns 0 if success, the err line number if failed.
@@ -93,10 +93,10 @@ static int __dma_test_thread(void * arg)
 		break;
 	case DTC_2T_M2M_N2M_LOOP:
 		/*
-		 * dma test case two-thread loop, eg: one 
-		 * thread memory to memory, the other thread nand to memory, 
+		 * dma test case two-thread loop, eg: one
+		 * thread memory to memory, the other thread nand to memory,
 		 * and loop the operation.
-		 * 
+		 *
 		 * Returns 0 if success, the err line number if failed.
 		 */
 		DBG_FUN_LINE_TODO;

@@ -36,7 +36,7 @@ u32 __CB_qd_1t_mem_2_mem(dm_hdl_t dma_hdl, void *parg, enum dma_cb_cause_e cause
 	u32	uCurSrc = 0, uCurDst = 0;
 	u32	uloop_cnt = DTC_1T_TOTAL_LEN / DTC_1T_ONE_LEN;
 	u32 	ucur_cnt = 0;
-	
+
 	pr_info("%s: called!\n", __FUNCTION__);
 
 	switch(cause) {
@@ -50,7 +50,7 @@ u32 __CB_qd_1t_mem_2_mem(dm_hdl_t dma_hdl, void *parg, enum dma_cb_cause_e cause
 			uCurDst = g_dst_addr + atomic_read(&g_acur_cnt) * DTC_1T_ONE_LEN;
 			if(0 != sw_dma_enqueue(dma_hdl, uCurSrc, uCurDst, DTC_1T_ONE_LEN, ENQUE_PHASE_QD))
 				ERR_FUN_LINE;
-		/* 
+		/*
 		 * we have complete enqueueing, but not means it's the last qd irq, 
 		 * in test, we found sometimes never meet if(ucur_cnt == uloop_cnt...
 		 * that is, enqueue complete during hd/fd callback.
@@ -60,7 +60,7 @@ u32 __CB_qd_1t_mem_2_mem(dm_hdl_t dma_hdl, void *parg, enum dma_cb_cause_e cause
 
 #if 0
 			sw_dma_dump_chan(dma_hdl); /* for debug */
-			
+
 			/* maybe it's the last irq; or next will be the last irq, need think about */
 			atomic_set(&g_adma_done, 1);
 			wake_up_interruptible(&g_dtc_queue[DTC_1T_MEM_2_MEM]);
@@ -85,7 +85,7 @@ u32 __CB_qd_1t_mem_2_mem(dm_hdl_t dma_hdl, void *parg, enum dma_cb_cause_e cause
 End:
 	if(0 != uRet)
 		pr_err("%s err, line %d!\n", __FUNCTION__, uRet);
-	
+
 	return uRet;
 }
 

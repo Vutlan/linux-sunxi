@@ -19,7 +19,7 @@
  * __dma_chan_handle_hd - XXXXXX
  * XXXXXX
  * XXXXXX
- * 
+ *
  * XXXXXX
  */
 u32 __dma_chan_handle_hd(struct dma_channel_t *pchan)
@@ -63,7 +63,7 @@ u32 __dma_chan_handle_qd(struct dma_channel_t *pchan)
 	u32 		uRet = 0;
 	unsigned long	flags = 0;
 
-	/* 
+	/*
 	 * should not queue done in continue mode
 	 */
 	if(true == pchan->bconti_mode) {
@@ -71,9 +71,9 @@ u32 __dma_chan_handle_qd(struct dma_channel_t *pchan)
 		return __LINE__;
 	}
 
-	/* 
+	/*
 	 * call the callback first
-	 * we cannot lock fd_cb function, in case sw_dma_enqueue 
+	 * we cannot lock fd_cb function, in case sw_dma_enqueue
 	 * called and locked agin, which may lead to BUG somewhere
 	 */
 	//DMA_CHAN_LOCK(&pchan->lock, flags);
@@ -84,10 +84,10 @@ u32 __dma_chan_handle_qd(struct dma_channel_t *pchan)
 		}
 	}
 	//DMA_CHAN_UNLOCK(&pchan->lock, flags);
-	
+
 	DMA_CHAN_LOCK(&pchan->lock, flags);
-	
-	/* 
+
+	/*
 	 * stopped when hd_cb calling?
 	 */
 	if(DMA_CHAN_STA_IDLE == pchan->state) {
@@ -97,8 +97,8 @@ u32 __dma_chan_handle_qd(struct dma_channel_t *pchan)
 		return 0;
 	}
 
-	/* 
-	 * no changed to wait_qd in normal/hd_cb/fd_cb/qd_cb queueing, the des is old, 
+	/*
+	 * no changed to wait_qd in normal/hd_cb/fd_cb/qd_cb queueing, the des is old,
 	 * clear des and change state to done
 	 */
 	if(DMA_CHAN_STA_RUNING == pchan->state) {
@@ -110,18 +110,18 @@ u32 __dma_chan_handle_qd(struct dma_channel_t *pchan)
 
 		/* change state to done */
 		pchan->state = DMA_CHAN_STA_DONE;
-		
+
 		DMA_CHAN_UNLOCK(&pchan->lock, flags);
 		return 0;
 	}
 
-	/* 
-	 * changed to wait_qd before(in normal/hd_cb/fd_cb/qd_cb queueing), the des is new, 
+	/*
+	 * changed to wait_qd before(in normal/hd_cb/fd_cb/qd_cb queueing), the des is new,
 	 * run the new buffer chain
 	 */
 	if(DMA_CHAN_STA_WAIT_QD == pchan->state) {
 		DMA_DBG_FUN_LINE;
-		
+
 		/* start the new queue(from begin) */
 		if(NULL != pchan->op_cb.func) {
 			if(0 != pchan->op_cb.func((dm_hdl_t)pchan, pchan->op_cb.parg, DMA_OP_START)) {
@@ -136,12 +136,12 @@ u32 __dma_chan_handle_qd(struct dma_channel_t *pchan)
 
 		/* change state to running */
 		//pchan->state = DMA_CHAN_STA_RUNING; /* done in dma_start */
-		
+
 		DMA_CHAN_UNLOCK(&pchan->lock, flags);
 		return 0;
 	}
 
-	/* 
+	/*
 	 * should never be done
 	 */
 	if(DMA_CHAN_STA_DONE == pchan->state) {
@@ -154,7 +154,7 @@ End:
 	if(0 != uRet) {
 		DMA_ERR("%s err, line %d\n", __FUNCTION__, uRet);
 	}
-	
+
 	return 0;
 }
 
@@ -165,8 +165,8 @@ End:
  *
  * Returns 0 if sucess, the err line number if failed.
  *
- * we cannot lock dma_irq_hdl through, 
- * because sw_dma_enqueue maybe called in cb, 
+ * we cannot lock dma_irq_hdl through,
+ * because sw_dma_enqueue maybe called in cb,
  * which will result in deadlock
  */
 irqreturn_t dma_irq_hdl(int irq, void *dev)
@@ -181,12 +181,12 @@ irqreturn_t dma_irq_hdl(int irq, void *dev)
 	DMA_DBG("%s, line %d, dma en0 0x%08x, en1 0x%08x, pd0 0x%08x, pd1 0x%08x\n", __FUNCTION__, __LINE__, \
 		DMA_READ_REG(DMA_IRQ_EN_REG0), DMA_READ_REG(DMA_IRQ_EN_REG1), \
 		DMA_READ_REG(DMA_IRQ_PEND_REG0), DMA_READ_REG(DMA_IRQ_PEND_REG1));
-	
+
 	pdma_mgr = (struct dma_mgr_t *)dev;
 	for(i = 0; i < DMA_CHAN_TOTAL; i++) {
 		pchan = &pdma_mgr->chnl[i];
 		uirq_spt = pdma_mgr->chnl[i].irq_spt;
-		
+
 		/* get channel irq pend bits */
 		upend_bits = csp_dma_chan_get_irqpend(pchan);
 		if(0 == upend_bits)
@@ -209,7 +209,7 @@ irqreturn_t dma_irq_hdl(int irq, void *dev)
 				goto End;
 			}
 		}
-		
+
 		/* deal queue done */
 		if((upend_bits & CHAN_IRQ_QD) && (uirq_spt & CHAN_IRQ_QD)) {
 			csp_dma_chan_clear_irqpend(pchan, CHAN_IRQ_QD);
@@ -224,7 +224,7 @@ End:
 	if(0 != uline) {
 		DMA_ERR("%s err, line %d\n", __FUNCTION__, uline);
 	}
-	
+
 	return IRQ_HANDLED;
 }
 

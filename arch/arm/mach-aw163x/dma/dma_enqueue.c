@@ -566,15 +566,15 @@ u32 __dma_enqueue_phase_hd(dm_hdl_t dma_hdl, struct cofig_des_t *pdes)
 	 * so state:
 	 * 	idle: 	  maybe stopped somewhere, err
 	 * 	running:
-	 *		(1) need restart(start addr reg is 0xfffff800): clear/free des, enqueue the first new des, state -> wait_qd, 
+	 *		(1) need restart(start addr reg is 0xfffff800): clear/free des, enqueue the first new des, state -> wait_qd,
 	 *		(2) not need start(reg not 0xfffff800): pause -> enqueue -> resume
-	 * 	wait_qd:  
+	 * 	wait_qd:
 	 *		assert des not idle, just enqueue to end, not need pause/start
 	 * 	done:
 	 *		print err
 	 * Returns 0 if sucess, the err line number if failed.
 	 */
-	
+
 	switch(pchan->state) {
 	case DMA_CHAN_STA_IDLE:
 		DMA_ERR("%s: state idle, maybe stopped somewhere, err\n", __FUNCTION__);
@@ -624,7 +624,7 @@ u32 __dma_enqueue_phase_hd(dm_hdl_t dma_hdl, struct cofig_des_t *pdes)
 				uret = __LINE__;
 				goto End;
 			}
-			
+
 			//pchan->state = DMA_CHAN_STA_RUNING; /* state remain running */
 		}
 		break;
@@ -813,7 +813,7 @@ u32 __dma_enqueue_phase_qd(dm_hdl_t dma_hdl, struct cofig_des_t *pdes)
 		DMA_ERR("%s: state idle, maybe stopped somewhere, err\n", __FUNCTION__);
 		uret = __LINE__;
 		goto End;
-	
+
 	case DMA_CHAN_STA_RUNING:
 		DMA_DBG("%s: state running, make sure des chain is NOT empty\n", __FUNCTION__);
 #ifdef DBG_DMA

@@ -84,7 +84,7 @@ unsigned long xfer_arr[DMAXFER_MAX] =
 	(X_BURST << 23) | (X_WORD << 25) | (X_BURST <<7) | (X_BYTE << 9),
 	(X_BURST << 23) | (X_WORD << 25) | (X_BURST <<7) | (X_HALF << 9),
 	(X_BURST << 23) | (X_WORD << 25) | (X_BURST <<7) | (X_WORD << 9),
-	
+
 	/* des:X_BURST   src:X_SIGLE */
 	(X_BURST << 23) | (X_BYTE << 25) | (X_SIGLE <<7) | (X_BYTE << 9),
 	(X_BURST << 23) | (X_BYTE << 25) | (X_SIGLE <<7) | (X_HALF << 9),
@@ -127,7 +127,7 @@ unsigned long xfer_arr[DMAXFER_MAX] =
 	(X_TIPPL << 23) | (X_HALF << 25) | (X_SIGLE <<7) | (X_WORD << 9),
 	(X_TIPPL << 23) | (X_WORD << 25) | (X_SIGLE <<7) | (X_BYTE << 9),
 	(X_TIPPL << 23) | (X_WORD << 25) | (X_SIGLE <<7) | (X_HALF << 9),
-	(X_TIPPL << 23) | (X_WORD << 25) | (X_SIGLE <<7) | (X_WORD << 9),	
+	(X_TIPPL << 23) | (X_WORD << 25) | (X_SIGLE <<7) | (X_WORD << 9),
 
 	/* des:X_TIPPL   src:X_BURST */
 	(X_TIPPL << 23) | (X_BYTE << 25) | (X_BURST <<7) | (X_BYTE << 9),
@@ -904,7 +904,7 @@ int sw_dma_getposition(dm_hdl_t dma_hdl, u32 *pSrc, u32 *pDst)
 }
 EXPORT_SYMBOL(sw_dma_getposition);
 
-/* 
+/*
  * same as sw_dma_ctl->DMA_OP_GET_BYTECNT_LEFT, snd dirver used this to get the left byte cnt.
  */
 #if 0

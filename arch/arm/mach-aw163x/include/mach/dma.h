@@ -62,7 +62,7 @@ enum xferunit_e {
 	DMAXFER_D_SWORD_S_SBYTE,
 	DMAXFER_D_SWORD_S_SHALF,
 	DMAXFER_D_SWORD_S_SWORD,
-	
+
 	/* des:X_SIGLE  src:X_BURST */
 	DMAXFER_D_SBYTE_S_BBYTE,
 	DMAXFER_D_SBYTE_S_BHALF,
@@ -73,7 +73,7 @@ enum xferunit_e {
 	DMAXFER_D_SWORD_S_BBYTE,
 	DMAXFER_D_SWORD_S_BHALF,
 	DMAXFER_D_SWORD_S_BWORD,
-	
+
 	/* des:X_SIGLE   src:X_TIPPL */
 	DMAXFER_D_SBYTE_S_TBYTE,
 	DMAXFER_D_SBYTE_S_THALF,
@@ -84,7 +84,7 @@ enum xferunit_e {
 	DMAXFER_D_SWORD_S_TBYTE,
 	DMAXFER_D_SWORD_S_THALF,
 	DMAXFER_D_SWORD_S_TWORD,
-	
+
 	/* des:X_BURST  src:X_BURST */
 	DMAXFER_D_BBYTE_S_BBYTE,
 	DMAXFER_D_BBYTE_S_BHALF,
@@ -96,7 +96,7 @@ enum xferunit_e {
 	DMAXFER_D_BWORD_S_BHALF,
 	DMAXFER_D_BWORD_S_BWORD,
 
-	/* des:X_BURST   src:X_SIGLE */	
+	/* des:X_BURST   src:X_SIGLE */
 	DMAXFER_D_BBYTE_S_SBYTE,
 	DMAXFER_D_BBYTE_S_SHALF,
 	DMAXFER_D_BBYTE_S_SWORD,
@@ -106,7 +106,7 @@ enum xferunit_e {
 	DMAXFER_D_BWORD_S_SBYTE,
 	DMAXFER_D_BWORD_S_SHALF,
 	DMAXFER_D_BWORD_S_SWORD,
-	
+
 	/* des:X_BURST   src:X_TIPPL */
 	DMAXFER_D_BBYTE_S_TBYTE,
 	DMAXFER_D_BBYTE_S_THALF,
@@ -117,7 +117,7 @@ enum xferunit_e {
 	DMAXFER_D_BWORD_S_TBYTE,
 	DMAXFER_D_BWORD_S_THALF,
 	DMAXFER_D_BWORD_S_TWORD,
-	
+
 	/* des:X_TIPPL   src:X_TIPPL */
 	DMAXFER_D_TBYTE_S_TBYTE,
 	DMAXFER_D_TBYTE_S_THALF,
@@ -128,7 +128,7 @@ enum xferunit_e {
 	DMAXFER_D_TWORD_S_TBYTE,
 	DMAXFER_D_TWORD_S_THALF,
 	DMAXFER_D_TWORD_S_TWORD,
-		
+
 	/* des:X_TIPPL   src:X_SIGLE */
 	DMAXFER_D_TBYTE_S_SBYTE,
 	DMAXFER_D_TBYTE_S_SHALF,
@@ -139,7 +139,7 @@ enum xferunit_e {
 	DMAXFER_D_TWORD_S_SBYTE,
 	DMAXFER_D_TWORD_S_SHALF,
 	DMAXFER_D_TWORD_S_SWORD,
-	
+
 	/* des:X_TIPPL   src:X_BURST */
 	DMAXFER_D_TBYTE_S_BBYTE,
 	DMAXFER_D_TBYTE_S_BHALF,
@@ -179,19 +179,19 @@ enum dma_chan_irq_type {
  * dma config information
  */
 struct dma_config_t {
-	/* 
-	 * data length and burst length combination in DDMA and NDMA 
-	 * eg: DMAXFER_D_SWORD_S_SWORD, DMAXFER_D_SBYTE_S_BBYTE	
+	/*
+	 * data length and burst length combination in DDMA and NDMA
+	 * eg: DMAXFER_D_SWORD_S_SWORD, DMAXFER_D_SBYTE_S_BBYTE
 	 */
 	enum xferunit_e	xfer_type;
-	
-	/* 
+
+	/*
 	 * NDMA/DDMA src/dst address type
-	 * eg: DMAADDRT_D_INC_S_INC(NDMA addr type), 
-	 *     DMAADDRT_D_LN_S_LN / DMAADDRT_D_LN_S_IO(DDMA addr type) 
+	 * eg: DMAADDRT_D_INC_S_INC(NDMA addr type),
+	 *     DMAADDRT_D_LN_S_LN / DMAADDRT_D_LN_S_IO(DDMA addr type)
 	 */
 	enum addrt_e	address_type;
-	
+
 	u32		para;		/* dma para reg */
 	u32 		irq_spt;	/* channel irq supported, eg: CHAN_IRQ_HD | CHAN_IRQ_FD */
 
@@ -200,7 +200,7 @@ struct dma_config_t {
 	u32		byte_cnt;	/* XXX */
 
 	bool		bconti_mode;	/* continue mode */
-	
+
 	u8		src_drq_type;	/* src drq type */
 	u8		dst_drq_type;	/* dst drq type */
 };
@@ -251,7 +251,7 @@ enum drqsrc_type_e {
 	DRQSRC_MTC_ACC		= 29,
 	DRQSRC_DIGITAL_MIC	= 30
 };
-                            			
+
 /*
  * dst drq type
  */
@@ -296,7 +296,7 @@ enum dma_op_type_e {
 	DMA_OP_PAUSE,  			/* pause transferring */
 	DMA_OP_RESUME,  		/* resume transferring */
 	DMA_OP_STOP,  			/* stop dma */
-	
+
 	DMA_OP_GET_STATUS,  		/* get channel status: idle/busy */
 	DMA_OP_GET_CUR_SRC_ADDR,  	/* get current src address */
 	DMA_OP_GET_CUR_DST_ADDR,  	/* get current dst address */
@@ -313,7 +313,7 @@ enum dma_op_type_e {
  */
 enum dma_cb_cause_e {
 	DMA_CB_OK,		/* call back because success, eg: buf done */
-	DMA_CB_ABORT		/* call back because abort, eg: if stop the channel, 
+	DMA_CB_ABORT		/* call back because abort, eg: if stop the channel,
 				 * need to abort the rest buffer in buf chan
 				 */
 };

@@ -5,7 +5,7 @@
 menuconfig AW163X_DMA_TEST
 	tristate "sun4i dma test drivers"
 	---help---
-	  This module is to test dma module, which builted in lichee kernel, 
+	  This module is to test dma module, which builted in lichee kernel,
 	  source is in "arch\arm\mach-aw163x\dma" directory.
 
 if AW163X_DMA_TEST
@@ -14,6 +14,6 @@ config DMA_TEST_DRIVER
 	tristate "aw163x dma test driver"
 	default m
 	help
-	  Nothing help. 
+	  Nothing help.
 
 endif # AW163X_DMA_TEST
