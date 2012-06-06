@@ -1,6 +1,12 @@
 #include "mbr.h"
-#include "../src/include/nand_oal.h"
-#include "nand_private.h"
+#include "../src/include/nand_type.h"
+#include "../src/include/nand_drv_cfg.h"
+#include "../src/include/nand_logic.h"
+#include "../src/include/nand_format.h"
+#include "../src/include/nand_scan.h"
+#include "../src/include/nand_physic.h"
+#include "../src/include/nfc.h"
+
 
 MBR *mbr;
 
@@ -53,7 +59,7 @@ __s32 _get_mbr(void)
 	if(mbr == NULL)
 	{
 		PRINT("%s : request memory fail\n",__FUNCTION__);
-		return -ENOMEM;
+		return -1;
 	}
 
 	/*get mbr from nand device*/

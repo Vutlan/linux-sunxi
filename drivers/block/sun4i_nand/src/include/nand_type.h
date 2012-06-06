@@ -118,7 +118,7 @@ struct __NandPageCachePool_t
 	__u8		*TmpPageCache;
 };
 
-
+#ifdef __OS_LINUX_SYSTEM__
 //define the User Data structure for nand flash driver
 struct __NandUserData_t
 {
@@ -129,6 +129,18 @@ struct __NandUserData_t
     __u8        PageStatus;                         //the logical information of the physical page
     __u8        Reserved1;                          //reserved for 32bit align
 } __attribute__ ((packed));
+#else
+__packed struct __NandUserData_t
+{
+    __u8        BadBlkFlag;                         //the flag that marks if a physic block is a valid block or a invalid block
+    __u16       LogicInfo;                          //the logical information of the physical block
+    __u8        Reserved0;                          //reserved for 32bit align
+    __u16       LogicPageNum;                       //the value of the logic page number, which the physic page is mapping to
+    __u8        PageStatus;                         //the logical information of the physical page
+    __u8        Reserved1;                          //reserved for 32bit align
+} ;
+
+#endif
 
 
 //define the paramter structure for physic operation function
@@ -310,6 +322,7 @@ struct __NandDriverGlobal_t
 #define NAND_READ_RETRY	        (1<<8)			    //nand falsh support READ RETRY
 #define NAND_READ_UNIQUE_ID	    (1<<9)			    //nand falsh support READ UNIQUE_ID
 #define NAND_PAGE_ADR_NO_SKIP	(1<<10)			    //nand falsh page adr no skip is requiered
+#define NAND_DIE_SKIP           (1<<11)             //nand flash die adr skip
 
 
 //define the mask for the nand flash operation status

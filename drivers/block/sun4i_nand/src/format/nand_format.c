@@ -2623,7 +2623,7 @@ __s32 FMT_FormatNand(void)
     return 0;
 }
 
-void clear_NAND_ZI( void )
+void ClearNandStruct( void )
 {
     MEMSET(&PageCachePool, 0x00, sizeof(struct __NandPageCachePool_t));
 }

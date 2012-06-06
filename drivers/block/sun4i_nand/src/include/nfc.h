@@ -33,9 +33,10 @@
 #ifndef _NFC_H_
 #define _NFC_H_                   
 
-#include <mach/platform.h>  
-                                                    
-#define NAND_IO_BASE		SW_VA_NANDFLASHC_IO_BASE
+#include "nand_drv_cfg.h" 
+                                       
+extern __u32 nand_io_base;                    
+#define NAND_IO_BASE    (nand_io_base)
 #define __NFC_REG(x)    (*(volatile unsigned int   *)(NAND_IO_BASE + x))
 /*
 *********************************************************************************************************
@@ -205,6 +206,7 @@ typedef struct NFC_init_info{
 __s32 NFC_ReadRetryInit(__u32 read_retry_type);
 __s32 NFC_ReadRetryExit(__u32 read_retry_type);
 __s32 NFC_GetDefaultParam(__u32 chip, __u8 *defautl_value, __u32 read_retry_type);
+void NFC_GetOTPValue(__u32 chip, __u8* otp_value, __u32 read_retry_type);
 __s32 NFC_SetDefaultParam(__u32 chip, __u8 *defautl_value, __u32 read_retry_type);
 __s32 NFC_ReadRetry(__u32 chip, __u32 retry_count, __u32 read_retry_type);
 __s32 NFC_LSBEnable(__u32 chip, __u32 read_retry_type);
@@ -241,5 +243,30 @@ __u32 NFC_QueryINT(void);
 void NFC_EnableInt(__u8 minor_int);
 void NFC_DisableInt(__u8 minor_int);
 void NFC_InitDDRParam(__u32 chip, __u32 param);
+
+#define NFC_READ_REG(reg)   		(reg)
+#define NFC_WRITE_REG(reg,data) 	(reg) = (data)
+
+#define ERR_ECC 	12
+#define ECC_LIMIT 	10
+#define ERR_TIMEOUT 14
+#define READ_RETRY_MAX_TYPE_NUM 5
+#define READ_RETRY_MAX_REG_NUM	8
+#define READ_RETRY_MAX_CYCLE	15
+#define LSB_MODE_MAX_REG_NUM	8
+
+/* define various unit data input or output*/
+#define NFC_READ_RAM_B(ram)    		(*((volatile __u8 *)(NAND_IO_BASE + ram)))
+#define NFC_WRITE_RAM_B(ram,data)  	(*((volatile __u8 *)(NAND_IO_BASE + ram)) = (data))
+#define NFC_READ_RAM_HW(ram)   		(*((volatile __u16 *)(NAND_IO_BASE + ram)))
+#define NFC_WRITE_RAM_HW(ram,data) 	(*((volatile __u16 *)(NAND_IO_BASE + ram)) = (data))
+#define NFC_READ_RAM_W(ram)   		(*((volatile __u32 *)(NAND_IO_BASE + ram)))
+#define NFC_WRITE_RAM_W(ram,data) 	(*((volatile __u32 *)(NAND_IO_BASE + ram)) = (data))
+
+#ifdef USE_PHYSICAL_ADDRESS
+#define NFC_IS_SDRAM(addr)			((addr >= DRAM_BASE)?1:0)
+#else
+#define NFC_IS_SDRAM(addr)			( ((addr >= DRAM_BASE))&&(addr < SRAM_BASE)?1:0)
+#endif
 
 #endif    // #ifndef _NFC_H_
