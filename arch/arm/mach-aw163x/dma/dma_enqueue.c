@@ -428,7 +428,7 @@ u32 __dma_enqueue_phase_normal(dm_hdl_t dma_hdl, struct cofig_des_t *pdes)
 	 * so state:
 	 * 	idle: 	  maybe before start or after stop
 	 * 	running:
-	 *		(1) need restart(start addr reg is 0xfffff800): clear/free des, enqueue the first new des, state -> wait_qd, 
+	 *		(1) need restart(start addr reg is 0xfffff800): clear/free des, enqueue the first new des, state -> wait_qd,
 	 *			new des will be start in __dma_chan_handle_qd
 	 *		(2) not need start(reg not 0xfffff800): pause -> enqueue -> resume
 	 * 	wait_qd:
@@ -683,7 +683,7 @@ u32 __dma_enqueue_phase_fd(dm_hdl_t dma_hdl, struct cofig_des_t *pdes)
 	 * so state:
 	 * 	idle: 	  maybe stopped somewhere, err
 	 * 	running:
-	 *		(1) need restart(start addr reg is 0xfffff800): clear/free des, enqueue the first new des, state -> wait_qd, 
+	 *		(1) need restart(start addr reg is 0xfffff800): clear/free des, enqueue the first new des, state -> wait_qd,
 	 *		(2) not need start(reg not 0xfffff800): pause -> enqueue -> resume
 	 * 	wait_qd:
 	 *		assert des not idle, just enqueue to end, not need pause

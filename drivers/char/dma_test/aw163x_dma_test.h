@@ -72,9 +72,9 @@ enum dma_test_case_e {
 				* thread memory to memory, the other thread nand to memory,
 				* and loop the operation. test in nand_init as DTC_1T_NAND_DMA_RW case
 				*/
- 	DTC_1T_APP_CB_ENQUE,	/* app and callback enqueue simutanously */
- 	DTC_1T_ENQ_AFT_DONE, 	/* test enqueue after done */
- 	DTC_1T_CMD_STOP, 	/* stop when dma running */
+	DTC_1T_APP_CB_ENQUE,	/* app and callback enqueue simutanously */
+	DTC_1T_ENQ_AFT_DONE, 	/* test enqueue after done */
+	DTC_1T_CMD_STOP, 	/* stop when dma running */
 	DTC_MAX
 };
 

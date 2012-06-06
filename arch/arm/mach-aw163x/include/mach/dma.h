@@ -397,7 +397,7 @@ struct dma_op_cb_t {
  */
 dm_hdl_t sw_dma_request(char * name);
 u32 sw_dma_release(dm_hdl_t dma_hdl);
-u32 sw_dma_enqueue(dm_hdl_t dma_hdl, u32 src_addr, u32 dst_addr, u32 byte_cnt, 
+u32 sw_dma_enqueue(dm_hdl_t dma_hdl, u32 src_addr, u32 dst_addr, u32 byte_cnt,
 				enum dma_enque_phase_e phase);
 u32 sw_dma_config(dm_hdl_t dma_hdl, struct dma_config_t *pcfg, enum dma_enque_phase_e phase);
 u32 sw_dma_ctl(dm_hdl_t dma_hdl, enum dma_op_type_e op, void *parg);

@@ -95,7 +95,7 @@ void csp_dma_chan_stop(struct dma_channel_t * pchan)
 /**
  * csp_dma_chan_get_status - get dma channel status
  * @pchan:	dma channel handle
- * 
+ *
  * Returns 1 indicate channel is busy, 0 idle
  */
 u32 csp_dma_chan_get_status(struct dma_channel_t * pchan)

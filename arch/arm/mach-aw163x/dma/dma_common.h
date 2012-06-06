@@ -69,7 +69,7 @@ enum dma_chan_sta_e {
 	DMA_CHAN_STA_RUNING,	/* transferring */
 	DMA_CHAN_STA_WAIT_QD,	/* running -> last buffer has been retrived(the start addr reg is 0xfffff800), now when new buf
 				 * queueing, we cannot pause->queue->resume to run the new buffer, must restart dma. since
-				 * __dma_chan_handle_qd not already dealed, so we donnot restart in queueing func, just clear the des, 
+				 * __dma_chan_handle_qd not already dealed, so we donnot restart in queueing func, just clear the des,
 				 * queued to des end, the new buffer will be-restarted in __dma_chan_handle_qd.
 				 * only normal/hd_cb/fd_cb/qd_cb queueing can change state from running to wait_qd, when
 				 * __dma_chan_handle_qd meet wait_qd:

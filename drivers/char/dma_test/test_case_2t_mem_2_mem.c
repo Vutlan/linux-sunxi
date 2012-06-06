@@ -44,7 +44,7 @@ u32 __dump_cur_mem_info(void)
 
 	memset(&s_info, 0, sizeof(s_info));
 	error = do_sysinfo(&s_info);
-	
+
 	pr_info("%s: cur time 0x%08xs, total mem %dM, free mem %dM, total high %dM, free high %dM\n", \
 		__FUNCTION__, (u32)s_info.uptime, 	\
 		(u32)(s_info.totalram / 1024 / 1024), 	\
@@ -66,7 +66,7 @@ u32 __CB_qd_2(dm_hdl_t dma_hdl, void *parg, enum dma_cb_cause_e cause)
 	u32	uCurSrc = 0, uCurDst = 0;
 	u32	uloop_cnt = DTC_2T_TOTAL_LEN / DTC_2T_ONE_LEN;
 	u32 	ucur_cnt = 0;
-	
+
 	pr_info("%s: called!\n", __FUNCTION__);
 
 	switch(cause) {
@@ -83,7 +83,7 @@ u32 __CB_qd_2(dm_hdl_t dma_hdl, void *parg, enum dma_cb_cause_e cause)
 			//DBG_FUN_LINE;
 
 			//sw_dma_dump_chan(dma_hdl); /* for debug */
-			
+
 			/* maybe it's the last irq; or next will be the last irq, need think about */
 			atomic_set(&g_adma_done2, 1);
 			wake_up_interruptible(&g_dtc_queue[2]);
@@ -96,11 +96,11 @@ u32 __CB_qd_2(dm_hdl_t dma_hdl, void *parg, enum dma_cb_cause_e cause)
 			wake_up_interruptible(&g_dtc_queue[2]);
 		}
 		break;
-		
+
 	case DMA_CB_ABORT:
 		pr_info("%s: DMA_CB_ABORT!\n", __FUNCTION__);
 		break;
-		
+
 	default:
 		uRet = __LINE__;
 		goto End;
@@ -109,7 +109,7 @@ u32 __CB_qd_2(dm_hdl_t dma_hdl, void *parg, enum dma_cb_cause_e cause)
 End:
 	if(0 != uRet)
 		pr_err("%s err, line %d!\n", __FUNCTION__, uRet);
-	
+
 	return uRet;
 }
 
@@ -121,18 +121,18 @@ End:
 u32 __CB_fd_2(dm_hdl_t dma_hdl, void *parg, enum dma_cb_cause_e cause)
 {
 	u32 	uRet = 0;
-	
+
 	pr_info("%s: called!\n", __FUNCTION__);
 
 	switch(cause) {
 	case DMA_CB_OK:
 		pr_info("%s: DMA_CB_OK!\n", __FUNCTION__);
 		break;
-		
+
 	case DMA_CB_ABORT:
 		pr_info("%s: DMA_CB_ABORT!\n", __FUNCTION__);
 		break;
-		
+
 	default:
 		uRet = __LINE__;
 		goto End;
@@ -141,7 +141,7 @@ u32 __CB_fd_2(dm_hdl_t dma_hdl, void *parg, enum dma_cb_cause_e cause)
 End:
 	if(0 != uRet)
 		pr_err("%s err, line %d!\n", __FUNCTION__, uRet);
-	
+
 	return uRet;
 }
 
@@ -160,11 +160,11 @@ u32 __CB_hd_2(dm_hdl_t dma_hdl, void *parg, enum dma_cb_cause_e cause)
 	case DMA_CB_OK:
 		pr_info("%s: DMA_CB_OK!\n", __FUNCTION__);
 		break;
-		
+
 	case DMA_CB_ABORT:
 		pr_info("%s: DMA_CB_ABORT!\n", __FUNCTION__);
 		break;
-		
+
 	default:
 		uRet = __LINE__;
 		goto End;
@@ -173,7 +173,7 @@ u32 __CB_hd_2(dm_hdl_t dma_hdl, void *parg, enum dma_cb_cause_e cause)
 End:
 	if(0 != uRet)
 		pr_err("%s err, line %d!\n", __FUNCTION__, uRet);
-	
+
 	return uRet;
 }
 
@@ -221,11 +221,11 @@ u32 __Waitdone_2(void)
 	long 	ret = 0;
 	long 	timeout = 50 * HZ; /* 50 */
 
-        ret = wait_event_interruptible_timeout(g_dtc_queue[2], \
+ret = wait_event_interruptible_timeout(g_dtc_queue[2], \
 		atomic_read(&g_adma_done2)== 1, timeout);
-	
+
 	atomic_set(&g_adma_done2, 0);
-	
+
 	if(-ERESTARTSYS == ret) {
 		pr_info("%s success!\n", __FUNCTION__);
 		return 0;
@@ -296,7 +296,7 @@ u32 _thread2_proc(void)
 		goto End;
 	}
 	pr_info("%s: sw_dma_request success, dma_hdl 0x%08x\n", __FUNCTION__, (u32)dma_hdl);
-	
+
 	/*
 	 * set callback
 	 */
@@ -310,7 +310,7 @@ u32 _thread2_proc(void)
 		goto End;
 	}
 	pr_info("%s: set queuedone_cb success\n", __FUNCTION__);
-	
+
 	done_cb.func = __CB_fd_2;
 	done_cb.parg = NULL;
 	if(0 != sw_dma_ctl(dma_hdl, DMA_OP_SET_FD_CB, (void *)&done_cb)) {
@@ -318,7 +318,7 @@ u32 _thread2_proc(void)
 		goto End;
 	}
 	pr_info("%s: set fulldone_cb success\n", __FUNCTION__);
-	
+
 	done_cb.func = __CB_hd_2;
 	done_cb.parg = NULL;
 	if(0 != sw_dma_ctl(dma_hdl, DMA_OP_SET_HD_CB, (void *)&done_cb)) {
@@ -326,7 +326,7 @@ u32 _thread2_proc(void)
 		goto End;
 	}
 	pr_info("%s: set halfdone_cb success\n", __FUNCTION__);
-	
+
 	op_cb.func = __CB_op_2;
 	op_cb.parg = NULL;
 	if(0 != sw_dma_ctl(dma_hdl, DMA_OP_SET_OP_CB, (void *)&op_cb)) {
@@ -357,7 +357,7 @@ u32 _thread2_proc(void)
 	pr_info("%s: sw_dma_config success\n", __FUNCTION__);
 
 	sw_dma_dump_chan(dma_hdl);
-	
+
 	if(0 != sw_dma_ctl(dma_hdl, DMA_OP_START, NULL)) {
 		uRet = __LINE__;
 		goto End;
@@ -398,7 +398,7 @@ u32 _thread2_proc(void)
 		goto End;
 	}
 	dma_hdl = (dm_hdl_t)NULL;
-	
+
 	pr_info("%s: sw_dma_release success\n", __FUNCTION__);
 
 End:
@@ -427,7 +427,7 @@ End:
 	 */
 	if(NULL != pSrcV)
 		dma_free_coherent(NULL, DTC_2T_TOTAL_LEN, pSrcV, uSrcP);
-	
+
 	if(NULL != pDstV)
 		dma_free_coherent(NULL, DTC_2T_TOTAL_LEN, pDstV, uDstP);
 
@@ -445,7 +445,7 @@ u32 __CB_qd_1(dm_hdl_t dma_hdl, void *parg, enum dma_cb_cause_e cause)
 	u32	uCurSrc = 0, uCurDst = 0;
 	u32	uloop_cnt = DTC_2T_TOTAL_LEN / DTC_2T_ONE_LEN;
 	u32 	ucur_cnt = 0;
-	
+
 	pr_info("%s: called!\n", __FUNCTION__);
 
 	switch(cause) {
@@ -462,7 +462,7 @@ u32 __CB_qd_1(dm_hdl_t dma_hdl, void *parg, enum dma_cb_cause_e cause)
 			//DBG_FUN_LINE;
 
 			//sw_dma_dump_chan(dma_hdl); /* for debug */
-			
+
 			/* maybe it's the last irq; or next will be the last irq, need think about */
 			atomic_set(&g_adma_done1, 1);
 			wake_up_interruptible(&g_dtc_queue[1]);
@@ -475,11 +475,11 @@ u32 __CB_qd_1(dm_hdl_t dma_hdl, void *parg, enum dma_cb_cause_e cause)
 			wake_up_interruptible(&g_dtc_queue[1]);
 		}
 		break;
-		
+
 	case DMA_CB_ABORT:
 		pr_info("%s: DMA_CB_ABORT!\n", __FUNCTION__);
 		break;
-		
+
 	default:
 		uRet = __LINE__;
 		goto End;
@@ -488,7 +488,7 @@ u32 __CB_qd_1(dm_hdl_t dma_hdl, void *parg, enum dma_cb_cause_e cause)
 End:
 	if(0 != uRet)
 		pr_err("%s err, line %d!\n", __FUNCTION__, uRet);
-	
+
 	return uRet;
 }
 
@@ -500,18 +500,18 @@ End:
 u32 __CB_fd_1(dm_hdl_t dma_hdl, void *parg, enum dma_cb_cause_e cause)
 {
 	u32 	uRet = 0;
-	
+
 	pr_info("%s: called!\n", __FUNCTION__);
 
 	switch(cause) {
 	case DMA_CB_OK:
 		pr_info("%s: DMA_CB_OK!\n", __FUNCTION__);
 		break;
-		
+
 	case DMA_CB_ABORT:
 		pr_info("%s: DMA_CB_ABORT!\n", __FUNCTION__);
 		break;
-		
+
 	default:
 		uRet = __LINE__;
 		goto End;
@@ -520,7 +520,7 @@ u32 __CB_fd_1(dm_hdl_t dma_hdl, void *parg, enum dma_cb_cause_e cause)
 End:
 	if(0 != uRet)
 		pr_err("%s err, line %d!\n", __FUNCTION__, uRet);
-	
+
 	return uRet;
 }
 
@@ -539,11 +539,11 @@ u32 __CB_hd_1(dm_hdl_t dma_hdl, void *parg, enum dma_cb_cause_e cause)
 	case DMA_CB_OK:
 		pr_info("%s: DMA_CB_OK!\n", __FUNCTION__);
 		break;
-		
+
 	case DMA_CB_ABORT:
 		pr_info("%s: DMA_CB_ABORT!\n", __FUNCTION__);
 		break;
-		
+
 	default:
 		uRet = __LINE__;
 		goto End;
@@ -552,7 +552,7 @@ u32 __CB_hd_1(dm_hdl_t dma_hdl, void *parg, enum dma_cb_cause_e cause)
 End:
 	if(0 != uRet)
 		pr_err("%s err, line %d!\n", __FUNCTION__, uRet);
-	
+
 	return uRet;
 }
 
@@ -600,11 +600,11 @@ u32 __Waitdone_1(void)
 	long 	ret = 0;
 	long 	timeout = 50 * HZ; /* 50 */
 
-        ret = wait_event_interruptible_timeout(g_dtc_queue[1], \
+ret = wait_event_interruptible_timeout(g_dtc_queue[1], \
 		atomic_read(&g_adma_done1)== 1, timeout);
-	
+
 	atomic_set(&g_adma_done1, 0);
-	
+
 	if(-ERESTARTSYS == ret) {
 		pr_info("%s success!\n", __FUNCTION__);
 		return 0;
@@ -675,7 +675,7 @@ u32 _thread1_proc(void)
 		goto End;
 	}
 	pr_info("%s: sw_dma_request success, dma_hdl 0x%08x\n", __FUNCTION__, (u32)dma_hdl);
-	
+
 	/*
 	 * set callback
 	 */
@@ -689,7 +689,7 @@ u32 _thread1_proc(void)
 		goto End;
 	}
 	pr_info("%s: set queuedone_cb success\n", __FUNCTION__);
-	
+
 	done_cb.func = __CB_fd_1;
 	done_cb.parg = NULL;
 	if(0 != sw_dma_ctl(dma_hdl, DMA_OP_SET_FD_CB, (void *)&done_cb)) {
@@ -697,7 +697,7 @@ u32 _thread1_proc(void)
 		goto End;
 	}
 	pr_info("%s: set fulldone_cb success\n", __FUNCTION__);
-	
+
 	done_cb.func = __CB_hd_1;
 	done_cb.parg = NULL;
 	if(0 != sw_dma_ctl(dma_hdl, DMA_OP_SET_HD_CB, (void *)&done_cb)) {
@@ -705,7 +705,7 @@ u32 _thread1_proc(void)
 		goto End;
 	}
 	pr_info("%s: set halfdone_cb success\n", __FUNCTION__);
-	
+
 	op_cb.func = __CB_op_1;
 	op_cb.parg = NULL;
 	if(0 != sw_dma_ctl(dma_hdl, DMA_OP_SET_OP_CB, (void *)&op_cb)) {
@@ -736,7 +736,7 @@ u32 _thread1_proc(void)
 	pr_info("%s: sw_dma_config success\n", __FUNCTION__);
 
 	sw_dma_dump_chan(dma_hdl);
-	
+
 	if(0 != sw_dma_ctl(dma_hdl, DMA_OP_START, NULL)) {
 		uRet = __LINE__;
 		goto End;
@@ -777,7 +777,7 @@ u32 _thread1_proc(void)
 		goto End;
 	}
 	dma_hdl = (dm_hdl_t)NULL;
-	
+
 	pr_info("%s: sw_dma_release success\n", __FUNCTION__);
 
 End:
@@ -806,7 +806,7 @@ End:
 	 */
 	if(NULL != pSrcV)
 		dma_free_coherent(NULL, DTC_2T_TOTAL_LEN, pSrcV, uSrcP);
-	
+
 	if(NULL != pDstV)
 		dma_free_coherent(NULL, DTC_2T_TOTAL_LEN, pDstV, uDstP);
 
@@ -815,7 +815,7 @@ End:
 /**
  * __test_thread1 - thread test proc1
  * @arg:	thread arg, no use
- * 
+ *
  * Returns 0 if success, the err line number if failed.
  */
 int __test_thread1(void * arg)
@@ -827,7 +827,7 @@ int __test_thread1(void * arg)
 	pr_info("%s: begin_ms 0x%08x\n", __FUNCTION__, begin_ms);
 	while(1) {
 		__dump_cur_mem_info();
-		
+
 		if(0 != _thread1_proc()) {
 			uRet = __LINE__;
 			goto End;
@@ -839,10 +839,10 @@ int __test_thread1(void * arg)
 		pr_info("%s: cur_ms 0x%08x\n", __FUNCTION__, end_ms);
 		if(end_ms - begin_ms >= TEST_TIME_THREAD1) {
 			pr_info("%s: time passed! ok!\n", __FUNCTION__);
-			break; 
+			break;
 		}
 	}
-	
+
 End:
 	if(0 != uRet)
 		pr_err("%s err, line %d!\n", __FUNCTION__, uRet);
@@ -855,7 +855,7 @@ End:
 /**
  * __test_thread2 - thread test proc2
  * @arg:	thread arg, no use
- * 
+ *
  * Returns 0 if success, the err line number if failed.
  */
 int __test_thread2(void * arg)
@@ -866,7 +866,7 @@ int __test_thread2(void * arg)
 	begin_ms = (jiffies * 1000) / HZ;
 	while(1) {
 		__dump_cur_mem_info();
-		
+
 		if(0 != _thread2_proc()) {
 			uRet = __LINE__;
 			goto End;
@@ -877,10 +877,10 @@ int __test_thread2(void * arg)
 		end_ms = (jiffies * 1000) / HZ;
 		if(end_ms - begin_ms >= TEST_TIME_THREAD2) {
 			pr_info("%s: time passed! ok!\n", __FUNCTION__);
-			break; 
+			break;
 		}
 	}
-	
+
 End:
 	if(0 != uRet)
 		pr_err("%s err, line %d!\n", __FUNCTION__, uRet);
@@ -898,7 +898,7 @@ End:
 u32 __dtc_2t_mem_2_mem(void)
 {
 	__dump_cur_mem_info();
-	
+
 	kernel_thread(__test_thread1, NULL, CLONE_FS | CLONE_SIGHAND);
 	kernel_thread(__test_thread2, NULL, CLONE_FS | CLONE_SIGHAND);
 	return 0;
