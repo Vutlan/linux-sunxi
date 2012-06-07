@@ -49,14 +49,14 @@ static struct sw_dma_client sun5i_dma_client_in = {
 
 static struct sun5i_dma_params sun5i_i2s_pcm_stereo_out = {
 	.client		=	&sun5i_dma_client_out,
-	.channel	=	DMACH_NIIS,	
+	.channel	=	DMACH_NIIS_PLAY,
 	.dma_addr 	=	SUN5I_IISBASE + SUN5I_IISTXFIFO,
 	.dma_size 	=   4,               /* dma transfer 32bits */
 };
 
 static struct sun5i_dma_params sun5i_i2s_pcm_stereo_in = {
 	.client		=	&sun5i_dma_client_in,
-	.channel	=	DMACH_NIIS,	
+	.channel	=	DMACH_NIIS_CAPTURE,
 	.dma_addr 	=	SUN5I_IISBASE + SUN5I_IISRXFIFO,
 	.dma_size 	=   4,               /* dma transfer 32bits */
 };
@@ -137,9 +137,22 @@ void sun5i_snd_txctrl_i2s(struct snd_pcm_substream *substream, int on)
 	}		
 }
 
-void sun5i_snd_rxctrl_i2s(int on)
+void sun5i_snd_rxctrl_i2s(struct snd_pcm_substream *substream, int on)
 {
 	u32 reg_val;
+	reg_val = readl(sun5i_iis.regs + SUN5I_RXCHSEL);
+	reg_val &= ~0x1;
+	reg_val |= SUN5I_RXCHSEL_CHNUM(substream->runtime->channels);
+	writel(reg_val, sun5i_iis.regs + SUN5I_RXCHSEL);
+
+	reg_val = readl(sun5i_iis.regs + SUN5I_RXCHMAP);
+	reg_val = 0;
+	if(substream->runtime->channels == 1) {
+		reg_val = 0x00000000;
+	} else {
+		reg_val = 0x00000010;
+	}
+	writel(reg_val, sun5i_iis.regs + SUN5I_RXCHMAP);
 	
 	//flush RX FIFO
 	reg_val = readl(sun5i_iis.regs + SUN5I_IISFCTL);
@@ -302,7 +315,7 @@ static int sun5i_i2s_set_fmt(struct snd_soc_dai *cpu_dai, unsigned int fmt)
 	writel(reg_val, sun5i_iis.regs + SUN5I_IISFAT1);
 	
 	/* set FIFO control register */
-	reg_val = 0 & 0x3;
+	reg_val = 1 & 0x3;
 	reg_val |= (1 & 0x1)<<2;
 	reg_val |= SUN5I_IISFCTL_RXTL(0xf);				//RX FIFO trigger level
 	reg_val |= SUN5I_IISFCTL_TXTL(0x40);				//TX FIFO empty trigger level
@@ -340,7 +353,7 @@ static int sun5i_i2s_trigger(struct snd_pcm_substream *substream,
 		case SNDRV_PCM_TRIGGER_RESUME:
 		case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
 			if (substream->stream == SNDRV_PCM_STREAM_CAPTURE) {
-				sun5i_snd_rxctrl_i2s(1);
+				sun5i_snd_rxctrl_i2s(substream, 1);
 			} else {
 				sun5i_snd_txctrl_i2s(substream, 1);
 			}
@@ -350,7 +363,7 @@ static int sun5i_i2s_trigger(struct snd_pcm_substream *substream,
 		case SNDRV_PCM_TRIGGER_SUSPEND:
 		case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
 			if (substream->stream == SNDRV_PCM_STREAM_CAPTURE) {
-				sun5i_snd_rxctrl_i2s(0);
+				sun5i_snd_rxctrl_i2s(substream, 0);
 			} else {
 			  sun5i_snd_txctrl_i2s(substream, 0);
 			}
