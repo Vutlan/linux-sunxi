@@ -12,7 +12,7 @@
 #include "../include/nand_type.h"
 #include "../include/nand_physic.h"
 #include "../include/nand_simple.h"
-#include "../../nfc/nfc.h"
+#include "../include/nfc.h"
 
 extern  __u32 RetryCount[8];
 extern void _add_cmd_list(NFC_CMD_LIST *cmd,__u32 value,__u32 addr_cycle,__u8 *addr,__u8 data_fetch_flag,
@@ -52,8 +52,18 @@ __u32 _cal_block_in_chip(__u32 global_bank, __u32 super_blk_within_bank)
 
 	blk_within_chip = bank_base + single_blk_within_bank;
 
-	if (blk_within_chip >= DIE_CNT_OF_CHIP * BLOCK_CNT_OF_DIE)
-		blk_within_chip = 0xffffffff;
+    if(!SUPPORT_DIE_SKIP)
+    {
+        if (blk_within_chip >= DIE_CNT_OF_CHIP * BLOCK_CNT_OF_DIE)
+		    blk_within_chip = 0xffffffff;
+    }
+    else
+    {
+        blk_within_chip = blk_within_chip%BLOCK_CNT_OF_DIE + 2*(blk_within_chip/BLOCK_CNT_OF_DIE);
+        if (blk_within_chip >= 2*DIE_CNT_OF_CHIP * BLOCK_CNT_OF_DIE)
+		    blk_within_chip = 0xffffffff;
+    }
+	
 	
 	return blk_within_chip;
 }
@@ -232,6 +242,7 @@ __s32 _read_single_page_spare(struct boot_physical_param *readop,__u8 dma_wait_m
 	__u8 addr[5];
 	NFC_CMD_LIST cmd_list[4];
 	__u32 list_len,i;
+	__u32 free_page_flag = 0;
 
 	//sparebuf = (__u8 *)MALLOC(SECTOR_CNT_OF_SINGLE_PAGE * 4);
 	/*create cmd list*/
@@ -288,10 +299,34 @@ __s32 _read_single_page_spare(struct boot_physical_param *readop,__u8 dma_wait_m
 				random_seed = _cal_random_seed(readop->page);
 				NFC_SetRandomSeed(random_seed);
 				NFC_RandomEnable();
+				free_page_flag = 0;
 				ret = NFC_Read_Spare(cmd_list, readop->mainbuf, sparebuf, dma_wait_mode , NFC_PAGE_MODE);
+				if(readop->page == 0)
+				{
+					if((sparebuf[4*i] == 0x0a)&&(sparebuf[4*i+1] == 0x53)&&(sparebuf[4*i+2] == 0xb8)&&(sparebuf[4*i+3] == 0xc2))
+						free_page_flag = 1;
+
+				}
+				else if((readop->page%128) == 127)
+				{
+					if((sparebuf[4*i] == 0x32)&&(sparebuf[4*i+1] == 0x43)&&(sparebuf[4*i+2] == 0xaa)&&(sparebuf[4*i+3] == 0x4e))
+						free_page_flag = 1;
+		
+				}
+
+				if(free_page_flag)
+				{
+					ret = 0;
+					sparebuf[4*i] = 0xff;
+					sparebuf[4*i+1] = 0xff;
+					sparebuf[4*i+2] = 0xff;
+					sparebuf[4*i+3] = 0xff;
+				}
 				NFC_RandomDisable();
 				if(ret == -ERR_ECC)
 					ret = NFC_Read_Spare(cmd_list, readop->mainbuf, sparebuf, dma_wait_mode , NFC_PAGE_MODE);
+				
+				
 				
 				/**************************************************************************************  
 				* 1. add by Neil, from v2.09
@@ -348,7 +383,29 @@ __s32 _read_single_page_spare(struct boot_physical_param *readop,__u8 dma_wait_m
 			random_seed = _cal_random_seed(readop->page);
 			NFC_SetRandomSeed(random_seed);
 			NFC_RandomEnable();
+			free_page_flag = 0;
 			ret = NFC_Read_Spare(cmd_list, readop->mainbuf, sparebuf, dma_wait_mode , NFC_PAGE_MODE);
+			if(readop->page == 0)
+			{
+				if((sparebuf[4*i] == 0x0a)&&(sparebuf[4*i+1] == 0x53)&&(sparebuf[4*i+2] == 0xb8)&&(sparebuf[4*i+3] == 0xc2))
+					free_page_flag = 1;
+
+			}
+			else if((readop->page%128) == 127)
+			{
+				if((sparebuf[4*i] == 0x32)&&(sparebuf[4*i+1] == 0x43)&&(sparebuf[4*i+2] == 0xaa)&&(sparebuf[4*i+3] == 0x4e))
+					free_page_flag = 1;
+	
+			}
+
+			if(free_page_flag)
+			{
+				ret = 0;
+				sparebuf[4*i] = 0xff;
+				sparebuf[4*i+1] = 0xff;
+				sparebuf[4*i+2] = 0xff;
+				sparebuf[4*i+3] = 0xff;
+			}
 			NFC_RandomDisable();
 			if(ret == -ERR_ECC)
 				ret = NFC_Read_Spare(cmd_list, readop->mainbuf, sparebuf, dma_wait_mode , NFC_PAGE_MODE);
@@ -1526,3 +1583,73 @@ __s32 PHY_ScanDDRParam(void)
     FREE(main_buf, 8192);
     return 0;
 }
+
+__s32  PHY_ReadNandUniqueId(__s32 bank, void *pChipID)
+{
+	__s32 ret, err_flag;
+	__u32 i, j,nChip, nRb;
+	__u8 *temp_id;
+
+
+	NFC_CMD_LIST cmd;
+	__u8 addr = 0;
+
+	nChip = _cal_real_chip(bank);
+	NFC_SelectChip(nChip);
+	nRb = _cal_real_rb(nChip);
+	NFC_SelectRb(nRb);
+
+	for(i=0;i<16; i++)
+	{
+		addr = i*32;
+		temp_id = (__u8*)(pChipID);
+		err_flag = 0;
+		
+		_add_cmd_list(&cmd, 0xed,1 , &addr, NFC_DATA_FETCH, NFC_IGNORE, 32, NFC_WAIT_RB);
+		ret = NFC_GetUniqueId(&cmd, pChipID);
+
+		for(j=0; j<16;j++)
+		{
+			if((temp_id[j]^temp_id[j+16]) != 0xff)
+			{
+				err_flag = 1;
+				ret = -1;
+				break;
+			}
+		}
+
+		if(err_flag == 0)
+		{
+			ret = 0;		
+			break;
+		}
+		
+	}
+
+	if(ret)
+	{
+		for(j=0; j<32;j++)
+		{
+			temp_id[j] = 0x55;
+		}
+	}
+
+	PHY_DBG("Nand Unique ID of chip %u is : \n", nChip);
+	PHY_DBG("%x, %x, %x, %x\n", temp_id[0],temp_id[1],temp_id[2],temp_id[3]);
+	PHY_DBG("%x, %x, %x, %x\n", temp_id[4],temp_id[5],temp_id[6],temp_id[7]);
+	PHY_DBG("%x, %x, %x, %x\n", temp_id[8],temp_id[9],temp_id[10],temp_id[11]);
+	PHY_DBG("%x, %x, %x, %x\n", temp_id[12],temp_id[13],temp_id[14],temp_id[15]);
+	PHY_DBG("\n");
+	PHY_DBG("%x, %x, %x, %x\n", temp_id[16],temp_id[17],temp_id[18],temp_id[19]);
+	PHY_DBG("%x, %x, %x, %x\n", temp_id[20],temp_id[21],temp_id[22],temp_id[23]);
+	PHY_DBG("%x, %x, %x, %x\n", temp_id[24],temp_id[25],temp_id[26],temp_id[27]);
+	PHY_DBG("%x, %x, %x, %x\n", temp_id[28],temp_id[29],temp_id[30],temp_id[31]);
+	PHY_DBG("\n");
+	
+	NFC_DeSelectChip(nChip);
+	
+
+	return ret;
+}
+
+

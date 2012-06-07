@@ -1,8 +1,16 @@
 #include "mbr.h"
-#include "../src/include/nand_oal.h"
-#include "nand_private.h"
+#include "../src/include/nand_type.h"
+#include "../src/include/nand_drv_cfg.h"
+#include "../src/include/nand_logic.h"
+#include "../src/include/nand_format.h"
+#include "../src/include/nand_scan.h"
+#include "../src/include/nand_physic.h"
+#include "../src/include/nfc.h"
+
 
 MBR *mbr;
+
+int part_secur[MAX_PART_COUNT];
 
 
 typedef struct tag_CRC32_DATA
@@ -51,7 +59,7 @@ __s32 _get_mbr(void)
 	if(mbr == NULL)
 	{
 		PRINT("%s : request memory fail\n",__FUNCTION__);
-		return -ENOMEM;
+		return -1;
 	}
 
 	/*get mbr from nand device*/
@@ -96,16 +104,22 @@ int mbr2disks(struct nand_disk* disk_array)
 		return part_cnt;
 	}
 	part_index = 0;
+
+	for(part_cnt = 0; part_cnt<MAX_PART_COUNT; part_cnt++)
+		part_secur[part_index] = 0;
+
+	
 	//查找出所有的LINUX盘符
 	for(part_cnt = 0; part_cnt < mbr->PartCount && part_cnt < MAX_PART_COUNT; part_cnt++)
 	{
-	    if((mbr->array[part_cnt].user_type == 2) || (mbr->array[part_cnt].user_type == 0))
+	    //if((mbr->array[part_cnt].user_type == 2) || (mbr->array[part_cnt].user_type == 0))
 	    {
 			PRINT("The %d disk name = %s, class name = %s, disk size = %d\n", part_index, mbr->array[part_cnt].name, 
 						mbr->array[part_cnt].classname, mbr->array[part_cnt].lenlo);
 
 	        disk_array[part_index].offset = mbr->array[part_cnt].addrlo;
 			disk_array[part_index].size = mbr->array[part_cnt].lenlo;
+			part_secur[part_index] = mbr->array[part_cnt].user_type;
 			part_index ++;
 	    }
 	}

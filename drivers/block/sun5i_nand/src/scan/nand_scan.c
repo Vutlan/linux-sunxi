@@ -30,7 +30,7 @@
 */
 
 #include "../include/nand_scan.h"
-#include"../../nfc/nfc.h"
+#include"../include/nfc.h"
 
 
 extern  struct __NandStorageInfo_t  NandStorageInfo;
@@ -45,7 +45,85 @@ extern struct __NandPhyInfoPar_t DefaultNandTbl;
 extern struct __NandPhyInfoPar_t SpansionNandTbl;
 extern struct __NandPhyInfoPar_t PowerNandTbl;
 
-__s32 NAND_Detect(boot_nand_para_t *nand_connect);
+
+__u32 NAND_GetValidBlkRatio(void)
+{
+    return NandStorageInfo.ValidBlkRatio;
+}
+
+__s32 NAND_SetValidBlkRatio(__u32 ValidBlkRatio)
+{
+    NandStorageInfo.ValidBlkRatio = (__u16)ValidBlkRatio;
+    return 0;
+    
+}
+
+__u32 NAND_GetFrequencePar(void)
+{
+    return NandStorageInfo.FrequencePar;
+}
+
+__s32 NAND_SetFrequencePar(__u32 FrequencePar)
+{
+    NandStorageInfo.FrequencePar = (__u8)FrequencePar;
+    return 0;
+    
+}
+
+__u32 NAND_GetNandVersion(void)
+{
+    __u32 nand_version;
+	
+	nand_version = 0;
+	nand_version |= 0xff;
+	nand_version |= 0x00<<8;
+	nand_version |= NAND_VERSION_0<<16;
+	nand_version |= NAND_VERSION_1<<24;
+    
+	return nand_version;
+}
+
+__s32 NAND_GetParam(boot_nand_para_t * nand_param)
+{
+	__u32 i;
+
+	nand_param->ChipCnt            =   NandStorageInfo.ChipCnt           ;
+	nand_param->ChipConnectInfo    =   NandStorageInfo.ChipConnectInfo   ;
+	nand_param->RbCnt              =   NandStorageInfo.RbCnt             ;
+	nand_param->RbConnectInfo      =   NandStorageInfo.RbConnectInfo     ;
+	nand_param->RbConnectMode      =   NandStorageInfo.RbConnectMode     ;
+	nand_param->BankCntPerChip     =   NandStorageInfo.BankCntPerChip    ;
+	nand_param->DieCntPerChip      =   NandStorageInfo.DieCntPerChip     ;
+	nand_param->PlaneCntPerDie     =   NandStorageInfo.PlaneCntPerDie    ;
+	nand_param->SectorCntPerPage   =   NandStorageInfo.SectorCntPerPage  ;
+	nand_param->PageCntPerPhyBlk   =   NandStorageInfo.PageCntPerPhyBlk  ;
+	nand_param->BlkCntPerDie       =   NandStorageInfo.BlkCntPerDie      ;
+	nand_param->OperationOpt       =   NandStorageInfo.OperationOpt      ;
+	nand_param->FrequencePar       =   NandStorageInfo.FrequencePar      ;
+	nand_param->EccMode            =   NandStorageInfo.EccMode           ;
+	nand_param->ValidBlkRatio      =   NandStorageInfo.ValidBlkRatio     ;
+	nand_param->good_block_ratio   =   NandStorageInfo.ValidBlkRatio     ;
+	nand_param->ReadRetryType      =   NandStorageInfo.ReadRetryType     ;
+	nand_param->DDRType            =   NandStorageInfo.DDRType           ;
+
+	for(i =0; i<8; i++)
+	    nand_param->NandChipId[i]   =   NandStorageInfo.NandChipId[i];
+
+
+
+	return 0;
+}
+
+__s32 NAND_GetFlashInfo(boot_flash_info_t *param)
+{
+	param->chip_cnt	 		= NandStorageInfo.ChipCnt;
+	param->blk_cnt_per_chip = NandStorageInfo.BlkCntPerDie * NandStorageInfo.DieCntPerChip;
+	param->blocksize 		= SECTOR_CNT_OF_SINGLE_PAGE * PAGE_CNT_OF_PHY_BLK;
+	param->pagesize  		= SECTOR_CNT_OF_SINGLE_PAGE;
+	param->pagewithbadflag  = NandStorageInfo.OptPhyOpPar.BadBlockFlagPosition;
+
+	return 0;
+}
 
 
 /*
@@ -403,6 +481,8 @@ __s32  SCN_AnalyzeNandSystem(void)
 		nand_info.ddr_type = DDR_TYPE;
 		NFC_ChangMode(&nand_info);
 	}
+	
+	PHY_ChangeMode(1);
 
 	if(SUPPORT_READ_RETRY)
 	{

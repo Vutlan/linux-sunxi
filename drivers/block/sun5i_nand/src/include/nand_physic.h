@@ -102,6 +102,9 @@ extern struct __NandPageCachePool_t PageCachePool;
 //define if the nand flash system can support bank align
 #define SUPPORT_ALIGN_NAND_BNK              (!(NAND_PAGE_ADR_NO_SKIP & NandStorageInfo.OperationOpt))
 
+//define if the nand flash require to skip die addr
+#define SUPPORT_DIE_SKIP                    (NAND_DIE_SKIP & NandStorageInfo.OperationOpt)
+
 //define the count of the nand flash DIE in a nand flash chip
 #define DIE_CNT_OF_CHIP                     (NandStorageInfo.DieCntPerChip)
 
