@@ -348,7 +348,7 @@ void NAND_PIORequest(void)
 {
 	printk("[NAND] nand gpio_request\n");
 	nand_handle = gpio_request_ex("nand_para",NULL);
-	if(nand_handle == 0)
+	if(!nand_handle)
 	{
 		printk("[NAND] nand gpio_request ok\n");
 	}
