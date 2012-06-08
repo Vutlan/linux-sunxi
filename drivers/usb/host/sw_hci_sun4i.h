@@ -163,6 +163,11 @@
 #define SW_SDRAM_BP_HPCR_PRIORITY_LEVEL		2
 #define SW_SDRAM_BP_HPCR_ACCESS_EN			0
 
+enum sw_usbc_type{
+	SW_USB_UNKOWN = 0,
+	SW_USB_EHCI,
+	SW_USB_OHCI,
+};
 
 struct sw_hci_hcd{
 	__u32 usbc_no;						/* usb controller number */

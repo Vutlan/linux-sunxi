@@ -392,6 +392,13 @@ static int sw_ohci_hcd_probe(struct platform_device *pdev)
 
 #ifdef  CONFIG_USB_SW_MU509
     if(is_suspport_mu509(sw_ohci->usbc_no, SW_USB_OHCI)){
+    	ret = mu509_wakeup_irq_init();
+	    if(ret != 0){
+	       DMSG_PANIC("err: mu509_irq_init failed\n");
+	       usb_remove_hcd(hcd);
+	       return -1;
+	    }
+
         mu509_vbat(sw_ohci->usbc_no, 1);
         mu509_wakeup_sleep(sw_ohci->usbc_no, 0);
         mu509_power(sw_ohci->usbc_no, 1);
@@ -458,6 +465,7 @@ static int sw_ohci_hcd_remove(struct platform_device *pdev)
 
 #ifdef  CONFIG_USB_SW_MU509
     if(is_suspport_mu509(sw_ohci->usbc_no, SW_USB_OHCI)){
+    	mu509_wakeup_irq_exit();
         mu509_power(sw_ohci->usbc_no, 0);
         mu509_vbat(sw_ohci->usbc_no, 0);
     }
@@ -517,6 +525,12 @@ void sw_ohci_hcd_shutdown(struct platform_device* pdev)
 	}
 
  	DMSG_INFO("[%s]: ohci shutdown start\n", sw_ohci->hci_name);
+
+#ifdef  CONFIG_USB_SW_MU509
+    if(is_suspport_mu509(sw_ohci->usbc_no, SW_USB_OHCI)){
+    	mu509_wakeup_irq_exit();
+    }
+#endif
 
     usb_hcd_platform_shutdown(pdev);
     sw_stop_ohc(sw_ohci);

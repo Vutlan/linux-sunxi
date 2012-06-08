@@ -582,7 +582,7 @@ static void mu509_wakeup_irq_work(struct work_struct *data)
 {
     usb_3g_dbg("---------mu509_wakeup_irq_work----------\n");
 
-	axp_pressshort_ex();
+	//axp_pressshort_ex();
 
 	return;
 }
@@ -759,8 +759,9 @@ static void mu509_early_resume(struct early_suspend *h)
 *
 *******************************************************************************
 */
-static int mu509_wakeup_irq_init(struct sw_usb_mu509 *mu509)
+int mu509_wakeup_irq_init(void)
 {
+	struct sw_usb_mu509 *mu509 = &g_usb_mu509;
     int ret = 0;
     int nIrq = SW_INT_IRQNO_PIO;
 
@@ -788,7 +789,7 @@ static int mu509_wakeup_irq_init(struct sw_usb_mu509 *mu509)
 failed:
     return -1;
 }
-
+EXPORT_SYMBOL(mu509_wakeup_irq_init);
 
 /*
 *******************************************************************************
@@ -808,9 +809,9 @@ failed:
 *
 *******************************************************************************
 */
-static int mu509_wakeup_irq_exit(struct sw_usb_mu509 *mu509)
+int mu509_wakeup_irq_exit(void)
 {
-    int nIrq = SW_INT_IRQNO_PIO;
+	struct sw_usb_mu509 *mu509 = &g_usb_mu509;
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	unregister_early_suspend(&mu509->early_suspend);
@@ -822,11 +823,11 @@ static int mu509_wakeup_irq_exit(struct sw_usb_mu509 *mu509)
 
     mu509_wakeup_irq_clear();
 
-    free_irq(nIrq, mu509_wakeup_irq_interrupt);
+    //free_irq(SW_INT_IRQNO_PIO, mu509_wakeup_irq_interrupt);
 
     return 0;
 }
-
+EXPORT_SYMBOL(mu509_wakeup_irq_exit);
 
 /*
 *******************************************************************************
@@ -1095,16 +1096,7 @@ int mu509_init(void)
        goto failed1;
     }
 
-    ret = mu509_wakeup_irq_init(&g_usb_mu509);
-    if(ret != 0){
-       usb_3g_err("err: mu509_irq_init failed\n");
-       goto failed2;
-    }
-
     return 0;
-
-failed2:
-    mu509_pin_exit(&g_usb_mu509);
 
 failed1:
 failed0:
@@ -1133,8 +1125,6 @@ EXPORT_SYMBOL(mu509_init);
 */
 int mu509_exit(void)
 {
-    mu509_wakeup_irq_exit(&g_usb_mu509);
-
     mu509_pin_exit(&g_usb_mu509);
 
     return 0;
