@@ -860,7 +860,7 @@ __s32 DE_SCAL_Set_Scaling_Coef_for_video(__u8 sel, __scal_scan_mod_t *in_scan, _
       //comput the fir coefficient offset in coefficient table
       int_part = ch0v_sc>>3;
       float_part = ch0v_sc & 0x7;
-      ch0v_fir_coef_ofst = (int_part==0)  ? zoom0_size : 
+      ch0v_fir_coef_ofst = (int_part==0)  ? 0 : 					//modify by vito 12-04-16
                            (int_part==1)  ? zoom0_size + float_part :
                            (int_part==2)  ? zoom0_size + zoom1_size + (float_part>>1) : 
                            (int_part==3)  ? zoom0_size + zoom1_size + zoom2_size : 
@@ -868,7 +868,7 @@ __s32 DE_SCAL_Set_Scaling_Coef_for_video(__u8 sel, __scal_scan_mod_t *in_scan, _
                            zoom0_size + zoom1_size + zoom2_size + zoom3_size + zoom4_size;
       int_part = ch0h_sc>>3;
       float_part = ch0h_sc & 0x7;
-      ch0h_fir_coef_ofst = (int_part==0)  ? zoom0_size : 
+      ch0h_fir_coef_ofst = (int_part==0)  ? 0 : 					//modify by vito 12-04-16
                            (int_part==1)  ? zoom0_size + float_part :
                            (int_part==2)  ? zoom0_size + zoom1_size + (float_part>>1) : 
                            (int_part==3)  ? zoom0_size + zoom1_size + zoom2_size : 
@@ -876,7 +876,7 @@ __s32 DE_SCAL_Set_Scaling_Coef_for_video(__u8 sel, __scal_scan_mod_t *in_scan, _
                            zoom0_size + zoom1_size + zoom2_size + zoom3_size + zoom4_size;
       int_part = ch1v_sc>>3;
       float_part = ch1v_sc & 0x7;
-      ch1v_fir_coef_ofst = (int_part==0)  ? zoom0_size : 
+      ch1v_fir_coef_ofst = (int_part==0)  ? 0 : 					//modify by vito 12-04-16
                            (int_part==1)  ? zoom0_size + float_part :
                            (int_part==2)  ? zoom0_size + zoom1_size + (float_part>>1) : 
                            (int_part==3)  ? zoom0_size + zoom1_size + zoom2_size : 
@@ -884,7 +884,7 @@ __s32 DE_SCAL_Set_Scaling_Coef_for_video(__u8 sel, __scal_scan_mod_t *in_scan, _
                            zoom0_size + zoom1_size + zoom2_size + zoom3_size + zoom4_size;
       int_part = ch1h_sc>>3;
       float_part = ch1h_sc & 0x7;
-      ch1h_fir_coef_ofst =  (int_part==0)  ? zoom0_size : 
+      ch1h_fir_coef_ofst =  (int_part==0)  ? 0 : 					//modify by vito 12-04-16
                             (int_part==1)  ? zoom0_size + float_part :
                             (int_part==2)  ? zoom0_size + zoom1_size + (float_part>>1) : 
                             (int_part==3)  ? zoom0_size + zoom1_size + zoom2_size : 
@@ -2588,7 +2588,7 @@ __s32 DE_SCAL_Vpp_Set_Luma_Sharpness_Level(__u8 sel, __u32 level)
 		case	0x1:	
 			scal_dev[sel]->vpp_lp1.bits.tau = 4;
 			scal_dev[sel]->vpp_lp1.bits.alpha = 0;
-			scal_dev[sel]->vpp_lp1.bits.beta = 20;
+			scal_dev[sel]->vpp_lp1.bits.beta = 8;	//12-06-08
 			scal_dev[sel]->vpp_lp2.bits.corthr = 2;
 			scal_dev[sel]->vpp_lp1.bits.lp_en = 0x1;
 		break;
@@ -2596,7 +2596,7 @@ __s32 DE_SCAL_Vpp_Set_Luma_Sharpness_Level(__u8 sel, __u32 level)
 		case	0x2:	
 			scal_dev[sel]->vpp_lp1.bits.tau = 11;
 			scal_dev[sel]->vpp_lp1.bits.alpha = 0;
-			scal_dev[sel]->vpp_lp1.bits.beta = 16;
+			scal_dev[sel]->vpp_lp1.bits.beta = 8;  //12-06-08
 			scal_dev[sel]->vpp_lp2.bits.corthr = 5;
 			scal_dev[sel]->vpp_lp1.bits.lp_en = 0x1;
 
