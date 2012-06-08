@@ -1157,6 +1157,7 @@ static int nand_resume(struct platform_device *plat_dev)
 
 	printk("[NAND] nand_resume \n");
 	NAND_ClkEnable();
+	NAND_PIORequest();
 
 	up(&mytr.nand_ops_mutex);
 
