@@ -24,6 +24,7 @@
 #include <linux/clk.h>
 #include <linux/err.h>
 #include <linux/regulator/consumer.h>
+#include <mach/sys_config.h>
 #include "cpu-freq.h"
 
 
@@ -38,25 +39,30 @@ static struct clk *clk_apb; /* apb clock handler */
 
 
 #ifdef CONFIG_CPU_FREQ_DVFS
+#define TABLE_LENGTH (16)
 struct cpufreq_dvfs {
     unsigned int    freq;   /* cpu frequency    */
     unsigned int    volt;   /* voltage for the frequency    */
 };
 static struct cpufreq_dvfs dvfs_table[] = {
     {.freq = 1104000000, .volt = 1500}, /* core vdd is 1.50v if cpu frequency is (1008Mhz, 1104Mhz] */
-    {.freq = 1008000000, .volt = 1400}, /* core vdd is 1.40v if cpu frequency is (912Mhz, 1008Mhz]  */
-    {.freq = 912000000,  .volt = 1350}, /* core vdd is 1.35v if cpu frequency is (864Mhz, 912Mhz]   */
-    {.freq = 864000000,  .volt = 1300}, /* core vdd is 1.30v if cpu frequency is (624Mhz, 864Mhz]   */
-    {.freq = 624000000,  .volt = 1200}, /* core vdd is 1.20v if cpu frequency is (576Mhz, 624Mhz]   */
-    {.freq = 576000000,  .volt = 1100}, /* core vdd is 1.10v if cpu frequency is (432Mhz, 576Mhz]   */
-    {.freq = 432000000,  .volt = 1000}, /* core vdd is 1.00v if cpu frequency is (240Mhz, 432Mhz]   */
-//    {.freq = 240000000,  .volt = 900 }, /* core vdd is 0.90v if cpu frequency is (150Mhz, 240Mhz    */
-//    {.freq = 150000000,  .volt = 800 }, /* core vdd is 0.80v if cpu frequency is (0Mhz, 150Mhz]     */
+    {.freq = 1008000000, .volt = 1400}, /* core vdd is 1.40v if cpu frequency is (912Mhz,  1008Mhz] */
+    {.freq = 912000000,  .volt = 1350}, /* core vdd is 1.35v if cpu frequency is (864Mhz,   912Mhz] */
+    {.freq = 864000000,  .volt = 1300}, /* core vdd is 1.30v if cpu frequency is (624Mhz,   864Mhz] */
+    {.freq = 624000000,  .volt = 1200}, /* core vdd is 1.20v if cpu frequency is (576Mhz,   624Mhz] */
+    {.freq = 576000000,  .volt = 1100}, /* core vdd is 1.10v if cpu frequency is (432Mhz,   576Mhz] */
+    {.freq = 432000000,  .volt = 1000}, /* core vdd is 1.00v if cpu frequency is (60Mhz,    432Mhz] */
     {.freq = 0,          .volt = 700 }, /* end of cpu dvfs table                                    */
 };
+static struct cpufreq_dvfs dvfs_table_syscfg[TABLE_LENGTH];
+static unsigned int table_length_syscfg = 0;
+static int use_default_table = 0;
 static struct regulator *corevdd;
 static unsigned int last_vdd    = 1400;     /* backup last target voltage, default is 1.4v  */
 #endif
+
+static unsigned int cpu_freq_max = SUN4I_CPUFREQ_MAX / 1000;
+static unsigned int cpu_freq_min = SUN4I_CPUFREQ_MIN / 1000;
 
 /*
 *********************************************************************************************************
@@ -106,6 +112,111 @@ static void sun4i_cpufreq_show(const char *pfx, struct sun4i_cpu_freq_t *cfg)
 #ifdef CONFIG_CPU_FREQ_DVFS
 /*
 *********************************************************************************************************
+*                           __init_vftable_syscfg
+*
+*Description: init vftable from sysconfig.
+*
+*Arguments  : none;
+*
+*Return     : result, 0 - init vftable successed, !0 - init vftable failed;
+*
+*Notes      : LV1: core vdd is 1.50v if cpu frequency is (1008Mhz, 1104Mhz]
+*             LV2: core vdd is 1.40v if cpu frequency is (912Mhz,  1008Mhz]
+*             LV3: core vdd is 1.35v if cpu frequency is (864Mhz,   912Mhz]
+*             LV4: core vdd is 1.30v if cpu frequency is (624Mhz,   864Mhz]
+*             LV5: core vdd is 1.20v if cpu frequency is (576Mhz,   624Mhz]
+*             LV6: core vdd is 1.10v if cpu frequency is (432Mhz,   576Mhz]
+*             LV7: core vdd is 1.00v if cpu frequency is (60Mhz,    432Mhz]
+*
+*********************************************************************************************************
+*/
+static int __init_vftable_syscfg(void)
+{
+	int ret = 0;
+	char name[16] = {0};
+	unsigned int level_freq, level_volt;
+	int i;
+
+	ret = script_parser_fetch("dvfs_table", "LV_count", &table_length_syscfg, sizeof(unsigned int));
+	if(ret != SCRIPT_PARSER_OK){
+		CPUFREQ_ERR("get LV_count from sysconfig failed\n");
+		use_default_table = 1;
+		goto fail;
+	}
+
+	/* table_length_syscfg must be < TABLE_LENGTH */
+	if(table_length_syscfg >= TABLE_LENGTH){
+		CPUFREQ_ERR("LV_count from sysconfig is out of bounder\n");
+		use_default_table = 1;
+		ret = -1;
+		goto fail;
+	}
+
+	for (i = 1; i <= table_length_syscfg; i++){
+		sprintf(name, "LV%d_freq", i);
+		ret = script_parser_fetch("dvfs_table", name, &level_freq, sizeof(unsigned int));
+		if(ret != SCRIPT_PARSER_OK){
+			CPUFREQ_ERR("get LV%d_freq from sysconfig failed\n", i);
+			use_default_table = 1;
+			goto fail;
+		}
+
+		sprintf(name, "LV%d_volt", i);
+		ret = script_parser_fetch("dvfs_table", name, &level_volt, sizeof(unsigned int));
+		if(ret != SCRIPT_PARSER_OK){
+			CPUFREQ_ERR("get LV%d_volt from sysconfig failed\n", i);
+			use_default_table = 1;
+			goto fail;
+		}
+
+		dvfs_table_syscfg[i-1].freq = level_freq;
+		dvfs_table_syscfg[i-1].volt = level_volt;
+	}
+
+	/* end of cpu dvfs table */
+	dvfs_table_syscfg[table_length_syscfg].freq = 0;
+	dvfs_table_syscfg[table_length_syscfg].volt = 700;
+
+fail:
+	return ret;
+}
+
+/*
+*********************************************************************************************************
+*                           __vftable_show
+*
+*Description: show vftable information
+*
+*Arguments  : none;
+*
+*Return     : none;
+*
+*Notes      :
+*
+*********************************************************************************************************
+*/
+static void __vftable_show(void)
+{
+	int i;
+
+	CPUFREQ_INF("-------------------V-F Table-------------------\n");
+	if(use_default_table){
+		for(i = 0; i < sizeof(dvfs_table)/sizeof(dvfs_table[0]); i++){
+			CPUFREQ_INF("\tvoltage = %4dmv \tfrequency = %4dMHz\n", dvfs_table[i].volt,
+					dvfs_table[i].freq/1000000);
+		}
+	}
+	else{
+		for(i = 0; i <= table_length_syscfg; i++){
+			CPUFREQ_INF("\tvoltage = %4dmv \tfrequency = %4dMHz\n", dvfs_table_syscfg[i].volt,
+					dvfs_table_syscfg[i].freq/1000000);
+		}
+	}
+	CPUFREQ_INF("-----------------------------------------------\n");
+}
+
+/*
+*********************************************************************************************************
 *                           __get_vdd_value
 *
 *Description: get vdd with cpu frequency.
@@ -120,7 +231,12 @@ static void sun4i_cpufreq_show(const char *pfx, struct sun4i_cpu_freq_t *cfg)
 */
 static inline unsigned int __get_vdd_value(unsigned int freq)
 {
-    struct cpufreq_dvfs *dvfs_inf = &dvfs_table[0];
+    struct cpufreq_dvfs *dvfs_inf = NULL;
+	if(use_default_table)
+		dvfs_inf = &dvfs_table[0];
+	else
+		dvfs_inf = &dvfs_table_syscfg[0];
+
     while((dvfs_inf+1)->freq >= freq) dvfs_inf++;
 
     return dvfs_inf->volt;
@@ -528,6 +644,93 @@ static unsigned int sun4i_cpufreq_get(unsigned int cpu)
 
 /*
 *********************************************************************************************************
+*                           __get_valid_freq
+*
+*Description: get a valid frequency from cpu frequency table;
+*
+*Arguments  : target_freq 	target frequency to be judge, based on KHz;
+*
+*Return     : result;
+*
+*Notes      :
+*
+*********************************************************************************************************
+*/
+static unsigned int __get_valid_freq(unsigned int target_freq)
+{
+	struct cpufreq_frequency_table *tmp = &sun4i_freq_tbl[0];
+
+	while(tmp->frequency != CPUFREQ_TABLE_END){
+		if((tmp+1)->frequency <= target_freq)
+			tmp++;
+		else
+			break;
+	}
+
+	return tmp->frequency;
+}
+
+
+/*
+*********************************************************************************************************
+*                           __init_freq_syscfg
+*
+*Description: init cpu max/min frequency from sysconfig.
+*
+*Arguments  : none;
+*
+*Return     : result, 0 - init cpu max/min successed, !0 - init cpu max/min failed;
+*
+*Notes      :
+*
+*********************************************************************************************************
+*/
+static int __init_freq_syscfg(void)
+{
+	int ret = 0;
+
+	ret = script_parser_fetch("dvfs_table", "max_freq", &cpu_freq_max, sizeof(unsigned int));
+	if(ret != SCRIPT_PARSER_OK){
+		CPUFREQ_ERR("get cpu max frequency from sysconfig failed\n");
+		goto fail;
+	}
+
+	ret = script_parser_fetch("dvfs_table", "min_freq", &cpu_freq_min, sizeof(unsigned int));
+	if(ret != SCRIPT_PARSER_OK){
+		CPUFREQ_ERR("get cpu min frequency from sysconfig failed\n");
+		goto fail;
+	}
+
+	if(cpu_freq_max > SUN4I_CPUFREQ_MAX || cpu_freq_max < SUN4I_CPUFREQ_MIN
+		|| cpu_freq_min < SUN4I_CPUFREQ_MIN || cpu_freq_min > SUN4I_CPUFREQ_MAX){
+		CPUFREQ_ERR("cpu max or min frequency from sysconfig is more than range\n");
+		ret = -1;
+		goto fail;
+	}
+
+	if(cpu_freq_min > cpu_freq_max){
+		CPUFREQ_ERR("cpu min frequency can not be more than cpu max frequency\n");
+		ret = -1;
+		goto fail;
+	}
+
+	/* get valid max/min frequency from cpu frequency table */
+	cpu_freq_max = __get_valid_freq(cpu_freq_max / 1000);
+	cpu_freq_min = __get_valid_freq(cpu_freq_min / 1000);
+
+	return 0;
+
+fail:
+	/* use default cpu max/min frequency */
+	cpu_freq_max = SUN4I_CPUFREQ_MAX / 1000;
+	cpu_freq_min = SUN4I_CPUFREQ_MIN / 1000;
+
+	return ret;
+}
+
+
+/*
+*********************************************************************************************************
 *                           sun4i_cpufreq_init
 *
 *Description: cpu frequency initialise a policy;
@@ -547,9 +750,18 @@ static int sun4i_cpufreq_init(struct cpufreq_policy *policy)
 	if (policy->cpu != 0)
 		return -EINVAL;
 
+	/* init cpu frequency from sysconfig */
+	if(__init_freq_syscfg()) {
+		CPUFREQ_ERR("use default cpu max/min frequency, max freq: %uMHz, min freq: %uMHz\n",
+					cpu_freq_max/1000, cpu_freq_min/1000);
+	}else{
+		CPUFREQ_INF("get cpu frequency from sysconfig, max freq: %uMHz, min freq: %uMHz\n",
+					cpu_freq_max/1000, cpu_freq_min/1000);
+	}
+
 	policy->cur = sun4i_cpufreq_get(0);
-	policy->min = policy->cpuinfo.min_freq = SUN4I_CPUFREQ_MIN / 1000;
-	policy->max = policy->cpuinfo.max_freq = SUN4I_CPUFREQ_MAX / 1000;
+	policy->min = policy->cpuinfo.min_freq = cpu_freq_min;
+	policy->max = policy->cpuinfo.max_freq = cpu_freq_max;
 	policy->governor = CPUFREQ_DEFAULT_GOVERNOR;
 
 	/* feed the latency information from the cpu driver */
@@ -758,6 +970,15 @@ static int __init sun4i_cpufreq_initcall(void)
     if(ret) {
         return ret;
     }
+
+#ifdef CONFIG_CPU_FREQ_DVFS
+	ret = __init_vftable_syscfg();
+	if(ret) {
+		CPUFREQ_ERR("use default V-F Table\n");
+	}
+
+	__vftable_show();
+#endif
 
     /* initialise current frequency configuration */
 	sun4i_cpufreq_getcur(&cpu_cur);
