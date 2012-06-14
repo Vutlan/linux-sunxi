@@ -17,6 +17,7 @@
 #include <linux/cdev.h>     /* character device definitions */
 #include <linux/mm.h> /* memory mananger definitions */
 #include <linux/device.h>
+#include <linux/major.h>
 
 /* the mali kernel subsystem types */
 #include "mali_kernel_subsystem.h"
@@ -47,7 +48,7 @@ module_param(mali_debug_level, int, S_IRUSR | S_IWUSR | S_IWGRP | S_IRGRP | S_IR
 MODULE_PARM_DESC(mali_debug_level, "Higher number, more dmesg output");
 
 /* By default the module uses any available major, but it's possible to set it at load time to a specific number */
-int mali_major = 0;
+int mali_major = MALI_MAJOR;
 module_param(mali_major, int, S_IRUGO); /* r--r--r-- */
 MODULE_PARM_DESC(mali_major, "Device major number");
 
