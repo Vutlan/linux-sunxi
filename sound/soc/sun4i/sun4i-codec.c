@@ -36,6 +36,8 @@
 #include <mach/system.h>
 
 #define SCRIPT_AUDIO_OK (0)
+static int gpio_pa_shutdown = 0;
+static int gpio_pa_value = 0;
 static int capture_used = 0;
 struct clk *codec_apbclk,*codec_pll2clk,*codec_moduleclk;
 
@@ -781,7 +783,7 @@ static void sun4i_pcm_enqueue(struct snd_pcm_substream *substream)
 					play_pos = play_prtd->dma_start;
 			}else{
 				break;
-			}	  
+			}
 		}
 		play_prtd->dma_pos = play_pos;	
 	}else{
@@ -839,7 +841,7 @@ static void sun4i_audio_play_buffdone(struct sw_dma_chan *channel,
 
 	if (result == SW_RES_ABORT || result == SW_RES_ERR)
 		return;
-		
+
 	play_prtd = substream->runtime->private_data;
 	if (substream){				
 		snd_pcm_period_elapsed(substream);
@@ -911,7 +913,7 @@ static int sun4i_codec_pcm_hw_params(struct snd_pcm_substream *substream, struct
 			play_prtd->dma_period = params_period_bytes(params);
 			play_prtd->dma_start = play_runtime->dma_addr;	
 
-			play_dmasrc = play_prtd->dma_start;	 
+			play_dmasrc = play_prtd->dma_start;
 			play_prtd->dma_pos = play_prtd->dma_start;
 			play_prtd->dma_end = play_prtd->dma_start + play_totbytes;
 			
@@ -1481,6 +1483,11 @@ static void codec_resume_events(struct work_struct *work)
 {
 	printk("%s,%d\n",__func__,__LINE__);
 	//codec_wr_control(SUN4I_DAC_DPC ,  0x1, DAC_EN, 0x1);
+	if (gpio_pa_value == 1) {
+		gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");
+	} else {
+		gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");
+	}
 	msleep(20);
 	//enable PA
 	codec_wr_control(SUN4I_ADC_ACTL, 0x1, PA_ENABLE, 0x1);
@@ -1488,7 +1495,11 @@ static void codec_resume_events(struct work_struct *work)
     //enable dac analog
 	codec_wr_control(SUN4I_DAC_ACTL, 0x1, 	DACAEN_L, 0x1);
 	codec_wr_control(SUN4I_DAC_ACTL, 0x1, 	DACAEN_R, 0x1);
-		
+	//enable mic
+	codec_wr_control(SUN4I_ADC_ACTL, 0x1, MIC1_EN, 0x1);	
+
+	//enable VMIC
+	codec_wr_control(SUN4I_ADC_ACTL, 0x1, VMIC_EN, 0x1);
 	codec_wr_control(SUN4I_DAC_ACTL, 0x1, 	DACPAS, 0x1);	
     msleep(50);
 	printk("====pa turn on===\n");
@@ -1587,24 +1598,29 @@ static int __init sun4i_codec_probe(struct platform_device *pdev)
 		 goto out;
 	 }
 
-	 kfree(db);
-	 codec_init();
-	 resume_work_queue = create_singlethread_workqueue("codec_resume");
-	 if (resume_work_queue == NULL) {
-        printk("[su4i-codec] try to create workqueue for codec failed!\n");
+	kfree(db);
+	gpio_pa_shutdown = gpio_request_ex("audio_para", "audio_pa_ctrl");
+    if (!gpio_pa_shutdown) {
+		printk("audio codec_wakeup request gpio fail!\n");
+		return err;
+    }
+	codec_init();
+	resume_work_queue = create_singlethread_workqueue("codec_resume");
+	if (resume_work_queue == NULL) {
+		printk("[su4i-codec] try to create workqueue for codec failed!\n");
 		ret = -ENOMEM;
 		goto err_resume_work_queue;
 	}
 
-	 printk("sun4i Audio codec successfully loaded..\n");
-	 return 0;
-     err_resume_work_queue:
-	 out:
-		 dev_err(db->dev, "not found (%d).\n", ret);
+	printk("sun4i Audio codec successfully loaded..\n");
+	return 0;
+	err_resume_work_queue:
+	out:
+	 dev_err(db->dev, "not found (%d).\n", ret);
 	
-	 nodev:
-		snd_card_free(card);
-		return err;
+	nodev:
+	snd_card_free(card);
+	return err;
 }
 
 /*	suspend state,先disable左右声道，然后静音，再disable pa(放大器)，
@@ -1614,6 +1630,8 @@ static int __init sun4i_codec_probe(struct platform_device *pdev)
 static int snd_sun4i_codec_suspend(struct platform_device *pdev,pm_message_t state)
 {
 	printk("[audio codec]:suspend start5000\n");
+	gpio_pa_value = gpio_read_one_pin_value(gpio_pa_shutdown, "audio_pa_ctrl");
+	
 	codec_wr_control(SUN4I_ADC_ACTL, 0x1, PA_ENABLE, 0x0);
 	mdelay(100);
 	//pa mute
@@ -1626,12 +1644,15 @@ static int snd_sun4i_codec_suspend(struct platform_device *pdev,pm_message_t sta
 	//disable dac to pa
 	codec_wr_control(SUN4I_DAC_ACTL, 0x1, 	DACPAS, 0x0);	
 	codec_wr_control(SUN4I_DAC_DPC ,  0x1, DAC_EN, 0x0);  	 
-	 
+	//disable mic
+	codec_wr_control(SUN4I_ADC_ACTL, 0x1, MIC1_EN, 0x0);	
+
+	//disable VMIC
+	codec_wr_control(SUN4I_ADC_ACTL, 0x1, VMIC_EN, 0x0);
 	clk_disable(codec_moduleclk);
 	printk("[audio codec]:suspend end\n");
 	return 0;	
 }
-
 
 /*	resume state,先unmute，
  *	再enable DAC，enable L/R DAC,enable PA，
@@ -1711,15 +1732,24 @@ static struct platform_driver sun4i_codec_driver = {
 	},
 };
 
+static int audio_used = 0;
 static int __init sun4i_codec_init(void)
 {
 	int err = 0;
-	if((platform_device_register(&sun4i_device_codec))<0)
-		return err;
+	int ret = 0;
 
-	if ((err = platform_driver_register(&sun4i_codec_driver)) < 0)
-		return err;
+	ret = script_parser_fetch("audio_para","audio_used", &audio_used, sizeof(int));
+	if (ret) {
+        printk("[audio]sun4i_codec_init fetch audio using configuration failed\n");
+    }
+    
+   if (audio_used) {
+		if((platform_device_register(&sun4i_device_codec))<0)
+			return err;
 	
+		if ((err = platform_driver_register(&sun4i_codec_driver)) < 0)
+			return err;
+	}	
 	return 0;
 }
 
