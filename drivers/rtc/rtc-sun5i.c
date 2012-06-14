@@ -364,8 +364,8 @@ static int pcf8563_get_datetime(struct i2c_client *client, struct rtc_time *tm)
 	ret = i2c_transfer(client->adapter, msgs, 2);
 	/* read registers */
 	if (ret != 2) {
-		dev_err(&client->dev, "%s: read error,ret:%d\n", __func__,ret);
-		return -EIO;
+		printk("%s: read error,ret:%d\n", __func__,ret);
+		return ret;
 	}
 
 #if	0
@@ -697,8 +697,14 @@ static int pcf8563_set_alarm(struct device *dev, struct rtc_wkalrm *alrm)
     int month_day;
     struct rtc_time tm_now;
     unsigned char buf[3];
-    struct i2c_client *client = to_i2c_client(dev);
-	struct pcf8563 *pcf8563 = i2c_get_clientdata(client);
+    struct i2c_client *client = NULL;
+	struct pcf8563 *pcf8563 = NULL;
+    ret = pcf8563_rtc_read_time(dev, &tm_now);
+    if (ret != 0) {
+	return ret;
+    }
+	client = to_i2c_client(dev);
+	pcf8563 = i2c_get_clientdata(client);
 
 	if (client->irq < 0) {
 		return -EINVAL;
@@ -713,9 +719,6 @@ static int pcf8563_set_alarm(struct device *dev, struct rtc_wkalrm *alrm)
     	 tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
    	printk("*****************************\n\n");
 #endif
-
-    ret = pcf8563_rtc_read_time(dev, &tm_now);
-
 #ifdef RTC_ALARM_DEBUG
     printk("line:%d,%s the current time: year:%d, month:%d, day:%d. hour:%d.minute:%d.second:%d\n",\
     __LINE__, __func__, tm_now.tm_year, tm_now.tm_mon,\

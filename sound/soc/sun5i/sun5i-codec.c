@@ -36,6 +36,8 @@
 #include <mach/system.h>
 
 #define SCRIPT_AUDIO_OK (0)
+static int gpio_pa_shutdown = 0;
+static int gpio_pa_value = 0;
 static int capture_used = 0;
 struct clk *codec_apbclk,*codec_pll2clk,*codec_moduleclk;
 
@@ -1333,6 +1335,11 @@ void snd_sun5i_codec_free(struct snd_card *card)
 static void codec_resume_events(struct work_struct *work)
 {
 	printk("%s,%d\n",__func__,__LINE__);
+	if (gpio_pa_value == 1) {
+		gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");
+	} else {
+		gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");
+	}
 //	codec_wr_control(SUN5I_DAC_DPC ,  0x1, DAC_EN, 0x1);
 	msleep(20);
 	//enable PA
@@ -1342,6 +1349,8 @@ static void codec_resume_events(struct work_struct *work)
 	codec_wr_control(SUN5I_DAC_ACTL, 0x1, 	DACAEN_L, 0x1);
 	codec_wr_control(SUN5I_DAC_ACTL, 0x1, 	DACAEN_R, 0x1);
 		
+	codec_wr_control(SUN5I_ADC_ACTL, 0x1, MIC1_EN, 0x1);	
+	codec_wr_control(SUN5I_ADC_ACTL, 0x1, VMIC_EN, 0x1);
 	codec_wr_control(SUN5I_DAC_ACTL, 0x1, 	DACPAS, 0x1);	
     msleep(50);
 	printk("====pa turn on===\n");	
@@ -1443,6 +1452,11 @@ static int __init sun5i_codec_probe(struct platform_device *pdev)
 	 }
 
 	 kfree(db);
+	gpio_pa_shutdown = gpio_request_ex("audio_para", "audio_pa_ctrl");
+    if (!gpio_pa_shutdown) {
+		printk("audio codec_wakeup request gpio fail!\n");
+		return err;
+    }
 	 codec_init();
 	 resume_work_queue = create_singlethread_workqueue("codec_resume");
 	 if (resume_work_queue == NULL) {
@@ -1468,6 +1482,7 @@ static int __init sun5i_codec_probe(struct platform_device *pdev)
 static int snd_sun5i_codec_suspend(struct platform_device *pdev,pm_message_t state)
 {
 	printk("[audio codec]:suspend start\n");
+	gpio_pa_value = gpio_read_one_pin_value(gpio_pa_shutdown, "audio_pa_ctrl");
 	codec_wr_control(SUN5I_ADC_ACTL, 0x1, PA_ENABLE, 0x0);
 	mdelay(100);
 	//pa mute
@@ -1480,7 +1495,11 @@ static int snd_sun5i_codec_suspend(struct platform_device *pdev,pm_message_t sta
 	//disable dac to pa
 	codec_wr_control(SUN5I_DAC_ACTL, 0x1, 	DACPAS, 0x0);	
 	codec_wr_control(SUN5I_DAC_DPC ,  0x1, DAC_EN, 0x0);  	 
-	 
+	//disable mic pa
+	codec_wr_control(SUN5I_ADC_ACTL, 0x1, MIC1_EN, 0x0);	
+	//disable VMIC
+	codec_wr_control(SUN5I_ADC_ACTL, 0x1, VMIC_EN, 0x0);
+	
 	clk_disable(codec_moduleclk);
 	printk("[audio codec]:suspend end\n");
 	return 0;	
@@ -1565,15 +1584,22 @@ static struct platform_driver sun5i_codec_driver = {
 	},
 };
 
+static int audio_used = 0;
 static int __init sun5i_codec_init(void)
 {
 	int err = 0;
-	if((platform_device_register(&sun5i_device_codec))<0)
-		return err;
-
-	if ((err = platform_driver_register(&sun5i_codec_driver)) < 0)
-		return err;
+	int ret = 0;
+	ret = script_parser_fetch("audio_para","audio_used", &audio_used, sizeof(int));
+	if (ret) {
+        printk("[audio]sun5i_codec_init fetch audiocodec using configuration failed\n");
+    }
+	if (audio_used) {		
+		if((platform_device_register(&sun5i_device_codec))<0)
+			return err;
 	
+		if ((err = platform_driver_register(&sun5i_codec_driver)) < 0)
+			return err;
+	}	
 	return 0;
 }
 
