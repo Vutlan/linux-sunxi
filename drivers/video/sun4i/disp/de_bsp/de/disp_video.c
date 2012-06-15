@@ -12,7 +12,7 @@ static __s32 video_enhancement_start(__u32 sel, __u32 id)
 {
     __u32 scaleuprate;
     __u32 scaler_index;
-    __u32 gamma_tab[256] = 
+    /*__u32 gamma_tab[256] = 
     { 
         0x00000000,0x00010101,0x00020202,0x00030303,0x00040404,0x00050505,0x00060606,0x00070707,
         0x00080808,0x00090909,0x000A0A0A,0x000B0B0B,0x000C0C0C,0x000D0D0D,0x000D0D0D,0x000E0E0E,
@@ -46,12 +46,13 @@ static __s32 video_enhancement_start(__u32 sel, __u32 id)
         0x00F0F0F0,0x00F0F0F0,0x00F1F1F1,0x00F2F2F2,0x00F3F3F3,0x00F3F3F3,0x00F4F4F4,0x00F5F5F5,
         0x00F6F6F6,0x00F6F6F6,0x00F7F7F7,0x00F8F8F8,0x00F8F8F8,0x00F9F9F9,0x00FAFAFA,0x00FAFAFA,
         0x00FBFBFB,0x00FCFCFC,0x00FCFCFC,0x00FDFDFD,0x00FDFDFD,0x00FEFEFE,0x00FEFEFE,0x00FFFFFF
-    };
+    };*/
 
-    if(gdisp.screen[sel].output_type == DISP_OUTPUT_TYPE_LCD)//!!! assume open HDMI before video start
+    if(gdisp.screen[sel].output_type == DISP_OUTPUT_TYPE_LCD)
     {
         scaler_index = gdisp.screen[sel].layer_manage[id].scaler_index;
-        if(gdisp.screen[sel].layer_manage[id].para.scn_win.width == gdisp.screen[sel].layer_manage[id].para.src_win.width)
+        if((gdisp.screen[sel].layer_manage[id].para.scn_win.width == gdisp.screen[sel].layer_manage[id].para.src_win.width) 
+                || ( gdisp.screen[sel].layer_manage[id].para.src_win.width  < 1280))
 		{
 			scaleuprate = 0;
         }
