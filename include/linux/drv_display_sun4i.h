@@ -486,6 +486,7 @@ typedef struct lcd_flow
 {
     __lcd_function_t func[5];
     __u32 func_num;
+    __u32 cur_step;
 }__lcd_flow_t;
 
 typedef struct

@@ -53,6 +53,7 @@ typedef struct
     __u32    		    exit_mode;//0:clean all  1:disable interrupt
     __bool              b_cache[2];
 	__bool			    b_lcd_open[2];
+    struct timer_list      disp_timer[2];
 }__disp_drv_t;
 
 
