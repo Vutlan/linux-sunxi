@@ -25,6 +25,7 @@
 #include <mach/sys_config.h>
 #include <mach/system.h>
 
+static bool gpio_pa_count = false;
 static int gpio_pa_shutdown = 0;
 static struct class *pa_dev_class;
 static struct cdev *pa_dev;
@@ -59,14 +60,16 @@ pa_dev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg){
 	switch (cmd) {	
 		case PA_OPEN:
 			#ifdef PA_DEBUG
-			printk("%s,%d\n", __func__, __LINE__);
+	 		printk("%s,%d,gpio_pa_count:%d\n", __func__, __LINE__,gpio_pa_count);
 			#endif
+			gpio_pa_count = true;
 			gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");  
 			break;
 		case PA_CLOSE:
 			#ifdef PA_DEBUG
-			printk("%s,%d\n", __func__, __LINE__);
+			printk("%s,%d,gpio_pa_count:%d\n", __func__, __LINE__,gpio_pa_count);
 			#endif			
+			gpio_pa_count = false;
 			gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");  
 			break;
 		default:
@@ -77,11 +80,24 @@ pa_dev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg){
 
 static int snd_sun4i_pa_suspend(struct platform_device *pdev,pm_message_t state)
 {		
+	#ifdef PA_DEBUG
+	printk("%s,line:%d, gpio_pa_count:%d\n", __func__, __LINE__, gpio_pa_count);
+	#endif	
+	gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");
 	return 0;
 }
 
 static int snd_sun4i_pa_resume(struct platform_device *pdev)
 {	
+	if (gpio_pa_count == true) {
+		#ifdef PA_DEBUG
+		printk("%s,line:%d,gpio_pa_count:%d\n", __func__, __LINE__,gpio_pa_count);
+		#endif
+		gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");
+	}
+	#ifdef PA_DEBUG
+	printk("%s,line:%d,gpio_pa_count:%d\n", __func__, __LINE__,gpio_pa_count);
+	#endif
 	return 0;
 }
 

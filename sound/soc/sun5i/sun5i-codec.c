@@ -36,8 +36,6 @@
 #include <mach/system.h>
 
 #define SCRIPT_AUDIO_OK (0)
-static int gpio_pa_shutdown = 0;
-static int gpio_pa_value = 0;
 static int capture_used = 0;
 struct clk *codec_apbclk,*codec_pll2clk,*codec_moduleclk;
 
@@ -1334,12 +1332,7 @@ void snd_sun5i_codec_free(struct snd_card *card)
 
 static void codec_resume_events(struct work_struct *work)
 {
-	printk("%s,%d\n",__func__,__LINE__);
-	if (gpio_pa_value == 1) {
-		gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");
-	} else {
-		gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");
-	}
+	printk("%s,%d\n",__func__,__LINE__);	
 //	codec_wr_control(SUN5I_DAC_DPC ,  0x1, DAC_EN, 0x1);
 	msleep(20);
 	//enable PA
@@ -1452,11 +1445,6 @@ static int __init sun5i_codec_probe(struct platform_device *pdev)
 	 }
 
 	 kfree(db);
-	gpio_pa_shutdown = gpio_request_ex("audio_para", "audio_pa_ctrl");
-    if (!gpio_pa_shutdown) {
-		printk("audio codec_wakeup request gpio fail!\n");
-		return err;
-    }
 	 codec_init();
 	 resume_work_queue = create_singlethread_workqueue("codec_resume");
 	 if (resume_work_queue == NULL) {
@@ -1481,8 +1469,7 @@ static int __init sun5i_codec_probe(struct platform_device *pdev)
  */
 static int snd_sun5i_codec_suspend(struct platform_device *pdev,pm_message_t state)
 {
-	printk("[audio codec]:suspend start\n");
-	gpio_pa_value = gpio_read_one_pin_value(gpio_pa_shutdown, "audio_pa_ctrl");
+	printk("[audio codec]:suspend start\n");	
 	codec_wr_control(SUN5I_ADC_ACTL, 0x1, PA_ENABLE, 0x0);
 	mdelay(100);
 	//pa mute
