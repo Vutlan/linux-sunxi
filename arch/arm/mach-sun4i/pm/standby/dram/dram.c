@@ -8,6 +8,8 @@
 *     2011-06-01      			Berg        1.0     create file
 *	  2011-07-29		  Berg        1.1	  change dram_power_save_process() and dram_power_up_process()
 *	  2011-08-05		  Berg        1.2     add retraining method in power up process when failed
+*     2012-06-15      Daniel      1.3     Adjust Initial Delay(including relation among RST/CKE/CLK)
+*     2012-06-15      Daniel      1.4     Move ZQ Write before Clock Enable
 *********************************************************************************************************
 */
 #include "dram_i.h"
@@ -287,8 +289,6 @@ __s32 DRAMC_retraining(void)
 	while(1){
 		mctl_ahb_reset();
 
-		//reset external DRAM
-		mctl_ddr3_reset();
 		mctl_set_drive();
 
 		//dram clock off
@@ -303,15 +303,24 @@ __s32 DRAMC_retraining(void)
 		//configure external DRAM
 		mctl_write_w(SDR_DCR, reg_dcr);
 
+	  //set odt impendance divide ratio
+	  mctl_write_w(SDR_ZQCR0, reg_zqcr0);
+
+
+      //Set CKE Delay to about 1ms
+	  reg_val = mctl_read_w(SDR_IDCR);
+	  reg_val |= 0x1ffff;
+	  mctl_write_w(SDR_IDCR, reg_val);
+
 		//dram clock on
 		DRAMC_clock_output_en(1);
+		//reset external DRAM
+		mctl_ddr3_reset();
         standby_delay(0x10);
 		while(mctl_read_w(SDR_CCR) & (0x1U<<31)) {};
 
 		mctl_enable_dllx();
 
-		//set odt impendance divide ratio
-		mctl_write_w(SDR_ZQCR0, reg_zqcr0);
 
 		//set I/O configure register
 		mctl_write_w(SDR_IOCR, reg_iocr);
