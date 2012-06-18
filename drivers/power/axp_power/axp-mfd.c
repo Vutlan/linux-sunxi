@@ -22,7 +22,6 @@
 #include "axp20-mfd.h"
 
 #include <mach/sys_config.h>
-
 static int power_start;
 int use_cou = 0;
 
@@ -33,15 +32,23 @@ static void axp_mfd_irq_work(struct work_struct *work)
 	uint64_t irqs = 0;
 
 	while (1) {
-		if (chip->ops->read_irqs(chip, &irqs))
+		if (chip->ops->read_irqs(chip, &irqs)){
 			break;
-
+		}
+		
 		irqs &= chip->irqs_enabled;
-		if (irqs == 0)
+		if (irqs == 0){
 			break;
-
-		blocking_notifier_call_chain(
-				&chip->notifier_list, irqs, NULL);
+		}
+		
+		if(irqs > 0xffffffff){
+			blocking_notifier_call_chain(
+					&chip->notifier_list, (irqs >>32), 1);
+		}
+		else{
+			blocking_notifier_call_chain(
+					&chip->notifier_list, irqs, 0);
+		}
 	}
 	enable_irq(chip->client->irq);
 }

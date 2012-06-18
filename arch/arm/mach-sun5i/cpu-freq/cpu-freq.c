@@ -26,8 +26,12 @@
 #include <linux/regulator/consumer.h>
 #include <mach/sys_config.h>
 #include "cpu-freq.h"
+#include <linux/pm.h>
+#include "../pm/pm_i.h"
+#include <mach/ccmu_regs.h>
 
 
+extern struct aw_mem_para mem_para_info;
 static struct sun4i_cpu_freq_t  cpu_cur;    /* current cpu frequency configuration  */
 static unsigned int last_target = ~0;       /* backup last target frequency         */
 
@@ -834,15 +838,24 @@ static int sun4i_cpufreq_suspend(struct cpufreq_policy *policy)
 
     CPUFREQ_DBG("%s, set cpu frequency to 60Mhz to prepare enter standby\n", __func__);
 
-    sun4i_cpufreq_getcur(&suspend_freq);
+	if (NORMAL_STANDBY == standby_type) {
+		/*process for normal standby*/
+		printk(KERN_INFO"[%s] normal standby enter\n", __FUNCTION__);
+		sun4i_cpufreq_getcur(&suspend_freq);
 
-    /* set cpu frequency to 60M hz for standby */
-    suspend.pll = 60000000;
-    suspend.div.cpu_div = 1;
-    suspend.div.axi_div = 1;
-    suspend.div.ahb_div = 1;
-    suspend.div.apb_div = 2;
-    __set_cpufreq_target(&suspend_freq, &suspend);
+		/* set cpu frequency to 60M hz for standby */
+		suspend.pll = 60000000;
+		suspend.div.cpu_div = 1;
+		suspend.div.axi_div = 1;
+		suspend.div.ahb_div = 1;
+		suspend.div.apb_div = 2;
+		__set_cpufreq_target(&suspend_freq, &suspend);
+	
+	} else if(SUPER_STANDBY == standby_type) {
+		/*process for super standby*/	
+		printk(KERN_INFO"[%s] super standby enter: do nothing\n", __FUNCTION__);
+	}
+
 
     return 0;
 }
@@ -870,12 +883,19 @@ static int sun4i_cpufreq_resume(struct cpufreq_policy *policy)
 	last_target = ~0;
 
 	CPUFREQ_DBG("%s: resuming with policy %p\n", __func__, policy);
-    sun4i_cpufreq_getcur(&suspend);
+	if (NORMAL_STANDBY == standby_type) {
+		/*process for normal standby*/
+		printk(KERN_INFO"[%s] normal standby resume\n", __FUNCTION__);
+		sun4i_cpufreq_getcur(&suspend);
 
-    /* restore cpu frequency configuration */
-    __set_cpufreq_target(&suspend, &suspend_freq);
+		/* restore cpu frequency configuration */
+		__set_cpufreq_target(&suspend, &suspend_freq);
 
-	CPUFREQ_DBG("%s: resuming done\n", __func__);
+	} else if(SUPER_STANDBY == standby_type) {
+		/*process for super standby*/	
+		printk(KERN_INFO"[%s] super standby resume: do nothing\n", __FUNCTION__);
+	}
+
 	return 0;
 }
 

@@ -16,6 +16,9 @@
 #include <linux/slab.h>
 #include <linux/device.h>
 #include <linux/init.h>
+#include <linux/serial_reg.h>
+#include <linux/serial_core.h>
+#include <linux/serial.h>
 #include <asm/io.h>
 #include <asm/ecard.h>
 #include <asm/string.h>
@@ -47,6 +50,10 @@ static int sw_serial[MAX_PORTS];
 #define UART_BASE_OS    (0x400)
 #define UARTx_BASE(x)   (UART_BASE + (x) * UART_BASE_OS)
 #define RESSIZE(res)    (((res)->end - (res)->start)+1)
+#define OFFSET			0xf0000000
+#define FCR_AW  0x0e1
+#define REG_RD_U(fmt...)	__raw_readl(port_base_addr + fmt)
+#define REG_WD_U(member,fmt...)	__raw_writel(member,port_base_addr + fmt)
 struct sw_serial_port {
     struct uart_port    port;
     char                name[16];
@@ -59,6 +66,80 @@ struct sw_serial_port {
     u32                 irq;
     struct platform_device* pdev;
 };
+typedef struct backup_reg_def{
+	u32 dll; 		/* 0x00	*/
+	u32 dlh;		/* 0x04 */
+	u32 ier;		/* 0x04 */
+	u32 fcr;		/* 0x08 */
+	u32 lcr;		/* 0x0C */
+	u32 mcr;		/* 0x10 */
+	u32 sch;		/* 0x1C */
+	u32 halt;		/* 0xA4 */
+} backup_reg_t;
+#define	BACK_REG	backup_reg[port_num]
+#define U_DLL		0X00
+#define U_RX		0X00
+#define U_DLH		0X04
+#define U_IER		0X04
+#define U_FCR		0X08
+#define U_LCR		0X0c
+#define U_MCR		0X10
+#define U_SCH		0X1c
+#define	U_USR		0X7c
+#define U_HALT		0Xa4
+static backup_reg_t backup_reg[MAX_PORTS];
+void sunxi_8250_backup_reg(int port_num ,struct uart_port *port)
+{
+	unsigned long port_base_addr;
+	port_base_addr = port->mapbase + OFFSET;
+	UART_MSG("\nport_base_addr is %x \n port->mapbase is %x\n",port_base_addr,port->mapbase);
+	BACK_REG.lcr	= REG_RD_U(U_LCR);
+	BACK_REG.mcr	= REG_RD_U(U_MCR);
+	BACK_REG.sch	= REG_RD_U(U_SCH);
+	BACK_REG.halt	= REG_RD_U(U_HALT);
+	BACK_REG.fcr	= FCR_AW;
+	while (REG_RD_U(U_USR)&1)
+        REG_RD_U(U_RX);
+	REG_WD_U(BACK_REG.lcr & 0x7f,U_LCR);
+	UART_MSG("\n1: lcr is %x  \n backup_reg.lcr is %x\n",REG_RD_U(U_LCR),BACK_REG.lcr);
+	BACK_REG.ier	= REG_RD_U(U_IER);
+	UART_MSG("\norgin: lcr is %x mcr is %x sch is %x halt is %x ier is %x\n",REG_RD_U(U_LCR),REG_RD_U(U_MCR),REG_RD_U(U_SCH),REG_RD_U(U_HALT),REG_RD_U(U_IER));
+	UART_MSG("\nback: lcr is %x mcr is %x sch is %x halt is %x ier is %x\n",BACK_REG.lcr,BACK_REG.mcr,BACK_REG.sch,BACK_REG.halt,BACK_REG.ier);
+	while (REG_RD_U(U_USR)&1)
+        REG_RD_U(U_RX);
+	REG_WD_U(BACK_REG.lcr | 0x80,U_LCR);
+	BACK_REG.dll	= REG_RD_U(U_DLL);
+	BACK_REG.dlh	= REG_RD_U(U_DLH);
+	while (REG_RD_U(U_USR)&1)
+        REG_RD_U(U_RX);
+	REG_WD_U(BACK_REG.lcr,U_LCR);
+	UART_MSG("\n2: lcr is %x  \n backup_reg.lcr is %x\n",REG_RD_U(U_LCR),BACK_REG.lcr);
+}
+void sunxi_8250_comeback_reg(int port_num,struct uart_port *port)
+{
+	unsigned long port_base_addr;
+	port_base_addr = port->mapbase + OFFSET;
+	REG_WD_U(BACK_REG.sch,U_SCH);
+	REG_WD_U(BACK_REG.halt,U_HALT);
+	REG_WD_U(BACK_REG.mcr,U_MCR);
+	REG_WD_U(BACK_REG.fcr,U_FCR);
+	while (REG_RD_U(U_USR)&1)
+        REG_RD_U(U_RX);
+	REG_WD_U(BACK_REG.lcr & 0x7f,U_LCR);
+	UART_MSG("\n1: lcr is %x  \n backup_reg.lcr is %x\n",REG_RD_U(U_LCR),BACK_REG.lcr);
+	REG_WD_U(BACK_REG.ier,U_IER);
+	UART_MSG("\nback1: lcr is %x mcr is %x sch is %x halt is %x ier is %x\n",REG_RD_U(U_LCR),REG_RD_U(U_MCR),REG_RD_U(U_SCH),REG_RD_U(U_HALT),REG_RD_U(U_IER));
+	while (REG_RD_U(U_USR)&1)
+        REG_RD_U(U_RX);
+	REG_WD_U(BACK_REG.lcr | 0x80,U_LCR);
+	REG_WD_U(BACK_REG.dll,U_DLL);
+	REG_WD_U(BACK_REG.dlh,U_DLH);
+	while (REG_RD_U(U_USR)&1)
+        REG_RD_U(U_RX);
+	REG_WD_U(BACK_REG.lcr,U_LCR);
+	UART_MSG("\nback1: lcr is %x mcr is %x sch is %x halt is %x ier is %x\n",REG_RD_U(U_LCR),REG_RD_U(U_MCR),REG_RD_U(U_SCH),REG_RD_U(U_HALT),REG_RD_U(U_IER));
+	UART_MSG("\n3: lcr is %x  \n backup_reg.lcr is %x\n",REG_RD_U(U_LCR),BACK_REG.lcr);
+}
 
 //static void sw_serial_print_reg(struct sw_serial_port *sport)
 //{
@@ -170,6 +251,7 @@ sw_serial_probe(struct platform_device *dev)
 {
     struct sw_serial_port *sport;
 	int ret;
+    UART_MSG("this coming sw_serial_probe\n");
 	sport = kzalloc(sizeof(struct sw_serial_port), GFP_KERNEL);
 	if (!sport)
 		return -ENOMEM;
@@ -178,13 +260,13 @@ sw_serial_probe(struct platform_device *dev)
 
     ret = sw_serial_get_config(sport, dev->id);
     if (ret) {
-        printk(KERN_ERR "Failed to get config information\n");
+        UART_MSG(KERN_ERR "Failed to get config information\n");
         goto free_dev;
     }
 
     ret = sw_serial_get_resource(sport);
     if (ret) {
-        printk(KERN_ERR "Failed to get resource\n");
+        UART_MSG(KERN_ERR "Failed to get resource\n");
         goto free_dev;
     }
     platform_set_drvdata(dev, sport);
@@ -202,6 +284,9 @@ sw_serial_probe(struct platform_device *dev)
     sw_serial[sport->port_no] = serial8250_register_port(&sport->port);
     UART_MSG("serial probe %d, membase %p irq %d mapbase 0x%08x\n", 
              dev->id, sport->port.membase, sport->port.irq, sport->port.mapbase);
+	UART_MSG("sport->pdev is %x \n &sport->pdev is %x",sport->pdev,&sport->pdev);
+	UART_MSG("pdev.dev is %x \n &pdev.dev is %x",sport->pdev->dev,&sport->pdev->dev);
+	UART_MSG("dev.dev is %x \n &dev.dev is %x",dev->dev,&dev->dev);
 	return 0;
 free_dev:
     kfree(sport);
@@ -226,9 +311,13 @@ static int sw_serial_suspend(struct platform_device *dev, pm_message_t state)
 {
 	int i;
 	struct uart_port *port;
-	UART_MSG("sw_serial_resume uart suspend\n");
+	UART_MSG("aw_resume uart suspend\n");
 	UART_MSG("&dev->dev is 0x%x\n",&dev->dev);
+#if 0
+		volatile __u32 loop_flag = 1;
+		while(1 == loop_flag);
 
+#endif
 	for (i = 0; i < MAX_PORTS; i++) {
 		port=(struct uart_port *)get_ports(i);
 		if (port->type != PORT_UNKNOWN){
@@ -236,8 +325,12 @@ static int sw_serial_suspend(struct platform_device *dev, pm_message_t state)
 		UART_MSG("port.dev is 0x%x  &dev->dev is 0x%x\n",port->dev,&dev->dev);
 		}
 
-		if ((port->type != PORT_UNKNOWN)&& (port->dev == &dev->dev))
-			serial8250_suspend_port(i);
+		if ((port->type != PORT_UNKNOWN)&& (port->dev == &dev->dev)){
+			UART_MSG(" SUPER_STANDBY ");
+			//serial8250_suspend_port(i);
+				UART_MSG(" SUPER_STANDBY ");
+				sunxi_8250_backup_reg(i,port);
+			}
 	}
 
 	return 0;
@@ -247,20 +340,30 @@ static int sw_serial_resume(struct platform_device *dev)
 {
 	struct uart_port *port;
 	int i;
-	UART_MSG("serial8250_resume SUPER_STANDBY resume\n");
+	UART_MSG("aw_resume SUPER_STANDBY resume\n");
 	UART_MSG("&dev->dev is 0x%x\n",&dev->dev);
+#if 0
+		volatile __u32 loop_flag = 1;
+		while(1 == loop_flag);
 
+#endif	
 	for (i = 0; i < MAX_PORTS; i++) {
 		port=(struct uart_port *)get_ports(i);
 		if (port->type != PORT_UNKNOWN){
 		UART_MSG("type is 0x%x  PORT_UNKNOWN is 0x%x\n",port->type,PORT_UNKNOWN);
 		UART_MSG("port.dev is 0x%x  &dev->dev is 0x%x\n",port->dev,&dev->dev);
 		}
-		if ((port->type != PORT_UNKNOWN) && (port->dev == &dev->dev))
-			serial8250_resume_port(i);
+		if ((port->type != PORT_UNKNOWN) && (port->dev == &dev->dev)){
+				UART_MSG(" SUPER_STANDBY ");
+				sunxi_8250_comeback_reg(i,port);
+			//serial8250_resume_port(i);
 
 	}
+	}
+#if 0
+		while(1 == loop_flag);
 
+#endif	
 	return 0;
 }
 

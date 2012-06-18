@@ -23,6 +23,7 @@
 #include <linux/wait.h>
 #include <linux/sched.h>
 #include <asm/cacheflush.h>
+#include <linux/pm.h>
 
 #include "../src/include/nand_type.h"
 #include "../src/include/nand_drv_cfg.h"
@@ -39,6 +40,7 @@ extern struct __NandStorageInfo_t  NandStorageInfo;
 extern struct __NandDriverGlobal_t NandDriverInfo;
 extern __u32 nand_current_dev_num;
 extern int part_secur[MAX_PART_COUNT];
+extern __u32 RetryCount[8];
 
 struct nand_disk disk_array[MAX_PART_COUNT];
 
@@ -98,6 +100,7 @@ DEFINE_SEMAPHORE(nand_mutex);
 static unsigned char volatile IS_IDLE = 1;
 static int nand_flush(struct nand_blk_dev *dev);
 static int nand_flush_force(__u32 dev_num);
+static struct nand_state nand_reg_state;
 
 spinlock_t     nand_rb_lock;
 
@@ -1127,8 +1130,10 @@ static int nand_suspend(struct platform_device *plat_dev, pm_message_t state)
 {
 	int i=0;
 
-	printk("[NAND] nand_suspend \n");
+	pr_debug("[NAND] nand_suspend \n");
 
+	if(NORMAL_STANDBY== standby_type)
+	{
 	if(!IS_IDLE){
 		for(i=0;i<10;i++){
 			msleep(200);
@@ -1143,9 +1148,34 @@ static int nand_suspend(struct platform_device *plat_dev, pm_message_t state)
 
 		NAND_ClkDisable();
 		NAND_PIORelease();
-		printk("[NAND] nand_suspend ok \n");
-		return 0;
 	}
+	}
+	else if(SUPER_STANDBY == standby_type)
+	{
+	pr_debug("nand super standy mode suspend\n");
+		if(!IS_IDLE){
+			for(i=0;i<10;i++){
+				msleep(200);
+				if(IS_IDLE)
+					break;
+			}
+		}
+		if(i==10){
+			return -EBUSY;
+		}else{
+		down(&mytr.nand_ops_mutex);
+
+		NAND_ClkDisable();
+		NAND_PIORelease();
+	}
+	for(i=0; i<(NAND_REG_LENGTH); i++){
+		nand_reg_state.nand_reg_back[i] = *(volatile u32 *)(SW_VA_NANDFLASHC_IO_BASE + i*0x04); 
+		//pr_info("reg addr 0x%x : 0x%x \n", i, nand_reg_state.nand_reg_back[i]);
+	}
+	}
+
+		pr_debug("[NAND] nand_suspend ok \n");
+		return 0;
 }
 
 #ifdef CONFIG_SUN5I_NANDFLASH_TEST
@@ -1154,12 +1184,53 @@ int nand_resume(struct platform_device *plat_dev)
 static int nand_resume(struct platform_device *plat_dev)
 #endif
 {
+    __s32 ret;
 
-	printk("[NAND] nand_resume \n");
-	NAND_ClkEnable();
+	printk(KERN_INFO"[NAND] nand_resume \n");
+	if(NORMAL_STANDBY== standby_type){
 	NAND_PIORequest();
+	NAND_ClkEnable();
 
 	up(&mytr.nand_ops_mutex);
+	}else if(SUPER_STANDBY == standby_type){
+		int i;
+		NAND_PIORequest();
+	    NAND_ClkEnable();
+        //process for super standby
+		//restore reg state
+		for(i=0; i<(NAND_REG_LENGTH); i++){
+			if(0x9 == i){
+				continue;
+			}
+			*(volatile u32 *)(SW_VA_NANDFLASHC_IO_BASE + i*0x04) = nand_reg_state.nand_reg_back[i]; 
+		}
+        //reset all chip
+    	for(i=1; i<MAX_CHIP_SELECT_CNT; i++)
+        {
+            if(NandStorageInfo.ChipConnectInfo&(0x1<<i)) //chip valid
+            {
+                pr_info("nand reset chip %d!\n",i);
+                ret = PHY_ResetChip(i);
+                ret |= PHY_SynchBank(i, SYNC_CHIP_MODE);
+                if(ret)
+                    pr_info("nand reset chip %d failed!\n",i);
+            }
+        }
+    	//init retry count
+    	for(i=0;i<8;i++)
+    	    RetryCount[i] = 0;
+		//process for super standby
+		//restore reg state
+		for(i=0; i<(NAND_REG_LENGTH); i++){
+			if(0x9 == i){
+				continue;
+			}
+			*(volatile u32 *)(SW_VA_NANDFLASHC_IO_BASE + i*0x04) = nand_reg_state.nand_reg_back[i]; 
+		}
+
+		up(&mytr.nand_ops_mutex);
+		
+	}
 
 
 	return 0;

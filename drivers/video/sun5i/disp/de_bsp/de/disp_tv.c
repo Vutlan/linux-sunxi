@@ -443,3 +443,9 @@ __s32 BSP_disp_tv_set_src(__u32 sel, __disp_lcdc_src_t src)
     return DIS_SUCCESS;
 }
 
+__s32 BSP_disp_restore_tvec_reg(__u32 sel)
+{
+    TVE_init(sel);
+    
+    return 0;
+}

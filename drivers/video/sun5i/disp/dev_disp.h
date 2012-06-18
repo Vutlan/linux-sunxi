@@ -43,6 +43,7 @@ typedef struct
     __disp_fb_create_para_t fb_para[FB_MAX];
 	wait_queue_head_t       wait[2];
 	unsigned long           wait_count[2];
+    struct timer_list      disp_timer[2];
 }fb_info_t;
 
 typedef struct

@@ -1,8 +1,10 @@
 #include "dev_disp.h"
+#include "linux/pm.h"
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 #include <linux/earlysuspend.h>
 #endif
+
 
 fb_info_t g_fbi;
 __disp_drv_t g_disp_drv;
@@ -189,6 +191,8 @@ __s32 DRV_lcd_open(__u32 sel)
     return 0;
 }
 
+
+
 __s32 DRV_lcd_close(__u32 sel)
 {
     __u32 i = 0;
@@ -236,6 +240,7 @@ __s32 disp_lcd_open_late(__u32 sel)
     return 0;
 }
 //run lcd close flow
+//run lcd close flow accept the first step(backlight)
 __s32 disp_lcd_close_late(__u32 sel)
 {
     __u32 i = 0;
@@ -244,15 +249,15 @@ __s32 disp_lcd_close_late(__u32 sel)
 
 	if(g_disp_drv.b_lcd_open[sel] == 0)
 	{
-        open_flow = BSP_disp_lcd_get_open_flow(sel);
-        if(open_flow->cur_step != (open_flow->func_num-1)) //if there is task in timer list,cancel it
-        {
-            del_timer(&g_disp_drv.disp_timer[sel]);
-        }
 
-        BSP_disp_lcd_close_befor(sel);
-        close_flow = BSP_disp_lcd_get_close_flow(sel);
-	    for(i=0; i<close_flow->func_num; i++)
+	    close_flow = BSP_disp_lcd_get_close_flow(sel);
+        open_flow = BSP_disp_lcd_get_open_flow(sel);
+
+        if(open_flow->cur_step != open_flow->func_num) //if there is task in timer list,cancel it
+        {
+            del_timer(&g_fbi.disp_timer[sel]);
+        }
+	    for(i=1; i<close_flow->func_num; i++)
 	    {
 	        __u32 timeout = close_flow->func[i].delay*HZ/1000;
 
@@ -282,9 +287,11 @@ void disp_lcd_open_timer(unsigned long sel)
     __u32 timeout;
 
     flow = BSP_disp_lcd_get_open_flow(sel);
-    
-	if((g_disp_drv.b_lcd_open[sel] == 0) && (flow->cur_step < (flow->func_num-1)))
+    flow->cur_step = (flow->cur_step == flow->func_num)? 0:flow->cur_step;
+
+	if((g_disp_drv.b_lcd_open[sel] == 0) && (flow->cur_step != flow->func_num-1))
 	{
+
         if(flow->cur_step == 0)
 	    {
             BSP_disp_lcd_open_before(sel);
@@ -293,14 +300,15 @@ void disp_lcd_open_timer(unsigned long sel)
 	    flow->func[flow->cur_step].func(sel);
 
         timeout = flow->func[flow->cur_step].delay*HZ/1000;
-        g_disp_drv.disp_timer[sel].function = &disp_lcd_open_timer;
-        g_disp_drv.disp_timer[sel].data = sel;//(unsigned int)&g_fbi;
-        g_disp_drv.disp_timer[sel].expires = jiffies + timeout;
-        add_timer(&g_disp_drv.disp_timer[sel]);
 
-        flow->cur_step ++;
+        g_fbi.disp_timer[sel].function = &disp_lcd_open_timer;
+        g_fbi.disp_timer[sel].data = sel;//(unsigned int)&g_fbi;
+        g_fbi.disp_timer[sel].expires = jiffies + timeout;
+        add_timer(&g_fbi.disp_timer[sel]);
 	}
-	
+
+    flow->cur_step ++;
+    
     return;
 }
 
@@ -338,8 +346,8 @@ __s32 DRV_DISP_Init(void)
 	para.disp_int_process       = DRV_disp_int_process;
 
 	memset(&g_disp_drv, 0, sizeof(__disp_drv_t));
-    init_timer(&g_disp_drv.disp_timer[0]);
-    init_timer(&g_disp_drv.disp_timer[1]);
+//    init_timer(&g_disp_drv.disp_timer[0]);
+//    init_timer(&g_disp_drv.disp_timer[1]);
     
     BSP_disp_init(&para);
     BSP_disp_open();
@@ -470,10 +478,13 @@ ssize_t disp_write(struct file *file, const char __user *buf, size_t count, loff
 static int __init disp_probe(struct platform_device *pdev)//called when platform_driver_register
 {
 	fb_info_t * info = NULL;
-
+    
 	__inf("disp_probe call\n");
 
 	info = &g_fbi;
+    init_timer(&info->disp_timer[0]);
+    init_timer(&info->disp_timer[1]);
+    
 	info->dev = &pdev->dev;
 	platform_set_drvdata(pdev,info);
 
@@ -600,6 +611,8 @@ void backlight_late_resume(struct early_suspend *h)
 
     suspend_status &= (~1);
     suspend_prestep = 3;
+	
+    printk("display late resume done: %s\n", __func__);
 }
 
 static struct early_suspend backlight_early_suspend_handler =
@@ -611,16 +624,21 @@ static struct early_suspend backlight_early_suspend_handler =
 
 #endif
 
+static __u32 image0_reg_bak,scaler0_reg_bak;
 int disp_suspend(struct platform_device *pdev, pm_message_t state)
 {
-#ifndef CONFIG_HAS_EARLYSUSPEND
     int i = 0;
+    printk("==disp_suspend call\n");
 
+#ifndef CONFIG_HAS_EARLYSUSPEND
     for(i=0; i<2; i++)
     {
-        suspend_output_type[i] = BSP_disp_get_output_type(i);
-        if(suspend_output_type[i] == DISP_OUTPUT_TYPE_LCD)
+
+        for(i=0; i<2; i++)
         {
+            suspend_output_type[i] = BSP_disp_get_output_type(i);
+            if(suspend_output_type[i] == DISP_OUTPUT_TYPE_LCD)
+            {
             DRV_lcd_close(i);
         }
         else if(suspend_output_type[i] == DISP_OUTPUT_TYPE_TV)
@@ -630,17 +648,17 @@ int disp_suspend(struct platform_device *pdev, pm_message_t state)
         else if(suspend_output_type[i] == DISP_OUTPUT_TYPE_VGA)
         {
             BSP_disp_vga_close(i);
-        }
-        else if(suspend_output_type[i] == DISP_OUTPUT_TYPE_HDMI)
-        {
-            BSP_disp_hdmi_close(i);
+            }
+            else if(suspend_output_type[i] == DISP_OUTPUT_TYPE_HDMI)
+            {
+                BSP_disp_hdmi_close(i);
+            }
         }
     }
-    BSP_disp_clk_off(3);
-#else
-    if(2 == suspend_prestep)//suspend after resume,not  after early suspend
+#endif
+
+	if(2 == suspend_prestep)//suspend after resume,not  after early suspend
     {
-        int i;
         for(i=0; i<2; i++)
         {
             if(suspend_output_type[i] == DISP_OUTPUT_TYPE_LCD)
@@ -649,7 +667,19 @@ int disp_suspend(struct platform_device *pdev, pm_message_t state)
             }
         }
     }
+     if(SUPER_STANDBY == standby_type)
+     {  
+        printk("==disp super standby enter\n");
 
+        image0_reg_bak = (__u32)disp_malloc(0xe00 - 0x800);
+        scaler0_reg_bak = (__u32)disp_malloc(0xa18);
+        BSP_disp_store_image_reg(0, image0_reg_bak);
+        BSP_disp_store_scaler_reg(0, scaler0_reg_bak);
+     }
+
+#ifndef CONFIG_HAS_EARLYSUSPEND
+    BSP_disp_clk_off(3);
+#else
     BSP_disp_clk_off(1);
 #endif
 
@@ -662,13 +692,37 @@ int disp_suspend(struct platform_device *pdev, pm_message_t state)
 int disp_resume(struct platform_device *pdev)
 {
     int i = 0;
+    printk("==disp_resume call\n");
 
 #ifndef CONFIG_HAS_EARLYSUSPEND
     BSP_disp_clk_on(3);
+#else
+    BSP_disp_clk_on(1);
+#endif
 
-    for(i=0; i<2; i++)
+    if(SUPER_STANDBY == standby_type)
     {
-        if(suspend_output_type[i] == DISP_OUTPUT_TYPE_LCD)
+        
+        printk("==disp super standby exit\n");
+        
+        BSP_disp_restore_scaler_reg(0, scaler0_reg_bak);
+        BSP_disp_restore_image_reg(0, image0_reg_bak);
+        BSP_disp_restore_lcdc_reg(0);
+        BSP_disp_restore_tvec_reg(0);
+        disp_free((void*)scaler0_reg_bak);
+        disp_free((void*)image0_reg_bak);         
+    }
+
+	
+    
+#ifndef CONFIG_HAS_EARLYSUSPEND
+    {
+
+        BSP_disp_clk_on(3);
+
+        for(i=0; i<2; i++)
+        {
+            if(suspend_output_type[i] == DISP_OUTPUT_TYPE_LCD)
         {
             DRV_lcd_open(i);
         }
@@ -679,17 +733,17 @@ int disp_resume(struct platform_device *pdev)
         else if(suspend_output_type[i] == DISP_OUTPUT_TYPE_VGA)
         {
             BSP_disp_vga_open(i);
-        }
-        else if(suspend_output_type[i] == DISP_OUTPUT_TYPE_HDMI)
-        {
-            BSP_disp_hdmi_open(i);
+            }
+            else if(suspend_output_type[i] == DISP_OUTPUT_TYPE_HDMI)
+            {
+                BSP_disp_hdmi_open(i);
+            }
         }
     }
 #else
-    BSP_disp_clk_on(1);
     jiffies_resume = jiffies;
 
-    for(i=0; i<2; i++)
+   for(i=0; i<2; i++)
     {
         if(suspend_output_type[i] == DISP_OUTPUT_TYPE_LCD)
         {

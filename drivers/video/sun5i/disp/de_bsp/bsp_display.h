@@ -38,6 +38,7 @@
 #include <mach/aw_ccu.h>
 #include <mach/system.h>
 #include <linux/types.h>
+#include <linux/timer.h>
 
 typedef unsigned int __hdle;
 
@@ -135,6 +136,12 @@ extern __s32 BSP_disp_capture_screen(__u32 sel, __disp_capture_screen_para_t * p
 extern __s32 BSP_disp_set_screen_size(__u32 sel, __disp_rectsz_t * size);
 extern __s32 BSP_disp_set_output_csc(__u32 sel, __u32 out_type, __u32 drc_en);
 extern __s32 BSP_disp_de_flicker_enable(__u32 sel, __bool b_en);
+extern __s32 BSP_disp_store_image_reg(__u32 sel, __u32 addr);
+extern __s32 BSP_disp_restore_image_reg(__u32 sel, __u32 addr);
+extern __s32 BSP_disp_store_scaler_reg(__u32 sel, __u32 addr);
+extern __s32 BSP_disp_restore_scaler_reg(__u32 sel, __u32 addr);
+extern __s32 BSP_disp_restore_lcdc_reg(__u32 sel);
+extern __s32 BSP_disp_restore_tvec_reg(__u32 sel);
 
 extern __s32 BSP_disp_layer_request(__u32 sel, __disp_layer_work_mode_t mode);
 extern __s32 BSP_disp_layer_release(__u32 sel, __u32 hid);

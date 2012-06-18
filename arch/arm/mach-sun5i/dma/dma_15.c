@@ -21,6 +21,9 @@
 
 #include <mach/dma.h>
 #include <mach/system.h>
+#include "dma_regs.h"
+#include <mach/platform.h>
+#include <linux/pm.h>
 
 static struct sw_dma_map __initdata sw_dma_mappings[DMACH_MAX] = {
 	[DMACH_NSPI0_RX] = {
@@ -259,17 +262,90 @@ static int __devexit sw_dmac_remove(struct platform_device *dev)
         printk("[%s] enter\n", __FUNCTION__);
         return 0;
 }
+#ifdef CONFIG_PM
+
+static void __iomem *dma_base;
+static int regsave[2];
+static struct sw_dma_chan cp[16];
+extern struct sw_dma_chan sw_chans[SW_DMA_CHANNELS];
 static int sw_dmac_suspend(struct platform_device *dev, pm_message_t state)
 {
-        printk("[%s] enter\n", __FUNCTION__);
-        return 0;
+	int channel;
+	
+	dma_base = (void __iomem *)SW_VA_DMAC_IO_BASE;
+	
+	/*process for normal standby*/
+	if (NORMAL_STANDBY == standby_type) {		
+	/*process for super standby*/	
+	} else if(SUPER_STANDBY == standby_type) {
+		for (channel = 0; channel < SW_DMA_CHANNELS;  channel++) {
+			cp[channel] = sw_chans[channel];
+			
+			if ((channel & 0xff) < 8) {
+				cp[channel].regs   = dma_base + 0x100 + (channel * 0x20);
+			} else {
+				cp[channel].regs   = dma_base + 0x300 + ((channel - 8) * 0x20);
+			}
+			
+			if (cp[channel].state == SW_DMA_RUNNING) {
+				sw_dma_ctrl(cp[channel].number, SW_DMAOP_STOP);
+				cp[channel].suspend_state = SW_DMA_SUSPEND_RUNNING;				
+			}
+			
+			/*while enter the suspend,save the dma register*/
+			cp[channel].regsave_ctrl 	= readl(cp[channel].regs);
+			cp[channel].regsave_source 	= readl(cp[channel].regs + 0x4);
+			cp[channel].regsave_des 	= readl(cp[channel].regs + 0x8);
+			cp[channel].regsave_byte 	= readl(cp[channel].regs + 0xc);
+
+		}
+		
+		/*save the dma enable register*/
+		regsave[0] = readl(dma_base + SW_DMA_DIRQEN);
+		/*save the dma pending status register*/
+		regsave[1] = readl(dma_base + SW_DMA_DIRQPD);		
+	}
+	return 0;
 }
 
 static int sw_dmac_resume(struct platform_device *dev)
 {
-        printk("[%s] enter\n", __FUNCTION__);
-        return 0;
+	int channel;	
+	dma_base = (void __iomem *)SW_VA_DMAC_IO_BASE;
+
+	if (NORMAL_STANDBY == standby_type) {		
+		//process for normal standby
+	} else if(SUPER_STANDBY == standby_type) {
+		/*restore the dma enable register*/
+		writel(regsave[0], dma_base + SW_DMA_DIRQEN);
+		/*restore the dma pending status register*/	
+		writel(regsave[1], dma_base + SW_DMA_DIRQPD);		
+			
+		for (channel = 0; channel < SW_DMA_CHANNELS;  channel++) {			
+			if ((channel & 0xff) < 8) {
+				cp[channel].regs   = dma_base + 0x100 + (channel * 0x20);
+			} else {
+				cp[channel].regs   = dma_base + 0x300 + ((channel - 8) * 0x20);
+			}
+		
+			/*while enter the suspend,save the dma register*/
+			writel(cp[channel].regsave_ctrl, cp[channel].regs);
+			writel(cp[channel].regsave_source, cp[channel].regs + 0x4);
+			writel(cp[channel].regsave_des, cp[channel].regs + 0x8);
+			writel(cp[channel].regsave_byte, cp[channel].regs + 0xc);
+			
+			if (cp[channel].suspend_state == SW_DMA_SUSPEND_RUNNING) {
+				sw_dma_ctrl(cp[channel].number, SW_DMAOP_START);			
+			}	
+		}
+	}
+	    
+    return 0;
 }
+#else
+	#define sw_dmac_suspend NULL
+	#define sw_dmac_resume  NULL
+#endif /* CONFIG_PM */
 
 static struct platform_driver sw_dmac_driver = {
         .probe          = sw_dmac_probe,

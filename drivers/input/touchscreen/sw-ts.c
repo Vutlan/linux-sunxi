@@ -340,6 +340,7 @@ static int reference_point_flag = 1;
 void tp_do_tasklet(unsigned long data);
 DECLARE_TASKLET(tp_tasklet,tp_do_tasklet,0);
 
+static int  tp_init(void);
 //Õ£”√…Ë±∏
 #ifdef CONFIG_HAS_EARLYSUSPEND
 static void sun4i_ts_suspend(struct early_suspend *h)
@@ -348,9 +349,13 @@ static void sun4i_ts_suspend(struct early_suspend *h)
 	struct sun4i_ts_data *ts = container_of(h, struct sun4i_ts_data, early_suspend);
     */
     #ifdef PRINT_SUSPEND_INFO
-        printk("enter earlysuspend: sun4i_ts_suspend. \n");
+		printk(KERN_INFO"[%s] enter standby state: %d. \n", __FUNCTION__, (int)standby_type);
     #endif
-    writel(0,TP_BASSADDRESS + TP_CTRL1);
+	/*process for normal standby*/
+	if (NORMAL_STANDBY == standby_type) {
+		 writel(0,TP_BASSADDRESS + TP_CTRL1);
+	} 
+	/*process for super standby*/	
 	return ;
 }
 
@@ -361,9 +366,15 @@ static void sun4i_ts_resume(struct early_suspend *h)
 	struct sun4i_ts_data *ts = container_of(h, struct sun4i_ts_data, early_suspend);
     */
     #ifdef PRINT_SUSPEND_INFO
-        printk("enter laterresume: sun4i_ts_resume. \n");
+	printk(KERN_INFO"[%s] return from standby state: %d. \n", __FUNCTION__, (int)standby_type);
     #endif    
-    writel(STYLUS_UP_DEBOUNCE|STYLUS_UP_DEBOUCE_EN|TP_DUAL_EN|TP_MODE_EN,TP_BASSADDRESS + TP_CTRL1);
+	/*process for normal standby*/
+	if (NORMAL_STANDBY == standby_type) {
+		 writel(STYLUS_UP_DEBOUNCE|STYLUS_UP_DEBOUCE_EN|TP_DUAL_EN|TP_MODE_EN,TP_BASSADDRESS + TP_CTRL1);
+	/*process for super standby*/	
+	} else if(SUPER_STANDBY == standby_type) {
+		tp_init();
+	}
 	return ;
 }
 #else

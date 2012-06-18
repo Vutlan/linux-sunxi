@@ -85,7 +85,7 @@ __s32 standby_clk_exit(void)
     *(volatile __u32 *)&CmuReg->Pll2Ctl = ccu_reg_back[1];
     *(volatile __u32 *)&CmuReg->Pll3Ctl = ccu_reg_back[2];
     *(volatile __u32 *)&CmuReg->Pll4Ctl = ccu_reg_back[3];
-    *(volatile __u32 *)&CmuReg->Pll5Ctl = ccu_reg_back[4];
+   // *(volatile __u32 *)&CmuReg->Pll5Ctl = ccu_reg_back[4];
     *(volatile __u32 *)&CmuReg->Pll6Ctl = ccu_reg_back[5];
     *(volatile __u32 *)&CmuReg->Pll7Ctl = ccu_reg_back[6];
 

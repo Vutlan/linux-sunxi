@@ -218,6 +218,37 @@ static void axp_charger_update_state(struct axp_charger *charger)
  	charger->charge_on = ((val[0] >> 7) & 0x01);
 }
 
+
+/*set CPU-VDD,AVCC,DRAM-VDD,LDO3,LDO4 power up first ,after 4ms Core_VDD,VCC-3V3 power up*/
+static void axp_set_startup_sequence(struct axp_charger *charger)
+{
+	axp_write(charger->master,0xF4,0x06); //open REGF2/5 Lock
+	axp_write(charger->master,0xF2,0x04); //open REG10x Lock
+	axp_write(charger->master,0xFF,0x01);
+	axp_write(charger->master,0x03,0x42); //set EXTEN power up at step 2 and 4ms step by step
+					     // highest 2bit depend the startup time,00-1ms,01-4ms,10-16ms,11-32ms
+	axp_write(charger->master,0x04,0x08); //set Core-VDD power up at step 2
+	axp_write(charger->master,0xFF,0x00);
+	axp_write(charger->master,0xF4,0x00); //Close all Lock
+	if(axp_debug){
+		uint8_t val;
+		axp_reads(charger->master,0xF4,1,&val);
+		DBG_PSY_MSG("axp209 REGF4  = %x\n",val);
+		axp_reads(charger->master,0xF2,1,&val);
+		DBG_PSY_MSG("axp209 REGF2  = %x\n",val);
+		axp_write(charger->master,0xFF,0x01);
+		axp_reads(charger->master,0xF2,1,&val);
+		DBG_PSY_MSG("first axp209 REGFF  = %x\n",val);
+		axp_reads(charger->master,0x03,1,&val);
+		DBG_PSY_MSG("axp209 REG103  = %x\n",val);
+		axp_reads(charger->master,0x04,1,&val);
+		DBG_PSY_MSG("axp209 REG104  = %x\n",val);
+		axp_write(charger->master,0xFF,0x01);
+		axp_reads(charger->master,0xF2,1,&val);
+		DBG_PSY_MSG("after axp209 REGFF  = %x\n",val);
+		}
+}
+
 static void axp_charger_update(struct axp_charger *charger)
 {
   uint16_t tmp;
@@ -576,6 +607,20 @@ static void axp_pressshort(struct axp_charger *charger)
   input_sync(powerkeydev);
 }
 
+static void axp_keyup(struct axp_charger *charger)
+{
+	DBG_PSY_MSG("power key up\n");
+	input_report_key(powerkeydev, KEY_POWER, 0);
+	input_sync(powerkeydev);
+}
+
+static void axp_keydown(struct axp_charger *charger)
+{
+	DBG_PSY_MSG("power key down\n");
+	input_report_key(powerkeydev, KEY_POWER, 1);
+	input_sync(powerkeydev);
+}
+
 static void axp_capchange(struct axp_charger *charger)
 {
 	uint8_t val;
@@ -624,10 +669,11 @@ static int axp_battery_event(struct notifier_block *nb, unsigned long event,
     w[3] = POWER20_INTSTS3;
     w[4] = (uint8_t) ((event >> 16) & 0xFF);
     w[5] = POWER20_INTSTS4;
-    w[6] = (uint8_t) ((event >> 24) & 0xFF);
-    w[7] = POWER20_INTSTS5;
-    w[8] = (uint8_t) (((uint64_t) event >> 32) & 0xFF);
-
+	w[6] = (uint8_t) ((event >> 24) & 0xFF);
+	w[7] = POWER20_INTSTS5;
+	w[8] = (uint8_t) ((event) & 0xFF);
+//	w[8] = (uint8_t) (((uint64_t) event >> 32) & 0xFF);
+	if((bool)data==0){
     if(event & (AXP20_IRQ_BATIN|AXP20_IRQ_BATRE)) {
     	axp_capchange(charger);
     }
@@ -649,9 +695,20 @@ static int axp_battery_event(struct notifier_block *nb, unsigned long event,
     if(event & AXP20_IRQ_PEKSH) {
     	axp_pressshort(charger);
     }
+	}
+	else{
 
-    DBG_PSY_MSG("event = 0x%x\n",(int) event);
-    axp_writes(charger->master,POWER20_INTSTS1,9,w);
+		if((event) & AXP20_IRQ_PEKFE>>32) {
+			axp_keydown(charger);
+		}
+
+		if((event) & AXP20_IRQ_PEKRE>>32) {
+			axp_keyup(charger);
+		}
+	}
+	
+	axp_writes(charger->master,POWER20_INTSTS1,9,w);
+	DBG_PSY_MSG("%s, %d, event = 0x%x \n", __func__, __LINE__, event);
 
     return 0;
 }
@@ -1686,7 +1743,7 @@ static int axp_battery_probe(struct platform_device *pdev)
   charger->battery_info         = pdata->battery_info;
   charger->disvbat			= 0;
   charger->disibat			= 0;
-
+axp_set_startup_sequence(charger);
   ret = axp_battery_first_init(charger);
   if (ret)
     goto err_charger_init;

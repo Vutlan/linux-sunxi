@@ -37,6 +37,8 @@
 
 #define SCRIPT_AUDIO_OK (0)
 static int capture_used = 0;
+static int bias_reg_val;
+static int gpio_pa_shutdown = 0;
 struct clk *codec_apbclk,*codec_pll2clk,*codec_moduleclk;
 
 static volatile unsigned int capture_dmasrc = 0;
@@ -323,6 +325,9 @@ int codec_rd_control(u32 reg, u32 bit, u32 *val)
 */
 static  int codec_init(void)
 {
+	int da16_val;
+	int bias_data;
+	
 	//enable dac digital 
 	//codec_wr_control(SUN5I_DAC_DPC, 0x1, DAC_EN, 0x1);
 
@@ -337,6 +342,20 @@ static  int codec_init(void)
 
 	codec_wr_control(SUN5I_DAC_ACTL, 0x6, VOLUME, 0x3b);
 
+	bias_reg_val = readl(baseaddr + (SUN5I_BIAS_CRT));
+	
+	da16_val 	= bias_reg_val & (0x1F<<0);
+	bias_data 	= bias_reg_val & (0x3F<<11);
+	
+	//codec_wr_control(SUN5I_BIAS_CRT, 0x1, 	23, 0x1);
+	//codec_wr_control(SUN5I_BIAS_CRT, 0x1, 	10, 0x1);
+	
+	writel(((da16_val<<0)|(bias_data<<11)|(1<<10)|(1<<23)), (baseaddr + (SUN5I_BIAS_CRT)));
+	writel(((da16_val<<0)|(bias_data<<11)|(1<<10)|(1<<23)), (baseaddr + (SUN5I_BIAS_CRT)));
+	bias_reg_val = readl(baseaddr + (SUN5I_BIAS_CRT));
+	
+	printk("audiocodec init 0xf1c22c38 is:%x\n", *(volatile int *)0xf1c22c38);
+	
 	return 0;
 }
 
@@ -1505,6 +1524,18 @@ static int snd_sun5i_codec_resume(struct platform_device *pdev)
 		printk("open codec_moduleclk failed; \n");
 	}
 
+	/*process for normal standby*/
+	if (NORMAL_STANDBY == standby_type) {
+	/*process for super standby*/
+	} else if(SUPER_STANDBY == standby_type) {
+		codec_wr_control(SUN5I_DAC_ACTL, 0x6, VOLUME, 0x3b);
+		codec_wr_control(SUN5I_DAC_FIFOC, 0x3, DRA_LEVEL,0x3);
+		codec_wr_control(SUN5I_DAC_FIFOC ,  0x1,28, 0x1);
+		
+		writel(bias_reg_val, (baseaddr + (SUN5I_BIAS_CRT)));
+		printk("enter audio super standby resume\n");
+	}
+	printk("audiocodec init 0xf1c22c38 is:%x\n", *(volatile int *)0xf1c22c38);
 	queue_work(resume_work_queue, &codec_resume_work);
 	printk("[audio codec]:resume end\n");
 	return 0;	

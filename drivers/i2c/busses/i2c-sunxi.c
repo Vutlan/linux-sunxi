@@ -943,6 +943,7 @@ static int i2c_sunxi_do_xfer(struct sunxi_i2c *i2c, struct i2c_msg *msgs, int nu
 	if (timeout == 0){
 		//dev_dbg(i2c->adap.dev, "timeout \n");
 		pr_warning("i2c-%d, xfer timeout\n", i2c->bus_num);
+		pr_warning("i2c status: 0x%x\n",aw_twi_query_irq_status(i2c->base_addr));
 		ret = -ETIME;
 	}
 	else if (ret != num){
@@ -1261,6 +1262,7 @@ static int i2c_sunxi_resume(struct platform_device *pdev)
 	}
 
 	aw_twi_soft_reset(i2c->base_addr);
+	aw_twi_send_clk_9pulse(i2c->base_addr);
 
 	i2c_dbg("[i2c%d] resume okay.. \n", i2c->bus_num);
 	return 0;

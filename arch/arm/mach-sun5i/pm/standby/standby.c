@@ -100,7 +100,7 @@ int main(struct aw_pm_info *arg)
     /* copy standby parameter from dram */
     standby_memcpy(&pm_info, arg, sizeof(pm_info));
     /* copy standby code & data to load tlb */
-    standby_memcpy((char *)&__standby_end, (char *)&__standby_start, (char *)&__bss_end - (char *)&__bss_start);
+    //standby_memcpy((char *)&__standby_end, (char *)&__standby_start, (char *)&__bss_end - (char *)&__bss_start);
     /* backup dram traning area */
     standby_memcpy((char *)dram_traning_area_back, (char *)DRAM_BASE_ADDR, sizeof(__u32)*DRAM_TRANING_SIZE);
 

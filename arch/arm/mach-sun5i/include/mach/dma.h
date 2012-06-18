@@ -385,6 +385,11 @@ enum sw_dma_loadst {
 	SW_DMALOAD_1LOADED_1RUNNING,
 };
 
+enum sw_dma_suspend_state{
+	SW_DMA_SUSPEND_NONE,	//when the system enter the susper suspend, the dma channel is idle
+	SW_DMA_SUSPEND_RUNNING,	//when the system enter the susper suspend, the dma channel is running
+};
+
 enum sw_dma_buffresult {
 	SW_RES_OK,
 	SW_RES_ERR,
@@ -491,6 +496,7 @@ struct sw_dma_chan {
 	enum sw_dma_state	 state;
 	enum sw_dma_loadst	 load_state;
 	struct sw_dma_client *client;
+	enum sw_dma_suspend_state suspend_state;
 
 	/* channel configuration */
 	unsigned long		 dev_addr;
@@ -523,6 +529,11 @@ struct sw_dma_chan {
 	/* system device */
 	struct sys_device	dev;
 	void * dev_id;
+	/*while enter the suspend,save the dma register*/
+	int regsave_ctrl;
+	int regsave_source;
+	int regsave_des;
+	int regsave_byte;
 };
 
 /*the channel number of above 8 is DDMA channel.*/
