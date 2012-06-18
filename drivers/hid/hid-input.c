@@ -621,6 +621,24 @@ static void hidinput_configure_usage(struct hid_input *hidinput, struct hid_fiel
 		case 0x28b: map_key_clear(KEY_FORWARDMAIL);	break;
 		case 0x28c: map_key_clear(KEY_SEND);		break;
 
+#ifdef  CONFIG_HID_MELE_USB_REMOTE
+		case 0x340: map_key_clear(KEY_EJECTCLOSECD);  break;
+		case 0x341: map_key_clear(KEY_SUBTITLE);  break;
+		case 0x342: map_key_clear(KEY_AUDIO);  break;
+		case 0x343: map_key_clear(KEY_TIME_SHIFT);  break;
+		case 0x344: map_key_clear(KEY_WWW_TXT);  break;
+		case 0x345: map_key_clear(KEY_COM_TXT);  break;
+
+		case 0x350: map_key_clear(0x250);  break;
+		case 0x351: map_key_clear(0x250);  break;
+		case 0x352: map_key_clear(0x250);  break;
+		case 0x353: map_key_clear(0x250);  break;
+		case 0x354: map_key_clear(0x250);  break;
+		case 0x355: map_key_clear(0x250);  break;
+		case 0x356: map_key_clear(0x250);  break;
+		case 0x357: map_key_clear(0x250);  break;
+#endif
+
 		default:    goto ignore;
 		}
 		break;

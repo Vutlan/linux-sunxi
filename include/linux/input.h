@@ -673,6 +673,12 @@ struct input_keymap_entry {
 #define KEY_CAMERA_LEFT		0x219
 #define KEY_CAMERA_RIGHT	0x21a
 
+#ifdef  CONFIG_HID_MELE_USB_REMOTE
+#define KEY_TIME_SHIFT 0x220
+#define KEY_WWW_TXT 0x221
+#define KEY_COM_TXT 0x222
+#endif
+
 #define BTN_TRIGGER_HAPPY		0x2c0
 #define BTN_TRIGGER_HAPPY1		0x2c0
 #define BTN_TRIGGER_HAPPY2		0x2c1
