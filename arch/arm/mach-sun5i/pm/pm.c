@@ -250,7 +250,7 @@ static int aw_pm_valid(suspend_state_t state)
 		}else{
 			standby_type = SUPER_STANDBY;
 		}
-	}else if(PM_SUSPEND_MEM == state){
+	}else if(PM_SUSPEND_MEM == state || PM_SUSPEND_BOOTFAST == state){
 		if(1 == standby_mode){
 			standby_type = SUPER_STANDBY;
 		}else{
