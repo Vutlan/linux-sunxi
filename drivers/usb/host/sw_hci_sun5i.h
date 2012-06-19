@@ -164,6 +164,14 @@
 #define SW_SDRAM_BP_HPCR_ACCESS_EN			0
 
 
+/* 0: 无， 1: ehci 2:ohci */
+enum sw_usbc_type{
+	SW_USB_UNKOWN = 0,
+	SW_USB_EHCI,
+	SW_USB_OHCI,
+};
+
+
 struct sw_hci_hcd{
 	__u32 usbc_no;						/* usb controller number */
 	__u32 irq_no;						/* interrupt number 	*/
@@ -220,6 +228,8 @@ struct sw_hci_hcd{
     __u32 used;                         /* flag. 控制器是否被使用 */
 	__u32 probe;                        /* 控制器初始化 */
 	__u32 host_init_state;				/* usb 控制器的初始化状态。0 : 不工作. 1 : 工作 */
+
+	enum sw_usbc_type usb_controller_type;          /* usb 控制器的类型0:控制器 1: ehci 2: ohci   */
 
 	int (* open_clock)(struct sw_hci_hcd *sw_hci, u32 ohci);
 	int (* close_clock)(struct sw_hci_hcd *sw_hci, u32 ohci);

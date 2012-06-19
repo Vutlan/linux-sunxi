@@ -19,12 +19,15 @@
 *************************************************************************************
 */
 #include  "../include/sw_usb_config.h"
+#include  "../include/sw_usb_board.h"
 #include  "usb_hcd_servers.h"
 
 int sw_usb_disable_ehci(__u32 usbc_no);
 int sw_usb_enable_ehci(__u32 usbc_no);
 int sw_usb_disable_ohci(__u32 usbc_no);
 int sw_usb_enable_ohci(__u32 usbc_no);
+
+extern struct usb_cfg g_usb_cfg;
 
 /*
 *******************************************************************************
@@ -52,19 +55,27 @@ int sw_usb_disable_hcd(__u32 usbc_no)
 #endif
 	}else if(usbc_no == 1){
 #if defined(CONFIG_USB_SW_SUN5I_EHCI0)
-		sw_usb_disable_ehci(usbc_no);
+		if(g_usb_cfg.port[usbc_no].controller_type != SW_USB_OHCI){
+			sw_usb_disable_ehci(usbc_no);
+		}
 #endif
 
 #if defined(CONFIG_USB_SW_SUN5I_OHCI0)
-		sw_usb_disable_ohci(usbc_no);
+		if(g_usb_cfg.port[usbc_no].controller_type != SW_USB_EHCI){
+			sw_usb_disable_ohci(usbc_no);
+		}
 #endif
 	}else if(usbc_no == 2){
 #if defined(CONFIG_USB_SW_SUN5I_EHCI1)
-		sw_usb_disable_ehci(usbc_no);
+		if(g_usb_cfg.port[usbc_no].controller_type != SW_USB_OHCI){
+			sw_usb_disable_ehci(usbc_no);
+		}
 #endif
 
 #if defined(CONFIG_USB_SW_SUN5I_OHCI1)
-		sw_usb_disable_ohci(usbc_no);
+		if(g_usb_cfg.port[usbc_no].controller_type != SW_USB_EHCI){
+			sw_usb_disable_ohci(usbc_no);
+		}
 #endif
 	}else{
 		DMSG_PANIC("ERR: unkown usbc_no(%d)\n", usbc_no);
@@ -101,19 +112,27 @@ int sw_usb_enable_hcd(__u32 usbc_no)
 #endif
 	}else if(usbc_no == 1){
 #if defined(CONFIG_USB_SW_SUN5I_EHCI0)
-		sw_usb_enable_ehci(usbc_no);
+        if(g_usb_cfg.port[usbc_no].controller_type != SW_USB_OHCI){
+			sw_usb_enable_ehci(usbc_no);
+        }
 #endif
 
 #if defined(CONFIG_USB_SW_SUN5I_OHCI0)
-		sw_usb_enable_ohci(usbc_no);
+		if(g_usb_cfg.port[usbc_no].controller_type != SW_USB_EHCI){
+			sw_usb_enable_ohci(usbc_no);
+		}
 #endif
 	}else if(usbc_no == 2){
 #if defined(CONFIG_USB_SW_SUN5I_EHCI1)
-		sw_usb_enable_ehci(usbc_no);
+		if(g_usb_cfg.port[usbc_no].controller_type != SW_USB_OHCI){
+			sw_usb_enable_ehci(usbc_no);
+		}
 #endif
 
 #if defined(CONFIG_USB_SW_SUN5I_OHCI1)
-		sw_usb_enable_ohci(usbc_no);
+		if(g_usb_cfg.port[usbc_no].controller_type != SW_USB_EHCI){
+			sw_usb_enable_ohci(usbc_no);
+		}
 #endif
 	}else{
 		DMSG_PANIC("ERR: unkown usbc_no(%d)\n", usbc_no);

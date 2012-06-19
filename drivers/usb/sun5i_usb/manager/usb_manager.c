@@ -51,7 +51,7 @@
 #include  "usb_msg_center.h"
 
 
-static struct usb_cfg g_usb_cfg;
+struct usb_cfg g_usb_cfg;
 
 #ifdef CONFIG_USB_SW_SUN5I_USB0_OTG
 static __u32 thread_run_flag = 1;
@@ -149,6 +149,12 @@ static __s32 usb_script_parse(struct usb_cfg *cfg)
 		ret = script_parser_fetch(set_usbc, KEY_USB_DETECT_TYPE, (int *)&(cfg->port[i].detect_type), 64);
 		if(ret != 0){
 			DMSG_PANIC("ERR: get usbc(%d) detect type failed\n", i);
+		}
+
+		/* usbc controller type */
+		ret = script_parser_fetch(set_usbc, KEY_USB_CONTROLLER_TYPE, (int *)&(cfg->port[i].controller_type), 64);
+		if(ret != 0){
+			DMSG_PANIC("ERR: get usbc(%d) controller type failed\n", i);
 		}
 
 		/* usbc id */

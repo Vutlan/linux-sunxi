@@ -37,6 +37,7 @@
 #define  KEY_USB_ENABLE				"usb_used"
 #define  KEY_USB_PORT_TYPE			"usb_port_type"
 #define  KEY_USB_DETECT_TYPE		"usb_detect_type"
+#define  KEY_USB_CONTROLLER_TYPE	"usb_controller_type"
 #define  KEY_USB_ID_GPIO			"usb_id_gpio"
 #define  KEY_USB_DETVBUS_GPIO		"usb_det_vbus_gpio"
 #define  KEY_USB_DRVVBUS_GPIO		"usb_drv_vbus_gpio"
@@ -66,6 +67,15 @@ enum usb_detect_type{
     USB_DETECT_TYPE_VBUS_ID,
 };
 
+/* 0: 无， 1: ehci 2:ohci */
+enum sw_usbc_type{
+	SW_USB_UNKOWN = 0,
+	SW_USB_EHCI,
+	SW_USB_OHCI,
+};
+
+
+
 /* pio信息 */
 typedef struct usb_gpio{
 	__u32 valid;          	/* pio是否可用。 0:无效, !0:有效	*/
@@ -80,6 +90,7 @@ typedef struct usb_port_info{
 	__u32 port_no;						/* usb端口号			*/
 	enum usb_port_type port_type;    	/* usb端口类型			*/
 	enum usb_detect_type detect_type; 	/* usb检测方式			*/
+	enum sw_usbc_type controller_type;	/* usb控制类型　*/
 
 	usb_gpio_t id;						/* usb id pin信息 		*/
 	usb_gpio_t det_vbus;				/* usb vbus pin信息 	*/
