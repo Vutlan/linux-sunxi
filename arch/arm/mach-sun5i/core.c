@@ -314,14 +314,11 @@ static struct clock_event_device timer0_clockevent = {
 };
 
 
-extern int fix_timer_clock(void);
 static irqreturn_t sw_timer_interrupt(int irq, void *dev_id)
 {
 	struct clock_event_device *evt = (struct clock_event_device *)dev_id;
 
 	writel(0x1, SW_TIMER_INT_STA_REG);
-    /* fix timer clock */
-    fix_timer_clock();
 	/*
  	 * timer_set_next_event will be called only in ONESHOT mode
  	 */
@@ -384,13 +381,73 @@ void __init sw_core_init(void)
 	sw_pdev_init();
 }
 
-#if 0
+
+static enum sw_ic_ver version = MAGIC_VER_NULL;
 enum sw_ic_ver sw_get_ic_ver(void)
 {
-    pr_warning("invalid to get ic version!!\n");
+    u32 val;
+
+    if(version != MAGIC_VER_NULL) {
+        return version;
+    }
+
+    val = readl(SW_VA_SSE_IO_BASE);
+    switch((val>>16)&0x07)
+    {
+        case 0:
+        {
+            val = readl(SW_VA_SID_IO_BASE+0x00);
+            val = (val>>8)&0xffffff;
+            if(val == 0x162541) {
+                version = MAGIC_VER_A13A;
+            } else if(val == 0x162542) {
+                version = MAGIC_VER_A13B;
+            } else {
+                version = MAGIC_VER_UNKNOWN;
+            }
+            break;
+        }
+        case 1:
+        {
+            val = readl(SW_VA_SID_IO_BASE+0x08);
+            val = (val>>12) & 0x0f;
+            if(val == 0x3) {
+                val = readl(SW_VA_SID_IO_BASE+0x00);
+                val = (val>>8)&0xffffff;
+                if(val == 0x162541) {
+                    version = MAGIC_VER_A12A;
+                } else if(val == 0x162542) {
+                    version = MAGIC_VER_A12B;
+                } else {
+                    version = MAGIC_VER_UNKNOWN;
+                }
+            } else if(val == 0x07) {
+                val = readl(SW_VA_SID_IO_BASE+0x00);
+                val = (val>>8)&0xffffff;
+                if(val == 0x162541) {
+                    version = MAGIC_VER_A10SA;
+                } else if(val == 0x162542) {
+                    version = MAGIC_VER_A10SB;
+                } else {
+                    version = MAGIC_VER_UNKNOWN;
+                }
+            } else {
+                version = MAGIC_VER_UNKNOWN;
+            }
+            break;
+        }
+
+        default:
+        {
+            version = MAGIC_VER_UNKNOWN;
+            break;
+        }
+    }
+
+    return version;
 }
 EXPORT_SYMBOL(sw_get_ic_ver);
-#endif
+
 
 int sw_get_chip_id(struct sw_chip_id *chip_id)
 {
