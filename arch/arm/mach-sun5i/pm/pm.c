@@ -38,6 +38,8 @@
 #include <mach/sys_config.h>
 
 //#define CROSS_MAPPING_STANDBY
+//#define CHECK_INT_SRC
+
 #define AW_PM_DBG   1
 #undef PM_DBG
 #if(AW_PM_DBG)
@@ -192,6 +194,30 @@ void restore_processor_ttbr0(void);
 extern void flush_icache(void);
 extern void flush_dcache(void);
 
+#ifdef CHECK_INT_SRC
+static void check_int_src(void)
+{
+#define INT_REG_0 (0x10) 
+#define INT_REG_1 (0x14)
+#define INT_REG_2 (0x18)
+
+
+	u32 data_0 = 0;
+	u32 data_1 = 0;
+	u32 data_2 = 0;
+	
+	data_0 = *(volatile unsigned int *)(SW_VA_INT_IO_BASE + INT_REG_0);
+	data_1 = *(volatile unsigned int *)(SW_VA_INT_IO_BASE + INT_REG_1);
+	data_2 = *(volatile unsigned int *)(SW_VA_INT_IO_BASE + INT_REG_2);
+
+	pr_info("INT_REG_0 = %d \n", data_0);
+	pr_info("INT_REG_1 = %d \n", data_1);
+	pr_info("INT_REG_2 = %d \n", data_2);
+
+	return;
+
+}
+#endif
 
 
 /*
@@ -575,30 +601,6 @@ static void aw_late_resume(void)
 	return;
 }
 
-void check_int_src(void)
-{
-#define INT_REG_0 (0x10) 
-#define INT_REG_1 (0x14)
-#define INT_REG_2 (0x18)
-
-
-	u32 data_0 = 0;
-	u32 data_1 = 0;
-	u32 data_2 = 0;
-	
-	data_0 = *(volatile unsigned int *)(SW_VA_INT_IO_BASE + INT_REG_0);
-	data_1 = *(volatile unsigned int *)(SW_VA_INT_IO_BASE + INT_REG_1);
-	data_2 = *(volatile unsigned int *)(SW_VA_INT_IO_BASE + INT_REG_2);
-
-	pr_info("INT_REG_0 = %d \n", data_0);
-	pr_info("INT_REG_1 = %d \n", data_1);
-	pr_info("INT_REG_2 = %d \n", data_2);
-
-	return;
-
-}
-
-
 
 /*
 *********************************************************************************************************
@@ -630,7 +632,9 @@ static int aw_pm_enter(suspend_state_t state)
 		standby_info.standby_para.event = SUSPEND_WAKEUP_SRC_EXINT | SUSPEND_WAKEUP_SRC_ALARM;
 		/* goto sram and run */
 		standby(&standby_info);
+#ifdef CHECK_INT_SRC
 		check_int_src();
+#endif
 	}else if(SUPER_STANDBY == standby_type){
 mem_enter:
 		if( 1 == mem_para_info.mem_flag){

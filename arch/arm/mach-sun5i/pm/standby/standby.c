@@ -30,6 +30,9 @@ extern char *__standby_end;
 static __u32 sp_backup;
 static void standby(void);
 static __u32 dcdc2, dcdc3;
+static struct pll_factor_t orig_pll;
+static struct pll_factor_t local_pll;
+
 static struct sun4i_clk_div_t  clk_div;
 static struct sun4i_clk_div_t  tmp_clk_div;
 
@@ -180,6 +183,18 @@ static void standby(void)
     /* gating off dram clock */
     standby_clk_dramgating(0);
 
+	/* backup cpu freq */
+	standby_clk_get_pll_factor(&orig_pll);
+
+	/*lower freq from 1008M to 384M*/
+	local_pll.FactorN = 16;
+	local_pll.FactorK = 0;
+	local_pll.FactorM = 0;
+	local_pll.FactorP = 0;
+	standby_clk_set_pll_factor(&local_pll);
+	change_runtime_env(1);
+	delay_ms(10);
+	
     /* switch cpu clock to HOSC, and disable pll */
     standby_clk_core2hosc();
     standby_clk_plldisable();
@@ -200,7 +215,9 @@ static void standby(void)
     standby_clk_setdiv(&tmp_clk_div);
     /* swtich apb1 to losc */
     standby_clk_apb2losc();
-    standby_mdelay(10);
+	change_runtime_env(1);
+	delay_ms(10);
+
     /* switch cpu to 32k */
     standby_clk_core2losc();
     #if(ALLOW_DISABLE_HOSC)
@@ -239,15 +256,24 @@ static void standby(void)
     /* restore voltage for exit standby */
     standby_set_voltage(POWER_VOL_DCDC2, dcdc2);
     standby_set_voltage(POWER_VOL_DCDC3, dcdc3);
-    standby_mdelay(10);
+	change_runtime_env(1);
+    delay_ms(10);
 
     /* enable pll */
     standby_clk_pllenable();
-    standby_mdelay(10);
+	change_runtime_env(1);
+	delay_ms(10);
+
     /* switch cpu clock to core pll */
     standby_clk_core2pll();
-    standby_mdelay(10);
+	change_runtime_env(1);
+	delay_ms(10);
 
+	/*restore freq from 384 to 1008M*/
+	standby_clk_set_pll_factor(&orig_pll);
+	change_runtime_env(1);
+	delay_ms(10);
+	
     /* gating on dram clock */
     standby_clk_dramgating(1);
 

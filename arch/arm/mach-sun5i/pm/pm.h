@@ -22,11 +22,11 @@ struct clk_div_t {
     __u32   reserved:16;
 };
 struct pll_factor_t {
-    __u32   FactorM:2;          //bit0,  PLL1 Factor M
-    __u32   FactorK:2;          //bit4,  PLL1 factor K
-    __u32   FactorN:5;          //bit8,  PLL1 Factor N
-    __u32   PLLDivP:2;          //bit16, PLL1 output external divider P
-    __u32   reserved1:21;        //bit18, reserved
+    __u8    FactorN;
+    __u8    FactorK;
+    __u8    FactorM;
+    __u8    FactorP;
+    __u32   Pll;
 };
 
 struct mmu_state {

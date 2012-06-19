@@ -814,9 +814,6 @@ static int sun4i_cpufreq_getcur(struct sun4i_cpu_freq_t *cfg)
 
 #ifdef CONFIG_PM
 
-/* variable for backup cpu frequency configuration */
-static struct sun4i_cpu_freq_t suspend_freq;
-
 /*
 *********************************************************************************************************
 *                           sun4i_cpufreq_suspend
@@ -834,29 +831,7 @@ static struct sun4i_cpu_freq_t suspend_freq;
 */
 static int sun4i_cpufreq_suspend(struct cpufreq_policy *policy)
 {
-    struct sun4i_cpu_freq_t suspend;
-
-    CPUFREQ_DBG("%s, set cpu frequency to 60Mhz to prepare enter standby\n", __func__);
-
-	if (NORMAL_STANDBY == standby_type) {
-		/*process for normal standby*/
-		printk(KERN_INFO"[%s] normal standby enter\n", __FUNCTION__);
-		sun4i_cpufreq_getcur(&suspend_freq);
-
-		/* set cpu frequency to 60M hz for standby */
-		suspend.pll = 60000000;
-		suspend.div.cpu_div = 1;
-		suspend.div.axi_div = 1;
-		suspend.div.ahb_div = 1;
-		suspend.div.apb_div = 2;
-		__set_cpufreq_target(&suspend_freq, &suspend);
-	
-	} else if(SUPER_STANDBY == standby_type) {
-		/*process for super standby*/	
-		printk(KERN_INFO"[%s] super standby enter: do nothing\n", __FUNCTION__);
-	}
-
-
+    CPUFREQ_DBG("%s, enter standby\n", __func__);
     return 0;
 }
 
@@ -877,25 +852,10 @@ static int sun4i_cpufreq_suspend(struct cpufreq_policy *policy)
 */
 static int sun4i_cpufreq_resume(struct cpufreq_policy *policy)
 {
-    struct sun4i_cpu_freq_t suspend;
-
     /* invalidate last_target setting */
 	last_target = ~0;
 
 	CPUFREQ_DBG("%s: resuming with policy %p\n", __func__, policy);
-	if (NORMAL_STANDBY == standby_type) {
-		/*process for normal standby*/
-		printk(KERN_INFO"[%s] normal standby resume\n", __FUNCTION__);
-		sun4i_cpufreq_getcur(&suspend);
-
-		/* restore cpu frequency configuration */
-		__set_cpufreq_target(&suspend, &suspend_freq);
-
-	} else if(SUPER_STANDBY == standby_type) {
-		/*process for super standby*/	
-		printk(KERN_INFO"[%s] super standby resume: do nothing\n", __FUNCTION__);
-	}
-
 	return 0;
 }
 

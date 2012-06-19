@@ -155,7 +155,7 @@ __s32 mem_clk_getdiv(struct clk_div_t  *clk_div)
 *********************************************************************************************************
 *                                     mem_clk_set_pll_factor
 *
-* Description: set pll factor, target cpu freq is 384M hz
+* Description: set pll factor, target cpu freq is ?M hz
 *
 * Arguments  : none
 *
@@ -170,7 +170,7 @@ __s32 mem_clk_set_pll_factor(struct pll_factor_t *pll_factor)
 	CmuReg->Pll1Ctl.FactorN = pll_factor->FactorN;
 	CmuReg->Pll1Ctl.FactorK = pll_factor->FactorK;
 	CmuReg->Pll1Ctl.FactorM = pll_factor->FactorM;
-	CmuReg->Pll1Ctl.PLLDivP = pll_factor->PLLDivP;
+	CmuReg->Pll1Ctl.PLLDivP = pll_factor->FactorP;
 	
 	//busy_waiting();
 	
@@ -181,7 +181,7 @@ __s32 mem_clk_set_pll_factor(struct pll_factor_t *pll_factor)
 *********************************************************************************************************
 *                                     mem_clk_get_pll_factor
 *
-* Description: set pll factor, target cpu freq is 384M hz
+* Description: get pll factor
 *
 * Arguments  : none
 *
@@ -196,7 +196,7 @@ __s32 mem_clk_get_pll_factor(struct pll_factor_t *pll_factor)
 	pll_factor->FactorN = CmuReg->Pll1Ctl.FactorN;
 	pll_factor->FactorK = CmuReg->Pll1Ctl.FactorK;
 	pll_factor->FactorM = CmuReg->Pll1Ctl.FactorM;
-	pll_factor->PLLDivP = CmuReg->Pll1Ctl.PLLDivP;
+	pll_factor->FactorP = CmuReg->Pll1Ctl.PLLDivP;
 	
 	//busy_waiting();
 	
