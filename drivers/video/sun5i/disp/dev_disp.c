@@ -532,7 +532,7 @@ void backlight_early_suspend(struct early_suspend *h)
 {
     int i = 0;
 
-    printk("==display early suspend enter\n");
+    pr_info("==display early suspend enter\n");
 
     for(i=0; i<2; i++)
     {
@@ -565,7 +565,7 @@ void backlight_late_resume(struct early_suspend *h)
 {
     int i = 0;
 
-    printk("==display late resume enter\n");
+    pr_info("==display late resume enter\n");
 
     BSP_disp_clk_on(2);
 
@@ -579,7 +579,7 @@ void backlight_late_resume(struct early_suspend *h)
             if(2 == suspend_prestep)//late resume from  resume
             {
                 flow =BSP_disp_lcd_get_open_flow(i);
-                while(flow->cur_step != (flow->func_num-1))//open flow is finished  accept the last one
+                while(flow->cur_step < (flow->func_num))//open flow is finished  accept the last one
                 {
                     __u32 timeout = 10*HZ/1000;
         	    	set_current_state(TASK_INTERRUPTIBLE);
@@ -592,7 +592,7 @@ void backlight_late_resume(struct early_suspend *h)
                 DRV_lcd_open(i);
             }
             jiffies_late_resume = jiffies;
-            //printk("==jiffies_resume:%ld,  late_resume:%ld\n", jiffies_resume, jiffies_late_resume);
+            //pr_info("==jiffies_resume:%ld,  late_resume:%ld\n", jiffies_resume, jiffies_late_resume);
             
         }
         else if(suspend_output_type[i] == DISP_OUTPUT_TYPE_TV)
@@ -612,7 +612,7 @@ void backlight_late_resume(struct early_suspend *h)
     suspend_status &= (~1);
     suspend_prestep = 3;
 	
-    printk("display late resume done: %s\n", __func__);
+    pr_info("display late resume done: %s\n", __func__);
 }
 
 static struct early_suspend backlight_early_suspend_handler =
@@ -628,7 +628,7 @@ static __u32 image0_reg_bak,scaler0_reg_bak;
 int disp_suspend(struct platform_device *pdev, pm_message_t state)
 {
     int i = 0;
-    printk("==disp_suspend call\n");
+    pr_info("==disp_suspend call\n");
 
 #ifndef CONFIG_HAS_EARLYSUSPEND
     for(i=0; i<2; i++)
@@ -669,7 +669,7 @@ int disp_suspend(struct platform_device *pdev, pm_message_t state)
     }
      if(SUPER_STANDBY == standby_type)
      {  
-        printk("==disp super standby enter\n");
+        pr_info("==disp super standby enter\n");
 
         image0_reg_bak = (__u32)disp_malloc(0xe00 - 0x800);
         scaler0_reg_bak = (__u32)disp_malloc(0xa18);
@@ -692,7 +692,7 @@ int disp_suspend(struct platform_device *pdev, pm_message_t state)
 int disp_resume(struct platform_device *pdev)
 {
     int i = 0;
-    printk("==disp_resume call\n");
+    pr_info("==disp_resume call\n");
 
 #ifndef CONFIG_HAS_EARLYSUSPEND
     BSP_disp_clk_on(3);
@@ -703,7 +703,7 @@ int disp_resume(struct platform_device *pdev)
     if(SUPER_STANDBY == standby_type)
     {
         
-        printk("==disp super standby exit\n");
+        pr_info("==disp super standby exit\n");
         
         BSP_disp_restore_scaler_reg(0, scaler0_reg_bak);
         BSP_disp_restore_image_reg(0, image0_reg_bak);
