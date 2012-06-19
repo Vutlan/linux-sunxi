@@ -45,13 +45,16 @@ static __twic_reg_t *twi_reg  = 0;
 */
 __s32 standby_twi_init(int group)
 {
-    twi_reg  = TWI_REG_BASE[group];
-    TwiClkRegBak = twi_reg->reg_clkr;
-    TwiCtlRegBak = 0x80&twi_reg->reg_ctl;/* backup INT_EN;no need for BUS_EN(0xc0)  */
-    twi_reg->reg_clkr = (2<<3)|3;
-    twi_reg->reg_reset |= 0x1;
+	twi_reg  = TWI_REG_BASE[group];
+	TwiClkRegBak = twi_reg->reg_clkr;
+	TwiCtlRegBak = 0x80&twi_reg->reg_ctl;/* backup INT_EN;no need for BUS_EN(0xc0)  */
+	//twi_reg->reg_clkr = (2<<3)|3; //100k
+	twi_reg->reg_clkr = (5<<3)|0; //400k, M = 5, N=0;
 
-    return 0;
+	twi_reg->reg_reset |= 0x1;
+	while(twi_reg->reg_reset&0x1);
+	
+	return 0;
 }
 
 
