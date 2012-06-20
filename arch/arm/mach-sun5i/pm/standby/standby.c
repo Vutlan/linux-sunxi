@@ -197,6 +197,8 @@ static void standby(void)
 	
     /* switch cpu clock to HOSC, and disable pll */
     standby_clk_core2hosc();
+	change_runtime_env(1);
+	delay_us(1);
     standby_clk_plldisable();
 
     /* backup voltages */
@@ -216,8 +218,8 @@ static void standby(void)
     /* swtich apb1 to losc */
     standby_clk_apb2losc();
 	change_runtime_env(1);
-	delay_ms(10);
-
+	//delay_ms(1);
+	
     /* switch cpu to 32k */
     standby_clk_core2losc();
     #if(ALLOW_DISABLE_HOSC)
@@ -233,14 +235,17 @@ static void standby(void)
     /* enable LDO, enable HOSC */
     standby_clk_ldoenable();
     /* delay 1ms for power be stable */
+	//2.2ms
     standby_delay(1);
     standby_clk_hoscenable();
-    standby_delay(1);
+	//4.4ms
+    standby_delay(2);
     #endif
+	/* switch clock to hosc */
+    standby_clk_core2hosc();
     /* swtich apb1 to hosc */
     standby_clk_apb2hosc();
-    /* switch clock to hosc */
-    standby_clk_core2hosc();
+
     /* restore clock division */
     standby_clk_setdiv(&clk_div);
 
@@ -256,8 +261,6 @@ static void standby(void)
     /* restore voltage for exit standby */
     standby_set_voltage(POWER_VOL_DCDC2, dcdc2);
     standby_set_voltage(POWER_VOL_DCDC3, dcdc3);
-	change_runtime_env(1);
-    delay_ms(10);
 
     /* enable pll */
     standby_clk_pllenable();
@@ -272,7 +275,7 @@ static void standby(void)
 	/*restore freq from 384 to 1008M*/
 	standby_clk_set_pll_factor(&orig_pll);
 	change_runtime_env(1);
-	delay_ms(10);
+	delay_ms(5);
 	
     /* gating on dram clock */
     standby_clk_dramgating(1);
