@@ -357,7 +357,7 @@ static void UsbPhyInit(__u32 usbc_no)
 //	DMSG_INFO("csr2-1: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Phy_Read(usbc_no, 0x20, 5));
 
     /* µ÷½Ú disconnect ÓòÖµ */
-	USBC_Phy_Write(usbc_no, 0x2a, 3, 2);
+	USBC_Phy_Write(usbc_no, 0x2a, 2, 2);
 
 //	DMSG_INFO("csr2: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Phy_Read(usbc_no, 0x2a, 2));
 //	DMSG_INFO("csr3: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Readl(USBC_Phy_GetCsr(usbc_no)));
@@ -1331,7 +1331,7 @@ static int __init sw_hci_sun5i_init(void)
 
 #ifdef  CONFIG_USB_SW_SUN5I_OHCI0
     if(sw_ohci0.used){
-		if(sw_ehci0.usb_controller_type != SW_USB_EHCI){
+		if(sw_ohci0.usb_controller_type != SW_USB_EHCI){
   	    	platform_device_register(&sw_usb_ohci_device[0]);
 		}
     }else{
@@ -1393,7 +1393,7 @@ static void __exit sw_hci_sun5i_exit(void)
 
 #ifdef  CONFIG_USB_SW_SUN5I_OHCI0
     if(sw_ohci0.used){
-		if(sw_ehci0.usb_controller_type != SW_USB_EHCI){
+		if(sw_ohci0.usb_controller_type != SW_USB_EHCI){
 			platform_device_unregister(&sw_usb_ohci_device[0]);
 		}
     }else{
