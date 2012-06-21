@@ -47,6 +47,8 @@ typedef enum tag_CSI_INPUT_FMT
     CSI_BAYER,     /* byer rgb242 */
     CSI_CCIR656,   /* ccir656     */
     CSI_YUV422,    /* yuv422      */
+    CSI_YUV422_16 = 4, /* yuv422 16 bit */
+    CSI_YUV444 = 4,		 /* yuv444 24 bit */
 }__csi_input_fmt_t;
 
 /*
@@ -82,6 +84,13 @@ typedef enum tag_CSI_OUTPUT_FMT
     CSI_UV_CB_YUV420=5,
     CSI_MB_YUV422=8,
     CSI_MB_YUV420=9,
+    
+    /* only when input is yuv444 */
+    CSI_FIELD_PLANAR_YUV444 			 = 0,         /* parse a field(odd or even) into planar yuv444 */
+    CSI_FIELD_UV_CB_YUV444_YUV422 = 1,         /* parse a field(odd or even) into planar yuv422 */
+    CSI_FRAME_PLANAR_YUV444 			 = 2,				
+    CSI_FRAME_UV_CB_YUV444_YUV422 = 3,
+    
 }__csi_output_fmt_t;
 
 /*
@@ -219,6 +228,16 @@ typedef struct tag_CSI_INT_STATUS
     _Bool vsync_trig;
 }__csi_int_status_t;
 
+typedef enum tag_CSI_IF
+{
+		CSI_IF_HV8 					= 0,
+		CSI_IF_CCIR656_16 	= 1,
+		CSI_IF_HV24 				= 2,
+		CSI_IF_CCIR656			= 3,
+		CSI_IF_CCIR656_2CH	= 4,
+		CSI_IF_CCIR656_4CH 	= 5,
+}__csi_if_t;
+
 /*
  * csi sub device info
  */
@@ -239,10 +258,13 @@ struct csi_buf_addr {
 
 struct csi_fmt {
 	u8					name[32];
-	enum v4l2_mbus_pixelcode					ccm_fmt;//linux-3.0
-	u32   				fourcc;          /* v4l2 format id */
-	__csi_input_fmt_t	input_fmt;	
-	__csi_output_fmt_t 	output_fmt;	
+	__csi_if_t									csi_if;
+	enum v4l2_mbus_pixelcode		ccm_fmt;//linux-3.0
+	u32   											fourcc;          /* v4l2 format id */
+	enum v4l2_field							field;
+	__csi_input_fmt_t						input_fmt;	
+	__csi_output_fmt_t 					output_fmt;	
+	__csi_field_sel_t						csi_field;
 	int   				depth;
 	u16	  				planes_cnt;
 };

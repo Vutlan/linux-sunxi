@@ -54,8 +54,8 @@ MODULE_LICENSE("GPL");
 #define CSI_RST_OFF			1
 #define CSI_PWR_ON			1
 #define CSI_PWR_OFF			0
-#define CSI_AF_PWR_ON		0
-#define CSI_AF_PWR_OFF	1
+#define CSI_AF_PWR_ON		1
+#define CSI_AF_PWR_OFF	0
 
 #define REG_TERM 0xff
 #define VAL_TERM 0xff
@@ -1839,6 +1839,51 @@ static int sensor_read(struct v4l2_subdev *sd, unsigned char *reg,
 	return ret;
 }
 
+static int sensor_read_im(struct v4l2_subdev *sd, unsigned int addr,
+		unsigned char *value)
+{
+	struct i2c_client *client = v4l2_get_subdevdata(sd);
+	u8 data[REG_STEP];
+	struct i2c_msg msg;
+	int ret,i,j;
+	
+	for(i = 0, j = REG_ADDR_STEP-1; i < REG_ADDR_STEP; i++,j--)
+		data[i] = (addr&(0xff<<(j*8)))>>(j*8);
+	
+	for(i = REG_ADDR_STEP; i < REG_STEP; i++)
+		data[i] = 0xff;
+	/*
+	 * Send out the register address...
+	 */
+	msg.addr = client->addr;
+	msg.flags = 0;
+	msg.len = REG_ADDR_STEP;
+	msg.buf = data;
+	ret = i2c_transfer(client->adapter, &msg, 1);
+	if (ret < 0) {
+		csi_dev_err("Error %d on register write\n", ret);
+		return ret;
+	}
+	/*
+	 * ...then read back the result.
+	 */
+	
+	msg.flags = I2C_M_RD;
+	msg.len = REG_DATA_STEP;
+	msg.buf = &data[REG_ADDR_STEP];
+	
+	ret = i2c_transfer(client->adapter, &msg, 1);
+	if (ret >= 0) {
+		for(i = 0,j = REG_DATA_STEP-1; i < REG_DATA_STEP; i++,j--)
+			*((unsigned char*)(value)+j) = data[i+REG_ADDR_STEP];
+//		*value = data[2]*256+data[3];
+		ret = 0;
+	}
+	else {
+		csi_dev_err("Error %d on register read\n", ret);
+	}
+	return ret;
+}
 
 static int sensor_write(struct v4l2_subdev *sd, unsigned char *reg,
 		unsigned char *value)
@@ -1870,7 +1915,33 @@ static int sensor_write(struct v4l2_subdev *sd, unsigned char *reg,
 	return ret;
 }
 
+static int sensor_write_im(struct v4l2_subdev *sd, unsigned int addr,
+		unsigned char value)
+{
+	struct i2c_client *client = v4l2_get_subdevdata(sd);
+	struct i2c_msg msg;
+	unsigned char data[REG_STEP];
+	int ret;
+	
+	data[0] = (addr&0xff00)>>8;
+	data[1] = addr&0x00ff;
+	data[2] = value;
+	
+	msg.addr = client->addr;
+	msg.flags = 0;
+	msg.len = REG_STEP;
+	msg.buf = data;
 
+	ret = i2c_transfer(client->adapter, &msg, 1);
+	if (ret > 0) {
+		ret = 0;
+	}
+	else if (ret < 0) {
+		csi_dev_err("addr = 0x%4x, value = 0x%4x\n ",addr,value);
+		csi_dev_err("sensor_write error!\n");
+	}
+	return ret;
+}
 
 /*
  * Write a list of register settings;
@@ -2609,43 +2680,73 @@ static int sensor_download_af_fw(struct v4l2_subdev *sd)
   return 0;
 }
 
+static int sensor_g_single_af(struct v4l2_subdev *sd)
+{
+	unsigned char rdval;
+	int ret;
+	csi_dev_dbg("sensor_g_single_af\n");
+	
+	rdval = 0xff;
+	
+	ret = sensor_read_im(sd, 0x3029, &rdval);
+	if (ret < 0)
+	{
+		csi_dev_err("sensor get af focused status err !\n");
+		return ret;
+	}
+
+	if(rdval == 0x10)
+	{
+		csi_dev_print("Single AF focus ok,value = 0x%x\n",rdval);
+		return 0;
+	}	
+	
+	csi_dev_dbg("Single AF focus is running,value = 0x%x\n",rdval);
+	
+	return EBUSY;
+}
+
+static int sensor_g_autofocus_ctrl(struct v4l2_subdev *sd,
+		struct v4l2_control *ctrl);
+
 static int sensor_s_single_af(struct v4l2_subdev *sd)
 {
-	struct regval_list regs;
-	int ret,cnt;
+	int ret;
+#if 0
+	struct v4l2_control ctrl;
+	unsigned int cnt;
+#endif
+	
 	csi_dev_print("sensor_s_single_af\n");
 	//trig single af
-	regs.reg_num[0] = 0x30;
-	regs.reg_num[1] = 0x22;
-	regs.value[0] = 0x03;	
-	ret = sensor_write(sd, regs.reg_num, regs.value);
+		
+	ret = sensor_write_im(sd, 0x3022, 0x03);
 	if (ret < 0)
 	{
 		csi_dev_err("sensor tigger single af err !\n");
 		return ret;
 	}
-	
+
+#if 0	
 	//wait for af complete
-	regs.reg_num[0] = 0x30;
-	regs.reg_num[1] = 0x29;
-	regs.value[0] = 0xff;
 	cnt = 0;
-	while(regs.value[0]!=0x10)
+	ctrl.id = V4L2_CID_CAMERA_AF_CTRL;
+	ctrl.value = V4L2_AF_TRIG_SINGLE;
+	ret = -1;
+	while(ret != 0)
 	{
-		mdelay(5);
-		ret = sensor_read(sd, regs.reg_num, regs.value);
-		if (ret < 0)
-		{
-			csi_dev_err("sensor get af status err !\n");
-			return ret;
-		}
+		msleep(100);
+		ret = sensor_g_autofocus_ctrl(sd,&ctrl);
 		cnt++;
-		if(cnt>400) {
-			csi_dev_err("Single AF is timeout,value = 0x%x\n",regs.value[0]);
+		if(cnt>20) {
+			csi_dev_err("Single AF is timeout\n");
 			return -EFAULT;
 		}
 	}
-	csi_dev_print("Single AF is complete,value = 0x%x\n",regs.value[0]);
+	
+	csi_dev_print("Single AF is complete\n");
+#endif
+
   return 0;
 }
 
@@ -3223,22 +3324,43 @@ static int sensor_s_autofocus_mode(struct v4l2_subdev *sd,
 }
 
 static int sensor_g_autofocus_ctrl(struct v4l2_subdev *sd,
-    __s32 *value)
+		struct v4l2_control *ctrl)
 {
 	struct sensor_info *info = to_state(sd);
+	enum v4l2_autofocus_ctrl af_ctrl = ctrl->value;
 	
-	*value = info->af_ctrl;
+	switch(af_ctrl) {
+		case V4L2_AF_INIT:
+			return sensor_g_single_af(sd);
+			break;
+		case V4L2_AF_RELEASE:
+			break;
+		case V4L2_AF_TRIG_SINGLE:
+			return sensor_g_single_af(sd);
+		case V4L2_AF_TRIG_CONTINUEOUS:
+			break;
+		case V4L2_AF_LOCK:
+			break;
+		case V4L2_AF_WIN_XY:
+			break;
+		case V4L2_AF_WIN_NUM:
+			break;
+	}
+	
+	ctrl->value = info->af_ctrl;
 	return 0;	
 }
 
 static int sensor_s_autofocus_ctrl(struct v4l2_subdev *sd,
-    enum v4l2_autofocus_ctrl value, struct v4l2_pix_size *pix)
+		struct v4l2_control *ctrl)
 {
 	struct sensor_info *info = to_state(sd);
-	
+	enum v4l2_autofocus_ctrl af_ctrl = ctrl->value;
+	struct v4l2_pix_size *pix;
+		
 	csi_dev_dbg("sensor_s_autofocus_ctrl = %d\n",value);
 	
-	switch(value) {
+	switch(af_ctrl) {
 		case V4L2_AF_INIT:
 			return sensor_download_af_fw(sd);
 		case V4L2_AF_RELEASE:
@@ -3249,12 +3371,15 @@ static int sensor_s_autofocus_ctrl(struct v4l2_subdev *sd,
 			return sensor_s_continueous_af(sd);
 		case V4L2_AF_LOCK:
 			return sensor_s_pause_af(sd);
-		case V4L2_AF_SET_WIN:
+		case V4L2_AF_WIN_XY:
+			pix = (struct v4l2_pix_size*)ctrl->user_pt;			
 			return sensor_s_af_zone(sd,pix->width,pix->height);
+			break;
+		case V4L2_AF_WIN_NUM:
 			break;
 	}
 	
-	info->af_ctrl = value;
+	info->af_ctrl = ctrl->value;
 	return 0;
 }
 
@@ -4206,7 +4331,7 @@ static int sensor_g_ctrl(struct v4l2_subdev *sd, struct v4l2_control *ctrl)
 	case V4L2_CID_CAMERA_AF_MODE:
 		return sensor_g_autofocus_mode(sd, &ctrl->value);
 	case V4L2_CID_CAMERA_AF_CTRL:
-		return sensor_g_autofocus_ctrl(sd, &ctrl->value);
+		return sensor_g_autofocus_ctrl(sd, ctrl);
 	}
 	return -EINVAL;
 }
@@ -4253,8 +4378,7 @@ static int sensor_s_ctrl(struct v4l2_subdev *sd, struct v4l2_control *ctrl)
 		return sensor_s_autofocus_mode(sd,
 	      (enum v4l2_autofocus_mode) ctrl->value);
 	case V4L2_CID_CAMERA_AF_CTRL:
-		return sensor_s_autofocus_ctrl(sd,
-	      (enum v4l2_autofocus_ctrl) ctrl->value, (struct v4l2_pix_size *)ctrl->user_pt);
+		return sensor_s_autofocus_ctrl(sd, ctrl);
 	}
 	return -EINVAL;
 }

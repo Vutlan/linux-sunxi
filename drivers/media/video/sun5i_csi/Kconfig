@@ -151,3 +151,12 @@ config CSI_GC0309
 	---help---
 	  This is a Video4Linux2 sensor-level driver for the GalaxyCore
 	  GC0309 VGA camera.
+
+config CSI_TVP5150
+	tristate "TI TVP5150 tv decoder support"
+	default m
+	depends on I2C && VIDEO_V4L2
+	select	CSI_DEV_SEL_SUN5I
+	---help---
+	  This is a Video4Linux2 sensor-level driver for the TI
+	  TVP5150 tv decoder.
