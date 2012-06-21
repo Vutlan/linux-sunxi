@@ -103,134 +103,372 @@ static struct i2c_board_info  dev_sensor[] =  {
 
 //ccm support format
 static struct csi_fmt formats[] = {
+	//8bit
 	{
 		.name     		= "planar YUV 422",
+		.csi_if				= CSI_IF_HV8,
 		.ccm_fmt			= V4L2_MBUS_FMT_YUYV8_2X8,//linux-3.0
 		.fourcc   		= V4L2_PIX_FMT_YUV422P,
+		.field				= V4L2_FIELD_NONE,
 		.input_fmt		= CSI_YUV422,
 		.output_fmt		= CSI_PLANAR_YUV422,
+		.csi_field		= CSI_ODD,
 		.depth    		= 16,
 		.planes_cnt		= 3,
 	},
 	{
 		.name     		= "planar YUV 420",
+		.csi_if				= CSI_IF_HV8,
 		.ccm_fmt			= V4L2_MBUS_FMT_YUYV8_2X8,	//linux-3.0
 		.fourcc   		= V4L2_PIX_FMT_YUV420,
+		.field				= V4L2_FIELD_NONE,
 		.input_fmt		= CSI_YUV422,
 		.output_fmt		= CSI_PLANAR_YUV420,
+		.csi_field		= CSI_ODD,
 		.depth    		= 12,
 		.planes_cnt		= 3,
 	},
 	{
 		.name     		= "planar YUV 422 UV combined",
+		.csi_if				= CSI_IF_HV8,
 		.ccm_fmt			= V4L2_MBUS_FMT_YUYV8_2X8,	//linux-3.0
 		.fourcc   		= V4L2_PIX_FMT_NV16,
+		.field				= V4L2_FIELD_NONE,
 		.input_fmt		= CSI_YUV422,
 		.output_fmt		= CSI_UV_CB_YUV422,
+		.csi_field		= CSI_ODD,
 		.depth    		= 16,
 		.planes_cnt		= 2,
 	},
 	{
 		.name     		= "planar YUV 420 UV combined",
+		.csi_if				= CSI_IF_HV8,
 		.ccm_fmt			= V4L2_MBUS_FMT_YUYV8_2X8,	//linux-3.0
 		.fourcc   		= V4L2_PIX_FMT_NV12,
+		.field				= V4L2_FIELD_NONE,
 		.input_fmt		= CSI_YUV422,
 		.output_fmt		= CSI_UV_CB_YUV420,
+		.csi_field		= CSI_ODD,
 		.depth    		= 12,
 		.planes_cnt		= 2,
 	},
 	{
 		.name     		= "planar YUV 422 VU combined",
+		.csi_if				= CSI_IF_HV8,
 		.ccm_fmt			= V4L2_MBUS_FMT_YUYV8_2X8,	//linux-3.0
 		.fourcc   		= V4L2_PIX_FMT_NV61,
+		.field				= V4L2_FIELD_NONE,
 		.input_fmt		= CSI_YUV422,
 		.output_fmt		= CSI_UV_CB_YUV422,
+		.csi_field		= CSI_ODD,
 		.depth    		= 16,
 		.planes_cnt		= 2,
 	},
 	{
 		.name     		= "planar YUV 420 VU combined",
+		.csi_if				= CSI_IF_HV8,
 		.ccm_fmt			= V4L2_MBUS_FMT_YUYV8_2X8,	//linux-3.0
 		.fourcc   		= V4L2_PIX_FMT_NV21,
+		.field				= V4L2_FIELD_NONE,
 		.input_fmt		= CSI_YUV422,
 		.output_fmt		= CSI_UV_CB_YUV420,
+		.csi_field		= CSI_ODD,
 		.depth    		= 12,
 		.planes_cnt		= 2,
 	},
 	{
 		.name     		= "MB YUV420",
+		.csi_if				= CSI_IF_HV8,
 		.ccm_fmt			= V4L2_MBUS_FMT_YUYV8_2X8,	//linux-3.0
 		.fourcc   		= V4L2_PIX_FMT_HM12,
+		.field				= V4L2_FIELD_NONE,
 		.input_fmt		= CSI_YUV422,
 		.output_fmt		= CSI_MB_YUV420,
+		.csi_field		= CSI_ODD,
 		.depth    		= 12,
 		.planes_cnt		= 2,
 	},
 	{
 		.name     		= "RAW Bayer",
+		.csi_if				= CSI_IF_HV8,
 		.ccm_fmt			= V4L2_MBUS_FMT_SBGGR8_1X8,	//linux-3.0
 		.fourcc   		= V4L2_PIX_FMT_SBGGR8,
+		.field				= V4L2_FIELD_NONE,
 		.input_fmt		= CSI_RAW,
 		.output_fmt		= CSI_PASS_THROUTH,
+		.csi_field		= CSI_ODD,
 		.depth    		= 8,
 		.planes_cnt		= 1,
 	},
 //	{
 //		.name     		= "planar RGB242",
+//		.csi_if				= CSI_IF_HV8,
 //		.ccm_fmt			= V4L2_PIX_FMT_SBGGR8,	
 //		.fourcc   		= V4L2_PIX_FMT_RGB32,		//can't find the appropriate format in V4L2 define,use this temporarily
+//		.field				= V4L2_FIELD_NONE,
 //		.input_fmt		= CSI_BAYER,
 //		.output_fmt		= CSI_PLANAR_RGB242,
+//		.csi_field		= CSI_ODD,
 //		.depth    		= 8,
 //		.planes_cnt		= 3,
 //	},
 	{
 		.name     		= "YUV422 YUYV",
+		.csi_if				= CSI_IF_HV8,
 		.ccm_fmt			= V4L2_MBUS_FMT_YUYV8_2X8,//linux-3.0
 		.fourcc   		= V4L2_PIX_FMT_YUYV,
+		.field				= V4L2_FIELD_NONE,
 		.input_fmt		= CSI_RAW,
 		.output_fmt		= CSI_PASS_THROUTH,
+		.csi_field		= CSI_ODD,
 		.depth    		= 16,
 		.planes_cnt		= 1,
 	},
 	{
 		.name     		= "YUV422 YVYU",
+		.csi_if				= CSI_IF_HV8,
 		.ccm_fmt			= V4L2_MBUS_FMT_YVYU8_2X8,//linux-3.0
 		.fourcc   		= V4L2_PIX_FMT_YVYU,
+		.field				= V4L2_FIELD_NONE,
 		.input_fmt		= CSI_RAW,
 		.output_fmt		= CSI_PASS_THROUTH,
+		.csi_field		= CSI_ODD,
 		.depth    		= 16,
 		.planes_cnt		= 1,
 	},
 	{
 		.name     		= "YUV422 UYVY",
+		.csi_if				= CSI_IF_HV8,
 		.ccm_fmt			= V4L2_MBUS_FMT_UYVY8_2X8,//linux-3.0
 		.fourcc   		= V4L2_PIX_FMT_UYVY,
+		.field				= V4L2_FIELD_NONE,
 		.input_fmt		= CSI_RAW,
 		.output_fmt		= CSI_PASS_THROUTH,
+		.csi_field		= CSI_ODD,
 		.depth    		= 16,
 		.planes_cnt		= 1,
 	},
 	{
 		.name     		= "YUV422 VYUY",
+		.csi_if				= CSI_IF_HV8,
 		.ccm_fmt			= V4L2_MBUS_FMT_VYUY8_2X8,//linux-3.0
 		.fourcc   		= V4L2_PIX_FMT_VYUY,
+		.field				= V4L2_FIELD_NONE,
 		.input_fmt		= CSI_RAW,
 		.output_fmt		= CSI_PASS_THROUTH,
+		.csi_field		= CSI_ODD,
 		.depth    		= 16,
 		.planes_cnt		= 1,
 	},
+	//16bit
+	{
+		.name     		= "planar YUV 422",
+		.csi_if				= CSI_IF_CCIR656_16,
+		.ccm_fmt			= V4L2_MBUS_FMT_UYVY8_2X8,//linux-3.0
+		.fourcc   		= V4L2_PIX_FMT_YUV422P,
+		.field				= V4L2_FIELD_NONE,
+		.input_fmt		= CSI_YUV422_16,
+		.output_fmt		= CSI_PLANAR_YUV422,
+		.csi_field		= CSI_ODD,
+		.depth    		= 16,
+		.planes_cnt		= 3,
+	},
+	{
+		.name     		= "planar YUV 420",
+		.csi_if				= CSI_IF_CCIR656_16,
+		.ccm_fmt			= V4L2_MBUS_FMT_UYVY8_2X8,	//linux-3.0
+		.fourcc   		= V4L2_PIX_FMT_YUV420,
+		.field				= V4L2_FIELD_NONE,
+		.input_fmt		= CSI_YUV422_16,
+		.output_fmt		= CSI_PLANAR_YUV420,
+		.csi_field		= CSI_ODD,
+		.depth    		= 12,
+		.planes_cnt		= 3,
+	},
+	{
+		.name     		= "planar YUV 422 UV combined",
+		.csi_if				= CSI_IF_CCIR656_16,
+		.ccm_fmt			= V4L2_MBUS_FMT_UYVY8_2X8,	//linux-3.0
+		.fourcc   		= V4L2_PIX_FMT_NV16,
+		.field				= V4L2_FIELD_NONE,
+		.input_fmt		= CSI_YUV422_16,
+		.output_fmt		= CSI_UV_CB_YUV422,
+		.csi_field		= CSI_ODD,
+		.depth    		= 16,
+		.planes_cnt		= 2,
+	},
+	{
+		.name     		= "planar YUV 420 UV combined",
+		.csi_if				= CSI_IF_CCIR656_16,
+		.ccm_fmt			= V4L2_MBUS_FMT_UYVY8_2X8,	//linux-3.0
+		.fourcc   		= V4L2_PIX_FMT_NV12,
+		.field				= V4L2_FIELD_NONE,
+		.input_fmt		= CSI_YUV422_16,
+		.output_fmt		= CSI_UV_CB_YUV420,
+		.csi_field		= CSI_ODD,
+		.depth    		= 12,
+		.planes_cnt		= 2,
+	},
+	{
+		.name     		= "MB YUV420",
+		.csi_if				= CSI_IF_CCIR656_16,
+		.ccm_fmt			= V4L2_MBUS_FMT_UYVY8_2X8,	//linux-3.0
+		.fourcc   		= V4L2_PIX_FMT_HM12,
+		.field				= V4L2_FIELD_NONE,
+		.input_fmt		= CSI_YUV422_16,
+		.output_fmt		= CSI_MB_YUV420,
+		.csi_field		= CSI_ODD,
+		.depth    		= 12,
+		.planes_cnt		= 2,
+	},
+	//24bit
+	{
+		.name     		= "planar YUV 422",
+		.csi_if				= CSI_IF_HV24,
+		.ccm_fmt			= V4L2_MBUS_FMT_YUV8_1X24,//linux-3.0
+		.fourcc   		= V4L2_PIX_FMT_YUV422P,
+		.field				= V4L2_FIELD_NONE,
+		.input_fmt		= CSI_YUV444,
+		.output_fmt		= CSI_FIELD_UV_CB_YUV444_YUV422,
+		.csi_field		= CSI_ODD,
+		.depth    		= 16,
+		.planes_cnt		= 3,
+	},
+	{
+		.name     		= "planar YUV 422",
+		.csi_if				= CSI_IF_HV24,
+		.ccm_fmt			= V4L2_MBUS_FMT_YUV8_1X24,	//linux-3.0
+		.fourcc   		= V4L2_PIX_FMT_YUV422P,
+		.field				= V4L2_FIELD_INTERLACED,
+		.input_fmt		= CSI_YUV444,
+		.output_fmt		= CSI_FRAME_UV_CB_YUV444_YUV422,
+		.csi_field		= CSI_ODD,
+		.depth    		= 16,
+		.planes_cnt		= 3,
+	},
+	//BT656 8bit
+	{
+		.name     		= "planar YUV 422",
+		.csi_if				= CSI_IF_CCIR656,
+		.ccm_fmt			= V4L2_MBUS_FMT_UYVY8_2X8,//linux-3.0
+		.fourcc   		= V4L2_PIX_FMT_YUV422P,
+		.field				= V4L2_FIELD_INTERLACED,
+		.input_fmt		= CSI_CCIR656,
+		.output_fmt		= CSI_FRAME_PLANAR_YUV422,
+		.csi_field		= CSI_ODD,
+		.depth    		= 16,
+		.planes_cnt		= 3,
+	},
+	{
+		.name     		= "planar YUV 420",
+		.csi_if				= CSI_IF_CCIR656,
+		.ccm_fmt			= V4L2_MBUS_FMT_UYVY8_2X8,	//linux-3.0
+		.fourcc   		= V4L2_PIX_FMT_YUV420,
+		.field				= V4L2_FIELD_INTERLACED,
+		.input_fmt		= CSI_CCIR656,
+		.output_fmt		= CSI_FRAME_PLANAR_YUV420,
+		.csi_field		= CSI_ODD,
+		.depth    		= 12,
+		.planes_cnt		= 3,
+	},
+	{
+		.name     		= "planar YUV 422 UV combined",
+		.csi_if				= CSI_IF_CCIR656,
+		.ccm_fmt			= V4L2_MBUS_FMT_UYVY8_2X8,	//linux-3.0
+		.fourcc   		= V4L2_PIX_FMT_NV16,
+		.field				= V4L2_FIELD_INTERLACED,
+		.input_fmt		= CSI_CCIR656,
+		.output_fmt		= CSI_FRAME_UV_CB_YUV422,
+		.csi_field		= CSI_ODD,
+		.depth    		= 16,
+		.planes_cnt		= 2,
+	},
+	{
+		.name     		= "planar YUV 420 UV combined",
+		.csi_if				= CSI_IF_CCIR656,
+		.ccm_fmt			= V4L2_MBUS_FMT_UYVY8_2X8,	//linux-3.0
+		.fourcc   		= V4L2_PIX_FMT_NV12,
+		.field				= V4L2_FIELD_INTERLACED,
+		.input_fmt		= CSI_CCIR656,
+		.output_fmt		= CSI_FRAME_UV_CB_YUV420,
+		.csi_field		= CSI_ODD,
+		.depth    		= 12,
+		.planes_cnt		= 2,
+	},
+		{
+		.name     		= "planar YUV 422 VU combined",
+		.csi_if				= CSI_IF_CCIR656,
+		.ccm_fmt			= V4L2_MBUS_FMT_UYVY8_2X8,	//linux-3.0
+		.fourcc   		= V4L2_PIX_FMT_NV61,
+		.field				= V4L2_FIELD_INTERLACED,
+		.input_fmt		= CSI_CCIR656,
+		.output_fmt		= CSI_FRAME_UV_CB_YUV422,
+		.csi_field		= CSI_ODD,
+		.depth    		= 16,
+		.planes_cnt		= 2,
+	},
+	{
+		.name     		= "planar YUV 420 VU combined",
+		.csi_if				= CSI_IF_CCIR656,
+		.ccm_fmt			= V4L2_MBUS_FMT_UYVY8_2X8,	//linux-3.0
+		.fourcc   		= V4L2_PIX_FMT_NV21,
+		.field				= V4L2_FIELD_INTERLACED,
+		.input_fmt		= CSI_CCIR656,
+		.output_fmt		= CSI_FRAME_UV_CB_YUV420,
+		.csi_field		= CSI_ODD,
+		.depth    		= 12,
+		.planes_cnt		= 2,
+	},
+	{
+		.name     		= "MB YUV420",
+		.csi_if				= CSI_IF_CCIR656,
+		.ccm_fmt			= V4L2_MBUS_FMT_UYVY8_2X8,	//linux-3.0
+		.fourcc   		= V4L2_PIX_FMT_HM12,
+		.field				= V4L2_FIELD_INTERLACED,
+		.input_fmt		= CSI_CCIR656,
+		.output_fmt		= CSI_FRAME_MB_YUV420,
+		.csi_field		= CSI_ODD,
+		.depth    		= 12,
+		.planes_cnt		= 2,
+	},	
 };
 
-static struct csi_fmt *get_format(struct v4l2_format *f)
+static struct csi_fmt *get_format(struct csi_dev *dev, struct v4l2_format *f)
 {
 	struct csi_fmt *fmt;
+	struct v4l2_mbus_framefmt ccm_fmt;//linux-3.0
 	unsigned int k;
-
+	int ret;
+	
 	for (k = 0; k < ARRAY_SIZE(formats); k++) {
 		fmt = &formats[k];
-		if (fmt->fourcc == f->fmt.pix.pixelformat) {
-			break;
+		if (fmt->csi_if == dev->interface) {
+			csi_dbg(0,"interface ok dev->interface = %d!\n",dev->interface);
+			if (fmt->fourcc == f->fmt.pix.pixelformat) {
+				csi_dbg(0,"fourcc fmt ok!\n");
+				ccm_fmt.code = fmt->ccm_fmt;//linux-3.0
+				ccm_fmt.field = f->fmt.pix.field;
+				ccm_fmt.width = f->fmt.pix.width;//linux-3.0
+				ccm_fmt.height = f->fmt.pix.height;//linux-3.0		
+				ret = v4l2_subdev_call(dev->sd,video,try_mbus_fmt,&ccm_fmt);//linux-3.0
+				if (ret < 0) {
+					csi_err("v4l2 sub device try_fmt error!\n");
+					return NULL;
+				}
+				//info got from module
+				f->fmt.pix.field = ccm_fmt.field;//linux-3.0
+				f->fmt.pix.width = ccm_fmt.width;//linux-3.0
+				f->fmt.pix.height = ccm_fmt.height;//linux-3.0
+//				f->fmt.pix.bytesperline = ccm_fmt.fmt.pix.bytesperline;//linux-3.0
+//				f->fmt.pix.sizeimage = ccm_fmt.fmt.pix.sizeimage;//linux-3.0
+				
+				if(ccm_fmt.field == fmt->field) {
+					csi_dbg(0,"field ok!\n");
+					break;
+				}
+				else
+					continue;
+			}
 		}
 	}
 
@@ -265,7 +503,31 @@ static inline void csi_set_addr(struct csi_dev *dev,struct csi_buffer *buffer)
 
 	}else if(dev->fmt->input_fmt==CSI_CCIR656){
 	//TODO:
+		switch (dev->fmt->output_fmt) {
+			case CSI_FRAME_PLANAR_YUV422:
+				dev->csi_buf_addr.y  = addr_org;
+				dev->csi_buf_addr.cb = addr_org + dev->width*dev->height;
+				dev->csi_buf_addr.cr = addr_org + dev->width*dev->height*3/2;
+				break;
 
+			case CSI_FRAME_PLANAR_YUV420:
+				dev->csi_buf_addr.y  = addr_org;
+				dev->csi_buf_addr.cb = addr_org + dev->width*dev->height;
+				dev->csi_buf_addr.cr = addr_org + dev->width*dev->height*5/4;
+				break;
+				
+			case CSI_FRAME_UV_CB_YUV422:
+			case CSI_FRAME_UV_CB_YUV420:
+			case CSI_FRAME_MB_YUV422:
+			case CSI_FRAME_MB_YUV420:
+				dev->csi_buf_addr.y  = addr_org;
+				dev->csi_buf_addr.cb = addr_org + dev->width*dev->height;
+				dev->csi_buf_addr.cr = addr_org + dev->width*dev->height;
+				break;
+
+			default:
+				break;
+		}
 	}else if(dev->fmt->input_fmt==CSI_YUV422){
 		
 		switch (dev->fmt->output_fmt) {
@@ -293,6 +555,8 @@ static inline void csi_set_addr(struct csi_dev *dev,struct csi_buffer *buffer)
 			default:
 				break;
 		}
+	}else if(dev->fmt->input_fmt==CSI_YUV422_16){
+		//TODO
 	}
 	
 	bsp_csi_set_buffer_address(dev, CSI_BUF_0_A, dev->csi_buf_addr.y);
@@ -632,6 +896,21 @@ static int buffer_setup(struct videobuf_queue *vq, unsigned int *count, unsigned
 	else if(dev->fmt->input_fmt == CSI_CCIR656)
 	{
 		//TODO
+		switch (dev->fmt->output_fmt) {
+			case CSI_FRAME_PLANAR_YUV422:
+			case CSI_FRAME_UV_CB_YUV422:
+			case CSI_FRAME_MB_YUV422:
+				*size = dev->width * dev->height * 2;
+				break;
+			case CSI_FRAME_PLANAR_YUV420:
+			case CSI_FRAME_UV_CB_YUV420:
+			case CSI_FRAME_MB_YUV420:
+				*size = dev->width * dev->height * 3/2;
+				break;
+				break;
+			default:
+				break;
+		}
 	}
 	else if(dev->fmt->input_fmt == CSI_YUV422)
 	{
@@ -652,6 +931,9 @@ static int buffer_setup(struct videobuf_queue *vq, unsigned int *count, unsigned
 				*size = dev->width * dev->height * 2;
 				break;
 		}
+	}
+	else if(dev->fmt->input_fmt==CSI_YUV422_16){
+		//TODO
 	}
 	else
 	{
@@ -827,8 +1109,6 @@ static int vidioc_try_fmt_vid_cap(struct file *file, void *priv,
 {
 	struct csi_dev *dev = video_drvdata(file);
 	struct csi_fmt *csi_fmt;
-	struct v4l2_mbus_framefmt ccm_fmt;//linux-3.0
-	int ret = 0;
 	
 	csi_dbg(0,"vidioc_try_fmt_vid_cap\n");
 
@@ -839,28 +1119,12 @@ static int vidioc_try_fmt_vid_cap(struct file *file, void *priv,
 		f->fmt.pix.height = MAX_HEIGHT;
 	}
 
-	csi_fmt = get_format(f);
+	csi_fmt = get_format(dev,f);
 	if (!csi_fmt) {
 		csi_err("Fourcc format (0x%08x) invalid.\n",f->fmt.pix.pixelformat);
 		return -EINVAL;
 	}
-
-	ccm_fmt.code = csi_fmt->ccm_fmt;//linux-3.0
-	ccm_fmt.width = f->fmt.pix.width;//linux-3.0
-	ccm_fmt.height = f->fmt.pix.height;//linux-3.0
-
-	ret = v4l2_subdev_call(dev->sd,video,try_mbus_fmt,&ccm_fmt);//linux-3.0
-	if (ret < 0) {
-		csi_err("v4l2 sub device try_fmt error!\n");
-		return ret;
-	}
 	
-	//info got from module
-	f->fmt.pix.width = ccm_fmt.width;//linux-3.0
-	f->fmt.pix.height = ccm_fmt.height;//linux-3.0
-//	f->fmt.pix.bytesperline = ccm_fmt.fmt.pix.bytesperline;//linux-3.0
-//	f->fmt.pix.sizeimage = ccm_fmt.fmt.pix.sizeimage;//linux-3.0
-
 	csi_dbg(0,"pix->width=%d\n",f->fmt.pix.width);
 	csi_dbg(0,"pix->height=%d\n",f->fmt.pix.height);
 
@@ -891,7 +1155,7 @@ static int vidioc_s_fmt_vid_cap(struct file *file, void *priv,
 		goto out;
 	}
 		
-	csi_fmt = get_format(f);
+	csi_fmt = get_format(dev,f);
 	if (!csi_fmt) {
 		csi_err("Fourcc format (0x%08x) invalid.\n",f->fmt.pix.pixelformat);
 		ret	= -EINVAL;
@@ -901,6 +1165,7 @@ static int vidioc_s_fmt_vid_cap(struct file *file, void *priv,
 	ccm_fmt.code = csi_fmt->ccm_fmt;//linux-3.0
 	ccm_fmt.width = f->fmt.pix.width;//linux-3.0
 	ccm_fmt.height = f->fmt.pix.height;//linux-3.0
+	ccm_fmt.field = f->fmt.pix.field;//linux-3.0
 	
 	ret = v4l2_subdev_call(dev->sd,video,s_mbus_fmt,&ccm_fmt);//linux-3.0
 	if (ret < 0) {
@@ -917,6 +1182,7 @@ static int vidioc_s_fmt_vid_cap(struct file *file, void *priv,
 	//set format
 	dev->csi_mode.output_fmt = dev->fmt->output_fmt;
 	dev->csi_mode.input_fmt = dev->fmt->input_fmt;
+	dev->csi_mode.field_sel = dev->fmt->csi_field;
 	
 	switch(dev->fmt->ccm_fmt) {
 	case V4L2_MBUS_FMT_YUYV8_2X8://linux-3.0
@@ -960,9 +1226,18 @@ static int vidioc_s_fmt_vid_cap(struct file *file, void *priv,
 		height_buf = dev->height;
 		break;
 	case CSI_CCIR656://TODO
+		width_len  = dev->width;
+		width_buf = dev->width*2;
+		height_buf = dev->height/2;
+		break;
 	case CSI_YUV422:
 		width_len  = dev->width;
 		width_buf = dev->width*2;
+		height_buf = dev->height;
+		break;
+	case CSI_YUV422_16://TODO
+		width_len  = dev->width;
+		width_buf = dev->width;
 		height_buf = dev->height;
 		break;
 	default:
@@ -1059,7 +1334,7 @@ static int vidioc_streamon(struct file *file, void *priv, enum v4l2_buf_type i)
 	if (dev->capture_mode == V4L2_MODE_IMAGE) {
 		bsp_csi_int_clear_status(dev,CSI_INT_VSYNC_TRIG);
 		bsp_csi_int_clear_status(dev,CSI_INT_CAPTURE_DONE);
-		bsp_csi_int_enable(dev, CSI_INT_VSYNC_TRIG);
+		bsp_csi_int_enable(dev,CSI_INT_VSYNC_TRIG);
 		bsp_csi_int_enable(dev,CSI_INT_CAPTURE_DONE);
 		bsp_csi_capture_video_start(dev);
 	} else {

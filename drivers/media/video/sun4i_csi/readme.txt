@@ -1,10 +1,10 @@
 ===========================================
 
-Version: V1_41
+Version: V1_50
 
 Author:  raymonxiu
 
-Date:     2012-5-29 15:17:16
+Date:     2012-6-21 17:03:45
 
 Description:
 
@@ -25,6 +25,12 @@ insmod sun4i_csiX.ko ccm="gc2015" i2c_addr=0x60
 insmod sun4i_csiX.ko ccm="ov2643" i2c_addr=0x60
 insmod sun4i_csiX.ko ccm="gc0329" i2c_addr=0x62
 insmod sun4i_csiX.ko ccm="gc0309" i2c_addr=0x42
+
+V1_50
+CSI: Support BT656 I/F, add tvp5150 device and add ov5640 g_af
+1) Support 8bit BT656 interface
+2) Support tvp5150 tv decoder
+3) Add ov5640 g_autofocus 
 
 V1_41
 CSI: Adjust the ov5640 io drive cap to maximum

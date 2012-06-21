@@ -1191,7 +1191,8 @@ enum v4l2_autofocus_ctrl {
 	V4L2_AF_TRIG_SINGLE = 2,
 	V4L2_AF_TRIG_CONTINUEOUS = 3,
 	V4L2_AF_LOCK = 4,
-	V4L2_AF_SET_WIN = 5,
+	V4L2_AF_WIN_XY = 5,
+	V4L2_AF_WIN_NUM = 6,
 };
 
 /*  MPEG-class control IDs defined by V4L2 */
