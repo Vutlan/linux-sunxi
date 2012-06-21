@@ -36,6 +36,7 @@
 #include "pm_i.h"
 
 #include <mach/sys_config.h>
+#include <mach/system.h>
 
 //#define CROSS_MAPPING_STANDBY
 //#define CHECK_INT_SRC
@@ -236,6 +237,8 @@ static void check_int_src(void)
 */
 static int aw_pm_valid(suspend_state_t state)
 {
+	enum sw_ic_ver version = MAGIC_VER_NULL;
+	
     PM_DBG("valid\n");
 	
     if(!((state > PM_SUSPEND_ON) && (state < PM_SUSPEND_MAX))){
@@ -243,6 +246,14 @@ static int aw_pm_valid(suspend_state_t state)
         return 0;
     }
 
+	if(1 == standby_mode){
+			version = sw_get_ic_ver();
+			if(!(MAGIC_VER_A13B == version || MAGIC_VER_A12B == version || MAGIC_VER_A10SB == version)){
+				pr_info("ic version: %d not support super standby. \n", version);
+				standby_mode = 0;
+			}
+	}
+		
 	//if 1 == standby_mode, actually, mean mem corresponding with super standby 
 	if(PM_SUSPEND_STANDBY == state){
 		if(1 == standby_mode){
@@ -830,7 +841,7 @@ static int __init aw_pm_init(void)
 			pr_err("%s: not support super standby. \n",  __func__);
 		}
 	}
-	
+
     suspend_set_ops(&aw_pm_ops);
 	
     return 0;
