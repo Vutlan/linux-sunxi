@@ -398,7 +398,7 @@ enum sw_ic_ver sw_get_ic_ver(void)
         {
             val = readl(SW_VA_SID_IO_BASE+0x00);
             val = (val>>8)&0xffffff;
-            if(val == 0x162541) {
+            if((val == 0x162541) || (val == 0)) {
                 version = MAGIC_VER_A13A;
             } else if(val == 0x162542) {
                 version = MAGIC_VER_A13B;
@@ -411,10 +411,10 @@ enum sw_ic_ver sw_get_ic_ver(void)
         {
             val = readl(SW_VA_SID_IO_BASE+0x08);
             val = (val>>12) & 0x0f;
-            if(val == 0x3) {
+            if((val == 0x3) || (val == 0)) {
                 val = readl(SW_VA_SID_IO_BASE+0x00);
                 val = (val>>8)&0xffffff;
-                if(val == 0x162541) {
+                if((val == 0x162541) || (val == 0)) {
                     version = MAGIC_VER_A12A;
                 } else if(val == 0x162542) {
                     version = MAGIC_VER_A12B;
@@ -424,7 +424,7 @@ enum sw_ic_ver sw_get_ic_ver(void)
             } else if(val == 0x07) {
                 val = readl(SW_VA_SID_IO_BASE+0x00);
                 val = (val>>8)&0xffffff;
-                if(val == 0x162541) {
+                if((val == 0x162541) || (val == 0)) {
                     version = MAGIC_VER_A10SA;
                 } else if(val == 0x162542) {
                     version = MAGIC_VER_A10SB;
