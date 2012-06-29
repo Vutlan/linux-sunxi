@@ -225,8 +225,6 @@
 #define REG_INIRTS_RATE_SEL			0x0480
 #define REG_INIDATA_RATE_SEL			0x0484
 
-#define REG_FW_TSF_SYNC_CNT				0x04A0
-#define REG_FW_BCN_DIS_CNT				0x04A1
 
 #define REG_POWER_STATUS				0x04A4
 #define REG_POWER_STAGE1				0x04B4
@@ -302,6 +300,10 @@
 #define REG_EDCA_RANDOM_GEN		0x05CC
 #define REG_SCH_TXCMD				0x05D0
 
+//#define REG_FW_TSF_SYNC_CNT				0x04A0
+#define REG_FW_RESET_TSF_CNT_1				0x05FC
+#define REG_FW_RESET_TSF_CNT_0				0x05FD
+#define REG_FW_BCN_DIS_CNT				0x05FE
 
 //-----------------------------------------------------
 //
@@ -694,6 +696,7 @@ Default: 00b.
 #define	IMR_TX_MASK		(IMR_VODOK|IMR_VIDOK|IMR_BEDOK|IMR_BKDOK|IMR_MGNTDOK|IMR_HIGHDOK|IMR_BDOK)
 
 // 13. Host Interrupt Status Extension Register	 (Offset: 0x012C-012Eh)
+#define	IMR_BcnInt_E				BIT12
 #define	IMR_TXERR				BIT11
 #define	IMR_RXERR				BIT10
 #define	IMR_C2HCMD			BIT9

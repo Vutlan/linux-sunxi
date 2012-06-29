@@ -36,3 +36,4 @@ ODM_ReadAndConfig_rtl8723fw_8723A(
 
 #endif
 #endif // end of HWIMG_SUPPORT
+

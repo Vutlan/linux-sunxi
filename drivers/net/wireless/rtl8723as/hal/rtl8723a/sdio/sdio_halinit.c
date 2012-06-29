@@ -722,6 +722,13 @@ void _InitInterrupt(PADAPTER padapter)
 	// Initialize and enable SDIO Host Interrupt.
 	//
 	InitInterrupt8723ASdio(padapter);
+
+	//
+	// Initialize and enable system Host Interrupt.
+	//
+	InitSysInterrupt8723ASdio(padapter);
+
+	EnableInterrupt8723ASdio(padapter);
 }
 
 void _InitRDGSetting(PADAPTER padapter)
@@ -1500,6 +1507,10 @@ static void CardDisableRTL8723ASdio(PADAPTER padapter)
 
 static u32 rtl8723as_hal_deinit(PADAPTER padapter)
 {
+#ifdef CONFIG_BT_COEXIST
+	BT_HaltProcess(padapter);
+#endif
+
 	if (padapter->hw_init_completed == _TRUE)
 		CardDisableRTL8723ASdio(padapter);
 	
@@ -1531,32 +1542,11 @@ static u32 rtl8723as_inirp_deinit(PADAPTER padapter)
 static void rtl8723as_init_default_value(PADAPTER padapter)
 {
 	PHAL_DATA_TYPE pHalData;
-	struct pwrctrl_priv *pwrctrlpriv;
-	struct dm_priv *pdmpriv;
-	u8 i;
 
 
 	pHalData = GET_HAL_DATA(padapter);
-	pwrctrlpriv = &padapter->pwrctrlpriv;
-	pdmpriv = &pHalData->dmpriv;
 
-	// init default value
-	pHalData->fw_ractrl = _FALSE;
-	pHalData->bIQKInitialized = _FALSE;
-	if (!pwrctrlpriv->bkeepfwalive)
-		pHalData->LastHMEBoxNum = 0;
-
-	pHalData->bIQKInitialized = _FALSE;
-
-	// init dm default value
-	pdmpriv->TM_Trigger = 0;//for IQK
-//	pdmpriv->binitialized = _FALSE;
-//	pdmpriv->prv_traffic_idx = 3;
-//	pdmpriv->initialize = 0;
-
-	pdmpriv->ThermalValue_HP_index = 0;
-	for(i = 0; i < HP_THERMAL_NUM; i++)
-		pdmpriv->ThermalValue_HP[i] = 0;
+	rtl8723a_init_default_value(padapter);
 
 	// interface related variable
 	pHalData->SdioRxFIFOCnt = 0;
@@ -1949,7 +1939,7 @@ readAdapterInfo(
 	Hal_EfuseParseTxPowerInfo_8723A(padapter, hwinfo, pEEPROM->bautoload_fail_flag);
 	Hal_EfuseParseBTCoexistInfo_8723A(padapter, hwinfo, pEEPROM->bautoload_fail_flag);
 	Hal_EfuseParseEEPROMVer(padapter, hwinfo, pEEPROM->bautoload_fail_flag);
-	Hal_EfuseParseChnlPlan(padapter, hwinfo, pEEPROM->bautoload_fail_flag);
+	rtl8723a_EfuseParseChnlPlan(padapter, hwinfo, pEEPROM->bautoload_fail_flag);
 	Hal_EfuseParseCustomerID(padapter, hwinfo, pEEPROM->bautoload_fail_flag);
 	Hal_EfuseParseAntennaDiversity(padapter, hwinfo, pEEPROM->bautoload_fail_flag);
 	Hal_EfuseParseRateIndicationOption(padapter, hwinfo, pEEPROM->bautoload_fail_flag);
@@ -2346,9 +2336,7 @@ _func_enter_;
 
 	pHalFunc->SetHwRegHandler = &SetHwReg8723AS;
 	pHalFunc->GetHwRegHandler = &GetHwReg8723AS;
-//	pHalFunc->GetHalDefVarHandler = &GetHalDefVar8723ASdio;
 	pHalFunc->GetHalDefVarHandler = &GetHalDefVar8723ASDIO;
-//	pHalFunc->SetHalDefVarHandler = &SetHalDefVar8723ASdio;
  	pHalFunc->SetHalDefVarHandler = &SetHalDefVar8723ASDIO;
 
 //	pHalFunc->UpdateRAMaskHandler = &UpdateHalRAMask8723ASdio;

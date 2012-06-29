@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright(c) 2007 - 2011 Realtek Corporation. All rights reserved.
+ * Copyright(c) 2007 - 2012 Realtek Corporation. All rights reserved.
  *                                        
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of version 2 of the GNU General Public License as
@@ -591,7 +591,7 @@ union recv_frame * decryptor(_adapter *padapter,union recv_frame *precv_frame)
 	struct rx_pkt_attrib *prxattrib = &precv_frame->u.hdr.attrib;
 	struct security_priv *psecuritypriv=&padapter->securitypriv;
 	union recv_frame *return_packet=precv_frame;
-
+	u32	 res=_SUCCESS;
 _func_enter_;
 
 	RT_TRACE(_module_rtl871x_recv_c_,_drv_info_,("prxstat->decrypted=%x prxattrib->encrypt = 0x%03x\n",prxattrib->bdecrypted,prxattrib->encrypt));
@@ -638,10 +638,10 @@ _func_enter_;
 			rtw_wep_decrypt(padapter, (u8 *)precv_frame);
 			break;
 		case _TKIP_:
-			rtw_tkip_decrypt(padapter, (u8 *)precv_frame);
+			res = rtw_tkip_decrypt(padapter, (u8 *)precv_frame);
 			break;
 		case _AES_:
-			rtw_aes_decrypt(padapter, (u8 * )precv_frame);
+			res = rtw_aes_decrypt(padapter, (u8 * )precv_frame);
 			break;
 		default:
 				break;
@@ -681,9 +681,15 @@ _func_enter_;
 		, prxattrib->bdecrypted ,prxattrib->encrypt, psecuritypriv->hw_decrypted);
 		#endif
 	}
-
+	
+	if(res == _FAIL)
+	{
+		rtw_free_recvframe(return_packet,&padapter->recvpriv.free_recv_queue);			
+		return_packet = NULL;
+		
+	}
 	//recvframe_chkmic(adapter, precv_frame);   //move to recvframme_defrag function
-
+	
 _func_exit_;
 
 	return return_packet;
@@ -2633,11 +2639,12 @@ _func_enter_;
 		
 
 	pattrib->amsdu=0;
+	pattrib->ack_policy = 0;
 	//parsing QC field
 	if(pattrib->qos == 1)
 	{
 		pattrib->priority = GetPriority((ptr + 24));
-		//pattrib->ack_policy = GetAckpolicy((ptr + 24));
+		pattrib->ack_policy = GetAckpolicy((ptr + 24));
 		pattrib->amsdu = GetAMsdu((ptr + 24));
 		pattrib->hdrlen = pattrib->to_fr_ds==3 ? 32 : 26;
 
@@ -2901,6 +2908,10 @@ _func_enter_;
 	len = precvframe->u.hdr.len - rmv_len;
 
 	RT_TRACE(_module_rtl871x_recv_c_,_drv_info_,("\n===pattrib->hdrlen: %x,  pattrib->iv_len:%x ===\n\n", pattrib->hdrlen,  pattrib->iv_len));
+
+	_rtw_memcpy(&eth_type, ptr+rmv_len, 2);
+	eth_type= ntohs((unsigned short )eth_type); //pattrib->ether_type
+	pattrib->eth_type = eth_type;
 
 	if ((check_fwstate(pmlmepriv, WIFI_MP_STATE) == _TRUE))	   	
 	{
@@ -4238,7 +4249,8 @@ int recv_indicatepkt_reorder(_adapter *padapter, union recv_frame *prframe)
 		//s1.
 		wlanhdr_to_ethhdr(prframe);
 
-		if(pattrib->qos !=1 /*|| pattrib->priority!=0 || IS_MCAST(pattrib->ra)*/)
+		if ((pattrib->qos!=1) /*|| pattrib->priority!=0 || IS_MCAST(pattrib->ra)*/
+			|| (pattrib->eth_type==0x0806) || (pattrib->ack_policy!=0))
 		{
 			if ((padapter->bDriverStopped == _FALSE) &&
 			    (padapter->bSurpriseRemoved == _FALSE))

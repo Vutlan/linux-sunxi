@@ -45,7 +45,6 @@
 #include <sdio_hal.h>
 #include <sdio_ops.h>
 
-
 #if defined(CONFIG_MMC_SUNXI_POWER_CONTROL)
 #define SDIOID (CONFIG_CHIP_ID==1123 ? 3 : 1)
 #define SUNXI_SDIO_WIFI_NUM_RTL8723AS  9
@@ -69,6 +68,7 @@ int rtl8723as_sdio_poweroff(void)
     mmc_pm_gpio_ctrl("rtk_rtl8723as_wl_dis", 0);
     return 0;
 }
+
 #endif //defined(CONFIG_MMC_SUNXI_POWER_CONTROL)
 
 #ifndef dev_to_sdio_func
@@ -122,7 +122,7 @@ _func_enter_;
 
 	RT_TRACE(_module_hci_intfs_c_, _drv_notice_, ("+sdio_init\n"));
 	if (padapter == NULL) {
-		DBG_871X(KERN_ERR "%s: padapter is NULL!\n", __func__);
+		printk(KERN_ERR "%s: padapter is NULL!\n", __func__);
 		err = -1;
 		goto exit;
 	}
@@ -136,18 +136,24 @@ _func_enter_;
 
 	err = sdio_enable_func(func);
 	if (err) {
-		DBG_871X(KERN_CRIT "%s: sdio_enable_func FAIL(%d)!\n", __func__, err);
+		printk(KERN_CRIT "%s: sdio_enable_func FAIL(%d)!\n", __func__, err);
 		goto release;
 	}
 
 	err = sdio_set_block_size(func, 512);
 	if (err) {
-		DBG_871X(KERN_CRIT "%s: sdio_set_block_size FAIL(%d)!\n", __func__, err);
+		printk(KERN_CRIT "%s: sdio_set_block_size FAIL(%d)!\n", __func__, err);
 		goto release;
 	}
 	psdio_data->block_transfer_len = 512;
 	psdio_data->tx_block_mode = 1;
 	psdio_data->rx_block_mode = 1;
+
+	err = sdio_claim_irq(func, &sd_sync_int_hdl);
+	if (err) {
+		printk(KERN_CRIT "%s: sdio_claim_irq FAIL(%d)!\n", __func__, err);
+		goto release;
+	}
 
 release:
 	sdio_release_host(func);
@@ -168,7 +174,10 @@ static void sdio_deinit(PADAPTER padapter)
 
 	RT_TRACE(_module_hci_intfs_c_, _drv_notice_, ("+sdio_deinit\n"));
 
-	if (padapter == NULL) return;
+	if (padapter == NULL) {
+		printk(KERN_ERR "%s: padapter is NULL!\n", __func__);
+		return;
+	}
 	psddev = &padapter->dvobjpriv;
 	func = psddev->intf_data.func;
 
@@ -176,7 +185,10 @@ static void sdio_deinit(PADAPTER padapter)
 		sdio_claim_host(func);
 		err = sdio_disable_func(func);
 		if (err)
-			DBG_871X(KERN_ERR "%s: sdio_disable_func(%d)\n", __func__, err);
+			printk(KERN_ERR "%s: sdio_disable_func(%d)\n", __func__, err);
+		err = sdio_release_irq(func);
+		if (err)
+			printk(KERN_ERR "%s: sdio_release_irq(%d)\n", __func__, err);
 		sdio_release_host(func);
 	}
 }
@@ -229,80 +241,32 @@ static void decide_chip_type_by_device_id(PADAPTER padapter, u32 id)
 
 static void sd_intf_start(PADAPTER padapter)
 {
-	struct dvobj_priv *psddev;
-	struct sdio_func *func;
-	int err;
-
-	if (padapter == NULL) goto exit;
-	
-	psddev = &padapter->dvobjpriv;
-	func = psddev->intf_data.func;
-
-	//os/intf dep
-	if (func) {		
-		sdio_claim_host(func);
-
-		//according to practice, this is needed...
-		err = sdio_set_block_size(func, 512);
-		if (err) {
-			DBG_871X(KERN_CRIT "%s: sdio_set_block_size FAIL(%d)!\n", __func__, err);
-			goto release_host;
-		}	
-		err = sdio_claim_irq(func, &sd_sync_int_hdl);
-		if (err) {
-			DBG_871X(KERN_CRIT "%s: sdio_claim_irq FAIL(%d)!\n", __func__, err);
-			goto release_host;
-		}
-	
-release_host:
-		sdio_release_host(func);
+	if (padapter == NULL) {
+		printk(KERN_ERR "%s: padapter is NULL!\n", __func__);
+		return;
 	}
 
 	//hal dep
 	if (padapter->HalFunc.enable_interrupt)
 		padapter->HalFunc.enable_interrupt(padapter);
 	else {
-		DBG_871X("%s HalFunc.enable_interrupt is %p\n", __FUNCTION__, padapter->HalFunc.enable_interrupt);
-		goto exit;
+		DBG_871X("%s: HalFunc.enable_interrupt is NULL!\n", __FUNCTION__);
 	}
-
-exit:
-	return;
 }
 
 static void sd_intf_stop(PADAPTER padapter)
 {
-	struct dvobj_priv *psddev;
-	struct sdio_func *func;
-	int err;
+	if (padapter == NULL) {
+		printk(KERN_ERR "%s: padapter is NULL!\n", __func__);
+		return;
+	}
 
-	if (padapter == NULL) goto exit;
-	
-	psddev = &padapter->dvobjpriv;
-	func = psddev->intf_data.func;
-
-	//hal dep
+	// hal dep
 	if (padapter->HalFunc.disable_interrupt)
 		padapter->HalFunc.disable_interrupt(padapter);
-	else
-	{
-		DBG_871X("%s HalFunc.disable_interrupt is %p\n", __FUNCTION__, padapter->HalFunc.disable_interrupt);
-		goto exit;
+	else {
+		DBG_871X("%s: HalFunc.disable_interrupt is NULL!\n", __FUNCTION__);
 	}
-
-	//os/intf dep
-	if (func) {
-		sdio_claim_host(func);
-
-		err = sdio_release_irq(func);
-		if (err)
-			DBG_871X(KERN_ERR "%s: sdio_release_irq(%d)\n", __func__, err);
-
-		sdio_release_host(func);
-	}
-
-exit:
-	return;
 }
 
 extern char* ifname;
@@ -363,7 +327,7 @@ static int rtw_drv_init(
 	//3 4. interface init
 	if (sdio_init(padapter) != _SUCCESS) {
 		RT_TRACE(_module_hci_intfs_c_, _drv_err_,
-			 ("rtw_drv_init: initialize device object priv Failed!\n"));
+			 ("%s: initialize SDIO Failed!\n", __FUNCTION__));
 		goto error;
 	}
 
@@ -449,7 +413,7 @@ static int rtw_drv_init(
 	}
 
 #ifdef CONFIG_CONCURRENT_MODE
-	if(rtw_drv_if2_init(padapter)==_FAIL)
+	if(rtw_drv_if2_init(padapter, NULL)==NULL)
 	{
 		goto deinit;
 	}	
@@ -593,7 +557,7 @@ _func_enter_;
 
 	// interface deinit
 	sdio_deinit(padapter);
-	RT_TRACE(_module_hci_intfs_c_, _drv_notice_, ("rtw_dev_remove: deinit intf complete!\n"));
+	RT_TRACE(_module_hci_intfs_c_, _drv_notice_, ("rtw_dev_remove: deinit SDIO complete!\n"));
 
 	rtw_free_drv_sw(padapter);
 
@@ -605,6 +569,87 @@ _func_enter_;
 
 _func_exit_;
 }
+
+/** BEGIN: add for 8723as must call sdio_reset when bt is on
+	wifi enter suspend in case sdio comm err when resume **/
+#define CONFIG_SDIO_SUSPEND_RESET
+#ifdef CONFIG_SDIO_SUSPEND_RESET
+#include <linux/mmc/sdio.h>
+#include <linux/mmc/host.h>
+#include <linux/mmc/card.h>
+struct mmc_card;
+struct mmc_host;
+
+static int mmc_io_rw_direct_host(struct mmc_host *host, int write, unsigned fn, unsigned addr, u8 in, u8 *out)
+{
+	struct mmc_command cmd = {0};
+	int err;
+
+	BUG_ON(!host);
+	BUG_ON(fn > 7);
+
+	/* sanity check */
+	if (addr & ~0x1FFFF)
+		return -EINVAL;
+
+	cmd.opcode = SD_IO_RW_DIRECT;
+	cmd.arg = write ? 0x80000000 : 0x00000000;
+	cmd.arg |= fn << 28;
+	cmd.arg |= (write && out) ? 0x08000000 : 0x00000000;
+	cmd.arg |= addr << 9;
+	cmd.arg |= in;
+	cmd.flags = MMC_RSP_SPI_R5 | MMC_RSP_R5 | MMC_CMD_AC;
+
+	err = mmc_wait_for_cmd(host, &cmd, 0);
+	if (err)
+		return err;
+
+	if (mmc_host_is_spi(host)) {
+	/* host driver already reported errors */
+	} else {
+		if (cmd.resp[0] & R5_ERROR)
+			return -EIO;
+		if (cmd.resp[0] & R5_FUNCTION_NUMBER)
+			return -EINVAL;
+		if (cmd.resp[0] & R5_OUT_OF_RANGE)
+			return -ERANGE;
+	}
+
+	if (out) {
+		if (mmc_host_is_spi(host))
+			*out = (cmd.resp[0] >> 8) & 0xFF;
+		else
+			*out = cmd.resp[0] & 0xFF;
+	}
+
+	return 0;
+}
+
+
+static int rtw_sdio_reset(struct sdio_func *func)
+{
+	int ret;
+	u8 abort;
+	struct mmc_host *host = func->card->host;
+		
+	sdio_claim_host(func);
+
+	/* SDIO Simplified Specification V2.0, 4.4 Reset for SDIO */
+
+	ret = mmc_io_rw_direct_host(host, 0, 0, SDIO_CCCR_ABORT, 0, &abort);
+	if (ret)
+		abort = 0x08;
+	else
+		abort |= 0x08;
+
+	ret = mmc_io_rw_direct_host(host, 1, 0, SDIO_CCCR_ABORT, abort, NULL);
+
+	sdio_release_host(func);
+	
+	return ret;
+}
+#endif //CONFIG_SDIO_SUSPEND_RESET
+/************************ END ********************************/	
 
 static int rtw_sdio_suspend(struct device *dev)
 {
@@ -660,6 +705,7 @@ static int rtw_sdio_suspend(struct device *dev)
 		pmlmepriv->to_roaming = 1;
 	}
 #endif
+		
 	//s2-2.  indicate disconnect to os
 	rtw_indicate_disconnect(padapter);
 	//s2-3.
@@ -672,9 +718,27 @@ static int rtw_sdio_suspend(struct device *dev)
 
 	rtw_dev_unload(padapter);
 
+	if(check_fwstate(pmlmepriv, _FW_UNDER_SURVEY))
+		rtw_indicate_scan_done(padapter, 1);
+
+	if(check_fwstate(pmlmepriv, _FW_UNDER_LINKING))
+		rtw_indicate_disconnect(padapter);
+
+	// interface deinit
+	sdio_deinit(padapter);
+	RT_TRACE(_module_hci_intfs_c_, _drv_notice_, ("%s: deinit SDIO complete!\n", __FUNCTION__));
+
 exit:
 	DBG_871X("<===  %s return %d.............. in %dms\n", __FUNCTION__
 		, ret, rtw_get_passing_time_ms(start_time));
+
+/** BEGIN: add for 8723as must call sdio_reset when bt is on
+	wifi enter suspend in case sdio comm err when resume **/
+#ifdef CONFIG_SDIO_SUSPEND_RESET
+	printk("%s: call rtw_sdio_reset\n", __func__);
+	rtw_sdio_reset(func);
+#endif
+/************************ END ********************************/	
 
 /*depends on sunxi power control */
 #if defined(CONFIG_MMC_SUNXI_POWER_CONTROL)
@@ -701,14 +765,22 @@ int rtw_resume_process(_adapter *padapter)
 
 	DBG_871X("==> %s (%s:%d)\n",__FUNCTION__, current->comm, current->pid);
 
-	if(padapter) {
-		pnetdev= padapter->pnetdev;
+	if (padapter) {
+		pnetdev = padapter->pnetdev;
 		pwrpriv = &padapter->pwrctrlpriv;
 	} else {
-		ret =-1;
+		ret = -1;
 		goto exit;
 	}
-	
+
+	// interface init
+	if (sdio_init(padapter) != _SUCCESS)
+	{
+		ret = -1;
+		RT_TRACE(_module_hci_intfs_c_, _drv_err_, ("%s: initialize SDIO Failed!!\n", __FUNCTION__));
+		goto exit;
+	}
+
 	rtw_reset_drv_sw(padapter);
 	pwrpriv->bkeepfwalive = _FALSE;
 
@@ -727,7 +799,9 @@ int rtw_resume_process(_adapter *padapter)
 	}	
 
 	#ifdef CONFIG_LAYER2_ROAMING_RESUME
+	#if 1 // workaround for Allwinner resume issue
 	rtw_msleep_os(50);
+	#endif
 	rtw_roaming(padapter, NULL);
 	#endif	
 	
@@ -804,6 +878,10 @@ static drv_priv drvpriv = {
 	#endif
 };
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24)) 
+extern int console_suspend_enabled;
+#endif
+
 static int __init rtw_drv_entry(void)
 {
 	int ret = 0;
@@ -825,7 +903,13 @@ static int __init rtw_drv_entry(void)
 
 //	DBG_871X(KERN_INFO "+%s", __func__);
 	RT_TRACE(_module_hci_intfs_c_, _drv_notice_, ("+rtw_drv_entry\n"));
-	DBG_871X(KERN_NOTICE DRV_NAME " driver version " DRIVERVERSION "\n");
+
+	DBG_871X(DRV_NAME " driver version=%s\n", DRIVERVERSION);
+	DBG_871X("build time: %s %s\n", __DATE__, __TIME__);
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24)) 
+	//console_suspend_enabled=0;
+#endif
 	
 	rtw_suspend_lock_init();
 
@@ -878,3 +962,4 @@ static void __exit rtw_drv_halt(void)
 
 module_init(rtw_drv_entry);
 module_exit(rtw_drv_halt);
+

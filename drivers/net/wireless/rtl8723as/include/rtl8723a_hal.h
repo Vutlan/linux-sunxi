@@ -32,8 +32,10 @@
 #include "rtl8723a_recv.h"
 #include "rtl8723a_xmit.h"
 #include "rtl8723a_cmd.h"
+#include "rtw_efuse.h"
 
 #include "../hal/OUTSRC/odm_precomp.h"
+
 #ifdef CONFIG_SDIO_HCI	
 
 	//2TODO: We should define 8192S firmware related macro settings here!!
@@ -82,23 +84,18 @@
 	#define Rtl8723_RadioA_1TArray				Rtl8723SRadioA_1TArray
 	//#define Rtl8723_RadioB_2TArray				Rtl8723SRadioB_2TArray
 	#define Rtl8723_RadioB_1TArray				Rtl8723SRadioB_1TArray
-	
-	
 
 	// Array length
-
 	#define Rtl8723_MAC_ArrayLength				Rtl8723SMAC_2T_ArrayLength
 	#define Rtl8723_AGCTAB_1TArrayLength		Rtl8723SAGCTAB_1TArrayLength
 	#define Rtl8723_PHY_REG_1TArrayLength 		Rtl8723SPHY_REG_1TArrayLength
-	
-	
+
 	#define Rtl8723_RadioA_1TArrayLength			Rtl8723SRadioA_1TArrayLength
 	#define Rtl8723_RadioB_1TArrayLength			Rtl8723SRadioB_1TArrayLength
-#endif
-#endif
+#endif // CONFIG_PHY_SETTING_WITH_ODM
+#endif // CONFIG_SDIO_HCI
 
 #ifdef CONFIG_USB_HCI
-
 
 	//2TODO: We should define 8192S firmware related macro settings here!!
 	#define RTL819X_DEFAULT_RF_TYPE			RF_1T2R
@@ -164,7 +161,7 @@
 
 #define FW_8723A_SIZE			0x8000
 #define FW_8723A_START_ADDRESS	0x1000
-#define FW_8723A_END_ADDRESS	0x5FFF
+#define FW_8723A_END_ADDRESS		0x1FFF //0x5FFF
 
 #define MAX_PAGE_SIZE			4096	// @ page : 4k bytes
 
@@ -404,6 +401,8 @@ enum ChannelPlan
 	CHPL_WORLD	= 10,
 };
 
+#define HAL_EFUSE_MEMORY
+
 #define EFUSE_REAL_CONTENT_LEN		512
 #define EFUSE_MAP_LEN				128
 #define EFUSE_MAX_SECTION			16
@@ -418,7 +417,9 @@ enum ChannelPlan
 // | 1byte|----8bytes----|1byte|--5bytes--| 
 // |         |            Reserved(14bytes)	      |
 //
-#define EFUSE_OOB_PROTECT_BYTES 		15	// PG data exclude header, dummy 6 bytes frome CP test and reserved 1byte.
+
+// PG data exclude header, dummy 6 bytes frome CP test and reserved 1byte.
+#define EFUSE_OOB_PROTECT_BYTES 		15
 
 #define EFUSE_REAL_CONTENT_LEN_8723A	512
 #define EFUSE_MAP_LEN_8723A				256
@@ -427,6 +428,7 @@ enum ChannelPlan
 //========================================================
 //			EFUSE for BT definition
 //========================================================
+#define EFUSE_BT_REAL_BANK_CONTENT_LEN	512
 #define EFUSE_BT_REAL_CONTENT_LEN		1536	// 512*3
 #define EFUSE_BT_MAP_LEN				1024	// 1k bytes
 #define EFUSE_BT_MAX_SECTION			128		// 1024/8
@@ -646,7 +648,20 @@ typedef struct hal_data_8723a
 	// This is used for fix the drawback of CU TSMC-A/UMC-A cut. HW auto suspend ability. Close BT clock.
 	BOOLEAN		SlimComboDbg;
 
-	u16	EfuseUsedBytes;
+	//
+	// Add For EEPROM Efuse switch and  Efuse Shadow map Setting
+	//
+	u8 			EepromOrEfuse;
+//	u8			EfuseMap[2][HWSET_MAX_SIZE_512]; //92C:256bytes, 88E:512bytes, we use union set (512bytes)
+	u16			EfuseUsedBytes;
+	u8			EfuseUsedPercentage;
+#ifdef HAL_EFUSE_MEMORY
+	EFUSE_HAL	EfuseHal;
+#endif
+
+	// Interrupt relatd register information.
+	u32			SysIntrStatus;
+	u32			SysIntrMask;
 
 	//
 	// 2011/02/23 MH Add for 8723 mylti function definition. The define should be moved to an
@@ -958,6 +973,7 @@ void rtl8723a_FirmwareSelfReset(PADAPTER padapter);
 void rtl8723a_InitializeFirmwareVars(PADAPTER padapter);
 
 void rtl8723a_InitAntenna_Selection(PADAPTER padapter);
+void rtl8723a_init_default_value(PADAPTER padapter);
 
 s32 InitLLTTable(PADAPTER padapter, u32 boundary);
 
@@ -971,7 +987,7 @@ void Hal_EfuseParseIDCode(PADAPTER padapter, u8 *hwinfo);
 void Hal_EfuseParseTxPowerInfo_8723A(PADAPTER padapter, u8 *PROMContent, BOOLEAN AutoLoadFail);
 void Hal_EfuseParseBTCoexistInfo_8723A(PADAPTER padapter, u8 *hwinfo, BOOLEAN AutoLoadFail);
 void Hal_EfuseParseEEPROMVer(PADAPTER padapter, u8 *hwinfo, BOOLEAN AutoLoadFail);
-void Hal_EfuseParseChnlPlan(PADAPTER padapter, u8 *hwinfo, BOOLEAN AutoLoadFail);
+void rtl8723a_EfuseParseChnlPlan(PADAPTER padapter, u8 *hwinfo, BOOLEAN AutoLoadFail);
 void Hal_EfuseParseCustomerID(PADAPTER padapter, u8 *hwinfo, BOOLEAN AutoLoadFail);
 void Hal_EfuseParseAntennaDiversity(PADAPTER padapter, u8 *hwinfo, BOOLEAN AutoLoadFail);
 void Hal_EfuseParseRateIndicationOption(PADAPTER padapter, u8 *hwinfo, BOOLEAN AutoLoadFail);

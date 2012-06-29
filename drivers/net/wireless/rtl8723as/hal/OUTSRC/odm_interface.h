@@ -69,6 +69,14 @@
 #define ODM_REG(_name, _pDM_Odm)	_cat(_name, _pDM_Odm->SupportICType, _reg)
 #define ODM_BIT(_name, _pDM_Odm)	_cat(_name, _pDM_Odm->SupportICType, _bit)
 
+typedef enum _ODM_H2C_CMD 
+{
+	ODM_H2C_RSSI_REPORT = 0,
+	ODM_H2C_PSD_RESULT=1,	
+	ODM_H2C_PathDiv = 2,               
+	ODM_MAX_H2CCMD
+}ODM_H2C_CMD;
+
 
 //
 // 2012/02/17 MH For non-MP compile pass only. Linux does not support workitem.
@@ -326,6 +334,15 @@ ODM_ReleaseTimer(
 //
 // ODM FW relative API.
 //
+#if (DM_ODM_SUPPORT_TYPE & ODM_MP)
+VOID
+ODM_FillH2CCmd(
+	IN	PADAPTER		Adapter,
+	IN	u1Byte 	ElementID,
+	IN	u4Byte 	CmdLen,
+	IN	pu1Byte	pCmdBuffer
+);
+#else
 u4Byte
 ODM_FillH2CCmd(	
 	IN	pu1Byte		pH2CBuffer,
@@ -336,5 +353,6 @@ ODM_FillH2CCmd(
 	IN	pu1Byte*		pCmbBuffer,
 	IN	pu1Byte		CmdStartSeq
 	);
-
+#endif
 #endif	// __ODM_INTERFACE_H__
+

@@ -1,13 +1,13 @@
 #ifndef __INC_HAL8723S_FW_IMG_H
 #define __INC_HAL8723S_FW_IMG_H
 
-/*Created on  2011/12/ 6, 13: 8*/
+/*Created on  2012/ 5/15, 14:54*/
 
 #define Rtl8723SImgArrayLength 20606
 extern const u8 Rtl8723SFwImgArray[Rtl8723SImgArrayLength];
 #define Rtl8723SBTImgArrayLength 1
 extern const u8 Rtl8723SFwBTImgArray[Rtl8723SBTImgArrayLength];
-#define Rtl8723SUMCBCutImgArrayLength 20606
+#define Rtl8723SUMCBCutImgArrayLength 24308
 extern const u8 Rtl8723SFwUMCBCutImgArray[Rtl8723SUMCBCutImgArrayLength];
 
 #ifndef CONFIG_PHY_SETTING_WITH_ODM
@@ -52,3 +52,4 @@ extern const u32 Rtl8723SPHY_REG_Array_MP[Rtl8723SPHY_REG_Array_MPLength];
 #endif//#if MP_DRIVER == 1
 
 #endif //#ifndef __INC_HAL8723S_FW_IMG_H
+

@@ -32,8 +32,9 @@
 #include "rtl8188e_cmd.h"
 #include "Hal8188EPwrSeq.h"
 #ifdef DBG_CONFIG_ERROR_DETECT
-#include "rtl8192c_sreset.h"
+#include "rtl8188e_sreset.h"
 #endif
+#include "rtw_efuse.h"
 
 #include "../hal/OUTSRC/odm_precomp.h"
 
@@ -55,18 +56,14 @@
 	#define RTL8188E_PHY_REG_MP				"rtl8188E\\PHY_REG_MP.txt"
 
 //---------------------------------------------------------------------
-//		RTL8723S From header
+//		RTL8188E From header
 //---------------------------------------------------------------------
+#if 0
 	#define Rtl8188E_PHY_REG_Array_PG			Rtl8188ESPHY_REG_Array_PG
 	#define Rtl8188E_PHY_REG_Array_PGLength	Rtl8188ESPHY_REG_Array_PGLength	
 
-		
-	#ifndef CONFIG_PHY_SETTING_WITH_ODM		
-	#if MP_DRIVER == 1
-	#define Rtl8188ES_PHY_REG_Array_MP 			Rtl8188ESPHY_REG_Array_MP
-	#endif
-	#endif
-
+#endif
+	
 	//---------------------------------------------------------------------
 	//		RTL8188E Power Configuration CMDs for USB/SDIO interfaces
 	//---------------------------------------------------------------------
@@ -90,15 +87,11 @@
 	#define RTL8188E_PHY_REG_PG				"rtl8188E\\PHY_REG_PG.txt"
 	#define RTL8188E_PHY_REG_MP				"rtl8188E\\PHY_REG_MP.txt"
 
+#if 0
 	#define Rtl8188E_PHY_REG_Array_PG			Rtl8188EUPHY_REG_Array_PG
 	#define Rtl8188E_PHY_REG_Array_PGLength	Rtl8188EUPHY_REG_Array_PGLength	
-
-		
-	#ifndef CONFIG_PHY_SETTING_WITH_ODM		
-	#if MP_DRIVER == 1
-	#define Rtl8188ES_PHY_REG_Array_MP 			Rtl8188ESPHY_REG_Array_MP
-	#endif
-	#endif
+	
+#endif	
 	
 	//---------------------------------------------------------------------
 	//		RTL8188E Power Configuration CMDs for USB/SDIO interfaces
@@ -113,6 +106,38 @@
 	#define Rtl8188E_NIC_LPS_ENTER_FLOW			rtl8188E_enter_lps_flow
 	#define Rtl8188E_NIC_LPS_LEAVE_FLOW			rtl8188E_leave_lps_flow
 
+#elif defined(CONFIG_PCI_HCI)
+	#define RTL8188E_FW_UMC_IMG				"rtl8188E\\rtl8188efw.bin"
+	#define RTL8188E_PHY_REG					"rtl8188E\\PHY_REG_1T.txt"
+	#define RTL8188E_PHY_RADIO_A				"rtl8188E\\radio_a_1T.txt"
+	#define RTL8188E_PHY_RADIO_B				"rtl8188E\\radio_b_1T.txt"
+	#define RTL8188E_AGC_TAB					"rtl8188E\\AGC_TAB_1T.txt"
+	#define RTL8188E_PHY_MACREG 				"rtl8188E\\MAC_REG.txt"
+	#define RTL8188E_PHY_REG_PG				"rtl8188E\\PHY_REG_PG.txt"
+	#define RTL8188E_PHY_REG_MP				"rtl8188E\\PHY_REG_MP.txt"
+
+	#define Rtl8188E_PHY_REG_Array_PG			Rtl8188EEPHY_REG_Array_PG
+	#define Rtl8188E_PHY_REG_Array_PGLength	Rtl8188EEPHY_REG_Array_PGLength	
+
+		
+	#ifndef CONFIG_PHY_SETTING_WITH_ODM		
+	#if MP_DRIVER == 1
+	#define Rtl8188ES_PHY_REG_Array_MP 			Rtl8188ESPHY_REG_Array_MP
+	#endif
+	#endif
+	
+	//---------------------------------------------------------------------
+	//		RTL8188E Power Configuration CMDs for USB/SDIO/PCIE interfaces
+	//---------------------------------------------------------------------
+	#define Rtl8188E_NIC_PWR_ON_FLOW				rtl8188E_power_on_flow
+	#define Rtl8188E_NIC_RF_OFF_FLOW				rtl8188E_radio_off_flow
+	#define Rtl8188E_NIC_DISABLE_FLOW				rtl8188E_card_disable_flow
+	#define Rtl8188E_NIC_ENABLE_FLOW				rtl8188E_card_enable_flow
+	#define Rtl8188E_NIC_SUSPEND_FLOW				rtl8188E_suspend_flow
+	#define Rtl8188E_NIC_RESUME_FLOW				rtl8188E_resume_flow
+	#define Rtl8188E_NIC_PDN_FLOW					rtl8188E_hwpdn_flow
+	#define Rtl8188E_NIC_LPS_ENTER_FLOW			rtl8188E_enter_lps_flow
+	#define Rtl8188E_NIC_LPS_LEAVE_FLOW			rtl8188E_leave_lps_flow
 #endif //CONFIG_***_HCI
 
 
@@ -123,7 +148,7 @@
 #if 1 // download firmware related data structure
 #define FW_8188E_SIZE				0x4000 //16384,16k
 #define FW_8188E_START_ADDRESS	0x1000
-#define FW_8188E_END_ADDRESS		0x5FFF
+#define FW_8188E_END_ADDRESS		0x1FFF //0x5FFF
 
 #define MAX_PAGE_SIZE			4096	// @ page : 4k bytes
 
@@ -201,7 +226,7 @@ typedef enum _USB_RX_AGG_MODE{
 #endif
 
 
-#define MAX_RX_DMA_BUFFER_SIZE_88E	      0x2400 //9k for 88E nornal chip
+#define MAX_RX_DMA_BUFFER_SIZE_88E	      0x2400 //9k for 88E nornal chip , //MaxRxBuff=10k-max(TxReportSize(64*8), WOLPattern(16*24))
 
 #define MAX_TX_REPORT_BUFFER_SIZE			0x0400 // 1k 
 
@@ -219,7 +244,6 @@ typedef enum _USB_RX_AGG_MODE{
 // 2*BCN / 1*ps-poll / 1*null-data /1*prob_rsp /1*QOS null-data /1*BT QOS null-data 
 
 #define TX_TOTAL_PAGE_NUMBER_88E		0xA9//  169 (21632=> 21k)
-
 
 #ifdef RTL8188ES_MAC_LOOPBACK
 #define TX_PAGE_BOUNDARY_88E 0x48 //72
@@ -267,19 +291,28 @@ enum ChannelPlan
 
 typedef struct _TxPowerInfo
 {
-	u8 CCKIndex[RF_PATH_MAX][CHANNEL_GROUP_MAX];
-	u8 HT40_1SIndex[RF_PATH_MAX][CHANNEL_GROUP_MAX];
-	u8 HT40_2SIndexDiff[RF_PATH_MAX][CHANNEL_GROUP_MAX];
-	u8 HT20IndexDiff[RF_PATH_MAX][CHANNEL_GROUP_MAX];
-	u8 OFDMIndexDiff[RF_PATH_MAX][CHANNEL_GROUP_MAX];
-	u8 HT40MaxOffset[RF_PATH_MAX][CHANNEL_GROUP_MAX];
-	u8 HT20MaxOffset[RF_PATH_MAX][CHANNEL_GROUP_MAX];
+	u8 CCKIndex[RF_PATH_MAX][CHANNEL_GROUP_MAX_88E];
+	u8 HT40_1SIndex[RF_PATH_MAX][CHANNEL_GROUP_MAX_88E];
+	u8 HT40_2SIndexDiff[RF_PATH_MAX][CHANNEL_GROUP_MAX_88E];
+	u8 HT20IndexDiff[RF_PATH_MAX][CHANNEL_GROUP_MAX_88E];
+	u8 OFDMIndexDiff[RF_PATH_MAX][CHANNEL_GROUP_MAX_88E];
+	u8 HT40MaxOffset[RF_PATH_MAX][CHANNEL_GROUP_MAX_88E];
+	u8 HT20MaxOffset[RF_PATH_MAX][CHANNEL_GROUP_MAX_88E];
 	u8 TSSI_A[3];
 	u8 TSSI_B[3];
 	u8 TSSI_A_5G[3];		//5GL/5GM/5GH
 	u8 TSSI_B_5G[3];
 } TxPowerInfo, *PTxPowerInfo;
 
+typedef struct _TxPowerInfo24G{
+	u1Byte IndexCCK_Base[MAX_RF_PATH][MAX_CHNL_GROUP_24G];
+	u1Byte IndexBW40_Base[MAX_RF_PATH][MAX_CHNL_GROUP_24G-1];
+	//If only one tx, only BW20 and OFDM are used.
+	s1Byte CCK_Diff[MAX_RF_PATH][MAX_TX_COUNT];	
+	s1Byte OFDM_Diff[MAX_RF_PATH][MAX_TX_COUNT];
+	s1Byte BW20_Diff[MAX_RF_PATH][MAX_TX_COUNT];
+	s1Byte BW40_Diff[MAX_RF_PATH][MAX_TX_COUNT];
+}TxPowerInfo24G, *PTxPowerInfo24G;
 
 #define EFUSE_REAL_CONTENT_LEN		512
 #define EFUSE_MAP_LEN				128
@@ -297,9 +330,21 @@ typedef struct _TxPowerInfo
 //
 #define EFUSE_OOB_PROTECT_BYTES 		15	// PG data exclude header, dummy 6 bytes frome CP test and reserved 1byte.
 
-#define EFUSE_REAL_CONTENT_LEN_8723A	512
-#define EFUSE_MAP_LEN_8723A				256
-#define EFUSE_MAX_SECTION_8723A			32
+#define		HWSET_MAX_SIZE_88E		512
+
+#define		EFUSE_REAL_CONTENT_LEN_88E	256
+#define		EFUSE_MAP_LEN_88E		512
+#define		EFUSE_MAX_SECTION_88E		64
+#define		EFUSE_MAX_WORD_UNIT_88E		4
+#define		EFUSE_IC_ID_OFFSET_88E			506	//For some inferiority IC purpose. added by Roger, 2009.09.02.
+#define 		AVAILABLE_EFUSE_ADDR_88E(addr) 	(addr < EFUSE_REAL_CONTENT_LEN_88E)
+// <Roger_Notes> To prevent out of boundary programming case, leave 1byte and program full section
+// 9bytes + 1byt + 5bytes and pre 1byte.
+// For worst case:
+// | 2byte|----8bytes----|1byte|--7bytes--| //92D
+#define 		EFUSE_OOB_PROTECT_BYTES_88E	18 	// PG data exclude header, dummy 7 bytes frome CP test and reserved 1byte.
+#define		EFUSE_PROTECT_BYTES_BANK_88E	16
+
 
 //========================================================
 //			EFUSE for BT definition
@@ -351,7 +396,7 @@ typedef struct hal_data_8188e
 	u16	FirmwareVersionRev;
 	u16	FirmwareSubVersion;
 	u16	FirmwareSignature;
-
+	u8	PGMaxGroup;
 	//current WIFI_PHY values
 	u32	ReceiveConfig;
 	WIRELESS_MODE		CurrentWirelessMode;
@@ -382,9 +427,24 @@ typedef struct hal_data_8188e
 
 	u8	bTXPowerDataReadFromEEPORM;
 	u8	EEPROMThermalMeter;
+	u8	bAPKThermalMeterIgnore;
 
+	BOOLEAN 			EepromOrEfuse;
+	u8				EfuseMap[2][HWSET_MAX_SIZE_512]; //92C:256bytes, 88E:512bytes, we use union set (512bytes)
+	u8				EfuseUsedPercentage;
+	EFUSE_HAL			EfuseHal;
+	
 	//u8	bIQKInitialized;
 
+	
+	u8	Index24G_CCK_Base[MAX_RF_PATH][CHANNEL_MAX_NUMBER];
+	u8	Index24G_BW40_Base[MAX_RF_PATH][CHANNEL_MAX_NUMBER];
+	//If only one tx, only BW20 and OFDM are used.
+	s8	CCK_24G_Diff[MAX_RF_PATH][MAX_TX_COUNT];	
+	s8	OFDM_24G_Diff[MAX_RF_PATH][MAX_TX_COUNT];
+	s8	BW20_24G_Diff[MAX_RF_PATH][MAX_TX_COUNT];
+	s8	BW40_24G_Diff[MAX_RF_PATH][MAX_TX_COUNT];
+	
 	u8	TxPwrLevelCck[RF_PATH_MAX][CHANNEL_MAX_NUMBER];
 	u8	TxPwrLevelHT40_1S[RF_PATH_MAX][CHANNEL_MAX_NUMBER];	// For HT 40MHZ pwr
 	u8	TxPwrLevelHT40_2S[RF_PATH_MAX][CHANNEL_MAX_NUMBER];	// For HT 40MHZ pwr
@@ -395,6 +455,12 @@ typedef struct hal_data_8188e
 	u8	PwrGroupHT40[RF_PATH_MAX][CHANNEL_MAX_NUMBER];
 
 	u8	LegacyHTTxPowerDiff;// Legacy to HT rate power diff
+	// The current Tx Power Level
+	u8	CurrentCckTxPwrIdx;
+	u8	CurrentOfdm24GTxPwrIdx;
+	u8	CurrentBW2024GTxPwrIdx;
+	u8	CurrentBW4024GTxPwrIdx;
+	
 
 	// Read/write are allow for following hardware information variables
 	u8	framesync;
@@ -402,9 +468,10 @@ typedef struct hal_data_8188e
 	u8	framesyncMonitor;
 	u8	DefaultInitialGain[4];
 	u8	pwrGroupCnt;
-	u32	MCSTxPowerLevelOriginalOffset[7][16];
+	u32	MCSTxPowerLevelOriginalOffset[MAX_PG_GROUP][16];
 	u32	CCKTxPowerLevelOriginalOffset;
 
+	u8	CrystalCap;
 	u32	AntennaTxPath;					// Antenna path Tx
 	u32	AntennaRxPath;					// Antenna path Rx
 	u8	BluetoothCoexist;
@@ -418,14 +485,7 @@ typedef struct hal_data_8188e
 	u8	b1x1RecvCombine;	// for 1T1R receive combining
 
 	//u8	bCurrentTurboEDCA;
-	u32	AcParam_BE; //Original parameter for BE, use for EDCA turbo.
-
-	//vivi, for tx power tracking, 20080407
-	//u16	TSSI_13dBm;
-	//u32	Pwr_Track;
-	// The current Tx Power Level
-	u8	CurrentCckTxPwrIdx;
-	u8	CurrentOfdm24GTxPwrIdx;
+	u32	AcParam_BE; //Original parameter for BE, use for EDCA turbo.	
 
 	BB_REGISTER_DEFINITION_T	PHYRegDef[4];	//Radio A/B/C/D
 
@@ -443,6 +503,7 @@ typedef struct hal_data_8188e
 	u32	RegBcnCtrlVal;
 	u8	RegFwHwTxQCtrl;
 	u8	RegReg542;
+	u8	RegCR_1;
 
 	struct dm_priv	dmpriv;
 	DM_ODM_T 		odmpriv;
@@ -454,12 +515,14 @@ typedef struct hal_data_8188e
 #ifdef CONFIG_BT_COEXIST
 	struct btcoexist_priv	bt_coexist;
 #endif
-#ifdef CONFIG_ANTENNA_DIVERSITY
+
 	u8	CurAntenna;
 	u8	AntDivCfg;
-#endif //CONFIG_ANTENNA_DIVERSITY
+	u8	TRxAntDivType;
+
 
 	u8	bDumpRxPkt;//for debug
+	u8	bDumpTxPkt;//for debug
 	u8	FwRsvdPageStartOffset; //2010.06.23. Added by tynli. Reserve page start offset except beacon in TxQ.
 
 	// 2010/08/09 MH Add CU power down mode.
@@ -544,9 +607,35 @@ typedef struct hal_data_8188e
 	u8	UsbRxAggPageCount;			// 8192C DMA page count
 	u8	UsbRxAggPageTimeout;
 #endif
+#endif //CONFIG_USB_HCI
 
 
-#endif
+#ifdef CONFIG_PCI_HCI
+
+	//
+	// EEPROM setting.
+	//
+
+	u16	EEPROMDID;
+	u16	EEPROMSMID;
+	u16	EEPROMChannelPlan;
+	
+	u8	EEPROMTSSI[2];
+	u8	EEPROMBoardType;
+	u32	TransmitConfig;	
+
+	u32	IntrMask[2];
+	u32	IntrMaskToSet[2];
+	
+	u8	bDefaultAntenna;
+	u8	bIQKInitialized;
+	
+	u8	bInterruptMigration;
+	u8	bDisableTxInt;
+	u8	bGpioHwWpsPbc;
+#endif //CONFIG_PCI_HCI
+
+
 #ifdef CONFIG_TX_EARLY_MODE
 	u8 			bEarlyModeEnable;
 #endif
@@ -561,6 +650,14 @@ typedef struct hal_data_8188e HAL_DATA_TYPE, *PHAL_DATA_TYPE;
 #define INCLUDE_MULTI_FUNC_BT(_Adapter)		(GET_HAL_DATA(_Adapter)->MultiFunc & RT_MULTI_FUNC_BT)
 #define INCLUDE_MULTI_FUNC_GPS(_Adapter)	(GET_HAL_DATA(_Adapter)->MultiFunc & RT_MULTI_FUNC_GPS)
 
+//#define IS_MULTI_FUNC_CHIP(_Adapter)	(((((PHAL_DATA_TYPE)(_Adapter->HalData))->MultiFunc) & (RT_MULTI_FUNC_BT|RT_MULTI_FUNC_GPS)) ? _TRUE : _FALSE)
+
+//#define RT_IS_FUNC_DISABLED(__pAdapter, __FuncBits) ( (__pAdapter)->DisabledFunctions & (__FuncBits) )
+
+#ifdef CONFIG_PCI_HCI
+void InterruptRecognized8188EE(PADAPTER Adapter, PRT_ISR_CONTENT pIsrContent);
+void UpdateInterruptMask8188EE(PADAPTER Adapter, u32 AddMSR, u32 AddMSR1, u32 RemoveMSR, u32 RemoveMSR1);
+#endif	//CONFIG_PCI_HCI
 
 // rtl8188e_hal_init.c
 s32 rtl8188e_FirmwareDownload(PADAPTER padapter);
@@ -570,21 +667,23 @@ void rtl8188e_InitializeFirmwareVars(PADAPTER padapter);
 
 s32 InitLLTTable(PADAPTER padapter, u32 boundary);
 
-s32 CardDisableHWSM(PADAPTER padapter, u8 resetMCU);
-s32 CardDisableWithoutHWSM(PADAPTER padapter);
-
 // EFuse
 u8 GetEEPROMSize8188E(PADAPTER padapter);
-void Hal_InitPGData(PADAPTER padapter, u8 *PROMContent);
-void Hal_EfuseParseIDCode(PADAPTER padapter, u8 *hwinfo);
-void Hal_EfuseParseTxPowerInfo_8188E(PADAPTER padapter, u8 *PROMContent, BOOLEAN AutoLoadFail);
-void Hal_EfuseParseBTCoexistInfo_8188E(PADAPTER padapter, u8 *hwinfo, BOOLEAN AutoLoadFail);
-void Hal_EfuseParseEEPROMVer(PADAPTER padapter, u8 *hwinfo, BOOLEAN AutoLoadFail);
-void Hal_EfuseParseChnlPlan(PADAPTER padapter, u8 *hwinfo, BOOLEAN AutoLoadFail);
-void Hal_EfuseParseCustomerID(PADAPTER padapter, u8 *hwinfo, BOOLEAN AutoLoadFail);
-void Hal_EfuseParseAntennaDiversity(PADAPTER padapter, u8 *hwinfo, BOOLEAN AutoLoadFail);
-void Hal_EfuseParseRateIndicationOption(PADAPTER padapter, u8 *hwinfo, BOOLEAN AutoLoadFail);
+void Hal_InitPGData88E(PADAPTER padapter, u8 *PROMContent);
+void Hal_EfuseParseIDCode88E(PADAPTER padapter, u8 *hwinfo);
+void Hal_ReadTxPowerInfo88E(PADAPTER padapter,u8* hwinfo,BOOLEAN	AutoLoadFail);
+	
+void Hal_EfuseParseEEPROMVer88E(PADAPTER padapter, u8 *hwinfo, BOOLEAN AutoLoadFail);
+void rtl8188e_EfuseParseChnlPlan(PADAPTER padapter, u8 *hwinfo, BOOLEAN AutoLoadFail);
+void Hal_EfuseParseCustomerID88E(PADAPTER padapter, u8 *hwinfo, BOOLEAN AutoLoadFail);
+void Hal_ReadAntennaDiversity88E	(PADAPTER pAdapter,u8*PROMContent,BOOLEAN AutoLoadFail);
+void Hal_ReadThermalMeter_88E(PADAPTER	Adapter,u8* PROMContent,BOOLEAN 	AutoloadFail);
+void Hal_EfuseParseXtal_8188E(PADAPTER pAdapter,u8* hwinfo,BOOLEAN AutoLoadFail);
+void Hal_EfuseParseBoardType88E(PADAPTER pAdapter,u8* hwinfo,BOOLEAN AutoLoadFail);
+void Hal_ReadPowerSavingMode88E(PADAPTER pAdapter,u8* hwinfo,BOOLEAN AutoLoadFail);
 
+BOOLEAN HalDetectPwrDownMode88E(PADAPTER Adapter);
+	
 //RT_CHANNEL_DOMAIN rtl8723a_HalMapChannelPlan(PADAPTER padapter, u8 HalChannelPlan);
 //VERSION_8192C rtl8723a_ReadChipVersion(PADAPTER padapter);
 //void rtl8723a_ReadBluetoothCoexistInfo(PADAPTER padapter, u8 *PROMContent, BOOLEAN AutoloadFail);

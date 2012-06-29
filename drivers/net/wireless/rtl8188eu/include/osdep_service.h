@@ -1204,6 +1204,10 @@ __inline static void _set_workitem(_workitem *pwork)
 #define BIT30	0x40000000
 #define BIT31	0x80000000
 #define BIT32	0x0100000000
+#define BIT33	0x0200000000
+#define BIT34	0x0400000000
+#define BIT35	0x0800000000
+#define BIT36	0x1000000000
 
 extern int RTW_STATUS_CODE(int error_code);
 
@@ -1269,6 +1273,9 @@ extern void	_rtw_mfree(u8 *pbuf, u32 sz);
 #define rtw_zmalloc(sz)			_rtw_zmalloc((sz))
 #define rtw_mfree(pbuf, sz)		_rtw_mfree((pbuf), (sz))
 #endif
+
+extern void*	rtw_malloc2d(int h, int w, int size);
+extern void	rtw_mfree2d(void *pbuf, int h, int w, int size);
 
 extern void	_rtw_memcpy(void* dec, void* sour, u32 sz);
 extern int	_rtw_memcmp(void *dst, void *src, u32 sz);

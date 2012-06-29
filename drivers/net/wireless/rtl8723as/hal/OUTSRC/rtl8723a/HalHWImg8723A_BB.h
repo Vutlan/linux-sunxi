@@ -62,3 +62,4 @@ ODM_ReadAndConfig_PHY_REG_PG_8723A(
 
 #endif
 #endif // end of HWIMG_SUPPORT
+

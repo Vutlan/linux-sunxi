@@ -233,9 +233,12 @@ void rtw_os_xmit_schedule(_adapter *padapter)
 #ifdef CONFIG_SDIO_HCI
 	if(!padapter)
 		return;
-	
-	if (rtw_txframes_pending(padapter))
+
+//	if (rtw_txframes_pending(padapter))
+	if (_rtw_queue_empty(&padapter->xmitpriv.pending_xmitbuf_queue) == _FALSE)
+	{
 		_rtw_up_sema(&padapter->xmitpriv.xmit_sema);
+	}
 #else
 	_irqL  irqL;
 	struct xmit_priv *pxmitpriv;

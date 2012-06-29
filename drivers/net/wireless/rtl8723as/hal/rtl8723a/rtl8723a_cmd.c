@@ -331,16 +331,14 @@ void rtl8723a_set_FwPwrMode_cmd(PADAPTER padapter, u8 Mode)
 
 _func_enter_;
 
-	DBG_871X("%s: Mode=%d SmartPS=%d UAPSD=%d\n", __FUNCTION__,
-			Mode, pwrpriv->smart_ps, padapter->registrypriv.uapsd_enable);
+	DBG_871X("%s: Mode=%d SmartPS=%d UAPSD=%d BcnMode=0x%02x\n", __FUNCTION__,
+			Mode, pwrpriv->smart_ps, padapter->registrypriv.uapsd_enable, pwrpriv->bcn_ant_mode);
 
 	H2CSetPwrMode.Mode = Mode;
-
 	H2CSetPwrMode.SmartPS = pwrpriv->smart_ps;
-
 	H2CSetPwrMode.AwakeInterval = 1;
-
 	H2CSetPwrMode.bAllQueueUAPSD = padapter->registrypriv.uapsd_enable;
+	H2CSetPwrMode.BcnAntMode = pwrpriv->bcn_ant_mode;
 
 	FillH2CCmd(padapter, SET_PWRMODE_EID, sizeof(H2CSetPwrMode), (u8 *)&H2CSetPwrMode);
 
@@ -836,6 +834,187 @@ _func_enter_;
 _func_exit_;
 }
 
+#ifdef CONFIG_BT_COEXIST
+static void SetFwRsvdPagePkt_BTCoex(PADAPTER padapter)
+{
+	PHAL_DATA_TYPE pHalData;
+	struct xmit_frame	*pmgntframe;
+	struct pkt_attrib	*pattrib;
+	struct xmit_priv	*pxmitpriv;
+	struct mlme_ext_priv	*pmlmeext;
+	struct mlme_ext_info	*pmlmeinfo;
+	u8	fakemac[6]={0x00,0xe0,0x4c,0x00,0x00,0x00};
+	u32	BeaconLength, ProbeRspLength, PSPollLength;
+	u32	NullDataLength, QosNullLength, BTQosNullLength;
+	u8	*ReservedPagePacket;
+	u8	PageNum, PageNeed, TxDescLen;
+	u16	BufIndex;
+	u32	TotalPacketLen;
+	RSVDPAGE_LOC	RsvdPageLoc;
+
+
+	DBG_871X("+%s\n", __FUNCTION__);
+
+	ReservedPagePacket = (u8*)rtw_zmalloc(1024);
+	if (ReservedPagePacket == NULL) {
+		DBG_871X("%s: alloc ReservedPagePacket fail!\n", __FUNCTION__);
+		return;
+	}
+
+	pHalData = GET_HAL_DATA(padapter);
+	pxmitpriv = &padapter->xmitpriv;
+	pmlmeext = &padapter->mlmeextpriv;
+	pmlmeinfo = &pmlmeext->mlmext_info;
+
+	TxDescLen = TXDESC_SIZE;
+	PageNum = 0;
+
+	//3 (1) beacon
+	BufIndex = TXDESC_OFFSET;
+#if 0
+	ConstructBeacon(padapter, &ReservedPagePacket[BufIndex], &BeaconLength);
+
+	// When we count the first page size, we need to reserve description size for the RSVD
+	// packet, it will be filled in front of the packet in TXPKTBUF.
+	PageNeed = (u8)PageNum_128(TxDescLen + BeaconLength);
+	// To reserved 2 pages for beacon buffer. 2010.06.24.
+	if (PageNeed == 1)
+		PageNeed += 1;
+#else
+	// skip Beacon Packet
+	PageNeed = 3;
+#endif
+
+	PageNum += PageNeed;
+	pHalData->FwRsvdPageStartOffset = PageNum;
+
+	BufIndex += PageNeed*128;
+
+	//3 (2) ps-poll
+#if 0 // skip
+	RsvdPageLoc.LocPsPoll = PageNum;
+	ConstructPSPoll(padapter, &ReservedPagePacket[BufIndex], &PSPollLength);
+	rtl8723a_fill_fake_txdesc(padapter, &ReservedPagePacket[BufIndex-TxDescLen], PSPollLength, _TRUE, _FALSE);
+
+	PageNeed = (u8)PageNum_128(TxDescLen + PSPollLength);
+	PageNum += PageNeed;
+
+	BufIndex += PageNeed*128;
+#endif
+
+	//3 (3) null data
+	RsvdPageLoc.LocNullData = PageNum;
+	ConstructNullFunctionData(
+		padapter,
+		&ReservedPagePacket[BufIndex],
+		&NullDataLength,
+		fakemac,
+		_FALSE, 0, 0, _FALSE);
+	rtl8723a_fill_fake_txdesc(padapter, &ReservedPagePacket[BufIndex-TxDescLen], NullDataLength, _FALSE, _FALSE);
+
+	PageNeed = (u8)PageNum_128(TxDescLen + NullDataLength);
+	PageNum += PageNeed;
+
+	BufIndex += PageNeed*128;
+
+	//3 (4) probe response
+#if 0 // skip
+	RsvdPageLoc.LocProbeRsp = PageNum;
+	ConstructProbeRsp(
+		padapter,
+		&ReservedPagePacket[BufIndex],
+		&ProbeRspLength,
+		get_my_bssid(&pmlmeinfo->network),
+		_FALSE);
+	rtl8723a_fill_fake_txdesc(padapter, &ReservedPagePacket[BufIndex-TxDescLen], ProbeRspLength, _FALSE, _FALSE);
+
+	PageNeed = (u8)PageNum_128(TxDescLen + ProbeRspLength);
+	PageNum += PageNeed;
+
+	BufIndex += PageNeed*128;
+#endif
+
+	//3 (5) Qos null data
+#if 0 // skip
+	RsvdPageLoc.LocQosNull = PageNum;
+	ConstructNullFunctionData(
+		padapter, 
+		&ReservedPagePacket[BufIndex],
+		&QosNullLength,
+		get_my_bssid(&pmlmeinfo->network),
+		_TRUE, 0, 0, _FALSE);
+	rtl8723a_fill_fake_txdesc(padapter, &ReservedPagePacket[BufIndex-TxDescLen], QosNullLength, _FALSE, _FALSE);
+
+	PageNeed = (u8)PageNum_128(TxDescLen + QosNullLength);
+	PageNum += PageNeed;
+
+	BufIndex += PageNeed*128;
+#endif
+
+	//3 (6) BT Qos null data
+	RsvdPageLoc.LocBTQosNull = PageNum;
+	ConstructNullFunctionData(
+		padapter, 
+		&ReservedPagePacket[BufIndex],
+		&BTQosNullLength,
+		fakemac,
+		_TRUE, 0, 0, _FALSE);
+	rtl8723a_fill_fake_txdesc(padapter, &ReservedPagePacket[BufIndex-TxDescLen], BTQosNullLength, _FALSE, _TRUE);
+
+	TotalPacketLen = BufIndex + BTQosNullLength;
+
+	pmgntframe = alloc_mgtxmitframe(pxmitpriv);
+	if (pmgntframe == NULL)
+		goto exit;
+
+	// update attribute
+	pattrib = &pmgntframe->attrib;
+	update_mgntframe_attrib(padapter, pattrib);
+	pattrib->qsel = 0x10;
+	pattrib->pktlen = pattrib->last_txcmdsz = TotalPacketLen - TXDESC_OFFSET;
+	_rtw_memcpy(pmgntframe->buf_addr, ReservedPagePacket, TotalPacketLen);
+
+	padapter->HalFunc.mgnt_xmit(padapter, pmgntframe);
+
+	DBG_8192C("%s: Set RSVD page location to Fw\n", __FUNCTION__);
+	FillH2CCmd(padapter, RSVD_PAGE_EID, sizeof(RsvdPageLoc), (u8*)&RsvdPageLoc);
+
+exit:
+	rtw_mfree(ReservedPagePacket, 1024);
+}
+
+void rtl8723a_set_BTCoex_AP_mode_FwRsvdPkt_cmd(PADAPTER padapter)
+{
+	PHAL_DATA_TYPE pHalData;
+	u8 bRecover = _FALSE;
+
+
+	DBG_8192C("+%s\n", __FUNCTION__);
+
+	pHalData = GET_HAL_DATA(padapter);
+
+	// Set FWHW_TXQ_CTRL 0x422[6]=0 to tell Hw the packet is not a real beacon frame.
+	if (pHalData->RegFwHwTxQCtrl & BIT(6))
+		bRecover = _TRUE;
+
+	// To tell Hw the packet is not a real beacon frame.
+	pHalData->RegFwHwTxQCtrl &= ~BIT(6);
+	rtw_write8(padapter, REG_FWHW_TXQ_CTRL+2, pHalData->RegFwHwTxQCtrl);
+	SetFwRsvdPagePkt_BTCoex(padapter);
+
+	// To make sure that if there exists an adapter which would like to send beacon.
+	// If exists, the origianl value of 0x422[6] will be 1, we should check this to
+	// prevent from setting 0x422[6] to 0 after download reserved page, or it will cause
+	// the beacon cannot be sent by HW.
+	// 2010.06.23. Added by tynli.
+	if (bRecover)
+	{
+		pHalData->RegFwHwTxQCtrl |= BIT(6);
+		rtw_write8(padapter, REG_FWHW_TXQ_CTRL+2, pHalData->RegFwHwTxQCtrl);
+	}
+}
+#endif
+
 #ifdef CONFIG_P2P
 void rtl8192c_set_p2p_ctw_period_cmd(_adapter* padapter, u8 ctwindow)
 {
@@ -1041,4 +1220,27 @@ exit:
 
 }
 #endif //CONFIG_IOL
+
+#ifdef CONFIG_TSF_RESET_OFFLOAD
+/*
+	ask FW to Reset sync register at Beacon early interrupt
+*/
+u8 rtl8723c_reset_tsf(_adapter *padapter, u8 reset_port )
+{	
+	u8	buf[2];
+	u8	res=_SUCCESS;
+	
+_func_enter_;
+	if (IFACE_PORT0==reset_port) {
+		buf[0] = 0x1; buf[1] = 0;
+	
+	} else{
+		buf[0] = 0x0; buf[1] = 0x1;
+	}
+	FillH2CCmd(padapter, H2C_RESET_TSF, 2, buf);
+_func_exit_;
+
+	return res;
+}
+#endif	// CONFIG_TSF_RESET_OFFLOAD
 

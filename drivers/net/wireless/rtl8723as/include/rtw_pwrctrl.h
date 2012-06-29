@@ -191,7 +191,9 @@ struct pwrctrl_priv
 	volatile u8 cpwm_tog; // toggling
 	u8	pwr_mode;
 	u8	smart_ps;
-	u32 alives;
+	u8	bcn_ant_mode;
+	u32	alives;
+	_workitem cpwm_event;
 	u8	bpower_saving;
 
 	u8	b_hw_radio_off;
@@ -255,7 +257,13 @@ struct pwrctrl_priv
 	u8		bkeepfwalive;		
 	u8		brfoffbyhw;
 	unsigned long PS_BBRegBackup[PSBBREG_TOTALCNT];
-	
+
+#ifdef CONFIG_LPS_RPWM_TIMER
+	u8 brpwmtimeout;
+	_workitem rpwmtimeoutwi;
+	_timer pwr_rpwm_timer;
+#endif
+
 	#ifdef CONFIG_RESUME_IN_WORKQUEUE
 	struct workqueue_struct *rtw_workqueue;
 	_workitem resume_work;
@@ -303,10 +311,12 @@ extern s32 rtw_register_cmd_alive(PADAPTER padapter);
 extern void rtw_unregister_cmd_alive(PADAPTER padapter);
 extern s32 rtw_register_evt_alive(PADAPTER padapter);
 extern void rtw_unregister_evt_alive(PADAPTER padapter);
+extern void _cpwm_int_hdl(PADAPTER padapter, struct reportpwrstate_parm *preportpwrstate);
 extern void cpwm_int_hdl(PADAPTER padapter, struct reportpwrstate_parm *preportpwrstate);
+extern void LPS_Leave_check(PADAPTER padapter);
 #endif
 
-extern void rtw_set_ps_mode(_adapter * padapter, u8 ps_mode, u8 smart_ps);
+extern void rtw_set_ps_mode(PADAPTER padapter, u8 ps_mode, u8 smart_ps, u8 bcn_ant_mode);
 extern void rtw_set_rpwm(_adapter * padapter, u8 val8);
 extern void LeaveAllPowerSaveMode(PADAPTER Adapter);
 #ifdef CONFIG_IPS
@@ -344,3 +354,4 @@ int _rtw_pwr_wakeup(_adapter *padapter, const char *caller);
 #define rtw_pwr_wakeup(adapter) _rtw_pwr_wakeup(adapter, __FUNCTION__)
 
 #endif  //__RTL871X_PWRCTRL_H_
+

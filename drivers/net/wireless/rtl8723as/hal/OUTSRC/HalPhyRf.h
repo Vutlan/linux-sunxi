@@ -60,6 +60,11 @@ VOID
 ODM_ResetIQKResult(
 	IN PDM_ODM_T	pDM_Odm 
 );
-u1Byte ODM_GetRightChnlPlaceforIQK(u1Byte chnl);
+u1Byte 
+ODM_GetRightChnlPlaceforIQK(
+    IN u1Byte chnl
+);
+
 
 #endif	// #ifndef __HAL_PHY_RF_H__
+

@@ -66,6 +66,9 @@ static struct specific_device_id specific_device_id_tbl[] = {
 };
 
 struct pci_device_id rtw_pci_id_tbl[] = {
+#ifdef CONFIG_RTL8188E
+	{PCI_DEVICE(PCI_VENDER_ID_REALTEK, 0x8179)},
+#endif
 #ifdef CONFIG_RTL8192C
 	{PCI_DEVICE(PCI_VENDER_ID_REALTEK, 0x8191)},
 	{PCI_DEVICE(PCI_VENDER_ID_REALTEK, 0x8178)},
@@ -83,6 +86,14 @@ typedef struct _driver_priv{
 
 	struct pci_driver rtw_pci_drv;
 	int drv_registered;
+
+#if defined(CONFIG_CONCURRENT_MODE) || defined(CONFIG_DUALMAC_CONCURRENT)
+	//global variable
+	_mutex h2c_fwcmd_mutex;
+	_mutex setch_mutex;
+	_mutex setbw_mutex;
+	_mutex hw_init_mutex;
+#endif
 
 }drv_priv, *pdrv_priv;
 
@@ -1328,6 +1339,12 @@ static void decide_chip_type_by_pci_device_id(_adapter *padapter, struct pci_dev
 		padapter->HardwareType = HARDWARE_TYPE_RTL8192DE;
 		DBG_871X("Adapter(8192DE) is found - VendorID/DeviceID/RID=%X/%X/%X\n", venderid, deviceid, revisionid);
 	}
+	else if (deviceid == HAL_HW_PCI_8188EE_DEVICE_ID){
+		padapter->HardwareType = HARDWARE_TYPE_RTL8188EE;
+		padapter->chip_type = RTL8188E;
+		DBG_871X("Adapter(8188EE) is found - VendorID/DeviceID/RID=%X/%X/%X\n", venderid, deviceid, revisionid);
+	}
+	
 	else
 	{
 		DBG_871X("Err: Unknown device - vendorid/deviceid=%x/%x\n", venderid, deviceid);
@@ -1374,6 +1391,20 @@ static void pci_intf_stop(_adapter *padapter)
 	{
 		//device still exists, so driver can do i/o operation
 		padapter->HalFunc.disable_interrupt(padapter);
+		tasklet_disable(&(padapter->recvpriv.recv_tasklet));
+		tasklet_disable(&(padapter->recvpriv.irq_prepare_beacon_tasklet));
+		tasklet_disable(&(padapter->xmitpriv.xmit_tasklet));
+		
+#ifdef CONFIG_CONCURRENT_MODE
+		/*	This function only be called at driver removing. disable buddy_adapter too
+			don't disable interrupt of buddy_adapter because it is same as primary.
+		*/
+		if (padapter->pbuddy_adapter){
+			tasklet_disable(&(padapter->pbuddy_adapter->recvpriv.recv_tasklet));
+			tasklet_disable(&(padapter->pbuddy_adapter->recvpriv.irq_prepare_beacon_tasklet));
+			tasklet_disable(&(padapter->pbuddy_adapter->xmitpriv.xmit_tasklet));
+		}
+#endif
 		RT_TRACE(_module_hci_intfs_c_,_drv_err_,("pci_intf_stop: SurpriseRemoved==_FALSE\n"));
 	}
 	else
@@ -1516,7 +1547,8 @@ static int rtw_drv_init(struct pci_dev *pdev, const struct pci_device_id *pdid)
 	struct net_device *pnetdev;
 	unsigned long pmem_start, pmem_len, pmem_flags;
 	u8	bdma64 = _FALSE;
-
+	void (*set_hal_ops)(_adapter * padapter);
+	
 	RT_TRACE(_module_hci_intfs_c_, _drv_err_, ("+rtw_drv_init\n"));
 	//DBG_871X("+rtw_drv_init\n");
 
@@ -1618,23 +1650,15 @@ static int rtw_drv_init(struct pci_dev *pdev, const struct pci_device_id *pdid)
 	decide_chip_type_by_pci_device_id(padapter, pdev);
 
 	//step 2.	
-	if(padapter->chip_type== RTL8188C_8192C)
+
+	set_hal_ops =&hal_set_hal_ops;
+	if(set_hal_ops == NULL)
 	{
-#ifdef CONFIG_RTL8192C
-		rtl8192ce_set_hal_ops(padapter);
-#endif
-	}
-	else if(padapter->chip_type == RTL8192D)
-	{
-#ifdef CONFIG_RTL8192D
-		rtl8192de_set_hal_ops(padapter);
-#endif
-	}
-	else
-	{
+		DBG_871X("Detect NULL_CHIP_TYPE\n");
 		status = _FAIL;
 		goto error;
 	}
+	set_hal_ops(padapter);
 
 	//step 3.	initialize the dvobj_priv 
 	padapter->dvobj_init=&pci_dvobj_init;
@@ -1716,9 +1740,27 @@ static int rtw_drv_init(struct pci_dev *pdev, const struct pci_device_id *pdid)
 	hostapd_mode_init(padapter);
 #endif
 
+#ifdef CONFIG_CONCURRENT_MODE
+
+	//set global variable to primary adapter
+	padapter->ph2c_fwcmd_mutex = &drvpriv.h2c_fwcmd_mutex;
+	padapter->psetch_mutex = &drvpriv.setch_mutex;
+	padapter->psetbw_mutex = &drvpriv.setbw_mutex;	
+	padapter->hw_init_mutex = &drvpriv.hw_init_mutex;
+#endif
+
+
+
 #ifdef CONFIG_PLATFORM_RTD2880B
 	DBG_871X("wlan link up\n");
 	rtd2885_wlan_netlink_sendMsg("linkup", "8712");
+#endif
+
+#ifdef CONFIG_CONCURRENT_MODE	
+	if(rtw_drv_if2_init(padapter, NULL)==_FAIL)
+	{
+		goto error;
+	}	
 #endif
 
 	return 0;
@@ -1778,6 +1820,8 @@ _func_exit_;
 #endif
 
 	LeaveAllPowerSaveMode(padapter);
+//	padapter->intf_stop(padapter);
+
 
 #ifdef RTK_DMP_PLATFORM    
 	padapter->bSurpriseRemoved = _FALSE;	// always trate as device exists
@@ -1803,6 +1847,9 @@ _func_exit_;
 #endif //CONFIG_HOSTAPD_MLME
 #endif //CONFIG_AP_MODE
 
+#ifdef CONFIG_CONCURRENT_MODE
+		rtw_drv_if2_free(padapter);
+#endif //CONFIG_CONCURRENT_MODE
 	if(pnetdev){
 		unregister_netdev(pnetdev); //will call netdev_close()
 #ifdef CONFIG_PROC_DEBUG
@@ -1866,6 +1913,16 @@ static int __init rtw_drv_entry(void)
 	DBG_871X("rtw driver version=%s\n", DRIVERVERSION);
 	DBG_871X("Build at: %s %s\n", __DATE__, __TIME__);
 	drvpriv.drv_registered = _TRUE;
+
+
+
+#if defined(CONFIG_CONCURRENT_MODE) || defined(CONFIG_DUALMAC_CONCURRENT)
+	//init global variable
+	_rtw_mutex_init(&drvpriv.h2c_fwcmd_mutex);
+	_rtw_mutex_init(&drvpriv.setch_mutex);
+	_rtw_mutex_init(&drvpriv.setbw_mutex);
+	_rtw_mutex_init(&drvpriv.hw_init_mutex);
+#endif
 	ret = pci_register_driver(&drvpriv.rtw_pci_drv);
 	if (ret) {
 		RT_TRACE(_module_hci_intfs_c_, _drv_err_, (": No device found\n"));
@@ -1879,7 +1936,15 @@ static void __exit rtw_drv_halt(void)
 	RT_TRACE(_module_hci_intfs_c_,_drv_err_,("+rtw_drv_halt\n"));
 	DBG_871X("+rtw_drv_halt\n");
 	drvpriv.drv_registered = _FALSE;
+
+#if defined(CONFIG_CONCURRENT_MODE) || defined(CONFIG_DUALMAC_CONCURRENT)
+	_rtw_mutex_free(&drvpriv.h2c_fwcmd_mutex);
+	_rtw_mutex_free(&drvpriv.setch_mutex);
+	_rtw_mutex_free(&drvpriv.setbw_mutex);
+	_rtw_mutex_free(&drvpriv.hw_init_mutex);
+#endif
 	pci_unregister_driver(&drvpriv.rtw_pci_drv);
+
 	DBG_871X("-rtw_drv_halt\n");
 }
 

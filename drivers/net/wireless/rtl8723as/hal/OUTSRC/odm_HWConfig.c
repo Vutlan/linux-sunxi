@@ -24,9 +24,21 @@
 
 #include "odm_precomp.h"
 
-#define GET_ARRAY_LEN(ic, txt) (ODM_GetArrayLength##txt##ic(pDM_Odm))
-#define GET_ARRAY_PTR(ic, txt) ((pu4Byte)ODM_GetArrayPointer##txt##ic(pDM_Odm))
-#define READ_AND_CONFIG(ic, txt) (ODM_ReadAndConfig##txt##ic(pDM_Odm))
+#if (RTL8188E_FOR_TEST_CHIP > 1)
+    #define READ_AND_CONFIG(ic, txt) do {\
+                                            if (pDM_Odm->bIsMPChip)\
+                                    		    READ_AND_CONFIG_MP(ic,txt);\
+                                            else\
+                                                READ_AND_CONFIG_TC(ic,txt);\
+                                     } while(0)
+#elif (RTL8188E_FOR_TEST_CHIP == 1)
+    #define READ_AND_CONFIG     READ_AND_CONFIG_TC
+#else
+    #define READ_AND_CONFIG     READ_AND_CONFIG_MP
+#endif
+
+#define READ_AND_CONFIG_MP(ic, txt) (ODM_ReadAndConfig##txt##ic(pDM_Odm))
+#define READ_AND_CONFIG_TC(ic, txt) (ODM_ReadAndConfig_TC##txt##ic(pDM_Odm))
 
 u1Byte
 odm_QueryRxPwrPercentage(
@@ -424,7 +436,7 @@ odm_RxPhyStatus92CSeries_Parsing(
 		//2011.11.28 LukeLee: 88E use different LNA & VGA gain table
 		//The RSSI formula should be modified according to the gain table
 		//In 88E, cck_highpwr is always set to 1
-		if(pDM_Odm->SupportICType == ODM_RTL8188E)
+		if(pDM_Odm->SupportICType & (ODM_RTL8188E|ODM_RTL8812))
 		{
 			LNA_idx = ((cck_agc_rpt & 0xE0) >>5);
 			VGA_idx = (cck_agc_rpt & 0x1F); 
@@ -774,7 +786,7 @@ odm_Process_RSSIForDM(
 		
 	}
 	
-	pEntry = pDM_Odm->pODM_StaInfo[pPktinfo->StationID];		
+	pEntry = pDM_Odm->pODM_StaInfo[pPktinfo->StationID];			
 	if(!IS_STA_VALID(pEntry) ){		
 		return;
 	}
@@ -782,28 +794,52 @@ odm_Process_RSSIForDM(
 	{
 		return;
 	}
-	
+
 	//-----------------Smart Antenna Debug Message------------------//
+#if (RTL8188E_SUPPORT == 1)
 	if(pDM_Odm->SupportICType == ODM_RTL8188E)
 	{
 		u1Byte	antsel_tr_mux;
 		pFAT_T	pDM_FatTable = &pDM_Odm->DM_FatTable;
 
-		if(pDM_FatTable->FAT_State & (FAT_TRAINING_STATE|FAT_DEBUG_STATE))
+		if(pDM_Odm->AntDivType == CG_TRX_SMART_ANTDIV)
 		{
-		if(pPktinfo->bPacketMatchBSSID && (!pPktinfo->bPacketBeacon))
-		{
-			antsel_tr_mux = (pDM_FatTable->antsel_rx_keep_2<<2) |(pDM_FatTable->antsel_rx_keep_1 <<1) |pDM_FatTable->antsel_rx_keep_0;
-			pDM_FatTable->antSumRSSI[antsel_tr_mux] += pPhyInfo->RxPWDBAll;
-			pDM_FatTable->antRSSIcnt[antsel_tr_mux]++;
-				//ODM_RT_TRACE(pDM_Odm,ODM_COMP_ANT_DIV, ODM_DBG_LOUD,("isCCKrate=%d, PWDB_ALL=%d\n",isCCKrate, pPhyInfo->RxPWDBAll));
-				//ODM_RT_TRACE(pDM_Odm,ODM_COMP_ANT_DIV, ODM_DBG_LOUD,("antsel_tr_mux=3'b%d%d%d\n",
-					//pDM_FatTable->antsel_rx_keep_2, pDM_FatTable->antsel_rx_keep_1, pDM_FatTable->antsel_rx_keep_0));
-			
+			if(pDM_FatTable->FAT_State == FAT_TRAINING_STATE)
+			{
+				if(pPktinfo->bPacketToSelf)	//(pPktinfo->bPacketMatchBSSID && (!pPktinfo->bPacketBeacon))
+				{
+					antsel_tr_mux = (pDM_FatTable->antsel_rx_keep_2<<2) |(pDM_FatTable->antsel_rx_keep_1 <<1) |pDM_FatTable->antsel_rx_keep_0;
+					pDM_FatTable->antSumRSSI[antsel_tr_mux] += pPhyInfo->RxPWDBAll;
+					pDM_FatTable->antRSSIcnt[antsel_tr_mux]++;
+						//ODM_RT_TRACE(pDM_Odm,ODM_COMP_ANT_DIV, ODM_DBG_LOUD,("isCCKrate=%d, PWDB_ALL=%d\n",isCCKrate, pPhyInfo->RxPWDBAll));
+						//ODM_RT_TRACE(pDM_Odm,ODM_COMP_ANT_DIV, ODM_DBG_LOUD,("antsel_tr_mux=3'b%d%d%d\n",
+							//pDM_FatTable->antsel_rx_keep_2, pDM_FatTable->antsel_rx_keep_1, pDM_FatTable->antsel_rx_keep_0));
+					
+				}
+			}
 		}
+		else if(pDM_Odm->AntDivType == CG_TRX_HW_ANTDIV)
+		{
+			if(pPktinfo->bPacketToSelf)
+			{
+				antsel_tr_mux = (pDM_FatTable->antsel_rx_keep_2<<2) |(pDM_FatTable->antsel_rx_keep_1 <<1) |pDM_FatTable->antsel_rx_keep_0;
+				//ODM_RT_TRACE(pDM_Odm,ODM_COMP_ANT_DIV, ODM_DBG_LOUD,("antsel_tr_mux=3'b%d%d%d\n",
+				//			pDM_FatTable->antsel_rx_keep_2, pDM_FatTable->antsel_rx_keep_1, pDM_FatTable->antsel_rx_keep_0));
+				if(antsel_tr_mux == 0)
+				{
+					pDM_FatTable->AntA_Sum[pPktinfo->StationID]+=pPhyInfo->RxPWDBAll;
+					pDM_FatTable->AntA_Cnt[pPktinfo->StationID]++;
+				}
+				else
+				{
+					pDM_FatTable->AntB_Sum[pPktinfo->StationID]+=pPhyInfo->RxPWDBAll;
+					pDM_FatTable->AntB_Cnt[pPktinfo->StationID]++;
+				}	
+			}
 		}
 		
 	}
+#endif
 	//-----------------Smart Antenna Debug Message------------------//
 	
 	isCCKrate = ((pPktinfo->Rate >= DESC92C_RATE1M ) && (pPktinfo->Rate <= DESC92C_RATE11M ))?TRUE :FALSE;
@@ -943,7 +979,7 @@ odm_Process_RSSIForDM(
 VOID
 ODM_PhyStatusQuery_92CSeries(
 	IN OUT	PDM_ODM_T					pDM_Odm,
-	OUT		PODM_PHY_INFO_T			pPhyInfo,
+	OUT		PODM_PHY_INFO_T				pPhyInfo,
 	IN 		pu1Byte						pPhyStatus,	
 	IN		PODM_PACKET_INFO_T			pPktinfo
 	)
@@ -960,7 +996,7 @@ ODM_PhyStatusQuery_92CSeries(
 		// Select the packets to do RSSI checking for antenna switching.
 		if(pPktinfo->bPacketToSelf || pPktinfo->bPacketBeacon )
 		{
-			/*
+				/*
 			#if 0//(DM_ODM_SUPPORT_TYPE == ODM_MP)
 			dm_SWAW_RSSI_Check(
 				Adapter, 
@@ -972,9 +1008,9 @@ ODM_PhyStatusQuery_92CSeries(
 			// Select the packets to do RSSI checking for antenna switching.
 			//odm_SwAntDivRSSICheck8192C(padapter, precvframe->u.hdr.attrib.RxPWDBAll);
 			#endif
-			*/
-			ODM_SwAntDivChkPerPktRssi(pDM_Odm,pPktinfo->StationID,pPhyInfo);
-		}
+				*/
+				ODM_SwAntDivChkPerPktRssi(pDM_Odm,pPktinfo->StationID,pPhyInfo);
+		}	
 	}
 	else
 	{
@@ -1003,21 +1039,21 @@ ODM_PhyStatusQuery_JaguarSeries(
 VOID
 ODM_PhyStatusQuery(
 	IN OUT	PDM_ODM_T					pDM_Odm,
-	OUT		PODM_PHY_INFO_T			pPhyInfo,
+	OUT		PODM_PHY_INFO_T				pPhyInfo,
 	IN 		pu1Byte						pPhyStatus,	
 	IN		PODM_PACKET_INFO_T			pPktinfo
 	)
 {
 #if 0  // How to jaguar jugar series??
 	if(pDM_Odm->SupportICType >= ODM_RTL8195 )
-        {
+	{
 		ODM_PhyStatusQuery_JaguarSeries(pDM_Odm,pPhyInfo,pPhyStatus,pPktinfo);
 	}
-        else
+	else
 #endif
-        {   
+	{
 		ODM_PhyStatusQuery_92CSeries(pDM_Odm,pPhyInfo,pPhyStatus,pPktinfo);
-        } 
+	}
 }
 	
 // For future use.
@@ -1039,7 +1075,7 @@ ODM_MacStatusQuery(
 
 HAL_STATUS
 ODM_ConfigRFWithHeaderFile(
-	IN 	PDM_ODM_T	        		pDM_Odm,
+	IN 	PDM_ODM_T	        	pDM_Odm,
 	IN 	ODM_RF_RADIO_PATH_E 	Content,
 	IN 	ODM_RF_RADIO_PATH_E 	eRFPath
     )
@@ -1050,14 +1086,16 @@ ODM_ConfigRFWithHeaderFile(
 	pu4Byte		RadioB_Array_Table = NULL;
 	u2Byte		RadioA_ArrayLen = 0;
 	u2Byte		RadioB_ArrayLen = 0;
-	u4Byte      	MaskforPhySet = 0;
+	u4Byte      MaskforPhySet = 0;
+
+    ODM_RT_TRACE(pDM_Odm, ODM_COMP_INIT, ODM_DBG_LOUD, ("===>ODM_ConfigRFWithHeaderFile\n"));
 #if (RTL8723A_SUPPORT == 1)
 	if (pDM_Odm->SupportICType == ODM_RTL8723A)
 	{
 		if(eRFPath == ODM_RF_PATH_A)
-			READ_AND_CONFIG(8723A,_RadioA_1T_);
+			READ_AND_CONFIG_MP(8723A,_RadioA_1T_);
 		else if(eRFPath == ODM_RF_PATH_B)
-			READ_AND_CONFIG(8723A,_RadioB_1T_);
+			READ_AND_CONFIG_MP(8723A,_RadioB_1T_);
 		ODM_RT_TRACE(pDM_Odm, ODM_COMP_INIT, ODM_DBG_LOUD, (" ===> PHY_ConfigRFWithHeaderFile() Radio_A:Rtl8723RadioA_1TArray\n"));
 		ODM_RT_TRACE(pDM_Odm, ODM_COMP_INIT, ODM_DBG_LOUD, (" ===> PHY_ConfigRFWithHeaderFile() Radio_B:Rtl8723RadioB_1TArray\n"));
 	}
@@ -1089,21 +1127,21 @@ ODM_ConfigBBWithHeaderFile(
 	IN 	ODM_BaseBand_Config_Type 	ConfigType
 	)
 {
-#if (RTL8723A_SUPPORT == 1)  
+#if (RTL8723A_SUPPORT == 1) 
     if(pDM_Odm->SupportICType == ODM_RTL8723A)
 	{
 
 		if(ConfigType == ODM_BaseBand_Config_PHY_REG)
 		{
-			READ_AND_CONFIG(8723A,_PHY_REG_1T_);
+			READ_AND_CONFIG_MP(8723A,_PHY_REG_1T_);
 		}
 		else if(ConfigType == ODM_BaseBand_Config_AGC_TAB)
 		{
-			READ_AND_CONFIG(8723A,_AGC_TAB_1T_);
+			READ_AND_CONFIG_MP(8723A,_AGC_TAB_1T_);
 		}
 		ODM_RT_TRACE(pDM_Odm,ODM_COMP_INIT, ODM_DBG_LOUD, (" ===> phy_ConfigBBWithHeaderFile() phy:Rtl8723AGCTAB_1TArray\n"));
 		ODM_RT_TRACE(pDM_Odm,ODM_COMP_INIT, ODM_DBG_LOUD, (" ===> phy_ConfigBBWithHeaderFile() agc:Rtl8723PHY_REG_1TArray\n"));
-	}
+	}		
 #endif
 
 #if (RTL8188E_SUPPORT == 1)
@@ -1131,10 +1169,10 @@ ODM_ConfigMACWithHeaderFile(
 	IN 	PDM_ODM_T	pDM_Odm
 	)
 {
-#if (RTL8723A_SUPPORT == 1)  
+#if (RTL8723A_SUPPORT == 1)
 	if (pDM_Odm->SupportICType == ODM_RTL8723A)
 	{
-		READ_AND_CONFIG(8723A,_MAC_REG_);
+		READ_AND_CONFIG_MP(8723A,_MAC_REG_);
 	}
 #endif
 #if (RTL8188E_SUPPORT == 1)  
@@ -1146,5 +1184,6 @@ ODM_ConfigMACWithHeaderFile(
 	return HAL_STATUS_SUCCESS;    
 } 
 
- 
+
 #endif // end of (#if DM_ODM_SUPPORT_TYPE)
+

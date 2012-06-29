@@ -952,6 +952,10 @@ void Hal_SetSingleToneTx(PADAPTER pAdapter, u8 bStart)
 			write_rfreg(pAdapter, rfPath, 0x00, 0x2001f); // PAD all on.
 			rtw_usleep_os(100);
 		}				
+
+		write_bbreg(pAdapter, rFPGA0_XA_HSSIParameter1, bMaskDWord, 0x01000500);
+		write_bbreg(pAdapter, rFPGA0_XB_HSSIParameter1, bMaskDWord, 0x01000500);
+		
 	}
 	else// Stop Single Tone.
 	{
@@ -971,6 +975,10 @@ void Hal_SetSingleToneTx(PADAPTER pAdapter, u8 bStart)
 			write_rfreg(pAdapter, rfPath, 0x00, 0x30000); // PAD all on.
 			rtw_usleep_os(100);
 		}
+
+		write_bbreg(pAdapter, rFPGA0_XA_HSSIParameter1, bMaskDWord, 0x01000100);
+		write_bbreg(pAdapter, rFPGA0_XB_HSSIParameter1, bMaskDWord, 0x01000100);
+		
 	}
 	
 }
@@ -1062,6 +1070,8 @@ void Hal_SetCCKContinuousTx(PADAPTER pAdapter, u8 bStart)
 		write_bbreg(pAdapter, rCCK0_System, bCCKBBMode, 0x2);	//transmit mode
 		write_bbreg(pAdapter, rCCK0_System, bCCKScramble, bEnable);	//turn on scramble setting
 
+		write_bbreg(pAdapter, rFPGA0_XA_HSSIParameter1, bMaskDWord, 0x01000500);
+		write_bbreg(pAdapter, rFPGA0_XB_HSSIParameter1, bMaskDWord, 0x01000500);
 #ifdef CONFIG_RTL8192C
 		// Patch for CCK 11M waveform
 		if (cckrate == MPT_RATE_1M)
@@ -1081,6 +1091,9 @@ void Hal_SetCCKContinuousTx(PADAPTER pAdapter, u8 bStart)
 		//BB Reset
 		write_bbreg(pAdapter, rPMAC_Reset, bBBResetB, 0x0);
 		write_bbreg(pAdapter, rPMAC_Reset, bBBResetB, 0x1);
+		
+		write_bbreg(pAdapter, rFPGA0_XA_HSSIParameter1, bMaskDWord, 0x01000100);
+		write_bbreg(pAdapter, rFPGA0_XB_HSSIParameter1, bMaskDWord, 0x01000100);	
 	}
 
 	pAdapter->mppriv.MptCtx.bCckContTx = bStart;
@@ -1108,6 +1121,10 @@ void Hal_SetOFDMContinuousTx(PADAPTER pAdapter, u8 bStart)
 		write_bbreg(pAdapter, rOFDM1_LSTF, bOFDMContinueTx, bEnable);
 		write_bbreg(pAdapter, rOFDM1_LSTF, bOFDMSingleCarrier, bDisable);
 		write_bbreg(pAdapter, rOFDM1_LSTF, bOFDMSingleTone, bDisable);
+
+		write_bbreg(pAdapter, rFPGA0_XA_HSSIParameter1, bMaskDWord, 0x01000500);
+		write_bbreg(pAdapter, rFPGA0_XB_HSSIParameter1, bMaskDWord, 0x01000500);
+		
 	} else {
 		RT_TRACE(_module_mp_,_drv_info_, ("SetOFDMContinuousTx: test stop\n"));
 		write_bbreg(pAdapter, rOFDM1_LSTF, bOFDMContinueTx, bDisable);
@@ -1118,6 +1135,9 @@ void Hal_SetOFDMContinuousTx(PADAPTER pAdapter, u8 bStart)
 		//BB Reset
 		write_bbreg(pAdapter, rPMAC_Reset, bBBResetB, 0x0);
 		write_bbreg(pAdapter, rPMAC_Reset, bBBResetB, 0x1);
+
+		write_bbreg(pAdapter, rFPGA0_XA_HSSIParameter1, bMaskDWord, 0x01000100);
+		write_bbreg(pAdapter, rFPGA0_XB_HSSIParameter1, bMaskDWord, 0x01000100);	
 	}
 
 	pAdapter->mppriv.MptCtx.bCckContTx = _FALSE;
@@ -1155,3 +1175,4 @@ void Hal_SetContinuousTx(PADAPTER pAdapter, u8 bStart)
 }
 
 #endif // CONFIG_MP_INCLUDE
+

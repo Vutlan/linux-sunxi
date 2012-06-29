@@ -66,6 +66,9 @@ static struct specific_device_id specific_device_id_tbl[] = {
 };
 
 struct pci_device_id rtw_pci_id_tbl[] = {
+#ifdef CONFIG_RTL8188E
+	{PCI_DEVICE(PCI_VENDER_ID_REALTEK, 0x8179)},
+#endif
 #ifdef CONFIG_RTL8192C
 	{PCI_DEVICE(PCI_VENDER_ID_REALTEK, 0x8191)},
 	{PCI_DEVICE(PCI_VENDER_ID_REALTEK, 0x8178)},
@@ -1336,6 +1339,12 @@ static void decide_chip_type_by_pci_device_id(_adapter *padapter, struct pci_dev
 		padapter->HardwareType = HARDWARE_TYPE_RTL8192DE;
 		DBG_871X("Adapter(8192DE) is found - VendorID/DeviceID/RID=%X/%X/%X\n", venderid, deviceid, revisionid);
 	}
+	else if (deviceid == HAL_HW_PCI_8188EE_DEVICE_ID){
+		padapter->HardwareType = HARDWARE_TYPE_RTL8188EE;
+		padapter->chip_type = RTL8188E;
+		DBG_871X("Adapter(8188EE) is found - VendorID/DeviceID/RID=%X/%X/%X\n", venderid, deviceid, revisionid);
+	}
+	
 	else
 	{
 		DBG_871X("Err: Unknown device - vendorid/deviceid=%x/%x\n", venderid, deviceid);
@@ -1538,7 +1547,8 @@ static int rtw_drv_init(struct pci_dev *pdev, const struct pci_device_id *pdid)
 	struct net_device *pnetdev;
 	unsigned long pmem_start, pmem_len, pmem_flags;
 	u8	bdma64 = _FALSE;
-
+	void (*set_hal_ops)(_adapter * padapter);
+	
 	RT_TRACE(_module_hci_intfs_c_, _drv_err_, ("+rtw_drv_init\n"));
 	//DBG_871X("+rtw_drv_init\n");
 
@@ -1640,23 +1650,15 @@ static int rtw_drv_init(struct pci_dev *pdev, const struct pci_device_id *pdid)
 	decide_chip_type_by_pci_device_id(padapter, pdev);
 
 	//step 2.	
-	if(padapter->chip_type== RTL8188C_8192C)
+
+	set_hal_ops =&hal_set_hal_ops;
+	if(set_hal_ops == NULL)
 	{
-#ifdef CONFIG_RTL8192C
-		rtl8192ce_set_hal_ops(padapter);
-#endif
-	}
-	else if(padapter->chip_type == RTL8192D)
-	{
-#ifdef CONFIG_RTL8192D
-		rtl8192de_set_hal_ops(padapter);
-#endif
-	}
-	else
-	{
+		DBG_871X("Detect NULL_CHIP_TYPE\n");
 		status = _FAIL;
 		goto error;
 	}
+	set_hal_ops(padapter);
 
 	//step 3.	initialize the dvobj_priv 
 	padapter->dvobj_init=&pci_dvobj_init;

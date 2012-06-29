@@ -2488,12 +2488,6 @@ u8 process_p2p_group_negotation_confirm( struct wifidirect_info *pwdinfo, u8 *pf
 	u8 * p2p_ie;
 	u32	p2p_ielen = 0;
 	u8	result = P2P_STATUS_SUCCESS;
-#ifdef CONFIG_CONCURRENT_MODE
-	_adapter				*pbuddy_adapter = pwdinfo->padapter->pbuddy_adapter;
-	struct wifidirect_info	*pbuddy_wdinfo = &pbuddy_adapter->wdinfo;
-	struct mlme_priv		*pbuddy_mlmepriv = &pbuddy_adapter->mlmepriv;
-#endif	
-
 	ies = pframe + _PUBLIC_ACTION_IE_OFFSET_;
 	ies_len = len - _PUBLIC_ACTION_IE_OFFSET_;
 
@@ -2542,7 +2536,7 @@ u8 process_p2p_group_negotation_confirm( struct wifidirect_info *pwdinfo, u8 *pf
 				}								
 				
 #ifdef CONFIG_CONCURRENT_MODE
-				if ( check_fwstate( pbuddy_mlmepriv , _FW_LINKED ) )
+				if ( check_buddy_fwstate(pwdinfo->padapter , _FW_LINKED ) )
 				{
 					//	Switch back to the AP channel soon.
 					_set_timer( &pwdinfo->ap_p2p_switch_timer, 100 );
@@ -2737,11 +2731,6 @@ void restore_p2p_state_handler( _adapter*	padapter )
 {
 	struct wifidirect_info  *pwdinfo = &padapter->wdinfo;
 	struct mlme_priv		*pmlmepriv = &padapter->mlmepriv;
-#ifdef CONFIG_CONCURRENT_MODE
-	_adapter				*pbuddy_adapter = padapter->pbuddy_adapter;
-	struct mlme_priv		*pbuddy_mlmepriv = &pbuddy_adapter->mlmepriv;
-	struct mlme_ext_priv	*pbuddy_mlmeext = &pbuddy_adapter->mlmeextpriv;	
-#endif
 
 _func_enter_;
 
@@ -2751,8 +2740,12 @@ _func_enter_;
 	}
 
 #ifdef CONFIG_CONCURRENT_MODE
-	if ( check_fwstate( pbuddy_mlmepriv, _FW_LINKED ) )
+	if ( check_buddy_fwstate(padapter, _FW_LINKED ) )
 	{
+		_adapter				*pbuddy_adapter = padapter->pbuddy_adapter;
+		struct mlme_priv		*pbuddy_mlmepriv = &pbuddy_adapter->mlmepriv;
+		struct mlme_ext_priv	*pbuddy_mlmeext = &pbuddy_adapter->mlmeextpriv;	
+	
 		if(rtw_p2p_chk_state(pwdinfo, P2P_STATE_TX_PROVISION_DIS_REQ) || rtw_p2p_chk_state(pwdinfo, P2P_STATE_RX_PROVISION_DIS_RSP))
 		{
 			set_channel_bwmode(padapter, pbuddy_mlmeext->cur_channel, pbuddy_mlmeext->cur_ch_offset, pbuddy_mlmeext->cur_bwmode);
@@ -2936,10 +2929,6 @@ _func_exit_;
 void p2p_protocol_wk_hdl(_adapter *padapter, int intCmdType)
 {
 	struct wifidirect_info	*pwdinfo= &(padapter->wdinfo);
-#ifdef CONFIG_CONCURRENT_MODE
-	_adapter				*pbuddy_adapter = padapter->pbuddy_adapter;
-	struct mlme_priv		*pbuddy_mlmepriv = &pbuddy_adapter->mlmepriv;
-#endif
 	
 _func_enter_;
 
@@ -2958,7 +2947,7 @@ _func_enter_;
 		case P2P_PRE_TX_PROVDISC_PROCESS_WK:
 		{
 #ifdef CONFIG_CONCURRENT_MODE
-			if ( check_fwstate( pbuddy_mlmepriv, _FW_LINKED ) )
+			if ( check_buddy_fwstate(padapter, _FW_LINKED ) )
 			{
 				p2p_concurrent_handler( padapter );
 			}
@@ -2974,7 +2963,7 @@ _func_enter_;
 		case P2P_PRE_TX_NEGOREQ_PROCESS_WK:
 		{
 #ifdef CONFIG_CONCURRENT_MODE
-			if ( check_fwstate( pbuddy_mlmepriv, _FW_LINKED ) )
+			if ( check_buddy_fwstate(padapter, _FW_LINKED ) )
 			{
 				p2p_concurrent_handler( padapter );
 			}
@@ -3200,7 +3189,7 @@ static void ro_ch_timer_process (void *FunctionContext)
 {
 	_adapter *adapter = (_adapter *)FunctionContext;
 
-	printk("%s \n", __FUNCTION__);
+	//printk("%s \n", __FUNCTION__);
 	
 	p2p_protocol_wk_cmd( adapter, P2P_RO_CH_WK);
 }

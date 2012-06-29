@@ -248,5 +248,19 @@ int rtw_IOL_exec_empty_cmds_sync(ADAPTER *adapter, u32 max_wating_ms)
 	IOL_CMD end_cmd = {0x0, IOL_CMD_END, 0x0, 0x0};
 	return rtw_IOL_exec_cmd_array_sync(adapter, (u8*)&end_cmd, 1, max_wating_ms);
 }
+
+bool rtw_IOL_applied(ADAPTER *adapter)
+{
+	if(adapter->registrypriv.force_iol)
+		return _TRUE;
+
+#ifdef CONFIG_USB_HCI
+	if(!adapter->dvobjpriv.ishighspeed)
+		return _TRUE;
+#endif
+
+	return _FALSE;
+}
+
 #endif //CONFIG_IOL
 

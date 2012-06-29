@@ -1692,47 +1692,6 @@ odm_TXPowerTrackingCallback_ThermalMeter_92C(
 
 
 
-
-
-VOID
-_PHY_SaveAFERegisters(
-	IN	PDM_ODM_T	pDM_Odm,
-	IN	pu4Byte		AFEReg,
-	IN	pu4Byte		AFEBackup,
-	IN	u4Byte		RegisterNum
-	)
-{
-	u4Byte	i;
-	
-	//RTPRINT(FINIT, INIT_IQK, ("Save ADDA parameters.\n"));
-	for( i = 0 ; i < RegisterNum ; i++){
-		AFEBackup[i] = ODM_GetBBReg(pDM_Odm, AFEReg[i], bMaskDWord);
-	}
-}
-
-VOID
-_PHY_ReloadAFERegisters(
-	IN	PDM_ODM_T	pDM_Odm,
-	IN	pu4Byte		AFEReg,
-	IN	pu4Byte		AFEBackup,
-	IN	u4Byte		RegiesterNum
-	)
-{
-	u4Byte	i;
-
-	//RTPRINT(FINIT, INIT_IQK, ("Reload ADDA power saving parameters !\n"));
-	for(i = 0 ; i < RegiesterNum; i++)
-	{
-	
-		ODM_SetBBReg(pDM_Odm, AFEReg[i], bMaskDWord, AFEBackup[i]);
-	}
-}
-
-
-//2 8723A ANT DETECT END
-
-
-
 #if 1//(DEV_BUS_TYPE == RT_PCI_INTERFACE)
 //
 // Move 8188E code to here temporarily , need to transfer position later.
@@ -1816,3 +1775,4 @@ ODM_RF_Saving_8188E(
 #endif
 
 #endif
+

@@ -165,3 +165,4 @@ void	rtw_sreset_init(_adapter *padapter)
 		padapter->HalFunc.sreset_init_value(padapter); 
 }
 #endif	
+

@@ -231,22 +231,15 @@ static void rtl8723as_recv_tasklet(void *priv)
 			pattrib = &phdr->attrib;
 
 			update_recvframe_attrib(precvframe, (struct recv_stat*)ptr);
-			if(pattrib->crc_err){
-				DBG_8192C("%s()-%d: RX Warning! rx CRC ERROR !!\n", __FUNCTION__, __LINE__);	
+
+			// fix Hardware RX data error, drop whole recv_buffer
+			if ((!(pHalData->ReceiveConfig & RCR_ACRC32)) && pattrib->crc_err)
+			{
+				DBG_8192C("%s()-%d: RX Warning! rx CRC ERROR !!\n", __FUNCTION__, __LINE__);
 				rtw_free_recvframe(precvframe, &precvpriv->free_recv_queue);
-				rtw_enqueue_recvbuf_to_head(precvbuf, &precvpriv->recv_buf_pending_queue);
+				break;
+			}
 
-				// The case of can't allocte skb is serious and may never be recovered,
-				// once bDriverStopped is enable, this task should be stopped.
-				if (padapter->bDriverStopped == _FALSE) {
-#ifdef PLATFORM_LINUX
-					tasklet_schedule(&precvpriv->recv_tasklet);
-#endif
-				}
-
-				return;				
-			}	
-			
 			pkt_offset = RXDESC_SIZE + pattrib->drvinfo_sz + pattrib->pkt_len;
 #if 0 // reduce check to speed up
 			if ((ptr + pkt_offset) > precvbuf->ptail) {
@@ -258,48 +251,56 @@ static void rtl8723as_recv_tasklet(void *priv)
 			}
 #endif
 
-			ppkt = skb_clone(precvbuf->pskb, GFP_ATOMIC);
-			if (ppkt == NULL)
+			if ((pattrib->crc_err) || (pattrib->icv_err))
 			{
-				RT_TRACE(_module_rtl871x_recv_c_, _drv_crit_, ("rtl8723as_recv_tasklet: no enough memory to allocate SKB!\n"));
+				DBG_8192C("%s: crc_err=%d icv_err=%d, skip!\n", __FUNCTION__, pattrib->crc_err, pattrib->icv_err);
 				rtw_free_recvframe(precvframe, &precvpriv->free_recv_queue);
-				rtw_enqueue_recvbuf_to_head(precvbuf, &precvpriv->recv_buf_pending_queue);
+			}
+			else
+			{
+				ppkt = skb_clone(precvbuf->pskb, GFP_ATOMIC);
+				if (ppkt == NULL)
+				{
+					RT_TRACE(_module_rtl871x_recv_c_, _drv_crit_, ("rtl8723as_recv_tasklet: no enough memory to allocate SKB!\n"));
+					rtw_free_recvframe(precvframe, &precvpriv->free_recv_queue);
+					rtw_enqueue_recvbuf_to_head(precvbuf, &precvpriv->recv_buf_pending_queue);
 
-				// The case of can't allocte skb is serious and may never be recovered,
-				// once bDriverStopped is enable, this task should be stopped.
-				if (padapter->bDriverStopped == _FALSE) {
+					// The case of can't allocte skb is serious and may never be recovered,
+					// once bDriverStopped is enable, this task should be stopped.
+					if (padapter->bDriverStopped == _FALSE) {
 #ifdef PLATFORM_LINUX
-					tasklet_schedule(&precvpriv->recv_tasklet);
+						tasklet_schedule(&precvpriv->recv_tasklet);
 #endif
+					}
+
+					return;
 				}
 
-				return;
-			}
+				phdr->pkt = ppkt;
+				phdr->len = 0;
+				phdr->rx_head = precvbuf->phead;
+				phdr->rx_data = phdr->rx_tail = precvbuf->pdata;
+				phdr->rx_end = precvbuf->pend;
+				recvframe_put(precvframe, pkt_offset);
+				recvframe_pull(precvframe, RXDESC_SIZE + pattrib->drvinfo_sz);
+				if (pHalData->ReceiveConfig & RCR_APPFCS)
+					recvframe_pull_tail(precvframe, IEEE80211_FCS_LEN);
 
-			phdr->pkt = ppkt;
-			phdr->len = 0;
-			phdr->rx_head = precvbuf->phead;
-			phdr->rx_data = phdr->rx_tail = precvbuf->pdata;
-			phdr->rx_end = precvbuf->pend;
-			recvframe_put(precvframe, pkt_offset);
-			recvframe_pull(precvframe, RXDESC_SIZE + pattrib->drvinfo_sz);
-			if (pHalData->ReceiveConfig & RCR_APPFCS)
-				recvframe_pull_tail(precvframe, IEEE80211_FCS_LEN);
+				// move to drv info position
+				ptr += RXDESC_SIZE;
 
-			// move to drv info position
-			ptr += RXDESC_SIZE;
+				// update drv info
+				if (pHalData->ReceiveConfig & RCR_APP_BA_SSN) {
+//					rtl8723s_update_bassn(padapter, pdrvinfo);
+					ptr += 4;
+				}
+				if (pattrib->physt)
+					update_recvframe_phyinfo(precvframe, (struct phy_stat*)ptr);
 
-			// update drv info
-			if (pHalData->ReceiveConfig & RCR_APP_BA_SSN) {
-//				rtl8723s_update_bassn(padapter, pdrvinfo);
-				ptr += 4;
-			}
-			if (pattrib->physt)
-				update_recvframe_phyinfo(precvframe, (struct phy_stat*)ptr);
-
-			if (rtw_recv_entry(precvframe) != _SUCCESS)
-			{
-				RT_TRACE(_module_rtl871x_recv_c_, _drv_err_, ("rtl8723as_recv_tasklet: rtw_recv_entry(precvframe) != _SUCCESS\n"));
+				if (rtw_recv_entry(precvframe) != _SUCCESS)
+				{
+					RT_TRACE(_module_rtl871x_recv_c_, _drv_err_, ("rtl8723as_recv_tasklet: rtw_recv_entry(precvframe) != _SUCCESS\n"));
+				}
 			}
 
 			// Page size of receive package is 128 bytes alignment => DMA agg

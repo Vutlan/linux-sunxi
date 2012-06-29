@@ -78,3 +78,4 @@ u8 odm_SwAntDivBeforeLink8192C(PADAPTER Adapter);
 #endif
 
 #endif	//__HAL8190PCIDM_H__
+

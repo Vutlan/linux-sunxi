@@ -593,6 +593,11 @@ __inline static void up_scanned_network(struct mlme_priv *pmlmepriv)
 	_exit_critical_bh(&pmlmepriv->lock, &irqL);
 }
 
+#ifdef CONFIG_CONCURRENT_MODE
+sint rtw_buddy_adapter_up(_adapter *padapter);
+sint check_buddy_fwstate(_adapter *padapter, sint state);
+#endif //CONFIG_CONCURRENT_MODE
+
 __inline static void down_scanned_network(struct mlme_priv *pmlmepriv)
 {
 	_irqL irqL;

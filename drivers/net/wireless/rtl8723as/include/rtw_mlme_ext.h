@@ -113,6 +113,7 @@
 // 
 typedef enum _RT_CHANNEL_DOMAIN
 {
+	//===== old channel plan mapping =====//
 	RT_CHANNEL_DOMAIN_FCC = 0x00,
 	RT_CHANNEL_DOMAIN_IC = 0x01,
 	RT_CHANNEL_DOMAIN_ETSI = 0x02,
@@ -134,19 +135,97 @@ typedef enum _RT_CHANNEL_DOMAIN
 	RT_CHANNEL_DOMAIN_JAPAN_NO_DFS = 0x12,
 	RT_CHANNEL_DOMAIN_WORLD_WIDE_5G = 0x13,
 	RT_CHANNEL_DOMAIN_TAIWAN_NO_DFS = 0x14,
+
+	//===== new channel plan mapping, (2GDOMAIN_5GDOMAIN) =====//
+	RT_CHANNEL_DOMAIN_WORLD_NULL = 0x20,
+	RT_CHANNEL_DOMAIN_ETSI1_NULL = 0x21,
+	RT_CHANNEL_DOMAIN_FCC1_NULL = 0x22,
+	RT_CHANNEL_DOMAIN_MKK1_NULL = 0x23,
+	RT_CHANNEL_DOMAIN_ETSI2_NULL = 0x24,
+	RT_CHANNEL_DOMAIN_FCC1_FCC1 = 0x25,
+	RT_CHANNEL_DOMAIN_WORLD_ETSI1 = 0x26,
+	RT_CHANNEL_DOMAIN_MKK1_MKK1 = 0x27,
+	RT_CHANNEL_DOMAIN_WORLD_KCC1 = 0x28,
+	RT_CHANNEL_DOMAIN_WORLD_FCC2 = 0x29,
+	RT_CHANNEL_DOMAIN_WORLD_FCC3 = 0x30,
+	RT_CHANNEL_DOMAIN_WORLD_FCC4 = 0x31,
+	RT_CHANNEL_DOMAIN_WORLD_FCC5 = 0x32,
+	RT_CHANNEL_DOMAIN_WORLD_FCC6 = 0x33,
+	RT_CHANNEL_DOMAIN_FCC1_FCC7 = 0x34,
+	RT_CHANNEL_DOMAIN_WORLD_ETSI2 = 0x35,
+	RT_CHANNEL_DOMAIN_WORLD_ETSI3 = 0x36,
+	RT_CHANNEL_DOMAIN_MKK1_MKK2 = 0x37,
+	RT_CHANNEL_DOMAIN_MKK1_MKK3 = 0x38,
+	RT_CHANNEL_DOMAIN_FCC1_NCC1 = 0x39,
+	RT_CHANNEL_DOMAIN_FCC1_NCC2 = 0x40,
+
 	//===== Add new channel plan above this line===============//
 	RT_CHANNEL_DOMAIN_MAX,
+	RT_CHANNEL_DOMAIN_REALTEK_DEFINE = 0x7F,
 }RT_CHANNEL_DOMAIN, *PRT_CHANNEL_DOMAIN;
 
-#define rtw_is_channel_plan_valid(chplan) (chplan<RT_CHANNEL_DOMAIN_MAX)
+typedef enum _RT_CHANNEL_DOMAIN_2G
+{
+	RT_CHANNEL_DOMAIN_2G_WORLD = 0x00,		//Worldwird 13
+	RT_CHANNEL_DOMAIN_2G_ETSI1 = 0x01,		//Europe
+	RT_CHANNEL_DOMAIN_2G_FCC1 = 0x02,		//US
+	RT_CHANNEL_DOMAIN_2G_MKK1 = 0x03,		//Japan
+	RT_CHANNEL_DOMAIN_2G_ETSI2 = 0x04,		//France
+	//===== Add new channel plan above this line===============//
+	RT_CHANNEL_DOMAIN_2G_MAX,
+}RT_CHANNEL_DOMAIN_2G, *PRT_CHANNEL_DOMAIN_2G;
 
-#define	MAX_SCAN_CHANNEL_NUM			54
+typedef enum _RT_CHANNEL_DOMAIN_5G
+{
+	RT_CHANNEL_DOMAIN_5G_NULL = 0x00,
+	RT_CHANNEL_DOMAIN_5G_ETSI1 = 0x01,		//Europe
+	RT_CHANNEL_DOMAIN_5G_ETSI2 = 0x02,		//Australia, New Zealand
+	RT_CHANNEL_DOMAIN_5G_ETSI3 = 0x03,		//Russia
+	RT_CHANNEL_DOMAIN_5G_FCC1 = 0x04,		//US
+	RT_CHANNEL_DOMAIN_5G_FCC2 = 0x05,		//FCC o/w DFS Channels
+	RT_CHANNEL_DOMAIN_5G_FCC3 = 0x06,		//India, Mexico
+	RT_CHANNEL_DOMAIN_5G_FCC4 = 0x07,		//Venezuela
+	RT_CHANNEL_DOMAIN_5G_FCC5 = 0x08,		//China
+	RT_CHANNEL_DOMAIN_5G_FCC6 = 0x09,		//Israel
+	RT_CHANNEL_DOMAIN_5G_FCC7_IC1 = 0x0A,	//US, Canada
+	RT_CHANNEL_DOMAIN_5G_KCC1 = 0x0B,		//Korea
+	RT_CHANNEL_DOMAIN_5G_MKK1 = 0x0C,		//Japan
+	RT_CHANNEL_DOMAIN_5G_MKK2 = 0x0D,		//Japan (W52, W53)
+	RT_CHANNEL_DOMAIN_5G_MKK3 = 0x0E,		//Japan (W56)
+	RT_CHANNEL_DOMAIN_5G_NCC1 = 0x0F,		//Taiwan
+	RT_CHANNEL_DOMAIN_5G_NCC2 = 0x10,		//Taiwan o/w DFS
+	//===== Add new channel plan above this line===============//
+	//===== Driver Self Defined =====//
+	RT_CHANNEL_DOMAIN_5G_FCC = 0x11,
+	RT_CHANNEL_DOMAIN_5G_JAPAN_NO_DFS = 0x12,
+	RT_CHANNEL_DOMAIN_5G_MAX,
+}RT_CHANNEL_DOMAIN_5G, *PRT_CHANNEL_DOMAIN_5G;
+
+#define rtw_is_channel_plan_valid(chplan) (chplan<RT_CHANNEL_DOMAIN_MAX || chplan == RT_CHANNEL_DOMAIN_REALTEK_DEFINE)
 
 typedef struct _RT_CHANNEL_PLAN
 {
 	unsigned char	Channel[MAX_CHANNEL_NUM];
 	unsigned char	Len;
 }RT_CHANNEL_PLAN, *PRT_CHANNEL_PLAN;
+
+typedef struct _RT_CHANNEL_PLAN_2G
+{
+	unsigned char	Channel[MAX_CHANNEL_NUM_2G];
+	unsigned char	Len;
+}RT_CHANNEL_PLAN_2G, *PRT_CHANNEL_PLAN_2G;
+
+typedef struct _RT_CHANNEL_PLAN_5G
+{
+	unsigned char	Channel[MAX_CHANNEL_NUM_5G];
+	unsigned char	Len;
+}RT_CHANNEL_PLAN_5G, *PRT_CHANNEL_PLAN_5G;
+
+typedef struct _RT_CHANNEL_PLAN_MAP
+{
+	unsigned char	Index2G;
+	unsigned char	Index5G;
+}RT_CHANNEL_PLAN_MAP, *PRT_CHANNEL_PLAN_MAP;
 
 enum Associated_AP
 {
@@ -389,7 +468,6 @@ struct mlme_ext_priv
 
 	u8 scan_abort;
 
-	u32	linked_to;//linked timeout
 	u32	retry; //retry for issue probereq
 	
 	u64 TSFValue;
@@ -636,6 +714,13 @@ void start_ap_mode(_adapter *padapter);
 void stop_ap_mode(_adapter *padapter);
 #endif
 #endif //end of CONFIG_AP_MODE
+
+
+#ifdef CONFIG_CONCURRENT_MODE
+ sint check_buddy_mlmeinfo_state(_adapter *padapter, u32 state);
+int concurrent_chk_start_clnt_join(_adapter *padapter);
+void concurrent_chk_joinbss_done(_adapter *padapter, int join_res);
+#endif //CONFIG_CONCURRENT_MODE
 
 #ifdef CONFIG_DUALMAC_CONCURRENT
 void	dc_SelectChannel(_adapter *padapter, unsigned char channel);

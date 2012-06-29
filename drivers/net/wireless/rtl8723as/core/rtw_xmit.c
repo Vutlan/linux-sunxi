@@ -216,7 +216,7 @@ _func_enter_;
 #endif
 
 		pxmitbuf->flags = XMIT_VO_QUEUE;
-		
+
 		rtw_list_insert_tail(&pxmitbuf->list, &(pxmitpriv->free_xmitbuf_queue.queue));
 		#ifdef DBG_XMIT_BUF
 		pxmitbuf->no=i;
@@ -275,7 +275,7 @@ _func_enter_;
 #endif
 
 		rtw_list_insert_tail(&pxmitbuf->list, &(pxmitpriv->free_xmit_extbuf_queue.queue));
-		#ifdef DBG_XMIT_BUF
+		#ifdef DBG_XMIT_BUF_EXT
 		pxmitbuf->no=i;
 		#endif
 		pxmitbuf++;
@@ -684,7 +684,9 @@ static s32 update_attrib(_adapter *padapter, _pkt *pkt, struct pkt_attrib *pattr
 		rtw_lps_ctrl_wk_cmd(padapter, LPS_CTRL_SPECIAL_PACKET, 1);
 	}
 #endif
-
+	if(pattrib->ether_type == 0x888e){
+		DBG_871X("\n%s %x packet\n", __FUNCTION__,pattrib->ether_type);
+	}
 	bmcast = IS_MCAST(pattrib->ra);
 	
 	// get sta_info
@@ -710,6 +712,7 @@ static s32 update_attrib(_adapter *padapter, _pkt *pkt, struct pkt_attrib *pattr
 	if (psta)
 	{
 		pattrib->mac_id = psta->mac_id;
+		//printk("%s ==> mac_id(%d)\n",__FUNCTION__,pattrib->mac_id );
 		pattrib->psta = psta;
 	}
 	else
@@ -760,7 +763,7 @@ static s32 update_attrib(_adapter *padapter, _pkt *pkt, struct pkt_attrib *pattr
 		{
 			RT_TRACE(_module_rtl871x_xmit_c_,_drv_err_,("\npsta->ieee8021x_blocked == _TRUE,  pattrib->ether_type(%.4x) != 0x888e\n",pattrib->ether_type));
 			#ifdef DBG_TX_DROP_FRAME
-			DBG_871X("DBG_TX_DROP_FRAME %s psta->ieee8021x_blocked == _TRUE,  pattrib->ether_type(%.4x) != 0x888e\n", __FUNCTION__,pattrib->ether_type);
+			DBG_871X("DBG_TX_DROP_FRAME %s psta->ieee8021x_blocked == _TRUE,  pattrib->ether_type(%04x) != 0x888e\n", __FUNCTION__,pattrib->ether_type);
 			#endif
 			res = _FAIL;
 			goto exit;
@@ -815,7 +818,7 @@ static s32 update_attrib(_adapter *padapter, _pkt *pkt, struct pkt_attrib *pattr
 					
 			break;			
 		case _AES_:
-			RT_TRACE(_module_rtl871x_xmit_c_,_drv_err_,("\n pattrib->encrypt=%d  (_AES_)\n",pattrib->encrypt));
+			RT_TRACE(_module_rtl871x_xmit_c_,_drv_info_,("pattrib->encrypt=%d (_AES_)\n",pattrib->encrypt));
 			pattrib->iv_len = 8;
 			pattrib->icv_len = 8;
 			break;
@@ -870,6 +873,7 @@ static s32 xmitframe_addmic(_adapter *padapter, struct xmit_frame *pxmitframe){
 	struct 	security_priv	*psecuritypriv=&padapter->securitypriv;
 	struct	xmit_priv		*pxmitpriv=&padapter->xmitpriv;
 	u8 priority[4]={0x0,0x0,0x0,0x0};
+	u8 hw_hdr_offset = 0;
 	sint bmcst = IS_MCAST(pattrib->ra);
 
 	if(pattrib->psta)
@@ -880,22 +884,27 @@ static s32 xmitframe_addmic(_adapter *padapter, struct xmit_frame *pxmitframe){
 	{
 		stainfo=rtw_get_stainfo(&padapter->stapriv ,&pattrib->ra[0]);
 	}	
-
 	
 
 _func_enter_;
 
+#ifdef CONFIG_USB_TX_AGGREGATION
+	hw_hdr_offset = TXDESC_SIZE + (pxmitframe->pkt_offset * PACKET_OFFSET_SZ);;	
+#else
+	#ifdef CONFIG_TX_EARLY_MODE
+	hw_hdr_offset = TXDESC_OFFSET+ EARLY_MODE_INFO_SIZE;
+	#else
+	hw_hdr_offset = TXDESC_OFFSET;
+	#endif
+#endif	
+	
 	if(pattrib->encrypt ==_TKIP_)//if(psecuritypriv->dot11PrivacyAlgrthm==_TKIP_PRIVACY_) 
 	{
 		//encode mic code
 		if(stainfo!= NULL){
 			u8 null_key[16]={0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0};
 
-#ifdef CONFIG_USB_TX_AGGREGATION
-			pframe = pxmitframe->buf_addr + TXDESC_SIZE + (pxmitframe->pkt_offset * PACKET_OFFSET_SZ);
-#else
-			pframe = pxmitframe->buf_addr + TXDESC_OFFSET;
-#endif
+			pframe = pxmitframe->buf_addr + hw_hdr_offset;
 			
 			if(bmcst)
 			{
@@ -2318,6 +2327,7 @@ s32 rtw_xmitframe_coalesce(_adapter *padapter, _pkt *pkt, struct xmit_frame *pxm
 	SIZE_PTR addr;
 
 	u8 *pframe, *mem_start;
+	u8 hw_hdr_offset;
 
 	struct sta_info		*psta;
 	//struct sta_priv		*pstapriv = &padapter->stapriv;
@@ -2343,23 +2353,28 @@ _func_enter_;
 	if(psta==NULL)
 		return _FAIL;
 
-	if (pxmitframe->buf_addr == NULL)
+	if (pxmitframe->buf_addr == NULL){
+		printk("==> %s buf_addr==NULL \n",__FUNCTION__);
 		return _FAIL;
+	}
 
 	pbuf_start = pxmitframe->buf_addr;
-
+	
 #ifdef CONFIG_USB_TX_AGGREGATION
-	mem_start = pbuf_start + TXDESC_SIZE + (pxmitframe->pkt_offset * PACKET_OFFSET_SZ);
+	hw_hdr_offset =  TXDESC_SIZE + (pxmitframe->pkt_offset * PACKET_OFFSET_SZ);
 #else
-	#ifdef CONFIG_TX_EARLY_MODE
-	mem_start = pbuf_start + TXDESC_OFFSET + EARLY_MODE_INFO_SIZE;
+	#ifdef CONFIG_TX_EARLY_MODE //for SDIO && Tx Agg
+	hw_hdr_offset = TXDESC_OFFSET + EARLY_MODE_INFO_SIZE;
 	#else
-	mem_start = pbuf_start + TXDESC_OFFSET;
+	hw_hdr_offset = TXDESC_OFFSET;
 	#endif
 #endif
 
+	mem_start = pbuf_start +	hw_hdr_offset;
+
 	if (rtw_make_wlanhdr(padapter, mem_start, pattrib) == _FAIL) {
 		RT_TRACE(_module_rtl871x_xmit_c_, _drv_err_, ("rtw_xmitframe_coalesce: rtw_make_wlanhdr fail; drop pkt\n"));
+		printk("rtw_xmitframe_coalesce: rtw_make_wlanhdr fail; drop pkt\n");
 		res = _FAIL;
 		goto exit;
 	}
@@ -2467,18 +2482,16 @@ _func_enter_;
 		}
 
 		addr = (SIZE_PTR)(pframe);
-		#ifdef CONFIG_TX_EARLY_MODE
-		mem_start = (unsigned char *)RND4(addr) + TXDESC_OFFSET+EARLY_MODE_INFO_SIZE;
-		_rtw_memcpy(mem_start, pbuf_start + TXDESC_OFFSET+EARLY_MODE_INFO_SIZE, pattrib->hdrlen);
-		#else
-		mem_start = (unsigned char *)RND4(addr) + TXDESC_OFFSET;
-		_rtw_memcpy(mem_start, pbuf_start + TXDESC_OFFSET, pattrib->hdrlen);		
-		#endif
+
+		mem_start = (unsigned char *)RND4(addr) + hw_hdr_offset;
+		_rtw_memcpy(mem_start, pbuf_start + hw_hdr_offset, pattrib->hdrlen);	
+		
 	}
 
 	if (xmitframe_addmic(padapter, pxmitframe) == _FAIL)
 	{
 		RT_TRACE(_module_rtl871x_xmit_c_, _drv_err_, ("xmitframe_addmic(padapter, pxmitframe)==_FAIL\n"));
+		printk("xmitframe_addmic(padapter, pxmitframe)==_FAIL\n");
 		res = _FAIL;
 		goto exit;
 	}
@@ -2638,12 +2651,13 @@ _func_enter_;
 	if (pxmitbuf !=  NULL)
 	{
 		pxmitpriv->free_xmit_extbuf_cnt--;
-		#ifdef DBG_XMIT_BUF
-		DBG_871X("DBG_XMIT_BUF ALLOC no=%d,  free_xmit_extbuf_cnt=%d\n",pxmitbuf->no, pxmitpriv->free_xmit_extbuf_cnt);
+		#ifdef DBG_XMIT_BUF_EXT
+		DBG_871X("DBG_XMIT_BUF_EXT ALLOC no=%d,  free_xmit_extbuf_cnt=%d\n",pxmitbuf->no, pxmitpriv->free_xmit_extbuf_cnt);
 		#endif
 		
 	
 		pxmitbuf->priv_data = NULL;
+		//pxmitbuf->ext_tag = _TRUE;
 
 #ifdef CONFIG_SDIO_HCI
 		pxmitbuf->len = 0;
@@ -2679,8 +2693,8 @@ _func_enter_;
 
 	rtw_list_insert_tail(&(pxmitbuf->list), get_list_head(pfree_queue));
 	pxmitpriv->free_xmit_extbuf_cnt++;
-	#ifdef DBG_XMIT_BUF
-	DBG_871X("DBG_XMIT_BUF FREE no=%d, free_xmit_extbuf_cnt=%d\n",pxmitbuf->no ,pxmitpriv->free_xmit_extbuf_cnt);
+	#ifdef DBG_XMIT_BUF_EXT
+	DBG_871X("DBG_XMIT_BUF_EXT FREE no=%d, free_xmit_extbuf_cnt=%d\n",pxmitbuf->no ,pxmitpriv->free_xmit_extbuf_cnt);
 	#endif
 
 	_exit_critical(&pfree_queue->lock, &irqL);
@@ -2725,7 +2739,7 @@ _func_enter_;
 		//DBG_871X("alloc, free_xmitbuf_cnt=%d\n", pxmitpriv->free_xmitbuf_cnt);
 
 		pxmitbuf->priv_data = NULL;
-
+		//pxmitbuf->ext_tag = _FALSE;
 #ifdef CONFIG_SDIO_HCI
 		pxmitbuf->len = 0;
 		pxmitbuf->pdata = pxmitbuf->ptail = pxmitbuf->phead;
@@ -3263,6 +3277,7 @@ _func_enter_;
 
 	if (psta == NULL) {
 		res = _FAIL;
+		printk("rtw_xmit_classifier: psta == NULL\n");
 		RT_TRACE(_module_rtl871x_xmit_c_,_drv_err_,("rtw_xmit_classifier: psta == NULL\n"));
 		goto exit;
 	}
@@ -3602,9 +3617,9 @@ s32 rtw_xmit(_adapter *padapter, _pkt **ppkt)
 	pxmitframe = rtw_alloc_xmitframe(pxmitpriv);
 	if (pxmitframe == NULL) {
 		RT_TRACE(_module_xmit_osdep_c_, _drv_err_, ("rtw_xmit: no more pxmitframe\n"));
-		#ifdef DBG_TX_DROP_FRAME
+		//#ifdef DBG_TX_DROP_FRAME
 		DBG_871X("DBG_TX_DROP_FRAME %s no more pxmitframe\n", __FUNCTION__);
-		#endif
+		//#endif
 		return -1;
 	}
 
@@ -3618,7 +3633,7 @@ s32 rtw_xmit(_adapter *padapter, _pkt **ppkt)
 	rcu_read_unlock();
 #endif  // (LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 35))
 
-	if( br_port	&& check_fwstate(pmlmepriv, WIFI_STATION_STATE|WIFI_ADHOC_STATE) == _TRUE)
+	if( br_port && check_fwstate(pmlmepriv, WIFI_STATION_STATE|WIFI_ADHOC_STATE) == _TRUE)
 	{
 		res = rtw_br_client_tx(padapter, ppkt);
 		if (res == -1)

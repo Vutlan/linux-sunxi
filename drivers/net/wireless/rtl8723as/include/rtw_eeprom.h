@@ -25,7 +25,11 @@
 #include <drv_types.h>
 
 #define	RTL8712_EEPROM_ID			0x8712
-#define	EEPROM_MAX_SIZE			256
+//#define	EEPROM_MAX_SIZE			256
+
+#define	HWSET_MAX_SIZE_512		512
+#define	EEPROM_MAX_SIZE			HWSET_MAX_SIZE_512
+
 #define	CLOCK_RATE					50			//100us		
 
 //- EEPROM opcodes
@@ -128,7 +132,7 @@ struct eeprom_priv
 
 	u8		EepromOrEfuse;
 
-	u8		efuse_eeprom_data[EEPROM_MAX_SIZE];
+	u8		efuse_eeprom_data[HWSET_MAX_SIZE_512]; //92C:256bytes, 88E:512bytes, we use union set (512bytes)
 
 #ifdef CONFIG_SDIO_HCI
 	u8		sdio_setting;	
@@ -155,3 +159,4 @@ extern int retriveAdaptorInfoFile(char *path, struct eeprom_priv * eeprom_priv);
 #endif //PLATFORM_LINUX
 
 #endif  //__RTL871X_EEPROM_H__
+

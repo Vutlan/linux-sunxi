@@ -391,7 +391,9 @@ SetAntennaConfig92C(
 	IN	u8		DefaultAnt	
 	);
 
-
+#ifdef RTL8192C_RECONFIG_TO_1T1R
+extern void	PHY_Reconfig_To_1T1R(_adapter *padapter);
+#endif
 /*--------------------------Exported Function prototype---------------------*/
 
 #define PHY_QueryBBReg(Adapter, RegAddr, BitMask) rtl8192c_PHY_QueryBBReg((Adapter), (RegAddr), (BitMask))

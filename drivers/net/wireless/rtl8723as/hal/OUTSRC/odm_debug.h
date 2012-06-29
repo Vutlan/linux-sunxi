@@ -83,6 +83,7 @@
 #define ODM_COMP_PATH_DIV				BIT10
 #define ODM_COMP_PSD					BIT11
 #define ODM_COMP_DYNAMIC_PRICCA		BIT12
+#define ODM_COMP_RXHP				BIT13			
 //MAC Functions
 #define ODM_COMP_EDCA_TURBO			BIT16
 #define ODM_COMP_EARLY_MODE			BIT17
@@ -97,8 +98,11 @@
 /*------------------------Export Marco Definition---------------------------*/
 #if (DM_ODM_SUPPORT_TYPE == ODM_MP)
 #define RT_PRINTK				DbgPrint
+#elif (DM_ODM_SUPPORT_TYPE == ODM_CE)
+	#define DbgPrint	printk
+	#define RT_PRINTK(fmt, args...)	DbgPrint( "%s(): " fmt, __FUNCTION__, ## args);
 #else
-#define DbgPrint	printk
+	#define DbgPrint	panic_printk
 #define RT_PRINTK(fmt, args...)	DbgPrint( "%s(): " fmt, __FUNCTION__, ## args);
 #endif
 
@@ -898,3 +902,4 @@ extern u8Byte GlobalDebugComponents;
 
 
 #endif	// __ODM_DBG_H__
+

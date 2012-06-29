@@ -67,7 +67,7 @@ typedef enum _HW_VARIABLES{
 	HW_VAR_SIFS,
 	HW_VAR_ACK_PREAMBLE,
 	HW_VAR_SEC_CFG,
-	HW_VAR_TX_BCN_DONE,
+	HW_VAR_BCN_VALID,
 	HW_VAR_RF_TYPE,
 	HW_VAR_DM_FLAG,
 	HW_VAR_DM_FUNC_OP,
@@ -102,7 +102,10 @@ typedef enum _HW_VARIABLES{
 	HW_VAR_ANTENNA_DIVERSITY_LINK,
 	HW_VAR_ANTENNA_DIVERSITY_SELECT,
 	HW_VAR_SWITCH_EPHY_WoWLAN,
+	HW_VAR_EFUSE_USAGE,
 	HW_VAR_EFUSE_BYTES,
+	HW_VAR_EFUSE_BT_USAGE,
+	HW_VAR_EFUSE_BT_BYTES,
 	HW_VAR_FIFO_CLEARN_UP,
 	HW_VAR_CHECK_TXBUF,
 	HW_VAR_APFM_ON_MAC, //Auto FSM to Turn On, include clock, isolation, power control for MAC only
@@ -113,9 +116,6 @@ typedef enum _HW_VARIABLES{
 	HW_VAR_RPT_TIMER_SETTING,
 	HW_VAR_TX_RPT_MAX_MACID,	
 	HW_VAR_H2C_MEDIA_STATUS_RPT,
-#ifdef CONFIG_RECFG_AGC_TAB
-	HW_VAR_LPS_RF_ON_RECFG_AGC,
-#endif	//CONFIG_RECFG_AGC_TAB
 }HW_VARIABLES;
 
 typedef enum _HAL_DEF_VARIABLE{
@@ -192,7 +192,7 @@ struct hal_ops {
 	void	(*GetHalODMVarHandler)(PADAPTER Adapter, HAL_ODM_VARIABLE eVariable, PVOID pValue1,BOOLEAN bSet);
 	void	(*SetHalODMVarHandler)(PADAPTER Adapter, HAL_ODM_VARIABLE eVariable, PVOID pValue1,BOOLEAN bSet);
 
-	void	(*UpdateRAMaskHandler)(PADAPTER Adapter, u32 mac_id);
+	void	(*UpdateRAMaskHandler)(PADAPTER Adapter, u32 mac_id, u8 rssi_level);
 	void	(*SetBeaconRelatedRegistersHandler)(PADAPTER Adapter);
 
 	void	(*Add_RateATid)(PADAPTER Adapter, u32 bitmap, u8 arg);
@@ -214,13 +214,15 @@ struct hal_ops {
 #ifdef CONFIG_HOSTAPD_MLME
 	s32	(*hostap_mgnt_xmit_entry)(PADAPTER Adapter, _pkt *pkt);
 #endif
+
 	void (*EfusePowerSwitch)(PADAPTER pAdapter, u8 bWrite, u8 PwrState);
 	void (*ReadEFuse)(PADAPTER Adapter, u8 efuseType, u16 _offset, u16 _size_byte, u8 *pbuf, BOOLEAN bPseudoTest);
-	void (*EFUSEGetEfuseDefinition)(PADAPTER pAdapter, u8 efuseType, u8 type, PVOID *pOut, BOOLEAN bPseudoTest);
+	void (*EFUSEGetEfuseDefinition)(PADAPTER pAdapter, u8 efuseType, u8 type, void *pOut, BOOLEAN bPseudoTest);
 	u16	(*EfuseGetCurrentSize)(PADAPTER pAdapter, u8 efuseType, BOOLEAN bPseudoTest);
 	int 	(*Efuse_PgPacketRead)(PADAPTER pAdapter, u8 offset, u8 *data, BOOLEAN bPseudoTest);
 	int 	(*Efuse_PgPacketWrite)(PADAPTER pAdapter, u8 offset, u8 word_en, u8 *data, BOOLEAN bPseudoTest);
 	u8	(*Efuse_WordEnableDataWrite)(PADAPTER pAdapter, u16 efuse_addr, u8 word_en, u8 *data, BOOLEAN bPseudoTest);
+	BOOLEAN	(*Efuse_PgPacketWrite_BT)(PADAPTER pAdapter, u8 offset, u8 word_en, u8 *data, BOOLEAN bPseudoTest);
 	
 #ifdef DBG_CONFIG_ERROR_DETECT
 	void (*sreset_init_value)(_adapter *padapter);

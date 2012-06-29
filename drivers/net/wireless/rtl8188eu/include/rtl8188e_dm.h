@@ -174,3 +174,4 @@ void	SwAntDivCompare8188E(PADAPTER Adapter, WLAN_BSSID_EX *dst, WLAN_BSSID_EX *s
 u8 SwAntDivBeforeLink8188E(PADAPTER Adapter );
 #endif
 #endif
+

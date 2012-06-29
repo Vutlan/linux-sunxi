@@ -153,3 +153,4 @@ typedef	struct tag_HAL_VERSION
 #define IS_8723A_B_CUT(version)				((IS_8723_SERIES(version)) ? ( IS_B_CUT(version)?TRUE : FALSE) : FALSE)
 
 #endif
+

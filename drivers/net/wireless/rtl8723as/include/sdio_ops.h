@@ -58,6 +58,7 @@ extern s32 _sdio_local_write(PADAPTER padapter, u32 addr, u32 cnt, u8 *pbuf);
 extern s32 sdio_local_write(PADAPTER padapter, u32 addr, u32 cnt, u8 *pbuf);
 
 extern void InitInterrupt8723ASdio(PADAPTER padapter);
+extern void InitSysInterrupt8723ASdio(PADAPTER padapter);
 extern void EnableInterrupt8723ASdio(PADAPTER padapter);
 extern void DisableInterrupt8723ASdio(PADAPTER padapter);
 extern void sd_int_hdl(PADAPTER padapter);

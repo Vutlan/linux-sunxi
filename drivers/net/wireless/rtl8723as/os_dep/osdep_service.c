@@ -228,7 +228,6 @@ void	_rtw_mfree(u8 *pbuf, u32 sz)
 	
 }
 
-
 #ifdef DBG_MEM_ALLOC
 
 struct rtw_dbg_mem_stat {
@@ -459,6 +458,27 @@ inline void dbg_rtw_mfree(u8 *pbuf, u32 sz, const char *func, int line)
 }
 #endif
 
+void* rtw_malloc2d(int h, int w, int size)
+{
+	int j;
+
+	void **a = (void **) rtw_zmalloc( h*sizeof(void *) + h*w*size );
+	if(a == NULL)
+	{
+		DBG_871X("%s: alloc memory fail!\n", __FUNCTION__);
+		return NULL;
+	}
+
+	for( j=0; j<h; j++ )
+		a[j] = ((char *)(a+h)) + j*w*size;
+
+	return a;
+}
+
+void rtw_mfree2d(void *pbuf, int h, int w, int size)
+{
+	rtw_mfree((u8 *)pbuf, h*sizeof(void*) + w*h*size);
+}
 
 void _rtw_memcpy(void* dst, void* src, u32 sz)
 {

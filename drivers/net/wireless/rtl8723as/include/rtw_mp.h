@@ -324,7 +324,7 @@ typedef struct _MPT_CONTEXT
 
 /* E-Fuse */
 #ifdef CONFIG_RTL8192D
-#define EFUSE_MAP_SIZE		255
+#define EFUSE_MAP_SIZE		256
 #endif
 #ifdef CONFIG_RTL8192C
 #define EFUSE_MAP_SIZE		128
@@ -336,7 +336,6 @@ typedef struct _MPT_CONTEXT
 #define EFUSE_MAP_SIZE		256
 #endif
 #define EFUSE_MAX_SIZE		512
-
 /* end of E-Fuse */
 
 //#define RTPRIV_IOCTL_MP 					( SIOCIWFIRSTPRIV + 0x17)
@@ -365,6 +364,8 @@ enum {
 	MP_RESET_STATS,
 	MP_DUMP,
 	MP_PHYPARA,
+	MP_SetRFPathSwh,
+	MP_QueryDrvStats,
 	MP_NULL,
 };
 
@@ -712,6 +713,8 @@ extern u8 Hal_ReadRFThermalMeter(PADAPTER pAdapter);
 extern void Hal_SetCCKContinuousTx(PADAPTER pAdapter, u8 bStart);
 extern void Hal_SetOFDMContinuousTx(PADAPTER pAdapter, u8 bStart);
 extern void Hal_ProSetCrystalCap (PADAPTER pAdapter , u32 CrystalCapVal);
+
+extern void MP_PHY_SetRFPathSwitch(PADAPTER pAdapter ,BOOLEAN bMain);
 
 #endif //_RTW_MP_H_
 

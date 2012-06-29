@@ -194,6 +194,10 @@ struct registry_priv
 	u8	max_roaming_times; // the max number driver will try to roaming
 #endif
 
+#ifdef CONFIG_IOL
+	bool force_iol; //enable iol without other concern
+#endif
+
 #ifdef CONFIG_DUALMAC_CONCURRENT
 	u8	dmsp;//0:disable,1:enable
 #endif
@@ -548,10 +552,9 @@ struct _ADAPTER{
 #ifdef CONFIG_MAC_LOOPBACK_DRIVER
 	PLOOPBACKDATA ploopback;
 #endif
-
-  	#if (RATE_ADAPTIVE_SUPPORT == 1)
+ 
         u8    fix_rate;
-    #endif
+
 };	
   
 __inline static u8 *myid(struct eeprom_priv *peepriv)

@@ -747,3 +747,4 @@ void rtl8192c_process_phy_info(_adapter *padapter, void *prframe)
 	process_link_qual(padapter,  precvframe);
 
 }
+

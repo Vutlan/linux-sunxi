@@ -180,6 +180,8 @@ static struct usb_device_id rtw_usb_id_tbl[] ={
 #endif
 #ifdef CONFIG_RTL8723A
 	{USB_DEVICE_AND_INTERFACE_INFO(USB_VENDER_ID_REALTEK, 0x8724,0xff,0xff,0xff)}, //8723AU 1*1
+	{USB_DEVICE_AND_INTERFACE_INFO(USB_VENDER_ID_REALTEK, 0x1724,0xff,0xff,0xff)}, //8723AU 1*1
+	{USB_DEVICE_AND_INTERFACE_INFO(USB_VENDER_ID_REALTEK, 0x0724,0xff,0xff,0xff)}, //8723AU 1*1
 #endif
 #ifdef CONFIG_RTL8188E
 	/*=== Realtek demoboard ===*/		
@@ -1536,8 +1538,10 @@ static int __init rtw_drv_entry(void)
 
 	sw_usb_enable_hcd(usb_wifi_host);
 	
-	DBG_871X("rtw driver version=%s \n", DRIVERVERSION);
-	DBG_871X("Build at: %s %s\n", __DATE__, __TIME__);
+
+	DBG_871X(DRV_NAME " driver version=%s\n", DRIVERVERSION);
+	DBG_871X("build time: %s %s\n", __DATE__, __TIME__);
+	
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24)) 
 	//console_suspend_enabled=0;
 #endif

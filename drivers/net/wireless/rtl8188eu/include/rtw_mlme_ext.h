@@ -499,7 +499,7 @@ extern struct xmit_frame *alloc_mgtxmitframe(struct xmit_priv *pxmitpriv);
 //void fill_fwpriv(_adapter * padapter, struct fw_priv *pfwpriv);
 
 unsigned char networktype_to_raid(unsigned char network_type);
-int judge_network_type(_adapter *padapter, unsigned char *rate, int ratelen);
+u8 judge_network_type(_adapter *padapter, unsigned char *rate, int ratelen);
 void get_rate_set(_adapter *padapter, unsigned char *pbssrate, int *bssrate_len);
 
 void Save_DM_Func_Flag(_adapter *padapter);

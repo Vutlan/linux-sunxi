@@ -20,12 +20,12 @@
 //***** temporarily flag *******
 
 //#define CONFIG_DISABLE_ODM
-
+#define CONFIG_ODM_REFRESH_RAMASK
 #define CONFIG_CHIP_VER_INTEGRATION
 #define CONFIG_PHY_SETTING_WITH_ODM
 //for FPGA VERIFICATION config
 #define RTL8188E_FPGA_TRUE_PHY_VERIFICATION 0
-#define FOR_BRAZIL_PRETEST 0
+
 //***** temporarily flag *******
 /*
  * Public  General Config
@@ -40,7 +40,7 @@
 
 #define PLATFORM_LINUX	1
 
-#define CONFIG_IOCTL_CFG80211 1
+//#define CONFIG_IOCTL_CFG80211 1
 #ifdef CONFIG_IOCTL_CFG80211
 	#define CONFIG_CFG80211_FORCE_COMPATIBLE_2_6_37_UNDER
 	//#define CONFIG_DEBUG_CFG80211 1
@@ -75,10 +75,10 @@
 	//#define CONFIG_BT_COEXIST	1
 	//befor link
 	#define CONFIG_ANTENNA_DIVERSITY	 	
+
 	//after link
-	#ifdef CONFIG_ANTENNA_DIVERSITY
-	#define CONFIG_SW_ANTENNA_DIVERSITY	 
-	//#define CONFIG_HW_ANTENNA_DIVERSITY		
+	#ifdef CONFIG_ANTENNA_DIVERSITY	 
+	#define CONFIG_HW_ANTENNA_DIVERSITY		
 	#endif
 
 	//#define CONFIG_IOL
@@ -296,6 +296,7 @@
 
 //#define DBG_TX
 //#define DBG_XMIT_BUF
+//#define DBG_XMIT_BUF_EXT
 //#define DBG_TX_DROP_FRAME
 
 //#define DBG_RX_DROP_FRAME

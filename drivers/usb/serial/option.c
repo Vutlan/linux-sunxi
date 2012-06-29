@@ -157,6 +157,9 @@ static void option_instat_callback(struct urb *urb);
 #define HUAWEI_PRODUCT_ETS1220			0x1803
 #define HUAWEI_PRODUCT_ET128			0x1D09
 #define HUAWEI_PRODUCT_E353				0x1506
+#define HUAWEI_PRODUCT_E303				0x1506
+#define HUAWEI_PRODUCT_E173				0x1c05
+#define HUAWEI_PRODUCT_ET302			0x1d50
 
 #define QUANTA_VENDOR_ID			0x0408
 #define QUANTA_PRODUCT_Q101			0xEA02
@@ -164,6 +167,9 @@ static void option_instat_callback(struct urb *urb);
 #define QUANTA_PRODUCT_GLX			0xEA04
 #define QUANTA_PRODUCT_GKE			0xEA05
 #define QUANTA_PRODUCT_GLE			0xEA06
+
+#define USB_MODE_PRODUCT			0x1c9e
+#define USB_MODE_HSPA_USB_MODEM		0x9605
 
 #define NOVATELWIRELESS_VENDOR_ID		0x1410
 
@@ -300,6 +306,8 @@ static void option_instat_callback(struct urb *urb);
 
 #define QUALCOMM_VENDOR_ID			0x05C6
 #define QUALCOMM_ASB_C820			0x00a0	//ASB use QUALCOMM ic dongle
+#define QUALCOMM_HD360				0x0015
+#define QUALCOMM_PRODUCT_0018       0x0018   // This dongle doesn't need mode switching. by Cesc
 
 #define CMOTECH_VENDOR_ID			0x16d8
 #define CMOTECH_PRODUCT_6008			0x6008
@@ -502,6 +510,14 @@ static void option_instat_callback(struct urb *urb);
 #define TechFaith_PRODUCT_HSDPA		0x1010
 #define TechFaith_PRODUCT_SRTE800	0xAEF4
 
+/* India 3g dongle product */
+#define INDIA_MMX352G_VENDOR_ID     0x1c9e
+#define INDIA_MMX352G_PRODUCT_9605  0x9605
+
+#define INDIA_JUNYUE_VENDRO_ID    0x230d
+#define INDIA_JUNYUE_PRODUCT_HSPA 0x000d
+
+
 /* some devices interfaces need special handling due to a number of reasons */
 enum option_blacklist_reason {
 		OPTION_BLACKLIST_NONE = 0,
@@ -535,6 +551,7 @@ static const struct option_blacklist_info zte_k3765_z_blacklist = {
 	.ifaceinfo = zte_k3765_z_no_sendsetup,
 	.reason = OPTION_BLACKLIST_SENDSETUP
 };
+
 
 static const struct usb_device_id option_ids[] = {
 	{ USB_DEVICE(OPTION_VENDOR_ID, OPTION_PRODUCT_COLT) },
@@ -648,8 +665,14 @@ static const struct usb_device_id option_ids[] = {
 	{ USB_DEVICE_AND_INTERFACE_INFO(HUAWEI_VENDOR_ID, HUAWEI_PRODUCT_K4511, 0xff, 0x01, 0x31) },
 	{ USB_DEVICE_AND_INTERFACE_INFO(HUAWEI_VENDOR_ID, HUAWEI_PRODUCT_K4511, 0xff, 0x01, 0x32) },
 	{ USB_DEVICE_AND_INTERFACE_INFO(HUAWEI_VENDOR_ID, HUAWEI_PRODUCT_E353, 0xff, 0x01, 0x01) },
+	{ USB_DEVICE_AND_INTERFACE_INFO(HUAWEI_VENDOR_ID, HUAWEI_PRODUCT_E303, 0xff, 0x02, 0x01) },
+	{ USB_DEVICE_AND_INTERFACE_INFO(HUAWEI_VENDOR_ID, HUAWEI_PRODUCT_E303, 0xff, 0x02, 0x16) },
+	{ USB_DEVICE_AND_INTERFACE_INFO(HUAWEI_VENDOR_ID, HUAWEI_PRODUCT_E303, 0xff, 0x02, 0x03) },
+	{ USB_DEVICE_AND_INTERFACE_INFO(HUAWEI_VENDOR_ID, HUAWEI_PRODUCT_E303, 0xff, 0x02, 0x02) },
+	{ USB_DEVICE_AND_INTERFACE_INFO(HUAWEI_VENDOR_ID, HUAWEI_PRODUCT_E173, 0xff, 0xff, 0xff) },
 	{ USB_DEVICE(HUAWEI_VENDOR_ID, HUAWEI_PRODUCT_ET128) },//0x12D11DA1->0x12D11D09	GSM,HUAWEI ET128-2,ET128
 	{ USB_DEVICE(HUAWEI_VENDOR_ID, HUAWEI_PRODUCT_E14AC) },
+	{ USB_DEVICE(HUAWEI_VENDOR_ID, HUAWEI_PRODUCT_ET302) },
 	{ USB_DEVICE(NOVATELWIRELESS_VENDOR_ID, NOVATELWIRELESS_PRODUCT_V640) },
 	{ USB_DEVICE(NOVATELWIRELESS_VENDOR_ID, NOVATELWIRELESS_PRODUCT_V620) },
 	{ USB_DEVICE(NOVATELWIRELESS_VENDOR_ID, NOVATELWIRELESS_PRODUCT_V740) },
@@ -1171,8 +1194,11 @@ static const struct usb_device_id option_ids[] = {
 	{ USB_DEVICE(QUALCOMM_VENDOR_ID,   QUALCOMM_ASB_C820)},
 	{ USB_DEVICE(ASB_VENDOR_ID, ASB_PRODUCT_T920) }, /*ASB T920 */
 	{ USB_DEVICE(ASB_VENDOR_ID, ASB_PRODUCT_TU930) }, /*ASB TU930 */
-	{ USB_DEVICE(TechFaith_VENDOR_ID,TechFaith_PRODUCT_HSDPA) },/*TechFaith WCDMA product*/
-	{ USB_DEVICE(TechFaith_VENDOR_ID,TechFaith_PRODUCT_SRTE800) },/*TechFaith WCDMA product*/	
+	{ USB_DEVICE(TechFaith_VENDOR_ID, TechFaith_PRODUCT_HSDPA) },/*TechFaith WCDMA product*/
+	{ USB_DEVICE(TechFaith_VENDOR_ID, TechFaith_PRODUCT_SRTE800) },/*TechFaith WCDMA product*/	
+	{ USB_DEVICE(USB_MODE_PRODUCT, USB_MODE_HSPA_USB_MODEM) },
+	{ USB_DEVICE(QUALCOMM_VENDOR_ID, QUALCOMM_HD360) },
+	{ USB_DEVICE(QUALCOMM_VENDOR_ID, QUALCOMM_PRODUCT_0018) }, /* by Cesc */
 	{ } /* Terminating entry */
 };
 MODULE_DEVICE_TABLE(usb, option_ids);

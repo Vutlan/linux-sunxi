@@ -29,7 +29,7 @@ ODM_InitDebugSetting(
 	IN		PDM_ODM_T		pDM_Odm
 	)
 {
-pDM_Odm->DebugLevel				= 	ODM_DBG_LOUD;
+pDM_Odm->DebugLevel				= 	ODM_DBG_TRACE;
 
 pDM_Odm->DebugComponents			= 
 \
@@ -47,6 +47,8 @@ pDM_Odm->DebugComponents			=
 //									ODM_COMP_RATE_ADAPTIVE		|
 //									ODM_COMP_PATH_DIV				|
 //									ODM_COMP_DYNAMIC_PRICCA		|
+//									ODM_COMP_RXHP					|
+
 //MAC Functions
 //									ODM_COMP_EDCA_TURBO			|
 //									ODM_COMP_EARLY_MODE			|

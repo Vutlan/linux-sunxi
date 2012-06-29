@@ -4487,6 +4487,10 @@ static void rtw_cfg80211_preinit_wiphy(_adapter *padapter, struct wiphy *wiphy)
 	wiphy->bands[IEEE80211_BAND_2GHZ] = &rtw_band_2ghz;
 	wiphy->bands[IEEE80211_BAND_5GHZ] = &rtw_band_5ghz;
 	
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38) && LINUX_VERSION_CODE < KERNEL_VERSION(3,0,0))
+	wiphy->flags |= WIPHY_FLAG_SUPPORTS_SEPARATE_DEFAULT_KEYS;
+#endif
+	
 }
 
 int rtw_wdev_alloc(_adapter *padapter, struct device *dev)

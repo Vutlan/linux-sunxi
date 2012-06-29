@@ -50,12 +50,8 @@ typedef enum _LED_CTL_MODE{
 
 typedef enum _LED_STATE_871x{
 	LED_UNKNOWN = 0,
-	LED_ON = 1,
-#ifdef CONFIG_SDIO_HCI
+	RTW_LED_ON = 1,
 	RTW_LED_OFF = 2,
-#else
-	LED_OFF = 2,
-#endif
 	LED_BLINK_NORMAL = 3,
 	LED_BLINK_SLOWLY = 4,
 	LED_POWER_ON_BLINK = 5,
@@ -98,7 +94,7 @@ typedef struct _LED_871x{
 	u8					bLedWPSBlinkInProgress;
 	
 	u32					BlinkTimes; // Number of times to toggle led state for blinking.
-	LED_STATE_871x		BlinkingLedState; // Next state for blinking, either LED_ON or LED_OFF are.
+	LED_STATE_871x		BlinkingLedState; // Next state for blinking, either RTW_LED_ON or RTW_LED_OFF are.
 
 	_timer				BlinkTimer; // Timer object for led blinking.
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2,5,0)|| defined PLATFORM_FREEBSD
@@ -130,8 +126,8 @@ typedef	enum _LED_STRATEGY_871x{
 
 typedef	enum _LED_STATE_871x{
 	LED_UNKNOWN = 0,
-	LED_ON = 1,
-	LED_OFF = 2,
+	RTW_LED_ON = 1,
+	RTW_LED_OFF = 2,
 	LED_BLINK_NORMAL = 3,
 	LED_BLINK_SLOWLY = 4,
 	LED_POWER_ON_BLINK = 5,
@@ -163,7 +159,7 @@ typedef struct _LED_871x{
 
 	u8					bLedSlowBlinkInProgress;//added by vivi, for led new mode
 	u32					BlinkTimes; // Number of times to toggle led state for blinking.
-	LED_STATE_871x		BlinkingLedState; // Next state for blinking, either LED_ON or LED_OFF are.
+	LED_STATE_871x		BlinkingLedState; // Next state for blinking, either RTW_LED_ON or RTW_LED_OFF are.
 
 	_timer				BlinkTimer; // Timer object for led blinking.
 } LED_871x, *PLED_871x;

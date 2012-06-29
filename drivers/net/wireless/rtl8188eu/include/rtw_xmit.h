@@ -410,7 +410,7 @@ struct xmit_buf
 	u32  len;
 #endif
 
-#ifdef DBG_XMIT_BUF
+#if defined(DBG_XMIT_BUF )|| defined(DBG_XMIT_BUF_EXT)
 	u8 no;
 #endif
 
@@ -575,6 +575,7 @@ struct	xmit_priv	{
 	// Tx
 	struct rtw_tx_ring	tx_ring[PCI_MAX_TX_QUEUE_COUNT];
 	int	txringcount[PCI_MAX_TX_QUEUE_COUNT];
+	u8 	beaconDMAing;		//flag of indicating beacon is transmiting to HW by DMA
 #ifdef PLATFORM_LINUX
 	struct tasklet_struct xmit_tasklet;
 #endif

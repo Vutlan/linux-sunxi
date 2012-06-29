@@ -1634,8 +1634,8 @@ static void usb_read_port_complete(struct urb *purb, struct pt_regs *regs)
 			dev_kfree_skb_any(precvbuf->pskb);				
 		}	
 	#endif
-		DBG_8192C("%s()-%d: RX Warning! bDriverStopped(%d) OR bSurpriseRemoved(%d) bReadPortCancel(%d)\n", 
-		__FUNCTION__, __LINE__,padapter->bDriverStopped, padapter->bSurpriseRemoved,padapter->bReadPortCancel);	
+		DBG_8192C("%s() RX Warning! bDriverStopped(%d) OR bSurpriseRemoved(%d) bReadPortCancel(%d)\n", 
+		__FUNCTION__,padapter->bDriverStopped, padapter->bSurpriseRemoved,padapter->bReadPortCancel);	
 		goto exit;
 	}
 
@@ -1975,6 +1975,11 @@ _func_enter_;
 	if(padapter->bSurpriseRemoved || padapter->bDriverStopped ||padapter->bWritePortCancel)
 	{
 		RT_TRACE(_module_hci_ops_os_c_,_drv_err_,("usb_write_port_complete:bDriverStopped(%d) OR bSurpriseRemoved(%d)", padapter->bDriverStopped, padapter->bSurpriseRemoved));
+		DBG_8192C("%s(): TX Warning! bDriverStopped(%d) OR bSurpriseRemoved(%d) bWritePortCancel(%d) pxmitbuf->ext_tag(%x) \n", 
+		__FUNCTION__,padapter->bDriverStopped, padapter->bSurpriseRemoved,padapter->bReadPortCancel,pxmitbuf->ext_tag);	
+
+		
+		
 		goto check_completion;
 	}
 
@@ -2351,3 +2356,4 @@ void rtl8188eu_set_hw_type(_adapter *padapter)
 	padapter->HardwareType = HARDWARE_TYPE_RTL8188EU;
 	DBG_871X("CHIP TYPE: RTL8188E\n");
 }
+

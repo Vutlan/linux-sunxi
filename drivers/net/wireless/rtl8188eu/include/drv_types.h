@@ -179,6 +179,7 @@ struct registry_priv
 	BOOLEAN	bAcceptAddbaReq;	
 
 	u8	antdiv_cfg;
+	u8	antdiv_type;
 
 	u8	usbss_enable;//0:disable,1:enable
 	u8	hwpdn_mode;//0:disable,1:enable,2:decide by EFUSE config
@@ -192,6 +193,10 @@ struct registry_priv
 
 #ifdef CONFIG_LAYER2_ROAMING
 	u8	max_roaming_times; // the max number driver will try to roaming
+#endif
+
+#ifdef CONFIG_IOL
+	bool force_iol; //enable iol without other concern
 #endif
 
 #ifdef CONFIG_DUALMAC_CONCURRENT

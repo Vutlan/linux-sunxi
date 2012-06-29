@@ -29,6 +29,11 @@
 #ifdef CONFIG_BR_EXT
 #include <rtw_br_ext.h>
 #endif //CONFIG_BR_EXT
+
+#ifdef CONFIG_BT_COEXIST
+#include <rtl8723a_hal.h>
+#endif // CONFIG_BT_COEXIST
+
 /*
 Caller and the rtw_cmd_thread can protect cmd_q by spin_lock.
 No irqsave is necessary.
@@ -398,7 +403,7 @@ thread_return rtw_cmd_thread(thread_context context)
 	u8 *pcmdbuf, *prspbuf;
 	u8 (*cmd_hdl)(_adapter *padapter, u8* pbuf);
 	void (*pcmd_callback)(_adapter *dev, struct cmd_obj *pcmd);
-       _adapter *padapter = (_adapter *)context;
+	PADAPTER padapter = (PADAPTER)context;
 	struct cmd_priv *pcmdpriv = &(padapter->cmdpriv);
 	
 _func_enter_;
@@ -410,17 +415,26 @@ _func_enter_;
 
 	pcmdpriv->cmdthd_running=_TRUE;
 	_rtw_up_sema(&pcmdpriv->terminate_cmdthread_sema);
-	
+
 	RT_TRACE(_module_rtl871x_cmd_c_,_drv_info_,("start r871x rtw_cmd_thread !!!!\n"));
 
 	while(1)
 	{
-		if ((_rtw_down_sema(&(pcmdpriv->cmd_queue_sema))) == _FAIL)
+		if (_rtw_down_sema(&pcmdpriv->cmd_queue_sema) == _FAIL)
 			break;
+
+		if ((padapter->bDriverStopped == _TRUE)||(padapter->bSurpriseRemoved == _TRUE))
+		{
+			DBG_871X("%s: DriverStopped(%d) SurpriseRemoved(%d) break at line %d\n",
+				__FUNCTION__, padapter->bDriverStopped, padapter->bSurpriseRemoved, __LINE__);
+			break;
+		}
 
 #ifdef CONFIG_LPS_LCLK
 		if (rtw_register_cmd_alive(padapter) != _SUCCESS)
 		{
+			RT_TRACE(_module_hal_xmit_c_, _drv_notice_,
+					 ("%s: wait to leave LPS_LCLK\n", __FUNCTION__));
 			continue;
 		}
 #endif
@@ -428,8 +442,8 @@ _func_enter_;
 _next:
 		if ((padapter->bDriverStopped == _TRUE)||(padapter->bSurpriseRemoved== _TRUE))
 		{
-			DBG_871X("###> rtw_cmd_thread break.................\n");
-			RT_TRACE(_module_rtl871x_cmd_c_, _drv_info_, ("rtw_cmd_thread:bDriverStopped(%d) OR bSurpriseRemoved(%d)", padapter->bDriverStopped, padapter->bSurpriseRemoved));		
+			DBG_871X("%s: DriverStopped(%d) SurpriseRemoved(%d) break at line %d\n",
+				__FUNCTION__, padapter->bDriverStopped, padapter->bSurpriseRemoved, __LINE__);
 			break;
 		}
 
@@ -443,12 +457,7 @@ _next:
 		if( _FAIL == rtw_cmd_filter(pcmdpriv, pcmd) )
 		{
 			pcmd->res = H2C_DROPPED;
-			goto post_process;					
-		}
-
-		if( _FAIL == rtw_cmd_filter(pcmdpriv, pcmd) ) {
-			rtw_free_cmd_obj(pcmd);
-			continue;
+			goto post_process;
 		}
 
 		pcmdpriv->cmd_issued_cnt++;
@@ -492,6 +501,11 @@ post_process:
 				//todo: !!! fill rsp_buf to pcmd->rsp if (pcmd->rsp!=NULL)
 				pcmd_callback(padapter, pcmd);//need conider that free cmd_obj in rtw_cmd_callback
 			}
+		}
+		else
+		{
+			RT_TRACE(_module_rtl871x_cmd_c_,_drv_err_,("%s: cmdcode=0x%x callback not defined!\n", __FUNCTION__, pcmd->cmdcode));
+			rtw_free_cmd_obj(pcmd);
 		}
 
 		flush_signals_thread();
@@ -657,9 +671,7 @@ u8 rtw_sitesurvey_cmd(_adapter  *padapter, NDIS_802_11_SSID *pssid, int ssid_max
 _func_enter_;
 
 #ifdef CONFIG_LPS
-	if(check_fwstate(pmlmepriv, _FW_LINKED) == _TRUE){
-		rtw_lps_ctrl_wk_cmd(padapter, LPS_CTRL_SCAN, 1);
-	}
+	rtw_lps_ctrl_wk_cmd(padapter, LPS_CTRL_SCAN, 1);
 #endif
 
 #ifdef CONFIG_P2P
@@ -678,7 +690,7 @@ _func_enter_;
 
 	rtw_free_network_queue(padapter, _FALSE);
 
-	RT_TRACE(_module_rtl871x_cmd_c_, _drv_info_, ("\nflush  network queue\n\n"));
+	RT_TRACE(_module_rtl871x_cmd_c_, _drv_info_, ("%s: flush network queue\n", __FUNCTION__));
 
 	init_h2fwcmd_w_parm_no_rsp(ph2c, psurveyPara, GEN_CMD_CODE(_SiteSurvey));
 
@@ -1424,6 +1436,67 @@ _func_exit_;
 	return res;
 }
 
+u8 rtw_clearstakey_cmd(_adapter *padapter, u8 *psta, u8 entry, u8 enqueue)
+{
+	struct cmd_obj*			ph2c;
+	struct set_stakey_parm	*psetstakey_para;
+	struct cmd_priv 			*pcmdpriv=&padapter->cmdpriv;
+	struct set_stakey_rsp		*psetstakey_rsp = NULL;	
+	struct mlme_priv			*pmlmepriv = &padapter->mlmepriv;
+	struct security_priv 		*psecuritypriv = &padapter->securitypriv;
+	struct sta_info* 			sta = (struct sta_info* )psta;
+	u8	res=_SUCCESS;
+
+_func_enter_;
+
+	if(!enqueue)
+	{
+		clear_cam_entry(padapter, entry);
+	}
+	else
+	{
+		ph2c = (struct cmd_obj*)rtw_zmalloc(sizeof(struct cmd_obj));
+		if ( ph2c == NULL){
+			res= _FAIL;
+			goto exit;
+		}
+
+		psetstakey_para = (struct set_stakey_parm*)rtw_zmalloc(sizeof(struct set_stakey_parm));
+		if(psetstakey_para==NULL){
+			rtw_mfree((u8 *) ph2c, sizeof(struct	cmd_obj));
+			res=_FAIL;
+			goto exit;
+		}
+
+		psetstakey_rsp = (struct set_stakey_rsp*)rtw_zmalloc(sizeof(struct set_stakey_rsp)); 
+		if(psetstakey_rsp == NULL){
+			rtw_mfree((u8 *) ph2c, sizeof(struct	cmd_obj));
+			rtw_mfree((u8 *) psetstakey_para, sizeof(struct set_stakey_parm));
+			res=_FAIL;
+			goto exit;
+		}
+
+		init_h2fwcmd_w_parm_no_rsp(ph2c, psetstakey_para, _SetStaKey_CMD_);
+		ph2c->rsp = (u8 *) psetstakey_rsp;
+		ph2c->rspsz = sizeof(struct set_stakey_rsp);
+
+		_rtw_memcpy(psetstakey_para->addr, sta->hwaddr, ETH_ALEN);
+
+		psetstakey_para->algorithm = _NO_PRIVACY_;
+
+		psetstakey_para->id = entry;
+	
+		res = rtw_enqueue_cmd(pcmdpriv, ph2c);	
+		
+	}
+	
+exit:
+
+_func_exit_;	
+
+	return res;
+}
+
 u8 rtw_setrttbl_cmd(_adapter  *padapter, struct setratable_parm *prate_table)
 {
 	struct cmd_obj*			ph2c;
@@ -1851,6 +1924,10 @@ static void traffic_status_watchdog(_adapter *padapter)
 #endif //CONFIG_TDLS
 
 #ifdef CONFIG_LPS
+#ifdef CONFIG_BT_COEXIST
+		if (BT_1Ant(padapter) == _FALSE)
+#endif
+		{
 		// check traffic for  powersaving.
 		if( ((pmlmepriv->LinkDetectInfo.NumRxUnicastOkInPeriod + pmlmepriv->LinkDetectInfo.NumTxOkInPeriod) > 8 ) ||
 			(pmlmepriv->LinkDetectInfo.NumRxUnicastOkInPeriod > 2) )
@@ -1871,6 +1948,7 @@ static void traffic_status_watchdog(_adapter *padapter)
 		else
 		{
 			LPS_Leave(padapter);
+		}
 		}
 #endif
 	}
@@ -1902,15 +1980,9 @@ void dynamic_chk_wk_hdl(_adapter *padapter, u8 *pbuf, int sz)
 		padapter->HalFunc.sreset_xmit_status_check(padapter);		
 	#endif	
 
-	if(check_fwstate(pmlmepriv, _FW_UNDER_LINKING|_FW_UNDER_SURVEY)==_FALSE)
+	//if(check_fwstate(pmlmepriv, _FW_UNDER_LINKING|_FW_UNDER_SURVEY)==_FALSE)
 	{
-		//if(pmlmeext->linked_to > 0)
-		//{
-		//	pmlmeext->linked_to--;	
-		//	if(pmlmeext->linked_to==0)
-			    linked_status_chk(padapter);		
-		//}
-
+		linked_status_chk(padapter);	
 		traffic_status_watchdog(padapter);
 	}
 
@@ -1918,6 +1990,12 @@ void dynamic_chk_wk_hdl(_adapter *padapter, u8 *pbuf, int sz)
 
 	//check_hw_pbc(padapter, pdrvextra_cmd->pbuf, pdrvextra_cmd->type_size);	
 
+#ifdef CONFIG_BT_COEXIST
+	//
+	// BT-Coexist
+	//
+	BT_CoexistMechanism(padapter);
+#endif
 }
 
 #ifdef CONFIG_LPS
@@ -1941,7 +2019,16 @@ _func_enter_;
 	{
 		case LPS_CTRL_SCAN:
 			//DBG_871X("LPS_CTRL_SCAN \n");
-			LeaveAllPowerSaveMode(padapter);
+#ifdef CONFIG_BT_COEXIST
+			BT_WifiScanNotify(padapter, _TRUE);
+			if (BT_1Ant(padapter) == _FALSE)
+#endif
+			{
+				if (check_fwstate(pmlmepriv, _FW_LINKED) == _TRUE)
+				{ //connect
+					LPS_Leave(padapter);
+				}
+			}
 			break;
 		case LPS_CTRL_JOINBSS:
 			//DBG_871X("LPS_CTRL_JOINBSS \n");
@@ -1953,16 +2040,35 @@ _func_enter_;
 			// Reset LPS Setting
 			padapter->pwrctrlpriv.LpsIdleCount = 0;
 			padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_H2C_FW_JOINBSSRPT, (u8 *)(&mstatus));
+#ifdef CONFIG_BT_COEXIST
+			BT_WifiMediaStatusNotify(padapter, mstatus);
+#endif
 			break;
 		case LPS_CTRL_DISCONNECT:
 			//DBG_871X("LPS_CTRL_DISCONNECT \n");
 			mstatus = 0;//disconnect
-			LPS_Leave(padapter);
+#ifdef CONFIG_BT_COEXIST
+			BT_WifiMediaStatusNotify(padapter, mstatus);
+			if (BT_1Ant(padapter) == _FALSE)
+#endif
+			{
+				LPS_Leave(padapter);
+			}
 			padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_H2C_FW_JOINBSSRPT, (u8 *)(&mstatus));
 			break;
 		case LPS_CTRL_SPECIAL_PACKET:
 			//DBG_871X("LPS_CTRL_SPECIAL_PACKET \n");
 			pwrpriv->DelayLPSLastTimeStamp = rtw_get_current_time();
+#ifdef CONFIG_BT_COEXIST
+			BT_SpecialPacket(padapter);
+			if (BT_1Ant(padapter) == _FALSE)
+#endif
+			{
+				LPS_Leave(padapter);
+			}
+			break;
+		case LPS_CTRL_LEAVE:
+			//DBG_871X("LPS_CTRL_LEAVE \n");
 			LPS_Leave(padapter);
 			break;
 
@@ -1976,7 +2082,7 @@ _func_exit_;
 u8 rtw_lps_ctrl_wk_cmd(_adapter*padapter, u8 lps_ctrl_type, u8 enqueue)
 {
 	struct cmd_obj	*ph2c;
-	struct drvextra_cmd_parm	*pdrvextra_cmd_parm;	
+	struct drvextra_cmd_parm	*pdrvextra_cmd_parm;
 	struct cmd_priv	*pcmdpriv = &padapter->cmdpriv;
 	//struct pwrctrl_priv *pwrctrlpriv = &padapter->pwrctrlpriv;
 	u8	res = _SUCCESS;
@@ -2631,13 +2737,13 @@ _func_enter_;
 	if ((check_fwstate(pmlmepriv, WIFI_MP_STATE) == _TRUE) && (check_fwstate(pmlmepriv, _FW_UNDER_LINKING) == _TRUE))           	
 		_clr_fwstate_(pmlmepriv, _FW_UNDER_LINKING);
 
-       set_fwstate(pmlmepriv, _FW_LINKED);       	   
+	set_fwstate(pmlmepriv, _FW_LINKED);
 	_exit_critical_bh(&pmlmepriv->lock, &irqL);
 
-exit:	  
+exit:
 	rtw_free_cmd_obj(pcmd);
 
-_func_exit_;	  
+_func_exit_;
 }
 
 void rtw_getrttbl_cmd_cmdrsp_callback(_adapter*	padapter,  struct cmd_obj *pcmd);

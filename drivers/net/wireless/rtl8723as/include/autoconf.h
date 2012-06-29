@@ -44,13 +44,24 @@
  */
 #define CONFIG_80211N_HT 1
 #define CONFIG_RECV_REORDERING_CTRL 1
-#define CONFIG_IOCTL_CFG80211 1	// enable this will disable wext ioctl support
+
+#define CONFIG_IOCTL_CFG80211 1
+#ifdef CONFIG_IOCTL_CFG80211
+	#define CONFIG_CFG80211_FORCE_COMPATIBLE_2_6_37_UNDER
+	//#define CONFIG_DEBUG_CFG80211 1
+#endif
 
 #define CONFIG_AP_MODE	1
-#define CONFIG_NATIVEAP_MLME	1
+#ifdef CONFIG_AP_MODE
+	#define CONFIG_NATIVEAP_MLME 1
+	#ifndef CONFIG_NATIVEAP_MLME
+		#define CONFIG_HOSTAPD_MLME	1
+	#endif			
+	//#define CONFIG_FIND_BEST_CHANNEL	1
+	//#define CONFIG_NO_WIRELESS_HANDLERS	1
+#endif
 
-// Added by Albert 20110314
-//#define CONFIG_P2P	1
+#define CONFIG_P2P	1
 #ifdef CONFIG_P2P
 	//Added by Albert 20110812
 	//The CONFIG_WFD is for supporting the Wi-Fi display
@@ -70,7 +81,7 @@
 #define CONFIG_LAYER2_ROAMING_RESUME
 
 //#define CONFIG_80211D 1
-
+#define CONFIG_LPS_RPWM_TIMER
 
 /*
  * Hardware Related Config
@@ -130,35 +141,20 @@
 #endif // !CONFIG_MP_INCLUDED
 
 
-#ifdef CONFIG_IOCTL_CFG80211
-
-#define CONFIG_AP_MODE 1
-#define CONFIG_NATIVEAP_MLME 1
-#ifdef CONFIG_HOSTAPD_MLME
-	#undef CONFIG_HOSTAPD_MLME
-#endif
-
-#define CONFIG_P2P 1
-
-#endif // CONFIG_IOCTL_CFG80211
-
-
 #ifdef CONFIG_POWER_SAVING
+	#define CONFIG_IPS		1
+	#define CONFIG_LPS		1
 
-#define CONFIG_IPS		1  //ignore this will consumes power when disconnected.2012-4-11 14:24:09
-#define CONFIG_LPS		1
-
-#if defined(CONFIG_LPS) && defined(CONFIG_SDIO_HCI)
-#define CONFIG_LPS_LCLK	1
-#endif
-
+	#if defined(CONFIG_LPS) && defined(CONFIG_SDIO_HCI)
+	#define CONFIG_LPS_LCLK	1
+	#endif
 #endif // #ifdef CONFIG_POWER_SAVING
 
 
 #ifdef CONFIG_BT_COEXIST
-#ifndef CONFIG_LPS
-#define CONFIG_LPS 1	// download reserved page to FW
-#endif
+	#ifndef CONFIG_LPS
+		#define CONFIG_LPS 1	// download reserved page to FW
+	#endif
 #endif
 
 
@@ -166,15 +162,6 @@
 #define CONFIG_SW_ANTENNA_DIVERSITY
 //#define CONFIG_HW_ANTENNA_DIVERSITY
 #endif
-
-
-#ifdef CONFIG_AP_MODE
-	#ifndef CONFIG_NATIVEAP_MLME
-		#define CONFIG_HOSTAPD_MLME	1
-	#endif
-	//#define CONFIG_FIND_BEST_CHANNEL	1
-#endif
-
 
 #ifndef DISABLE_BB_RF
 #define DISABLE_BB_RF	0
@@ -193,9 +180,9 @@
 
 #define DBG	0
 #ifdef CONFIG_DEBUG
-//#define CONFIG_DEBUG_RTL871X 1
-#define CONFIG_DEBUG_RTL819X 1
-//#define CONFIG_PROC_DEBUG 1
+//#define CONFIG_DEBUG_RTL871X
+#define CONFIG_DEBUG_RTL819X
+//#define CONFIG_PROC_DEBUG
 #endif
 
 /*
@@ -221,6 +208,7 @@
 #define RTL8188EU_SUPPORT				0
 #define RTL8188ES_SUPPORT				0
 #define RTL8188E_SUPPORT				(RTL8188EE_SUPPORT|RTL8188EU_SUPPORT|RTL8188ES_SUPPORT)
+#define RTL8188E_FOR_TEST_CHIP			0
 //#if (RTL8188E_SUPPORT==1)
 #define RATE_ADAPTIVE_SUPPORT 			0
 #define POWER_TRAINING_ACTIVE			0

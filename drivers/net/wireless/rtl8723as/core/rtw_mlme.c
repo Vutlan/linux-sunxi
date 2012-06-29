@@ -1487,10 +1487,6 @@ static struct sta_info *rtw_joinbss_update_stainfo(_adapter *padapter, struct wl
 	struct sta_info *bmc_sta, *psta=NULL;
 	struct recv_reorder_ctrl *preorder_ctrl;
 	struct sta_priv *pstapriv = &padapter->stapriv;	
-#ifdef CONFIG_CONCURRENT_MODE	
-	PADAPTER pbuddy_adapter = padapter->pbuddy_adapter;
-	struct mlme_priv *pbuddy_mlmepriv = &(pbuddy_adapter->mlmepriv);
-#endif	
 
 	psta = rtw_get_stainfo(pstapriv, pnetwork->network.MacAddress);
 	if(psta==NULL) {
@@ -1664,10 +1660,6 @@ void rtw_joinbss_event_prehandle(_adapter *adapter, u8 *pbuf)
 	struct wlan_network 	*cur_network = &(pmlmepriv->cur_network);
 	struct wlan_network	*pcur_wlan = NULL, *ptarget_wlan = NULL;
 	unsigned int 		the_same_macaddr = _FALSE;	
-#ifdef CONFIG_CONCURRENT_MODE	
-	PADAPTER pbuddy_adapter = adapter->pbuddy_adapter;
-	struct mlme_priv *pbuddy_mlmepriv = &(pbuddy_adapter->mlmepriv);
-#endif
 
 _func_enter_;	
 
@@ -1889,10 +1881,9 @@ _func_enter_;
 _func_exit_;
 }
 
-
 u8 search_max_mac_id(_adapter *padapter)
 {
-	u8 mac_id;
+	u8 mac_id, aid;
 #if (RATE_ADAPTIVE_SUPPORT==1)	//for 88E RA		
 	struct mlme_priv *pmlmepriv = &(padapter->mlmepriv);
 	struct mlme_ext_priv *pmlmeext = &(padapter->mlmeextpriv);
@@ -1901,13 +1892,20 @@ u8 search_max_mac_id(_adapter *padapter)
 
 #if defined (CONFIG_AP_MODE) && defined (CONFIG_NATIVEAP_MLME)	
 	if(check_fwstate(pmlmepriv, WIFI_AP_STATE)){		
-		//id = n~ 0
+		
+		for (aid = (pstapriv->max_num_sta); aid > 0; aid--)
+		{
+			if (pstapriv->sta_aid[aid-1] != NULL)
+				break;
+		}
+/*
 		for (mac_id = (pstapriv->max_num_sta-1); mac_id >= 0; mac_id--)
 		{
 			if (pstapriv->sta_aid[mac_id] != NULL)
 				break;
 		}	
-		//aid_id = mac_id+1;//mac_id = aid -1
+*/
+		mac_id = aid + 1;
 	}
 	else
 #endif
@@ -1965,7 +1963,9 @@ _func_enter_;
 		if(psta)
 		{
 #ifdef CONFIG_IOCTL_CFG80211
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,37)) || defined(CONFIG_CFG80211_FORCE_COMPATIBLE_2_6_37_UNDER)
+			#ifdef COMPAT_KERNEL_RELEASE
+
+			#elif (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,37)) || defined(CONFIG_CFG80211_FORCE_COMPATIBLE_2_6_37_UNDER)
 			u8 *passoc_req = NULL;
 			u32 assoc_req_len;
 
@@ -1991,7 +1991,7 @@ _func_enter_;
 
 				_rtw_mfree(passoc_req, assoc_req_len);
 			}
-#endif //(LINUX_VERSION_CODE < KERNEL_VERSION(2,6,37)) || defined(CONFIG_CFG80211_FORCE_COMPATIBLE_2_6_37_UNDER)
+			#endif //(LINUX_VERSION_CODE < KERNEL_VERSION(2,6,37)) || defined(CONFIG_CFG80211_FORCE_COMPATIBLE_2_6_37_UNDER)
 #endif //CONFIG_IOCTL_CFG80211	
 
 			//bss_cap_update(adapter, psta);
@@ -2096,9 +2096,11 @@ _func_enter_;
         if(check_fwstate(pmlmepriv, WIFI_AP_STATE))
         {
 #ifdef CONFIG_IOCTL_CFG80211
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,37)) || defined(CONFIG_CFG80211_FORCE_COMPATIBLE_2_6_37_UNDER)
+		#ifdef COMPAT_KERNEL_RELEASE
+
+		#elif (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,37)) || defined(CONFIG_CFG80211_FORCE_COMPATIBLE_2_6_37_UNDER)
 		rtw_cfg80211_indicate_sta_disassoc(adapter, pstadel->macaddr, *(u16*)pstadel->rsvd);
-#endif //(LINUX_VERSION_CODE < KERNEL_VERSION(2,6,37)) || defined(CONFIG_CFG80211_FORCE_COMPATIBLE_2_6_37_UNDER)
+		#endif //(LINUX_VERSION_CODE < KERNEL_VERSION(2,6,37)) || defined(CONFIG_CFG80211_FORCE_COMPATIBLE_2_6_37_UNDER)
 #endif //CONFIG_IOCTL_CFG80211
 		return;
         }
@@ -2204,11 +2206,11 @@ void rtw_cpwm_event_callback(PADAPTER padapter, u8 *pbuf)
 
 _func_enter_;
 
-	RT_TRACE(_module_rtl871x_mlme_c_,_drv_err_,("rtw_cpwm_event_callback !!!\n"));
+	RT_TRACE(_module_rtl871x_mlme_c_,_drv_err_,("+rtw_cpwm_event_callback !!!\n"));
 #ifdef CONFIG_LPS_LCLK
 	preportpwrstate = (struct reportpwrstate_parm*)pbuf;
 	preportpwrstate->state |= (u8)(padapter->pwrctrlpriv.cpwm_tog + 0x80);
-	cpwm_int_hdl(padapter, preportpwrstate);
+	_cpwm_int_hdl(padapter, preportpwrstate);
 #endif
 
 _func_exit_;
@@ -2372,22 +2374,30 @@ void rtw_dynamic_check_timer_handlder(_adapter *adapter)
 	PADAPTER pbuddy_adapter = adapter->pbuddy_adapter;	
 #endif
 
+	if(!adapter)
+		return;	
+
 	if(adapter->hw_init_completed == _FALSE)
 		return;
 
 	if ((adapter->bDriverStopped == _TRUE)||(adapter->bSurpriseRemoved== _TRUE))
 		return;
 
-
+	
 #ifdef CONFIG_CONCURRENT_MODE
+	if(pbuddy_adapter)
+	{
 	if(adapter->net_closed == _TRUE && pbuddy_adapter->net_closed == _TRUE)
-#else
+		{
+			return;
+		}		
+	}
+	else
+#endif //CONFIG_CONCURRENT_MODE
 	if(adapter->net_closed == _TRUE)
-#endif
 	{
 		return;
 	}	
-
 
 	rtw_dynamic_chk_wk_cmd(adapter);
 
@@ -3695,4 +3705,47 @@ void _rtw_roaming(_adapter *padapter, struct wlan_network *tgt_network)
 	
 }
 #endif
+
+#ifdef CONFIG_CONCURRENT_MODE
+sint rtw_buddy_adapter_up(_adapter *padapter)
+{	
+	sint res = _FALSE;
+	
+	if(padapter == NULL)
+		return res;
+
+
+	if(padapter->pbuddy_adapter == NULL)
+	{
+		res = _FALSE;
+	}
+	else if( (padapter->pbuddy_adapter->bDriverStopped) || (padapter->pbuddy_adapter->bSurpriseRemoved) ||
+		(padapter->pbuddy_adapter->bup == _FALSE) || (padapter->pbuddy_adapter->hw_init_completed == _FALSE))
+	{		
+		res = _FALSE;
+	}
+	else
+	{
+		res = _TRUE;
+	}	
+
+	return res;	
+
+}
+
+sint check_buddy_fwstate(_adapter *padapter, sint state)
+{
+	if(padapter == NULL)
+		return _FALSE;	
+	
+	if(padapter->pbuddy_adapter == NULL)
+		return _FALSE;	
+		
+	
+	if (padapter->pbuddy_adapter->mlmepriv.fw_state & state)
+		return _TRUE;
+
+	return _FALSE;
+}
+#endif //CONFIG_CONCURRENT_MODE
 

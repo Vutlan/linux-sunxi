@@ -298,6 +298,7 @@ static void Init_ODM_ComInfo_8723a(PADAPTER	Adapter)
 	}
 	ODM_CmnInfoInit(pDM_Odm,ODM_CMNINFO_FAB_VER,fab_ver);		
 	ODM_CmnInfoInit(pDM_Odm,ODM_CMNINFO_CUT_VER,cut_ver);
+	ODM_CmnInfoInit(pDM_Odm,ODM_CMNINFO_MP_TEST_CHIP,IS_NORMAL_CHIP(pHalData->VersionID));
 	
 #ifdef CONFIG_USB_HCI	
 	ODM_CmnInfoInit(pDM_Odm,ODM_CMNINFO_BOARD_TYPE,pHalData->BoardType);
@@ -362,6 +363,7 @@ static void Update_ODM_ComInfo_8723a(PADAPTER	Adapter)
 	ODM_CmnInfoHook(pDM_Odm,ODM_CMNINFO_SEC_MODE,&(Adapter->securitypriv.dot11PrivacyAlgrthm));
 	ODM_CmnInfoHook(pDM_Odm,ODM_CMNINFO_BW,&(pHalData->CurrentChannelBW ));
 	ODM_CmnInfoHook(pDM_Odm,ODM_CMNINFO_CHNL,&( pHalData->CurrentChannel));
+	ODM_CmnInfoHook(pDM_Odm,ODM_CMNINFO_NET_CLOSED,&( Adapter->net_closed));
 
 	//================= only for 8192D   =================
 	/*
@@ -614,13 +616,6 @@ rtl8723a_HalDmWatchDog(
 			ODM_DMWatchdog(&pHalData->odmpriv);
 
 		}
-
-#ifdef CONFIG_BT_COEXIST
-		//
-		//BT-Coexist
-		//
-		BT_CoexistMechanism(Adapter);
-#endif
 
 _record_initrate:
 

@@ -1052,3 +1052,4 @@ ODM_GetArrayPointer_rtl8723fw(
 
 
 #endif // end of HWIMG_SUPPORT
+

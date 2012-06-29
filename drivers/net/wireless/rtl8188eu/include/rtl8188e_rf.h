@@ -42,3 +42,4 @@ VOID	rtl8188e_PHY_RF6052SetOFDMTxPower(
 											IN	u8		Channel);
 
 #endif//__RTL8188E_RF_H__
+

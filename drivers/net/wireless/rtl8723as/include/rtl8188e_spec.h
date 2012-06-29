@@ -116,7 +116,10 @@
 #define REG_GPIO_IO_SEL_2				0x0062 // RTL8723 WIFI/BT/GPS Multi-Function GPIO Select.
 #define REG_MULTI_FUNC_CTRL			0x0068 // RTL8723 WIFI/BT/GPS Multi-Function control source.
 #define REG_GPIO_OUTPUT				0x006c
+#define REG_AFE_XTAL_CTRL_EXT				0x0078 //RTL8188E
+#define REG_XCK_OUT_CTRL				0x007c //RTL8188E
 #define REG_MCUFWDL					0x0080
+#define REG_WOL_EVENT					0x0081 //RTL8188E
 #define REG_MCUTSTCFG					0x0084
 #define REG_HMEBOX_EXT_0				0x01F0
 #define REG_HMEBOX_EXT_1				0x01F4
@@ -174,6 +177,7 @@
 #define REG_MBIST_START				0x0174
 #define REG_MBIST_DONE				0x0178
 #define REG_MBIST_FAIL					0x017C
+#define REG_32K_CTRL					0x0194 //RTL8188E
 #define REG_C2HEVT_MSG_NORMAL		0x01A0
 #define REG_C2HEVT_CLEAR				0x01AF
 #define REG_MCUTST_1					0x01c0
@@ -204,11 +208,11 @@
 //	0x0280h ~ 0x02FFh	RXDMA Configuration
 //
 //-----------------------------------------------------
-#define REG_RXDMA_AGG_PG_TH			0x0280
-#define	REG_FW_UPD_RDPTR			0x0284 // FW shall update this register before FW write RXPKT_RELEASE_POLL to 1
+#define 	REG_RXDMA_AGG_PG_TH			0x0280
+#define	REG_FW_UPD_RDPTR				0x0284 // FW shall update this register before FW write RXPKT_RELEASE_POLL to 1
 #define	REG_RXDMA_CONTROL			0x0286 // Control the RX DMA.
-#define	REG_RXPKT_NUM				0x0287 // The number of packets in RXPKTBUF.	
-
+#define	REG_RXPKT_NUM					0x0287 // The number of packets in RXPKTBUF.	
+#define 	REG_RXDMA_STATUS				0x0288
 
 //-----------------------------------------------------
 //
@@ -229,6 +233,7 @@
 #define	REG_DBG_SEL					0x0360	// Debug Selection Register
 #define	REG_PCIE_HRPWM				0x0361	//PCIe RPWM
 #define	REG_PCIE_HCPWM				0x0363	//PCIe CPWM
+#define	REG_WATCH_DOG				0x0368
 
 // RTL8723 series -------------------------------
 #define	REG_PCIE_HISR				0x03A0
@@ -270,7 +275,7 @@
 #define REG_FAST_EDCA_CTRL			0x0460
 #define REG_RD_RESP_PKT_TH			0x0463	
 #define REG_INIRTS_RATE_SEL				0x0480
-#define REG_INIDATA_RATE_SEL			0x0484
+//#define REG_INIDATA_RATE_SEL			0x0484
 #define REG_POWER_STATUS				0x04A4
 #define REG_POWER_STAGE1				0x04B4
 #define REG_POWER_STAGE2				0x04B8
@@ -306,6 +311,7 @@
 #define REG_RDG_PIFS					0x0513
 #define REG_SIFS_CTX					0x0514
 #define REG_SIFS_TRX					0x0516
+#define REG_TSFTR_SYN_OFFSET			0x0518
 #define REG_AGGR_BREAK_TIME			0x051A
 #define REG_SLOT						0x051B
 #define REG_TX_PTCL_CTRL				0x0520
@@ -793,7 +799,7 @@ Default: 00b.
 #define	IMR_TBDOK_88E						BIT25		// Transmit Beacon0 OK			
 #define	IMR_TSF_BIT32_TOGGLE_88E			BIT24		// TSF Timer BIT32 toggle indication interrupt			
 #define	IMR_BCNDMAINT0_88E				BIT20		// Beacon DMA Interrupt 0			
-#define	IMR_BCNDOK0_88E					BIT16		// Beacon Queue DMA OK0			
+#define	IMR_BCNDERR0_88E					BIT16		// Beacon Queue DMA Error 0			
 #define	IMR_HSISR_IND_ON_INT_88E			BIT15		// HSISR Indicator (HSIMR & HSISR is true, this bit is set to 1)			
 #define	IMR_BCNDMAINT_E_88E				BIT14		// Beacon DMA Interrupt Extension for Win7			
 #define	IMR_ATIMEND_88E					BIT12		// CTWidnow End or ATIM Window End
@@ -818,13 +824,13 @@ Default: 00b.
 #define	IMR_BCNDMAINT3_88E				BIT23		// Beacon DMA Interrupt 3
 #define	IMR_BCNDMAINT2_88E				BIT22		// Beacon DMA Interrupt 2
 #define	IMR_BCNDMAINT1_88E				BIT21		// Beacon DMA Interrupt 1
-#define	IMR_BCNDOK7_88E					BIT20		// Beacon Queue DMA OK Interrup 7
-#define	IMR_BCNDOK6_88E					BIT19		// Beacon Queue DMA OK Interrup 6
-#define	IMR_BCNDOK5_88E					BIT18		// Beacon Queue DMA OK Interrup 5
-#define	IMR_BCNDOK4_88E					BIT17		// Beacon Queue DMA OK Interrup 4
-#define	IMR_BCNDOK3_88E					BIT16		// Beacon Queue DMA OK Interrup 3
-#define	IMR_BCNDOK2_88E					BIT15		// Beacon Queue DMA OK Interrup 2
-#define	IMR_BCNDOK1_88E					BIT14		// Beacon Queue DMA OK Interrup 1
+#define	IMR_BCNDERR7_88E					BIT20		// Beacon Queue DMA  Error Interrup 7
+#define	IMR_BCNDERR6_88E					BIT19		// Beacon Queue DMA Error Interrup 6
+#define	IMR_BCNDERR5_88E					BIT18		// Beacon Queue DMA Error Interrup 5
+#define	IMR_BCNDERR4_88E					BIT17		// Beacon Queue DMA Error Interrup 4
+#define	IMR_BCNDERR3_88E					BIT16		// Beacon Queue DMA Error Interrup 3
+#define	IMR_BCNDERR2_88E					BIT15		// Beacon Queue DMA Error Interrup 2
+#define	IMR_BCNDERR1_88E					BIT14		// Beacon Queue DMA Error Interrup 1
 #define	IMR_ATIMEND_E_88E					BIT13		// ATIM Window End Extension for Win7
 #define	IMR_TXERR_88E						BIT11		// Tx Error Flag Interrupt Status, write 1 clear.
 #define	IMR_RXERR_88E						BIT10		// Rx Error Flag INT Status, Write 1 clear
@@ -833,9 +839,26 @@ Default: 00b.
 
 #define	HAL_NIC_UNPLUG_ISR		0xFFFFFFFF	// The value when the NIC is unplugged for PCI.
 
+
+#ifdef CONFIG_PCI_HCI
+//#define	IMR_RX_MASK			(IMR_ROK_88E|IMR_RDU_88E|IMR_RXFOVW_88E)
+#define	IMR_TX_MASK			(IMR_VODOK_88E|IMR_VIDOK_88E|IMR_BEDOK_88E|IMR_BKDOK_88E|IMR_MGNTDOK_88E|IMR_HIGHDOK_88E|IMR_BCNDERR0_88E)
+
+#ifdef CONFIG_CONCURRENT_MODE
+#define RT_IBSS_INT_MASKS				(IMR_BCNDMAINT0_88E | IMR_TBDOK_88E | IMR_TBDER_88E | IMR_BCNDMAINT_E_88E)
+#else
+#define RT_IBSS_INT_MASKS				(IMR_BCNDMAINT0_88E | IMR_TBDOK_88E | IMR_TBDER_88E)
+#endif
+
+#define RT_AC_INT_MASKS				(IMR_VIDOK_88E | IMR_VODOK_88E | IMR_BEDOK_88E|IMR_BKDOK_88E)
+#define RT_BSS_INT_MASKS				(RT_IBSS_INT_MASKS)
+#endif
+
+
 // 8192C EFUSE
 //----------------------------------------------------------------------------
-#define	HWSET_MAX_SIZE				256
+#define		HWSET_MAX_SIZE				256
+#define		HWSET_MAX_SIZE_88E		512
 
 
 
@@ -1286,9 +1309,15 @@ Current IOREG MAP
 
 
 //2 BCN_CTRL
-#define EN_TXBCN_RPT					BIT(2)
+#define EN_MBSSID				BIT(1)
+#define EN_TXBCN_RPT				BIT(2)
 #define EN_BCN_FUNCTION				BIT(3)
-#define STOP_BCNQ						BIT(6)
+#define DIS_TSF_UPDATE				BIT(3)
+
+// The same function but different bit field.
+#define DIS_TSF_UDT0_NORMAL_CHIP		BIT(4)
+#define DIS_TSF_UDT0_TEST_CHIP			BIT(5)
+#define STOP_BCNQ				BIT(6)
 
 
 //2 ACMHWCTRL
@@ -1641,78 +1670,41 @@ Current IOREG MAP
 //----------------------------------------------------------------------------
 //       8192C EEPROM/EFUSE share register definition.
 //----------------------------------------------------------------------------
-//====================================================
-//			EEPROM/Efuse PG Offset for 8192 CE/CU
-//====================================================
-#define	EEPROM_VID_92C						0x0A
-#define	EEPROM_PID_92C						0x0C
-#define	EEPROM_DID_92C						0x0C 
-#define	EEPROM_SVID_92C						0x0E
-#define	EEPROM_SMID_92C					0x10 
-#define	EEPROM_MAC_ADDR_92C				0x16
-
-#define	EEPROM_SUBCUSTOMER_ID				0x59
-
-#define	EEPROM_MAC_ADDR					0x16
-#define	EEPROM_SUBCUSTOMER_ID				0x59
-#define 	EEPROM_CCK_TX_PWR_INX				0x5A
-#define	EEPROM_HT40_1S_TX_PWR_INX			0x60
-#define	EEPROM_HT40_2S_TX_PWR_INX_DIFF		0x66
-#define	EEPROM_HT20_TX_PWR_INX_DIFF			0x69
-#define	EEPROM_OFDM_TX_PWR_INX_DIFF		0x6C
-#define	EEPROM_HT40_MAX_PWR_OFFSET		0x6F
-#define	EEPROM_VERSION_92C					0x7E
-#define	EEPROM_HT20_MAX_PWR_OFFSET		0x72
-#define	EEPROM_CHANNEL_PLAN_92C 			0x75
-#define	EEPROM_TSSI_A						0x76
-#define	EEPROM_TSSI_B						0x77
-#define	EEPROM_THERMAL_METER_92C			0x78
-#define	EEPROM_RF_OPT1_92C					0x79
-#define	EEPROM_RF_OPT2_92C					0x7A
-#define	EEPROM_RF_OPT3_92C					0x7B
-#define	EEPROM_RF_OPT4_92C					0x7C
-#define	EEPROM_CUSTOMER_ID					0x7F
-#define	EEPROM_CUSTOMER_ID_92C				0x7F
-
-//#define	EEPROM_NORMAL_CHANNEL_PLAN		0x75
-#define	EEPROM_NORMAL_BoardType_92C		EEPROM_RF_OPT1_92C
-#define	BOARD_TYPE_NORMAL_MASK			0xE0
-#define	BOARD_TYPE_TEST_MASK				0xF
-#define	EEPROM_TYPE_ID						0x7E
-
-
 
 //====================================================
-//			EEPROM/Efuse PG Offset for 8723E/8723U/8723S
+//			EEPROM/Efuse PG Offset for 88EE/88EU/88ES
 //====================================================
-#define EEPROM_CCK_TX_PWR_INX_8723			0x10
-#define EEPROM_HT40_1S_TX_PWR_INX_8723		0x16
-#define EEPROM_HT20_TX_PWR_INX_DIFF_8723	0x1C
-#define EEPROM_OFDM_TX_PWR_INX_DIFF_8723	0x1F
-#define EEPROM_HT40_MAX_PWR_OFFSET_8723	0x22
-#define EEPROM_HT20_MAX_PWR_OFFSET_8723	0x25
+#define	EEPROM_TX_PWR_INX_88E				0x10
 
-#define EEPROM_ChannelPlan_8723				0x28
-#define EEPROM_TSSI_A_8723					0x29
-#define RF_OPTION1_8723						0x2B
-#define RF_OPTION2_8723						0x2C
-#define RF_OPTION3_8723						0x2D
-#define RF_OPTION4_8723						0x2E
-#define EEPROM_VERSION_8723					0x30
-#define EEPROM_CustomID_8723					0x31
-#define EEPROM_SubCustomID_8723				0x32
+#define	EEPROM_ChannelPlan_88E				0xB8
+#define	EEPROM_XTAL_88E						0xB9
+#define	EEPROM_THERMAL_METER_88E			0xBA
+#define	EEPROM_IQK_LCK_88E					0xBB
 
-#define EEPROM_VID_8723E						0x49
-#define EEPROM_DID_8723E						0x4B
-#define EEPROM_SVID_8723E						0x4D
-#define EEPROM_SMID_8723E						0x4F
-#define EEPROM_MAC_ADDR_8723E				0x67
+#define	EEPROM_RF_BOARD_OPTION_88E			0xC1
+#define	EEPROM_RF_FEATURE_OPTION_88E		0xC2
+#define	EEPROM_RF_BT_SETTING_88E				0xC3
+#define	EEPROM_VERSION_88E					0xC4
+#define	EEPROM_CUSTOMERID_88E				0xC5
+#define	EEPROM_RF_ANTENNA_OPT_88E			0xC9
 
-#define EEPROM_MAC_ADDR_8723U				0xC6
-#define EEPROM_VID_8723U						0xB7
-#define EEPROM_PID_8723U						0xB9
+// RTL88EE
+#define	EEPROM_MAC_ADDR_88EE				0xD0
+#define	EEPROM_VID_88EE						0xD6
+#define	EEPROM_DID_88EE						0xD8
+#define	EEPROM_SVID_88EE						0xDA
+#define	EEPROM_SMID_88EE						0xDC
 
-#define EEPROM_MAC_ADDR_8723S				0xAA
+//RTL88EU
+#define	EEPROM_MAC_ADDR_88EU				0xD7
+#define	EEPROM_VID_88EU						0xD0
+#define	EEPROM_PID_88EU						0xD2
+
+// RTL88ES
+#define	EEPROM_MAC_ADDR_88ES				0x11A
+
+ 
+
 
 //====================================================
 //			EEPROM/Efuse Value Type
@@ -1746,10 +1738,30 @@ Current IOREG MAP
 #define EEPROM_Default_HT40_PwrMaxOffset	0
 #define EEPROM_Default_HT20_PwrMaxOffset	0
 
+#define 	EEPROM_Default_CrystalCap_88E 		0x20
+#define	EEPROM_Default_ThermalMeter_88E	0x18
+
+//New EFUSE deafult value
+#define 	EEPROM_DEFAULT_24G_INDEX		0x2D
+#define 	EEPROM_DEFAULT_24G_HT20_DIFF	0X02
+#define 	EEPROM_DEFAULT_24G_OFDM_DIFF	0X04
+
+#define 	EEPROM_DEFAULT_5G_INDEX			0X2A
+#define 	EEPROM_DEFAULT_5G_HT20_DIFF		0X00
+#define 	EEPROM_DEFAULT_5G_OFDM_DIFF		0X04
+
+#define 	EEPROM_DEFAULT_DIFF				0XFE
+#define	EEPROM_DEFAULT_CHANNEL_PLAN	0x7F
+#define	EEPROM_DEFAULT_BOARD_OPTION	0x00
+#define	EEPROM_DEFAULT_FEATURE_OPTION	0x00
+#define	EEPROM_DEFAULT_BT_OPTION		0x10
+
+
 // For debug
 #define EEPROM_Default_PID					0x1234
 #define EEPROM_Default_VID					0x5678
 #define EEPROM_Default_CustomerID			0xAB
+#define	EEPROM_Default_CustomerID_8188E		0x00
 #define EEPROM_Default_SubCustomerID		0xCD
 #define EEPROM_Default_Version				0
 

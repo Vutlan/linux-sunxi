@@ -64,3 +64,37 @@ void dump_chip_info(HAL_VERSION	ChipVersion)
 
 #endif
 
+#define	EEPROM_CHANNEL_PLAN_BY_HW_MASK	0x80
+
+u8	//return the final channel plan decision
+hal_com_get_channel_plan(
+	IN	PADAPTER	padapter,
+	IN	u8			hw_channel_plan,	//channel plan from HW (efuse/eeprom)
+	IN	u8			sw_channel_plan,	//channel plan from SW (registry/module param)
+	IN	u8			def_channel_plan,	//channel plan used when the former two is invalid
+	IN	BOOLEAN		AutoLoadFail
+	)
+{
+	u8 swConfig;
+	u8 chnlPlan;
+
+	swConfig = _TRUE;
+	if (!AutoLoadFail)
+	{
+		if (!rtw_is_channel_plan_valid(sw_channel_plan))
+			swConfig = _FALSE;
+		if (hw_channel_plan & EEPROM_CHANNEL_PLAN_BY_HW_MASK)
+			swConfig = _FALSE;
+	}
+
+	if (swConfig == _TRUE)
+		chnlPlan = sw_channel_plan;
+	else
+		chnlPlan = hw_channel_plan & (~EEPROM_CHANNEL_PLAN_BY_HW_MASK);
+
+	if (!rtw_is_channel_plan_valid(chnlPlan))
+		chnlPlan = def_channel_plan;
+
+	return chnlPlan;
+}
+

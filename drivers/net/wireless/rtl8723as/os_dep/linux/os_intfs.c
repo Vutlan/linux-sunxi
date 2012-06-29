@@ -75,7 +75,9 @@ int rtw_soft_ap = 0;
 int rtw_power_mgnt = 1;
 #else
 int rtw_power_mgnt = PS_MODE_ACTIVE;
-#endif	
+#endif
+
+int rtw_smart_ps = 2;
 
 #ifdef CONFIG_IPS_LEVEL_2
 int rtw_ips_mode = IPS_LEVEL_2;
@@ -206,6 +208,7 @@ module_param(rtw_lowrate_two_xmit, int, 0644);
 
 module_param(rtw_rf_config, int, 0644);
 module_param(rtw_power_mgnt, int, 0644);
+module_param(rtw_smart_ps, int, 0644);
 module_param(rtw_low_power, int, 0644);
 module_param(rtw_wifi_spec, int, 0644);
 
@@ -233,6 +236,12 @@ module_param(rtw_max_roaming_times, uint, 0644);
 MODULE_PARM_DESC(rtw_max_roaming_times,"The max roaming times to try");
 #endif //CONFIG_LAYER2_ROAMING
 
+#ifdef CONFIG_IOL
+bool rtw_force_iol=_FALSE;
+module_param(rtw_force_iol, bool, 0644);
+MODULE_PARM_DESC(rtw_force_iol,"Force to enable IOL");
+#endif //CONFIG_IOL
+
 #ifdef CONFIG_FILE_FWIMG
 char *rtw_fw_file_path= "";
 module_param(rtw_fw_file_path, charp, 0644);
@@ -259,7 +268,7 @@ MODULE_PARM_DESC(rtw_btcoex_enable, "Enable BT co-existence mechanism");
 
 
 static uint loadparam(PADAPTER padapter, _nic_hdl pnetdev);
-static int netdev_open (struct net_device *pnetdev);
+int netdev_open (struct net_device *pnetdev);
 static int netdev_close (struct net_device *pnetdev);
 
 //#ifdef RTK_DMP_PLATFORM
@@ -576,7 +585,7 @@ _func_enter_;
 	registry_par->scan_mode = (u8)rtw_scan_mode;
 	registry_par->adhoc_tx_pwr = (u8)rtw_adhoc_tx_pwr;
 	registry_par->soft_ap=  (u8)rtw_soft_ap;
-	//registry_par->smart_ps =  (u8)rtw_smart_ps;  
+	registry_par->smart_ps =  (u8)rtw_smart_ps;  
 	registry_par->power_mgnt = (u8)rtw_power_mgnt;
 	registry_par->ips_mode = (u8)rtw_ips_mode;
 	registry_par->radio_enable = (u8)rtw_radio_enable;
@@ -649,6 +658,10 @@ _func_enter_;
 	registry_par->max_roaming_times = (u8)rtw_max_roaming_times;
 #endif
 
+#ifdef CONFIG_IOL
+	registry_par->force_iol = rtw_force_iol;
+#endif
+
 #ifdef CONFIG_DUALMAC_CONCURRENT
 	registry_par->dmsp= (u8)rtw_dmsp;
 #endif
@@ -702,11 +715,7 @@ static const struct net_device_ops rtw_netdev_ops = {
 	.ndo_start_xmit = rtw_xmit_entry,
 	.ndo_set_mac_address = rtw_net_set_mac_address,
 	.ndo_get_stats = rtw_net_get_stats,
-#ifdef CONFIG_IOCTL_CFG80211
-	.ndo_do_ioctl = rtw_cfg80211_do_ioctl,
-#else //CONFIG_IOCTL_CFG80211
 	.ndo_do_ioctl = rtw_ioctl,
-#endif //CONFIG_IOCTL_CFG80211
 };
 #endif
 
@@ -785,26 +794,17 @@ struct net_device *rtw_init_netdev(_adapter *old_padapter)
 #endif
 	
 	//pnetdev->init = NULL;
+	
 #if (LINUX_VERSION_CODE>=KERNEL_VERSION(2,6,29))
-
 	DBG_871X("register rtw_netdev_ops to netdev_ops\n");
 	pnetdev->netdev_ops = &rtw_netdev_ops;
-
 #else
 	pnetdev->open = netdev_open;
 	pnetdev->stop = netdev_close;	
-	
 	pnetdev->hard_start_xmit = rtw_xmit_entry;
-
 	pnetdev->set_mac_address = rtw_net_set_mac_address;
 	pnetdev->get_stats = rtw_net_get_stats;
-
-#ifdef CONFIG_IOCTL_CFG80211
-	pnetdev->do_ioctl = rtw_cfg80211_do_ioctl;
-#else  //CONFIG_IOCTL_CFG80211
 	pnetdev->do_ioctl = rtw_ioctl;
-#endif //CONFIG_IOCTL_CFG80211
-
 #endif
 
 
@@ -813,13 +813,8 @@ struct net_device *rtw_init_netdev(_adapter *old_padapter)
 #endif	
 	//pnetdev->tx_timeout = NULL;
 	pnetdev->watchdog_timeo = HZ*3; /* 3 second timeout */
-
-//#ifdef CONFIG_IOCTL_CFG80211
-//	pnetdev->wireless_handlers = NULL;
-//#else //CONFIG_IOCTL_CFG80211
 	pnetdev->wireless_handlers = (struct iw_handler_def *)&rtw_handlers_def;
-//#endif //CONFIG_IOCTL_CFG80211
-	
+
 #ifdef WIRELESS_SPY
 	//priv->wireless_data.spy_data = &priv->spy_data;
 	//pnetdev->wireless_data = &priv->wireless_data;
@@ -984,8 +979,7 @@ u8 rtw_reset_drv_sw(_adapter *padapter)
 	padapter->bWritePortCancel = _FALSE;
 	padapter->bRxRSSIDisplay = 0;
 	pmlmepriv->scan_interval = SCAN_INTERVAL;// 30*2 sec = 60sec
-	pmlmepriv->scan_mode = SCAN_ACTIVE; // 1: active scan ,0 passive scan
-
+	
 	pwrctrlpriv->bips_processing = _FALSE;		
 	pwrctrlpriv->rf_pwrstate = rf_on;
 	pwrctrlpriv->bInSuspend = _FALSE;
@@ -1386,11 +1380,7 @@ static const struct net_device_ops rtw_netdev_if2_ops = {
         .ndo_start_xmit = rtw_xmit_entry,
         .ndo_set_mac_address = rtw_net_set_mac_address,
         .ndo_get_stats = rtw_net_get_stats,
-#ifdef CONFIG_IOCTL_CFG80211
-	.ndo_do_ioctl = rtw_cfg80211_do_ioctl,
-#else //CONFIG_IOCTL_CFG80211
         .ndo_do_ioctl = rtw_ioctl,
-#endif //CONFIG_IOCTL_CFG80211	
 };
 #endif
 
@@ -1399,7 +1389,7 @@ static const struct net_device_ops rtw_netdev_if2_ops = {
 	#include <usb_hal.h>
 #endif
 
-int rtw_drv_if2_init(_adapter *primary_padapter)
+struct net_device *rtw_drv_if2_init(_adapter *primary_padapter, char *name)
 {
 	int res = _FAIL;
 	struct net_device *pnetdev;	
@@ -1425,6 +1415,12 @@ int rtw_drv_if2_init(_adapter *primary_padapter)
 	padapter->psetch_mutex = primary_padapter->psetch_mutex;
 	padapter->psetbw_mutex = primary_padapter->psetbw_mutex;
 	padapter->hw_init_mutex = primary_padapter->hw_init_mutex;
+
+	//
+	padapter->bup = _FALSE;
+	padapter->net_closed = _TRUE;
+	padapter->hw_init_completed = _FALSE;
+	
 
 	//
 	padapter->pnetdev = pnetdev;
@@ -1503,7 +1499,10 @@ int rtw_drv_if2_init(_adapter *primary_padapter)
 	
 
 	// alloc dev name after got efuse data.
-	rtw_init_netdev_name(pnetdev, ifname);
+	if(name == NULL)
+		name = ifname;
+	
+	rtw_init_netdev_name(pnetdev, name);
 	
 	//get mac address from primary_padapter
 	_rtw_memcpy(mac, primary_padapter->eeprompriv.mac_addr, ETH_ALEN);
@@ -1552,7 +1551,8 @@ int rtw_drv_if2_init(_adapter *primary_padapter)
 	
 	res = _SUCCESS;
 
-	return res;
+	//return res;
+	return pnetdev;
 
 		
 error_rtw_drv_if2_init:
@@ -1564,7 +1564,8 @@ error_rtw_drv_if2_init:
 
 	rtw_free_drv_sw(padapter);	
 	
-	return res;
+	//return res;
+	return NULL;
 	
 }
 
@@ -1584,6 +1585,8 @@ void rtw_drv_if2_free(_adapter *primary_padapter)
 
 	if(padapter==NULL)
 		return;
+
+	primary_padapter->pbuddy_adapter = NULL;
 
 	pnetdev = padapter->pnetdev;
 
@@ -1623,7 +1626,11 @@ void rtw_drv_if2_free(_adapter *primary_padapter)
 		padapter->bup = _FALSE;
 	}
 	
+	primary_padapter->pbuddy_adapter = NULL;
+	
 	rtw_free_drv_sw(padapter);
+
+	
 
 #ifdef CONFIG_IOCTL_CFG80211
 	rtw_wdev_free(wdev);
@@ -1632,7 +1639,7 @@ void rtw_drv_if2_free(_adapter *primary_padapter)
 }
 #endif //end of CONFIG_CONCURRENT_MODE
 
-static int netdev_open(struct net_device *pnetdev)
+int netdev_open(struct net_device *pnetdev)
 {
 	uint status;	
 	_adapter *padapter = (_adapter *)rtw_netdev_priv(pnetdev);
@@ -1957,20 +1964,19 @@ static int netdev_close(struct net_device *pnetdev)
 	}
 #endif	// CONFIG_BR_EXT
 
+#ifdef CONFIG_P2P
+	#ifdef CONFIG_IOCTL_CFG80211
+	if(wdev_to_priv(padapter->rtw_wdev)->p2p_enabled == _TRUE)
+		wdev_to_priv(padapter->rtw_wdev)->p2p_enabled = _FALSE;
+	#endif
+	rtw_p2p_enable(padapter, P2P_ROLE_DISABLE);
+#endif //CONFIG_P2P
 
 #ifdef CONFIG_IOCTL_CFG80211
-	DBG_871X("call rtw_indicate_scan_done when drv_close\n");
-	rtw_indicate_scan_done(padapter, _TRUE);
-	if((wdev_to_priv(padapter->rtw_wdev))->p2p_enabled == _TRUE)
-	{
-		DBG_871X("p2p_enabled state is _FALSE\n");
-		(wdev_to_priv(padapter->rtw_wdev))->p2p_enabled = _FALSE;
-	}
+	rtw_cfg80211_indicate_scan_done(wdev_to_priv(padapter->rtw_wdev), _TRUE);
+	wdev_to_priv(padapter->rtw_wdev)->bandroid_scan = _FALSE;
+	padapter->rtw_wdev->iftype = NL80211_IFTYPE_MONITOR; //set this at the end
 #endif
-
-	#ifdef CONFIG_P2P
-	rtw_p2p_enable(padapter, P2P_ROLE_DISABLE);
-	#endif
 	
 	RT_TRACE(_module_os_intfs_c_,_drv_info_,("-871x_drv - drv_close\n"));
 	DBG_871X("-871x_drv - drv_close, bup=%d\n", padapter->bup);

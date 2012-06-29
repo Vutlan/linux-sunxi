@@ -724,7 +724,7 @@ u8 *rtw_get_wps_ie(u8 *in_ie, uint in_len, u8 *wps_ie, uint *wps_ielen)
  *
  * Returns: the address of the specific WPS attribute found, or NULL
  */
-u8 *rtw_get_wps_attr(u8 *wps_ie, uint wps_ielen, u16 target_attr_id ,u8 *buf_attr, u16 *len_attr)
+u8 *rtw_get_wps_attr(u8 *wps_ie, uint wps_ielen, u16 target_attr_id ,u8 *buf_attr, u32 *len_attr)
 {
 	u8 *attr_ptr = NULL;
 	u8 * target_attr_ptr = NULL;
@@ -785,7 +785,7 @@ u8 *rtw_get_wps_attr(u8 *wps_ie, uint wps_ielen, u16 target_attr_id ,u8 *buf_att
 u8 *rtw_get_wps_attr_content(u8 *wps_ie, uint wps_ielen, u16 target_attr_id ,u8 *buf_content, uint *len_content)
 {
 	u8 *attr_ptr;
-	u16 attr_len;
+	u32 attr_len;
 
 	if(len_content)
 		*len_content = 0;
@@ -1229,7 +1229,7 @@ u8 *rtw_get_p2p_ie(u8 *in_ie, uint in_len, u8 *p2p_ie, uint *p2p_ielen)
  *
  * Returns: the address of the specific WPS attribute found, or NULL
  */
-u8 *rtw_get_p2p_attr(u8 *p2p_ie, uint p2p_ielen, u8 target_attr_id ,u8 *buf_attr, u16 *len_attr)
+u8 *rtw_get_p2p_attr(u8 *p2p_ie, uint p2p_ielen, u8 target_attr_id ,u8 *buf_attr, u32 *len_attr)
 {
 	u8 *attr_ptr = NULL;
 	u8 *target_attr_ptr = NULL;
@@ -1290,7 +1290,7 @@ u8 *rtw_get_p2p_attr(u8 *p2p_ie, uint p2p_ielen, u8 target_attr_id ,u8 *buf_attr
 u8 *rtw_get_p2p_attr_content(u8 *p2p_ie, uint p2p_ielen, u8 target_attr_id ,u8 *buf_content, uint *len_content)
 {
 	u8 *attr_ptr;
-	u16 attr_len;
+	u32 attr_len;
 
 	if(len_content)
 		*len_content = 0;
@@ -1331,7 +1331,7 @@ u32 rtw_set_p2p_attr_content(u8 *pbuf, u8 attr_id, u16 attr_len, u8 *pdata_attr)
 static uint rtw_p2p_attr_remove(u8 *ie, uint ielen_ori, u8 attr_id)
 {
 	u8 *target_attr;
-	u16 target_attr_len;
+	u32 target_attr_len;
 	uint ielen = ielen_ori;
 	int index=0;
 
@@ -1355,7 +1355,7 @@ static uint rtw_p2p_attr_remove(u8 *ie, uint ielen_ori, u8 attr_id)
 
 			_rtw_memset(target_attr, 0, target_attr_len);
 			_rtw_memcpy(target_attr, next_attr, remain_len);
-			_rtw_memset(target_attr+remain_len, 0, ielen-(target_attr_len));
+			_rtw_memset(target_attr+remain_len, 0, target_attr_len);
 			*(ie+1) -= target_attr_len;
 			ielen-=target_attr_len;
 		}
@@ -1393,7 +1393,7 @@ void rtw_WLAN_BSSID_EX_remove_p2p_attr(WLAN_BSSID_EX *bss_ex, u8 attr_id)
 			uint remain_len = bss_ex->IELength-(next_ie_ori-bss_ex->IEs);
 
 			_rtw_memcpy(next_ie, next_ie_ori, remain_len);
-			_rtw_memset(next_ie+remain_len, 0, bss_ex->IELength-(p2p_ielen_ori-p2p_ielen));
+			_rtw_memset(next_ie+remain_len, 0, p2p_ielen_ori-p2p_ielen);
 			bss_ex->IELength -= p2p_ielen_ori-p2p_ielen;
 
 			#if 0

@@ -713,6 +713,8 @@ _func_enter_;
 
 	auth_alg = adapter->securitypriv.dot11AuthAlgrthm;
 
+	prtnframe = NULL;
+
 	RT_TRACE(_module_rtl871x_recv_c_,_drv_info_,("########portctrl:adapter->securitypriv.dot11AuthAlgrthm= 0x%d\n",adapter->securitypriv.dot11AuthAlgrthm));
 
 	if(auth_alg==2)
@@ -746,20 +748,22 @@ _func_enter_;
 			RT_TRACE(_module_rtl871x_recv_c_,_drv_info_,("########portctrl:psta->ieee8021x_blocked==0\n"));
 			RT_TRACE(_module_rtl871x_recv_c_,_drv_info_,("portctrl:precv_frame->hdr.attrib.privacy=%x\n",precv_frame->u.hdr.attrib.privacy));
 
-			if(pattrib->bdecrypted==0)
+			if (pattrib->bdecrypted == 0)
+			{
 				RT_TRACE(_module_rtl871x_recv_c_,_drv_info_,("portctrl:prxstat->decrypted=%x\n", pattrib->bdecrypted));
+			}
 
 			prtnframe=precv_frame;
 			//check is the EAPOL frame or not (Rekey)
 			if(ether_type == eapol_type){
 
-				RT_TRACE(_module_rtl871x_recv_c_,_drv_err_,("########portctrl:ether_type == 0x888e\n"));
+				RT_TRACE(_module_rtl871x_recv_c_,_drv_notice_,("########portctrl:ether_type == 0x888e\n"));
 				//check Rekey
 
 				prtnframe=precv_frame;
 			}
 			else{
-				RT_TRACE(_module_rtl871x_recv_c_,_drv_err_,("########portctrl:ether_type = 0x%.4x\n",ether_type));
+				RT_TRACE(_module_rtl871x_recv_c_,_drv_info_,("########portctrl:ether_type=0x%04x\n", ether_type));
 			}
 		}
 	}
@@ -1487,7 +1491,7 @@ sint On_TDLS_Peer_Traffic_Rsp(_adapter *adapter, union recv_frame *precv_frame)
 	u8 wmmps_ac=0, state=TDLS_check_ch_state(ptdls_sta->tdls_sta_state);
 	int i;
 	
-	ptdls_sta->sta_stats.rx_pkts++;
+	ptdls_sta->sta_stats.rx_data_pkts++;
 
 	//receive peer traffic response frame, sleeping STA wakes up
 	//ptdls_sta->tdls_sta_state &= ~(TDLS_PEER_SLEEP_STATE);
@@ -1815,7 +1819,7 @@ void count_rx_stats(_adapter *padapter, union recv_frame *prframe, struct sta_in
 	{
 		pstats = &psta->sta_stats;
 
-		pstats->rx_pkts++;
+		pstats->rx_data_pkts++;
 		pstats->rx_bytes += sz;
 	}
 
@@ -2344,7 +2348,7 @@ sint validate_recv_ctrl_frame(_adapter *padapter, union recv_frame *precv_frame)
 		}
 
 		//for rx pkt statistics
-		psta->sta_stats.rx_pkts++;
+		psta->sta_stats.rx_ctrl_pkts++;
 
 		switch(pattrib->priority)
 		{
@@ -2476,14 +2480,12 @@ sint validate_recv_mgnt_frame(PADAPTER padapter, union recv_frame *precv_frame)
 	}
 #endif
 
-#ifdef CONFIG_AP_MODE
 	{
 		//for rx pkt statistics
 		struct sta_info *psta = rtw_get_stainfo(&padapter->stapriv, GetAddr2Ptr(precv_frame->u.hdr.rx_data));
 		if(psta)
-			psta->sta_stats.rx_pkts++;
+			psta->sta_stats.rx_mgnt_pkts++;
 	}
-#endif
 
 	precv_frame = recvframe_chk_defrag(padapter, precv_frame);
 	if (precv_frame == NULL) {
@@ -2904,6 +2906,12 @@ _func_enter_;
 
 	RT_TRACE(_module_rtl871x_recv_c_,_drv_info_,("\n===pattrib->hdrlen: %x,  pattrib->iv_len:%x ===\n\n", pattrib->hdrlen,  pattrib->iv_len));
 
+	_rtw_memcpy(&eth_type, ptr+rmv_len, 2);
+	eth_type= ntohs((unsigned short )eth_type); //pattrib->ether_type
+ 	if(eth_type ==0x888e){
+ 		DBG_871X("\n Got 0x%x packet\n",eth_type);
+ 	}
+	
 	if ((check_fwstate(pmlmepriv, WIFI_MP_STATE) == _TRUE))	   	
 	{
 		ptr += rmv_len ;	
@@ -4245,7 +4253,7 @@ int recv_indicatepkt_reorder(_adapter *padapter, union recv_frame *prframe)
 			if ((padapter->bDriverStopped == _FALSE) &&
 			    (padapter->bSurpriseRemoved == _FALSE))
 			{
-				RT_TRACE(_module_rtl871x_recv_c_, _drv_alert_, ("@@@@  recv_indicatepkt_reorder -recv_func recv_indicatepkt\n" ));
+				RT_TRACE(_module_rtl871x_recv_c_, _drv_notice_, ("@@@@  recv_indicatepkt_reorder -recv_func recv_indicatepkt\n" ));
 
 				rtw_recv_indicatepkt(padapter, prframe);
 				return _SUCCESS;

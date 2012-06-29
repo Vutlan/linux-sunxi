@@ -452,7 +452,7 @@ ODM_StallExecution(
 #if(DM_ODM_SUPPORT_TYPE & (ODM_AP|ODM_ADSL))
 	
 #elif(DM_ODM_SUPPORT_TYPE & ODM_CE)
-
+	rtw_udelay_os(usDelay);
 #elif(DM_ODM_SUPPORT_TYPE & ODM_MP)
 	PlatformStallExecution(usDelay);
 #endif	
@@ -573,7 +573,17 @@ ODM_ReleaseTimer(
 #elif(DM_ODM_SUPPORT_TYPE & ODM_CE)
 
 #elif(DM_ODM_SUPPORT_TYPE & ODM_MP)
+
 	PADAPTER Adapter = pDM_Odm->Adapter;
+
+    // <20120301, Kordan> If the initilization fails, InitializeAdapterXxx will return regardless of InitHalDm. 
+    // Hence, uninitialized timers cause BSOD when the driver releases resources since the init fail.
+    if (pTimer == 0) 
+    {
+        ODM_RT_TRACE(pDM_Odm, ODM_COMP_INIT, ODM_DBG_SERIOUS, ("=====>ODM_ReleaseTimer(), The timer is NULL! Please check it!\n"));
+        return;
+    }
+        
 	PlatformReleaseTimer(Adapter, pTimer);
 #endif
 }
@@ -582,6 +592,39 @@ ODM_ReleaseTimer(
 //
 // ODM FW relative API.
 //
+#if (DM_ODM_SUPPORT_TYPE & ODM_MP)
+VOID
+ODM_FillH2CCmd(
+	IN	PADAPTER		Adapter,
+	IN	u1Byte 	ElementID,
+	IN	u4Byte 	CmdLen,
+	IN	pu1Byte	pCmdBuffer
+)
+{
+	if(IS_HARDWARE_TYPE_8188E(Adapter))
+	{
+		switch(ElementID)
+		{
+		case ODM_H2C_PSD_RESULT:
+			FillH2CCmd88E(Adapter, H2C_88E_PSD_RESULT, CmdLen, pCmdBuffer);
+		default:
+			break;
+		}
+	}
+	else
+	{
+		switch(ElementID)
+		{
+		case ODM_H2C_RSSI_REPORT:
+			FillH2CCmd92C(Adapter, H2C_RSSI_REPORT, CmdLen, pCmdBuffer);
+		case ODM_H2C_PSD_RESULT:
+			FillH2CCmd92C(Adapter, H2C_92C_PSD_RESULT, CmdLen, pCmdBuffer);
+		default:
+			break;
+		}
+	}
+}
+#else
 u4Byte
 ODM_FillH2CCmd(	
 	IN	pu1Byte		pH2CBuffer,
@@ -604,7 +647,7 @@ ODM_FillH2CCmd(
 
 	return	TRUE;
 }
-
+#endif
 
 
 

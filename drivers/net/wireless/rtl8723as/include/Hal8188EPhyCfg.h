@@ -79,10 +79,15 @@ typedef enum _RF_RADIO_PATH{
 	//RF_PATH_MAX				//Max RF number 90 support 
 }RF_RADIO_PATH_E, *PRF_RADIO_PATH_E;
 
-#define	RF_PATH_MAX			2
+#define MAX_PG_GROUP 13
+
+#define	RF_PATH_MAX		2
+#define 	MAX_RF_PATH		RF_PATH_MAX
+#define 	MAX_TX_COUNT				4 //path numbers
 
 #define CHANNEL_MAX_NUMBER		14	// 14 is the max channel number
-#define CHANNEL_GROUP_MAX		3	// ch1~3, ch4~9, ch10~14 total three groups
+#define MAX_CHNL_GROUP_24G		6	// ch1~2, ch3~5, ch6~8,ch9~11,ch12~13,CH 14 total three groups
+#define CHANNEL_GROUP_MAX_88E    	6
 
 typedef enum _WIRELESS_MODE {
 	WIRELESS_MODE_UNKNOWN = 0x00,
@@ -250,6 +255,7 @@ void	rtl8188e_PHY_SetRFReg(	IN	PADAPTER			Adapter,
 int	PHY_MACConfig8188E(IN	PADAPTER	Adapter	);
 int	PHY_BBConfig8188E(IN	PADAPTER	Adapter	);
 int	PHY_RFConfig8188E(IN	PADAPTER	Adapter	);
+
 /* RF config */
 int	rtl8188e_PHY_ConfigRFWithParaFile(IN PADAPTER Adapter, IN u8 * pFileName, RF_RADIO_PATH_E eRFPath);
 int	rtl8188e_PHY_ConfigRFWithHeaderFile(	IN	PADAPTER			Adapter,
@@ -322,16 +328,7 @@ void	PHY_SetMonitorMode8192C(IN	PADAPTER	pAdapter,
 BOOLEAN	PHY_CheckIsLegalRfPath8192C(IN	PADAPTER	pAdapter,
 											IN	u32		eRFPath	);
 
-
-VOID rtl8192c_PHY_SetRFPathSwitch(IN	PADAPTER	pAdapter, IN	BOOLEAN		bMain);
-
-//
-// Modify the value of the hw register when beacon interval be changed.
-//
-void	
-rtl8192c_PHY_SetBeaconHwReg(	IN	PADAPTER		Adapter,
-					IN	u16			BeaconInterval	);
-
+VOID PHY_SetRFPathSwitch_8188E(IN	PADAPTER	pAdapter, IN	BOOLEAN		bMain);
 
 extern	VOID
 PHY_SwitchEphyParameter(
@@ -349,7 +346,15 @@ SetAntennaConfig92C(
 	IN	u8		DefaultAnt	
 	);
 
-
+#ifdef CONFIG_PHY_SETTING_WITH_ODM
+VOID
+storePwrIndexDiffRateOffset(
+	IN	PADAPTER	Adapter,
+	IN	u32		RegAddr,
+	IN	u32		BitMask,
+	IN	u32		Data
+	);
+#endif //CONFIG_PHY_SETTING_WITH_ODM
 /*--------------------------Exported Function prototype---------------------*/
 
 #define PHY_QueryBBReg(Adapter, RegAddr, BitMask) rtl8188e_PHY_QueryBBReg((Adapter), (RegAddr), (BitMask))

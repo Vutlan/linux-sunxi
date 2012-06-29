@@ -171,6 +171,7 @@ void rtw_wep_encrypt(_adapter *padapter, u8 *pxmitframe)
 
 	u8	*pframe, *payload,*iv;    //,*wepkey
 	u8	wepkey[16];
+	u8   hw_hdr_offset=0;
 	struct	pkt_attrib	 *pattrib = &((struct xmit_frame*)pxmitframe)->attrib;
 	struct 	security_priv	*psecuritypriv=&padapter->securitypriv;
 	struct	xmit_priv		*pxmitpriv=&padapter->xmitpriv;
@@ -182,11 +183,17 @@ _func_enter_;
 		return;
 
 #ifdef CONFIG_USB_TX_AGGREGATION
-	pframe = ((struct xmit_frame*)pxmitframe)->buf_addr + TXDESC_SIZE +
-		 (((struct xmit_frame*)pxmitframe)->pkt_offset * PACKET_OFFSET_SZ);
+	hw_hdr_offset = TXDESC_SIZE +
+		 (((struct xmit_frame*)pxmitframe)->pkt_offset * PACKET_OFFSET_SZ);	
 #else
-	pframe = ((struct xmit_frame*)pxmitframe)->buf_addr + TXDESC_OFFSET;
+	#ifdef CONFIG_TX_EARLY_MODE
+	hw_hdr_offset = TXDESC_OFFSET+EARLY_MODE_INFO_SIZE;
+	#else
+	hw_hdr_offset = TXDESC_OFFSET;
+	#endif
 #endif
+
+	pframe = ((struct xmit_frame*)pxmitframe)->buf_addr + hw_hdr_offset;
 	
 	//start to encrypt each fragment
 	if((pattrib->encrypt==_WEP40_)||(pattrib->encrypt==_WEP104_))
@@ -648,6 +655,7 @@ u32	rtw_tkip_encrypt(_adapter *padapter, u8 *pxmitframe)
 	u8	rc4key[16];
 	u8   ttkey[16];
 	u8	crc[4];
+	u8   hw_hdr_offset = 0;
 	struct arc4context mycontext;
 	sint 			curfragnum,length;
 	u32	prwskeylen;
@@ -665,12 +673,17 @@ _func_enter_;
 		return _FAIL;
 
 #ifdef CONFIG_USB_TX_AGGREGATION
-	pframe = ((struct xmit_frame*)pxmitframe)->buf_addr + TXDESC_SIZE +
-		 (((struct xmit_frame*)pxmitframe)->pkt_offset * PACKET_OFFSET_SZ);
+	hw_hdr_offset = TXDESC_SIZE +
+		 (((struct xmit_frame*)pxmitframe)->pkt_offset * PACKET_OFFSET_SZ);	
 #else
-	pframe = ((struct xmit_frame*)pxmitframe)->buf_addr + TXDESC_OFFSET;
+	#ifdef CONFIG_TX_EARLY_MODE
+	hw_hdr_offset = TXDESC_OFFSET+EARLY_MODE_INFO_SIZE;
+	#else
+	hw_hdr_offset = TXDESC_OFFSET;
+	#endif
 #endif
 
+	pframe = ((struct xmit_frame*)pxmitframe)->buf_addr + hw_hdr_offset;
 	//4 start to encrypt each fragment
 	if(pattrib->encrypt==_TKIP_){
 
@@ -1488,6 +1501,7 @@ _func_exit_;
 
 
 
+
 u32	rtw_aes_encrypt(_adapter *padapter, u8 *pxmitframe)
 {	// exclude ICV
 
@@ -1499,6 +1513,7 @@ u32	rtw_aes_encrypt(_adapter *padapter, u8 *pxmitframe)
 	sint 	curfragnum,length;
 	u32	prwskeylen;
 	u8	*pframe,*prwskey;	//, *payload,*iv
+	u8   hw_hdr_offset = 0;
 	struct	sta_info		*stainfo;
 	struct	pkt_attrib	 *pattrib = &((struct xmit_frame *)pxmitframe)->attrib;
 	struct 	security_priv	*psecuritypriv=&padapter->securitypriv;
@@ -1512,11 +1527,17 @@ _func_enter_;
 		return _FAIL;
 
 #ifdef CONFIG_USB_TX_AGGREGATION
-	pframe = ((struct xmit_frame*)pxmitframe)->buf_addr + TXDESC_SIZE +
+	hw_hdr_offset = TXDESC_SIZE +
 		 (((struct xmit_frame*)pxmitframe)->pkt_offset * PACKET_OFFSET_SZ);
 #else
-	pframe = ((struct xmit_frame*)pxmitframe)->buf_addr + TXDESC_OFFSET;
+	#ifdef CONFIG_TX_EARLY_MODE
+	hw_hdr_offset = TXDESC_OFFSET+EARLY_MODE_INFO_SIZE;
+	#else
+	hw_hdr_offset = TXDESC_OFFSET;
+	#endif	
 #endif
+
+	pframe = ((struct xmit_frame*)pxmitframe)->buf_addr + hw_hdr_offset;
 
 	//4 start to encrypt each fragment
 	if((pattrib->encrypt==_AES_)){
@@ -1699,8 +1720,8 @@ _func_enter_;
     }
 
 	//start to calculate the mic	
-
-	_rtw_memcpy((void *)message, pframe, (hdrlen +plen+8)); //8 is for ext iv len
+	if((hdrlen +plen+8) <= MAX_MSG_SIZE)
+		_rtw_memcpy((void *)message, pframe, (hdrlen +plen+8)); //8 is for ext iv len
 
 
 	pn_vector[0]=pframe[hdrlen];

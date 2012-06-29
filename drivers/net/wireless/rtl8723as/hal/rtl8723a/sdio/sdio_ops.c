@@ -1140,7 +1140,7 @@ DumpHardwareProfile8723Sdio(
 //
 void InitInterrupt8723ASdio(PADAPTER padapter)
 {
-	HAL_DATA_TYPE *pHalData;
+	PHAL_DATA_TYPE pHalData;
 
 
 	pHalData = GET_HAL_DATA(padapter);
@@ -1174,6 +1174,28 @@ void InitInterrupt8723ASdio(PADAPTER padapter)
 
 //
 //	Description:
+//		Initialize System Host Interrupt Mask configuration variables for future use.
+//
+//	Created by Roger, 2011.08.03.
+//
+void InitSysInterrupt8723ASdio(PADAPTER padapter)
+{
+	PHAL_DATA_TYPE pHalData;
+
+
+	pHalData = GET_HAL_DATA(padapter);
+
+	pHalData->SysIntrMask = (			\
+//							HSIMR_GPIO12_0_INT_EN			|
+//							HSIMR_SPS_OCP_INT_EN			|
+//							HSIMR_RON_INT_EN				|
+//							HSIMR_PDNINT_EN				|
+//							HSIMR_GPIO9_INT_EN				|
+							0);
+}
+
+//
+//	Description:
 //		Clear corresponding SDIO Host ISR interrupt service.
 //
 //	Assumption:
@@ -1183,11 +1205,52 @@ void InitInterrupt8723ASdio(PADAPTER padapter)
 //
 void ClearInterrupt8723ASdio(PADAPTER padapter)
 {
-	u32 tmp = 0;
-	tmp = SdioLocalCmd52Read4Byte(padapter, SDIO_REG_HISR);
-	SdioLocalCmd52Write4Byte(padapter, SDIO_REG_HISR, tmp);
-//	padapter->IsrContent.IntArray[0] = 0;
-	padapter->IsrContent = 0;
+	PHAL_DATA_TYPE pHalData;
+	u8 *clear;
+
+
+	if (_TRUE == padapter->bSurpriseRemoved)
+		return;
+
+	pHalData = GET_HAL_DATA(padapter);
+	clear = rtw_zmalloc(4);
+
+	// Clear corresponding HISR Content if needed
+	*(u32*)clear = cpu_to_le32(pHalData->sdio_hisr & MASK_SDIO_HISR_CLEAR);
+	if (*(u32*)clear)
+	{
+		// Perform write one clear operation
+		sdio_local_write(padapter, SDIO_REG_HISR, 4, clear);
+	}
+
+	rtw_mfree(clear, 4);
+}
+
+//
+//	Description:
+//		Clear corresponding system Host ISR interrupt service.
+//
+//
+//	Created by Roger, 2011.02.11.
+//
+void ClearSysInterrupt8723ASdio(PADAPTER padapter)
+{
+	PHAL_DATA_TYPE pHalData;
+	u32 clear;
+
+
+	if (_TRUE == padapter->bSurpriseRemoved)
+		return;	
+
+	pHalData = GET_HAL_DATA(padapter);
+
+	// Clear corresponding HISR Content if needed
+	clear = pHalData->SysIntrStatus & MASK_HSISR_CLEAR;
+	if (clear)
+	{
+		// Perform write one clear operation
+		rtw_write32(padapter, REG_HSISR, clear);
+	}
 }
 
 //
@@ -1203,18 +1266,30 @@ void ClearInterrupt8723ASdio(PADAPTER padapter)
 void EnableInterrupt8723ASdio(PADAPTER padapter)
 {
 	PHAL_DATA_TYPE pHalData;
+	u32 himr;
 
 
 	pHalData = GET_HAL_DATA(padapter);
-#if 0
-	SdioLocalCmd52Write4Byte(padapter, SDIO_REG_HIMR, pHalData->sdio_himr);
-#else
-{
-	u32 himr;
+
 	himr = cpu_to_le32(pHalData->sdio_himr);
 	sdio_local_write(padapter, SDIO_REG_HIMR, 4, (u8*)&himr);
-}
-#endif
+
+	RT_TRACE(_module_hci_ops_c_, _drv_notice_,
+		("%s: enable SDIO HIMR=0x%08X\n", __FUNCTION__, pHalData->sdio_himr));
+
+	// Update current system IMR settings
+	himr = rtw_read32(padapter, REG_HSIMR);
+	rtw_write32(padapter, REG_HSIMR, himr|pHalData->SysIntrMask);
+
+	RT_TRACE(_module_hci_ops_c_, _drv_notice_,
+		("%s: enable HSIMR=0x%08X\n", __FUNCTION__, pHalData->SysIntrMask));
+
+	//
+	// <Roger_Notes> There are some C2H CMDs have been sent before system interrupt is enabled, e.g., C2H, CPWM.
+	// So we need to clear all C2H events that FW has notified, otherwise FW won't schedule any commands anymore.
+	// 2011.10.19.
+	//
+	rtw_write8(padapter, REG_C2HEVT_CLEAR, C2H_EVT_HOST_CLOSE);
 }
 
 //
@@ -1451,12 +1526,25 @@ void sd_int_dpc(PADAPTER padapter)
 
 //		printk("%s: RX Request, size=%d\n", __func__, phal->SdioRxFIFOSize);
 		phal->sdio_hisr ^= SDIO_HISR_RX_REQUEST;
+
+		if (phal->SdioRxFIFOSize == 0)
+		{
+			u16 val;
+
+			_sdio_local_read(padapter, SDIO_REG_RX0_REQ_LEN, 2, (u8*)&val);
+			phal->SdioRxFIFOSize = le16_to_cpu(val);
+			printk("%s: RX_REQUEST, read RXFIFOsize again size=%d\n", __func__, phal->SdioRxFIFOSize);
+		}
+
+		if (phal->SdioRxFIFOSize != 0)
+		{
 #ifdef CONFIG_MAC_LOOPBACK_DRIVER
-		sd_recv_loopback(padapter, phal->SdioRxFIFOSize);
+			sd_recv_loopback(padapter, phal->SdioRxFIFOSize);
 #else
-		precvbuf = sd_recv_rxfifo(padapter, phal->SdioRxFIFOSize);
-		if (precvbuf) sd_rxhandler(padapter, precvbuf);
+			precvbuf = sd_recv_rxfifo(padapter, phal->SdioRxFIFOSize);
+			if (precvbuf) sd_rxhandler(padapter, precvbuf);
 #endif
+		}
 	}
 }
 

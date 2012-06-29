@@ -1391,7 +1391,8 @@ void sd_int_dpc(PADAPTER padapter)
 		//88e's cpwm value only change BIT0, so driver need to add PS_STATE_S2 for LPS flow.
 		//modify by Thomas. 2012/4/2.
 		report.state |= PS_STATE_S2;
-		cpwm_int_hdl(padapter, &report);
+		//cpwm_int_hdl(padapter, &report);
+		_set_workitem(&padapter->pwrctrlpriv.cpwm_event);
 #endif
 	}
 

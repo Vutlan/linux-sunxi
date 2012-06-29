@@ -24,4 +24,14 @@
 void dump_chip_info(HAL_VERSION	ChipVersion);
 #endif
 
+u8	//return the final channel plan decision
+hal_com_get_channel_plan(
+	IN	PADAPTER	padapter,
+	IN	u8			hw_channel_plan,	//channel plan from HW (efuse/eeprom)
+	IN	u8			sw_channel_plan,	//channel plan from SW (registry/module param)
+	IN	u8			def_channel_plan,	//channel plan used when the former two is invalid
+	IN	BOOLEAN		AutoLoadFail
+	);
+
 #endif //__HAL_COMMON_H__
+

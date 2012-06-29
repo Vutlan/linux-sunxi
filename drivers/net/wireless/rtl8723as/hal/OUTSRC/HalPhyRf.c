@@ -1539,3 +1539,4 @@ u1Byte ODM_GetRightChnlPlaceforIQK(u1Byte chnl)
 	return 0;
 
 }
+

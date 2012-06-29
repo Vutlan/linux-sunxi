@@ -145,6 +145,8 @@ int rtw_bt_ampdu =1 ;// 0:Disable BT control A-MPDU, 1:Enable BT control A-MPDU.
 int rtw_AcceptAddbaReq = _TRUE;// 0:Reject AP's Add BA req, 1:Accept AP's Add BA req.
 
 int rtw_antdiv_cfg = 2; // 0:OFF , 1:ON, 2:decide by Efuse config
+int rtw_antdiv_type = 0 ; //0:decide by efuse  1: for 88EE, 1Tx and 1RxCG are diversity.(2 Ant with SPDT), 2:  for 88EE, 1Tx and 2Rx are diversity.( 2 Ant, Tx and RxCG are both on aux port, RxCS is on main port ), 3: for 88EE, 1Tx and 1RxCG are fixed.(1Ant, Tx and RxCG are both on aux port)
+
 
 #ifdef CONFIG_USB_AUTOSUSPEND
 int rtw_enusbss = 1;//0:disable,1:enable
@@ -213,7 +215,7 @@ module_param(rtw_low_power, int, 0644);
 module_param(rtw_wifi_spec, int, 0644);
 
 module_param(rtw_antdiv_cfg, int, 0644);
-
+module_param(rtw_antdiv_type, int, 0644);
 
 module_param(rtw_enusbss, int, 0644);
 module_param(rtw_hwpdn_mode, int, 0644);
@@ -235,6 +237,12 @@ uint rtw_max_roaming_times=2;
 module_param(rtw_max_roaming_times, uint, 0644);
 MODULE_PARM_DESC(rtw_max_roaming_times,"The max roaming times to try");
 #endif //CONFIG_LAYER2_ROAMING
+
+#ifdef CONFIG_IOL
+bool rtw_force_iol=_FALSE;
+module_param(rtw_force_iol, bool, 0644);
+MODULE_PARM_DESC(rtw_force_iol,"Force to enable IOL");
+#endif //CONFIG_IOL
 
 #ifdef CONFIG_FILE_FWIMG
 char *rtw_fw_file_path= "";
@@ -632,7 +640,8 @@ _func_enter_;
 	registry_par->bAcceptAddbaReq = (u8)rtw_AcceptAddbaReq;
 
 	registry_par->antdiv_cfg = (u8)rtw_antdiv_cfg;
-
+	registry_par->antdiv_type = (u8)rtw_antdiv_type;
+	
 #ifdef CONFIG_AUTOSUSPEND
 	registry_par->usbss_enable = (u8)rtw_enusbss;//0:disable,1:enable
 #endif
@@ -650,6 +659,10 @@ _func_enter_;
 
 #ifdef CONFIG_LAYER2_ROAMING
 	registry_par->max_roaming_times = (u8)rtw_max_roaming_times;
+#endif
+
+#ifdef CONFIG_IOL
+	registry_par->force_iol = rtw_force_iol;
 #endif
 
 #ifdef CONFIG_DUALMAC_CONCURRENT

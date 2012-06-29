@@ -125,12 +125,8 @@
 	#include "rtl8723a/Hal8723SHWImg_CE.h"
 	#elif(RTL8723AU_SUPPORT==1)
 	#include "rtl8723a/Hal8723UHWImg_CE.h"	 
-	#elif(RTL8188ES_SUPPORT==1)
-	#include "rtl8188e/Hal8188EFWImg_CE.h"
-	#include "rtl8188e/Hal8188ESHWImg_CE.h"
-	#elif(RTL8188EU_SUPPORT==1)
-	#include "rtl8188e/Hal8188EFWImg_CE.h"
-	#include "rtl8188e/Hal8188EUHWImg_CE.h"
+	#elif(RTL8188E_SUPPORT==1)
+	#include "rtl8188e/Hal8188EFWImg_CE.h"	
 	#endif
 #elif (DM_ODM_SUPPORT_TYPE == ODM_MP)
 
@@ -142,6 +138,8 @@
 #include "odm.h"
 #include "odm_HWConfig.h"
 #include "odm_debug.h"
+#include "odm_RegDefine11AC.h"
+#include "odm_RegDefine11N.h"
 
 #if (DM_ODM_SUPPORT_TYPE == ODM_AP)
 #if (RTL8192C_SUPPORT==1)
@@ -206,6 +204,10 @@
 #include "rtl8188e/HalHWImg8188E_BB.h"
 #include "rtl8188e/Hal8188EReg.h"
 
+#if (DM_ODM_SUPPORT_TYPE & ODM_AP)
+#include "rtl8188e/HalPhyRf_8188e.h"
+#endif
+
 #if (RTL8188E_FOR_TEST_CHIP >= 1) 
 #include "rtl8188e/HalHWImg8188E_TestChip_MAC.h"
 #include "rtl8188e/HalHWImg8188E_TestChip_RF.h"
@@ -218,3 +220,4 @@
 #endif
 
 #endif	// __ODM_PRECOMP_H__
+

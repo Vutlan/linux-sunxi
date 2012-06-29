@@ -93,11 +93,16 @@ typedef struct cmd_tlv {
 #endif /* PNO_SUPPORT */
 
 typedef struct android_wifi_priv_cmd {
+
+#ifdef CONFIG_COMPAT
+	compat_uptr_t buf;
+#else
 	char *buf;
+#endif
+
 	int used_len;
 	int total_len;
 } android_wifi_priv_cmd;
-
 
 /**
  * Local (static) functions and variables
@@ -320,6 +325,8 @@ int rtw_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 		ret = -EFAULT;
 		goto exit;
 	}
+	
+	//DBG_871X("%s priv_cmd.buf=%p priv_cmd.total_len=%d  priv_cmd.used_len=%d\n",__func__,priv_cmd.buf,priv_cmd.total_len,priv_cmd.used_len);
 	command = kmalloc(priv_cmd.total_len, GFP_KERNEL);
 	if (!command)
 	{
@@ -327,7 +334,13 @@ int rtw_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 		ret = -ENOMEM;
 		goto exit;
 	}
-	if (copy_from_user(command, priv_cmd.buf, priv_cmd.total_len)) {
+
+	if (!access_ok(VERIFY_READ, priv_cmd.buf, priv_cmd.total_len)){
+	 	DBG_871X("%s: failed to access memory\n", __FUNCTION__);
+		ret = -EFAULT;
+		goto exit;
+	 }
+	if (copy_from_user(command, (void *)priv_cmd.buf, priv_cmd.total_len)) {
 		ret = -EFAULT;
 		goto exit;
 	}
@@ -484,7 +497,7 @@ response:
 			bytes_written++;
 		}
 		priv_cmd.used_len = bytes_written;
-		if (copy_to_user(priv_cmd.buf, command, bytes_written)) {
+		if (copy_to_user((void *)priv_cmd.buf, command, bytes_written)) {
 			DBG_871X("%s: failed to copy data to user buffer\n", __FUNCTION__);
 			ret = -EFAULT;
 		}

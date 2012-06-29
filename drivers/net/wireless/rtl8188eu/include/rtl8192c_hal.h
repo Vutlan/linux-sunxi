@@ -32,6 +32,7 @@
 #ifdef DBG_CONFIG_ERROR_DETECT
 #include "rtl8192c_sreset.h"
 #endif
+#include "rtw_efuse.h"
 
 #include "../hal/OUTSRC/odm_precomp.h"
 
@@ -598,6 +599,11 @@ struct hal_data_8192ce
 
 	u8	LegacyHTTxPowerDiff;// Legacy to HT rate power diff
 
+	BOOLEAN 			EepromOrEfuse;
+	u8				EfuseMap[2][HWSET_MAX_SIZE_512]; //92C:256bytes, 88E:512bytes, we use union set (512bytes)
+	u8				EfuseUsedPercentage;
+	EFUSE_HAL			EfuseHal;
+	
 #ifdef CONFIG_BT_COEXIST
 	struct btcoexist_priv	bt_coexist;
 #endif
@@ -897,6 +903,12 @@ struct hal_data_8192cu
 
 	u16	EfuseUsedBytes;
 
+	BOOLEAN 			EepromOrEfuse;
+	u8				EfuseMap[2][HWSET_MAX_SIZE_512]; //92C:256bytes, 88E:512bytes, we use union set (512bytes)
+	u8				EfuseUsedPercentage;
+	EFUSE_HAL			EfuseHal;
+	
+
 #ifdef CONFIG_P2P
 	struct P2P_PS_Offload_t	p2p_ps_offload;
 #endif //CONFIG_P2P
@@ -915,7 +927,7 @@ VOID rtl8192c_FirmwareSelfReset(IN PADAPTER Adapter);
 int FirmwareDownload92C(IN PADAPTER Adapter);
 VOID InitializeFirmwareVars92C(PADAPTER Adapter);
 u8 GetEEPROMSize8192C(PADAPTER Adapter);
-RT_CHANNEL_DOMAIN _HalMapChannelPlan8192C(PADAPTER Adapter, u8 HalChannelPlan);
+void rtl8192c_EfuseParseChnlPlan(PADAPTER padapter, u8 *hwinfo, BOOLEAN AutoLoadFail);
 
 #ifdef CONFIG_CHIP_VER_INTEGRATION
 HAL_VERSION

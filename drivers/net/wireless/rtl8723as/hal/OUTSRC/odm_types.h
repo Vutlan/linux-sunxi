@@ -237,7 +237,9 @@ typedef enum _RT_SPINLOCK_TYPE{
 	#define GET_TX_REPORT_TYPE1_DROP_0(__pAddr)						LE_BITS_TO_1BYTE( __pAddr+4+2, 0, 8)
 	#define GET_TX_REPORT_TYPE1_DROP_1(__pAddr)						LE_BITS_TO_1BYTE( __pAddr+4+3, 0, 8)
 
+	//define useless flag to avoid compile warning
 	#define	USE_WORKITEM 0
+	#define 	FOR_BRAZIL_PRETEST 0
 #endif
 
 

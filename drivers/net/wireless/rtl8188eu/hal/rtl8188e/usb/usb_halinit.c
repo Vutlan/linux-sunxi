@@ -27,10 +27,6 @@
 #include <rtl8188e_hal.h>
 #include <rtl8188e_led.h>
 
-#ifdef DBG_CONFIG_ERROR_DETECT
-//#include "rtl8192c_sreset.h"
-#endif
-
 #ifdef CONFIG_IOL
 #include <rtw_iol.h>
 #endif
@@ -2517,12 +2513,12 @@ CardDisableRTL8188EU(
 	//YJ,test add, 111207. For Power Consumption.
 	val8 = rtw_read8(Adapter, GPIO_IN);
 	rtw_write8(Adapter, GPIO_OUT, val8);
-	rtw_write8(Adapter, GPIO_IO_SEL, 0xFF);
+	rtw_write8(Adapter, GPIO_IO_SEL, 0xFF);//Reg0x46
 
 	val8 = rtw_read8(Adapter, REG_GPIO_IO_SEL);
 	rtw_write8(Adapter, REG_GPIO_IO_SEL, (val8<<4)|val8);
 	val8 = rtw_read8(Adapter, REG_GPIO_IO_SEL+1);
-	rtw_write8(Adapter, REG_GPIO_IO_SEL+1, val8|0x0F);
+	rtw_write8(Adapter, REG_GPIO_IO_SEL+1, val8|0x0F);//Reg0x43
 #endif
 }
 static void rtl8192cu_hw_power_down(_adapter *padapter)
@@ -2632,67 +2628,6 @@ unsigned int rtl8188eu_inirp_deinit(PADAPTER Adapter)
 	return _SUCCESS;
 }
 
-//-------------------------------------------------------------------------
-//
-//	Channel Plan
-//
-//-------------------------------------------------------------------------
-
-static VOID
-ReadChannelPlan(
-	IN	PADAPTER 		Adapter,
-	IN	u8*			PROMContent,
-	IN	BOOLEAN			AutoLoadFail
-	)
-{
-
-#if 0
-#define EEPROM_NORMAL_CHANNEL_PLAN (0x75)
-
-	struct mlme_priv	*pmlmepriv = &(Adapter->mlmepriv);
-	struct registry_priv *pregistrypriv = &Adapter->registrypriv;
-	u8			channelPlan;
-	HAL_DATA_TYPE	*pHalData = GET_HAL_DATA(Adapter);
-
-	if(AutoLoadFail){
-		channelPlan = CHPL_FCC;
-	}
-	else{
-		
-		channelPlan = PROMContent[EEPROM_NORMAL_CHANNEL_PLAN];
-		
-	}
-
-	if((pregistrypriv->channel_plan>= RT_CHANNEL_DOMAIN_MAX) || (channelPlan & EEPROM_CHANNEL_PLAN_BY_HW_MASK))
-	{
-		pmlmepriv->ChannelPlan = _HalMapChannelPlan8192C(Adapter, (channelPlan & (~(EEPROM_CHANNEL_PLAN_BY_HW_MASK))));
-		//pMgntInfo->bChnlPlanFromHW = (channelPlan & EEPROM_CHANNEL_PLAN_BY_HW_MASK) ? _TRUE : _FALSE; // User cannot change  channel plan.
-	}
-	else
-	{
-		pmlmepriv->ChannelPlan = (RT_CHANNEL_DOMAIN)pregistrypriv->channel_plan;
-	}
-
-#if 0 //todo:
-	switch(pMgntInfo->ChannelPlan)
-	{
-		case RT_CHANNEL_DOMAIN_GLOBAL_DOAMIN:
-		{
-			PRT_DOT11D_INFO	pDot11dInfo = GET_DOT11D_INFO(pMgntInfo);
-	
-			pDot11dInfo->bEnabled = _TRUE;
-		}
-		//RT_TRACE(COMP_INIT, DBG_LOUD, ("Enable dot11d when RT_CHANNEL_DOMAIN_GLOBAL_DOAMIN!\n"));
-		break;
-	}
-#endif
-
-	//RT_TRACE(COMP_INIT, DBG_LOUD, ("RegChannelPlan(%d) EEPROMChannelPlan(%ld)", pMgntInfo->RegChannelPlan, (u4Byte)channelPlan));
-	//RT_TRACE(COMP_INIT, DBG_LOUD, ("ChannelPlan = %d\n" , pMgntInfo->ChannelPlan));
-
-	MSG_8192C("RT_ChannelPlan: 0x%02x\n", pmlmepriv->ChannelPlan);
-#endif
-}
 
 
 //-------------------------------------------------------------------------
@@ -3033,40 +2968,21 @@ _ReadLEDSetting(
 	IN	BOOLEAN		AutoloadFail
 	)
 {
-#if 0
 	struct led_priv *pledpriv = &(Adapter->ledpriv);
 	HAL_DATA_TYPE	*pHalData = GET_HAL_DATA(Adapter);
 #ifdef CONFIG_SW_LED
 	pledpriv->bRegUseLed = _TRUE;
 
-	//
-	// Led mode
-	//
 	switch(pHalData->CustomerID)
 	{
-		case RT_CID_DEFAULT:
-			pledpriv->LedStrategy = SW_LED_MODE1;
-			pledpriv->bRegUseLed = _TRUE;
-			break;
-
-		case RT_CID_819x_HP:
-			pledpriv->LedStrategy = SW_LED_MODE6;
-			break;
-
 		default:
 			pledpriv->LedStrategy = SW_LED_MODE1;
 			break;
-	}
-
-	if( BOARD_MINICARD == pHalData->BoardType )
-	{
-		pledpriv->LedStrategy = SW_LED_MODE6;
 	}
 	pHalData->bLedOpenDrain = _TRUE;// Support Open-drain arrangement for controlling the LED. Added by Roger, 2009.10.16.
 #else // HW LED
 	pledpriv->LedStrategy = HW_LED;
 #endif //CONFIG_SW_LED
-#endif
 }
 
 static VOID
@@ -3389,7 +3305,7 @@ readAdapterInfo_8188EU(
 	Hal_ReadPowerSavingMode88E(padapter, hwinfo, pEEPROM->bautoload_fail_flag);	
 	Hal_ReadTxPowerInfo88E(padapter, hwinfo, pEEPROM->bautoload_fail_flag);		
 	Hal_EfuseParseEEPROMVer88E(padapter, hwinfo, pEEPROM->bautoload_fail_flag);
-	Hal_EfuseParseChnlPlan88E(padapter, hwinfo, pEEPROM->bautoload_fail_flag);
+	rtl8188e_EfuseParseChnlPlan(padapter, hwinfo, pEEPROM->bautoload_fail_flag);
 	Hal_EfuseParseCustomerID88E(padapter, hwinfo, pEEPROM->bautoload_fail_flag);
 	Hal_ReadAntennaDiversity88E(padapter, hwinfo, pEEPROM->bautoload_fail_flag);	
 	Hal_EfuseParseBoardType88E(padapter, hwinfo, pEEPROM->bautoload_fail_flag);	
@@ -3399,6 +3315,8 @@ readAdapterInfo_8188EU(
 	//
 	Hal_InitChannelPlan(padapter);
 	Hal_CustomizeByCustomerID_8188EU(padapter);
+
+	_ReadLEDSetting(padapter, hwinfo, pEEPROM->bautoload_fail_flag);
 
 	RT_TRACE(_module_hci_hal_init_c_, _drv_info_, ("<==== readpadapterInfo_8723S()\n"));
 	#else
@@ -4825,10 +4743,6 @@ _func_enter_;
 		case HW_VAR_RPT_TIMER_SETTING:
 			{
 				u16	min_rpt_time = (*(u16 *)val);
-
-				//DBG_8192C("==> HW_VAR_ANTENNA_DIVERSITY_SELECT , Ant_(%s)\n",(Optimum_antenna==2)?"A":"B");
-
-				//PHY_SetBBReg(Adapter, rFPGA0_XA_RFInterfaceOE, 0x300, Optimum_antenna);
 				ODM_RA_Set_TxRPT_Time(podmpriv,min_rpt_time);	
 			}
 			break;
@@ -4839,15 +4753,19 @@ _func_enter_;
 			//odm_SwAntDivRestAfterLink8192C(Adapter);
 			ODM_SwAntDivRestAfterLink(podmpriv);
 			break;
+#endif			
+#ifdef CONFIG_ANTENNA_DIVERSITY
 		case HW_VAR_ANTENNA_DIVERSITY_SELECT:
 			{
 				u8	Optimum_antenna = (*(u8 *)val);
+				u8 	Ant ; 
 				//switch antenna to Optimum_antenna
-		//		DBG_8192C("==> HW_VAR_ANTENNA_DIVERSITY_SELECT , Ant_(%s)\n",(Optimum_antenna==2)?"A":"B");
+				//DBG_8192C("==> HW_VAR_ANTENNA_DIVERSITY_SELECT , Ant_(%s)\n",(Optimum_antenna==2)?"A":"B");
 				if(pHalData->CurAntenna !=  Optimum_antenna)		
-				{
-					//PHY_SetBBReg(Adapter, rFPGA0_XA_RFInterfaceOE, 0x300, Optimum_antenna);
-					ODM_SetAntenna(podmpriv,Optimum_antenna);
+				{					
+					Ant = (Optimum_antenna==2)?MAIN_ANT:AUX_ANT;
+					ODM_UpdateRxIdleAnt_88E(&pHalData->odmpriv, Ant);
+					
 					pHalData->CurAntenna = Optimum_antenna ;
 					//DBG_8192C("==> HW_VAR_ANTENNA_DIVERSITY_SELECT , Ant_(%s)\n",(Optimum_antenna==2)?"A":"B");
 				}
@@ -4932,12 +4850,11 @@ _func_enter_;
 				rtl8188e_set_FwMediaStatus_cmd(Adapter , (*(u16 *)val));
 			}
 			break;
-	#ifdef CONFIG_RECFG_AGC_TAB
-		case HW_VAR_LPS_RF_ON_RECFG_AGC:
-			rtl8188e_recfg_agc_tab(Adapter);
+		case HW_VAR_BCN_VALID:
+			//BCN_VALID, BIT16 of REG_TDECTRL = BIT0 of REG_TDECTRL+2, write 1 to clear, Clear by sw
+			rtw_write8(Adapter, REG_TDECTRL+2, rtw_read8(Adapter, REG_TDECTRL+2) | BIT0); 
 			break;
-	#endif
-	
+
 		default:
 			
 			break;
@@ -4959,15 +4876,9 @@ _func_enter_;
 		case HW_VAR_TXPAUSE:
 			val[0] = rtw_read8(Adapter, REG_TXPAUSE);
 			break;
-		case HW_VAR_TX_BCN_DONE:
-			{
-				u32 xmitbcnDown;
-				xmitbcnDown= rtw_read32(Adapter, REG_TDECTRL);
-				if(xmitbcnDown & BCN_VALID  ){
-					rtw_write32(Adapter,REG_TDECTRL, xmitbcnDown | BCN_VALID  ); // write 1 to clear, Clear by sw
-					val[0] = _TRUE;
-				}
-			}
+		case HW_VAR_BCN_VALID:
+			//BCN_VALID, BIT16 of REG_TDECTRL = BIT0 of REG_TDECTRL+2
+			val[0] = (BIT0 & rtw_read8(Adapter, REG_TDECTRL+2))?_TRUE:_FALSE;
 			break;
 		case HW_VAR_DM_FLAG:
 			val[0] = podmpriv->SupportAbility;
@@ -5060,14 +4971,14 @@ GetHalDefVar8188EUsb(
 #endif
 			break;
 		case HAL_DEF_IS_SUPPORT_ANT_DIV:
-			#ifdef CONFIG_ANTENNA_DIVERSITY
-			*((u8 *)pValue) = (IS_92C_SERIAL(pHalData->VersionID) ||(pHalData->AntDivCfg==0))?_FALSE:_TRUE;
-			#endif
+#ifdef CONFIG_ANTENNA_DIVERSITY
+			*((u8 *)pValue) = (pHalData->AntDivCfg==0)?_FALSE:_TRUE;
+#endif
 			break;			
 		case HAL_DEF_CURRENT_ANTENNA:
-			#ifdef CONFIG_ANTENNA_DIVERSITY
+#ifdef CONFIG_ANTENNA_DIVERSITY
 			*(( u8*)pValue) = pHalData->CurAntenna;			
-			#endif
+#endif
 			break;
 		case HAL_DEF_DRVINFO_SZ:
 			*(( u32*)pValue) = DRVINFO_SZ;
@@ -5259,12 +5170,12 @@ void _update_response_rate(_adapter *padapter,unsigned int mask)
 	rtw_write8(padapter, REG_INIRTS_RATE_SEL, RateIndex);
 }
 
-void UpdateHalRAMask8188EUsb(PADAPTER padapter, u32 mac_id)
+void UpdateHalRAMask8188EUsb(PADAPTER padapter, u32 mac_id, u8 rssi_level)
 {
 	//volatile unsigned int result;
 	u8	init_rate=0;
 	u8	networkType, raid;	
-	u32	mask;
+	u32	mask,rate_bitmap;
 	u8	shortGIrate = _FALSE;
 	int	supportRateNum = 0;
 	struct sta_info	*psta;
@@ -5331,9 +5242,18 @@ void UpdateHalRAMask8188EUsb(PADAPTER padapter, u32 mac_id)
 			
 			break;
 	}
-
-	mask &=0xffffffff;
 	
+	//mask &=0x0fffffff;
+	rate_bitmap = 0x0fffffff;	
+#ifdef	CONFIG_ODM_REFRESH_RAMASK
+	{				
+		rate_bitmap = ODM_Get_Rate_Bitmap(&pHalData->odmpriv,mask,rssi_level);
+		printk("%s => mac_id:%d, networkType:0x%02x, mask:0x%08x\n\t ==> rssi_level:%d, rate_bitmap:0x%08x\n",
+			__FUNCTION__,mac_id,networkType,mask,rssi_level,rate_bitmap);
+	}
+#endif
+	
+	mask &= rate_bitmap; 
 	
 	init_rate = get_highest_rate_idx(mask)&0x3f;
 	
@@ -5359,6 +5279,13 @@ void UpdateHalRAMask8188EUsb(PADAPTER padapter, u32 mac_id)
 			arg |= BIT(6);
 		}
 #endif //CONFIG_INTEL_PROXIM
+		mask |= ((raid<<28)&0xf0000000);
+
+		//to do ,for 8188E-SMIC
+		/*
+		*(pu4Byte)&RateMask=EF4Byte((ratr_bitmap&0x0fffffff) | (ratr_index<<28));
+		RateMask[4] = macId | (bShortGI?0x20:0x00) | 0x80;
+		*/	
 		rtl8188e_set_raid_cmd(padapter, mask);	
 		
 	}

@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright(c) 2007 - 2011 Realtek Corporation. All rights reserved.
+ * Copyright(c) 2007 - 2012 Realtek Corporation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of version 2 of the GNU General Public License as
@@ -56,12 +56,25 @@ struct cmd_msg_parm {
 	u8 buf[6];
 };
 
-typedef struct _SETPWRMODE_PARM {
+typedef struct _SETPWRMODE_PARM
+{
 	u8 Mode;
 	u8 SmartPS;
 	u8 AwakeInterval;	// unit: beacon interval
 	u8 bAllQueueUAPSD;
-} SETPWRMODE_PARM, *PSETPWRMODE_PARM;
+
+#if 0
+	u8 LowRxBCN:1;
+	u8 AutoAntSwitch:1;
+	u8 PSAllowBTHighPriority:1;
+	u8 rsvd43:5;
+#else
+#define SETPM_LOWRXBCN			BIT(0)
+#define SETPM_AUTOANTSWITCH		BIT(1)
+#define SETPM_PSALLOWBTHIGHPRI	BIT(2)
+	u8 BcnAntMode;
+#endif
+}__attribute__((__packed__)) SETPWRMODE_PARM, *PSETPWRMODE_PARM;
 
 struct H2C_SS_RFOFF_PARAM{
 	u8 ROFOn; // 1: on, 0:off
@@ -100,6 +113,9 @@ struct P2P_PS_CTWPeriod_t {
 // host message to firmware cmd
 void rtl8723a_set_FwPwrMode_cmd(PADAPTER padapter, u8 Mode);
 void rtl8723a_set_FwJoinBssReport_cmd(PADAPTER padapter, u8 mstatus);
+#ifdef CONFIG_BT_COEXIST
+void rtl8723a_set_BTCoex_AP_mode_FwRsvdPkt_cmd(PADAPTER padapter);
+#endif
 u8 rtl8192c_set_rssi_cmd(PADAPTER padapter, u8 *param);
 //u8 rtl8723a_set_rssi_cmd(PADAPTER padapter, u8 *param);
 u8 rtl8192c_set_raid_cmd(PADAPTER padapter, u32 mask, u8 arg);

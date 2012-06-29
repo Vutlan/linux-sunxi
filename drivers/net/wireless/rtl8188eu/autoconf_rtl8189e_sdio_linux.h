@@ -22,9 +22,9 @@
  */
 
 //***** temporarily flag *******
+#define CONFIG_ODM_REFRESH_RAMASK
 #define CONFIG_CHIP_VER_INTEGRATION
 #define CONFIG_PHY_SETTING_WITH_ODM
-#define FOR_BRAZIL_PRETEST 0
 //***** temporarily flag *******
 
 
@@ -207,8 +207,25 @@
 	#define HAL_RF_ENABLE		1
 #endif
 
+#define DBG_CONFIG_ERROR_DETECT
+//#define DBG_CONFIG_ERROR_RESET
 
-//#define RATE_ADAPTIVE_SUPPORT 1
+
+//#define DBG_IO
+//#define DBG_DELAY_OS
+//#define DBG_MEM_ALLOC
+//#define DBG_IOCTL
+
+//#define DBG_TX
+//#define DBG_XMIT_BUF
+//#define DBG_XMIT_BUF_EXT
+//#define DBG_TX_DROP_FRAME
+
+//#define DBG_RX_DROP_FRAME
+//#define DBG_RX_SEQ
+//#define DBG_RX_SIGNAL_DISPLAY_PROCESSING
+//#define DBG_RX_SIGNAL_DISPLAY_SSID_MONITORED "jeff-ap"
+
 
 //#define HAL_8195A_USB 0
 

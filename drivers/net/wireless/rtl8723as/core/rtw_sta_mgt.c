@@ -509,10 +509,11 @@ _func_enter_;
 			
 #ifdef CONFIG_AP_MODE
 
+/*
 	_enter_critical_bh(&pstapriv->asoc_list_lock, &irqL0);
 	rtw_list_delete(&psta->asoc_list);	
 	_exit_critical_bh(&pstapriv->asoc_list_lock, &irqL0);
-
+*/
 	_enter_critical_bh(&pstapriv->auth_list_lock, &irqL0);
 	rtw_list_delete(&psta->auth_list);
 	_exit_critical_bh(&pstapriv->auth_list_lock, &irqL0);

@@ -35,11 +35,11 @@
 //2 Config Flags and Structs - defined by each ODM Type
 
 #if (DM_ODM_SUPPORT_TYPE == ODM_AP)
-//	#include "../odm_inc.h"
 	#include "../8192cd_cfg.h"
-//	#include "../common_types.h"
+	#include "../odm_inc.h"
+
 	#include "../8192cd.h"
-	#include "../8192cd_util.h"	
+	#include "../8192cd_util.h"
 	#ifdef _BIG_ENDIAN_
 	#define	ODM_ENDIAN_TYPE				ODM_ENDIAN_BIG
 	#else
@@ -47,7 +47,6 @@
 	#endif
 
 	#ifdef AP_BUILD_WORKAROUND
-	#include "AP_Precomp.h"
 	#include "../8192cd_headers.h"
 	#include "../8192cd_debug.h"		
 	#endif
@@ -95,10 +94,11 @@
 
 
 #if (DM_ODM_SUPPORT_TYPE == ODM_AP)
+#if (RTL8192C_SUPPORT==1)
 	#include "rtl8192c/Hal8192CEFWImg_AP.h"
 	#include "rtl8192c/Hal8192CEPHYImg_AP.h"
 	#include "rtl8192c/Hal8192CEMACImg_AP.h"
-
+#endif
 #elif (DM_ODM_SUPPORT_TYPE == ODM_ADSL)
 	#include "rtl8192c/Hal8192CEFWImg_ADSL.h"
 	#include "rtl8192c/Hal8192CEPHYImg_ADSL.h"
@@ -125,12 +125,8 @@
 	#include "rtl8723a/Hal8723SHWImg_CE.h"
 	#elif(RTL8723AU_SUPPORT==1)
 	#include "rtl8723a/Hal8723UHWImg_CE.h"	 
-	#elif(RTL8188ES_SUPPORT==1)
-	#include "rtl8188e/Hal8188EFWImg_CE.h"
-	#include "rtl8188e/Hal8188ESHWImg_CE.h"
-	#elif(RTL8188EU_SUPPORT==1)
-	#include "rtl8188e/Hal8188EFWImg_CE.h"
-	#include "rtl8188e/Hal8188EUHWImg_CE.h"
+	#elif(RTL8188E_SUPPORT==1)
+	#include "rtl8188e/Hal8188EFWImg_CE.h"	
 	#endif
 #elif (DM_ODM_SUPPORT_TYPE == ODM_MP)
 
@@ -144,7 +140,9 @@
 #include "odm_debug.h"
 
 #if (DM_ODM_SUPPORT_TYPE == ODM_AP)
+#if (RTL8192C_SUPPORT==1)
 	#include "rtl8192c/HalDMOutSrc8192C_AP.h"
+#endif
 #if (RTL8188E_SUPPORT==1)
 		#include "rtl8188e/Hal8188ERateAdaptive.h"//for  RA,Power training
 #endif
@@ -202,9 +200,18 @@
 #include "rtl8188e/HalHWImg8188E_MAC.h"
 #include "rtl8188e/HalHWImg8188E_RF.h"
 #include "rtl8188e/HalHWImg8188E_BB.h"
+#include "rtl8188e/Hal8188EReg.h"
+
+#if (RTL8188E_FOR_TEST_CHIP >= 1) 
+#include "rtl8188e/HalHWImg8188E_TestChip_MAC.h"
+#include "rtl8188e/HalHWImg8188E_TestChip_RF.h"
+#include "rtl8188e/HalHWImg8188E_TestChip_BB.h"
+#endif
+
 //#include "rtl8188e/HalHWImg8188E_FW.h"
 #include "rtl8188e/odm_RegConfig8188E.h"
 #include "rtl8188e/odm_RTL8188E.h"
 #endif
 
 #endif	// __ODM_PRECOMP_H__
+

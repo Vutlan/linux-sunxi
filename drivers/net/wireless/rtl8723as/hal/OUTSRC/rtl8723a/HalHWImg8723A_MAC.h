@@ -35,3 +35,4 @@ ODM_ReadAndConfig_MAC_REG_8723A(
 
 #endif
 #endif // end of HWIMG_SUPPORT
+

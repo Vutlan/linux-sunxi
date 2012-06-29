@@ -335,12 +335,13 @@ void free_mp_priv(struct mp_priv *pmp_priv)
 	pmp_priv->pmp_xmtframe_buf = NULL;
 }
 
-#ifdef CONFIG_RTL8192C
+#if defined (CONFIG_RTL8192C) || defined (CONFIG_RTL8723A)
 #define PHY_IQCalibrate(a,b)	rtl8192c_PHY_IQCalibrate(a,b)
 #define PHY_LCCalibrate(a)	rtl8192c_PHY_LCCalibrate(a)
 //#define dm_CheckTXPowerTracking(a)	rtl8192c_odm_CheckTXPowerTracking(a)
 #define PHY_SetRFPathSwitch(a,b)	rtl8192c_PHY_SetRFPathSwitch(a,b)
 #endif
+
 
 #ifdef CONFIG_RTL8192D
 #define PHY_IQCalibrate(a)	rtl8192d_PHY_IQCalibrate(a)
@@ -871,6 +872,12 @@ void SetDataRate(PADAPTER pAdapter)
 	Hal_SetDataRate(pAdapter);
 }
 
+void MP_PHY_SetRFPathSwitch(PADAPTER pAdapter ,BOOLEAN bMain)
+{
+
+	PHY_SetRFPathSwitch(pAdapter,bMain);
+
+}
 
 #if defined (CONFIG_RTL8712)
 /*------------------------------Define structure----------------------------*/
@@ -1248,7 +1255,7 @@ u32 GetPhyRxPktCRC32Error(PADAPTER pAdapter)
 //reg 0x808[9:0]: FFT data x
 //reg 0x808[22]:  0  -->  1  to get 1 FFT data y
 //reg 0x8B4[15:0]: FFT data y report
-static u32 GetPSDData(PADAPTER pAdapter, u32 point)
+static u32 rtw_GetPSDData(PADAPTER pAdapter, u32 point)
 {
 	int psd_val;
 
@@ -1310,9 +1317,9 @@ u32 mp_query_psd(PADAPTER pAdapter, u8 *data)
 	while (i < psd_stop)
 	{
 		if (i >= psd_pts) {
-			psd_data = GetPSDData(pAdapter, i-psd_pts);
+			psd_data = rtw_GetPSDData(pAdapter, i-psd_pts);
 		} else {
-			psd_data = GetPSDData(pAdapter, i);
+			psd_data = rtw_GetPSDData(pAdapter, i);
 		}
 		sprintf(data, "%s%x ", data, psd_data);
 		i++;

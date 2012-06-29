@@ -28,6 +28,7 @@
 #include "rtl8192d_recv.h"
 #include "rtl8192d_xmit.h"
 #include "rtl8192d_cmd.h"
+#include "rtw_efuse.h"
 
 #include "../hal/OUTSRC/odm_precomp.h"
 
@@ -198,6 +199,7 @@
 
 #define FW_8192D_SIZE				0x8000
 #define FW_8192D_START_ADDRESS	0x1000
+#define FW_8192D_END_ADDRESS		0x1FFF
 
 #define MAX_PAGE_SIZE				4096	// @ page : 4k bytes
 
@@ -674,6 +676,12 @@ struct hal_data_8192de
 	u16	RegRRSR;
 
 	u16	EfuseUsedBytes;
+	
+	BOOLEAN 			EepromOrEfuse;
+	u8				EfuseMap[2][HWSET_MAX_SIZE_512]; //92C:256bytes, 88E:512bytes, we use union set (512bytes)
+	u8				EfuseUsedPercentage;
+	EFUSE_HAL			EfuseHal;
+
 	u8	RTSInitRate;	 // 2010.11.24.by tynli.
 #ifdef CONFIG_P2P
 	struct P2P_PS_Offload_t	p2p_ps_offload;
@@ -903,6 +911,12 @@ struct hal_data_8192du
 	u16	RegRRSR;
 
 	u16	EfuseUsedBytes;
+	
+	BOOLEAN 			EepromOrEfuse;
+	u8				EfuseMap[2][HWSET_MAX_SIZE_512]; //92C:256bytes, 88E:512bytes, we use union set (512bytes)
+	u8				EfuseUsedPercentage;
+	EFUSE_HAL			EfuseHal;
+
 	u8	RTSInitRate;	 // 2010.11.24.by tynli.
 #ifdef CONFIG_P2P
 	struct P2P_PS_Offload_t	p2p_ps_offload;
@@ -918,7 +932,7 @@ typedef struct hal_data_8192du HAL_DATA_TYPE, *PHAL_DATA_TYPE;
 int FirmwareDownload92D(IN PADAPTER Adapter);
 VOID rtl8192d_FirmwareSelfReset(IN PADAPTER Adapter);
 void rtl8192d_ReadChipVersion(IN PADAPTER Adapter);
-VOID rtl8192d_ReadChannelPlan(PADAPTER Adapter, u8* PROMContent, BOOLEAN AutoLoadFail);
+VOID rtl8192d_EfuseParseChnlPlan(PADAPTER Adapter, u8 *hwinfo, BOOLEAN AutoLoadFail);
 VOID rtl8192d_ReadTxPowerInfo(PADAPTER Adapter, u8* PROMContent, BOOLEAN AutoLoadFail);
 VOID rtl8192d_ResetDualMacSwitchVariables(IN PADAPTER Adapter);
 u8 GetEEPROMSize8192D(PADAPTER Adapter);

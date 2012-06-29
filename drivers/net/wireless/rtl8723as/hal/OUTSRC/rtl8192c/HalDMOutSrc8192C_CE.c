@@ -2576,6 +2576,12 @@ rtl8192c_PHY_IQCalibrate(
 
 	_PHY_SaveADDARegisters(pAdapter, IQK_BB_REG, pdmpriv->IQK_BB_backup_recover, 9);
 
+	#ifdef RTL8192C_RECONFIG_TO_1T1R
+	if(IS_92C_SERIAL(pHalData->VersionID))
+		//path B to standby mode
+		PHY_SetBBReg(pAdapter, 0x844, bMaskDWord, 0x00010000);
+	#endif
+
 }
 
 

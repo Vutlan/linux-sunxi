@@ -125,7 +125,7 @@ void rtw_ips_pwr_down(_adapter *padapter);
 #endif
 
 #ifdef CONFIG_CONCURRENT_MODE
-int rtw_drv_if2_init(_adapter *pbuddy_padapter);
+struct net_device *rtw_drv_if2_init(_adapter *pbuddy_padapter, char *name);
 void rtw_drv_if2_free(_adapter *pbuddy_padapter);
 #endif
 
