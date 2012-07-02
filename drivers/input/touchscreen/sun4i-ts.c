@@ -1646,21 +1646,14 @@ static int __devinit sun4i_ts_probe(struct platform_device *pdev)
 	ts_data->irq = irq;
 	//tp_irq = irq;
     
-	err = request_irq(irq, sun4i_isr_tp,
-		IRQF_DISABLED, pdev->name, pdev);
-	if (err) {
-		dev_err(&pdev->dev, "Cannot request keypad IRQ\n");
-		goto err_out2;
-	}
 
-	
 	platform_set_drvdata(pdev, ts_data);	
 
 	//printk("Input request \n");
 	/* All went ok, so register to the input system */
 	err = input_register_device(ts_data->input);
 	if (err)
-		goto err_out3;
+		goto err_out2;
 
 #ifdef CONFIG_HAS_EARLYSUSPEND	
     printk("==register_early_suspend =\n");	
@@ -1682,17 +1675,26 @@ static int __devinit sun4i_ts_probe(struct platform_device *pdev)
         printk("tp init\n");
 #endif
     tp_init();
-    
+
+	
+	err = request_irq(irq, sun4i_isr_tp,
+		IRQF_DISABLED, pdev->name, pdev);
+	if (err) {
+		dev_err(&pdev->dev, "Cannot request ts IRQ\n");
+		goto err_out3;
+	}
+
 #ifdef CONFIG_TOUCHSCREEN_SUN4I_DEBUG
 	    printk( "sun4i-ts.c: sun4i_ts_probe: end\n");
 #endif
 
     return 0;
 
- err_out3:
+err_out3:
+	
+err_out2:
 	if (ts_data->irq)
 		free_irq(ts_data->irq, pdev);
-err_out2:
 err_out1:
 	sun4i_ts_data_free(ts_data);
 err_out: 	
@@ -1707,14 +1709,25 @@ static int __devexit sun4i_ts_remove(struct platform_device *pdev)
 {
 	
 	struct sun4i_ts_data *ts_data = platform_get_drvdata(pdev);	
+	free_irq(ts_data->irq, pdev);
+	//cancel tasklet?
+	tasklet_disable(&tp_tasklet);
+	
+#ifdef CONFIG_SMP
+	del_timer_sync(&data_timer);
+#else
+	del_timer(&data_timer);
+#endif
+	data_timer_status = 0;
+
+	platform_set_drvdata(pdev, NULL);
+	
 	#ifdef CONFIG_HAS_EARLYSUSPEND	
 	    unregister_early_suspend(&ts_data->early_suspend);	
 	#endif
 	input_unregister_device(ts_data->input);
-	free_irq(ts_data->irq, pdev);	
 	sun4i_ts_data_free(ts_data);
-	platform_set_drvdata(pdev, NULL);
-        //cancle tasklet?
+
 	return 0;	
 }
 	

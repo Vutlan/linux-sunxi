@@ -58,6 +58,8 @@ struct aw_mem_para{
 	__s32 suspend_dcdc2;
 	__s32 suspend_dcdc3;
 	__u32 suspend_freq;
+	__u32 axp_event;
+	__u32 sys_event;	
 	struct clk_div_t clk_div;
 	struct pll_factor_t pll_factor;
 	__u32 saved_runtime_context_svc[RUNTIME_CONTEXT_SIZE];

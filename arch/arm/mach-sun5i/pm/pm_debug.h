@@ -79,6 +79,8 @@ void change_runtime_env(__u32 mmu_flag);
 void delay_us(__u32 us);
 void delay_ms(__u32 ms);
 void io_init(void);
+void io_init_high(void);
+void io_init_low(void);
 void io_high(int num);
 
 

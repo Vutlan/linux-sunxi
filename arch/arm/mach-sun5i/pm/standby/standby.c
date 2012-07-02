@@ -92,7 +92,7 @@ int main(struct aw_pm_info *arg)
     standby_clk_apbinit();
     standby_int_init();
     standby_tmr_init();
-    standby_power_init();
+    standby_power_init(pm_info.standby_para.axp_event);
     /* init some system wake source */
     if(pm_info.standby_para.event & SUSPEND_WAKEUP_SRC_EXINT){
         standby_enable_int(INT_SOURCE_EXTNMI);
@@ -128,6 +128,17 @@ int main(struct aw_pm_info *arg)
     dram_power_save_process();
     /* process standby */
     standby();
+
+#if 0 
+	change_runtime_env(1);
+	io_init(); 
+	io_init_high(); 
+	delay_ms(10); 
+	io_init_low(); 
+	delay_ms(20); 
+	io_init_high(); 
+#endif
+
     /* enable watch-dog to preserve dram training failed */
     standby_tmr_enable_watchdog();
     /* restore dram */
@@ -151,7 +162,7 @@ int main(struct aw_pm_info *arg)
     if(pm_info.standby_para.event & SUSPEND_WAKEUP_SRC_KEY){
         standby_key_exit();
     }
-    standby_power_exit();
+    standby_power_exit(pm_info.standby_para.event>>16);
     standby_tmr_exit();
     standby_int_exit();
     standby_clk_apbexit();
@@ -235,14 +246,16 @@ static void standby(void)
     /* enable LDO, enable HOSC */
     standby_clk_ldoenable();
     /* delay 1ms for power be stable */
-	//2.2ms
-    standby_delay(1);
+	//3ms
+    standby_delay_cycle(1);
     standby_clk_hoscenable();
-	//4.4ms
-    standby_delay(2);
+	//3ms
+    standby_delay_cycle(1);
     #endif
+
 	/* switch clock to hosc */
     standby_clk_core2hosc();
+
     /* swtich apb1 to hosc */
     standby_clk_apb2hosc();
 

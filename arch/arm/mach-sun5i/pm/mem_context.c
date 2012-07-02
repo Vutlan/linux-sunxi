@@ -238,6 +238,8 @@ void create_mapping(struct map_desc *md)
 	//__cpuc_flush_kern_all();
 	//__cpuc_flush_user_all();
 	*((volatile __u32 *)(PAGE_TBL_ADDR)) = 0xc4a;
+	//clean cache
+	__cpuc_coherent_user_range((long unsigned int)(PAGE_TBL_ADDR), (long unsigned int)(PAGE_TBL_ADDR + (sizeof(u32)) - 1));
 	//actually, not need, just for test.
 	//flush_tlb_all();
 
@@ -279,6 +281,8 @@ void restore_mapping(unsigned long vaddr)
 	}
 	//__cpuc_flush_kern_all();
 	*((volatile __u32 *)(PAGE_TBL_ADDR)) = backup_tbl[0].entry_val;
+	//clean cache
+	__cpuc_coherent_user_range((long unsigned int)(PAGE_TBL_ADDR), (long unsigned int)(PAGE_TBL_ADDR + (sizeof(u32)) - 1));
 	flush_tlb_all();
 
 	return;
