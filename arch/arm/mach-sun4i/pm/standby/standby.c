@@ -84,6 +84,7 @@ int main(struct aw_pm_info *arg)
 
     /* initialise standby modules */
     standby_clk_init();
+    standby_clk_apbinit();
     standby_int_init();
     standby_tmr_init();
     standby_power_init();
@@ -148,6 +149,7 @@ int main(struct aw_pm_info *arg)
     standby_power_exit();
     standby_tmr_exit();
     standby_int_exit();
+    standby_clk_apbexit();
     standby_clk_exit();
 
     /* restore dram traning area */

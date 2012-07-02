@@ -556,7 +556,7 @@ void LCD_get_sys_config(__u32 sel, __disp_lcd_cfg_t *lcd_cfg)
                          "lcdd23", "lcdclk", "lcdde", "lcdhsync", "lcdvsync"};
     user_gpio_set_t  *gpio_info;
     int  value = 1;
-    char primary_key[20], sub_name[20];
+    char primary_key[20], sub_name[25];
     int i = 0;
     int  ret;
 
@@ -701,7 +701,76 @@ void LCD_get_sys_config(__u32 sel, __disp_lcd_cfg_t *lcd_cfg)
         }
         lcd_cfg->init_bright = value;
     }
+
+//bright,constraction,saturation,hue
+    sprintf(primary_key, "disp_init");
+    sprintf(sub_name, "lcd%d_screen_bright", sel);
+    ret = OSAL_Script_FetchParser_Data(primary_key, sub_name, &value, 1);
+    if(ret < 0)
+    {
+        DE_INF("%s.%s not exit\n", primary_key,sub_name);
+        lcd_cfg->lcd_bright = 50;
+    }
+    else
+    {
+        DE_INF("%s.%s = %d\n", primary_key,sub_name, value);
+        if(value > 100)
+        {
+            value = 100;
+        }
+        lcd_cfg->lcd_bright = value;
+    }
     
+    sprintf(sub_name, "lcd%d_screen_contrast", sel);
+    ret = OSAL_Script_FetchParser_Data(primary_key, sub_name, &value, 1);
+    if(ret < 0)
+    {
+        DE_INF("%s.%s not exit\n", primary_key,sub_name);
+        lcd_cfg->lcd_contrast = 50;
+    }
+    else
+    {
+        DE_INF("%s.%s = %d\n", primary_key,sub_name, value);
+        if(value > 100)
+        {
+            value = 100;
+        }
+        lcd_cfg->lcd_contrast = value;
+    }
+
+    sprintf(sub_name, "lcd%d_screen_saturation", sel);
+    ret = OSAL_Script_FetchParser_Data(primary_key, sub_name, &value, 1);
+    if(ret < 0)
+    {
+        DE_INF("%s.%s not exit\n", primary_key,sub_name);
+        lcd_cfg->lcd_saturation = 50;
+    }
+    else
+    {
+        DE_INF("%s.%s = %d\n", primary_key,sub_name, value);
+        if(value > 100)
+        {
+            value = 100;
+        }
+        lcd_cfg->lcd_saturation = value;
+    }
+    
+    sprintf(sub_name, "lcd%d_screen_hue", sel);
+    ret = OSAL_Script_FetchParser_Data(primary_key, sub_name, &value, 1);
+    if(ret < 0)
+    {
+        DE_INF("%s.%s not exit\n", primary_key,sub_name);
+        lcd_cfg->lcd_hue = 50;
+    }
+    else
+    {
+        DE_INF("%s.%s = %d\n", primary_key,sub_name, value);
+        if(value > 100)
+        {
+            value = 100;
+        }
+        lcd_cfg->lcd_hue = value;
+    }
 }
 
 void LCD_delay_ms(__u32 ms) 
@@ -856,6 +925,8 @@ __s32 pwm_enable(__u32 channel, __bool b_en)
     
     return 0;
 }
+
+
 
 //channel: pwm channel,0/1
 //pwm_info->freq:  pwm freq, in hz
@@ -1332,6 +1403,8 @@ __u32 tv_mode_to_width(__disp_tv_mode_t mode)
         case DISP_TV_MOD_1080P_50HZ:
         case DISP_TV_MOD_1080P_60HZ:
         case DISP_TV_MOD_1080P_24HZ_3D_FP:
+        case DISP_TV_MOD_1080P_25HZ:
+        case DISP_TV_MOD_1080P_30HZ:
             width = 1920;
             break;
         default:
@@ -1374,6 +1447,8 @@ __u32 tv_mode_to_height(__disp_tv_mode_t mode)
         case DISP_TV_MOD_1080P_24HZ:
         case DISP_TV_MOD_1080P_50HZ:
         case DISP_TV_MOD_1080P_60HZ:
+        case DISP_TV_MOD_1080P_25HZ:
+        case DISP_TV_MOD_1080P_30HZ:
             height = 1080;
             break;
         case DISP_TV_MOD_1080P_24HZ_3D_FP:
@@ -1634,6 +1709,12 @@ __s32 BSP_disp_get_frame_rate(__u32 sel)
             case DISP_TV_MOD_1080P_24HZ:
             case DISP_TV_MOD_1080P_24HZ_3D_FP:
                 frame_rate = 24;
+            case DISP_TV_MOD_1080P_25HZ:
+                frame_rate = 25;
+                break;
+            case DISP_TV_MOD_1080P_30HZ:
+                frame_rate = 30;
+                break;
                 break;
             default:
                 break;
@@ -1768,7 +1849,7 @@ __s32 BSP_disp_lcd_get_bright(__u32 sel)
 }
 
 __s32 BSP_disp_set_gamma_table(__u32 sel, __u32 *gamtbl_addr,__u32 gamtbl_size)
-{    
+{       
     if((gamtbl_addr == NULL) || (gamtbl_size>1024))
     {
         DE_WRN("para invalid in BSP_disp_set_gamma_table\n");
@@ -1776,21 +1857,27 @@ __s32 BSP_disp_set_gamma_table(__u32 sel, __u32 *gamtbl_addr,__u32 gamtbl_size)
     }
     
     TCON1_set_gamma_table(sel,(__u32)(gamtbl_addr),gamtbl_size);
-
+    
+    memcpy(gpanel_info[sel].lcd_gamma_tbl, gamtbl_addr, gamtbl_size);
+    
     return DIS_SUCCESS;
 }
 
 __s32 BSP_disp_gamma_correction_enable(__u32 sel)
 {    
 	TCON1_set_gamma_Enable(sel,TRUE);
-	
+
+    gpanel_info[sel].lcd_gamma_correction_en = TRUE;
+        
 	return DIS_SUCCESS;
 }
 
 __s32 BSP_disp_gamma_correction_disable(__u32 sel)
 {    
 	TCON1_set_gamma_Enable(sel,FALSE);
-	
+
+    gpanel_info[sel].lcd_gamma_correction_en = FALSE;
+    
 	return DIS_SUCCESS;
 }
 

@@ -1,11 +1,7 @@
 #ifndef __PHY_BOOT__
 #define  __PHY_BOOT__
 
-#include "nand_oal.h"
-
-#define SUCESS	0
-#define FAIL	-1;
-#define BADBLOCK -2
+#include "nand_drv_cfg.h"
 
 struct boot_physical_param{
 	__u8   chip; //chip no

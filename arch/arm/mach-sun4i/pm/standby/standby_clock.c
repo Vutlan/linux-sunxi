@@ -394,4 +394,48 @@ __s32 standby_clk_apb2hosc(void)
 }
 
 
+static __ccmu_apb1clk_ratio_reg0058_t  apbclkbak;
+
+/*
+*********************************************************************************************************
+*                                     standby_clk_apb2hosc
+*
+* Description: switch apb1 clock to 24M hosc.
+*
+* Arguments  : none
+*
+* Returns    : 0;
+*********************************************************************************************************
+*/
+__s32 standby_clk_apbinit(void)
+{
+    apbclkbak = CmuReg->Apb1ClkDiv;
+    /* change apb1 clock to hosc */
+    CmuReg->Apb1ClkDiv.ClkSrc = 0;
+    CmuReg->Apb1ClkDiv.ClkDiv = 0;
+    CmuReg->Apb1ClkDiv.PreDiv = 0;
+    return 0;
+}
+
+
+/*
+*********************************************************************************************************
+*                                     standby_clk_apb2hosc
+*
+* Description: switch apb1 clock to 24M hosc.
+*
+* Arguments  : none
+*
+* Returns    : 0;
+*********************************************************************************************************
+*/
+__s32 standby_clk_apbexit(void)
+{
+    /* restore clock division */
+    CmuReg->Apb1ClkDiv.ClkDiv = apbclkbak.ClkDiv;
+    CmuReg->Apb1ClkDiv.PreDiv = apbclkbak.PreDiv;
+    /* restore clock source */
+    CmuReg->Apb1ClkDiv.ClkSrc = apbclkbak.ClkSrc;
+    return 0;
+}
 

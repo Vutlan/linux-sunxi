@@ -81,6 +81,10 @@ static struct device *hwmon_dev;
 static struct i2c_client *mma7660_i2c_client;
 
 struct mma7660_data_s {
+    struct i2c_client       *client;
+    struct input_polled_dev *pollDev; 
+    struct mutex interval_mutex; 
+    
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	struct early_suspend early_suspend;
 	volatile int suspend_indator;
@@ -196,6 +200,47 @@ static void mma7660_read_xyz(int idx, s8 *pf)
 	*pf = (result&(1<<5)) ? (result|(~0x0000003f)) : (result&0x0000003f);
 }
 
+static ssize_t mma7660_delay_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct i2c_client *client       = mma7660_i2c_client;
+	struct mma7660_data_s *mma7660    = NULL;
+
+    printk(KERN_ERR "delay show %d, client=%x\n", __LINE__, client);
+    mma7660    = i2c_get_clientdata(client);
+    printk(KERN_ERR "delay show %d, data=%x\n", __LINE__, mma7660);
+
+	return sprintf(buf, "%d\n", mma7660->pollDev->poll_interval);
+
+}
+
+static ssize_t mma7660_delay_store(struct device *dev,
+		struct device_attribute *attr,
+		const char *buf, size_t count)
+{
+	unsigned long data;
+	int error;
+	struct i2c_client *client = mma7660_i2c_client;
+	struct mma7660_data_s *mma7660 = NULL;
+
+    printk(KERN_ERR "delay store %d, client=%x\n", __LINE__, client);
+    mma7660    = i2c_get_clientdata(client);
+    printk(KERN_ERR "delay store %d, data=%x\n", __LINE__, mma7660);
+
+	error = strict_strtoul(buf, 10, &data);
+	if (error)
+		return error;
+	if (data > POLL_INTERVAL_MAX)
+		data = POLL_INTERVAL_MAX;
+    
+    mutex_lock(&mma7660->interval_mutex);
+    mma7660->pollDev->poll_interval = data;
+    mutex_unlock(&mma7660->interval_mutex);
+
+	return count;
+}
+
+
 static ssize_t mma7660_value_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
@@ -210,6 +255,7 @@ static ssize_t mma7660_value_show(struct device *dev,
 	x = (((short)xyz[0]) << 8) >> 8;
 	y = (((short)xyz[1]) << 8) >> 8;
 	z = (((short)xyz[2]) << 8) >> 8;
+    printk(KERN_ERR "value show %d", __LINE__);
 
 	return sprintf(buf, "x= %d y= %d z= %d\n", x, y, z);
 
@@ -245,15 +291,20 @@ exit:
 	return error;
 }
 
+
 static DEVICE_ATTR(enable, S_IRUGO|S_IWUSR|S_IWGRP,
 		NULL, mma7660_enable_store);
 
 static DEVICE_ATTR(value, S_IRUGO|S_IWUSR|S_IWGRP,
 		mma7660_value_show, NULL);
 
+static DEVICE_ATTR(delay, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
+		mma7660_delay_show,  mma7660_delay_store);
+
 static struct attribute *mma7660_attributes[] = {
 	&dev_attr_value.attr,
 	&dev_attr_enable.attr,
+	&dev_attr_delay.attr,
 	NULL
 };
 
@@ -369,6 +420,7 @@ static int __devinit mma7660_probe(struct i2c_client *client,
 	int result;
 	struct input_dev *idev;
 	struct i2c_adapter *adapter;
+    struct mma7660_data_s* data = &mma7660_data;
  
 	printk(KERN_INFO "mma7660 probe\n");
 	mma7660_i2c_client = client;
@@ -381,6 +433,14 @@ static int __devinit mma7660_probe(struct i2c_client *client,
 	/* Initialize the MMA7660 chip */
 	result = mma7660_init_client(client);
 	assert(result==0);
+	
+	//result = 1; // debug by lchen
+	printk("<%s> mma7660_init_client result %d\n", __func__, result);
+	if(result != 0)
+	{
+		printk("<%s> init err !", __func__);
+		return result;
+	}
 
 	hwmon_dev = hwmon_device_register(&client->dev);
 	assert(!(IS_ERR(hwmon_dev)));
@@ -401,6 +461,7 @@ static int __devinit mma7660_probe(struct i2c_client *client,
 	idev->name = MMA7660_DRV_NAME;
 	idev->id.bustype = BUS_I2C;
 	idev->evbit[0] = BIT_MASK(EV_ABS);
+    mutex_init(&data->interval_mutex);
 
 	input_set_abs_params(idev, ABS_X, -512, 512, INPUT_FUZZ, INPUT_FLAT);
 	input_set_abs_params(idev, ABS_Y, -512, 512, INPUT_FUZZ, INPUT_FLAT);
@@ -418,6 +479,10 @@ static int __devinit mma7660_probe(struct i2c_client *client,
 	if(result) {
 		dev_err(&client->dev, "create sys failed\n");
 	}
+
+    data->client  = client;
+    data->pollDev = mma7660_idev;
+	i2c_set_clientdata(client, data);
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	mma7660_data.early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;

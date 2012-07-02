@@ -399,6 +399,7 @@ __s32 BSP_disp_layer_release(__u32 sel, __u32 hid)
 {
     __u32   cpu_sr;
     __layer_man_t * layer_man;
+    layer_src_t layer_src;
 
     hid = HANDTOID(hid);
     HLID_ASSERT(hid, gdisp.screen[sel].max_layers);
@@ -426,15 +427,12 @@ __s32 BSP_disp_layer_release(__u32 sel, __u32 hid)
         	{
             	Yuv_Channel_Release(sel, hid);
             }
-            else
-            {
-                layer_src_t layer_src;
-
-                memset(&layer_src, 0, sizeof(layer_src_t));
-            	DE_BE_Layer_Set_Framebuffer(sel, hid, &layer_src);
-            }
         }
     }
+    
+    memset(&layer_src, 0, sizeof(layer_src_t));
+    DE_BE_Layer_Set_Framebuffer(sel, hid, &layer_src);
+
     memset(layer_man, 0 ,sizeof(__layer_man_t));
     DE_BE_Layer_Enable(sel, hid, FALSE);
     DE_BE_Layer_Video_Enable(sel, hid, FALSE);
@@ -876,7 +874,7 @@ __s32 BSP_disp_layer_set_para(__u32 sel, __u32 hid,__disp_layer_info_t *player)
 
             if(layer_man->para.mode != DISP_LAYER_WORK_MODE_SCALER)
             {
-        	    __u32 format = DISP_FORMAT_ARGB8888;
+        	    layer_src_t layer_src;
 
         	    ret = Scaler_Request(0xff);
         	    if(ret < 0)
@@ -887,10 +885,14 @@ __s32 BSP_disp_layer_set_para(__u32 sel, __u32 hid,__disp_layer_info_t *player)
         	    }
         	    DE_SCAL_Start(ret);
 
-        	    format = DISP_FORMAT_ARGB8888;
-        	    DE_BE_Layer_Set_Format(sel, hid, format,FALSE,DISP_SEQ_ARGB);
         	    DE_BE_Layer_Video_Enable(sel, hid, TRUE);   
         	    DE_BE_Layer_Video_Ch_Sel(sel, hid, ret);
+                memset(&layer_src, 0, sizeof(layer_src_t));
+                layer_src.format = DISP_FORMAT_ARGB8888;
+                layer_src.br_swap = FALSE;
+                layer_src.pixseq = DISP_SEQ_ARGB;
+                DE_BE_Layer_Set_Framebuffer(sel, hid, &layer_src);
+
         	    layer_man->scaler_index = ret;
         	    layer_man->para.mode = DISP_LAYER_WORK_MODE_SCALER;
         	    gdisp.scaler[ret].screen_index = sel;

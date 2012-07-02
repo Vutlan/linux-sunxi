@@ -27,7 +27,6 @@
 *
 ************************************************************************************************************************
 */
-#include <linux/module.h>
 #include "../include/nand_logic.h"
 
 //#define CACHE_DBG
@@ -45,12 +44,14 @@ typedef struct
 	__u32   secbitmap;
 
 	__u32	access_count;
+	__u32   dev_num;
 }__nand_cache_t;
 
 __u32 g_w_access_cnt;
 
 __nand_cache_t nand_w_cache[N_NAND_W_CACHE];
 __nand_cache_t nand_r_cache;
+__u32 nand_current_dev_num;
 
 __u32 _get_valid_bits(__u32 secbitmap)
 {
@@ -120,6 +121,7 @@ __s32 _flush_w_cache_simple(__u32 i)
 		nand_w_cache[i].hit_page = 0xffffffff;
 		nand_w_cache[i].secbitmap = 0;
 		nand_w_cache[i].access_count = 0;
+		nand_w_cache[i].dev_num= 0xffffffff;
 
 		/*disable read cache with current page*/
 		if (nand_r_cache.hit_page == nand_w_cache[i].hit_page){
@@ -139,6 +141,26 @@ __s32 NAND_CacheFlush(void)
 	//__u32	i;
 
 	_flush_w_cache();
+
+	return 0;
+
+}
+
+__s32 NAND_CacheFlushDev(__u32 dev_num)
+{
+	__u32	i;
+
+	//printk("Nand Flush Dev: 0x%x\n", dev_num);
+	for(i = 0; i < N_NAND_W_CACHE; i++)
+	{
+		if(nand_w_cache[i].dev_num == dev_num)
+		{
+			//printk("nand flush cache 0x%x\n", i);
+			_flush_w_cache_simple(i);
+		}
+
+
+	}
 
 	return 0;
 
@@ -333,6 +355,7 @@ __s32 _fill_nand_cache(__u32 page, __u32 secbitmap, __u8 *pdata)
 		nand_w_cache[pos].hit_page = page;
 		nand_w_cache[pos].secbitmap = secbitmap;
 		nand_w_cache[pos].access_count = g_w_access_cnt;
+		nand_w_cache[i].dev_num= nand_current_dev_num;
 
 	}
 
@@ -383,6 +406,7 @@ __s32 NAND_CacheWrite(__u32 blk, __u32 nblk, void *buf)
 					{
 						nand_w_cache[i].hit_page = 0xffffffff;
 						nand_w_cache[i].secbitmap = 0;
+						nand_w_cache[i].dev_num= 0xffffffff;
 						//hit=1;
 					}
 					else if((nand_w_cache[i].hit_page == page-1)&&(page>0))
@@ -439,6 +463,7 @@ __s32 NAND_CacheOpen(void)
 		nand_w_cache[i].hit_page = 0xffffffff;
 		nand_w_cache[i].secbitmap = 0;
 		nand_w_cache[i].access_count = 0;
+		nand_w_cache[i].dev_num= 0xffffffff;
 	}
 
 	nand_r_cache.size = 512 * SECTOR_CNT_OF_LOGIC_PAGE;
@@ -446,6 +471,7 @@ __s32 NAND_CacheOpen(void)
 	nand_r_cache.hit_page = 0xffffffff;
 	nand_r_cache.secbitmap = 0;
 	nand_r_cache.access_count = 0;
+	nand_r_cache.dev_num= 0xffffffff;
 
 	return 0;
 }

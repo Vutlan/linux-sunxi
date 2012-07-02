@@ -43,7 +43,7 @@
 #define SUSPEND_WAKEUP_SRC_IR       (1<<3)  /* ir event */
 #define SUSPEND_WAKEUP_SRC_ALARM    (1<<4)  /* alarm event  */
 #define SUSPEND_WAKEUP_SRC_TIMEOFF  (1<<5)  /* set time to power off event  */
-
+#define SUSPEND_WAKEUP_SRC_PIO      (1<<6)  /* gpio event  */
 
 
 /**

@@ -860,7 +860,7 @@ __s32 DE_SCAL_Set_Scaling_Coef_for_video(__u8 sel, __scal_scan_mod_t *in_scan, _
       //comput the fir coefficient offset in coefficient table
       int_part = ch0v_sc>>3;
       float_part = ch0v_sc & 0x7;
-      ch0v_fir_coef_ofst = (int_part==0)  ? zoom0_size : 
+      ch0v_fir_coef_ofst = (int_part==0)  ? 0 : 					//modify by vito 12-04-16
                            (int_part==1)  ? zoom0_size + float_part :
                            (int_part==2)  ? zoom0_size + zoom1_size + (float_part>>1) : 
                            (int_part==3)  ? zoom0_size + zoom1_size + zoom2_size : 
@@ -868,7 +868,7 @@ __s32 DE_SCAL_Set_Scaling_Coef_for_video(__u8 sel, __scal_scan_mod_t *in_scan, _
                            zoom0_size + zoom1_size + zoom2_size + zoom3_size + zoom4_size;
       int_part = ch0h_sc>>3;
       float_part = ch0h_sc & 0x7;
-      ch0h_fir_coef_ofst = (int_part==0)  ? zoom0_size : 
+      ch0h_fir_coef_ofst = (int_part==0)  ? 0 : 					//modify by vito 12-04-16
                            (int_part==1)  ? zoom0_size + float_part :
                            (int_part==2)  ? zoom0_size + zoom1_size + (float_part>>1) : 
                            (int_part==3)  ? zoom0_size + zoom1_size + zoom2_size : 
@@ -876,7 +876,7 @@ __s32 DE_SCAL_Set_Scaling_Coef_for_video(__u8 sel, __scal_scan_mod_t *in_scan, _
                            zoom0_size + zoom1_size + zoom2_size + zoom3_size + zoom4_size;
       int_part = ch1v_sc>>3;
       float_part = ch1v_sc & 0x7;
-      ch1v_fir_coef_ofst = (int_part==0)  ? zoom0_size : 
+      ch1v_fir_coef_ofst = (int_part==0)  ? 0 : 					//modify by vito 12-04-16
                            (int_part==1)  ? zoom0_size + float_part :
                            (int_part==2)  ? zoom0_size + zoom1_size + (float_part>>1) : 
                            (int_part==3)  ? zoom0_size + zoom1_size + zoom2_size : 
@@ -884,7 +884,7 @@ __s32 DE_SCAL_Set_Scaling_Coef_for_video(__u8 sel, __scal_scan_mod_t *in_scan, _
                            zoom0_size + zoom1_size + zoom2_size + zoom3_size + zoom4_size;
       int_part = ch1h_sc>>3;
       float_part = ch1h_sc & 0x7;
-      ch1h_fir_coef_ofst =  (int_part==0)  ? zoom0_size : 
+      ch1h_fir_coef_ofst =  (int_part==0)  ? 0 : 					//modify by vito 12-04-16
                             (int_part==1)  ? zoom0_size + float_part :
                             (int_part==2)  ? zoom0_size + zoom1_size + (float_part>>1) : 
                             (int_part==3)  ? zoom0_size + zoom1_size + zoom2_size : 
@@ -1319,6 +1319,39 @@ __s32 DE_SCAL_Writeback_Disable(__u8 sel)
 	
 	return 0;
 }
+
+//**********************************************************************************
+// function         : DE_SCAL_Writeback_Linestride_Enable(__u8 sel)
+// description      : scaler write back linestride enable 
+// parameters       :
+//                sel <0,1>
+//                |    0  scaler0
+//                |    1  scaler1
+// return            : success
+//***********************************************************************************
+__s32 DE_SCAL_Writeback_Linestride_Enable(__u8 sel)
+{
+	scal_dev[sel]->wb_linestrd_en.dwval = 0x1;
+	
+	return 0;
+}
+
+//**********************************************************************************
+// function         : DE_SCAL_Writeback_Linestride_Disable(__u8 sel)
+// description      : scaler write back linestride disable 
+// parameters       :
+//                sel <0,1>
+//                |    0  scaler0
+//                |    1  scaler1
+// return            : success
+//***********************************************************************************
+__s32 DE_SCAL_Writeback_Linestride_Disable(__u8 sel)
+{
+	scal_dev[sel]->wb_linestrd_en.dwval = 0x0;
+	
+	return 0;
+}
+
 
 //**********************************************************************************
 // function         : DE_SCAL_Enable(__u8 sel)
@@ -2555,7 +2588,7 @@ __s32 DE_SCAL_Vpp_Set_Luma_Sharpness_Level(__u8 sel, __u32 level)
 		case	0x1:	
 			scal_dev[sel]->vpp_lp1.bits.tau = 4;
 			scal_dev[sel]->vpp_lp1.bits.alpha = 0;
-			scal_dev[sel]->vpp_lp1.bits.beta = 20;
+			scal_dev[sel]->vpp_lp1.bits.beta = 8;	//12-06-08
 			scal_dev[sel]->vpp_lp2.bits.corthr = 2;
 			scal_dev[sel]->vpp_lp1.bits.lp_en = 0x1;
 		break;
@@ -2563,7 +2596,7 @@ __s32 DE_SCAL_Vpp_Set_Luma_Sharpness_Level(__u8 sel, __u32 level)
 		case	0x2:	
 			scal_dev[sel]->vpp_lp1.bits.tau = 11;
 			scal_dev[sel]->vpp_lp1.bits.alpha = 0;
-			scal_dev[sel]->vpp_lp1.bits.beta = 16;
+			scal_dev[sel]->vpp_lp1.bits.beta = 8;  //12-06-08
 			scal_dev[sel]->vpp_lp2.bits.corthr = 5;
 			scal_dev[sel]->vpp_lp1.bits.lp_en = 0x1;
 
@@ -2798,5 +2831,122 @@ __u32 DE_SCAL_ClearINT(__u8 sel,__u32 irqsrc)
 {
 		scal_dev[sel]->int_status.dwval |= DE_WB_END_IE;
 	return 0;
+}
+
+
+//*********************************************************************************************
+// function         : DE_SCAL_Config_Src(__u8 sel, __scal_buf_addr_t *addr, __scal_src_size_t *size,
+//                                       __scal_src_type_t *type, __u8 field, __u8 dien)
+// description     : scaler source concerning parameter configure
+// parameters    :
+//                 sel <scaler select>
+//                 addr  <frame buffer address for 3 channel, 32 bit absolute address>
+//                 size <scale region define,  src size, offset, scal size>
+//                 type <src data type, include byte sequence, mode, format, pixel sequence>
+//                 field <frame/field data get>
+//                 dien <deinterlace enable>
+// return            : 
+//               success
+//***********************************************************************************************
+__s32 DE_SCAL_Set_Writeback_Addr_ex(__u32 sel, __scal_buf_addr_t *addr, __scal_out_size_t *size,
+                         __scal_out_type_t *type)
+{
+    __u8 w_shift, h_shift;
+	__u32 image_w0, image_w1;
+	__u32 x_off0, y_off0, x_off1, y_off1;
+	__u32 in_w0, in_h0, in_w1, in_h1;
+    
+	image_w0 = size->fb_width;
+	in_w0 = size->width;
+	in_h0 = size->height;
+	x_off0 = size->x_off;
+	y_off0 = size->y_off;  //scan mod enable or deinterlace, odd dy un-support
+
+//    if(sel == 0)   //scaler 0 scaler 1
+    {
+        if(type->fmt == DE_SCAL_OUTPYUV422 || type->fmt == DE_SCAL_OUTPYUV420)
+        {
+            w_shift = 1;
+        	image_w1 = (image_w0 + 0x1)>>w_shift;
+        	in_w1 = (in_w0 + 0x1)>>w_shift;
+        	x_off1 = (x_off0)>>w_shift;
+        	/*
+        	if(type->mod == DE_SCAL_INTER_LEAVED)
+        	{
+        	    image_w0 = (image_w0 + 0x1) & 0xfffffffe;
+                image_w1 = image_w0>>1;
+                in_w0 &= 0xfffffffe;
+                in_w1 = in_w0>>0x1;
+        	    x_off0 &= 0xfffffffe;
+        		x_off1 = x_off0>>w_shift;
+        	}*/
+        }
+        else if(type->fmt == DE_SCAL_OUTPYUV411)
+        {
+            w_shift = 2;
+        	image_w1 = (image_w0 + 0x3)>>w_shift;
+        	in_w1 = (in_w0 + 0x3)>>w_shift;
+        	x_off1 = (x_off0)>>w_shift;
+        }
+        else
+        {
+            w_shift = 0;
+        	image_w1 = image_w0;
+        	in_w1 = in_w0;
+        	x_off1 = x_off0;
+        }
+        if(type->fmt == DE_SCAL_OUTPYUV420)
+        {
+            h_shift = 1;
+        	in_h1 = (in_h0 + 0x1)>>h_shift;
+        	y_off1 = (y_off0)>>h_shift;
+        }
+        else
+        {
+            h_shift = 0;
+        	in_h1 = in_h0;
+        	y_off1 = y_off0;
+        }
+    }
+    //added no-zero limited
+    in_h0 = (in_h0!=0) ? in_h0 : 1;
+	in_h1 = (in_h1!=0) ? in_h1 : 1;
+	in_w0 = (in_w0!=0) ? in_w0 : 1;
+	in_w1 = (in_w1!=0) ? in_w1 : 1;
+	
+	if((type->fmt == DE_SCAL_OUTPRGB888) || (type->fmt == DE_SCAL_OUTPYUV444) || (type->fmt == DE_SCAL_OUTPYUV420) || (type->fmt == DE_SCAL_OUTPYUV422) || (type->fmt == DE_SCAL_OUTPYUV411 ))
+	{
+	    scal_dev[sel]->wb_linestrd0.dwval = image_w0;
+		scal_dev[sel]->wb_linestrd1.dwval = image_w1;
+		scal_dev[sel]->wb_linestrd2.dwval = image_w1;
+
+        de_scal_ch0_offset = image_w0 * y_off0 + x_off0;
+        de_scal_ch1_offset = image_w1 * y_off1 + x_off1;
+        de_scal_ch2_offset = image_w1 * y_off1 + x_off1;
+
+        addr->ch0_addr = addr->ch0_addr+ de_scal_ch0_offset;
+        addr->ch1_addr = addr->ch1_addr+ de_scal_ch1_offset;
+        addr->ch2_addr = addr->ch2_addr+ de_scal_ch2_offset;
+        
+        DE_SCAL_Set_Writeback_Addr(sel,addr);
+	}
+	else if((type->fmt == DE_SCAL_OUTI0RGB888) || (type->fmt == DE_SCAL_OUTI1RGB888) )
+	{
+        scal_dev[sel]->wb_linestrd0.dwval = image_w0<<(0x2 - w_shift);
+		scal_dev[sel]->wb_linestrd1.dwval = 0;
+		scal_dev[sel]->wb_linestrd2.dwval = 0;
+        
+        de_scal_ch0_offset = ((image_w0 * y_off0 + x_off0)<<(0x2 - w_shift));
+        de_scal_ch1_offset = 0x0;
+        de_scal_ch2_offset = 0x0;
+
+        addr->ch0_addr = addr->ch0_addr+ de_scal_ch0_offset;
+        addr->ch1_addr = addr->ch1_addr;
+        addr->ch2_addr = addr->ch2_addr;
+        
+        DE_SCAL_Set_Writeback_Addr(sel,addr);
+	}
+	
+    return 0;
 }
 

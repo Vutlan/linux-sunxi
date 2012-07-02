@@ -655,3 +655,9 @@ config USB_SW_SUN4I_OHCI1
 	depends on USB_SW_SUN4I_HCI
 	help
 	    SoftWinner SUN4I USB OHCI1.
+
+config USB_SW_MU509
+	tristate "support huawei mu509 3G mode"
+	depends on USB_SW_SUN4I_HCD
+	help
+	    support huawei mu509 3G mode.

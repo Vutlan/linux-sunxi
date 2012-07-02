@@ -28,7 +28,6 @@
 *
 ************************************************************************************************************************
 */
-#include <linux/module.h>
 #include "../include/nand_logic.h"
 
 struct __NandDriverGlobal_t     NandDriverInfo;
@@ -1200,7 +1199,6 @@ __s32 LML_Read(__u32 nSectNum, __u32 nSectorCnt, void* pBuf)
 
     return 0;
 }
-EXPORT_SYMBOL(LML_Read);
 
 /*
 extern dump(void * buf, __u32 len, __u8 nbyte, __u8 linelen);
@@ -1336,7 +1334,6 @@ __s32 LML_Write(__u32 nSectNum, __u32 nSectorCnt, void* pBuf)
     }
 	 return 0;
 }
-EXPORT_SYMBOL(LML_Write);
 
 
 /*

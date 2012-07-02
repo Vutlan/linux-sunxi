@@ -17,6 +17,9 @@
 *															tune port priority level
 *			2011-08-05					Berg		1.4		change mctl_ddr3_reset() for different die
 *			2011-09-16					Berg		1.5		disable dqs drfit compensation for low tempature
+*     2012-06-15      Daniel      1.6     Change itm_disable to Add Delay to CKE after Clock Stable
+*     2012-06-15      Daniel      1.7     Move ZQ Write before Clock Enable
+*     2012-06-15      Daniel      1.8     Adjust Initial Delay(including relation among RST/CKE/CLK)
 *********************************************************************************************************
 */
 #include "dram_i.h"
@@ -84,9 +87,10 @@ void mctl_itm_disable(void)
 {
     __u32 reg_val = 0x0;
 
-    reg_val = mctl_read_w(SDR_CCR);
-    reg_val |= 0x1<<28;
-    mctl_write_w(SDR_CCR, reg_val);
+	reg_val = mctl_read_w(SDR_CCR);
+	reg_val |= 0x1<<28;
+	reg_val &= ~(0x1U<<31);          //danielwang, 2012-06-15
+	mctl_write_w(SDR_CCR, reg_val);
 }
 
 void mctl_itm_enable(void)
@@ -252,8 +256,6 @@ __s32 DRAMC_init(__dram_para_t *para)
     //setup DRAM relative clock
     mctl_setup_dram_clock(para->dram_clk);
 
-    //reset external DRAM
-    mctl_ddr3_reset();
     mctl_set_drive();
 
     //dram clock off
@@ -291,18 +293,26 @@ __s32 DRAMC_init(__dram_para_t *para)
     reg_val |= ((0x1)&0x3)<<13;
     mctl_write_w(SDR_DCR, reg_val);
 
+	//set odt impendance divide ratio
+	reg_val = mctl_read_w(SDR_ZQCR0);
+	reg_val &= ~(0xff<<20);
+	reg_val |= ((para->dram_zq)&0xff)<<20;
+	mctl_write_w(SDR_ZQCR0, reg_val);
+
+    //Set CKE Delay to about 1ms
+	  reg_val = mctl_read_w(SDR_IDCR);
+	  reg_val |= 0x1ffff;
+	  mctl_write_w(SDR_IDCR, reg_val);
+
     //dram clock on
     DRAMC_clock_output_en(1);
+    //reset external DRAM
+    mctl_ddr3_reset();
+
 	standby_delay(0x10);
     while(mctl_read_w(SDR_CCR) & (0x1U<<31)) {};
 
 		mctl_enable_dllx();
-
-		//set odt impendance divide ratio
-		reg_val = mctl_read_w(SDR_ZQCR0);
-		reg_val &= ~(0xff<<20);
-		reg_val |= ((para->dram_zq)&0xff)<<20;
-		mctl_write_w(SDR_ZQCR0, reg_val);
 
 		//set I/O configure register
 		reg_val = 0x00cc0000;

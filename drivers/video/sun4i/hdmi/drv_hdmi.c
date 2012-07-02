@@ -91,6 +91,14 @@ __s32 Hdmi_set_display_mode(__disp_tv_mode_t mode)
 	case DISP_TV_MOD_1080P_60HZ:
 		hdmi_mode = HDMI1080P_60;
 		break;  
+		
+	case DISP_TV_MOD_1080P_25HZ:
+		hdmi_mode = HDMI1080P_25;
+		break;  
+		
+	case DISP_TV_MOD_1080P_30HZ:
+		hdmi_mode = HDMI1080P_30;
+		break;  
 
 	case DISP_TV_MOD_1080P_24HZ_3D_FP:
 		hdmi_mode = HDMI1080P_24_3D_FP;
@@ -177,6 +185,14 @@ __s32 Hdmi_mode_support(__disp_tv_mode_t mode)
 		hdmi_mode = HDMI1080P_60;
 		break;  
 		
+	case DISP_TV_MOD_1080P_25HZ:
+		hdmi_mode = HDMI1080P_25;
+		break;  
+
+	case DISP_TV_MOD_1080P_30HZ:
+		hdmi_mode = HDMI1080P_30;
+		break;  
+
 	case DISP_TV_MOD_1080P_24HZ_3D_FP:
 	    hdmi_mode = HDMI1080P_24_3D_FP;
 	    break;

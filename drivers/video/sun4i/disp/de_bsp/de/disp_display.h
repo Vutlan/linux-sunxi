@@ -62,7 +62,12 @@ typedef struct
     __bool                  lcd_io_used[28];
     user_gpio_set_t         lcd_io[28];
 
-    __u32                   init_bright;
+    __u32                   init_bright;//back light brightness
+
+    __u32                   lcd_bright;
+    __u32                   lcd_contrast;
+    __u32                   lcd_saturation;
+    __u32                   lcd_hue;
 }__disp_lcd_cfg_t;
 
 typedef struct

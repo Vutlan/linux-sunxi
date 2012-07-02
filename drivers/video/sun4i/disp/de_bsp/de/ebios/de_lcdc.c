@@ -787,6 +787,38 @@ __u32 TCON1_set_hdmi_mode(__u32 sel, __u8 mode)
         LCDC_WUINT32(sel, LCDC_3DF_D1, 0); 
         LCDC_SET_BIT(sel, LCDC_3DF_CTL,1<<31);          
         break;         
+    case DISP_TV_MOD_1080P_25HZ:
+		cfg.b_interlace   = 0;
+        cfg.src_x       = 1920;
+        cfg.src_y       = 1080;
+        cfg.scl_x       = 1920;
+        cfg.scl_y       = 1080;
+        cfg.out_x       = 1920;
+        cfg.out_y       = 1080;
+        cfg.ht       = 2640;
+        cfg.hbp      = 192;
+        cfg.vt       = 2250;
+        cfg.vbp      = 41;
+        cfg.vspw     = 5;
+        cfg.hspw     = 44;
+        cfg.io_pol      = 0x07000000;
+        break;
+    case DISP_TV_MOD_1080P_30HZ:
+		cfg.b_interlace   = 0;
+        cfg.src_x       = 1920;
+        cfg.src_y       = 1080;
+        cfg.scl_x       = 1920;
+        cfg.scl_y       = 1080;
+        cfg.out_x       = 1920;
+        cfg.out_y       = 1080;
+        cfg.ht       = 2200;
+        cfg.hbp      = 192;
+        cfg.vt       = 2250;
+        cfg.vbp      = 41;
+        cfg.vspw     = 5;
+        cfg.hspw     = 44;
+        cfg.io_pol      = 0x07000000;
+        break;
     default:
         return 0;
     }

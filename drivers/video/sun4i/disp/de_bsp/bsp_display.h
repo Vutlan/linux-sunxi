@@ -38,6 +38,8 @@
 #include <mach/aw_ccu.h>
 #include <mach/system.h>
 #include <linux/types.h>
+#include <linux/timer.h>
+
 
 typedef unsigned int __hdle;
 
@@ -189,6 +191,7 @@ extern __s32 BSP_disp_scaler_set_smooth(__u32 sel, __disp_video_smooth_t  mode);
 extern __s32 BSP_disp_scaler_request(void);
 extern __s32 BSP_disp_scaler_release(__u32 handle);
 extern __s32 BSP_disp_scaler_start(__u32 handle,__disp_scaler_para_t *scl);
+extern __s32 BSP_disp_scaler_start_ex(__u32 handle,__disp_scaler_para_t *scl);
 
 extern __s32 BSP_disp_hwc_enable(__u32 sel, __bool enable);
 extern __s32 BSP_disp_hwc_set_pos(__u32 sel, __disp_pos_t *pos);

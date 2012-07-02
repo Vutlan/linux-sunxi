@@ -36,7 +36,7 @@
 #include <mach/system.h>
 
 #define SCRIPT_AUDIO_OK (0)
-static int gpio_pa_shutdown = 0;
+static int capture_used = 0;
 struct clk *codec_apbclk,*codec_pll2clk,*codec_moduleclk;
 
 static volatile unsigned int capture_dmasrc = 0;
@@ -326,7 +326,7 @@ static  int codec_init(void)
 	int device_lr_change = 0;
 	enum sw_ic_ver  codec_chip_ver = sw_get_ic_ver();
 	//enable dac digital 
-	codec_wr_control(SUN4I_DAC_DPC, 0x1, DAC_EN, 0x1);  
+	//codec_wr_control(SUN4I_DAC_DPC, 0x1, DAC_EN, 0x1);  放在外面控制
 
 	codec_wr_control(SUN4I_DAC_FIFOC ,  0x1,28, 0x1);
 	//set digital volume to maximum
@@ -338,6 +338,9 @@ static  int codec_init(void)
 	//enable PA
 	codec_wr_control(SUN4I_ADC_ACTL, 0x1, PA_ENABLE, 0x1);
 	codec_wr_control(SUN4I_DAC_FIFOC, 0x3, DRA_LEVEL,0x3);
+	/*dither*/
+	codec_wr_control(SUN4I_ADC_ACTL, 0x1, 8, 0x0);
+
 	//set volume
 	if(codec_chip_ver == MAGIC_VER_A){
 		codec_wr_control(SUN4I_DAC_ACTL, 0x6, VOLUME, 0x01);
@@ -358,7 +361,9 @@ static  int codec_init(void)
 }
 
 static int codec_play_open(struct snd_pcm_substream *substream)
-{	
+{
+	//pa mute
+	codec_wr_control(SUN4I_DAC_ACTL, 0x1, PA_MUTE, 0x0);
 	codec_wr_control(SUN4I_DAC_DPC ,  0x1, DAC_EN, 0x1);  
 	codec_wr_control(SUN4I_DAC_FIFOC ,0x1, DAC_FIFO_FLUSH, 0x1);
 	//set TX FIFO send drq level
@@ -376,18 +381,18 @@ static int codec_play_open(struct snd_pcm_substream *substream)
 	codec_wr_control(SUN4I_DAC_ACTL, 0x1, 	DACAEN_L, 0x1);
 	codec_wr_control(SUN4I_DAC_ACTL, 0x1, 	DACAEN_R, 0x1);
 	//enable dac to pa
-	codec_wr_control(SUN4I_DAC_ACTL, 0x1, 	DACPAS, 0x1);
+	//codec_wr_control(SUN4I_DAC_ACTL, 0x1, 	DACPAS, 0x1);//移到外部控制
 	return 0;
 }
 
 static int codec_capture_open(void)
 {
 	 //enable mic1 pa
-	 codec_wr_control(SUN4I_ADC_ACTL, 0x1, MIC1_EN, 0x1);
+	 //codec_wr_control(SUN4I_ADC_ACTL, 0x1, MIC1_EN, 0x1);//移到外部控制
 	 //mic1 gain 32dB
 	 codec_wr_control(SUN4I_ADC_ACTL, 0x3,25,0x1);
 	  //enable VMIC
-	 codec_wr_control(SUN4I_ADC_ACTL, 0x1, VMIC_EN, 0x1);
+	 //codec_wr_control(SUN4I_ADC_ACTL, 0x1, VMIC_EN, 0x1);//移到外部控制
 	 
 	 //enable adc digital
 	 codec_wr_control(SUN4I_ADC_FIFOC, 0x1,ADC_DIG_EN, 0x1);
@@ -398,13 +403,13 @@ static int codec_capture_open(void)
 	 //set RX FIFO rec drq level
 	 codec_wr_control(SUN4I_ADC_FIFOC, 0xf, RX_TRI_LEVEL, 0x7);
 	 //enable adc1 analog
-	 codec_wr_control(SUN4I_ADC_ACTL, 0x3,  ADC_EN, 0x3);
+	 //codec_wr_control(SUN4I_ADC_ACTL, 0x3,  ADC_EN, 0x3);////移到外部控制
+
 	 return 0;
 }
 
 static int codec_play_start(void)
 {
-	gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");
 	//flush TX FIFO
 	codec_wr_control(SUN4I_DAC_FIFOC ,0x1, DAC_FIFO_FLUSH, 0x1);
 	//enable dac drq
@@ -413,24 +418,23 @@ static int codec_play_start(void)
 }
 
 static int codec_play_stop(void)
-{	
-	//pa mute
-	gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");
+{
 	codec_wr_control(SUN4I_DAC_ACTL, 0x1, PA_MUTE, 0x0);
 	mdelay(5);
 	//disable dac drq
 	codec_wr_control(SUN4I_DAC_FIFOC ,0x1, DAC_DRQ, 0x0);
 	//pa mute
-	codec_wr_control(SUN4I_DAC_ACTL, 0x1, PA_MUTE, 0x0);
 	codec_wr_control(SUN4I_DAC_ACTL, 0x1, 	DACAEN_L, 0x0);
 	codec_wr_control(SUN4I_DAC_ACTL, 0x1, 	DACAEN_R, 0x0);	
+
+	codec_wr_control(SUN4I_DAC_DPC ,  0x1, DAC_EN, 0x0); 	// it will cause noise
+
 	return 0;
 }
 
 static int codec_capture_start(void)
 {
 	//enable adc drq
-	gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");
 	codec_wr_control(SUN4I_ADC_FIFOC ,0x1, ADC_DRQ, 0x1);
 	return 0;
 }
@@ -440,10 +444,10 @@ static int codec_capture_stop(void)
 	//disable adc drq
 	codec_wr_control(SUN4I_ADC_FIFOC ,0x1, ADC_DRQ, 0x0);
 	//enable mic1 pa
-	codec_wr_control(SUN4I_ADC_ACTL, 0x1, MIC1_EN, 0x0);
+	// codec_wr_control(SUN4I_ADC_ACTL, 0x1, MIC1_EN, 0x0);//移到外部控制
 
 	//enable VMIC
-	codec_wr_control(SUN4I_ADC_ACTL, 0x1, VMIC_EN, 0x0);
+	//codec_wr_control(SUN4I_ADC_ACTL, 0x1, VMIC_EN, 0x0);//移到外部控制
 	//enable adc digital
 	codec_wr_control(SUN4I_ADC_FIFOC, 0x1,ADC_DIG_EN, 0x0);
 	//set RX FIFO mode
@@ -465,42 +469,239 @@ static int codec_dev_free(struct snd_device *device)
 */
 static const struct snd_kcontrol_new codec_snd_controls_b_c[] = {
 	//FOR B C VERSION
+	/*SUN4I_DAC_ACTL = 0x10,PAVOL*/	
 	CODEC_SINGLE("Master Playback Volume", SUN4I_DAC_ACTL,0,0x3f,0),
-	CODEC_SINGLE("Playback Switch", SUN4I_DAC_ACTL,6,1,0),//全局输出开关
-	CODEC_SINGLE("Capture Volume",SUN4I_ADC_ACTL,20,7,0),//录音音量
-	CODEC_SINGLE("Fm Volume",SUN4I_DAC_ACTL,23,7,0),//Fm 音量
-	CODEC_SINGLE("Line Volume",SUN4I_DAC_ACTL,26,1,0),//Line音量
-	CODEC_SINGLE("MicL Volume",SUN4I_ADC_ACTL,25,3,0),//mic左音量
-	CODEC_SINGLE("MicR Volume",SUN4I_ADC_ACTL,23,3,0),//mic右音量
-	CODEC_SINGLE("FmL Switch",SUN4I_DAC_ACTL,17,1,0),//Fm左开关
-	CODEC_SINGLE("FmR Switch",SUN4I_DAC_ACTL,16,1,0),//Fm右开关
-	CODEC_SINGLE("LineL Switch",SUN4I_DAC_ACTL,19,1,0),//Line左开关
-	CODEC_SINGLE("LineR Switch",SUN4I_DAC_ACTL,18,1,0),//Line右开关
-	CODEC_SINGLE("Ldac Left Mixer",SUN4I_DAC_ACTL,15,1,0),
-	CODEC_SINGLE("Rdac Right Mixer",SUN4I_DAC_ACTL,14,1,0),
+	/*total output switch PAMUTE,if set this bit to 0, the voice is mute*/
+	CODEC_SINGLE("Playback PAMUTE SWITCH", SUN4I_DAC_ACTL,6,1,0),
+	/*mixer output switch MIXPAS*/
+	CODEC_SINGLE("Playback MIXPAS", SUN4I_DAC_ACTL,7,1,0),
+	/*system digital voice output switch DACPAS*/
+	CODEC_SINGLE("Playback DACPAS", SUN4I_DAC_ACTL,8,1,0),
+	/*from bit 9 to bit 12.Mic1/2 output switch.
+			MIC1LS 		MIC1RS 		MIC2LS 		MIC2RS
+	0x0   	mute  		mute    	mute   		mute
+	0x3     mute    	mute    	not mute 	not mute
+	0x12    not mute 	not mute    mute    	mute
+	0x15	not mute	not mute	not mute	not mute
+	0x0*/
+	CODEC_SINGLE("Mic Output Mix",SUN4I_DAC_ACTL,9,15,0),
+	/*Left DAC to right output mixer mute*/
 	CODEC_SINGLE("Ldac Right Mixer",SUN4I_DAC_ACTL,13,1,0),
-	CODEC_SINGLE("Mic Input Mux",SUN4I_DAC_ACTL,9,15,0),//from bit 9 to bit 12.Mic（麦克风）输入静音
-	CODEC_SINGLE("ADC Input Mux",SUN4I_ADC_ACTL,17,7,0),//ADC输入静音
+	/*Right DAC to right output mixer mute*/
+	CODEC_SINGLE("Rdac Right Mixer",SUN4I_DAC_ACTL,14,1,0),
+	/*Left DAC to left output mixer mute*/
+	CODEC_SINGLE("Ldac Left Mixer",SUN4I_DAC_ACTL,15,1,0),
+	/*right FM to right output mixer mute*/
+	CODEC_SINGLE("FmR Switch",SUN4I_DAC_ACTL,16,1,0),//Fm right switch
+	/*Left FM to left output mixer mute*/
+	CODEC_SINGLE("FmL Switch",SUN4I_DAC_ACTL,17,1,0),//Fm left switch
+	/* 	Right LINEIN gain stage to right output mixer mite,
+	*	When LNRDF is 0, right select LINEINR
+	*	When LNRDF is 1, right select LINEINL-LINEINR
+	*/
+	CODEC_SINGLE("LineR Switch",SUN4I_DAC_ACTL,18,1,0),//Line right switch
+	/* 	Left LINEIN gain stage to left output mixer mite,
+	*	When LNRDF is 0, left select LINEINL
+	*	When LNRDF is 1, left select LINEINL-LINEINR
+	*/
+	CODEC_SINGLE("LineL Switch",SUN4I_DAC_ACTL,19,1,0),//Line left switch
+	/*	MIC1/2 gain stage to output mixer Gain Control
+	* 	From -4.5db to 6db,1.5db/step,default is 0db
+	*	-4.5db:0x0,-3.0db:0x1,-1.5db:0x2,0db:0x3
+	*	1.5db:0x4,3.0db:0x5,4.5db:0x6,6db:0x7
+	*/
+	CODEC_SINGLE("MIC output volume",SUN4I_DAC_ACTL,20,7,0),
+	/*	FM Input to output mixer Gain Control
+	* 	From -4.5db to 6db,1.5db/step,default is 0db
+	*	-4.5db:0x0,-3.0db:0x1,-1.5db:0x2,0db:0x3
+	*	1.5db:0x4,3.0db:0x5,4.5db:0x6,6db:0x7
+	*/
+	CODEC_SINGLE("Fm output Volume",SUN4I_DAC_ACTL,23,7,0),//Fm output volume
+	/*	Line-in gain stage to output mixer Gain Control
+	*	0:-1.5db,1:0db
+	*/
+	CODEC_SINGLE("Line output Volume",SUN4I_DAC_ACTL,26,1,0),//Line output volume
+	/*Analog Output Mixer Enable*/
+	CODEC_SINGLE("MIX Enable",SUN4I_DAC_ACTL,29,1,0),
+	/*Internal DAC Analog Left channel Enable*/
+	CODEC_SINGLE("DACALEN Enable",SUN4I_DAC_ACTL,30,1,0),
+	/*Internal DAC Analog Right channel Enable*/
+	CODEC_SINGLE("DACAREN Enable",SUN4I_DAC_ACTL,31,1,0),
+
+	CODEC_SINGLE("PA Enable",SUN4I_ADC_ACTL,4,1,0),
+
+	/*
+	*	dither enable
+	*/
+	CODEC_SINGLE("dither enable",SUN4I_ADC_ACTL,8,1,0),	
+
+	CODEC_SINGLE("Mic1outn Enable",SUN4I_ADC_ACTL,12,1,0),
+	CODEC_SINGLE("LINEIN APM Volume", SUN4I_ADC_ACTL,13,0x7,0),
+	/*
+	*0:Line-in right channel which is independent of line-in left channel
+	*1:negative input of line-in left channel for fully differential application
+	*/
+	CODEC_SINGLE("Line-in-r function define",SUN4I_ADC_ACTL,16,1,0),
+	/*ADC Input source select
+	* 000:left select LINEINL, right select LINEINR; or, both select LINEINL-LINEINR,depending on LNRDF(bit 16)
+	* 001:left channel select FMINL & right channel select FMINR
+	* 010:both MIC1
+	* 011:both MIC2	
+	* 101:MIC1+MIC2 capture
+	* 110:left select output mixer L & right select 
+	* 111:left select LINEINL or LINEINL-LINEINR, depending on LNRDF(bit 16),right select MIC1 gain stage	
+	*/
+	CODEC_SINGLE("ADC Input source",SUN4I_ADC_ACTL,17,7,0),
+
+	/*ADC Input Gain Control, capture volume
+	* 000:-4.5db,001:-3db,010:-1.5db,011:0db,100:1.5db,101:3db,110:4.5db,111:6db
+	*/
+	CODEC_SINGLE("Capture Volume",SUN4I_ADC_ACTL,20,7,0),
+	/*
+	*	MIC2 pre-amplifier Gain Control
+	*	00:0db,01:35db,10:38db,11:41db
+	*/
+	CODEC_SINGLE("Mic2 gain Volume",SUN4I_ADC_ACTL,23,3,0),
+	/*
+	*	MIC1 pre-amplifier Gain Control
+	*	00:0db,01:35db,10:38db,11:41db
+	*/
+	CODEC_SINGLE("Mic1 gain Volume",SUN4I_ADC_ACTL,25,3,0),
+	/*
+	*	VMic enable
+	*/
+	CODEC_SINGLE("VMic enable",SUN4I_ADC_ACTL,27,1,0),
+	/*
+	*	MIC2 pre-amplifier enable
+	*/
+	CODEC_SINGLE("Mic2 amplifier enable",SUN4I_ADC_ACTL,28,1,0),
+	/*
+	*	MIC1 pre-amplifier enable
+	*/
+	CODEC_SINGLE("Mic1 amplifier enable",SUN4I_ADC_ACTL,29,1,0),
+	/*
+	*	ADC Left Channel enable
+	*/
+	CODEC_SINGLE("ADCL enable",SUN4I_ADC_ACTL,30,1,0),
+	/*
+	*	ADC Right enable
+	*/
+	CODEC_SINGLE("ADCR enable",SUN4I_ADC_ACTL,31,1,0),
 };
  
 static const struct snd_kcontrol_new codec_snd_controls_a[] = {
 	//For A VERSION
 	CODEC_SINGLE("Master Playback Volume", SUN4I_DAC_DPC,12,0x3f,0),//62 steps, 3e + 1 = 3f 主音量控制
-	CODEC_SINGLE("Playback Switch", SUN4I_DAC_ACTL,6,1,0),//全局输出开关
-	CODEC_SINGLE("Capture Volume",SUN4I_ADC_ACTL,20,7,0),//录音音量
-	CODEC_SINGLE("Fm Volume",SUN4I_DAC_ACTL,23,7,0),//Fm 音量
-	CODEC_SINGLE("Line Volume",SUN4I_DAC_ACTL,26,1,0),//Line音量
-	CODEC_SINGLE("MicL Volume",SUN4I_ADC_ACTL,25,3,0),//mic左音量
-	CODEC_SINGLE("MicR Volume",SUN4I_ADC_ACTL,23,3,0),//mic右音量
-	CODEC_SINGLE("FmL Switch",SUN4I_DAC_ACTL,17,1,0),//Fm左开关
-	CODEC_SINGLE("FmR Switch",SUN4I_DAC_ACTL,16,1,0),//Fm右开关
-	CODEC_SINGLE("LineL Switch",SUN4I_DAC_ACTL,19,1,0),//Line左开关
-	CODEC_SINGLE("LineR Switch",SUN4I_DAC_ACTL,18,1,0),//Line右开关
-	CODEC_SINGLE("Ldac Left Mixer",SUN4I_DAC_ACTL,15,1,0),
-	CODEC_SINGLE("Rdac Right Mixer",SUN4I_DAC_ACTL,14,1,0),
+		/*total output switch PAMUTE,if set this bit to 0, the voice is mute*/
+	CODEC_SINGLE("Playback PAMUTE SWITCH", SUN4I_DAC_ACTL,6,1,0),
+	/*mixer output switch MIXPAS*/
+	CODEC_SINGLE("Playback MIXPAS", SUN4I_DAC_ACTL,7,1,0),
+	/*system digital voice output switch DACPAS*/
+	CODEC_SINGLE("Playback DACPAS", SUN4I_DAC_ACTL,8,1,0),
+	/*from bit 9 to bit 12.Mic1/2 output switch.
+	  		MIC1LS 		MIC1RS 		MIC2LS 		MIC2RS
+	0x0   	mute  		mute    	mute   		mute
+	0x3     mute    	mute    	not mute 	not mute	
+	0x12    not mute 	not mute    mute    	mute
+	0x15	not mute	not mute	not mute	not mute
+	0x0*/
+	CODEC_SINGLE("Mic Output Mix",SUN4I_DAC_ACTL,9,15,0),
+	/*Left DAC to right output mixer mute*/
 	CODEC_SINGLE("Ldac Right Mixer",SUN4I_DAC_ACTL,13,1,0),
-	CODEC_SINGLE("Mic Input Mux",SUN4I_DAC_ACTL,9,15,0),//from bit 9 to bit 12.Mic（麦克风）输入静音
-	CODEC_SINGLE("ADC Input Mux",SUN4I_ADC_ACTL,17,7,0),//ADC输入静音
+	/*Right DAC to right output mixer mute*/
+	CODEC_SINGLE("Rdac Right Mixer",SUN4I_DAC_ACTL,14,1,0),
+	/*Left DAC to left output mixer mute*/
+	CODEC_SINGLE("Ldac Left Mixer",SUN4I_DAC_ACTL,15,1,0),
+	/*right FM to right output mixer mute*/
+	CODEC_SINGLE("FmR Switch",SUN4I_DAC_ACTL,16,1,0),//Fm right switch
+	/*Left FM to left output mixer mute*/
+	CODEC_SINGLE("FmL Switch",SUN4I_DAC_ACTL,17,1,0),//Fm left switch
+	/* 	Right LINEIN gain stage to right output mixer mite,
+	*	When LNRDF is 0, right select LINEINR
+	*	When LNRDF is 1, right select LINEINL-LINEINR
+	*/
+	CODEC_SINGLE("LineR Switch",SUN4I_DAC_ACTL,18,1,0),//Line right switch
+	/* 	Left LINEIN gain stage to left output mixer mite,
+	*	When LNRDF is 0, left select LINEINL
+	*	When LNRDF is 1, left select LINEINL-LINEINR
+	*/	
+	CODEC_SINGLE("LineL Switch",SUN4I_DAC_ACTL,19,1,0),//Line left switch
+	/*	MIC1/2 gain stage to output mixer Gain Control
+	* 	From -4.5db to 6db,1.5db/step,default is 0db
+	*	-4.5db:0x0,-3.0db:0x1,-1.5db:0x2,0db:0x3
+	*	1.5db:0x4,3.0db:0x5,4.5db:0x6,6db:0x7
+	*/
+	CODEC_SINGLE("MIC output volume",SUN4I_DAC_ACTL,20,7,0),
+	/*	FM Input to output mixer Gain Control
+	* 	From -4.5db to 6db,1.5db/step,default is 0db
+	*	-4.5db:0x0,-3.0db:0x1,-1.5db:0x2,0db:0x3
+	*	1.5db:0x4,3.0db:0x5,4.5db:0x6,6db:0x7
+	*/
+	CODEC_SINGLE("Fm output Volume",SUN4I_DAC_ACTL,23,7,0),//Fm output volume
+	/*	Line-in gain stage to output mixer Gain Control
+	*	0:-1.5db,1:0db
+	*/
+	CODEC_SINGLE("Line output Volume",SUN4I_DAC_ACTL,26,1,0),//Line output volume
+	/*Analog Output Mixer Enable*/
+	CODEC_SINGLE("MIX Enable",SUN4I_DAC_ACTL,29,1,0),
+	/*Internal DAC Analog Left channel Enable*/
+	CODEC_SINGLE("DACALEN Enable",SUN4I_DAC_ACTL,30,1,0),
+	/*Internal DAC Analog Right channel Enable*/
+	CODEC_SINGLE("DACAREN Enable",SUN4I_DAC_ACTL,31,1,0),
+
+	CODEC_SINGLE("PA Enable",SUN4I_ADC_ACTL,4,1,0),
+
+	/*
+	*	dither enable
+	*/
+	CODEC_SINGLE("dither enable",SUN4I_ADC_ACTL,8,1,0),	
+
+	CODEC_SINGLE("Mic1outn Enable",SUN4I_ADC_ACTL,12,1,0),
+	CODEC_SINGLE("LINEIN APM Volume", SUN4I_ADC_ACTL,13,0x7,0),
+
+	/*
+	*0:Line-in right channel which is independent of line-in left channel
+	*1:negative input of line-in left channel for fully differential application
+	*/
+	CODEC_SINGLE("Line-in-r function define",SUN4I_ADC_ACTL,16,1,0),
+	/*ADC Input source select*/
+	CODEC_SINGLE("ADC Input source",SUN4I_ADC_ACTL,17,7,0),
+
+	/*ADC Input Gain Control, capture volume
+	* 000:-4.5db,001:-3db,010:-1.5db,011:0db,100:1.5db,101:3db,110:4.5db,111:6db
+	*/
+	CODEC_SINGLE("Capture Volume",SUN4I_ADC_ACTL,20,7,0),
+	/*
+	*	MIC2 pre-amplifier Gain Control
+	*	00:0db,01:35db,10:38db,11:41db
+	*/
+	CODEC_SINGLE("Mic2 gain Volume",SUN4I_ADC_ACTL,23,3,0),
+	/*
+	*	MIC1 pre-amplifier Gain Control
+	*	00:0db,01:35db,10:38db,11:41db
+	*/
+	CODEC_SINGLE("Mic1 gain Volume",SUN4I_ADC_ACTL,25,3,0),
+	/*
+	*	VMic enable
+	*/
+	CODEC_SINGLE("VMic enable",SUN4I_ADC_ACTL,27,1,0),
+	/*
+	*	MIC2 pre-amplifier enable
+	*/
+
+	CODEC_SINGLE("Mic2 amplifier enable",SUN4I_ADC_ACTL,28,1,0),
+	/*
+	*	MIC1 pre-amplifier enable
+	*/
+	CODEC_SINGLE("Mic1 amplifier enable",SUN4I_ADC_ACTL,29,1,0),
+	/*
+	*	ADC Left Channel enable
+	*/
+	CODEC_SINGLE("ADCL enable",SUN4I_ADC_ACTL,30,1,0),
+	/*
+	*	ADC Right enable
+	*/
+	CODEC_SINGLE("ADCR enable",SUN4I_ADC_ACTL,31,1,0),
 };
 
 int __init snd_chip_codec_mixer_new(struct snd_card *card)
@@ -580,7 +781,7 @@ static void sun4i_pcm_enqueue(struct snd_pcm_substream *substream)
 					play_pos = play_prtd->dma_start;
 			}else{
 				break;
-			}	  
+			}
 		}
 		play_prtd->dma_pos = play_pos;	
 	}else{
@@ -638,7 +839,7 @@ static void sun4i_audio_play_buffdone(struct sw_dma_chan *channel,
 
 	if (result == SW_RES_ABORT || result == SW_RES_ERR)
 		return;
-		
+
 	play_prtd = substream->runtime->private_data;
 	if (substream){				
 		snd_pcm_period_elapsed(substream);
@@ -710,7 +911,7 @@ static int sun4i_codec_pcm_hw_params(struct snd_pcm_substream *substream, struct
 			play_prtd->dma_period = params_period_bytes(params);
 			play_prtd->dma_start = play_runtime->dma_addr;	
 
-			play_dmasrc = play_prtd->dma_start;	 
+			play_dmasrc = play_prtd->dma_start;
 			play_prtd->dma_pos = play_prtd->dma_start;
 			play_prtd->dma_end = play_prtd->dma_start + play_totbytes;
 			
@@ -988,7 +1189,7 @@ static int snd_sun4i_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SUN4I_ADC_FIFOC);		
 				break;
 		}
-		
+/*		
 		switch(substream->runtime->channels){
 			case 1:
 				reg_val = readl(baseaddr + SUN4I_ADC_FIFOC);
@@ -1006,6 +1207,7 @@ static int snd_sun4i_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SUN4I_ADC_FIFOC);
 			break;
 		}        	
+*/
 	}
    if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK){
    	 	play_prtd = substream->runtime->private_data;
@@ -1247,12 +1449,21 @@ static int __init snd_card_sun4i_codec_pcm(struct sun4i_codec *sun4i_codec, int 
 	snd_pcm_lib_preallocate_pages_for_all(pcm, SNDRV_DMA_TYPE_DEV, 
 					      snd_dma_isa_data(),
 					      32*1024, 32*1024);
+
+	err = script_parser_fetch("audio_para","capture_used", &capture_used, sizeof(int));
+	if (err) {
+		return -1;
+        printk("[audiocodec]capture using configuration failed\n");
+    }
+
 	/*
 	*	设置PCM操作，第1个参数是snd_pcm的指针，第2 个参数是SNDRV_PCM_STREAM_PLAYBACK
 	*	或SNDRV_ PCM_STREAM_CAPTURE，而第3 个参数是PCM 操作结构体snd_pcm_ops
 	*/
 	snd_pcm_set_ops(pcm, SNDRV_PCM_STREAM_PLAYBACK, &sun4i_pcm_playback_ops);
-	snd_pcm_set_ops(pcm, SNDRV_PCM_STREAM_CAPTURE, &sun4i_pcm_capture_ops);
+	if (capture_used) {
+		snd_pcm_set_ops(pcm, SNDRV_PCM_STREAM_CAPTURE, &sun4i_pcm_capture_ops);
+	}
 	pcm->private_data = sun4i_codec;//置pcm->private_data为芯片特定数据
 	pcm->info_flags = 0;
 	strcpy(pcm->name, "sun4i PCM");
@@ -1268,8 +1479,7 @@ void snd_sun4i_codec_free(struct snd_card *card)
 
 static void codec_resume_events(struct work_struct *work)
 {
-	printk("%s,%d\n",__func__,__LINE__);
-	codec_wr_control(SUN4I_DAC_DPC ,  0x1, DAC_EN, 0x1);
+	printk("%s,%d\n",__func__,__LINE__);	
 	msleep(20);
 	//enable PA
 	codec_wr_control(SUN4I_ADC_ACTL, 0x1, PA_ENABLE, 0x1);
@@ -1277,11 +1487,14 @@ static void codec_resume_events(struct work_struct *work)
     //enable dac analog
 	codec_wr_control(SUN4I_DAC_ACTL, 0x1, 	DACAEN_L, 0x1);
 	codec_wr_control(SUN4I_DAC_ACTL, 0x1, 	DACAEN_R, 0x1);
-		
+	//enable mic
+	codec_wr_control(SUN4I_ADC_ACTL, 0x1, MIC1_EN, 0x1);	
+
+	//enable VMIC
+	codec_wr_control(SUN4I_ADC_ACTL, 0x1, VMIC_EN, 0x1);
 	codec_wr_control(SUN4I_DAC_ACTL, 0x1, 	DACPAS, 0x1);	
     msleep(50);
-	printk("====pa turn on===\n");	
-	gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");		
+	printk("====pa turn on===\n");
 }
 
 static int __init sun4i_codec_probe(struct platform_device *pdev)
@@ -1293,7 +1506,7 @@ static int __init sun4i_codec_probe(struct platform_device *pdev)
 	struct codec_board_info  *db;    
     printk("enter sun4i Audio codec!!!\n"); 
 	/* register the soundcard */
-	ret = snd_card_create(0, "sun4i-codec", THIS_MODULE, sizeof(struct sun4i_codec), 
+	ret = snd_card_create(SNDRV_DEFAULT_IDX1, SNDRV_DEFAULT_STR1, THIS_MODULE, sizeof(struct sun4i_codec),
 			      &card);
 	if (ret != 0) {
 		return -ENOMEM;
@@ -1304,26 +1517,24 @@ static int __init sun4i_codec_probe(struct platform_device *pdev)
 	card->private_free = snd_sun4i_codec_free;//card私有数据释放
 	chip->card = card;
 	chip->samplerate = AUDIO_RATE_DEFAULT;
-
 	/* 
 	*	mixer,注册control(mixer)接口
 	*	创建一个control至少要实现snd_kcontrol_new中的info(),get()和put()这三个成员函数
 	*/
 	if ((err = snd_chip_codec_mixer_new(card)))
 		goto nodev;
-
 	/* 
 	*	PCM,录音放音相关，注册PCM接口
 	*/
 	if ((err = snd_card_sun4i_codec_pcm(chip, 0)) < 0)
 	    goto nodev;
-        
+
 	strcpy(card->driver, "sun4i-CODEC");
-	strcpy(card->shortname, "sun4i-CODEC");
+	strcpy(card->shortname, "audiocodec");
 	sprintf(card->longname, "sun4i-CODEC  Audio Codec");
-        
+
 	snd_card_set_dev(card, &pdev->dev);
-	
+
 	//注册card
 	if ((err = snd_card_register(card)) == 0) {
 		printk( KERN_INFO "sun4i audio support initialized\n" );
@@ -1334,7 +1545,7 @@ static int __init sun4i_codec_probe(struct platform_device *pdev)
 
 	db = kzalloc(sizeof(*db), GFP_KERNEL);
 	if (!db)
-		return -ENOMEM; 
+		return -ENOMEM;
   	/* codec_apbclk */
 	codec_apbclk = clk_get(NULL,"apb_audio_codec");
 	if (-1 == clk_enable(codec_apbclk)) {
@@ -1379,30 +1590,24 @@ static int __init sun4i_codec_probe(struct platform_device *pdev)
 		 goto out;
 	 }
 
-	 kfree(db);
-	 gpio_pa_shutdown = gpio_request_ex("audio_para", "audio_pa_ctrl");
-	 if(!gpio_pa_shutdown) {
-		printk("audio codec_wakeup request gpio fail!\n");
-		goto out;
-	}
-	 gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");	
-	 codec_init(); 
-	 gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");	 
-	 resume_work_queue = create_singlethread_workqueue("codec_resume");
-	 if (resume_work_queue == NULL) {
-        printk("[su4i-codec] try to create workqueue for codec failed!\n");
+	kfree(db);
+	codec_init();
+	resume_work_queue = create_singlethread_workqueue("codec_resume");
+	if (resume_work_queue == NULL) {
+		printk("[su4i-codec] try to create workqueue for codec failed!\n");
 		ret = -ENOMEM;
 		goto err_resume_work_queue;
 	}
-	 printk("sun4i Audio codec successfully loaded..\n");
-	 return 0;
-     err_resume_work_queue:
-	 out:
-		 dev_err(db->dev, "not found (%d).\n", ret);
+
+	printk("sun4i Audio codec successfully loaded..\n");
+	return 0;
+	err_resume_work_queue:
+	out:
+	 dev_err(db->dev, "not found (%d).\n", ret);
 	
-	 nodev:
-		snd_card_free(card);
-		return err;
+	nodev:
+	snd_card_free(card);
+	return err;
 }
 
 /*	suspend state,先disable左右声道，然后静音，再disable pa(放大器)，
@@ -1412,8 +1617,6 @@ static int __init sun4i_codec_probe(struct platform_device *pdev)
 static int snd_sun4i_codec_suspend(struct platform_device *pdev,pm_message_t state)
 {
 	printk("[audio codec]:suspend start5000\n");
-	gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");
-	mdelay(50);
 	codec_wr_control(SUN4I_ADC_ACTL, 0x1, PA_ENABLE, 0x0);
 	mdelay(100);
 	//pa mute
@@ -1426,12 +1629,15 @@ static int snd_sun4i_codec_suspend(struct platform_device *pdev,pm_message_t sta
 	//disable dac to pa
 	codec_wr_control(SUN4I_DAC_ACTL, 0x1, 	DACPAS, 0x0);	
 	codec_wr_control(SUN4I_DAC_DPC ,  0x1, DAC_EN, 0x0);  	 
-	 
+	//disable mic
+	codec_wr_control(SUN4I_ADC_ACTL, 0x1, MIC1_EN, 0x0);	
+
+	//disable VMIC
+	codec_wr_control(SUN4I_ADC_ACTL, 0x1, VMIC_EN, 0x0);
 	clk_disable(codec_moduleclk);
 	printk("[audio codec]:suspend end\n");
 	return 0;	
 }
-
 
 /*	resume state,先unmute，
  *	再enable DAC，enable L/R DAC,enable PA，
@@ -1465,8 +1671,6 @@ static int __devexit sun4i_codec_remove(struct platform_device *devptr)
 
 static void sun4i_codec_shutdown(struct platform_device *devptr)
 {	
-	gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");
-	mdelay(50);
 	codec_wr_control(SUN4I_ADC_ACTL, 0x1, PA_ENABLE, 0x0);
 	mdelay(100);
 	//pa mute
@@ -1513,15 +1717,24 @@ static struct platform_driver sun4i_codec_driver = {
 	},
 };
 
+static int audio_used = 0;
 static int __init sun4i_codec_init(void)
 {
 	int err = 0;
-	if((platform_device_register(&sun4i_device_codec))<0)
-		return err;
+	int ret = 0;
 
-	if ((err = platform_driver_register(&sun4i_codec_driver)) < 0)
-		return err;
+	ret = script_parser_fetch("audio_para","audio_used", &audio_used, sizeof(int));
+	if (ret) {
+        printk("[audio]sun4i_codec_init fetch audio using configuration failed\n");
+    }
+    
+   if (audio_used) {
+		if((platform_device_register(&sun4i_device_codec))<0)
+			return err;
 	
+		if ((err = platform_driver_register(&sun4i_codec_driver)) < 0)
+			return err;
+	}	
 	return 0;
 }
 

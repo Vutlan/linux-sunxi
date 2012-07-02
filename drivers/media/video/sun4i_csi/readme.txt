@@ -1,10 +1,10 @@
 ===========================================
 
-Version: V1_33
+Version: V1_50
 
 Author:  raymonxiu
 
-Date:     2012-3-12 10:03:49
+Date:     2012-6-21 17:03:45
 
 Description:
 
@@ -25,6 +25,27 @@ insmod sun4i_csiX.ko ccm="gc2015" i2c_addr=0x60
 insmod sun4i_csiX.ko ccm="ov2643" i2c_addr=0x60
 insmod sun4i_csiX.ko ccm="gc0329" i2c_addr=0x62
 insmod sun4i_csiX.ko ccm="gc0309" i2c_addr=0x42
+
+V1_50
+CSI: Support BT656 I/F, add tvp5150 device and add ov5640 g_af
+1) Support 8bit BT656 interface
+2) Support tvp5150 tv decoder
+3) Add ov5640 g_autofocus 
+
+V1_41
+CSI: Adjust the ov5640 io drive cap to maximum
+1) Adjust io drive
+2) Add s_fps function
+
+V1_40
+CSI: Fine tune ov5640 and add autofocus function
+1) Fine tune ov5640
+2) Add autofocus function
+3) Modify the buffer number to 1 when capturing still image
+4) Return 0 when s_parm do nothing
+5) Fix hi253 adn hi704 to 27MHz (settting from hynix)
+6) Fix gc2015 crash bug on capture picture
+7) Modify app_test.c to match new driver
 
 V1_33
 CSI: Fix bugs and add new module gc0309 support 
