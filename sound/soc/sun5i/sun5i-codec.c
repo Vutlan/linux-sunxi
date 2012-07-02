@@ -36,7 +36,8 @@
 #include <mach/system.h>
 
 #define SCRIPT_AUDIO_OK (0)
-static int gpio_pa_shutdown = 0;
+static int capture_used = 0;
+static int bias_reg_val;
 struct clk *codec_apbclk,*codec_pll2clk,*codec_moduleclk;
 
 static volatile unsigned int capture_dmasrc = 0;
@@ -315,6 +316,8 @@ int codec_rd_control(u32 reg, u32 bit, u32 *val)
 	return 0;
 }
 
+static int da16_val;
+static int bias_data;
 /**
 *	codec_reset - reset the codec 
 * @codec	SoC Audio Codec
@@ -324,7 +327,7 @@ int codec_rd_control(u32 reg, u32 bit, u32 *val)
 static  int codec_init(void)
 {
 	//enable dac digital 
-	codec_wr_control(SUN5I_DAC_DPC, 0x1, DAC_EN, 0x1);  
+	//codec_wr_control(SUN5I_DAC_DPC, 0x1, DAC_EN, 0x1);
 
 	codec_wr_control(SUN5I_DAC_FIFOC ,  0x1,28, 0x1);
 	//pa mute
@@ -332,17 +335,23 @@ static  int codec_init(void)
 	//enable PA
 	codec_wr_control(SUN5I_ADC_ACTL, 0x1, PA_ENABLE, 0x1);
 	codec_wr_control(SUN5I_DAC_FIFOC, 0x3, DRA_LEVEL,0x3);
+	/*dither*/
+	codec_wr_control(SUN5I_ADC_ACTL, 0x1, 8, 0x0);
 
 	codec_wr_control(SUN5I_DAC_ACTL, 0x6, VOLUME, 0x3b);
 
+	bias_reg_val = readl(baseaddr + (SUN5I_BIAS_CRT));
+	
+	da16_val 	= bias_reg_val & (0x1F<<0);
+	bias_data 	= (bias_reg_val & (0x3F<<11))>>11;
+	
 	return 0;
 }
 
 static int codec_play_open(struct snd_pcm_substream *substream)
 {	
 	codec_wr_control(SUN5I_DAC_ACTL, 0x1, PA_MUTE, 0x0);
-	gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");
-	codec_wr_control(SUN5I_DAC_DPC ,  0x1, DAC_EN, 0x1);  
+	codec_wr_control(SUN5I_DAC_DPC ,  0x1, DAC_EN, 0x1);
 	codec_wr_control(SUN5I_DAC_FIFOC ,0x1, DAC_FIFO_FLUSH, 0x1);
 	//set TX FIFO send drq level
 	codec_wr_control(SUN5I_DAC_FIFOC ,0x4, TX_TRI_LEVEL, 0xf);
@@ -359,19 +368,20 @@ static int codec_play_open(struct snd_pcm_substream *substream)
 	codec_wr_control(SUN5I_DAC_ACTL, 0x1, 	DACAEN_L, 0x1);
 	codec_wr_control(SUN5I_DAC_ACTL, 0x1, 	DACAEN_R, 0x1);
 	//enable dac to pa
-	codec_wr_control(SUN5I_DAC_ACTL, 0x1, 	DACPAS, 0x1);
+	//codec_wr_control(SUN5I_DAC_ACTL, 0x1, 	DACPAS, 0x1);//移到外部控制
 	return 0;
 }
 
 static int codec_capture_open(void)
 {
 	 //enable mic1 pa
-	 codec_wr_control(SUN5I_ADC_ACTL, 0x1, MIC1_EN, 0x1);
+	 //codec_wr_control(SUN5I_ADC_ACTL, 0x1, MIC1_EN, 0x1);//移到外部控制
 	 //mic1 gain 32dB
 	 codec_wr_control(SUN5I_ADC_ACTL, 0x3,25,0x1);
 	  //enable VMIC
-	 codec_wr_control(SUN5I_ADC_ACTL, 0x1, VMIC_EN, 0x1);
-	 
+	 //codec_wr_control(SUN5I_ADC_ACTL, 0x1, VMIC_EN, 0x1);//移到外部控制
+	 //增强录音效果
+	 codec_wr_control(SUN5I_DAC_TUNE, 0x3,8,0x3);
 	 //enable adc digital
 	 codec_wr_control(SUN5I_ADC_FIFOC, 0x1,ADC_DIG_EN, 0x1);
 	 //set RX FIFO mode
@@ -381,7 +391,7 @@ static int codec_capture_open(void)
 	 //set RX FIFO rec drq level
 	 codec_wr_control(SUN5I_ADC_FIFOC, 0xf, RX_TRI_LEVEL, 0x7);
 	 //enable adc1 analog
-	 codec_wr_control(SUN5I_ADC_ACTL, 0x3,  ADC_EN, 0x3);
+	 //codec_wr_control(SUN5I_ADC_ACTL, 0x3,  ADC_EN, 0x3);//移到外部控制
 	 return 0;
 }
 
@@ -401,10 +411,12 @@ static int codec_play_stop(void)
 	mdelay(5);
 	//disable dac drq
 	codec_wr_control(SUN5I_DAC_FIFOC ,0x1, DAC_DRQ, 0x0);
-	//pa mute
-	codec_wr_control(SUN5I_DAC_ACTL, 0x1, PA_MUTE, 0x0);
+
 	codec_wr_control(SUN5I_DAC_ACTL, 0x1, 	DACAEN_L, 0x0);
 	codec_wr_control(SUN5I_DAC_ACTL, 0x1, 	DACAEN_R, 0x0);	
+
+	codec_wr_control(SUN5I_DAC_DPC ,  0x1, DAC_EN, 0x0); 	// it will cause noise
+
 	return 0;
 }
 
@@ -420,10 +432,13 @@ static int codec_capture_stop(void)
 	//disable adc drq
 	codec_wr_control(SUN5I_ADC_FIFOC ,0x1, ADC_DRQ, 0x0);
 	//disable mic1 pa
-	codec_wr_control(SUN5I_ADC_ACTL, 0x1, MIC1_EN, 0x0);
+	//codec_wr_control(SUN5I_ADC_ACTL, 0x1, MIC1_EN, 0x0);//移到外部控制
 
 	//disable VMIC
-	codec_wr_control(SUN5I_ADC_ACTL, 0x1, VMIC_EN, 0x0);
+	//codec_wr_control(SUN5I_ADC_ACTL, 0x1, VMIC_EN, 0x0);//移到外部控制
+
+	codec_wr_control(SUN5I_DAC_TUNE, 0x3,8,0x0);
+
 	//disable adc digital
 	codec_wr_control(SUN5I_ADC_FIFOC, 0x1,ADC_DIG_EN, 0x0);
 	//set RX FIFO mode
@@ -444,23 +459,125 @@ static int codec_dev_free(struct snd_device *device)
 * 	.info = snd_codec_info_volsw, .get = snd_codec_get_volsw,\.put = snd_codec_put_volsw, 
 */
 static const struct snd_kcontrol_new codec_snd_controls[] = {
-	//FOR B VERSION
+	//FOR B C VERSION
+	/*SUN4I_DAC_ACTL = 0x10,PAVOL*/	
 	CODEC_SINGLE("Master Playback Volume", SUN5I_DAC_ACTL,0,0x3f,0),
-	CODEC_SINGLE("Playback Switch", SUN5I_DAC_ACTL,6,1,0),//全局输出开关
-	CODEC_SINGLE("Capture Volume",SUN5I_ADC_ACTL,20,7,0),//录音音量
-	CODEC_SINGLE("Fm Volume",SUN5I_DAC_ACTL,23,7,0),//Fm 音量
-	CODEC_SINGLE("Line Volume",SUN5I_DAC_ACTL,26,1,0),//Line音量
-	CODEC_SINGLE("MicL Volume",SUN5I_ADC_ACTL,25,3,0),//mic左音量
-	CODEC_SINGLE("MicR Volume",SUN5I_ADC_ACTL,23,3,0),//mic右音量
-	CODEC_SINGLE("FmL Switch",SUN5I_DAC_ACTL,17,1,0),//Fm左开关
-	CODEC_SINGLE("FmR Switch",SUN5I_DAC_ACTL,16,1,0),//Fm右开关
-	CODEC_SINGLE("LineL Switch",SUN5I_DAC_ACTL,19,1,0),//Line左开关
-	CODEC_SINGLE("LineR Switch",SUN5I_DAC_ACTL,18,1,0),//Line右开关
-	CODEC_SINGLE("Ldac Left Mixer",SUN5I_DAC_ACTL,15,1,0),
-	CODEC_SINGLE("Rdac Right Mixer",SUN5I_DAC_ACTL,14,1,0),
+	/*total output switch PAMUTE,if set this bit to 0, the voice is mute*/
+	CODEC_SINGLE("Playback PAMUTE SWITCH", SUN5I_DAC_ACTL,6,1,0),
+	/*mixer output switch MIXPAS*/
+	CODEC_SINGLE("Playback MIXPAS", SUN5I_DAC_ACTL,7,1,0),
+	/*system digital voice output switch DACPAS*/
+	CODEC_SINGLE("Playback DACPAS", SUN5I_DAC_ACTL,8,1,0),
+	/*from bit 9 to bit 12.Mic1/2 output switch.
+			MIC1LS 		MIC1RS 		MIC2LS 		MIC2RS
+	0x0   	mute  		mute    	mute   		mute
+	0x3     mute    	mute    	not mute 	not mute
+	0x12    not mute 	not mute    mute    	mute
+	0x15	not mute	not mute	not mute	not mute
+	0x0*/
+	CODEC_SINGLE("Mic Output Mix",SUN5I_DAC_ACTL,9,15,0),
+	/*Left DAC to right output mixer mute*/
 	CODEC_SINGLE("Ldac Right Mixer",SUN5I_DAC_ACTL,13,1,0),
-	CODEC_SINGLE("Mic Input Mux",SUN5I_DAC_ACTL,9,15,0),//from bit 9 to bit 12.Mic（麦克风）输入静音
-	CODEC_SINGLE("ADC Input Mux",SUN5I_ADC_ACTL,17,7,0),//ADC输入静音
+	/*Right DAC to right output mixer mute*/
+	CODEC_SINGLE("Rdac Right Mixer",SUN5I_DAC_ACTL,14,1,0),
+	/*Left DAC to left output mixer mute*/
+	CODEC_SINGLE("Ldac Left Mixer",SUN5I_DAC_ACTL,15,1,0),
+	/*right FM to right output mixer mute*/
+	CODEC_SINGLE("FmR Switch",SUN5I_DAC_ACTL,16,1,0),//Fm right switch
+	/*Left FM to left output mixer mute*/
+	CODEC_SINGLE("FmL Switch",SUN5I_DAC_ACTL,17,1,0),//Fm left switch
+	/* 	Right LINEIN gain stage to right output mixer mite,
+	*	When LNRDF is 0, right select LINEINR
+	*	When LNRDF is 1, right select LINEINL-LINEINR
+	*/
+	CODEC_SINGLE("LineR Switch",SUN5I_DAC_ACTL,18,1,0),//Line right switch
+	/* 	Left LINEIN gain stage to left output mixer mite,
+	*	When LNRDF is 0, left select LINEINL
+	*	When LNRDF is 1, left select LINEINL-LINEINR
+	*/
+	CODEC_SINGLE("LineL Switch",SUN5I_DAC_ACTL,19,1,0),//Line left switch
+	/*	MIC1/2 gain stage to output mixer Gain Control
+	* 	From -4.5db to 6db,1.5db/step,default is 0db
+	*	-4.5db:0x0,-3.0db:0x1,-1.5db:0x2,0db:0x3
+	*	1.5db:0x4,3.0db:0x5,4.5db:0x6,6db:0x7
+	*/
+	CODEC_SINGLE("MIC output volume",SUN5I_DAC_ACTL,20,7,0),
+	/*	FM Input to output mixer Gain Control
+	* 	From -4.5db to 6db,1.5db/step,default is 0db
+	*	-4.5db:0x0,-3.0db:0x1,-1.5db:0x2,0db:0x3
+	*	1.5db:0x4,3.0db:0x5,4.5db:0x6,6db:0x7
+	*/
+	CODEC_SINGLE("Fm output Volume",SUN5I_DAC_ACTL,23,7,0),//Fm output volume
+	/*	Line-in gain stage to output mixer Gain Control
+	*	0:-1.5db,1:0db
+	*/
+	CODEC_SINGLE("Line output Volume",SUN5I_DAC_ACTL,26,1,0),//Line output volume
+	/*Analog Output Mixer Enable*/
+	CODEC_SINGLE("MIX Enable",SUN5I_DAC_ACTL,29,1,0),
+	/*Internal DAC Analog Left channel Enable*/
+	CODEC_SINGLE("DACALEN Enable",SUN5I_DAC_ACTL,30,1,0),
+	/*Internal DAC Analog Right channel Enable*/
+	CODEC_SINGLE("DACAREN Enable",SUN5I_DAC_ACTL,31,1,0),
+
+	CODEC_SINGLE("PA Enable",SUN5I_ADC_ACTL,4,1,0),
+
+	/*
+	*	dither enable
+	*/
+	CODEC_SINGLE("dither enable",SUN5I_ADC_ACTL,8,1,0),
+
+	CODEC_SINGLE("Mic1outn Enable",SUN5I_ADC_ACTL,12,1,0),
+	CODEC_SINGLE("LINEIN APM Volume", SUN5I_ADC_ACTL,13,0x7,0),
+	/*
+	*0:Line-in right channel which is independent of line-in left channel
+	*1:negative input of line-in left channel for fully differential application
+	*/
+	CODEC_SINGLE("Line-in-r function define",SUN5I_ADC_ACTL,16,1,0),
+	/*ADC Input source select
+	* 000:left select LINEINL, right select LINEINR; or, both select LINEINL-LINEINR,depending on LNRDF(bit 16)
+	* 001:left channel select FMINL & right channel select FMINR
+	* 010:both MIC1
+	* 011:both MIC2
+	* 101:MIC1+MIC2 capture
+	* 110:left select output mixer L & right select
+	* 111:left select LINEINL or LINEINL-LINEINR, depending on LNRDF(bit 16),right select MIC1 gain stage
+	*/
+	CODEC_SINGLE("ADC Input source",SUN5I_ADC_ACTL,17,7,0),
+
+	/*ADC Input Gain Control, capture volume
+	* 000:-4.5db,001:-3db,010:-1.5db,011:0db,100:1.5db,101:3db,110:4.5db,111:6db
+	*/
+	CODEC_SINGLE("Capture Volume",SUN5I_ADC_ACTL,20,7,0),
+	/*
+	*	MIC2 pre-amplifier Gain Control
+	*	00:0db,01:35db,10:38db,11:41db
+	*/
+	CODEC_SINGLE("Mic2 gain Volume",SUN5I_ADC_ACTL,23,3,0),
+	/*
+	*	MIC1 pre-amplifier Gain Control
+	*	00:0db,01:35db,10:38db,11:41db
+	*/
+	CODEC_SINGLE("Mic1 gain Volume",SUN5I_ADC_ACTL,25,3,0),
+	/*
+	*	VMic enable
+	*/
+	CODEC_SINGLE("VMic enable",SUN5I_ADC_ACTL,27,1,0),
+	/*
+	*	MIC2 pre-amplifier enable
+	*/
+	CODEC_SINGLE("Mic2 amplifier enable",SUN5I_ADC_ACTL,28,1,0),
+	/*
+	*	MIC1 pre-amplifier enable
+	*/
+	CODEC_SINGLE("Mic1 amplifier enable",SUN5I_ADC_ACTL,29,1,0),
+	/*
+	*	ADC Left Channel enable
+	*/
+	CODEC_SINGLE("ADCL enable",SUN5I_ADC_ACTL,30,1,0),
+	/*
+	*	ADC Right enable
+	*/
+	CODEC_SINGLE("ADCR enable",SUN5I_ADC_ACTL,31,1,0),
 };
 
 int __init snd_chip_codec_mixer_new(struct snd_card *card)
@@ -1193,12 +1310,21 @@ static int __init snd_card_sun5i_codec_pcm(struct sun5i_codec *sun5i_codec, int 
 	snd_pcm_lib_preallocate_pages_for_all(pcm, SNDRV_DMA_TYPE_DEV, 
 					      snd_dma_isa_data(),
 					      32*1024, 32*1024);
+
+	err = script_parser_fetch("audio_para","capture_used", &capture_used, sizeof(int));
+	if (err) {
+		return -1;
+        printk("[audiocodec]capture using configuration failed\n");
+    }
+
 	/*
 	*	设置PCM操作，第1个参数是snd_pcm的指针，第2 个参数是SNDRV_PCM_STREAM_PLAYBACK
 	*	或SNDRV_ PCM_STREAM_CAPTURE，而第3 个参数是PCM 操作结构体snd_pcm_ops
 	*/
 	snd_pcm_set_ops(pcm, SNDRV_PCM_STREAM_PLAYBACK, &sun5i_pcm_playback_ops);
-	snd_pcm_set_ops(pcm, SNDRV_PCM_STREAM_CAPTURE, &sun5i_pcm_capture_ops);
+	if (capture_used) {
+		snd_pcm_set_ops(pcm, SNDRV_PCM_STREAM_CAPTURE, &sun5i_pcm_capture_ops);
+	}
 	pcm->private_data = sun5i_codec;//置pcm->private_data为芯片特定数据
 	pcm->info_flags = 0;
 	strcpy(pcm->name, "sun5i PCM");
@@ -1214,8 +1340,8 @@ void snd_sun5i_codec_free(struct snd_card *card)
 
 static void codec_resume_events(struct work_struct *work)
 {
-	printk("%s,%d\n",__func__,__LINE__);
-	codec_wr_control(SUN5I_DAC_DPC ,  0x1, DAC_EN, 0x1);
+	printk("%s,%d\n",__func__,__LINE__);	
+//	codec_wr_control(SUN5I_DAC_DPC ,  0x1, DAC_EN, 0x1);
 	msleep(20);
 	//enable PA
 	codec_wr_control(SUN5I_ADC_ACTL, 0x1, PA_ENABLE, 0x1);
@@ -1224,6 +1350,8 @@ static void codec_resume_events(struct work_struct *work)
 	codec_wr_control(SUN5I_DAC_ACTL, 0x1, 	DACAEN_L, 0x1);
 	codec_wr_control(SUN5I_DAC_ACTL, 0x1, 	DACAEN_R, 0x1);
 		
+	codec_wr_control(SUN5I_ADC_ACTL, 0x1, MIC1_EN, 0x1);	
+	codec_wr_control(SUN5I_ADC_ACTL, 0x1, VMIC_EN, 0x1);
 	codec_wr_control(SUN5I_DAC_ACTL, 0x1, 	DACPAS, 0x1);	
     msleep(50);
 	printk("====pa turn on===\n");	
@@ -1238,7 +1366,7 @@ static int __init sun5i_codec_probe(struct platform_device *pdev)
 	struct codec_board_info  *db;    
     printk("enter sun5i Audio codec!!!\n"); 
 	/* register the soundcard */
-	ret = snd_card_create(0, "sun5i-codec", THIS_MODULE, sizeof(struct sun5i_codec), 
+	ret = snd_card_create(SNDRV_DEFAULT_IDX1, SNDRV_DEFAULT_STR1, THIS_MODULE, sizeof(struct sun5i_codec),
 			      &card);
 	if (ret != 0) {
 		return -ENOMEM;
@@ -1264,7 +1392,7 @@ static int __init sun5i_codec_probe(struct platform_device *pdev)
 	    goto nodev;
         
 	strcpy(card->driver, "sun5i-CODEC");
-	strcpy(card->shortname, "sun5i-CODEC");
+	strcpy(card->shortname, "audiocodec");
 	sprintf(card->longname, "sun5i-CODEC  Audio Codec");
         
 	snd_card_set_dev(card, &pdev->dev);
@@ -1325,14 +1453,7 @@ static int __init sun5i_codec_probe(struct platform_device *pdev)
 	 }
 
 	 kfree(db);
-	 gpio_pa_shutdown = gpio_request_ex("audio_para", "audio_pa_ctrl");
-	 if(!gpio_pa_shutdown) {
-		printk("audio codec_wakeup request gpio fail!\n");
-		goto out;
-	}
-	 gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");	
-	 codec_init(); 
-	 gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");	 
+	 codec_init();
 	 resume_work_queue = create_singlethread_workqueue("codec_resume");
 	 if (resume_work_queue == NULL) {
         printk("[su4i-codec] try to create workqueue for codec failed!\n");
@@ -1356,9 +1477,7 @@ static int __init sun5i_codec_probe(struct platform_device *pdev)
  */
 static int snd_sun5i_codec_suspend(struct platform_device *pdev,pm_message_t state)
 {
-	printk("[audio codec]:suspend start\n");
-	gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");
-	mdelay(50);
+	printk("[audio codec]:suspend start\n");	
 	codec_wr_control(SUN5I_ADC_ACTL, 0x1, PA_ENABLE, 0x0);
 	mdelay(100);
 	//pa mute
@@ -1371,7 +1490,18 @@ static int snd_sun5i_codec_suspend(struct platform_device *pdev,pm_message_t sta
 	//disable dac to pa
 	codec_wr_control(SUN5I_DAC_ACTL, 0x1, 	DACPAS, 0x0);	
 	codec_wr_control(SUN5I_DAC_DPC ,  0x1, DAC_EN, 0x0);  	 
-	 
+
+	if(SUPER_STANDBY == standby_type){
+		bias_reg_val = readl(baseaddr + (SUN5I_BIAS_CRT));
+		da16_val = bias_reg_val & (0x1F<<0);
+		bias_data = (bias_reg_val & (0x3F<<11))>>11;
+	}
+	//disable mic pa
+	codec_wr_control(SUN5I_ADC_ACTL, 0x1, MIC1_EN, 0x0);	
+	//disable VMIC
+	codec_wr_control(SUN5I_ADC_ACTL, 0x1, VMIC_EN, 0x0);
+
+	
 	clk_disable(codec_moduleclk);
 	printk("[audio codec]:suspend end\n");
 	return 0;	
@@ -1385,11 +1515,29 @@ static int snd_sun5i_codec_suspend(struct platform_device *pdev,pm_message_t sta
  */
 static int snd_sun5i_codec_resume(struct platform_device *pdev)
 {
-	printk("[audio codec]:resume start\n");
+	int debug_bias_val = 0;
+	int debug_da16_val = 0;
 	if (-1 == clk_enable(codec_moduleclk)){
 		printk("open codec_moduleclk failed; \n");
 	}
+
+	/*process for normal standby*/
+	if (NORMAL_STANDBY == standby_type) {
+	/*process for super standby*/
+	} else if(SUPER_STANDBY == standby_type) { 
+		codec_wr_control(SUN5I_DAC_ACTL, 0x6, VOLUME, 0x3b);
+		codec_wr_control(SUN5I_DAC_FIFOC, 0x3, DRA_LEVEL,0x3);
+		codec_wr_control(SUN5I_DAC_FIFOC ,  0x1,28, 0x1);
+		writel((1<<23), (baseaddr + (SUN5I_BIAS_CRT)));
+		writel(((1<<23)|(bias_data<<17)), (baseaddr + (SUN5I_BIAS_CRT)));
+		writel(((1<<23)|(bias_data<<17)|(1<<10)), (baseaddr + (SUN5I_BIAS_CRT)));
+		writel(((1<<23)|(bias_data<<17)|(1<<10)|(da16_val<<5)), (baseaddr + (SUN5I_BIAS_CRT)));
 		
+		bias_reg_val = readl(baseaddr + (SUN5I_BIAS_CRT));
+		debug_bias_val = (bias_reg_val & (0x3F<<11))>>11;
+		debug_da16_val = (bias_reg_val & (0x1F<<0))>>0;
+	}
+	printk("audiocodec init 0xf1c22c38 is:%x\n", *(volatile int *)0xf1c22c38);
 	queue_work(resume_work_queue, &codec_resume_work);
 	printk("[audio codec]:resume end\n");
 	return 0;	
@@ -1409,9 +1557,7 @@ static int __devexit sun5i_codec_remove(struct platform_device *devptr)
 }
 
 static void sun5i_codec_shutdown(struct platform_device *devptr)
-{	
-	gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");
-	mdelay(50);
+{
 	codec_wr_control(SUN5I_ADC_ACTL, 0x1, PA_ENABLE, 0x0);
 	mdelay(100);
 	//pa mute
@@ -1458,15 +1604,22 @@ static struct platform_driver sun5i_codec_driver = {
 	},
 };
 
+static int audio_used = 0;
 static int __init sun5i_codec_init(void)
 {
 	int err = 0;
-	if((platform_device_register(&sun5i_device_codec))<0)
-		return err;
-
-	if ((err = platform_driver_register(&sun5i_codec_driver)) < 0)
-		return err;
+	int ret = 0;
+	ret = script_parser_fetch("audio_para","audio_used", &audio_used, sizeof(int));
+	if (ret) {
+        printk("[audio]sun5i_codec_init fetch audiocodec using configuration failed\n");
+    }
+	if (audio_used) {		
+		if((platform_device_register(&sun5i_device_codec))<0)
+			return err;
 	
+		if ((err = platform_driver_register(&sun5i_codec_driver)) < 0)
+			return err;
+	}	
 	return 0;
 }
 

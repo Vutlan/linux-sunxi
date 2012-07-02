@@ -437,9 +437,9 @@ struct axp_mfd_chip_ops {
 #define AXP20_IRQ_GPIO2TG     ( 1 << 34)
 #define AXP20_IRQ_GPIO3TG     ( 1 << 35)
 
-#define AXP20_IRQ_PEKFE     ( 1 << 37)
-#define AXP20_IRQ_PEKRE     ( 1 << 38)
-#define AXP20_IRQ_TIMER     ( 1 << 39)
+#define AXP20_IRQ_PEKFE     ( (uint64_t)1 << 37)
+#define AXP20_IRQ_PEKRE     ( (uint64_t)1 << 38)
+#define AXP20_IRQ_TIMER     ( (uint64_t)1 << 39)
 
 /* Status Query Interface */
 /*  AXP18  */

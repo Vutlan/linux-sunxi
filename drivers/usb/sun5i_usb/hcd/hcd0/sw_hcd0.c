@@ -210,7 +210,7 @@ static s32 open_usb_clock(sw_hcd_io_t *sw_hcd_io)
 
 	UsbPhyInit(0);
 
-#if 1
+#if 0
 	DMSG_INFO("[hcd0]: open, 0x60(0x%x), 0xcc(0x%x)\n",
 		      (u32)USBC_Readl(SW_VA_CCM_IO_BASE + 0x60),
 		      (u32)USBC_Readl(SW_VA_CCM_IO_BASE + 0xcc));
@@ -252,7 +252,7 @@ static s32 close_usb_clock(sw_hcd_io_t *sw_hcd_io)
 			      sw_hcd_io->sie_clk, sw_hcd_io->phy_clk, sw_hcd_io->phy0_clk, sw_hcd_io->clk_is_open);
 	}
 
-#if 1
+#if 0
 	DMSG_INFO("[hcd0]: close, 0x60(0x%x), 0xcc(0x%x)\n",
 		      (u32)USBC_Readl(SW_VA_CCM_IO_BASE + 0x60),
 		      (u32)USBC_Readl(SW_VA_CCM_IO_BASE + 0xcc));

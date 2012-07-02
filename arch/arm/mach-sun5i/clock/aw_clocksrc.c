@@ -237,7 +237,6 @@ static int aw_set_next_clkevt(unsigned long delta, struct clock_event_device *de
 *********************************************************************************************************
 */
 #ifdef CONFIG_HIGH_RES_TIMERS
-extern int fix_timer_clock(void);
 static irqreturn_t aw_clkevt_irq(int irq, void *handle)
 {
     if(TMR_REG_IRQ_STAT & (1<<1))
@@ -245,8 +244,6 @@ static irqreturn_t aw_clkevt_irq(int irq, void *handle)
         CLKSRC_DBG("aw_clkevt_irq!\n");
         /* clear pending */
         TMR_REG_IRQ_STAT = (1<<1);
-        /* fix timer clock */
-        fix_timer_clock();
         /* clock event interrupt handled */
         aw_clock_event.event_handler(&aw_clock_event);
 

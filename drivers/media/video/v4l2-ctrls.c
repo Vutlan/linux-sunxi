@@ -225,6 +225,26 @@ const char * const *v4l2_ctrl_get_menu(u32 id)
 		"Red-Eye",
 		NULL
 	};
+	/* Add camera autofocus mode by raymonxiu */
+	static const char *af_mode[] = {
+		"Fixed",
+		"Infinity",
+		"Macro",
+		"Auto",
+		"Touch",
+		"Face",
+		NULL
+	};
+	/* Add camera autofocus ctrl by raymonxiu */
+	static const char *af_ctrl[] = {
+		"Init",
+		"Release",
+		"TrigSingle",
+		"TrigContinueous",
+		"Lock",
+		"SetWin",
+		NULL
+	};
 
 	switch (id) {
 	case V4L2_CID_MPEG_AUDIO_SAMPLING_FREQ:
@@ -268,6 +288,12 @@ const char * const *v4l2_ctrl_get_menu(u32 id)
 	/* Add camera flash light by raymonxiu */
 	case V4L2_CID_CAMERA_FLASH_MODE:
 		return flash_mode;
+	/* Add camera autofocus mode by raymonxiu */
+	case V4L2_CID_CAMERA_AF_MODE:
+		return af_mode;
+	/* Add camera autofocus ctrl by raymonxiu */
+	case V4L2_CID_CAMERA_AF_CTRL:
+		return af_ctrl;
 	default:
 		return NULL;
 	}
@@ -321,7 +347,10 @@ const char *v4l2_ctrl_get_name(u32 id)
 	case V4L2_CID_ILLUMINATORS_2:		return "Illuminator 2";
 	/* Add camera flash light by raymonxiu */
 	case V4L2_CID_CAMERA_FLASH_MODE:    return "FlashLight Mode";
-
+	/* Add camera autofocus mode by raymonxiu */
+	case V4L2_CID_CAMERA_AF_MODE:		return "AutoFocus Mode";
+	/* Add camera autofocus ctrl by raymonxiu */
+	case V4L2_CID_CAMERA_AF_CTRL:		return "AutoFocus Ctrl";
 	/* MPEG controls */
 	/* Keep the order of the 'case's the same as in videodev2.h! */
 	case V4L2_CID_MPEG_CLASS:		return "MPEG Encoder Controls";
@@ -468,6 +497,10 @@ void v4l2_ctrl_fill(u32 id, const char **name, enum v4l2_ctrl_type *type,
 	case V4L2_CID_TUNE_PREEMPHASIS:
 	/* Add camera flash light by raymonxiu */
 	case V4L2_CID_CAMERA_FLASH_MODE:	
+	/* Add camera autofocus mode by raymonxiu */
+	case V4L2_CID_CAMERA_AF_MODE:
+	/* Add camera autofocus ctrl by raymonxiu */
+	case V4L2_CID_CAMERA_AF_CTRL:
 		*type = V4L2_CTRL_TYPE_MENU;
 		break;
 	case V4L2_CID_RDS_TX_PS_NAME:

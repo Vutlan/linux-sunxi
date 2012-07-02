@@ -101,7 +101,8 @@
 	#define SUN5I_IISINT_TXUIEN				(1<<6)
 	#define SUN5I_IISINT_TXOIEN				(1<<5)
 	#define SUN5I_IISINT_TXEIEN				(1<<4)
-	#define SUN5I_IISINT_RXDRQEN				(1<<2)
+	#define SUN5I_IISINT_RXDRQEN			(1<<3)
+	#define SUN5I_IISINT_RXUIEN				(1<<2)
 	#define SUN5I_IISINT_RXOIEN				(1<<1)
 	#define SUN5I_IISINT_RXAIEN				(1<<0)
 	
@@ -262,7 +263,7 @@ extern struct sun5i_i2s_info sun5i_i2s;
 //extern struct snd_soc_dai sun5i_iis_dai;
 
 extern void sun5i_snd_txctrl_i2s(struct snd_pcm_substream *substream, int on);
-extern void sun5i_snd_rxctrl_i2s(int on);
+extern void sun5i_snd_rxctrl_i2s(struct snd_pcm_substream *substream, int on);
 
 struct sun5i_i2s_info {
 	void __iomem   *regs;    /* IIS BASE */

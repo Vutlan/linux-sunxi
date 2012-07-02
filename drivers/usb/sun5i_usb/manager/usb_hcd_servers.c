@@ -19,12 +19,16 @@
 *************************************************************************************
 */
 #include  "../include/sw_usb_config.h"
+#include  "../include/sw_usb_board.h"
 #include  "usb_hcd_servers.h"
 
 int sw_usb_disable_ehci(__u32 usbc_no);
 int sw_usb_enable_ehci(__u32 usbc_no);
 int sw_usb_disable_ohci(__u32 usbc_no);
 int sw_usb_enable_ohci(__u32 usbc_no);
+
+static enum sw_usbc_type controller_type = SW_USB_EHCI;
+
 
 /*
 *******************************************************************************
@@ -46,25 +50,34 @@ int sw_usb_enable_ohci(__u32 usbc_no);
 */
 int sw_usb_disable_hcd(__u32 usbc_no)
 {
+
 	if(usbc_no == 0){
 #if defined(CONFIG_USB_SW_SUN5I_USB0_OTG) || defined(USB_SW_SUN5I_USB0_HOST_ONLY)
 		sw_usb_disable_hcd0();
 #endif
 	}else if(usbc_no == 1){
 #if defined(CONFIG_USB_SW_SUN5I_EHCI0)
-		sw_usb_disable_ehci(usbc_no);
+		if(controller_type != SW_USB_OHCI){
+			sw_usb_disable_ehci(usbc_no);
+		}
 #endif
 
 #if defined(CONFIG_USB_SW_SUN5I_OHCI0)
-		sw_usb_disable_ohci(usbc_no);
+		if(controller_type != SW_USB_EHCI){
+			sw_usb_disable_ohci(usbc_no);
+		}
 #endif
 	}else if(usbc_no == 2){
 #if defined(CONFIG_USB_SW_SUN5I_EHCI1)
-		sw_usb_disable_ehci(usbc_no);
+		if(controller_type != SW_USB_OHCI){
+			sw_usb_disable_ehci(usbc_no);
+		}
 #endif
 
 #if defined(CONFIG_USB_SW_SUN5I_OHCI1)
-		sw_usb_disable_ohci(usbc_no);
+		if(controller_type != SW_USB_EHCI){
+			sw_usb_disable_ohci(usbc_no);
+		}
 #endif
 	}else{
 		DMSG_PANIC("ERR: unkown usbc_no(%d)\n", usbc_no);
@@ -95,25 +108,49 @@ EXPORT_SYMBOL(sw_usb_disable_hcd);
 */
 int sw_usb_enable_hcd(__u32 usbc_no)
 {
+	char *set_usbc = NULL;
+    int ret = 0;
+
+	if(usbc_no == 0){
+		set_usbc = SET_USB0;
+	}else if(usbc_no == 1){
+		set_usbc = SET_USB1;
+	}else{
+		set_usbc = SET_USB2;
+	}
+
+	/* ----------get usbc_type------------- */
+	ret = script_parser_fetch(set_usbc, KEY_USB_CONTROLLER_TYPE, (int *)&controller_type, 64);
+	if(ret != 0){
+		printk("ERR: script_parser_fetch usb_controller_type failed\n");
+	}
+
 	if(usbc_no == 0){
 #if defined(CONFIG_USB_SW_SUN5I_USB0_OTG) || defined(USB_SW_SUN5I_USB0_HOST_ONLY)
 		sw_usb_enable_hcd0();
 #endif
 	}else if(usbc_no == 1){
 #if defined(CONFIG_USB_SW_SUN5I_EHCI0)
-		sw_usb_enable_ehci(usbc_no);
+        if(controller_type != SW_USB_OHCI){
+			sw_usb_enable_ehci(usbc_no);
+        }
 #endif
-
 #if defined(CONFIG_USB_SW_SUN5I_OHCI0)
-		sw_usb_enable_ohci(usbc_no);
+		if(controller_type != SW_USB_EHCI){
+			sw_usb_enable_ohci(usbc_no);
+		}
 #endif
 	}else if(usbc_no == 2){
 #if defined(CONFIG_USB_SW_SUN5I_EHCI1)
-		sw_usb_enable_ehci(usbc_no);
+		if(controller_type != SW_USB_OHCI){
+			sw_usb_enable_ehci(usbc_no);
+		}
 #endif
 
 #if defined(CONFIG_USB_SW_SUN5I_OHCI1)
-		sw_usb_enable_ohci(usbc_no);
+		if(controller_type != SW_USB_EHCI){
+			sw_usb_enable_ohci(usbc_no);
+		}
 #endif
 	}else{
 		DMSG_PANIC("ERR: unkown usbc_no(%d)\n", usbc_no);

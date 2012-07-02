@@ -94,4 +94,16 @@ modules/wifi/usi-bcm4329/v4.218.248.15/open-src/src/dhd/linux/dhd-cdc-sdmmc-gpl-
 modules/wifi/bcm40181/5.90.125.69.2/open-src/src/dhd/linux/dhd-cdc-sdmmc-gpl-*
 modules/wifi/bcm40181/open-src/src/dhd/linux/dhd-cdc-sdmmc-gpl-*
 modules/wifi/bcm40183/5.90.125.95.3/open-src/src/dhd/linux/dhd-cdc-sdmmc-gpl-*
+modules/mali/DX910-SW-99002-r2p4-02rel0/src/devicedrv/mali/arch
+modules/mali/DX910-SW-99002-r2p4-02rel0/src/devicedrv/ump/arch/arch-ca8-virtex820-m400-1
+modules/mali/DX910-SW-99002-r2p4-02rel1/driver/src/devicedrv/mali/Module.symvers
+modules/mali/DX910-SW-99002-r2p4-02rel1/driver/src/devicedrv/mali/arch
+modules/mali/DX910-SW-99002-r2p4-02rel1/driver/src/devicedrv/ump/Module.symvers
+modules/mali/DX910-SW-99002-r2p4-02rel1/driver/src/devicedrv/ump/arch
+arch/arm/mach-sun5i/pm/standby/resume0.map
+arch/arm/mach-sun5i/pm/standby/resume1.map
+arch/arm/mach-sun5i/pm/standby/super/resume/resume0.code
+arch/arm/mach-sun5i/pm/standby/super/resume/resume1.code
+arch/arm/mach-sun5i/pm/standby/super/suspend/suspend.code
+arch/arm/mach-sun5i/pm/standby/suspend.map
 

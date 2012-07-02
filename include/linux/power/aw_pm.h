@@ -21,8 +21,6 @@
 
 /**max device number of pmu*/
 #define PMU_MAX_DEVS        2
-/**start address for function run in sram*/
-#define SRAM_FUNC_START     SW_VA_SRAM_BASE
 
 /**
 *@name PMU command

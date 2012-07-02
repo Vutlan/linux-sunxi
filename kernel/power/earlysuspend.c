@@ -105,6 +105,7 @@ static void early_suspend(struct work_struct *work)
 			pos->suspend(pos);
 		}
 	}
+	standby_level = STANDBY_WITH_POWER;
 	mutex_unlock(&early_suspend_lock);
 
 	if (debug_mask & DEBUG_SUSPEND)
@@ -149,6 +150,8 @@ static void late_resume(struct work_struct *work)
 	}
 	if (debug_mask & DEBUG_SUSPEND)
 		pr_info("late_resume: done\n");
+
+	standby_level = STANDBY_INITIAL;
 abort:
 	mutex_unlock(&early_suspend_lock);
 }

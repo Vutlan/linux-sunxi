@@ -43,6 +43,7 @@ typedef struct
     __disp_fb_create_para_t fb_para[FB_MAX];
 	wait_queue_head_t       wait[2];
 	unsigned long           wait_count[2];
+    struct timer_list      disp_timer[2];
 }fb_info_t;
 
 typedef struct
@@ -53,6 +54,7 @@ typedef struct
     __u32    		    exit_mode;//0:clean all  1:disable interrupt
     __bool              b_cache[2];
 	__bool			    b_lcd_open[2];
+    struct timer_list      disp_timer[2];
 }__disp_drv_t;
 
 

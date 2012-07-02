@@ -173,8 +173,8 @@ __s32 FMT_Exit(void);
 */
 __s32 FMT_FormatNand(void);
 
+void ClearNandStruct( void );
 
-void clear_NAND_ZI( void );
 
 #endif  //ifndef __NAND_FORMAT_H__
 

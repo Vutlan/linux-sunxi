@@ -6,6 +6,7 @@
 * Descript: dram for AW1625 chipset
 * Update  : date                auther      ver     notes
 *			2011-12-07			Berg        1.0     create file from aw1623
+*     2012-06-12      Daniel			1.1     Change "mctl_enable_dllx" Delaration
 *********************************************************************************************************
 */
 #ifndef __DRAM_I_H__
@@ -89,7 +90,7 @@ extern unsigned DRAMC_get_dram_size(void);
 extern void mctl_itm_disable(void);
 extern void mctl_itm_enable(void);
 extern void mctl_enable_dll0(void);
-extern void mctl_enable_dllx(void);
+extern void mctl_enable_dllx(__u32 phase);
 extern void mctl_disable_dll(void);
 extern void DRAMC_hostport_on_off(__u32 port_idx, __u32 on);
 

@@ -30,6 +30,9 @@ extern char *__standby_end;
 static __u32 sp_backup;
 static void standby(void);
 static __u32 dcdc2, dcdc3;
+static struct pll_factor_t orig_pll;
+static struct pll_factor_t local_pll;
+
 static struct sun4i_clk_div_t  clk_div;
 static struct sun4i_clk_div_t  tmp_clk_div;
 
@@ -39,31 +42,7 @@ struct aw_pm_info  pm_info;
 #define DRAM_BASE_ADDR      0xc0000000
 #define DRAM_TRANING_SIZE   (16)
 static __u32 dram_traning_area_back[DRAM_TRANING_SIZE];
-#define __reg_value(reg)    (*((volatile unsigned int *)(reg)))
 
-static int err_flag;
-static void check_version(void)
-{
-    err_flag = (__reg_value(0xf1c15000)>>16)&0x7;
-    if(err_flag == 1) {
-        if(__reg_value(0xf1c20064)&(1<<4)) {
-            err_flag = (__reg_value(0xf1c0c048) & 0x07ff) * ((__reg_value(0xf1c0c048)>>16) & 0x07ff);
-            err_flag = (err_flag > 0x321*0x260)? -1 : 0;
-        } else {
-            __reg_value(0xf1c20064) |= (1<<4);
-            err_flag = (__reg_value(0xf1c0c048) & 0x07ff) * ((__reg_value(0xf1c0c048)>>16) & 0x07ff);
-            err_flag = (err_flag > 0x321*0x260)? -1 : 0;
-            __reg_value(0xf1c20064) &= ~(1<<4);
-        }
-    } else {
-        err_flag = 0;
-    }
-
-    if(err_flag) {
-        /* system error */
-        standby_clk_plldisable();
-    }
-}
 
 
 /*
@@ -100,7 +79,7 @@ int main(struct aw_pm_info *arg)
     /* copy standby parameter from dram */
     standby_memcpy(&pm_info, arg, sizeof(pm_info));
     /* copy standby code & data to load tlb */
-    standby_memcpy((char *)&__standby_end, (char *)&__standby_start, (char *)&__bss_end - (char *)&__bss_start);
+    //standby_memcpy((char *)&__standby_end, (char *)&__standby_start, (char *)&__bss_end - (char *)&__bss_start);
     /* backup dram traning area */
     standby_memcpy((char *)dram_traning_area_back, (char *)DRAM_BASE_ADDR, sizeof(__u32)*DRAM_TRANING_SIZE);
 
@@ -159,8 +138,6 @@ int main(struct aw_pm_info *arg)
     /* restore stack pointer register, switch stack back to dram */
     restore_sp(sp_backup);
 
-    check_version();
-
     /* exit standby module */
     if(pm_info.standby_para.event & SUSPEND_WAKEUP_SRC_USB){
         standby_usb_exit();
@@ -206,8 +183,22 @@ static void standby(void)
     /* gating off dram clock */
     standby_clk_dramgating(0);
 
+	/* backup cpu freq */
+	standby_clk_get_pll_factor(&orig_pll);
+
+	/*lower freq from 1008M to 384M*/
+	local_pll.FactorN = 16;
+	local_pll.FactorK = 0;
+	local_pll.FactorM = 0;
+	local_pll.FactorP = 0;
+	standby_clk_set_pll_factor(&local_pll);
+	change_runtime_env(1);
+	delay_ms(10);
+	
     /* switch cpu clock to HOSC, and disable pll */
     standby_clk_core2hosc();
+	change_runtime_env(1);
+	delay_us(1);
     standby_clk_plldisable();
 
     /* backup voltages */
@@ -226,7 +217,9 @@ static void standby(void)
     standby_clk_setdiv(&tmp_clk_div);
     /* swtich apb1 to losc */
     standby_clk_apb2losc();
-    standby_mdelay(10);
+	change_runtime_env(1);
+	//delay_ms(1);
+	
     /* switch cpu to 32k */
     standby_clk_core2losc();
     #if(ALLOW_DISABLE_HOSC)
@@ -242,14 +235,17 @@ static void standby(void)
     /* enable LDO, enable HOSC */
     standby_clk_ldoenable();
     /* delay 1ms for power be stable */
+	//2.2ms
     standby_delay(1);
     standby_clk_hoscenable();
-    standby_delay(1);
+	//4.4ms
+    standby_delay(2);
     #endif
+	/* switch clock to hosc */
+    standby_clk_core2hosc();
     /* swtich apb1 to hosc */
     standby_clk_apb2hosc();
-    /* switch clock to hosc */
-    standby_clk_core2hosc();
+
     /* restore clock division */
     standby_clk_setdiv(&clk_div);
 
@@ -265,15 +261,22 @@ static void standby(void)
     /* restore voltage for exit standby */
     standby_set_voltage(POWER_VOL_DCDC2, dcdc2);
     standby_set_voltage(POWER_VOL_DCDC3, dcdc3);
-    standby_mdelay(10);
 
     /* enable pll */
     standby_clk_pllenable();
-    standby_mdelay(10);
+	change_runtime_env(1);
+	delay_ms(10);
+
     /* switch cpu clock to core pll */
     standby_clk_core2pll();
-    standby_mdelay(10);
+	change_runtime_env(1);
+	delay_ms(10);
 
+	/*restore freq from 384 to 1008M*/
+	standby_clk_set_pll_factor(&orig_pll);
+	change_runtime_env(1);
+	delay_ms(5);
+	
     /* gating on dram clock */
     standby_clk_dramgating(1);
 

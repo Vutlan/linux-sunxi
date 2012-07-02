@@ -254,7 +254,7 @@ static struct snd_soc_dai_link sun5i_sndhdmi_dai_link = {
 };
 
 static struct snd_soc_card snd_soc_sun5i_sndhdmi = {
-	.name 		= "sun5i-sndhdmi",
+	.name 		= "sndhdmi",
 	.dai_link 	= &sun5i_sndhdmi_dai_link,
 	.num_links 	= 1,
 };

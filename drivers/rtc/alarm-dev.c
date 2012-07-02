@@ -40,6 +40,7 @@ module_param_named(debug_mask, debug_mask, int, S_IRUGO | S_IWUSR | S_IWGRP);
 	} while (0)
 
 #define ANDROID_ALARM_WAKEUP_MASK ( \
+ANDROID_ALARM_RTC_SHUTDOWN_WAKEUP_MASK | \
 	ANDROID_ALARM_RTC_WAKEUP_MASK | \
 	ANDROID_ALARM_ELAPSED_REALTIME_WAKEUP_MASK)
 
@@ -164,6 +165,7 @@ from_old_alarm_set:
 		switch (alarm_type) {
 		case ANDROID_ALARM_RTC_WAKEUP:
 		case ANDROID_ALARM_RTC:
+		case ANDROID_ALARM_RTC_SHUTDOWN_WAKEUP:
 			getnstimeofday(&tmp_time);
 			break;
 		case ANDROID_ALARM_ELAPSED_REALTIME_WAKEUP:

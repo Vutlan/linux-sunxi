@@ -85,7 +85,7 @@ __s32 standby_clk_exit(void)
     *(volatile __u32 *)&CmuReg->Pll2Ctl = ccu_reg_back[1];
     *(volatile __u32 *)&CmuReg->Pll3Ctl = ccu_reg_back[2];
     *(volatile __u32 *)&CmuReg->Pll4Ctl = ccu_reg_back[3];
-    *(volatile __u32 *)&CmuReg->Pll5Ctl = ccu_reg_back[4];
+   // *(volatile __u32 *)&CmuReg->Pll5Ctl = ccu_reg_back[4];
     *(volatile __u32 *)&CmuReg->Pll6Ctl = ccu_reg_back[5];
     *(volatile __u32 *)&CmuReg->Pll7Ctl = ccu_reg_back[6];
 
@@ -335,6 +335,63 @@ __s32 standby_clk_getdiv(struct sun4i_clk_div_t  *clk_div)
     return 0;
 }
 
+/*
+*********************************************************************************************************
+*                                     standby_clk_set_pll_factor
+*
+* Description: set pll factor, target cpu freq is 384M hz
+*
+* Arguments  : none
+*
+* Returns    : 0;
+*********************************************************************************************************
+*/
+
+__s32 standby_clk_set_pll_factor(struct pll_factor_t *pll_factor)
+{
+    if(!pll_factor)
+    {
+        return -1;
+    }
+
+	CmuReg->Pll1Ctl.FactorN = pll_factor->FactorN;
+	CmuReg->Pll1Ctl.FactorK = pll_factor->FactorK;
+	CmuReg->Pll1Ctl.FactorM = pll_factor->FactorM;
+	CmuReg->Pll1Ctl.PLLDivP = pll_factor->FactorP;
+	
+	//busy_waiting();
+	
+	return 0;
+}
+
+/*
+*********************************************************************************************************
+*                                     standby_clk_get_pll_factor
+*
+* Description: 
+*
+* Arguments  : none
+*
+* Returns    : 0;
+*********************************************************************************************************
+*/
+
+__s32 standby_clk_get_pll_factor(struct pll_factor_t *pll_factor)
+{
+    if(!pll_factor)
+    {
+        return -1;
+    }
+
+	pll_factor->FactorN = CmuReg->Pll1Ctl.FactorN;
+	pll_factor->FactorK = CmuReg->Pll1Ctl.FactorK;
+	pll_factor->FactorM = CmuReg->Pll1Ctl.FactorM;
+	pll_factor->FactorP = CmuReg->Pll1Ctl.PLLDivP;
+	
+	//busy_waiting();
+	
+	return 0;
+}
 
 /*
 *********************************************************************************************************

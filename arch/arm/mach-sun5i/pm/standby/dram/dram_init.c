@@ -4,10 +4,13 @@
 * By      : Berg.Xing
 * Date    : 2011-12-07
 * Descript: dram for AW1625 chipset
-* Update  : date                auther      ver     notes
+* Update  : date      auther      ver     notes
 *			2011-12-07			Berg        1.0     create file from A10
-*			2012-01-11			Berg		1.1		kill bug for 1/2 rank decision
-*			2012-01-31			Berg		1.2		kill bug for clock frequency > 600MHz
+*			2012-01-11			Berg		    1.1		  kill bug for 1/2 rank decision
+*			2012-01-31			Berg		    1.2		  kill bug for clock frequency > 600MHz
+*     2012-06-12      Daniel      1.3     Change itm_disable to Add Delay to CKE after Clock Stable
+*     2012-06-12      Daniel      1.4     Function "mctl_enable_dllx", Add DQS Phase Adjust Option
+*     2012-06-15      Daniel      1.5     Adjust Initial Delay(including relation among RST/CKE/CLK)
 *********************************************************************************************************
 */
 #include "dram_i.h"
@@ -57,9 +60,10 @@ void mctl_itm_disable(void)
 {
     __u32 reg_val = 0x0;
 
-    reg_val = mctl_read_w(SDR_CCR);
-    reg_val |= 0x1<<28;
-    mctl_write_w(SDR_CCR, reg_val);
+	reg_val = mctl_read_w(SDR_CCR);
+	reg_val |= 0x1<<28;
+	reg_val &= ~(0x1U<<31);          //danielwang, 2012-06-12
+	mctl_write_w(SDR_CCR, reg_val);
 }
 
 void mctl_itm_enable(void)
@@ -85,11 +89,12 @@ void mctl_enable_dll0(void)
     standby_delay(0x1000);
 }
 
-void mctl_enable_dllx(void)
+void mctl_enable_dllx(__u32 phase)
 {
     __u32 i = 0;
     __u32 reg_val;
     __u32 dll_num;
+    __u32	dqs_phase = phase;
 
 	reg_val = mctl_read_w(SDR_DCR);	
 	reg_val >>=6;
@@ -100,9 +105,11 @@ void mctl_enable_dllx(void)
 		dll_num = 3;
 
     for(i=1; i<dll_num; i++)
-    {
-        mctl_write_w(SDR_DLLCR0+(i<<2), mctl_read_w(SDR_DLLCR0+(i<<2)) & ~0x40000000 | 0x80000000);
-    }
+	{
+		mctl_write_w(SDR_DLLCR0+(i<<2), mctl_read_w(SDR_DLLCR0+(i<<2)) & ~(0xf<<14) | ((dqs_phase&0xf)<<14));
+		mctl_write_w(SDR_DLLCR0+(i<<2), mctl_read_w(SDR_DLLCR0+(i<<2)) & ~0x40000000 | 0x80000000);
+		dqs_phase = dqs_phase>>4;
+	}
 
 	standby_delay(0x100);
 
@@ -228,8 +235,6 @@ __s32 DRAMC_init(__dram_para_t *para)
 	//dram pad hold off
 	mctl_write_w(SDR_DPCR, 0x0);	
 
-    //reset external DRAM
-    mctl_ddr3_reset();
     mctl_set_drive();
 
     //dram clock off
@@ -265,20 +270,26 @@ __s32 DRAMC_init(__dram_para_t *para)
     reg_val |= ((0x1)&0x3)<<13;
     mctl_write_w(SDR_DCR, reg_val);
 
-	//set odt impendance divide ratio
-	reg_val=((para->dram_zq)>>8)&0xfffff;
-	reg_val |= ((para->dram_zq)&0xff)<<20;
-	reg_val |= (para->dram_zq)&0xf0000000;
+	  //set odt impendance divide ratio
+	  reg_val=((para->dram_zq)>>8)&0xfffff;
+	  reg_val |= ((para->dram_zq)&0xff)<<20;
+	  reg_val |= (para->dram_zq)&0xf0000000;
     mctl_write_w(SDR_ZQCR0, reg_val);
 
+    //Set CKE Delay to about 1ms
+	  reg_val = mctl_read_w(SDR_IDCR);
+	  reg_val |= 0x1ffff;
+	  mctl_write_w(SDR_IDCR, reg_val);
+    
     //dram clock on
     DRAMC_clock_output_en(1);
-	standby_delay(0x10);
+	  //reset external DRAM
+    mctl_ddr3_reset();
+    
+	  standby_delay(0x10);
     while(mctl_read_w(SDR_CCR) & (0x1U<<31)) {};
 
-    mctl_enable_dllx();
-
-
+    mctl_enable_dllx(para->dram_tpr3);
     //set I/O configure register
 //    reg_val = 0x00cc0000;
 //   reg_val |= (para->dram_odt_en)&0x3;

@@ -1921,6 +1921,22 @@ __s32 BSP_disp_close_lcd_backlight(__u32 sel)
     return 0;
 }
 
+__s32 BSP_disp_restore_lcdc_reg(__u32 sel)
+{
+    LCDC_init(sel);
+    
+    if((OSAL_sw_get_ic_ver() != 0xA) && (gpanel_info[sel].lcd_pwm_not_used == 0) && (gdisp.screen[sel].lcd_cfg.lcd_used))
+    {
+        __pwm_info_t pwm_info;
+
+        pwm_get_para(gpanel_info[sel].lcd_pwm_ch, &pwm_info);
+
+        pwm_info.enable = 0;
+        pwm_set_para(gpanel_info[sel].lcd_pwm_ch, &pwm_info);
+    }
+    
+    return 0;
+}
 #ifdef __LINUX_OSAL__
 EXPORT_SYMBOL(LCD_OPEN_FUNC);
 EXPORT_SYMBOL(LCD_CLOSE_FUNC);

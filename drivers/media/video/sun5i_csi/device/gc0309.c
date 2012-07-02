@@ -31,7 +31,7 @@ MODULE_DESCRIPTION("A low-level driver for GalaxyCore GC0309 sensors");
 MODULE_LICENSE("GPL");
 
 //for internel driver debug
-#define DEV_DBG_EN   		1 
+#define DEV_DBG_EN   		0 
 #if(DEV_DBG_EN == 1)		
 #define csi_dev_dbg(x,arg...) printk(KERN_INFO"[CSI_DEBUG][GC0309]"x,##arg)
 #else
@@ -1506,7 +1506,7 @@ static int sensor_s_parm(struct v4l2_subdev *sd, struct v4l2_streamparm *parms)
 //	tpf->numerator = 1;
 //	tpf->denominator = sensor_FRAME_RATE/div;
 //sensor_write(sd, REG_CLKRC, info->clkrc);
-	return -EINVAL;
+	return 0;
 }
 
 

@@ -259,6 +259,14 @@ int clk_init(void)
         CCU_ERR("try to get apb1 clock handle failed!\n");
     }
 
+    /* enable ss clock */
+    tmpSclk = &ccu_sys_clk[AW_MOD_CLK_SS];
+    tmpSclk->clk->onoff = AW_CCU_CLK_ON;
+    tmpSclk->set_clk(tmpSclk->clk);
+    tmpSclk = &ccu_sys_clk[AW_MOD_CLK_AHB_SS];
+    tmpSclk->clk->onoff = AW_CCU_CLK_ON;
+    tmpSclk->set_clk(tmpSclk->clk);
+
     return 0;
 }
 arch_initcall(clk_init);

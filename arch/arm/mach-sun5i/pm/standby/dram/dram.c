@@ -7,6 +7,8 @@
 * Update  : date                auther      ver     notes
 *			2011-12-07			Berg        1.0     create file from aw1623
 *			2011-12-31			Berg        1.1     create file from aw1623
+*     2012-06-12      Daniel      1.2     Add DQS Phase Control
+*     2012-06-15      Daniel      1.3     Adjust Initial Delay(including relation among RST/CKE/CLK)
 *********************************************************************************************************
 */
 #include "dram_i.h"
@@ -267,7 +269,7 @@ __s32 DRAMC_retraining(void)
 	__u32 i;
 	__u32 reg_val;
 	__u32 ret_val;
-	__u32 reg_dcr, reg_drr, reg_tpr0, reg_tpr1, reg_tpr2, reg_mr, reg_emr, reg_emr2, reg_emr3;
+	__u32 reg_dcr, reg_drr, reg_tpr0, reg_tpr1, reg_tpr2, reg_tpr3, reg_mr, reg_emr, reg_emr2, reg_emr3;
 	__u32 reg_zqcr0, reg_iocr, reg_ccr, reg_zqsr;
 
 	//remember register value
@@ -282,12 +284,15 @@ __s32 DRAMC_retraining(void)
 	reg_emr3 = mctl_read_w(SDR_EMR3);
 	reg_zqcr0 = mctl_read_w(SDR_ZQCR0);
 	reg_iocr = mctl_read_w(SDR_IOCR);
+	reg_tpr3 = (mctl_read_w(SDR_DLLCR1)>>14) & 0xf;
+	reg_tpr3 |= ((mctl_read_w(SDR_DLLCR2)>>14) & 0xf)<<4;
+	reg_tpr3 |= ((mctl_read_w(SDR_DLLCR3)>>14) & 0xf)<<8;
+	reg_tpr3 |= ((mctl_read_w(SDR_DLLCR4)>>14) & 0xf)<<12;
 	reg_ccr = mctl_read_w(SDR_CCR);
     reg_zqsr = mctl_read_w(SDR_ZQSR);
 	while(1){
 		mctl_ahb_reset();
 
-		mctl_ddr3_reset();
 		mctl_set_drive();
 
 		mctl_itm_disable();
@@ -308,13 +313,19 @@ __s32 DRAMC_retraining(void)
 		reg_val |= reg_zqcr0&(0x1<<29);
 		mctl_write_w(SDR_ZQCR0, reg_val);
 
+    //Set CKE Delay to about 1ms
+	  reg_val = mctl_read_w(SDR_IDCR);
+	  reg_val |= 0x1ffff;
+	  mctl_write_w(SDR_IDCR, reg_val);
+		
 		//dram clock on
 		DRAMC_clock_output_en(1);
-
+		mctl_ddr3_reset();
+		
 		standby_delay(0x10);
 		while(mctl_read_w(SDR_CCR) & (0x1U<<31)) {};
 
-		mctl_enable_dllx();
+		mctl_enable_dllx(reg_tpr3);
 
 		//set I/O configure register
 		mctl_write_w(SDR_IOCR, reg_iocr);
@@ -355,7 +366,7 @@ __s32 DRAMC_retraining(void)
     }
 }
 
-void dram_power_save_process(void)
+__s32 dram_power_save_process(void)
 {
 	__u32 reg_val;
 
@@ -367,6 +378,8 @@ void dram_power_save_process(void)
 
 	//disable and reset all DLL
 	mctl_disable_dll();
+
+	return 0;
 }
 __u32 dram_power_up_process(void)
 {
