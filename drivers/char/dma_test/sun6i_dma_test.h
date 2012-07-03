@@ -57,7 +57,7 @@ enum dma_test_case_e {
 				*/
 	DTC_1TM2M_MANY_ENQ, 	/* dma test case one-thread memory to memory, many enqueue */
 	DTC_1TM2M_CONTI_MOD,   /* dma test case one-thread memory to memory, continue mode */
-	
+
 	DTC_1T_NAND_DMA_RW,    /* dma test case one-thread from memory to nand,
 				* 2012-5-16 09:13, as we cannot compile open(/dev/nanda...), read(...),
 				* we cannot open nand dev to raw read/write, so we
