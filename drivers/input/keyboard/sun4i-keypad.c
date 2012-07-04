@@ -1,7 +1,7 @@
 /*
  * Sun4i keypad driver
  *
- * Copyright (C) 2011 Allwinner Co.Ltd
+ * Copyright (C) 2011 newbie Co.Ltd
  * Author: Aaron.maoye <leafy.myeh@newbietech.com>
  *
  * This program is free software; you can redistribute  it and/or modify it
