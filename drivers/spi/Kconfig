@@ -375,7 +375,7 @@ config SPI_SUN4I
 	tristate "SUN4I SPI Controller"
 	depends on ARCH_SUN4I
 	help
-		Allwinner Soc SPI controller,present on SUN4I chips.
+		Reuuimlla Soc SPI controller,present on SUN4I chips.
 
 config SUN4I_SPI_NDMA
         bool "SUN4I SPI Normal DMA mode select"
@@ -388,7 +388,7 @@ config SPI_SUN5I
 	tristate "SUN5I SPI Controller"
 	depends on ARCH_SUN5I
 	help
-		Allwinner Soc SPI controller,present on SUN5I chips.
+		Reuuimlla Soc SPI controller,present on SUN5I chips.
 
 config SUN5I_SPI_NDMA
         bool "SUN5I SPI Normal DMA mode select"

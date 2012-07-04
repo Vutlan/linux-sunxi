@@ -399,7 +399,7 @@ static void __exit avsdev_exit(void)
 }
 module_exit(avsdev_exit);
 
-MODULE_AUTHOR("Soft-Allwinner");
+MODULE_AUTHOR("Soft-Reuuimlla");
 MODULE_DESCRIPTION("avs device driver");
 MODULE_LICENSE("GPL");
 MODULE_VERSION(DRV_VERSION);

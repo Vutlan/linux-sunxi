@@ -1,7 +1,7 @@
 /*
  * (C) Copyright 2007-2012
- * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
- * Tom Cubie <tangliang@allwinnertech.com>
+ * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
+ * Tom Cubie <tangliang@reuuimllatech.com>
  *
  * SUN4I gps module definition
  *

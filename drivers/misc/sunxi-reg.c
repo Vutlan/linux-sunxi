@@ -1,10 +1,10 @@
 /* driver/misc/sunxi-reg.c
  *
- *  Copyright (C) 2011 Allwinner Technology Co.Ltd
- *  Tom Cubie <tangliang@allwinnertech.com>
- *  update by panlong <panlong@allwinnertech.com> , 2012-4-19 15:39
+ *  Copyright (C) 2011 Reuuimlla Technology Co.Ltd
+ *  Tom Cubie <tangliang@reuuimllatech.com>
+ *  update by panlong <panlong@reuuimllatech.com> , 2012-4-19 15:39
  *
- *  www.allwinnertech.com
+ *  www.reuuimllatech.com
  *
  *  User access to the registers driver.
  *

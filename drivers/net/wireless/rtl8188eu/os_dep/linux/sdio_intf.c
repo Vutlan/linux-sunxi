@@ -677,7 +677,7 @@ int rtw_resume_process(_adapter *padapter)
 	}	
 
 	#ifdef CONFIG_LAYER2_ROAMING_RESUME
-	#if 1 // workaround for Allwinner resume issue
+	#if 1 // workaround for Reuuimlla resume issue
 	rtw_msleep_os(50);
 	#endif
 	rtw_roaming(padapter, NULL);

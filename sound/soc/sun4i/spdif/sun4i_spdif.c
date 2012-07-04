@@ -1,8 +1,8 @@
 /*
  * sound\soc\sun4i\spdif\sun4i_spdif.c
  * (C) Copyright 2007-2011
- * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
- * chenpailin <chenpailin@allwinnertech.com>
+ * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
+ * chenpailin <chenpailin@reuuimllatech.com>
  *
  * some simple description for this code
  *
@@ -638,7 +638,7 @@ static void __exit sun4i_spdif_exit(void)
 module_exit(sun4i_spdif_exit);
 
 /* Module information */
-MODULE_AUTHOR("ALLWINNER");
+MODULE_AUTHOR("REUUIMLLA");
 MODULE_DESCRIPTION("sun4i SPDIF SoC Interface");
 MODULE_LICENSE("GPL");
 MODULE_ALIAS("platform:sun4i-spdif");

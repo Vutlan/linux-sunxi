@@ -1,9 +1,9 @@
 /*
  * (C) Copyright 2010-2015
- * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
+ * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
  * 
- * Tom Cubie <tanglaing@allwinnertech.com>
- * Victor Wei <weiziheng@allwinnertech.com>
+ * Tom Cubie <tanglaing@reuuimllatech.com>
+ * Victor Wei <weiziheng@reuuimllatech.com>
  *
  * SUN4I two wire interface reg definition
  *

@@ -1,8 +1,8 @@
 /*
  * arch\arm\mach-sun4i\dma\dma_regs.h
  * (C) Copyright 2007-2011
- * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
- * huangxin <huangxin@allwinnertech.com>
+ * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
+ * huangxin <huangxin@reuuimllatech.com>
  *
  * some simple description for this code
  *

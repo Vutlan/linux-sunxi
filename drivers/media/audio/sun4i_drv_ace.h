@@ -1,8 +1,8 @@
 /*
  * drivers\media\audio\sun4i_drv_ace.h
  * (C) Copyright 2007-2011
- * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
- * huangxin <huangxin@allwinnertech.com>
+ * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
+ * huangxin <huangxin@reuuimllatech.com>
  *
  * some simple description for this code
  *

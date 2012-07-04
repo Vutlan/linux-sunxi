@@ -1,8 +1,8 @@
 /*
  * arch/arch/mach-sun4i/include/mach/uncompress.h
  * (C) Copyright 2010-2015
- * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
- * Benn Huang <benn@allwinnertech.com>
+ * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
+ * Benn Huang <benn@reuuimllatech.com>
  *
  * core header, useless on our platform, but need it to pass compilation
  *

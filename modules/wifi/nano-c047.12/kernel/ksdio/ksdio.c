@@ -1434,7 +1434,7 @@ static void sdio_nrx_remove(struct sdio_func *func)
     * sleep soon, or our driver will be unloaded. In that case we should
     * shut down to save power.
     */
-#if 0 // allwinner specific
+#if 0 // reuuimlla specific
    if (nrx_reset(func) == 0 && nrx_init(func) == 0)
       nrx_soft_shutdown(func);
 #endif

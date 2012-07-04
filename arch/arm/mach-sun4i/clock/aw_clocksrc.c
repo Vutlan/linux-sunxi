@@ -1,7 +1,7 @@
 /*
  * arch\arm\mach-sun4i\clock\aw_clocksrc.c
  * (C) Copyright 2010-2015
- * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
+ * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
  * kevin.z
  *
  * core header file for Lichee Linux BSP

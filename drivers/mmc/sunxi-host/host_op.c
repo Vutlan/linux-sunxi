@@ -1,8 +1,8 @@
 /*
  * drivers/mmc/sunxi-host/host_op.c
  * (C) Copyright 2007-2011
- * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
- * Aaron.Maoye <leafy.myeh@allwinnertech.com>
+ * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
+ * Aaron.Maoye <leafy.myeh@reuuimllatech.com>
  * 
  * description for this code
  *
@@ -984,5 +984,5 @@ module_exit(sunximmc_exit);
 
 MODULE_DESCRIPTION("Winner's SD/MMC Card Controller Driver");
 MODULE_LICENSE("GPL v2");
-MODULE_AUTHOR("Aaron.maoye<leafy.myeh@allwinnertech.com>");
+MODULE_AUTHOR("Aaron.maoye<leafy.myeh@reuuimllatech.com>");
 MODULE_ALIAS("platform:sunxi-mmc");

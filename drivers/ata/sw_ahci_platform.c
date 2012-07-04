@@ -494,6 +494,6 @@ static void __exit sw_ahci_exit(void)
 module_exit(sw_ahci_exit);
 
 MODULE_DESCRIPTION("SW AHCI SATA platform driver");
-MODULE_AUTHOR("Daniel Wang <danielwang@allwinnertech.com>");
+MODULE_AUTHOR("Daniel Wang <danielwang@reuuimllatech.com>");
 MODULE_LICENSE("GPL");
 MODULE_ALIAS("platform:sw_ahci");

@@ -1,8 +1,8 @@
 /*
  * sound\soc\sun4i\i2s\sun4i-i2s.c
  * (C) Copyright 2007-2011
- * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
- * chenpailin <chenpailin@allwinnertech.com>
+ * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
+ * chenpailin <chenpailin@reuuimllatech.com>
  *
  * some simple description for this code
  *
@@ -697,7 +697,7 @@ static void __exit sun4i_i2s_exit(void)
 module_exit(sun4i_i2s_exit);
 
 /* Module information */
-MODULE_AUTHOR("ALLWINNER");
+MODULE_AUTHOR("REUUIMLLA");
 MODULE_DESCRIPTION("sun4i I2S SoC Interface");
 MODULE_LICENSE("GPL");
 MODULE_ALIAS("platform:sun4i-i2s");

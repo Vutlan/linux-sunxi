@@ -141,6 +141,6 @@ module_init(sw_rfkill_init);
 module_exit(sw_rfkill_exit);
 
 MODULE_DESCRIPTION("sunxi-rfkill driver");
-MODULE_AUTHOR("Aaron.yemao<leafy.myeh@allwinnertech.com>");
+MODULE_AUTHOR("Aaron.yemao<leafy.myeh@reuuimllatech.com>");
 MODULE_LICENSE(GPL);
 

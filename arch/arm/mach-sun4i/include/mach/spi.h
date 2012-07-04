@@ -1,9 +1,9 @@
 /*
  * (C) Copyright 2010-2015
- * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
+ * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
  * 
- * Pan Nan <pannan@allwinnertech.com>
- * Victor Wei <weiziheng@allwinnertech.com>
+ * Pan Nan <pannan@reuuimllatech.com>
+ * Victor Wei <weiziheng@reuuimllatech.com>
  *
  * SUN4I SPI reg definition
  *

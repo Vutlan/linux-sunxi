@@ -1,8 +1,8 @@
 /*
  * (C) Copyright 2010-2015
- * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
+ * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
  * 
- * Pan Nan <pannan@allwinnertech.com>
+ * Pan Nan <pannan@reuuimllatech.com>
  *
  * Dram Sysfs Driver
  *

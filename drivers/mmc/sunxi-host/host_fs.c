@@ -1,8 +1,8 @@
 /*
  * drivers/mmc/sunxi-host/host_fs.c
  * (C) Copyright 2007-2011
- * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
- * Aaron.Maoye <leafy.myeh@allwinnertech.com>
+ * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
+ * Aaron.Maoye <leafy.myeh@reuuimllatech.com>
  * 
  * description for this code
  *

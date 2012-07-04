@@ -1,10 +1,10 @@
 /*
  * (C) Copyright 2010-2015
- * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
+ * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
  * 
- * Pan Nan <pannan@allwinnertech.com>
- * Tom Cubie <tanglaing@allwinnertech.com>
- * Victor Wei <weiziheng@allwinnertech.com>
+ * Pan Nan <pannan@reuuimllatech.com>
+ * Tom Cubie <tanglaing@reuuimllatech.com>
+ * Victor Wei <weiziheng@reuuimllatech.com>
  *
  * SUNXI I2C Platform Driver
  *

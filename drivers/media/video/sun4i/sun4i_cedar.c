@@ -1,8 +1,8 @@
 /*
  * drivers\media\video\sun4i\sun4i_cedar.c
  * (C) Copyright 2007-2011
- * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
- * huangxin <huangxin@allwinnertech.com>
+ * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
+ * huangxin <huangxin@reuuimllatech.com>
  *
  * some simple description for this code
  *
@@ -1125,7 +1125,7 @@ static void __exit cedardev_exit(void)
 }
 module_exit(cedardev_exit);
 
-MODULE_AUTHOR("Soft-Allwinner");
+MODULE_AUTHOR("Soft-Reuuimlla");
 MODULE_DESCRIPTION("User mode CEDAR device interface");
 MODULE_LICENSE("GPL");
 MODULE_VERSION(DRV_VERSION);

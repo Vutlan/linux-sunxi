@@ -1,14 +1,14 @@
 /*
 *********************************************************************************************************
 *                                                    LINUX-KERNEL
-*                                        AllWinner Linux Platform Develop Kits
+*                                        ReuuiMlla Linux Platform Develop Kits
 *                                                   Kernel Module
 *
 *                                    (c) Copyright 2006-2011, Benn Huang China
 *                                             All Rights Reserved
 *
 * File    : include/mach/entry-macro.S
-* By      : Benn Huang (benn@allwinnertech.com)
+* By      : Benn Huang (benn@reuuimllatech.com)
 * Version : v1.0
 * Date    : 2011-10-26 17:25
 * Descript: for head.S and interrupt

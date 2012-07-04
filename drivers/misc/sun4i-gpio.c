@@ -1,9 +1,9 @@
 /* driver/misc/sun4i-gpio.c
  *
- *  Copyright (C) 2011 Allwinner Technology Co.Ltd
- *   Tom Cubie <tangliang@allwinnertech.com>
+ *  Copyright (C) 2011 Reuuimlla Technology Co.Ltd
+ *   Tom Cubie <tangliang@reuuimllatech.com>
  *
- *  www.allwinnertech.com
+ *  www.reuuimllatech.com
  *
  *  An ugly sun4i gpio driver
  *
