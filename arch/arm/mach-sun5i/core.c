@@ -334,7 +334,7 @@ static struct irqaction sw_timer_irq = {
 	.dev_id = &timer0_clockevent,
 	.irq = SW_INT_IRQNO_TIMER0,
 };
-
+extern int aw_clksrc_init(void);
 
 static void __init sw_timer_init(void)
 {
@@ -369,6 +369,8 @@ static void __init sw_timer_init(void)
 	timer0_clockevent.cpumask = cpumask_of(0);
 	timer0_clockevent.irq = sw_timer_irq.irq;
 	clockevents_register_device(&timer0_clockevent);
+    printk("%s,line:%d\n", __func__, __LINE__);
+    aw_clksrc_init();
 }
 
 struct sys_timer sw_sys_timer = {

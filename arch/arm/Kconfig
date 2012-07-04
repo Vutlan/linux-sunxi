@@ -626,6 +626,8 @@ config ARCH_SUN5I
         select GENERIC_CLOCKEVENTS
         select ARCH_HAS_CPUFREQ
         select ARM_L1_CACHE_SHIFT_6
+        select HAVE_SCHED_CLOCK
+        select HAVE_UNSTABLE_SCHED_CLOCK
         help
           This enables support for Allwinner Technology Co., Ltd A12/A13 SoC based systems
 
