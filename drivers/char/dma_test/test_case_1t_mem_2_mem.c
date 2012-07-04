@@ -4,7 +4,7 @@
  * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
  * liugang <liugang@allwinnertech.com>
  *
- * aw163x dma test driver
+ * sun6i dma test driver
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -13,7 +13,7 @@
  *
  */
 
-#include "aw163x_dma_test.h"
+#include "sun6i_dma_test.h"
 #include <linux/random.h>
 
 /*
@@ -297,7 +297,7 @@ u32 __dtc_1t_mem_2_mem(void)
 	/*
 	 * start data transfer
 	 */
-	dma_hdl = sw_dma_request("m2m_dma");
+	dma_hdl = sw_dma_request("m2m_dma", DMA_WORK_MODE_CHAIN);
 	if(NULL == dma_hdl) {
 		uRet = __LINE__;
 		goto End;
@@ -738,7 +738,7 @@ u32 __dtc_case_enq_aftdone(void)
 	/*
 	 * start data transfer
 	 */
-	dma_hdl = sw_dma_request("m2m_dma");
+	dma_hdl = sw_dma_request("m2m_dma", DMA_WORK_MODE_CHAIN);
 	if(NULL == dma_hdl) {
 		uRet = __LINE__;
 		goto End;
