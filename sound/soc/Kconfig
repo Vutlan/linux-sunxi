@@ -70,19 +70,6 @@ source "sound/soc/sun4i/spdif/Kconfig"
 source "sound/soc/sun4i/i2s/Kconfig"
 endif
 
-config SOUND_SUN5I
-       tristate "SOUND driver for sun5i"
-       depends on ARCH_SUN5I
-       help
-         SOUND driver for sun5i
-
-if SOUND_SUN5I          
-source "sound/soc/sun5i/Kconfig"
-source "sound/soc/sun5i/hdmiaudio/Kconfig"
-source "sound/soc/sun5i/spdif/Kconfig"
-source "sound/soc/sun5i/i2s/Kconfig"
-endif
-
 # Supported codecs
 source "sound/soc/codecs/Kconfig"
 
