@@ -3,7 +3,7 @@
 
 #include "pm_config.h"
 /*
- * Copyright (c) 2011-2015 yanggq.young@allwinnertech.com
+ * Copyright (c) 2011-2015 yanggq.young@newbietech.com
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 as published by

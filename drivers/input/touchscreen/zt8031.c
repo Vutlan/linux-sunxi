@@ -786,7 +786,7 @@ static void __exit zt_ts_exit(void)
 module_init(zt_ts_init);
 module_exit(zt_ts_exit);
 
-MODULE_AUTHOR("<zhengdixu@allwinnertech.com>");
+MODULE_AUTHOR("<zhengdixu@newbietech.com>");
 MODULE_DESCRIPTION("zt8031 TouchScreen driver");
 MODULE_LICENSE("GPL");
 

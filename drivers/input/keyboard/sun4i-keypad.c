@@ -1,8 +1,8 @@
 /*
  * Sun4i keypad driver
  *
- * Copyright (C) 2011 Allwinner Co.Ltd
- * Author: Aaron.maoye <leafy.myeh@allwinnertech.com>
+ * Copyright (C) 2011 newbie Co.Ltd
+ * Author: Aaron.maoye <leafy.myeh@newbietech.com>
  *
  * This program is free software; you can redistribute  it and/or modify it
  * under  the terms of  the GNU General  Public License as published by the
@@ -558,6 +558,6 @@ static void __exit sw_keypad_exit(void)
 module_exit(sw_keypad_exit);
 
 MODULE_DESCRIPTION("SW keypad driver");
-MODULE_AUTHOR("Aaron.maoye<leafy.myeh@allwinnertech.com>");
+MODULE_AUTHOR("Aaron.maoye<leafy.myeh@newbietech.com>");
 MODULE_LICENSE("GPL");
 MODULE_ALIAS("platform:sw-keypad");

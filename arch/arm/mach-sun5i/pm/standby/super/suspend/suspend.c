@@ -1,5 +1,5 @@
 /*
- * Contact: gqyang <gqyang <at> allwinnertech.com>                               
+ * Contact: gqyang <gqyang <at> newbietech.com>                               
  *                                                                                   
  * License terms: GNU General Public License (GPL) version 2                         
  */       

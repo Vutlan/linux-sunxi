@@ -1,7 +1,7 @@
 /*  Digital Light Sensor driver for linux
- *  by XXX <XXX@allwinnertech.com>
+ *  by XXX <XXX@newbietech.com>
  *
- *  Copyright (C) 2011 AllWinner Technology.
+ *  Copyright (C) 2011 newbie Technology.
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -757,7 +757,7 @@ static void __exit als_exit(void)
 module_init(als_init);
 module_exit(als_exit);
 
-MODULE_AUTHOR("zly <zenglingying@allwinnertech.com>");
+MODULE_AUTHOR("zly <zenglingying@newbietech.com>");
 MODULE_DESCRIPTION("AW Light Sensor Driver");
 MODULE_LICENSE("GPL");
 MODULE_VERSION("1.1");
