@@ -2,7 +2,7 @@
 # RTC class/drivers configuration
 #
 
-config RTC_LIB
+config RTC_LIB 
 	bool
 
 menuconfig RTC_CLASS
@@ -947,6 +947,11 @@ config RTC_DRV_TX4939
 	help
 	  Driver for the internal RTC (Realtime Clock) module found on
 	  Toshiba TX4939 SoC.
+
+config RTC_DRV_SUN6I
+	tristate "sun6i rtc driver"	
+	help
+	  sun6i rtc driver
 
 config RTC_DRV_MV
 	tristate "Marvell SoC RTC"
