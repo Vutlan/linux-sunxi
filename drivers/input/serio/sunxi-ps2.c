@@ -558,6 +558,6 @@ static void __exit sw_ps2_exit(void)
 module_init(sw_ps2_init);
 module_exit(sw_ps2_exit);
 
-MODULE_AUTHOR("Aaron.maoye<leafy.myeh@allwinnertech.com");
+MODULE_AUTHOR("Aaron.maoye<leafy.myeh@newbietech.com");
 MODULE_DESCRIPTION("SW F3X PS2 controller driver");
 MODULE_LICENSE("GPL");

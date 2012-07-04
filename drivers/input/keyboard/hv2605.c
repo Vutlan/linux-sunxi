@@ -521,7 +521,7 @@ static void __exit hv_keypad_exit(void)
 module_init(hv_keypad_init);
 module_exit(hv_keypad_exit);
 
-MODULE_AUTHOR("<zhengdixu@allwinnertech.com>");
+MODULE_AUTHOR("<zhengdixu@newbietech.com>");
 MODULE_DESCRIPTION("hv keypad driver");
 MODULE_LICENSE("GPL");
 

@@ -11,7 +11,7 @@
 * By      : kevin.z
 * Version : v1.0
 * Date    : 2011-5-27 14:08
-* Descript: power manager for allwinners chips platform.
+* Descript: power manager for newbies chips platform.
 * Update  : date                auther      ver     notes
 *********************************************************************************************************
 */
