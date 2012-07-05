@@ -1,7 +1,7 @@
 /*
  ***************************************************************************************************
  *                                               LINUX-KERNEL
- *                                   AllWinner Linux Platform Develop Kits
+ *                                   ReuuiMlla Linux Platform Develop Kits
  *                                              Kernel Module
  *
  *                                   (c) Copyright 2006-2011, pannan China
@@ -11,7 +11,7 @@
  * By      : pannan
  * Version : v1.0
  * Date    : 2011-09-01 
- * Descript: cpufreq driver on allwinner chips;
+ * Descript: cpufreq driver on Reuuimlla chips;
  * Update  : date                auther      ver     notes
  ***************************************************************************************************
 */

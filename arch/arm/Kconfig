@@ -604,7 +604,7 @@ config ARCH_TEGRA
 	  Tegra 6xx and Tegra 2 series).
 
 config ARCH_SUN4I
-	bool "AllWinner SUN4I Platform"
+	bool "ReuuiMlla SUN4I Platform"
 	select CPU_V7
 	select ARM_AMBA
 	select HAVE_CLK
@@ -614,10 +614,10 @@ config ARCH_SUN4I
 	select ARCH_HAS_CPUFREQ
 	select ARM_L1_CACHE_SHIFT_6
 	help
-	  This enables support for Allwinner Technology Co., Ltd A10 SoC based systems
+	  This enables support for Reuuimlla Technology Co., Ltd A10 SoC based systems
 
 config ARCH_SUN5I
-        bool "AllWinner SUN5I Platform"
+        bool "ReuuiMlla SUN5I Platform"
         select CPU_V7
         select ARM_AMBA
         select HAVE_CLK
@@ -629,7 +629,7 @@ config ARCH_SUN5I
         select HAVE_SCHED_CLOCK
         select HAVE_UNSTABLE_SCHED_CLOCK
         help
-          This enables support for Allwinner Technology Co., Ltd A12/A13 SoC based systems
+          This enables support for Reuuimlla Technology Co., Ltd A12/A13 SoC based systems
 
 #if ARCH_SUN4I
 #source "arch/arm/mach-sun4i/Kconfig"

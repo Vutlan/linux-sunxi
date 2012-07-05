@@ -1,8 +1,8 @@
 /*
  * sound\soc\sun5i\hdmiaudio\sun5i-hdmiaudio.c
  * (C) Copyright 2007-2011
- * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
- * chenpailin <chenpailin@allwinnertech.com>
+ * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
+ * chenpailin <chenpailin@Reuuimllatech.com>
  *
  * some simple description for this code
  *
@@ -671,7 +671,7 @@ module_exit(sun5i_hdmiaudio_exit);
 
 
 /* Module information */
-MODULE_AUTHOR("ALLWINNER");
+MODULE_AUTHOR("REUUIMLLA");
 MODULE_DESCRIPTION("sun5i hdmiaudio SoC Interface");
 MODULE_LICENSE("GPL");
 MODULE_ALIAS("platform: sun5i-hdmiaudio");

@@ -1,9 +1,9 @@
 /*
  * (C) Copyright 2010-2015
- * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
+ * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
  *
- * Pan Nan <pannan@allwinnertech.com>
- * Victor Wei <weiziheng@allwinnertech.com>
+ * Pan Nan <pannan@Reuuimllatech.com>
+ * Victor Wei <weiziheng@Reuuimllatech.com>
  *
  * SUNXI SPI Platform Driver
  *
@@ -1664,7 +1664,7 @@ static int __init spi_sunxi_probe(struct platform_device *pdev)
 		goto err6;
 	}
 
-	spi_inf("allwinners SoC SPI Driver loaded for Bus SPI-%d with %d Slaves at most\n",
+	spi_inf("Reuuimllas SoC SPI Driver loaded for Bus SPI-%d with %d Slaves at most\n",
             pdev->id, master->num_chipselect);
 	spi_inf("[spi-%d]: driver probe succeed, base %p, irq %d, dma_id_rx %d, dma_id_tx %d!\n",
             master->bus_num, aw_spi->base_addr, aw_spi->irq, aw_spi->dma_id_rx, aw_spi->dma_id_tx);
@@ -2150,7 +2150,7 @@ static void __exit spi_sunxi_exit(void)
 }
 module_exit(spi_sunxi_exit);
 
-MODULE_AUTHOR("Victor.Wei @allwinner");
+MODULE_AUTHOR("Victor.Wei @Reuuimlla");
 MODULE_DESCRIPTION("SUNXI SPI BUS Driver");
 MODULE_ALIAS("platform:sunxi-spi");
 MODULE_LICENSE("GPL");

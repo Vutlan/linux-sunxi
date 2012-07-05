@@ -1,7 +1,7 @@
 /*
 *********************************************************************************************************
 *                                                    LINUX-KERNEL
-*                                        AllWinner Linux Platform Develop Kits
+*                                        ReuuiMlla Linux Platform Develop Kits
 *                                                   Kernel Module
 *
 *                                    (c) Copyright 2006-2011, kevin.z China
@@ -705,7 +705,7 @@ static void __exit cpufreq_gov_dbs_exit(void)
 
 
 
-MODULE_AUTHOR("kevin.z.m <kevin@allwinnertech.com>");
+MODULE_AUTHOR("kevin.z.m <kevin@Reuuimllatech.com>");
 MODULE_DESCRIPTION("'cpufreq_fantasy' - A good cpu frequency policy");
 MODULE_LICENSE("GPL");
 

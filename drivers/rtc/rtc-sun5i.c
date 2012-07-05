@@ -2,8 +2,8 @@
  * drivers\rtc\rtc-sun5i.c
  * An I2C driver for the Philips PCF8563 RTC
  * (C) Copyright 2007-2011
- * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
- * huangxin <huangxin@allwinnertech.com>
+ * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
+ * huangxin <huangxin@Reuuimllatech.com>
  *
  * some simple description for this code
  *
@@ -1014,7 +1014,7 @@ static void __exit pcf8563_exit(void)
 }
 
 MODULE_AUTHOR("huangxin");
-MODULE_DESCRIPTION("allwinner RTC driver");
+MODULE_DESCRIPTION("Reuuimlla RTC driver");
 MODULE_LICENSE("GPL");
 MODULE_VERSION(DRV_VERSION);
 

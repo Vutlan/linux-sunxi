@@ -1,8 +1,8 @@
 /* Vibrator driver for sun4i platform
  * ported from msm pmic vibrator driver
- *  by tom cubie <tangliang@allwinnertech.com>
+ *  by tom cubie <tangliang@Reuuimllatech.com>
  *
- * Copyright (C) 2011 AllWinner Technology.
+ * Copyright (C) 2011 ReuuiMlla Technology.
  *
  * Copyright (C) 2008 HTC Corporation.
  * Copyright (C) 2007 Google, Inc.

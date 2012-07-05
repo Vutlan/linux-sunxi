@@ -1,7 +1,7 @@
 /*
 *********************************************************************************************************
 *                                                    LINUX-KERNEL
-*                                        AllWinner Linux Platform Develop Kits
+*                                        ReuuiMlla Linux Platform Develop Kits
 *                                                   Kernel Module
 *
 *                                    (c) Copyright 2006-2011, kevin.z China
@@ -11,7 +11,7 @@
 * By      : kevin.z
 * Version : v1.0
 * Date    : 2011-5-13 18:52
-* Descript: ccu operation fucntion for allwinners chips.
+* Descript: ccu operation fucntion for Reuuimllas chips.
 * Update  : date                auther      ver     notes
 *********************************************************************************************************
 */

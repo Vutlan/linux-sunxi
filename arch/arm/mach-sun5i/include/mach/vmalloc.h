@@ -1,8 +1,8 @@
 /*
  * arch/arch/mach-sun5i/include/mach/vmalloc.h
  * (C) Copyright 2010-2015
- * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
- * Benn Huang <benn@allwinnertech.com>
+ * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
+ * Benn Huang <benn@Reuuimllatech.com>
  *
  * highmem support
  *

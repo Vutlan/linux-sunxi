@@ -1,8 +1,8 @@
 /*
  * sound\soc\sun5i\i2s\sun5i-i2s.c
  * (C) Copyright 2007-2011
- * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
- * chenpailin <chenpailin@allwinnertech.com>
+ * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
+ * chenpailin <chenpailin@Reuuimllatech.com>
  *
  * some simple description for this code
  *
@@ -683,7 +683,7 @@ static void __exit sun5i_i2s_exit(void)
 module_exit(sun5i_i2s_exit);
 
 /* Module information */
-MODULE_AUTHOR("ALLWINNER");
+MODULE_AUTHOR("REUUIMLLA");
 MODULE_DESCRIPTION("sun5i I2S SoC Interface");
 MODULE_LICENSE("GPL");
 MODULE_ALIAS("platform:sun5i-i2s");
