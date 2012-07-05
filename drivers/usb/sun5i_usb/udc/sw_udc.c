@@ -3201,6 +3201,19 @@ static struct sw_udc sw_udc = {
 		.bEndpointAddress   = 4,
 		.bmAttributes	    = USB_ENDPOINT_XFER_BULK,
 	},
+
+	.ep[5] = {
+		.num			= 5,
+		.ep = {
+			.name		= "ep5-int",
+			.ops		= &sw_udc_ep_ops,
+			.maxpacket	= SW_UDC_EP_FIFO_SIZE,
+		},
+		.dev		        = &sw_udc,
+		.fifo_size	        = (SW_UDC_EP_FIFO_SIZE * (SW_UDC_FIFO_NUM + 1)),
+		.bEndpointAddress   = 5,
+		.bmAttributes	    = USB_ENDPOINT_XFER_INT,
+	},
 };
 
 int sw_usb_device_enable(void)
