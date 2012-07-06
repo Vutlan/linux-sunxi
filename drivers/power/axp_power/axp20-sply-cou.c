@@ -1241,6 +1241,7 @@ static struct device_attribute axp_charger_attrs[] = {
 static void axp_earlysuspend(struct early_suspend *h)
 {
 	uint8_t tmp;
+	int val;
 	DBG_PSY_MSG("======early suspend=======\n");
 
 #if defined (CONFIG_AXP_CHGCHANGE)
@@ -1256,7 +1257,16 @@ static void axp_earlysuspend(struct early_suspend *h)
 	}
 	DBG_APP_MSG("pmu_earlysuspend_chgcur = %d\n",pmu_earlysuspend_chgcur);
 #endif
+	/*set suspendpoweroff level*/
+	DBG_APP_MSG("[earlysuspend]pmu_suspendpwroff_vol = %d\n",pmu_suspendpwroff_vol);
+	if(pmu_suspendpwroff_vol >= 2867200 && pmu_suspendpwroff_vol <= 4200000) {
+		val = (pmu_suspendpwroff_vol - 2867200) / 5600;	
+	}
+	DBG_APP_MSG("[earlysuspend]pmu_suspendpwroff_vol val = 0x%x\n",val);
+	axp_write(axp_charger->master, AXP20_APS_WARNING1,(val-0x35));
+	axp_write(axp_charger->master, AXP20_APS_WARNING2,(val-0x58));
 }
+
 static void axp_lateresume(struct early_suspend *h)
 {
 	uint8_t tmp;
@@ -1397,7 +1407,7 @@ static void axp_charging_monitor(struct work_struct *work)
 	axp_charger_update_state(charger);
 	axp_charger_update(charger);
 
-	if(charger->is_on && axp20_icharge_to_mA(charger->adc->ichar_res) > 200 && charger->vbat > 3600 && charger->disvbat != 0){
+	if(charger->is_on && axp20_icharge_to_mA(charger->adc->ichar_res) > 200 && charger->vbat > 3500 && charger->disvbat != 0){
 		if((((v[1] >> 7) == 0) || (((v[1] >> 3) & 0x1) == 0)) && count_rdc >= 3){
 			axp_set_bits(charger->master,AXP20_CAP,0x80);
 			axp_clr_bits(charger->master,0xBA,0x80);
@@ -1494,7 +1504,7 @@ static void axp_charging_monitor(struct work_struct *work)
 		}
 
 		/*电池剩余容量校正，当其小于99，ocv百分比大于99，且在充电时，电池剩余容量自加*/
-		if((rt_rest_vol	> 98) && (charger->rest_vol	< 99) && (charger->bat_current_direction ==	1)) {
+		if((rt_rest_vol	> 94) && (charger->rest_vol	< 95) && (charger->bat_current_direction ==	1)) {
 			if(cap_count1 >= TIMER5) {
 				DBG_PSY_MSG("Correct1:rt_rest_vol = %d,charger->rest_vol =%d +1\n",rt_rest_vol,charger->rest_vol);
 				charger->rest_vol ++;
@@ -1524,7 +1534,7 @@ static void axp_charging_monitor(struct work_struct *work)
 		}
 
 		/*电池剩余容量校正，当其小于（电池总容量校正百分+2），ocv百分比大于（电池总容量校正百分比+1），且在放电时，电池剩余容量保持不变，等ocv百分比降下来*/
-		if((rt_rest_vol	> (BATCAPCORRATE + 1)) &&	(charger->rest_vol < (BATCAPCORRATE+ 2)) && charger->bat_current_direction == 0) {
+		if((rt_rest_vol	> (BATCAPCORRATE + 4)) &&	(charger->rest_vol < (BATCAPCORRATE+ 5)) && charger->bat_current_direction == 0) {
 			DBG_PSY_MSG("Correct3:discharging:(rt_rest_vol > %d)&&(charger->rest_vol < %d)\n",BATCAPCORRATE+1,BATCAPCORRATE+2);
 			if(pre_rest_vol	> charger->rest_vol) {
 				Cur_CoulombCounter = Get_Bat_Coulomb_Count(charger);
@@ -1535,7 +1545,7 @@ static void axp_charging_monitor(struct work_struct *work)
 		}
 		
 		/*电池剩余容量校正，当其大于（电池总容量校正百分+1），ocv百分比小于（电池总容量校正百分比+2），且在放电时，电池剩余容量自减*/
-		if((rt_rest_vol	< (BATCAPCORRATE + 3)) &&	(charger->rest_vol > (BATCAPCORRATE + 2)) && (charger->bat_current_direction == 0)) {
+		if((rt_rest_vol	< (BATCAPCORRATE + 6)) &&	(charger->rest_vol > (BATCAPCORRATE + 5)) && (charger->bat_current_direction == 0)) {
 			if(cap_count3 >= TIMER5) {
 				DBG_PSY_MSG("Correct4:discharging:(rt_rest_vol < %d)&&(charger->rest_vol > %d)\n",BATCAPCORRATE+3,BATCAPCORRATE+2);
 				charger->rest_vol --;
@@ -1909,7 +1919,7 @@ static int axp_battery_probe(struct platform_device *pdev)
 
 	/* 3.5552V--%5 close*/
 	axp_write(charger->master, AXP20_APS_WARNING1,val);
-	axp_write(charger->master, AXP20_APS_WARNING2,(val - 0x0a));
+	axp_write(charger->master, AXP20_APS_WARNING2,(val - 0x23));
 	ocv_cap[0]  = pmu_bat_para1;
 	ocv_cap[1]  = 0xC1;
 	ocv_cap[2]  = pmu_bat_para2;
@@ -2239,6 +2249,7 @@ static int axp20_suspend(struct platform_device *dev, pm_message_t state)
 {
 	uint8_t irq_w[9];
 	uint8_t tmp;
+	int val;
 
 	struct axp_charger *charger = platform_get_drvdata(dev);
 
@@ -2275,7 +2286,14 @@ static int axp20_suspend(struct platform_device *dev, pm_message_t state)
 	/* timer */
 	axp_write(charger->master, 0x8A, 0x80);
 	axp_write(charger->master, 0x8A, 0x7F);
-
+	/*set suspendpoweroff level*/
+	DBG_APP_MSG("[suspend]pmu_suspendpwroff_vol = %d\n",pmu_suspendpwroff_vol);
+	if(pmu_suspendpwroff_vol >= 2867200 && pmu_suspendpwroff_vol <= 4200000) {
+		val = (pmu_suspendpwroff_vol - 2867200) / 5600;	
+	}
+	DBG_APP_MSG("[suspend]pmu_suspendpwroff_vol val = 0x%x\n",val);
+	axp_write(axp_charger->master, AXP20_APS_WARNING1,val);
+	axp_write(axp_charger->master, AXP20_APS_WARNING1,(val-0x23));
 	return 0;
 }
 
@@ -2290,7 +2308,34 @@ static int axp20_resume(struct platform_device *dev)
 	int	saved_cap;
 	int	flag_notfristin;
 	int	Cou_Correction_Flag;
-
+	int bat_valtage;
+	//*****校正电池容量配置偏大导致电量显示不准*******//
+	axp_read(charger->master, POWER20_INTSTS2, v);
+	if(v[0] &= 0x04){
+		axp_reads(charger->master, 0xbc, 2,v);
+		bat_valtage = ((int)((v[0] << 4) | (v[1] & 0x0F))) * 1100 / 1000;
+		if(bat_valtage > 4080){
+			axp_read(charger->master, POWER20_DATA_BUFFER1, v);
+			Cou_Correction_Flag	= (v[0]>> 5)&0x1;
+			if(Cou_Correction_Flag){
+				axp_read(charger->master, POWER20_DATA_BUFFER6, v);
+				Cur_CoulombCounter = Get_Bat_Coulomb_Count(charger);
+				bat_cap	= ABS(Cur_CoulombCounter) / (100 - v[0]) * 100;
+				Buffer_Cou_Set(charger,bat_cap);
+				Cou_Correction_Flag	= 0;
+				axp_clr_bits(charger->master,POWER20_DATA_BUFFER1,0x20);
+				saved_cap =	100;
+				Set_Rest_Cap(charger,saved_cap);
+				Cou_Count_Clear(charger);
+			}
+			else{
+				saved_cap =	100;
+				Set_Rest_Cap(charger,saved_cap);
+				Cou_Count_Clear(charger);
+			}
+		}
+	}
+	//*******************************end**************************************//
 	axp_register_notifier(charger->master, &charger->nb, AXP20_NOTIFIER_ON );
 
 	axp_charger_update_state(charger);

@@ -299,8 +299,10 @@ const uint64_t AXP20_NOTIFIER_ON = 		//AXP20_IRQ_USBOV |
 				       						//AXP20_IRQ_PEKSH |
 				       						AXP20_IRQ_CHAST	|
 				       						AXP20_IRQ_PEKFE |
-				       						AXP20_IRQ_PEKRE |
-				       						AXP20_IRQ_CHAOV;
+				       						AXP20_IRQ_CHAOV |
+				       						AXP20_IRQ_PEKRE ;
+				       						//AXP20_IRQ_EXTLOWARN1|
+				       						//AXP20_IRQ_EXTLOWARN2;
 
 
 #define AXP_CHG_ATTR(_name)					\

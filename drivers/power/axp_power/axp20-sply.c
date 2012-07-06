@@ -1227,7 +1227,12 @@ static void axp_earlysuspend(struct early_suspend *h)
     	axp_update(axp_charger->master, AXP20_CHARGE_CONTROL1, tmp,0x0F);
     }
 #endif
-
+	/*standby wake up IRQ voltage level*/
+	if(pmu_suspendpwroff_vol >= 2867200 && pmu_suspendpwroff_vol <= 4200000) {
+		val = (pmu_suspendpwroff_vol - 2867200) / 5600;	
+	}
+	axp_write(axp_charger->master, AXP20_APS_WARNING1,(val-0x35));
+	axp_write(axp_charger->master, AXP20_APS_WARNING2,(val-0x58));
 }
 static void axp_lateresume(struct early_suspend *h)
 {
@@ -1411,7 +1416,7 @@ static void axp_charging_monitor(struct work_struct *work)
     axp_charger_update_state(charger);
     axp_charger_update(charger);
 
-    if(charger->is_on && axp20_icharge_to_mA(charger->adc->ichar_res) > 200 && charger->vbat > 3600 && charger->disvbat != 0){
+    if(charger->is_on && axp20_icharge_to_mA(charger->adc->ichar_res) > 200 && charger->vbat > 3500 && charger->disvbat != 0){
         if((((v[1] >> 7) == 0) || (((v[1] >> 3) & 0x1) == 0)) && count_rdc >= 3){
             axp_set_bits(charger->master,AXP20_CAP,0x80);
             axp_clr_bits(charger->master,0xBA,0x80);
@@ -1832,7 +1837,7 @@ axp_set_startup_sequence(charger);
 
   /* 3.5552V--%5 close*/
   axp_write(charger->master, AXP20_APS_WARNING1,val);
-  axp_write(charger->master, AXP20_APS_WARNING2,(val - 0x0a));
+  axp_write(charger->master, AXP20_APS_WARNING2,(val - 0x23));
   ocv_cap[0]  = pmu_bat_para1;
   ocv_cap[1]  = 0xC1;
   ocv_cap[2]  = pmu_bat_para2;
@@ -2208,7 +2213,13 @@ static int axp20_suspend(struct platform_device *dev, pm_message_t state)
 		tmp &= 0xbf;
 
 		axp_write(charger->master, POWER20_COULOMB_CTL, tmp);
-		
+		/*standby wake up IRQ voltage level*/
+	if(pmu_suspendpwroff_vol >= 2867200 && pmu_suspendpwroff_vol <= 4200000) {
+	val = (pmu_suspendpwroff_vol - 2867200) / 5600;	
+	}
+	DBG_APP_MSG("[suspend]pmu_suspendpwroff_vol val = 0x%x\n",val);
+	axp_write(axp_charger->master, AXP20_APS_WARNING1,val);
+	axp_write(axp_charger->master, AXP20_APS_WARNING1,(val-0x23));
     return 0;
 }
 
