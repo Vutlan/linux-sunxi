@@ -984,6 +984,11 @@ __s32 BSP_disp_clk_on(__u32 type)
     	{
     		OSAL_CCMU_MclkOnOff(h_debe1mclk, CLK_ON);
     	}
+        if((g_clk_status & CLK_HDMI_MOD_ON) == CLK_HDMI_MOD_ON)
+        {
+                OSAL_CCMU_MclkOnOff(h_hdmimclk, CLK_ON);
+        }
+
 	}
 	
 	if(type & 2)
@@ -1032,10 +1037,6 @@ __s32 BSP_disp_clk_on(__u32 type)
     	{
     		OSAL_CCMU_MclkOnOff(h_lcd1ch1mclk1, CLK_ON);
     		OSAL_CCMU_MclkOnOff(h_lcd1ch1mclk2, CLK_ON);
-    	}
-    	if((g_clk_status & CLK_HDMI_MOD_ON) == CLK_HDMI_MOD_ON)
-    	{
-    		OSAL_CCMU_MclkOnOff(h_hdmimclk, CLK_ON);
     	}
     }
     
@@ -1090,6 +1091,7 @@ __s32 BSP_disp_clk_off(__u32 type)
     	{
     		OSAL_CCMU_MclkOnOff(h_hdmiahbclk, CLK_OFF);
     	}
+
     	//OSAL_CCMU_MclkOnOff(h_tveahbclk, CLK_OFF);
 
 //MODULE CLK
@@ -1101,7 +1103,13 @@ __s32 BSP_disp_clk_off(__u32 type)
     	{
     		OSAL_CCMU_MclkOnOff(h_debe1mclk, CLK_OFF);
     	}
+		if((g_clk_status & CLK_HDMI_MOD_ON) == CLK_HDMI_MOD_ON)
+        {
+                OSAL_CCMU_MclkOnOff(h_hdmimclk, CLK_OFF);
+        }
 	}
+        
+
 
 	if(type & 2)
 	{
@@ -1149,10 +1157,6 @@ __s32 BSP_disp_clk_off(__u32 type)
     	{
     		OSAL_CCMU_MclkOnOff(h_lcd1ch1mclk1, CLK_OFF);
     		OSAL_CCMU_MclkOnOff(h_lcd1ch1mclk2, CLK_OFF);
-    	}
-    	if((g_clk_status & CLK_HDMI_MOD_ON) == CLK_HDMI_MOD_ON)
-    	{
-    		OSAL_CCMU_MclkOnOff(h_hdmimclk, CLK_OFF);
     	}
     }
 

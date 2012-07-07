@@ -3,6 +3,7 @@
 #include "disp_de.h"
 #include "disp_video.h"
 #include "disp_scaler.h"
+#include "disp_clk.h"
 
 __s32 BSP_disp_cmd_cache(__u32 sel)
 {
@@ -35,7 +36,10 @@ void LCD_vbi_event_proc(__u32 sel, __u32 tcon_index)
 {    
     __u32 cur_line = 0, start_delay = 0;
     __u32 i = 0;
-    
+
+//	if(BSP_disp_get_output_type(sel) == DISP_OUTPUT_TYPE_NONE)
+//		return;
+	
 	Video_Operation_In_Vblanking(sel, tcon_index);
 
 
@@ -70,7 +74,7 @@ void LCD_vbi_event_proc(__u32 sel, __u32 tcon_index)
                 Scaler_close(i);
                 gdisp.scaler[i].b_close = FALSE;
             }
-            if(gdisp.scaler[i].coef_change == TRUE)
+            if((gdisp.scaler[i].status & SCALER_USED) && (gdisp.scaler[i].screen_index == sel) && (gdisp.scaler[i].coef_change == TRUE))
             {
             	__scal_src_size_t in_size;
             	__scal_out_size_t out_size;
@@ -80,7 +84,7 @@ void LCD_vbi_event_proc(__u32 sel, __u32 tcon_index)
             	__scal_scan_mod_t out_scan;
                 __disp_scaler_t * scaler;
 
-                scaler = &(gdisp.scaler[sel]);
+                scaler = &(gdisp.scaler[i]);
 
             	in_scan.field = FALSE;
             	in_scan.bottom = FALSE;
@@ -105,8 +109,8 @@ void LCD_vbi_event_proc(__u32 sel, __u32 tcon_index)
 
             	out_size.width = scaler->out_size.width;
             	out_size.height = scaler->out_size.height;
-            	
-                DE_SCAL_Set_Scaling_Coef(sel, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type, scaler->smooth_mode);
+                //__inf("vint\n");
+                DE_SCAL_Set_Scaling_Coef(i, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type, scaler->smooth_mode);
 
                 gdisp.scaler[i].coef_change = FALSE;
             }

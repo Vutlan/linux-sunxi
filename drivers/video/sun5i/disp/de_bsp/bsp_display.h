@@ -100,6 +100,8 @@ typedef struct
 	__s32 (*hdmi_get_HPD_status)(void);
 	__s32 (*hdmi_set_pll)(__u32 pll, __u32 clk);
 	__s32 (*disp_int_process)(__u32 sel);
+        __s32 (*hdmi_suspend)(void);
+        __s32 (*hdmi_resume)(void);
 }__disp_bsp_init_para;
 
 
@@ -248,6 +250,8 @@ extern __s32 BSP_disp_hdmi_check_support_mode(__u32 sel, __u8  mode);
 extern __s32 BSP_disp_hdmi_get_hpd_status(__u32 sel);
 extern __s32 BSP_disp_hdmi_set_src(__u32 sel, __disp_lcdc_src_t src);
 extern __s32 BSP_disp_set_hdmi_func(__disp_hdmi_func * func);
+extern __s32 BSP_disp_hdmi_suspend(void);
+extern __s32 BSP_disp_hdmi_resume(void);
 
 extern __s32 BSP_disp_vga_open(__u32 sel);
 extern __s32 BSP_disp_vga_close(__u32 sel);

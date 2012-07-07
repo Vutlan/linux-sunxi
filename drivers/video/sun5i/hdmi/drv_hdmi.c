@@ -6,6 +6,8 @@
 
 static struct semaphore *run_sem = NULL;
 static struct task_struct * HDMI_task;
+__s32 Hdmi_suspend(void);
+__s32 Hdmi_resume(void);
 
 void hdmi_delay_ms(__u32 t)
 {
@@ -217,7 +219,10 @@ int Hdmi_run_thread(void *parg)
 		//{
 		//	down(run_sem);
 		//}
-		
+	        if(kthread_should_stop())
+                {
+                    break;
+                }	
 		Hdmi_hal_main_task();
 
 		if(ghdmi.bopen)
@@ -269,6 +274,8 @@ __s32 Hdmi_init(void)
 	disp_func.hdmi_mode_support = Hdmi_mode_support;
 	disp_func.hdmi_get_HPD_status = Hdmi_get_HPD_status;
 	disp_func.hdmi_set_pll = Hdmi_set_pll;
+        disp_func.hdmi_suspend = Hdmi_suspend;
+        disp_func.hdmi_resume = Hdmi_resume;
 	disp_set_hdmi_func(&disp_func);
 
 	return 0;
@@ -292,3 +299,16 @@ __s32 Hdmi_exit(void)
 	return 0;
 }
 
+__s32 Hdmi_suspend(void)
+{
+    Hdmi_init();
+
+    return 0;
+}
+
+__s32 Hdmi_resume(void)
+{
+    Hdmi_exit();
+
+    return  0; 
+}

@@ -24,9 +24,6 @@ static struct cdev *my_cdev;
 static dev_t devid ;
 static struct class *disp_class;
 
-static unsigned long jiffies_resume;
-static unsigned long jiffies_late_resume;
-
 static struct resource disp_resource[DISP_IO_NUM] =
 {
 	[DISP_IO_SCALER0] = {
@@ -567,8 +564,10 @@ void backlight_late_resume(struct early_suspend *h)
 
     pr_info("==display late resume enter\n");
 
-    BSP_disp_clk_on(2);
-
+    if(suspend_prestep != 2)
+    {
+    	BSP_disp_clk_on(2);
+    }
     for(i=0; i<2; i++)
     {
         if(suspend_output_type[i] == DISP_OUTPUT_TYPE_LCD)
@@ -591,9 +590,6 @@ void backlight_late_resume(struct early_suspend *h)
             {
                 DRV_lcd_open(i);
             }
-            jiffies_late_resume = jiffies;
-            //pr_info("==jiffies_resume:%ld,  late_resume:%ld\n", jiffies_resume, jiffies_late_resume);
-            
         }
         else if(suspend_output_type[i] == DISP_OUTPUT_TYPE_TV)
         {
@@ -677,10 +673,12 @@ int disp_suspend(struct platform_device *pdev, pm_message_t state)
         BSP_disp_store_scaler_reg(0, scaler0_reg_bak);
      }
 
+    BSP_disp_hdmi_suspend();
 #ifndef CONFIG_HAS_EARLYSUSPEND
     BSP_disp_clk_off(3);
 #else
     BSP_disp_clk_off(1);
+    BSP_disp_clk_off(2);
 #endif
 
     suspend_status |= 2;
@@ -694,12 +692,8 @@ int disp_resume(struct platform_device *pdev)
     int i = 0;
     pr_info("==disp_resume call\n");
 
-#ifndef CONFIG_HAS_EARLYSUSPEND
-    BSP_disp_clk_on(3);
-#else
     BSP_disp_clk_on(1);
-#endif
-
+	BSP_disp_clk_on(2);
     if(SUPER_STANDBY == standby_type)
     {
         
@@ -717,9 +711,6 @@ int disp_resume(struct platform_device *pdev)
     
 #ifndef CONFIG_HAS_EARLYSUSPEND
     {
-
-        BSP_disp_clk_on(3);
-
         for(i=0; i<2; i++)
         {
             if(suspend_output_type[i] == DISP_OUTPUT_TYPE_LCD)
@@ -741,7 +732,6 @@ int disp_resume(struct platform_device *pdev)
         }
     }
 #else
-    jiffies_resume = jiffies;
 
    for(i=0; i<2; i++)
     {
@@ -753,10 +743,11 @@ int disp_resume(struct platform_device *pdev)
     }
 
 #endif
-
+   
+    BSP_disp_hdmi_resume();
+    
     suspend_status &= (~2);
     suspend_prestep = 2;
-
     return 0;
 }
 
