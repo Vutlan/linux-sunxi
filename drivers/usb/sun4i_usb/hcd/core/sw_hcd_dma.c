@@ -3,7 +3,7 @@
 *                         			      Linux
 *					           USB Host Controller Driver
 *
-*				        (c) Copyright 2006-2010, All winners Co,Ld.
+*				        (c) Copyright 2006-2012, SoftWinners Co,Ld.
 *							       All Rights Reserved
 *
 * File Name 	: sw_hcd_dma.c
@@ -347,7 +347,7 @@ static __u32 sw_hcd_dma_left_length(struct sw_hcd_qh *qh, __u32 is_in, __u32 buf
 
 __u32 sw_hcd_dma_transmit_length(struct sw_hcd_qh *qh, __u32 is_in, __u32 buffer_addr)
 {
-	DMSG_DBG_DMA("sw_hcd_dma_transmit_length: qh(0x%p, %d, %d), is_in(%d), buffer_addr(0x%x)\n", 
+	DMSG_DBG_DMA("sw_hcd_dma_transmit_length: qh(0x%p, %d, %d), is_in(%d), buffer_addr(0x%x)\n",
 		         qh, qh->dma_transfer_len, qh->dma_working,
 		         is_in, buffer_addr);
 

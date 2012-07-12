@@ -3,7 +3,7 @@
 *                         			      Linux
 *					                 USB Host Driver
 *
-*				        (c) Copyright 2006-2012, All winners Co,Ld.
+*				        (c) Copyright 2006-2012, SoftWinners Co,Ld.
 *							       All Rights Reserved
 *
 * File Name 	: sw_usb_mu509.c

@@ -3,7 +3,7 @@
 *                         			      Linux
 *					                 USB Host Driver
 *
-*				        (c) Copyright 2006-2010, All winners Co,Ld.
+*				        (c) Copyright 2006-2012, SoftWinners Co,Ld.
 *							       All Rights Reserved
 *
 * File Name 	: sw_usb_debug.c
