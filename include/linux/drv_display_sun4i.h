@@ -513,7 +513,7 @@ typedef enum
     FB_MODE_SCREEN0 = 0,
     FB_MODE_SCREEN1 = 1,
     FB_MODE_DUAL_SAME_SCREEN_TB = 2,//two screen, top buffer for screen0, bottom buffer for screen1
-    FB_MODE_DUAL_DIFF_SCREEN_SAME_CONTENTS = 3,//two screen, they have same contents;
+    FB_MODE_SCREEN0_PARTLY = 3,
 }__fb_mode_t;
 
 typedef struct
@@ -544,7 +544,7 @@ typedef enum
     DISP_INIT_MODE_SCREEN1 = 1,//fb0 for screen1
     DISP_INIT_MODE_TWO_DIFF_SCREEN = 2,//fb0 for screen0 and fb1 for screen1
     DISP_INIT_MODE_TWO_SAME_SCREEN = 3,//fb0(up buffer for screen0, down buffer for screen1)
-    DISP_INIT_MODE_SCREEN0_PARTLY = 4,//fb0(fb size fix to 1920*1080,but the source window is variable according to the output)
+    DISP_INIT_MODE_SCREEN0_GPU = 4,//fb0(fb size fix to 1920*1080,but the source window is variable according to the output)
 }__disp_init_mode_t;
 
 
