@@ -22,10 +22,9 @@
 #ifndef  __SW_USB_MU509_H__
 #define  __SW_USB_MU509_H__
 
-void mu509_vbat(u32 usbc_no, u32 on);
-void mu509_wakeup_sleep(u32 usbc_no, u32 sleep);
 void mu509_power(u32 usbc_no, u32 on);
-void mu509_reset(u32 usbc_no);
+void mu509_reset(u32 usbc_no, u32 time);
+void mu509_wakeup_sleep(u32 usbc_no, u32 sleep);
 u32 is_suspport_mu509(u32 usbc_no, u32 usbc_type);
 
 int mu509_wakeup_irq_init(void);

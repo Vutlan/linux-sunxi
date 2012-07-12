@@ -39,6 +39,9 @@
 #include  <mach/clock.h>
 #include "sw_hci_sun4i.h"
 
+//-----------------------------------------------------------------------------
+//   debug
+//-----------------------------------------------------------------------------
 #define  USB_MU509_DEBUG
 
 #ifdef  USB_MU509_DEBUG
@@ -48,6 +51,11 @@
 #define  usb_3g_dbg(...)
 #define  usb_3g_err(...)
 #endif
+
+
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
 
 /* HUAWEI MU509 HSDPA LGA Module Hardware Guide */
 struct sw_usb_mu509{
@@ -197,20 +205,20 @@ static s32 mu509_get_config(struct sw_usb_mu509 *mu509)
 	    mu509->reset_valid  = 0;
 	}
 
-    /* 3g_wakeup_out_gpio */
+    /* 3g_wakeup_in_gpio */
 	ret = script_parser_fetch("3g_para",
-	                          "3g_wakeup_out_gpio",
+	                          "3g_wakeup_in_gpio",
 	                          (int *)&mu509->wakeup_in_set,
 	                          64);
 	if(ret != 0){
-		usb_3g_err("ERR: get 3g_wakeup_out_gpio failed\n");
+		usb_3g_err("ERR: get 3g_wakeup_in_gpio failed\n");
 		//return -1;
 	}
 
 	if(mu509->wakeup_in_set.port){
 	    mu509->wakeup_in_valid = 1;
 	}else{
-	    usb_3g_err("ERR: 3g_wakeup_out_gpio is invalid\n");
+	    usb_3g_err("ERR: 3g_wakeup_in_gpio is invalid\n");
 	    mu509->wakeup_in_valid  = 0;
 	}
 
@@ -242,17 +250,17 @@ static s32 mu509_pin_init(struct sw_usb_mu509 *mu509)
     //  3g vbat
     //---------------------------------
     if(mu509->vbat_valid){
-    	mu509->vbat_hd = gpio_request(&(mu509->vbat_set), 1);
-    	if(mu509->vbat_hd == 0){
-    		usb_3g_err("ERR: gpio_request vbat_set failed\n");
-    		return 0;
-    	}
+		mu509->vbat_hd = gpio_request(&(mu509->vbat_set), 1);
+		if(mu509->vbat_hd == 0){
+			usb_3g_err("ERR: gpio_request vbat_set failed\n");
+			return 0;
+		}
 
-    	/* set config, ouput */
-    	gpio_set_one_pin_io_status(mu509->vbat_hd, 1, NULL);
+		/* set config, ouput */
+		gpio_set_one_pin_io_status(mu509->vbat_hd, 1, NULL);
 
-    	/* reserved is pull down */
-    	gpio_set_one_pin_pull(mu509->vbat_hd, 2, NULL);
+		/* reserved is pull down */
+		gpio_set_one_pin_pull(mu509->vbat_hd, 2, NULL);
     }else{
         mu509->vbat_hd = 0;
     }
@@ -261,17 +269,17 @@ static s32 mu509_pin_init(struct sw_usb_mu509 *mu509)
     //  3g power_on_off
     //---------------------------------
     if(mu509->power_on_off_valid){
-    	mu509->power_on_off_hd = gpio_request(&(mu509->power_on_off_set), 1);
-    	if(mu509->power_on_off_hd == 0){
-    		usb_3g_err("ERR: gpio_request power_on_off_set failed\n");
-    		return 0;
-    	}
+		mu509->power_on_off_hd = gpio_request(&(mu509->power_on_off_set), 1);
+		if(mu509->power_on_off_hd == 0){
+			usb_3g_err("ERR: gpio_request power_on_off_set failed\n");
+			return 0;
+		}
 
-    	/* set config, ouput */
-    	gpio_set_one_pin_io_status(mu509->power_on_off_hd, 1, NULL);
+		/* set config, ouput */
+		gpio_set_one_pin_io_status(mu509->power_on_off_hd, 1, NULL);
 
-    	/* reserved is pull down */
-    	gpio_set_one_pin_pull(mu509->power_on_off_hd, 2, NULL);
+		/* reserved is pull up */
+		gpio_set_one_pin_pull(mu509->power_on_off_hd, 1, NULL);
     }else{
         mu509->power_on_off_hd = 0;
     }
@@ -280,17 +288,17 @@ static s32 mu509_pin_init(struct sw_usb_mu509 *mu509)
     //  3g reset
     //---------------------------------
     if(mu509->reset_valid){
-    	mu509->reset_hd = gpio_request(&(mu509->reset_set), 1);
-    	if(mu509->reset_hd == 0){
-    		usb_3g_err("ERR: gpio_request reset_set failed\n");
-    		return 0;
-    	}
+		mu509->reset_hd = gpio_request(&(mu509->reset_set), 1);
+		if(mu509->reset_hd == 0){
+			usb_3g_err("ERR: gpio_request reset_set failed\n");
+			return 0;
+		}
 
-    	/* set config, ouput */
-    	gpio_set_one_pin_io_status(mu509->reset_hd, 1, NULL);
+		/* set config, ouput */
+		gpio_set_one_pin_io_status(mu509->reset_hd, 1, NULL);
 
-    	/* reserved is pull down */
-    	gpio_set_one_pin_pull(mu509->reset_hd, 2, NULL);
+		/* reserved is pull down */
+		gpio_set_one_pin_pull(mu509->reset_hd, 2, NULL);
     }else{
         mu509->reset_hd = 0;
     }
@@ -299,17 +307,17 @@ static s32 mu509_pin_init(struct sw_usb_mu509 *mu509)
     //  3g wakeup_out
     //---------------------------------
     if(mu509->wakeup_in_valid){
-    	mu509->wakeup_in_hd = gpio_request(&(mu509->wakeup_in_set), 1);
-    	if(mu509->wakeup_in_hd == 0){
-    		usb_3g_err("ERR: gpio_request wakeup_in_set failed\n");
-    		return 0;
-    	}
+		mu509->wakeup_in_hd = gpio_request(&(mu509->wakeup_in_set), 1);
+		if(mu509->wakeup_in_hd == 0){
+			usb_3g_err("ERR: gpio_request wakeup_in_set failed\n");
+			return 0;
+		}
 
-    	/* set config, ouput */
-    	gpio_set_one_pin_io_status(mu509->wakeup_in_hd, 1, NULL);
+		/* set config, ouput */
+		gpio_set_one_pin_io_status(mu509->wakeup_in_hd, 1, NULL);
 
-    	/* reserved is pull down */
-    	gpio_set_one_pin_pull(mu509->wakeup_in_hd, 2, NULL);
+		/* reserved is pull down */
+		gpio_set_one_pin_pull(mu509->wakeup_in_hd, 2, NULL);
     }else{
         mu509->wakeup_in_hd = 0;
     }
@@ -582,7 +590,7 @@ static void mu509_wakeup_irq_work(struct work_struct *data)
 {
     usb_3g_dbg("---------mu509_wakeup_irq_work----------\n");
 
-	//axp_pressshort_ex();
+	axp_pressshort_ex();
 
 	return;
 }
@@ -843,17 +851,11 @@ EXPORT_SYMBOL(mu509_wakeup_irq_exit);
 *    void
 *
 * note:
-*    1、vbat pin pull up
-*    2、power_on_off pin pull down
-*    3、delay 700ms
-*    4、power_on_off pin pull up
 *
 *******************************************************************************
 */
-void mu509_vbat(u32 usbc_no, u32 on)
+void mu509_vbat(struct sw_usb_mu509 *mu509, u32 on)
 {
-    struct sw_usb_mu509 *mu509 = &g_usb_mu509;
-
     if(!mu509->vbat_hd){
         //usb_3g_err("err: drv_vbus_ext_Handle == NULL\n");
         return;
@@ -866,90 +868,10 @@ void mu509_vbat(u32 usbc_no, u32 on)
     }
 
     gpio_write_one_pin_value(mu509->vbat_hd, on, NULL);
-    msleep(4000);
 
     return;
 }
 EXPORT_SYMBOL(mu509_vbat);
-
-/*
-*******************************************************************************
-*                     mu509_power_on_off
-*
-* Description:
-*    void
-*
-* Parameters:
-*    void
-*
-* Return value:
-*    void
-*
-* note:
-*    void
-*
-*******************************************************************************
-*/
-static void __mu509_power_on_off(struct sw_usb_mu509 *mu509, u32 is_on)
-{
-    u32 on_off = 0;
-
-    usb_3g_dbg("Set MU509 Power %s\n", (is_on ? "ON" : "OFF"));
-
-    /* set power */
-    if(mu509->power_on_off_set.data == 0){
-        on_off = is_on ? 1 : 0;
-    }else{
-        on_off = is_on ? 0 : 1;
-    }
-
-    gpio_write_one_pin_value(mu509->power_on_off_hd, on_off, NULL);
-
-    return;
-}
-
-/*
-*******************************************************************************
-*                     mu509_power
-*
-* Description:
-*    void
-*
-* Parameters:
-*    void
-*
-* Return value:
-*    void
-*
-* note:
-*    void
-*
-*******************************************************************************
-*/
-void mu509_power(u32 usbc_no, u32 on)
-{
-    struct sw_usb_mu509 *mu509 = &g_usb_mu509;
-
-    if(!mu509->power_on_off_hd){
-        //usb_3g_err("err: drv_vbus_ext_Handle == NULL\n");
-        return;
-    }
-
-    if(on){
-//        __mu509_power_on_off(mu509, 1);
-//        msleep(100);
-        __mu509_power_on_off(mu509, 0);
-        msleep(700);
-        __mu509_power_on_off(mu509, 1);
-    }else{
-        __mu509_power_on_off(mu509, 0);
-        mdelay(3500);
-        __mu509_power_on_off(mu509, 1);
-    }
-
-    return;
-}
-EXPORT_SYMBOL(mu509_power);
 
 /*
 *******************************************************************************
@@ -969,7 +891,7 @@ EXPORT_SYMBOL(mu509_power);
 *
 *******************************************************************************
 */
-void mu509_reset(u32 usbc_no)
+void mu509_reset(u32 usbc_no, u32 time)
 {
     struct sw_usb_mu509 *mu509 = &g_usb_mu509;
 
@@ -979,7 +901,7 @@ void mu509_reset(u32 usbc_no)
     }
 
     gpio_write_one_pin_value(mu509->reset_hd, 1, NULL);
-    msleep(80);
+    mdelay(time);
     gpio_write_one_pin_value(mu509->reset_hd, 0, NULL);
 
     return;
@@ -1027,6 +949,91 @@ EXPORT_SYMBOL(mu509_wakeup_sleep);
 
 /*
 *******************************************************************************
+*                     mu509_power_on_off
+*
+* Description:
+*    void
+*
+* Parameters:
+*    void
+*
+* Return value:
+*    void
+*
+* note:
+*    void
+*
+*******************************************************************************
+*/
+static void mu509_power_on_off(struct sw_usb_mu509 *mu509, u32 is_on)
+{
+    u32 on_off = 0;
+
+    usb_3g_dbg("Set MU509 Power %s\n", (is_on ? "ON" : "OFF"));
+
+    /* set power */
+    if(mu509->power_on_off_set.data == 0){
+        on_off = is_on ? 1 : 0;
+    }else{
+        on_off = is_on ? 0 : 1;
+    }
+
+    gpio_write_one_pin_value(mu509->power_on_off_hd, on_off, NULL);
+
+    return;
+}
+
+/*
+*******************************************************************************
+*                     mu509_power
+*
+* Description:
+*    void
+*
+* Parameters:
+*    void
+*
+* Return value:
+*    void
+*
+* note:
+*
+* 1、vbat通过GPIO操作时，vbat关掉后，整个3G模组都掉电了，因此 power_on_off 可以省去
+*    power on:
+*		1、vbat pin pull up
+*		2、delay 4000ms
+*		3、power_on_off pin pull down
+*		4、delay 700ms
+*		5、power_on_off pin pull up
+*
+*	  power off:
+*		1、vbat pin pull down
+*
+*
+*******************************************************************************
+*/
+void mu509_power(u32 usbc_no, u32 on)
+{
+    struct sw_usb_mu509 *mu509 = &g_usb_mu509;
+
+    usb_3g_dbg("mu509 power %s with gpio\n", (on ? "ON" : "OFF"));
+
+    if(on){
+		mu509_vbat(mu509, 1);
+		mdelay(4000);
+        mu509_power_on_off(mu509, 0);
+        mdelay(700);
+        mu509_power_on_off(mu509, 1);
+    }else{
+		mu509_vbat(mu509, 0);
+    }
+
+    return;
+}
+EXPORT_SYMBOL(mu509_power);
+
+/*
+*******************************************************************************
 *                     is_suspport_mu509
 *
 * Description:
@@ -1046,6 +1053,11 @@ EXPORT_SYMBOL(mu509_wakeup_sleep);
 */
 u32 is_suspport_mu509(u32 usbc_no, u32 usbc_type)
 {
+    if(!g_usb_mu509.used){
+        //usb_3g_err("err: not support, (%d, %d)\n", g_usb_mu509.usbc_no, usbc_no);
+        return 0;
+    }
+
     if(g_usb_mu509.usbc_no != usbc_no){
         //usb_3g_err("err: not support, (%d, %d)\n", g_usb_mu509.usbc_no, usbc_no);
         return 0;
@@ -1058,6 +1070,7 @@ u32 is_suspport_mu509(u32 usbc_no, u32 usbc_type)
 
     return 1;
 }
+EXPORT_SYMBOL(is_suspport_mu509);
 
 /*
 *******************************************************************************

@@ -125,6 +125,44 @@ static s32 get_usb_cfg(struct sw_hci_hcd *sw_hci)
 		//return -1;
 	}
 
+{
+    u32 usb_3g_used      = 0;
+    u32 usb_3g_usbc_num  = 0;
+    u32 usb_3g_usbc_type = 0;
+
+    /* 3g_used */
+	ret = script_parser_fetch("3g_para", "3g_used", (int *)&usb_3g_used, 64);
+	if(ret != 0){
+		DMSG_PANIC("ERR: get 3g_used failed\n");
+		//return -1;
+	}
+
+	if(usb_3g_used){
+        /* 3g_usbc_num */
+        ret = script_parser_fetch("3g_para", "3g_usbc_num", (int *)&usb_3g_usbc_num, 64);
+        if(ret != 0){
+            DMSG_PANIC("ERR: get 3g_usbc_num failed\n");
+            //return -1;
+        }
+
+        /* 3g_usbc_type */
+        ret = script_parser_fetch("3g_para", "3g_usbc_type", (int *)&usb_3g_usbc_type, 64);
+        if(ret != 0){
+            DMSG_PANIC("ERR: get 3g_usbc_type failed\n");
+            //return -1;
+        }
+
+        /* 只开3G使用的那个模组 */
+        if(sw_hci->usbc_no == usb_3g_usbc_num){
+            sw_hci->used = 0;
+
+            if(sw_hci->usbc_type == usb_3g_usbc_type){
+                sw_hci->used = 1;
+            }
+        }
+	}
+}
+
 	return 0;
 }
 
@@ -1024,7 +1062,8 @@ static int init_sw_hci(struct sw_hci_hcd *sw_hci, u32 usbc_no, u32 ohci, const c
 
     memset(sw_hci, 0, sizeof(struct sw_hci_hcd));
 
-    sw_hci->usbc_no         = usbc_no;
+    sw_hci->usbc_no   = usbc_no;
+    sw_hci->usbc_type = ohci ? SW_USB_OHCI : SW_USB_EHCI;
 
     if(ohci){
         sw_hci->irq_no = ohci_irq_no[sw_hci->usbc_no];

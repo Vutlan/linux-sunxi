@@ -399,9 +399,8 @@ static int sw_ohci_hcd_probe(struct platform_device *pdev)
 	       return -1;
 	    }
 
-        mu509_vbat(sw_ohci->usbc_no, 1);
-        mu509_wakeup_sleep(sw_ohci->usbc_no, 0);
         mu509_power(sw_ohci->usbc_no, 1);
+        mu509_wakeup_sleep(sw_ohci->usbc_no, 0);
     }
 #endif
 
@@ -467,7 +466,6 @@ static int sw_ohci_hcd_remove(struct platform_device *pdev)
     if(is_suspport_mu509(sw_ohci->usbc_no, SW_USB_OHCI)){
     	mu509_wakeup_irq_exit();
         mu509_power(sw_ohci->usbc_no, 0);
-        mu509_vbat(sw_ohci->usbc_no, 0);
     }
 #endif
 
@@ -538,7 +536,6 @@ void sw_ohci_hcd_shutdown(struct platform_device* pdev)
 #ifdef  CONFIG_USB_SW_MU509
     if(is_suspport_mu509(sw_ohci->usbc_no, SW_USB_OHCI)){
         mu509_power(sw_ohci->usbc_no, 0);
-        mu509_vbat(sw_ohci->usbc_no, 0);
     }
 #endif
 
