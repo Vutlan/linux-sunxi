@@ -92,7 +92,7 @@ typedef enum
 typedef enum
 {
     DISP_3D_SRC_MODE_TB = 0x0,//top bottom
-    DISP_3D_SRC_MODE_FP = 0x1,//frame packing
+    DISP_3D_SRC_MODE_FP = 0x1,//frame packing,left and right picture in separate address
     DISP_3D_SRC_MODE_SSF = 0x2,//side by side full
     DISP_3D_SRC_MODE_SSH = 0x3,//side by side half
     DISP_3D_SRC_MODE_LI = 0x4,//line interleaved
@@ -544,14 +544,14 @@ typedef enum
     DISP_INIT_MODE_SCREEN1 = 1,//fb0 for screen1
     DISP_INIT_MODE_TWO_DIFF_SCREEN = 2,//fb0 for screen0 and fb1 for screen1
     DISP_INIT_MODE_TWO_SAME_SCREEN = 3,//fb0(up buffer for screen0, down buffer for screen1)
-    DISP_INIT_MODE_TWO_DIFF_SCREEN_SAME_CONTENTS = 4,//fb0 for two different screen(screen0 layer is normal layer, screen1 layer is scaler layer);
+    DISP_INIT_MODE_SCREEN0_PARTLY = 4,//fb0(fb size fix to 1920*1080,but the source window is variable according to the output)
 }__disp_init_mode_t;
 
 
 typedef struct
 {
     __bool                  b_init;
-    __disp_init_mode_t      disp_mode;//0:single screen0(fb0); 1:single screen1(fb0);  2:dual diff screen(fb0, fb1); 3:dual same screen(fb0 up and down); 4:dual diff screen same contents(fb0)
+    __disp_init_mode_t      disp_mode;
 
     //for screen0 and screen1
     __disp_output_type_t    output_type[2];
