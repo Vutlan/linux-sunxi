@@ -48,6 +48,7 @@ extern char *standby_bin_end;
 static struct aw_pm_info standby_info = {
     .standby_para = {
         .event = SUSPEND_WAKEUP_SRC_EXINT,
+		.axp_event = AXP_MEM_WAKEUP,
     },
     .pmu_arg = {
         .twi_port = 0,
@@ -172,7 +173,14 @@ static int aw_pm_enter(suspend_state_t state)
 
     //move standby code to sram
     memcpy((void *)SRAM_FUNC_START, (void *)&standby_bin_start, (int)&standby_bin_end - (int)&standby_bin_start);
-
+	
+	/* config system wakeup evetn type */
+	if(PM_SUSPEND_MEM == state || PM_SUSPEND_STANDBY == state){
+		standby_info.standby_para.axp_event = AXP_MEM_WAKEUP;
+	}else if(PM_SUSPEND_BOOTFAST == state){
+		standby_info.standby_para.axp_event = AXP_BOOTFAST_WAKEUP;
+	}
+	
     /* config system wakeup evetn type */
     standby_info.standby_para.event = SUSPEND_WAKEUP_SRC_EXINT | SUSPEND_WAKEUP_SRC_ALARM;
 

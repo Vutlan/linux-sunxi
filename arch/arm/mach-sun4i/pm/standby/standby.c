@@ -87,7 +87,7 @@ int main(struct aw_pm_info *arg)
     standby_clk_apbinit();
     standby_int_init();
     standby_tmr_init();
-    standby_power_init();
+    standby_power_init(pm_info.standby_para.axp_event);
     /* init some system wake source */
     if(pm_info.standby_para.event & SUSPEND_WAKEUP_SRC_EXINT){
         standby_enable_int(INT_SOURCE_EXTNMI);
@@ -146,7 +146,7 @@ int main(struct aw_pm_info *arg)
     if(pm_info.standby_para.event & SUSPEND_WAKEUP_SRC_KEY){
         standby_key_exit();
     }
-    standby_power_exit();
+    standby_power_exit(pm_info.standby_para.event>>16);
     standby_tmr_exit();
     standby_int_exit();
     standby_clk_apbexit();

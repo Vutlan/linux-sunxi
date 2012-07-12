@@ -60,6 +60,7 @@ struct aw_pmu_arg{
 */
 struct aw_standby_para{
     unsigned int event;     /**<event type for system wakeup    */
+	unsigned int axp_event;     /**<axp event type for system wakeup    */
     signed int   time_off;  /**<time to power off from now, based on second */
 };
 
@@ -71,6 +72,19 @@ struct aw_pm_info{
     struct aw_standby_para  standby_para;   /* standby parameter            */
     struct aw_pmu_arg       pmu_arg;        /**<args used by main function  */
 };
+
+
+#define AXP_WAKEUP_KEY          (1<<0)
+#define AXP_WAKEUP_LOWBATT      (1<<1)
+#define AXP_WAKEUP_USB          (1<<2)
+#define AXP_WAKEUP_AC           (1<<3)
+#define AXP_WAKEUP_ASCEND       (1<<4)
+#define AXP_WAKEUP_DESCEND      (1<<5)
+#define AXP_WAKEUP_SHORT_KEY    (1<<6)
+#define AXP_WAKEUP_LONG_KEY     (1<<7)
+ 
+#define AXP_MEM_WAKEUP              (AXP_WAKEUP_LOWBATT | AXP_WAKEUP_USB | AXP_WAKEUP_AC | AXP_WAKEUP_DESCEND | AXP_WAKEUP_ASCEND)
+#define AXP_BOOTFAST_WAKEUP         (AXP_WAKEUP_LOWBATT | AXP_WAKEUP_LONG_KEY)
 
 
 #endif /* __AW_PM_H__ */
