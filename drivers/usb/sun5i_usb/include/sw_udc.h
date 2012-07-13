@@ -3,7 +3,7 @@
 *                         			      Linux
 *					           USB Device Controller Driver
 *
-*				        (c) Copyright 2006-2010, All winners Co,Ld.
+*				        (c) Copyright 2006-2012, SoftWinners Co,Ld.
 *							       All Rights Reserved
 *
 * File Name 	: sw_udc.h
@@ -195,6 +195,7 @@ typedef struct sw_udc_mach_info {
 	struct usb_port_info *port_info;
 	unsigned int usbc_base;
 }sw_udc_mach_info_t;
+
 
 int sw_usb_device_enable(void);
 int sw_usb_device_disable(void);

@@ -1033,6 +1033,9 @@ static int android_bind(struct usb_composite_dev *cdev)
 	memset(temp_str, 0, 128);
 	sprintf(temp_str, "%x", chip_id);
 	strcat(serial_string, temp_str);
+
+	/* ȡ32λ */
+	serial_string[32] = '\0';
 }
 #endif
 

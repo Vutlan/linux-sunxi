@@ -1989,19 +1989,6 @@ UNUSUAL_DEV(0x05c6,0x00a0,0x00,0x00,
 		USB_SC_DEVICE,USB_PR_DEVICE,usb_stor_ASB_init,
 		0),
 
-UNUSUAL_DEV(0x1bbb,0xf000,0x0,0x0,
-		"alcatel MOBILE",
-		"Mass Storage",
-		USB_SC_DEVICE,USB_PR_DEVICE,usb_stor_ASB_init,
-		0),
-		
-//alcatel--don't report disk device
-UNUSUAL_DEV(0x1bbb,0x0017,0x0,0x0,
-		"alcatel MOBILE",
-		"Mass Storage",
-		USB_SC_DEVICE,USB_PR_DEVICE,usb_stor_ASB_init,
-		0),	
-			
 //TechFaith--don't report disk device
 UNUSUAL_DEV(0x1d09,0x1010,0x0,0x0,
 		"TechFaith MOBILE",
@@ -2214,6 +2201,47 @@ UNUSUAL_DEV( 0xed10, 0x7636, 0x0001, 0x0001,
 		"Digital MP3 Audio Player",
 		USB_SC_DEVICE, USB_PR_DEVICE, NULL, US_FL_NOT_LOCKABLE ),
 
+//alcatel--don't report disk device
+UNUSUAL_DEV(0x1bbb,0xf000,0x0,0x0,
+		"alcatel MOBILE",
+		"Mass Storage",
+		USB_SC_DEVICE,USB_PR_DEVICE,usb_stor_ASB_init,
+		0),
+
+//alcatel--don't report disk device
+UNUSUAL_DEV(0x1bbb,0x0017,0x0,0x0,
+		"alcatel MOBILE",
+		"Mass Storage",
+		USB_SC_DEVICE,USB_PR_DEVICE,usb_stor_ASB_init,
+		0),
+
+//alcatel--don't report disk device
+UNUSUAL_DEV(0x1c9e,0x9800,0x0,0x0,
+		"SPEEDUP",
+		"USB Modem",
+		USB_SC_DEVICE,USB_PR_DEVICE,NULL,
+		0),
+
+//alcatel--don't report disk device
+UNUSUAL_DEV(0x1c9e,0x9e00,0x0,0x0,
+		"SPEEDUP",
+		"Qualcomm CDMA Technologies MSM",
+		USB_SC_DEVICE,USB_PR_DEVICE,NULL,
+		0),
+
+//alcatel--don't report disk device
+UNUSUAL_DEV(0x05c6,0x1000,0x0,0x0,
+		"Micromax",
+		"Qualcomm CDMA Technologies MSM",
+		USB_SC_DEVICE,USB_PR_DEVICE,NULL,
+		0),
+
+//alcatel--don't report disk device
+UNUSUAL_DEV(0x05c6,0x2001,0x0,0x0,
+		"Micromax",
+		"Qualcomm CDMA Technologies MSM",
+		USB_SC_DEVICE,USB_PR_DEVICE,NULL,
+		0),
 /* Control/Bulk transport for all SubClass values */
 USUAL_DEV(USB_SC_RBC, USB_PR_CB, USB_US_TYPE_STOR),
 USUAL_DEV(USB_SC_8020, USB_PR_CB, USB_US_TYPE_STOR),

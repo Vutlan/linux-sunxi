@@ -3,7 +3,7 @@
 *                         			      Linux
 *					           USB Device Controller Driver
 *
-*				        (c) Copyright 2006-2010, All winners Co,Ld.
+*				        (c) Copyright 2006-2012, SoftWinners Co,Ld.
 *							       All Rights Reserved
 *
 * File Name 	: sw_udc_config.h
@@ -43,7 +43,7 @@
 
 /* sw udc µ÷ÊÔ´òÓ¡ */
 #if	0
-    #define DMSG_DBG_UDC     		DMSG_MSG
+    #define DMSG_DBG_UDC     			DMSG_MSG
 #else
     #define DMSG_DBG_UDC(...)
 #endif

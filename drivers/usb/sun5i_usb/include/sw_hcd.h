@@ -3,7 +3,7 @@
 *                         			      Linux
 *					           USB Host Controller Driver
 *
-*				        (c) Copyright 2006-2010, All winners Co,Ld.
+*				        (c) Copyright 2006-2012, SoftWinners Co,Ld.
 *							       All Rights Reserved
 *
 * File Name 	: sw_hcd.h
@@ -107,5 +107,7 @@ int sw_usb_enable_hcd1(void);
 
 int sw_usb_disable_hcd2(void);
 int sw_usb_enable_hcd2(void);
+
+
 #endif   //__SW_HCD_H__
 

@@ -3,7 +3,7 @@
 *                         			      Linux
 *					           USB Host Controller Driver
 *
-*				        (c) Copyright 2006-2010, All winners Co,Ld.
+*				        (c) Copyright 2006-2012, SoftWinners Co,Ld.
 *							       All Rights Reserved
 *
 * File Name 	: usb_msg_center.c
@@ -72,6 +72,7 @@ enum usb_role get_usb_role(void)
 static void set_usb_role(struct usb_msg_center_info *center_info, enum usb_role role)
 {
 	center_info->role = role;
+
 	return;
 }
 

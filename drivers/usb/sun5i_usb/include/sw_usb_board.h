@@ -3,7 +3,7 @@
 *                         			      Linux
 *					           USB Host Controller Driver
 *
-*				        (c) Copyright 2006-2010, All winners Co,Ld.
+*				        (c) Copyright 2006-2012, SoftWinners Co,Ld.
 *							       All Rights Reserved
 *
 * File Name 	: sw_usb_board.h
@@ -89,6 +89,7 @@ typedef struct usb_port_info{
 	__u32 port_no;						/* usb端口号			*/
 	enum usb_port_type port_type;    	/* usb端口类型			*/
 	enum usb_detect_type detect_type; 	/* usb检测方式			*/
+
 	usb_gpio_t id;						/* usb id pin信息 		*/
 	usb_gpio_t det_vbus;				/* usb vbus pin信息 	*/
 	usb_gpio_t drv_vbus;				/* usb drv_vbus pin信息	*/

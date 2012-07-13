@@ -3,7 +3,7 @@
 *                         			      Linux
 *					           USB Host Controller Driver
 *
-*				        (c) Copyright 2006-2010, All winners Co,Ld.
+*				        (c) Copyright 2006-2012, SoftWinners Co,Ld.
 *							       All Rights Reserved
 *
 * File Name 	: usb_msg_center.h
@@ -46,7 +46,7 @@ typedef struct usb_msg_center_info{
 
 	struct usb_msg msg;
 	enum usb_role role;
-	
+
 	u32 skip;                 	//是否跳跃，不进入消息处理
 	                          	//主要是过滤无效消息
 }usb_msg_center_info_t;

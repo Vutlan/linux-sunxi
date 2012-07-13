@@ -3,7 +3,7 @@
 *                         			      Linux
 *					           USB Device Controller Driver
 *
-*				        (c) Copyright 2006-2010, All winners Co,Ld.
+*				        (c) Copyright 2006-2012, SoftWinners Co,Ld.
 *							       All Rights Reserved
 *
 * File Name 	: sw_udc_udc.c
@@ -32,7 +32,6 @@
 #include <linux/interrupt.h>
 #include <linux/platform_device.h>
 #include <linux/clk.h>
-
 
 #include <linux/debugfs.h>
 #include <linux/seq_file.h>
@@ -1002,9 +1001,8 @@ static void sw_udc_handle_ep0_idle(struct sw_udc *dev,
     				dev->devstatus |= (1 << USB_DEVICE_REMOTE_WAKEUP);
                 }else if(crq->bRequestType == USB_RECIP_INTERFACE){
                     //--<2>--令牌阶段结束
-                USBC_Dev_ReadDataStatus(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_EP0, 0);
-
-                //不处理
+                    USBC_Dev_ReadDataStatus(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_EP0, 1);
+                    //不处理
 
                 }else if(crq->bRequestType == USB_RECIP_ENDPOINT){
                     //--<3>--禁用ep
@@ -2077,9 +2075,6 @@ static int sw_udc_ep_enable(struct usb_ep *_ep,
 		return -EINVAL;
 	}
 
-	DMSG_INFO_UDC("ep enable: ep(0x%p, %s, %d, %d)\n",
-		      _ep, _ep->name, (desc->bEndpointAddress & USB_DIR_IN), _ep->maxpacket);
-
 	ep = to_sw_udc_ep(_ep);
     if(ep == NULL){
 		DMSG_PANIC("ERR: usbd_ep_enable, ep = NULL\n");
@@ -2087,9 +2082,13 @@ static int sw_udc_ep_enable(struct usb_ep *_ep,
 	}
 
 	if(ep->desc){
-		DMSG_PANIC("ERR: usbd_ep_enable, ep->desc is not NULL\n");
+		DMSG_PANIC("ERR: usbd_ep_enable, ep->desc is not NULL, ep%d(%s)\n", ep->num, _ep->name);
 		return -EINVAL;
 	}
+
+	DMSG_INFO_UDC("ep enable: ep%d(0x%p, %s, %d, %d)\n",
+		          ep->num, _ep, _ep->name,
+		          (desc->bEndpointAddress & USB_DIR_IN), _ep->maxpacket);
 
 	dev = ep->dev;
 	if (!dev->driver || dev->gadget.speed == USB_SPEED_UNKNOWN){
@@ -2185,8 +2184,9 @@ static int sw_udc_ep_disable(struct usb_ep *_ep)
 		return -EINVAL;
 	}
 
-	DMSG_INFO_UDC("ep disable: ep(0x%p, %s, %d, %d)\n",
-		      _ep, _ep->name, (ep->bEndpointAddress & USB_DIR_IN), _ep->maxpacket);
+	DMSG_INFO_UDC("ep disable: ep%d(0x%p, %s, %d, %x)\n",
+		          ep->num, _ep, _ep->name,
+		          (ep->bEndpointAddress & USB_DIR_IN), _ep->maxpacket);
 
 	local_irq_save(flags);
 
@@ -2261,7 +2261,7 @@ static struct usb_request * sw_udc_alloc_request(struct usb_ep *_ep, gfp_t mem_f
 	INIT_LIST_HEAD (&req->queue);
 
 	DMSG_INFO_UDC("alloc request: ep(0x%p, %s, %d), req(0x%p)\n",
-		      _ep, _ep->name, _ep->maxpacket, req);
+		          _ep, _ep->name, _ep->maxpacket, req);
 
 	return &req->req;
 }
@@ -3266,8 +3266,6 @@ int sw_usb_device_enable(void)
 		retval = -EBUSY;
 		goto err;
 	}
-
-	DMSG_INFO_UDC("---sw_udc_enable start----\n");
 
 	if(udc->driver && is_udc_enable){
 		sw_udc_enable(udc);

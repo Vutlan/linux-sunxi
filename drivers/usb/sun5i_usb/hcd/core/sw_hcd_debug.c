@@ -3,7 +3,7 @@
 *                         			      Linux
 *					           USB Host Controller Driver
 *
-*				        (c) Copyright 2006-2010, All winners Co,Ld.
+*				        (c) Copyright 2006-2012, SoftWinners Co,Ld.
 *							       All Rights Reserved
 *
 * File Name 	: sw_hcd_debug.c
@@ -150,7 +150,7 @@ void print_urb_list(struct usb_host_endpoint *hep, char *str)
 	list_for_each_entry (urb_temp, &hep->urb_list,  urb_list) {
 		DMSG_INFO("[%s]: urb_temp(0x%p, %d, %d, %d)\n",
 			      str,
-			      urb_temp, urb_temp->transfer_buffer_length, 
+			      urb_temp, urb_temp->transfer_buffer_length,
 			      urb_temp->actual_length, urb_temp->status);
 	}
 }
