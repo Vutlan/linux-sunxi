@@ -42,6 +42,9 @@ scm_version()
 		short=true
 	fi
 
+	echo "+"
+	return
+
 	# Check for git and a git repo.
 	if test -d .git && head=`git rev-parse --verify --short HEAD 2>/dev/null`; then
 
