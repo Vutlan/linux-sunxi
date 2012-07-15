@@ -1058,16 +1058,6 @@ config VIDEO_MEM2MEM_TESTDEV
 
 endif # V4L_MEM2MEM_DRIVERS
 
-config VIDEO_SUN4I_CEDAR
-       tristate "CEDAR driver for sun4i"
-       depends on ARCH_SUN4I
-       help
-         CEDAR driver for sun4i
-
-if VIDEO_SUN4I_CEDAR
-source "drivers/media/video/sun4i/Kconfig"
-endif
-
 config VIDEO_SUN5I_CEDAR
        tristate "CEDAR driver for sun5i"
        depends on ARCH_SUN5I
@@ -1078,20 +1068,11 @@ if VIDEO_SUN5I_CEDAR
 source "drivers/media/video/sun5i/Kconfig"
 endif
 
-menuconfig VIDEO_CSI_SUN4I
-	bool "CSI Driver Config for sun4i"
-	default m
-	depends on ARCH_SUN4I && VIDEO_DEV && VIDEO_V4L2
-
-if VIDEO_CSI_SUN4I
-source "drivers/media/video/sun4i_csi/Kconfig"	   	  
-endif
-
 menuconfig VIDEO_CSI_SUN5I
 	bool "CSI Driver Config for sun5i"
 	default m
 	depends on ARCH_SUN5I && VIDEO_DEV && VIDEO_V4L2
 
 if VIDEO_CSI_SUN5I
-source "drivers/media/video/sun5i_csi/Kconfig"	   	  
+source "drivers/media/video/sun5i_csi/Kconfig"
 endif
