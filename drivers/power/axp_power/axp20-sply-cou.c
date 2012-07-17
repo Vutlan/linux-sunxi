@@ -70,10 +70,10 @@ static struct early_suspend	axp_early_suspend;
 int	early_suspend_flag = 0;
 #endif
 
-int pmu_usbvolnew = 0;
-int pmu_usbcurnew = 0;
-int axp_usbcurflag = 0;
-int axp_usbvolflag = 0;
+static int pmu_usbvolnew = 0;
+static int pmu_usbcurnew = 0;
+static int axp_usbcurflag = 0;
+static int axp_usbvolflag = 0;
 static int flag_cou = 0;
 
 static int change_flag = 0;

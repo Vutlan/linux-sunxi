@@ -913,17 +913,20 @@ static __init int sun4i_cpufreq_initclks(void)
 	       clk_get_rate(clk_ahb), clk_get_rate(clk_apb));
 
     #ifdef CONFIG_CPU_FREQ_DVFS
+    #if defined CONFIG_AW_AXP20
     corevdd = regulator_get(NULL, "axp20_core");
+    #elif defined CONFIG_AW_AXP15
+    corevdd = regulator_get(NULL, "axp15_core");
+    #endif
     if(!corevdd) {
-        CPUFREQ_INF("try to get regulator failed, core vdd will not changed!\n");
-    }
-    else {
+    	CPUFREQ_INF("try to get regulator failed, core vdd will not changed!\n");
+    }else{
         CPUFREQ_INF("try to get regulator(0x%x) successed.\n", (__u32)corevdd);
         last_vdd = regulator_get_voltage(corevdd) / 1000;
     }
     #endif
 
-	return 0;
+	return 0;    
 }
 
 

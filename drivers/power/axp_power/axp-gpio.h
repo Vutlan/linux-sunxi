@@ -1,7 +1,7 @@
 /*
- * gpio.h  --  GPIO Driver for Krosspower axp199 PMIC
+ * gpio.h  --  GPIO Driver for X-Powers axp152 PMIC
  *
- * Copyright 2011 Krosspower Microelectronics PLC
+ * Copyright 2012 X-Powers Microelectronics PLC
  *
  *  This program is free software; you can redistribute  it and/or modify it
  *  under  the terms of  the GNU General  Public License as published by the
@@ -16,6 +16,15 @@
 /*
  * GPIO Registers.
  */
+
+/*    AXP15   */
+#define AXP15_GPIO0_CFG                   (POWER15_GPIO0_CTL)
+#define AXP15_GPIO1_CFG                   (POWER15_GPIO1_CTL)
+#define AXP15_GPIO2_CFG                   (POWER15_GPIO2_CTL)
+#define AXP15_GPIO3_CFG                   (POWER15_GPIO3_CTL)
+
+#define AXP15_GPIO0123_STATE              (POWER15_GPIO0123_SIGNAL)
+
 /*    AXP19   */
 #define AXP19_GPIO0_CFG                   (POWER19_GPIO0_CTL)
 #define AXP19_GPIO1_CFG                   (POWER19_GPIO1_CTL)

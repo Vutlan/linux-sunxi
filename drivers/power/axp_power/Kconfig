@@ -11,6 +11,11 @@ choice
 	prompt "AXP PMU type"
 	default AW_AXP20
 
+config AW_AXP15
+	bool "AXP15 driver"
+	---help---
+	  AXP15 driver
+	  
 config AW_AXP18
 	bool "AXP18 driver"
 	---help---
@@ -36,19 +41,20 @@ config AXP_CHGCHANGE
 	bool "AXP charging current set when suspend\resume\shutdown"
 	default y
 	
-choice
-	prompt "AXP calculate type:"
-	default AW_AXP20_COU
+#choice
+#	prompt "AXP calculate type:"
+#	default AW_AXP20_COU
 
 	config AW_AXP20_COU
 		bool "COULOMB"
 		---help---
 			AXP driver for coulomb
+	
 	config AW_AXP20_OCV
 		bool "OCV"
 		---help---
 			AXP driver for ocv
 
-endchoice
+#endchoice
 
 endif # !AW_AXP

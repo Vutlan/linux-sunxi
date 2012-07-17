@@ -1,6 +1,7 @@
 #ifndef	_LINUX_AXP_SPLY_H_
 #define	_LINUX_AXP_SPLY_H_
 
+const unsigned int AXP15_NOTIFIER_ON = 		AXP15_IRQ_PEKLO |AXP15_IRQ_PEKSH ;
 /*      AXP18      */
 #define	AXP18_STATUS						POWER18_STATUS
 #define	AXP18_CHARGE_STATUS					POWER18_ONOFF
@@ -383,7 +384,7 @@ struct axp_charger {
 	int vusb;
 	int iusb;
 	int ocv;
-	
+
 	int disvbat;
 	int disibat;
 
@@ -407,12 +408,10 @@ struct axp_charger {
 };
 
 static struct task_struct *main_task;
-//static uint8_t coulomb_flag;
 static struct axp_charger *axp_charger;
 //static int Total_Cap = 0;
 //static int Cap_Index = 0;
 static int flag_state_change = 0;
-//static int Bat_Cap_Buffer[AXP20_VOL_MAX];
 //static int counter = 0;
 static int bat_cap = 0;
 
