@@ -53,9 +53,10 @@ void enable_aw_cpu(int cpu)
 
 	paddr = virt_to_phys(sun6i_secondary_startup);
         writel(paddr, IO_ADDRESS(AW_R_CPUCFG_BASE) + AW_CPUCFG_P_REG0);
-
+	if(cpu)
+		writel(3, IO_ADDRESS(AW_R_CPUCFG_BASE) + (0x40 + cpu * 0x40));
 	/* let cpus go */
-	writel(1, IO_ADDRESS(AW_R_CPUCFG_BASE) + 0x80);
+/*	writel(1, IO_ADDRESS(AW_R_CPUCFG_BASE) + 0x80);
 
 	reg1 = readl(IO_ADDRESS(AW_R_CPUCFG_BASE) + AW_CPUCFG_P_REG1);
 
@@ -68,6 +69,7 @@ void enable_aw_cpu(int cpu)
 	}
 
 	writel(reg1, IO_ADDRESS(AW_R_CPUCFG_BASE) + AW_CPUCFG_P_REG1);
+*/
 }
 
 
@@ -107,10 +109,11 @@ void __cpuinit platform_secondary_init(unsigned int cpu)
 
         spin_lock(&boot_lock);
         spin_unlock(&boot_lock);
-
+/*
 	arch_timer_common_register();
 
 	printk("[%s] leave\n", __FUNCTION__);
+*/
 }
 
 /*
