@@ -37,6 +37,7 @@
 
 #define AW_IRQ_ENMI      (AW_IRQ_GIC_START + 32)  /* External NMI  */
 
+#define AW_IRQ_MBOX      (AW_IRQ_GIC_START + 11)  /* hwmsgbox */
 #define AW_IRQ_DMA	 38 			  /* dma irq phys num in fpga */
 
 #define AW_IRQ_EINT_PA	 (AW_IRQ_GIC_START + 11)   /* PA_EINIT in spec 43 */

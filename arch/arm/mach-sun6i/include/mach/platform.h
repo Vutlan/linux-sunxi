@@ -30,7 +30,7 @@
 #define AW_SRAM_A1_BASE             0x00000000
 #define AW_SRAM_A1_SIZE             0x00008000
 #define AW_SRAM_A2_BASE             0x00040000
-#define AW_SRAM_A2_SIZE             0x00008000
+#define AW_SRAM_A2_SIZE             0x00014000
 #define AW_SRAM_D_BASE              0x00010000
 #define AW_SRAM_D_SIZE              0x00001000
 #define AW_SRAM_B_BASE              0x00020000 /* Secure, 64KB */

@@ -6,6 +6,7 @@ obj-y=core.o printk.o devices.o
 obj-y += clock/
 obj-y += dma/
 obj-y += gpio/
+obj-y += ar100/
 obj-y += sys_config.o
 obj-$(CONFIG_CPU_FREQ)			+= cpu-freq/
 
