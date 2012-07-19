@@ -756,8 +756,12 @@ static int sun4i_cpufreq_init(struct cpufreq_policy *policy)
 	}
 
 	policy->cur = sun4i_cpufreq_get(0);
-	policy->min = policy->cpuinfo.min_freq = cpu_freq_min;
-	policy->max = policy->cpuinfo.max_freq = cpu_freq_max;
+//     policy->min = policy->cpuinfo.min_freq = cpu_freq_min;
+//     policy->max = policy->cpuinfo.max_freq = cpu_freq_max;
+    policy->min = cpu_freq_min;
+    policy->max = cpu_freq_max;
+    policy->cpuinfo.min_freq =30000;
+    policy->cpuinfo.max_freq =960000;
 	policy->governor = CPUFREQ_DEFAULT_GOVERNOR;
 
 	/* feed the latency information from the cpu driver */
