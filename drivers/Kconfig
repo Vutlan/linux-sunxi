@@ -130,4 +130,7 @@ source "drivers/hwspinlock/Kconfig"
 source "drivers/clocksource/Kconfig"
 
 source "drivers/sunxi_gpio/Kconfig"
+
+source "drivers/gator/Kconfig"
+
 endmenu

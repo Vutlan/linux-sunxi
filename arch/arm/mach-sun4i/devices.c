@@ -29,6 +29,10 @@
 #include <asm/setup.h>
 #include <mach/hardware.h>
 #include <mach/i2c.h>
+#if(CONFIG_CPU_HAS_PMU)
+#include <asm/pmu.h>
+#endif
+
 
 /* uart */
 static struct plat_serial8250_port debug_uart_platform_data[] = {
@@ -164,6 +168,24 @@ struct platform_device sun4i_twi2_device = {
 	},
 };
 
+
+#if(CONFIG_CPU_HAS_PMU)
+/* cpu performance support */
+static struct resource sun4i_pmu_resource = {
+    .start	= SW_INT_IRQNO_PLE_PFM,
+	.end	= SW_INT_IRQNO_PLE_PFM,
+	.flags	= IORESOURCE_IRQ,
+};
+
+static struct platform_device sun4i_pmu_device = {
+	.name	= "arm-pmu",
+	.id		= ARM_PMU_DEVICE_CPU,
+	.num_resources	= 1,
+	.resource = &sun4i_pmu_resource,
+};
+#endif
+
+
 static struct platform_device *sw_pdevs[] __initdata = {
 	&debug_uart,
 	&sw_pdev_dmac,
@@ -171,6 +193,9 @@ static struct platform_device *sw_pdevs[] __initdata = {
 	&sun4i_twi0_device,
 	&sun4i_twi1_device,
 	&sun4i_twi2_device,
+    #if(CONFIG_CPU_HAS_PMU)
+    &sun4i_pmu_device,
+    #endif
 };
 
 void __init sw_pdev_init(void)
