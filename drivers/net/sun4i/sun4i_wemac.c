@@ -625,11 +625,6 @@ unsigned int emac_setup(struct net_device *ndev )
 	else
 		reg_val &= (~(0x1<<2));
 
-	if(EMAC_RX_PA)
-		reg_val |= (0x1<<4);
-	else
-		reg_val &= (~(0x1<<4));
-
 	if(EMAC_RX_PCF)
 		reg_val |= (0x1<<5);
 	else
@@ -649,41 +644,6 @@ unsigned int emac_setup(struct net_device *ndev )
 		reg_val |= (0x1<<8);
 	else
 		reg_val &= (~(0x1<<8));
-
-	if(EMAC_RX_UCAD)
-		reg_val |= (0x1<<16);
-	else
-		reg_val &= (~(0x1<<16));
-
-	if(EMAC_RX_DAF)
-		reg_val |= (0x1<<17);
-	else
-		reg_val &= (~(0x1<<17));
-
-	if(EMAC_RX_MCO)
-		reg_val |= (0x1<<20);
-	else
-		reg_val &= (~(0x1<<20));
-
-	if(EMAC_RX_MHF)
-		reg_val |= (0x1<<21);
-	else
-		reg_val &= (~(0x1<<21));
-
-	if(EMAC_RX_BCO)
-		reg_val |= (0x1<<22);
-	else
-		reg_val &= (~(0x1<<22));
-
-	if(EMAC_RX_SAF)
-		reg_val |= (0x1<<24);
-	else
-		reg_val &= (~(0x1<<24));
-
-	if(EMAC_RX_SAIF)
-		reg_val |= (0x1<<25);
-	else
-		reg_val &= (~(0x1<<25));
 
 	writel(reg_val, db->emac_vbase + EMAC_RX_CTL_REG);
 
@@ -972,51 +932,70 @@ wemac_release_board(struct platform_device *pdev, struct wemac_board_info *db)
  *  Set WEMAC multicast address
  */
 	static void
-wemac_hash_table(struct net_device *dev)
+wemac_set_rx_mode(struct net_device *dev)
 {
-	//	wemac_board_info_t *db = netdev_priv(dev);
-	//	struct dev_mc_list *mcptr = dev->mc_list;
-	//	int mc_cnt = dev->mc_count;
-	//	int i, oft;
-	//	u32 hash_val;
-	//	u16 hash_table[4];
-	//	u8 rcr = RCR_DIS_LONG | RCR_DIS_CRC | RCR_RXEN;
-	//	unsigned long flags;
-	//
-	//	wemac_dbg(db, 1, "entering %s\n", __func__);
-	//
-	//	spin_lock_irqsave(&db->lock, flags);
-	//
-	//	for (i = 0, oft = WEMAC_PAR; i < 6; i++, oft++)
-	//		iow(db, oft, dev->dev_addr[i]);
-	//
-	//	/* Clear Hash Table */
-	//	for (i = 0; i < 4; i++)
-	//		hash_table[i] = 0x0;
-	//
-	//	/* broadcast address */
-	//	hash_table[3] = 0x8000;
-	//
-	//	if (dev->flags & IFF_PROMISC)
-	//		rcr |= RCR_PRMSC;
-	//
-	//	if (dev->flags & IFF_ALLMULTI)
-	//		rcr |= RCR_ALL;
-	//
-	//	/* the multicast address in Hash Table : 64 bits */
-	//	for (i = 0; i < mc_cnt; i++, mcptr = mcptr->next) {
-	//		hash_val = ether_crc_le(6, mcptr->dmi_addr) & 0x3f;
-	//		hash_table[hash_val / 16] |= (u16) 1 << (hash_val % 16);
-	//	}
-	//
-	//	/* Write the hash table to MAC MD table */
-	//	for (i = 0, oft = WEMAC_MAR; i < 4; i++) {
-	//		iow(db, oft++, hash_table[i]);
-	//		iow(db, oft++, hash_table[i] >> 8);
-	//	}
-	//
-	//	iow(db, WEMAC_RCR, rcr);
-	//	spin_unlock_irqrestore(&db->lock, flags);
+	wemac_board_info_t *db = netdev_priv(dev);
+	struct netdev_hw_addr *ha;
+	unsigned long flags;
+	int i = 0;
+	u32 multi_filter[2];
+	u32 bit_nr = 0;
+	u32 rcr = 0;
+
+	spin_lock_irqsave(&db->lock, flags);
+
+	rcr = readl(db->emac_vbase + EMAC_RX_CTL_REG);
+
+	/* uicast packet and DA filtering */
+	rcr |= 1 << 16;
+	rcr |= 1 << 17;
+
+	/* EMAC_RX_PA must set */
+	if (dev->flags & IFF_PROMISC) {
+		rcr |= 1 << 4; 
+	} else if (dev->flags & IFF_ALLMULTI
+			|| netdev_mc_count(dev) > EMAC_MAX_MCAST) {
+		rcr |= 1 << 20;
+		rcr |= 1 << 21;
+		writel(0xffffffff, db->emac_vbase + EMAC_RX_HASH0_REG);
+		writel(0xffffffff, db->emac_vbase + EMAC_RX_HASH1_REG);
+	} else if (!netdev_mc_empty(dev)) {
+		rcr |= 1 << 21;
+		rcr |= 1 << 20;
+		memset(multi_filter, 0, sizeof(multi_filter));
+
+		netdev_for_each_mc_addr(ha, dev) {
+			bit_nr = ether_crc(ETH_ALEN, ha->addr) >> 26;
+			multi_filter[bit_nr >> 5] |= 1 << (bit_nr & 0x1f);
+		}
+
+		writel(multi_filter[0], db->emac_vbase + EMAC_RX_HASH0_REG);
+		writel(multi_filter[1], db->emac_vbase + EMAC_RX_HASH1_REG);
+	}
+
+	if (dev->flags & IFF_BROADCAST) {
+		rcr |= 1 << 22;
+		/* Rx Brocast Packet Accept */
+		rcr |= 1 << 20; 
+	}
+
+
+	if (netdev_uc_count(dev) > 4) {
+		rcr |= 1 << 4;
+		rcr &= ~(1 << 24);
+	} else if (!(dev->flags & IFF_PROMISC)) {
+		rcr |= 1 << 16;
+		netdev_for_each_uc_addr(ha, dev) {
+			writel(ha->addr[0] << 16 | ha->addr[1] << 8 |
+					ha->addr[2], db->emac_vbase + EMAC_SAFX_H_REG0 + i);
+			writel(ha->addr[3] << 16 | ha->addr[4] << 8 |
+					ha->addr[5], db->emac_vbase + EMAC_SAFX_L_REG0 + i);
+			i += 8;
+		}
+	}
+
+	writel(rcr, db->emac_vbase + EMAC_RX_CTL_REG);
+	spin_unlock_irqrestore(&db->lock,flags);
 }
 
 static void read_random_macaddr(unsigned char *mac, struct net_device *ndev)
@@ -1099,7 +1078,7 @@ wemac_init_wemac(struct net_device *dev)
 	writel(reg_val, db->emac_vbase + EMAC_MAC_CTL1_REG);
 
 	/* Set address filter table */
-	wemac_hash_table(dev);
+	wemac_set_rx_mode(dev);
 
 	/* enable RX/TX */
 	reg_val = readl(db->emac_vbase + EMAC_CTL_REG);
@@ -1665,7 +1644,7 @@ static const struct net_device_ops wemac_netdev_ops = {
 	.ndo_stop		= wemac_stop,
 	.ndo_start_xmit		= wemac_start_xmit,
 	.ndo_tx_timeout		= wemac_timeout,
-	.ndo_set_multicast_list	= wemac_hash_table,
+	.ndo_set_rx_mode	= wemac_set_rx_mode,
 	.ndo_do_ioctl		= wemac_ioctl,
 	.ndo_change_mtu		= eth_change_mtu,
 	.ndo_validate_addr	= eth_validate_addr,

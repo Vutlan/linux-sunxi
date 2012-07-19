@@ -59,6 +59,8 @@
 #define EMAC_SAFX_L_REG3         (0xBC)
 #define EMAC_SAFX_H_REG3         (0xC0)
 
+#define EMAC_MAX_MCAST		64
+
 /*  PIO register  */
 //#define PIO_BASE            	0x01c20800
 
