@@ -35,8 +35,8 @@ typedef struct
 typedef struct
 {
 	char    	gpio_name[32];
-	int 	port;
-	int 	port_num;
+	int 		port;
+	int 		port_num;
 	gpio_status_set_t user_gpio_status;
 	gpio_status_set_t hardware_gpio_status;
 }system_gpio_set_t;
@@ -60,7 +60,7 @@ int gpio_script_init(void)
 fs_initcall(gpio_script_init);
 
 /**
- * port_to_gpio_index - gpio exit
+ * port_to_gpio_index - gpio port to global index, port is from script
  * @port: gpio port group index, eg: 1 for PA, 2 for PB...
  * @port_num: port index in gpio group, eg: 0 for PA0, 1 for PA1...
  *
@@ -1266,4 +1266,17 @@ s32  sw_gpio_write_one_pin_value(u32 p_handler, u32 value_to_gpio, const char *g
 	return EGPIO_FAIL;
 }
 EXPORT_SYMBOL(sw_gpio_write_one_pin_value);
+
+/**
+ * sw_gpio_port_to_index - gpio port to global index, port is from script
+ * @port: gpio port group index, eg: 1 for PA, 2 for PB...
+ * @port_num: port index in gpio group, eg: 0 for PA0, 1 for PA1...
+ *
+ * return the gpio index for the port, GPIO_INDEX_INVALID indicate err
+ */
+u32 sw_gpio_port_to_index(u32 port, u32 port_num)
+{
+	return port_to_gpio_index(port, port_num);
+}
+EXPORT_SYMBOL(sw_gpio_port_to_index);
 

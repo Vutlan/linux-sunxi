@@ -16,7 +16,6 @@
 #ifndef __SW_DMA_H
 #define __SW_DMA_H
 
-//#include <linux/sysdev.h>
 #include <mach/hardware.h>
 
 /*

@@ -509,6 +509,8 @@ int script_parser_mainkey_get_gpio_cfg(char *main_name, void *gpio_cfg, int gpio
     return SCRIPT_PARSER_KEY_NOT_FIND;
 }
 
+#if 0 /* note: del a10 api, use sw_gpio_request_ex instead of gpio_request_ex */
+
 /**#############################################################################################################
  *  
  *                           GPIO(PIN) Operations
@@ -1762,3 +1764,6 @@ __s32  gpio_write_one_pin_value(u32 p_handler, __u32 value_to_gpio, const char *
     return EGPIO_FAIL;
 }
 EXPORT_SYMBOL(gpio_write_one_pin_value);
+
+#endif
+
