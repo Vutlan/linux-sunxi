@@ -47,8 +47,8 @@ __s32 BSP_disp_hdmi_open(__u32 sel)
             IEP_CMU_Set_Imgsize(sel, BSP_disp_get_screen_width(sel), BSP_disp_get_screen_height(sel));
         }
         
-    	TCON1_set_hdmi_mode(sel,tv_mod);		 	 
-    	TCON1_open(sel);
+    	tcon1_set_hdmi_mode(sel,tv_mod);		 	 
+    	tcon1_open(sel);
     	if(gdisp.init_para.Hdmi_open)
     	{
     	    gdisp.init_para.Hdmi_open();
@@ -89,7 +89,7 @@ __s32 BSP_disp_hdmi_close(__u32 sel)
     	    return -1;
     	}
         Image_close(sel);
-    	TCON1_close(sel);
+    	tcon1_close(sel);
 
     	image_clk_off(sel);
     	lcdc_clk_off(sel);
@@ -175,15 +175,15 @@ __s32 BSP_disp_hdmi_set_src(__u32 sel, __disp_lcdc_src_t src)
     switch (src)
     {
         case DISP_LCDC_SRC_DE_CH1:
-            TCON1_select_src(sel, LCDC_SRC_DE1);
+            tcon1_src_select(sel, LCD_SRC_BE0);
             break;
 
         case DISP_LCDC_SRC_DE_CH2:
-            TCON1_select_src(sel, LCDC_SRC_DE2);
+            tcon1_src_select(sel, LCD_SRC_BE1);
             break;
             
         case DISP_LCDC_SRC_BLUT:
-            TCON1_select_src(sel, LCDC_SRC_BLUE);
+            tcon1_src_select(sel, LCD_SRC_BLUE);
             break;
 
         default:

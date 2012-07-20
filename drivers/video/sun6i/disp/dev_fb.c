@@ -1,6 +1,20 @@
 #include "drv_disp_i.h"
 #include "dev_disp.h"
 
+#ifdef __FPGA_DEBUG__
+#include <linux/kernel.h>
+#include <linux/mm.h>
+#include <linux/list.h>
+#include <linux/slab.h>
+#include <linux/seq_file.h>
+#include <linux/memblock.h>
+#include <linux/completion.h>
+#include <linux/debugfs.h>
+#include <linux/jiffies.h>
+#include <linux/module.h>
+//#include <linux/dma-mapping.h>
+#include <asm/setup.h>
+#endif
 
 extern fb_info_t g_fbi;
 
@@ -279,8 +293,9 @@ static int __init Fb_map_video_memory(struct fb_info *info)
 #ifndef FB_RESERVED_MEM
 	unsigned map_size = PAGE_ALIGN(info->fix.smem_len);
 	struct page *page;
-	
-	page = alloc_pages(GFP_KERNEL,get_order(map_size));
+
+#if 1
+	page = alloc_pages(GFP_KERNEL, get_order(map_size));
 	if(page != NULL)
 	{
 		info->screen_base = page_address(page);
@@ -294,6 +309,21 @@ static int __init Fb_map_video_memory(struct fb_info *info)
 		__wrn("alloc_pages fail!\n");
 		return -ENOMEM;
 	}
+#else
+    dma_addr_t dma_handle;
+    info->screen_base = dma_alloc_coherent(NULL, map_size, &dma_handle, GFP_KERNEL);
+    if(info->screen_base == NULL)
+    {
+        __wrn("dma_alloc_conherent fail!\n");
+		return -ENOMEM;
+    }
+    info->fix.smem_start = (unsigned long)dma_handle;
+    __inf("fb_map_video_memory, vbase=0x%08lx\n", (unsigned long)info->screen_base);
+    __inf("Fb_map_video_memory, pa=0x%08lx size:0x%x\n",info->fix.smem_start, info->fix.smem_len);
+
+    return 0;
+#endif
+
 #else        
     info->screen_base = (char __iomem *)disp_malloc(info->fix.smem_len);
     info->fix.smem_start = (unsigned long)__pa(info->screen_base);
@@ -1202,7 +1232,7 @@ __s32 Display_Fb_Request(__u32 fb_id, __disp_fb_create_para_t *fb_para)
     g_fbi.fb_enable[fb_id] = 1;
 	g_fbi.fb_mode[fb_id] = fb_para->fb_mode;
     memcpy(&g_fbi.fb_para[fb_id], fb_para, sizeof(__disp_fb_create_para_t));
-    
+
     return DIS_SUCCESS;
 }
 
@@ -1303,7 +1333,7 @@ extern unsigned long fb_size;
 
 #else
 
-unsigned long fb_start = 0x44000000; //0x40000000 PLAT_PHYS_OFFSET;  0x4000000:64M reserve for sys
+unsigned long fb_start = 0x46000000; //0x40000000 PLAT_PHYS_OFFSET;  0x4000000:64M reserve for sys
 unsigned long fb_size = 0x2000000; //32M for FB
 #endif
 
@@ -1363,8 +1393,8 @@ __s32 Fb_Init(__u32 from)
         g_fbi.disp_init.b_init = 1;
         g_fbi.disp_init.disp_mode = 0;
         g_fbi.disp_init.output_type[0] = 1;
-        g_fbi.disp_init.scaler_mode[0] = 0;
-        g_fbi.disp_init.buffer_num[0] =2;
+        g_fbi.disp_init.scaler_mode[0] = 1;
+        g_fbi.disp_init.buffer_num[0] =1;
         g_fbi.disp_init.format[0] = 0xa;
         g_fbi.disp_init.seq[0] = 0;
 #endif
@@ -1479,8 +1509,10 @@ __s32 Fb_Init(__u32 from)
                 fb_para.aux_output_height = BSP_disp_get_screen_height(1 - fb_para.primary_screen_id);
             }
             Display_Fb_Request(i, &fb_para);
-            
-            //fb_draw_colorbar((__u32)g_fbi.fbinfo[i]->screen_base, fb_para.width, fb_para.height*fb_para.buffer_num, &(g_fbi.fbinfo[i]->var));
+
+#ifdef __FPGA_DEBUG__
+            fb_draw_colorbar((__u32)g_fbi.fbinfo[i]->screen_base, fb_para.width, fb_para.height*fb_para.buffer_num, &(g_fbi.fbinfo[i]->var));
+#endif
         }
 
         if(g_fbi.disp_init.scaler_mode[0])

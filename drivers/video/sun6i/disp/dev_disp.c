@@ -796,7 +796,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     		}
             ret = BSP_disp_cmu_set_window(ubuffer[0], &para);
     		break;
-       }
+        }
 
         case DISP_CMD_GET_ENHANCE_WINDOW:
         {
@@ -809,7 +809,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     			return  -EFAULT;
     		}
     		break;
-       }
+        }
 
     	case DISP_CMD_CAPTURE_SCREEN:
     	    ret = BSP_disp_capture_screen(ubuffer[0], (__disp_capture_screen_para_t *)ubuffer[1]);
@@ -826,7 +826,47 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
         case DISP_CMD_DE_FLICKER_OFF:
             ret = BSP_disp_de_flicker_enable(ubuffer[0], 0);
             break;
+            
+        case DISP_CMD_DRC_ON:
+            ret = BSP_disp_drc_enable(ubuffer[0], 1);
+            break;
 
+        case DISP_CMD_DRC_OFF:
+            ret = BSP_disp_drc_enable(ubuffer[0], 0);
+            break;
+
+        case DISP_CMD_GET_DRC_EN:
+            ret = BSP_disp_drc_get_enable(ubuffer[0]);
+            break;
+                
+        case DISP_CMD_DRC_SET_WINDOW:
+        {
+            __disp_rect_t para;
+            
+            if(copy_from_user(&para, (void __user *)ubuffer[1],sizeof(__disp_rect_t)))
+            {
+                __wrn("copy_from_user fail\n");
+                return  -EFAULT;
+            }
+        
+            ret = BSP_disp_drc_set_window(ubuffer[0], &para);
+            break;
+       }
+
+       case DISP_CMD_DRC_GET_WINDOW:
+        {
+            __disp_rect_t para;
+
+            ret = BSP_disp_drc_get_window(ubuffer[0], &para);
+            if(copy_to_user((void __user *)ubuffer[1], &para,sizeof(__disp_rect_t)))
+            {
+                __wrn("copy_to_user fail\n");
+                return  -EFAULT;
+            }
+
+            return ret;
+            break;
+       }
     //----layer----
     	case DISP_CMD_LAYER_REQUEST:
     		ret = BSP_disp_layer_request(ubuffer[0], (__disp_layer_work_mode_t)ubuffer[1]);
@@ -1090,48 +1130,77 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
        }
 
         case DISP_CMD_LAYER_VPP_ON:
-            //ret = BSP_disp_layer_vpp_enable(ubuffer[0], ubuffer[1], 1);
+            ret = BSP_disp_deu_enable(ubuffer[0], ubuffer[1], 1);
     		break;
 
         case DISP_CMD_LAYER_VPP_OFF:
-            //ret = BSP_disp_layer_vpp_enable(ubuffer[0], ubuffer[1], 0);
+            ret = BSP_disp_deu_enable(ubuffer[0], ubuffer[1], 0);
     		break;
 
         case DISP_CMD_LAYER_GET_VPP_EN:
-            //ret = BSP_disp_layer_get_vpp_enable(ubuffer[0], ubuffer[1]);
+            ret = BSP_disp_deu_get_enable(ubuffer[0], ubuffer[1]);
     		break;
 
         case DISP_CMD_LAYER_SET_LUMA_SHARP_LEVEL:
-            //ret = BSP_disp_layer_set_luma_sharp_level(ubuffer[0], ubuffer[1], ubuffer[2]);
+            ret = BSP_disp_deu_set_luma_sharp_level(ubuffer[0], ubuffer[1], ubuffer[2]);
     		break;
 
         case DISP_CMD_LAYER_GET_LUMA_SHARP_LEVEL:
-            //ret = BSP_disp_layer_get_luma_sharp_level(ubuffer[0], ubuffer[1]);
+            ret = BSP_disp_deu_get_luma_sharp_level(ubuffer[0], ubuffer[1]);
     		break;
 
         case DISP_CMD_LAYER_SET_CHROMA_SHARP_LEVEL:
-            //ret = BSP_disp_layer_set_chroma_sharp_level(ubuffer[0], ubuffer[1], ubuffer[2]);
+            ret = BSP_disp_deu_set_chroma_sharp_level(ubuffer[0], ubuffer[1], ubuffer[2]);
     		break;
 
         case DISP_CMD_LAYER_GET_CHROMA_SHARP_LEVEL:
-            //ret = BSP_disp_layer_get_chroma_sharp_level(ubuffer[0], ubuffer[1]);
+            ret = BSP_disp_deu_get_chroma_sharp_level(ubuffer[0], ubuffer[1]);
     		break;
 
         case DISP_CMD_LAYER_SET_WHITE_EXTEN_LEVEL:
-            //ret = BSP_disp_layer_set_white_exten_level(ubuffer[0], ubuffer[1], ubuffer[2]);
+            ret = BSP_disp_deu_set_white_exten_level(ubuffer[0], ubuffer[1], ubuffer[2]);
     		break;
 
         case DISP_CMD_LAYER_GET_WHITE_EXTEN_LEVEL:
-            //ret = BSP_disp_layer_get_white_exten_level(ubuffer[0], ubuffer[1]);
+            ret = BSP_disp_deu_get_white_exten_level(ubuffer[0], ubuffer[1]);
     		break;
 
         case DISP_CMD_LAYER_SET_BLACK_EXTEN_LEVEL:
-            //ret = BSP_disp_layer_set_black_exten_level(ubuffer[0], ubuffer[1], ubuffer[2]);
+            ret = BSP_disp_deu_set_black_exten_level(ubuffer[0], ubuffer[1], ubuffer[2]);
     		break;
 
         case DISP_CMD_LAYER_GET_BLACK_EXTEN_LEVEL:
-            //ret = BSP_disp_layer_get_black_exten_level(ubuffer[0], ubuffer[1]);
+            ret = BSP_disp_deu_get_black_exten_level(ubuffer[0], ubuffer[1]);
     		break;
+
+        case DISP_CMD_LAYER_VPP_SET_WINDOW:
+        {
+            __disp_rect_t para;
+            
+            if(copy_from_user(&para, (void __user *)ubuffer[2],sizeof(__disp_rect_t)))
+            {
+                __wrn("copy_from_user fail\n");
+                return  -EFAULT;
+            }
+        
+            ret = BSP_disp_deu_set_window(ubuffer[0], ubuffer[1], &para);
+            break;
+       }
+
+       case DISP_CMD_LAYER_VPP_GET_WINDOW:
+        {
+            __disp_rect_t para;
+
+            ret = BSP_disp_deu_get_window(ubuffer[0], ubuffer[1], &para);
+            if(copy_to_user((void __user *)ubuffer[2], &para,sizeof(__disp_rect_t)))
+            {
+                __wrn("copy_to_user fail\n");
+                return  -EFAULT;
+            }
+
+            return ret;
+            break;
+       }
 
     //----scaler----
     	case DISP_CMD_SCALER_REQUEST:
@@ -1288,16 +1357,16 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     		break;
 
     	case DISP_CMD_LCD_SET_BRIGHTNESS:
-    		ret = BSP_disp_lcd_set_bright(ubuffer[0], ubuffer[1]);
+    		ret = BSP_disp_lcd_set_bright(ubuffer[0], ubuffer[1], 0);
     		break;
 
     	case DISP_CMD_LCD_GET_BRIGHTNESS:
     		ret = BSP_disp_lcd_get_bright(ubuffer[0]);
     		break;
 
-    	case DISP_CMD_LCD_CPUIF_XY_SWITCH:
-    		ret = BSP_disp_lcd_xy_switch(ubuffer[0], ubuffer[1]);
-    		break;
+//    	case DISP_CMD_LCD_CPUIF_XY_SWITCH:
+// 		ret = BSP_disp_lcd_xy_switch(ubuffer[0], ubuffer[1]);
+  //  		break;
 
     	case DISP_CMD_LCD_SET_SRC:
     		ret = BSP_disp_lcd_set_src(ubuffer[0], (__disp_lcdc_src_t)ubuffer[1]);

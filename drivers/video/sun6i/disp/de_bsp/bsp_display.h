@@ -114,6 +114,9 @@ typedef struct
 }__disp_bsp_init_para;
 
 
+
+
+
 extern __s32 BSP_disp_clk_on(__u32 type);
 extern __s32 BSP_disp_clk_off(__u32 type);
 extern __s32 BSP_disp_init(__disp_bsp_init_para * para);
@@ -222,9 +225,9 @@ extern __lcd_flow_t * BSP_disp_lcd_get_open_flow(__u32 sel);
 extern __s32 BSP_disp_lcd_close_befor(__u32 sel);
 extern __s32 BSP_disp_lcd_close_after(__u32 sel);
 extern __lcd_flow_t * BSP_disp_lcd_get_close_flow(__u32 sel);
-extern __s32 BSP_disp_lcd_xy_switch(__u32 sel, __s32 mode);
+//extern __s32 BSP_disp_lcd_xy_switch(__u32 sel, __s32 mode);
 extern __s32 BSP_disp_set_gamma_table(__u32 sel, __u32 *gamtbl_addr,__u32 gamtbl_size);
-extern __s32 BSP_disp_lcd_set_bright(__u32 sel, __disp_lcd_bright_t  bright);
+extern __s32 BSP_disp_lcd_set_bright(__u32 sel, __disp_lcd_bright_t  bright, __u32 from_iep);
 extern __s32 BSP_disp_lcd_get_bright(__u32 sel);
 extern __s32 BSP_disp_lcd_set_src(__u32 sel, __disp_lcdc_src_t src);
 extern __s32 LCD_PWM_EN(__u32 sel, __bool b_en);
@@ -304,6 +307,21 @@ extern __s32 BSP_disp_drc_set_window(__u32 sel, __disp_rect_t *rect);
 extern __s32 BSP_disp_drc_get_window(__u32 sel, __disp_rect_t *rect);
 extern __s32 BSP_disp_drc_set_mode(__u32 sel, __u32 mode);
 extern __s32 BSP_disp_drc_get_mode(__u32 sel);
+
+extern __u32 Disp_get_screen_scan_mode(__disp_tv_mode_t tv_mode);
+
+extern __s32 BSP_disp_deu_enable(__u8 sel, __u32 hid,  __u32 enable);
+extern __s32 BSP_disp_deu_get_enable(__u32 sel, __u32 hid);
+extern __s32 BSP_disp_deu_set_luma_sharp_level(__u32 sel, __u32 hid,__u32 level);
+extern __s32 BSP_disp_deu_get_luma_sharp_level(__u32 sel, __u32 hid);
+extern __s32 BSP_disp_deu_set_chroma_sharp_level(__u32 sel, __u32 hid, __u32 level);
+extern __s32 BSP_disp_deu_get_chroma_sharp_level(__u32 sel, __u32 hid);
+extern __s32 BSP_disp_deu_set_white_exten_level(__u32 sel, __u32 hid, __u32 level);
+extern __s32 BSP_disp_deu_get_white_exten_level(__u32 sel, __u32 hid);
+extern __s32 BSP_disp_deu_set_black_exten_level(__u32 sel, __u32 hid, __u32 level);
+extern __s32 BSP_disp_deu_get_black_exten_level(__u32 sel, __u32 hid);
+extern __s32 BSP_disp_deu_set_window(__u32 sel, __u32 hid, __disp_rect_t *rect);
+extern __s32 BSP_disp_deu_get_window(__u32 sel, __u32 hid, __disp_rect_t *rect);
 
 
 extern __s32 iep_init(__u32 sel);

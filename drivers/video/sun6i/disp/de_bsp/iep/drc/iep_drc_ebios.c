@@ -2,7 +2,7 @@
 
 static __iep_drc_dev_t *drc_dev[2];
 
-#define ____SEPARATOR_IEP____
+#define ____SEPARATOR_GLOABL____
 
 __s32 DRC_EBIOS_Set_Reg_Base(__u32 sel, __u32 base)
 {
@@ -12,7 +12,7 @@ __s32 DRC_EBIOS_Set_Reg_Base(__u32 sel, __u32 base)
 
 }
 
-__u32 DRC_EBIOS_Get_Reg_Base(__u32 sel, __u32 base)
+__u32 DRC_EBIOS_Get_Reg_Base(__u32 sel)
 {
 	__u32 ret = 0;
 

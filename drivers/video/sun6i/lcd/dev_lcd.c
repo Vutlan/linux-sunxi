@@ -62,7 +62,7 @@ int lcd_init(void)
     DRV_DISP_Init();
 
 	Fb_Init(0);
-	__inf("1\n");
+	
 	return 0;
 }
 

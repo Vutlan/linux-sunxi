@@ -26,11 +26,14 @@
 #define INTC_IRQNO_SCALER1  0         //unavailable in FPGA
 #define INTC_IRQNO_LCDC0    57    //25//
 #define INTC_IRQNO_LCDC1    0        //unavailable in FPGA
+#define INTC_IRQNO_DSI      35        //3
+
 #else
 #define INTC_IRQNO_SCALER0  125     //59 FOR fpga, 125 for ic
 #define INTC_IRQNO_SCALER1  126
 #define INTC_IRQNO_LCDC0    118    //57 for FPGA,    118 FOR ic
 #define INTC_IRQNO_LCDC1    119
+#define INTC_IRQNO_DSI      121         // 32 for fpga
 #endif
 
 #define MAX_SPRITE_BLOCKS	32

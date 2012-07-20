@@ -39,7 +39,7 @@ __u32 hsv_adjust_flesh_par[16] =
 __u32 IEP_CMU_Set_Reg_Base(__u32 sel, __u32 address)
 {
 	cmu_reg_base[sel] = address;
-    __inf("IEP_CMU_Set_Reg_Base, base:0x%08x\n",cmu_reg_base[sel]);
+
 	return 0;
 }
 
@@ -127,7 +127,7 @@ __s32 IEP_CMU_Set_Window(__u8 sel, __disp_rect_t *window)//full screen for defau
 __s32 IEP_CMU_Set_Imgsize(__u8 sel, __u32 width, __u32 height)
 {
 	CMU_WUINT32(sel,IMGEHC_CMU_INSIZE_REG_OFF,(((height-1)&0x1fff)<<16)|((width-1)&0x1fff));
-    __inf("IEP_CMU_Set_Imgsize, addr=0x%08x\n",CMU_GET_REG_BASE(sel)+(IMGEHC_CMU_INSIZE_REG_OFF));
+
 	return 0;
 }
 
@@ -227,10 +227,6 @@ __s32 IEP_CMU_Operation_In_Vblanking(__u32 sel)
 	reg_val = CMU_RUINT32(sel,IMGEHC_CMU_REGBUFFCTL_REG_OFF);
 	CMU_WUINT32(sel,IMGEHC_CMU_REGBUFFCTL_REG_OFF,reg_val|0x1);
 	reg_val = 0x3;
-	while(reg_val!=0x0)
-	{
-		reg_val = CMU_RUINT32(sel,IMGEHC_CMU_REGBUFFCTL_REG_OFF)&0x1;
-	}
 
 	return 0;
 }

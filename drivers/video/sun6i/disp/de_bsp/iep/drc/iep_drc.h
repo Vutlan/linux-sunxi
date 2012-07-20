@@ -1,7 +1,6 @@
 #ifndef __IEP_DRC_H__
 #define __IEP_DRC_H__
-
-#include "../../bsp_display.h"
+#include "../iep.h"
 #include "iep_drc_ebios.h"
 
 #define CLK_DRC0_AHB_ON     0x00000001
@@ -84,7 +83,7 @@ __s32 IEP_Drc_Enable(__u32 sel, __u32 en);
 __s32 IEP_Drc_Operation_In_Vblanking(__u32 sel);
 __s32 IEP_Drc_Set_Reg_Base(__u32 sel, __u32 base);
 __s32 IEP_Drc_Set_Winodw(__u32 sel, __disp_rect_t window);//full screen for default
-__s32 IEP_Drc_Set_Mode(__u32 sel, __u32 video_mode_en);
+__s32 IEP_Drc_Set_Mode(__u32 sel, __iep_drc_mode_t mode);
 __s32 IEP_Drc_Early_Suspend(__u32 sel);//close clk
 __s32 IEP_Drc_suspend(__u32 sel);//save register
 __s32 IEP_Drc_Resume (__u32 sel);//restore register

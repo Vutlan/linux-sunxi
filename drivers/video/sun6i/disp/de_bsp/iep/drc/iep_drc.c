@@ -275,7 +275,7 @@ static __inline __s32 PWRSAVE_CORE(__u32 sel)
 		DRC_EBIOS_Drc_Set_Lgc_Addr(sel, lgcaddr);	//set "gain=1" tab to lgc
 
         BSP_disp_lcd_set_bright_dimming(sel, 256);
-		BSP_disp_lcd_set_bright(sel, BSP_disp_lcd_get_bright(sel));	
+		BSP_disp_lcd_set_bright(sel, BSP_disp_lcd_get_bright(sel),1);	
 			
 	}
 	else
@@ -360,7 +360,7 @@ static __inline __s32 PWRSAVE_CORE(__u32 sel)
 		min_adj_index = (min_adj_index >= 255)?255:((min_adj_index<hist_thres_pwrsv[0])?hist_thres_pwrsv[0]:min_adj_index);
 
         BSP_disp_lcd_set_bright_dimming(sel, min_adj_index+1);
-		BSP_disp_lcd_set_bright(sel, BSP_disp_lcd_get_bright(sel));
+		BSP_disp_lcd_set_bright(sel, BSP_disp_lcd_get_bright(sel), 1);
 
 		//lgcaddr = (__u32)pwrsv_lgc_tab[min_adj_index-128];
 		lgcaddr = (__u32)pttab[sel] + ((min_adj_index - 128)<<9);
@@ -390,9 +390,11 @@ __s32 drc_proc(__u32 sel)
 {
 	__u32 top, bot, left, right;
 	__u32 lgcaddr;
-	__u32 csc_mode;
+	__u32 csc_mode, drc_mode;
 
 	csc_mode = (giep[sel].video_mode_en)?3:1;
+	drc_mode = (giep[sel].video_mode_en==1)?0:1;
+	DRC_EBIOS_Drc_Set_Mode(sel, drc_mode);
 	
 	if(giep[sel].runframe < giep[sel].waitframe)
 	{
@@ -451,7 +453,7 @@ __s32 drc_close_proc(__u32 sel)
 	g_iep_status[sel] &= DRC_NEED_CLOSED_MASK;
 
 	 BSP_disp_lcd_set_bright_dimming(sel, 256);
-	BSP_disp_lcd_set_bright(sel, BSP_disp_lcd_get_bright(sel));
+	BSP_disp_lcd_set_bright(sel, BSP_disp_lcd_get_bright(sel), 1);
 	return DIS_SUCCESS;
 
 }
@@ -598,10 +600,11 @@ __s32 IEP_Drc_Set_Reg_Base(__u32 sel, __u32 base)
 	
 }
 
-__s32 IEP_Drc_Set_Mode(__u32 sel, __u32 video_mode_en)
+__s32 IEP_Drc_Set_Mode(__u32 sel, __iep_drc_mode_t mode)
 {
 
-	giep[sel].video_mode_en = video_mode_en;
+	giep[sel].video_mode_en = mode;
+    
 	return DIS_SUCCESS;
 	
 }

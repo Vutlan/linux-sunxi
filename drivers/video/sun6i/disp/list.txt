@@ -7891,7 +7891,7 @@
         0x000072b8:    e89da800    ....    LDM      r13,{r11,r13,pc}
     $d
         0x000072bc:    00004270    pB..    DCD    17008 ; [Section 17]
-    TCON0_cfg
+    tcon0_cfg
     $a
         0x000072c0:    e1a0c00d    ....    MOV      r12,r13
         0x000072c4:    e92dd8f0    ..-.    PUSH     {r4-r7,r11,r12,r14,pc}
@@ -17098,7 +17098,7 @@
         0x0000fa10:    1a000003    ....    BNE      {pc} + 0x14  ; 0xfa24
         0x0000fa14:    e0811002    ....    ADD      r1,r1,r2
         0x0000fa18:    e1a00006    ....    MOV      r0,r6
-        0x0000fa1c:    ebfffffe    ....    BL       TCON0_cfg  ; 0x72c0 Section #1
+        0x0000fa1c:    ebfffffe    ....    BL       tcon0_cfg  ; 0x72c0 Section #1
         0x0000fa20:    ea000002    ....    B        {pc} + 0x10  ; 0xfa30
         0x0000fa24:    e0811002    ....    ADD      r1,r1,r2
         0x0000fa28:    e1a00006    ....    MOV      r0,r6

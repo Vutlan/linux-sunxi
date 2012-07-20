@@ -12,7 +12,7 @@
 #ifndef __IEP_DRC_EBIOS_H__
 #define __IEP_DRC_EBIOS_H__
 
-#include "../../bsp_display.h" // TBD
+#include "../iep.h" 
 
 #define IEP_DRC_SPA_TAB_LEN	9
 #define IEP_DRC_INT_TAB_LEN 256
@@ -328,7 +328,7 @@ typedef struct
 
 #define ____SEPARATOR_GLOBAL____
 __s32 DRC_EBIOS_Set_Reg_Base(__u32 sel, __u32 base);
-__u32 DRC_EBIOS_Get_Reg_Base(__u32 sel, __u32 base);
+__u32 DRC_EBIOS_Get_Reg_Base(__u32 sel);
 __s32 DRC_EBIOS_Enable(__u32 sel);
 __s32 DRC_EBIOS_Disable(__u32 sel);
 __s32 DRC_EBIOS_Set_Mode(__u32 sel, __u32 mod);

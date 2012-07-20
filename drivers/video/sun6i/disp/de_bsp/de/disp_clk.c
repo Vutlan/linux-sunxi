@@ -683,7 +683,7 @@ static __s32 LCD_PLL_Calc(__u32 sel, __panel_para_t * info, __u32 *divider)
 		}
 		
 	}
-	else if(info->lcd_if == 3) // lvds panel
+	else if(info->lcd_if == LCD_IF_LVDS) // lvds panel
 	{
 	    __u32 clk_max;
 
@@ -709,6 +709,30 @@ static __s32 LCD_PLL_Calc(__u32 sel, __panel_para_t * info, __u32 *divider)
 		{
 			return -1;
 		}
+	}
+	else if(info->lcd_if == LCD_IF_DSI)//todo ?
+	{
+		__u32 lane;
+		switch(info->lcd_dsi_lane)
+		{
+			case LCD_DSI_1LANE:
+				lane = 1;
+				break;
+			case LCD_DSI_2LANE:
+				lane = 2;
+				break;
+			case LCD_DSI_3LANE:
+				lane = 3;
+				break;
+			case LCD_DSI_4LANE:
+				lane = 4;
+				break;
+			default:
+				lane = 1;
+				break;
+		}
+
+		*divider = info->lcd_dsi_format/lane;
 	}
 	return pll_freq;
 }
@@ -848,7 +872,7 @@ static __s32 disp_pll_set(__u32 sel, __s32 videopll_sel, __u32 pll_freq, __u32 t
 		{
 			h_lcdmclk0 = (sel == 0)?h_lcd0ch0mclk0 : h_lcd1ch0mclk0;
 			OSAL_CCMU_SetMclkSrc(h_lcdmclk0, videopll);
-			TCON0_set_dclk_div(sel,lcd_clk_div);
+			tcon0_set_dclk_div(sel,lcd_clk_div);
 		}
 		else									//tcon1 drive lcd panel
 		{
@@ -962,7 +986,9 @@ __s32 disp_clk_cfg(__u32 sel, __u32 type, __u8 mode)
 
 	if ( (videopll_sel = disp_pll_assign(sel, pll_freq)) == -1)
 	{
+#ifndef __FPGA_DEBUG__
 		return DIS_FAIL;
+#endif
 	}
 	
 	disp_pll_set(sel, videopll_sel, pll_freq, tve_freq, pre_scale, lcd_clk_div, hdmi_freq, pll_2x, type);

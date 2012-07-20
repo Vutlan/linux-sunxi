@@ -91,7 +91,6 @@ static __s32 DE_BE_Layer_Set_Addr(__u32 sel, __u8 layidx,__u32 addr)   //bit
 	__u32 tmp_l,tmp_h,tmp;
 	tmp_l = addr<<3;
 	tmp_h = (addr&0xe0000000)>>29;
-    __inf("DE_BE_Layer_Set_Addr, addr=0x%08x, addr-h=0x%08x, addr-l=0x%08x\n", addr, tmp_h, tmp_l);
     DE_BE_WUINT32IDX(sel, DE_BE_FRMBUF_LOW32ADDR_OFF,layidx,tmp_l);
 
     tmp = DE_BE_RUINT32(sel,DE_BE_FRMBUF_HIGH4ADDR_OFF) & (~(0xff<<(layidx*8)));

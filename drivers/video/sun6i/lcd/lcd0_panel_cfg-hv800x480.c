@@ -131,6 +131,7 @@ static __s32 LCD_user_defined_func(__u32 sel, __u32 para1, __u32 para2, __u32 pa
 
 void LCD_get_panel_funs_0(__lcd_panel_fun_t * fun)
 {
+    __inf("LCD_get_panel_funs_0\n");
 #ifdef LCD_PARA_USE_CONFIG
     fun->cfg_panel_info = LCD_cfg_panel_info;//delete this line if you want to use the lcd para define in sys_config1.fex
 #endif

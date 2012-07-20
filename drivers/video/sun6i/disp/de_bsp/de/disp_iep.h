@@ -12,44 +12,8 @@
 #define CMU_LAYER_EN                    0x20000000
 #define CMU_LAYER_EN_MASK               (~(CMU_LAYER_EN))
 
-typedef enum
-{
-    IEP_DRC_MODE_UI,
-    IEP_DRC_MODE_VIDEO,
-}__iep_drc_mode_t;
-
-typedef struct{
-    __bool b_interlace_out;
-    __bool b_trd_out;
-    __scal_3d_outmode_t trd_out_mode;
-    __disp_rectsz_t in_size;
-    __disp_rectsz_t out_size;
-}__disp_frame_info_t;
  
 
-//DEU:
-
-extern __s32 IEP_Deu_Enable(__u32 sel, __u32 enable);
-extern __s32 IEP_Deu_Get_Enable(__u32 sel, __u32 enable);
-extern __s32 IEP_Deu_Set_Luma_Sharpness_Level(__u32 sel, __u32 level, __disp_frame_info_t frame_info);
-extern __s32 IEP_Deu_Set_Chroma_Sharpness_Level(__u32 sel, __u32 level);
-extern __s32 IEP_Deu_Set_White_Level_Extension(__u32 sel, __u32 level);
-extern __s32 IEP_Deu_Set_Black_Level_Extension(__u32 sel, __u32 level);
-extern __s32 IEP_Deu_Get_Luma_Sharpness_Level(__u32 sel);
-extern __s32 DE_Deu_Get_Chroma_Sharpness_Level(__u32 sel);
-extern __s32 DE_Deu_Get_White_Level_Extension(__u32 sel);
-extern __s32 DE_Deu_Get_Black_Level_Extension(__u32 sel);
-extern __s32 IEP_Deu_Set_Ready(__u32 sel);
-extern __s32 IEP_Deu_Set_Reg_base(__u32 sel);
-extern __s32 IEP_Deu_Set_Winodw(__u32 sel, __disp_rect_t window);//full screen for default
-extern __s32 IEP_Deu_Output_Select(__u32 sel, __u32 be_ch);
-extern __s32 IEP_Deu_Init(__u32 sel); 
-extern __s32 IEP_Deu_Exit(__u32 sel);
-extern __s32 IEP_Deu_Operation_In_Vblanking(__u32 sel);
-extern __s32 IEP_Deu_Early_Suspend(__u32 sel);//close clk
-extern __s32 IEP_Deu_suspend(__u32 sel);//save register
-extern __s32 IEP_Deu_Resume (__u32 sel);//restore register
-extern __s32 IEP_Deu_Late_Resume(__u32 sel);//open clk
 
  
 
@@ -73,6 +37,8 @@ extern __s32 IEP_Drc_Late_Resume(__u32 sel);//open clk
 
 __s32 Disp_drc_start_video_mode(__u32 sel);
 __s32 Disp_drc_start_ui_mode(__u32 sel);
+__s32 disp_deu_set_frame_info(__u32 sel, __u32 hid);
+
 
 
 #endif

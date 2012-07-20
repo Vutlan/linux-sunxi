@@ -209,7 +209,7 @@ __s32 OSAL_CCMU_SetSrcFreq( __u32 nSclkNo, __u32 nFreq )
     
     hSysClk = clk_get(NULL, _sysClkName[nSclkNo]);
 
-    __inf("OSAL_CCMU_SetSrcFreq<%s,%d>\n",hSysClk->clk->name, nFreq);
+    //__inf("OSAL_CCMU_SetSrcFreq<%s,%d>\n",hSysClk->clk->name, nFreq);
 
     if(NULL == hSysClk){
         __wrn("Fail to get handle for system clock [%d].\n", nSclkNo);

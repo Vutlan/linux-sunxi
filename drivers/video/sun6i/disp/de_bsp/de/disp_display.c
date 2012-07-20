@@ -11,6 +11,7 @@
 #include "disp_hdmi.h"
 
 __disp_dev_t gdisp;
+extern __panel_para_t              gpanel_info[2];
 
 
 __s32 BSP_disp_init(__disp_bsp_init_para * para)
@@ -42,20 +43,20 @@ __s32 BSP_disp_init(__disp_bsp_init_para * para)
         gdisp.screen[screen_id].lcd_cfg.backlight_dimming = 256;
     }
     memcpy(&gdisp.init_para,para,sizeof(__disp_bsp_init_para));
-    memset(g_video,0,sizeof(g_video));
 
     DE_Set_Reg_Base(0, para->base_image0);
     DE_Set_Reg_Base(1, para->base_image1);
     DE_SCAL_Set_Reg_Base(0, para->base_scaler0);
     DE_SCAL_Set_Reg_Base(1, para->base_scaler1);
-    LCDC_set_reg_base(0,para->base_lcdc0);
-    LCDC_set_reg_base(1,para->base_lcdc1);
-    //IEP_Deu_Set_Reg_base(0, para->base_deu0);
+    tcon_set_reg_base(0,para->base_lcdc0);
+    tcon_set_reg_base(1,para->base_lcdc1);
+    IEP_Deu_Set_Reg_base(0, para->base_deu0);
     //IEP_Deu_Set_Reg_base(1, para->base_deu1);
     IEP_Drc_Set_Reg_Base(0, para->base_drc0);
     //IEP_Drc_Set_Reg_base(1, para->base_drc1);
     IEP_CMU_Set_Reg_Base(0,  para->base_cmu0);
     //IEP_CMU_Set_Reg_base(1, para->base_cmu1);
+    dsi_set_reg_base(0, 0xf1ca0000);
     //BSP_disp_close_lcd_backlight(0);
     //BSP_disp_close_lcd_backlight(1);
 
@@ -72,6 +73,8 @@ __s32 BSP_disp_init(__disp_bsp_init_para * para)
     iep_init(0);
     //iep_init(1);
 
+    disp_video_init();
+    
     return DIS_SUCCESS;
 }
 
@@ -91,7 +94,9 @@ __s32 BSP_disp_exit(__u32 mode)
         Disp_TVEC_Exit(1);
         Display_Hdmi_Exit();
         iep_exit(0);
-        //iep_exit(1);
+        iep_exit(1);
+
+        disp_video_exit();
     }
     else if(mode == DISP_EXIT_MODE_CLEAN_PARTLY)
     {
@@ -129,13 +134,13 @@ __s32 BSP_disp_close(void)
         }
         if(gdisp.screen[sel].lcdc_status & LCDC_TCON0_USED)
         {
-            TCON0_close(sel);
-            LCDC_close(sel);
+            tcon0_close(sel);
+            tcon_exit(sel);
         }
         else if(gdisp.screen[sel].lcdc_status & LCDC_TCON1_USED)
         {
-    	    TCON1_close(sel);
-    	    LCDC_close(sel);
+    	    tcon1_close(sel);
+    	    tcon_exit(sel);
         }
         else if(gdisp.screen[sel].status & (TV_ON | VGA_ON))
         {

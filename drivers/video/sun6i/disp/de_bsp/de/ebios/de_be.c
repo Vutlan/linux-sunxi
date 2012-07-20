@@ -31,7 +31,7 @@ __u32  csc_tab[192] =
     0x0274,0x00bb,0x003f,0x0100,0x1ea5,0x1f98,0x01c1,0x0800,0x1e67,0x01c1,0x1fd7,0x0800 //rgb2yuv
 };
 
-__u32  image_enhance_tab[224] = 
+__u32  image_enhance_tab[256] = 
 {
 	//bt601(CONSTANT and COEFFICIENT in 12bit fraction)
 	0x0000041D,0x00000810,0x00000191,0x00010000,0xFFFFFDA2,0xFFFFFB58,0x00000706,0x00080000,
@@ -48,6 +48,11 @@ __u32  image_enhance_tab[224] =
 	0x00000800,0xFFFFF94F,0xFFFFFEB2,0x00080000,0x00000000,0x00000000,0x00000000,0x00001000,
 	0x00001000,0x00000000,0x0000166F,0xFFF4C84B,0x00001000,0xFFFFFA78,0xFFFFF491,0x00087B16,
 	0x00001000,0x00001C56,0x00000000,0xFFF1D4FE,0x00000000,0x00000000,0x00000000,0x00001000,
+	//Dedicated CSC for DRC(CONSTANT and COEFFICIENT in 12bit fraction)
+	0x0000030A,0x00000A66,0x0000028F,0x00000000,0xFFFFFE31,0xFFFFF9CF,0x00000800,0x00080000,
+	0x00000800,0xFFFFF995,0xFFFFFE6B,0x00080000,0x00000000,0x00000000,0x00000000,0x00001000,
+	0x00001000,0x00000000,0x000019EC,0xFFF30A3D,0x00001000,0xFFFFF962,0xFFFFF86D,0x000718BC,
+	0x00001000,0x00001AE1,0x00000000,0xFFF28F5C,0x00000000,0x00000000,0x00000000,0x00001000,
     //sin table
     0xffffffbd,0xffffffbf,0xffffffc1,0xffffffc2,0xffffffc4,0xffffffc6,0xffffffc8,0xffffffca,
     0xffffffcc,0xffffffce,0xffffffd1,0xffffffd3,0xffffffd5,0xffffffd7,0xffffffd9,0xffffffdb,
@@ -772,7 +777,7 @@ __s32 DE_BE_Sprite_Set_Palette_Table(__u32 sel, __u32 address, __u32 offset, __u
     return 0;	
 }
 
-//out_csc: 0:rgb, 1:yuv for tv, 2:yuv for hdmi
+//out_csc: 0:rgb, 1:yuv for tv, 2:yuv for hdmi, 3: yuv for drc
 //out_color_range:  0:16~255, 1:0~255, 2:16~235
 __s32 DE_BE_Set_Enhance_ex(__u8 sel, __u32 out_csc, __u32 out_color_range, __u32 enhance_en, __u32 brightness, __u32 contrast, __u32 saturaion, __u32 hue)
 {
@@ -797,8 +802,8 @@ __s32 DE_BE_Set_Enhance_ex(__u8 sel, __u32 out_csc, __u32 out_color_range, __u32
 	i_contrast = (__s32)(contrast*64/100);
 	i_hue = (__s32)(hue*64/100);
 
-	sinv = image_enhance_tab[8*12 + (i_hue&0x3f)];
-	cosv = image_enhance_tab[8*12 + 8*8 + (i_hue&0x3f)];
+	sinv = image_enhance_tab[8*16 + (i_hue&0x3f)];
+	cosv = image_enhance_tab[8*16 + 8*8 + (i_hue&0x3f)];
 
 	//calculate enhance matrix
 	matrixEn.x00 = i_contrast << 5;
@@ -943,7 +948,7 @@ __s32 DE_BE_Set_Enhance_ex(__u8 sel, __u32 out_csc, __u32 out_color_range, __u32
             matrixresult.x22 = tmpcoeff.x22/4;  matrixresult.x23 = tmpcoeff.x23/256 + 8;
         }
     }
-	else //if(out_csc == 2)//YUV for HDMI(range 16-235)
+	else if(out_csc == 2)//YUV for HDMI(range 16-235)
 	{
 		for(i=0; i<16; i++)
 		{	
@@ -973,6 +978,38 @@ __s32 DE_BE_Set_Enhance_ex(__u8 sel, __u32 out_csc, __u32 out_color_range, __u32
 			matrixresult.x12 = tmpcoeff.x02/4;	matrixresult.x13 = tmpcoeff.x03/256 + 8;
 			matrixresult.x20 = tmpcoeff.x10/4;	matrixresult.x21 = tmpcoeff.x11/4;
 			matrixresult.x22 = tmpcoeff.x12/4;	matrixresult.x23 = tmpcoeff.x13/256 + 8;
+		}
+	}
+	else //if(out_csc == 3)//YUV for DRC
+	{
+		for(i=0; i<16; i++)
+		{	
+			*((__s64 *)(&tmpcoeff.x00) + i)  = ((__s64)*(image_enhance_tab + 0x60 + i) <<32)>>32;	//dedicated rgb2yuv coeff
+		}
+			
+		if(enhance_en == 1)
+		{
+			//convolution of enhance matrix and rgb2yuv matrix
+
+			ptmatrix = &tmpcoeff;
+		
+			iDE_SCAL_Matrix_Mul(matrixEn, *ptmatrix, &matrixconv);
+			
+			matrixresult.x00 = matrixconv.x00/4;	matrixresult.x01 = matrixconv.x01/4;
+			matrixresult.x02 = matrixconv.x02/4;	matrixresult.x03 = matrixconv.x03/256 + 8;
+			matrixresult.x10 = matrixconv.x10/4;	matrixresult.x11 = matrixconv.x11/4;
+			matrixresult.x12 = matrixconv.x12/4;	matrixresult.x13 = matrixconv.x13/256 + 8;
+			matrixresult.x20 = matrixconv.x20/4;	matrixresult.x21 = matrixconv.x21/4;
+			matrixresult.x22 = matrixconv.x22/4;	matrixresult.x23 = matrixconv.x23/256 + 8;
+		}
+		else
+		{
+			matrixresult.x00 = tmpcoeff.x00/4;	matrixresult.x01 = tmpcoeff.x01/4;
+			matrixresult.x02 = tmpcoeff.x02/4;	matrixresult.x03 = tmpcoeff.x03/256 + 8;
+			matrixresult.x10 = tmpcoeff.x10/4;	matrixresult.x11 = tmpcoeff.x11/4;
+			matrixresult.x12 = tmpcoeff.x12/4;	matrixresult.x13 = tmpcoeff.x13/256 + 8;
+			matrixresult.x20 = tmpcoeff.x20/4;	matrixresult.x21 = tmpcoeff.x21/4;
+			matrixresult.x22 = tmpcoeff.x22/4;	matrixresult.x23 = tmpcoeff.x23/256 + 8;
 		}
 	}
 
