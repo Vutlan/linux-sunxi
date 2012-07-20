@@ -11,7 +11,7 @@
 PWD=$(shell pwd)
 
 obj-m+=nand.o
-nand-objs := nand_interface.o libnand.a
+nand-objs := nand_interface.o libnand
 
 install: build
 	cp nand.ko $(LICHEE_MOD_DIR)/
