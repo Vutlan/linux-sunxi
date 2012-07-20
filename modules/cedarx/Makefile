@@ -11,7 +11,7 @@
 PWD=$(shell pwd)
 
 obj-m+=cedarx.o
-cedarx-objs := cedar_interface.o  libcedar.a
+cedarx-objs := cedar_interface.o  libcedar
 
 install: build
 	cp cedarx.ko $(LICHEE_MOD_DIR)/
