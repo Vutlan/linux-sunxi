@@ -16,6 +16,7 @@
 #define _SW_HOST_OP_H_ "host_op.h"
 
 #define MMC_FPGA
+
 #define DRIVER_NAME "sunxi-mmc"
 #define DRIVER_RIVISION "V2.0"
 #define DRIVER_VERSION "SUNXI MMC Controller, Version: " DRIVER_RIVISION \
@@ -25,10 +26,11 @@
 #define SMC0_BASE	(0x01C0f000)
 #define SMC_BASE_OS	(0x1000)
 #define SMC_BASE(x)	(SMC0_BASE + 0x1000 * (x))
-#define INTC_IRQNO_SMC0	(45)	//92 for chip, 45 for fpga
 #ifdef MMC_FPGA
+#define INTC_IRQNO_SMC0	(45)	//92 for chip, 45 for fpga
 #define SMC_IRQNO(x)	(INTC_IRQNO_SMC0)
 #else
+#define INTC_IRQNO_SMC0	(92)	//92 for chip, 45 for fpga
 #define SMC_IRQNO(x)	(INTC_IRQNO_SMC0 + (x))
 #endif
 
@@ -202,11 +204,6 @@ struct sunxi_mmc_idma_des {
 	u32	buf_addr_ptr2;
 };
 
-#define CARD_DETECT_BY_GPIO     (1)
-#define CARD_DETECT_BY_DATA3    (2)     /* mmc detected by status of data3 */
-#define CARD_ALWAYS_PRESENT     (3)     /* mmc always present, without detect pin */
-#define CARD_DETECT_BY_FS	(4)     /* mmc insert/remove by manual mode, from /proc/awsmc.x/insert node */
-
 struct sunxi_mmc_ctrl_regs {
 	u32 gctrl;
 	u32 clkc;
@@ -267,9 +264,14 @@ struct sunxi_mmc_host {
 #define SDC_STATE_CMDDONE	(2)
 	
 	struct timer_list cd_timer;
-	s32 cd_gpio;
-	s32 cd_mode;
 	u32 pio_hdle;
+	s32 cd_hdle;
+	s32 cd_mode;
+#define CARD_DETECT_BY_GPIO     (1)	/* mmc detected by gpio check */
+#define CARD_DETECT_BY_GPIO_IRQ (2)     /* mmc detected by gpio irq */
+#define CARD_ALWAYS_PRESENT     (3)     /* mmc always present, without detect pin */
+#define CARD_DETECT_BY_FS	(4)     /* mmc insert/remove by manual mode, from /proc/awsmc.x/insert node */
+
 	u32 read_only;
 	
 	u32 debuglevel;
@@ -284,9 +286,7 @@ struct sunxi_mmc_host {
 
 	/* backup register structrue */
 	struct sunxi_mmc_ctrl_regs bak_regs;
-	#ifndef MMC_FPGA
 	user_gpio_set_t bak_gpios[6];
-	#endif
 	u32 gpio_suspend_ok;
 };
 
