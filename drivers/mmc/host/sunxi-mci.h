@@ -18,9 +18,10 @@
 #define MMC_FPGA
 
 #define DRIVER_NAME "sunxi-mmc"
-#define DRIVER_RIVISION "V2.0"
-#define DRIVER_VERSION "SUNXI MMC Controller, Version: " DRIVER_RIVISION \
-			"(Compiled in " __DATE__ " at " __TIME__ ")"
+#define DRIVER_RIVISION "Rev3.0"
+#define DRIVER_VERSION " SD/MMC/SDIO Host Controller Driver(" DRIVER_RIVISION ")\n" \
+			" Compatible with SD3.0/eMMC4.5/SDIO2.0\n" \
+			" Compiled in " __DATE__ " at " __TIME__ ""
 
 /* SDXC register operation */
 #define SMC0_BASE	(0x01C0f000)
@@ -184,7 +185,8 @@
 #define SDXC_IDMACDESCClose	(8U << 13)
 
 #define SDXC_IDMA_OVER (SDXC_IDMACTransmitInt|SDXC_IDMACReceiveInt|SDXC_IDMACNormalIntSum)
-#define SDXC_IDMA_ERR (SDXC_IDMACFatalBusErr|SDXC_IDMACDesInvalid|SDXC_IDMACCardErrSum|SDXC_IDMACAbnormalIntSum)
+#define SDXC_IDMA_ERR (SDXC_IDMACFatalBusErr|SDXC_IDMACDesInvalid \
+			|SDXC_IDMACCardErrSum|SDXC_IDMACAbnormalIntSum)
 
 #define SDXC_DES_NUM_SHIFT	(15)
 #define SDXC_DES_BUFFER_MAX_LEN	(1U << SDXC_DES_NUM_SHIFT)
@@ -215,10 +217,18 @@ struct sunxi_mmc_ctrl_regs {
 	u32 idmacc;
 };
 
+struct sunxi_mmc_platform_data {
+	u32 ocr_avail;
+	u32 caps;
+	u32 f_min;
+	u32 f_max;
+};
+
 struct sunxi_mmc_host {
     
 	struct platform_device  *pdev;
 	struct mmc_host *mmc;
+	struct sunxi_mmc_platform_data  *pdata;
 	   
 	/* IO mapping base */
 	void __iomem 	*reg_base;
@@ -233,8 +243,15 @@ struct sunxi_mmc_host {
 	u32 		power_on;
 	u32 		mod_clk;
 	u32 		card_clk;
+	u32 		oclk_dly;
+	u32 		sclk_dly;
 	u32 		bus_width;
 	u32 		ddr;
+	u32 		voltage;
+#define SDC_WOLTAGE_3V3 (0)
+#define SDC_WOLTAGE_1V8 (1)
+#define SDC_WOLTAGE_1V2 (2)
+#define SDC_WOLTAGE_OFF (3)
 	u32 		present;
 	
 	/* irq */
@@ -257,7 +274,8 @@ struct sunxi_mmc_host {
 #define SDC_WAIT_READ_DONE	(1<<4)
 #define SDC_WAIT_DMA_ERR	(1<<5)
 #define SDC_WAIT_ERROR		(1<<6)
-#define SDC_WAIT_FINALIZE	(1<<7)
+#define SDC_WAIT_SWITCH1V8	(1<<7)
+#define SDC_WAIT_FINALIZE	(1<<8)
 	u32 		state;
 #define SDC_STATE_IDLE		(0)
 #define SDC_STATE_SENDCMD	(1)
@@ -268,9 +286,9 @@ struct sunxi_mmc_host {
 	s32 cd_hdle;
 	s32 cd_mode;
 #define CARD_DETECT_BY_GPIO     (1)	/* mmc detected by gpio check */
-#define CARD_DETECT_BY_GPIO_IRQ (2)     /* mmc detected by gpio irq */
-#define CARD_ALWAYS_PRESENT     (3)     /* mmc always present, without detect pin */
-#define CARD_DETECT_BY_FS	(4)     /* mmc insert/remove by manual mode, from /proc/awsmc.x/insert node */
+#define CARD_DETECT_BY_GPIO_IRQ (2)	/* mmc detected by gpio irq */
+#define CARD_ALWAYS_PRESENT     (3)	/* mmc always present, without detect pin */
+#define CARD_DETECT_BY_FS       (4)	/* mmc insert/remove by fs, /proc/sunxi-mmc.x/insert node */
 
 	u32 read_only;
 	
@@ -297,8 +315,10 @@ struct sunxi_mmc_host {
 #define SMC_DEBUG_INFO	BIT(0)
 #define SMC_DEBUG_DBG	BIT(1)
 #ifdef CONFIG_MMC_DEBUG_SUNXI
-#define SMC_INFO(d, ...)   do {if ((d)->debuglevel & SMC_DEBUG_INFO) SMC_MSG(d, __VA_ARGS__); } while(0)
-#define SMC_DBG(d, ...)    do {if ((d)->debuglevel & SMC_DEBUG_DBG) SMC_MSG(d, __VA_ARGS__); } while(0)
+#define SMC_INFO(d, ...)   do {if ((d)->debuglevel & SMC_DEBUG_INFO) 	\
+				SMC_MSG(d, __VA_ARGS__); } while(0)
+#define SMC_DBG(d, ...)    do {if ((d)->debuglevel & SMC_DEBUG_DBG) 	\
+				SMC_MSG(d, __VA_ARGS__); } while(0)
 #else
 #define SMC_INFO(d, ...)
 #define SMC_DBG(d, ...)

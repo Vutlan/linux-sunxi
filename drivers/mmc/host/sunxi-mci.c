@@ -1,8 +1,8 @@
 /*
  * drivers/mmc/sunxi-host/host_op.c
  * (C) Copyright 2007-2011
- * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
- * Aaron.Maoye <leafy.myeh@allwinnertech.com>
+ * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
+ * Aaron.Maoye <leafy.myeh@reuuimllatech.com>
  *
  * description for this code
  *
@@ -29,6 +29,7 @@
 #include <linux/slab.h>
 
 #include <linux/mmc/host.h>
+#include <linux/mmc/sd.h>
 #include <linux/mmc/mmc.h>
 #include <linux/mmc/core.h>
 #include <linux/mmc/card.h>
@@ -104,6 +105,7 @@ static s32 sw_mci_init_host(struct sunxi_mmc_host* smc_host)
 	}
 	smc_host->power_on = 1;
 	smc_host->debuglevel = 0;
+	smc_host->voltage = SDC_WOLTAGE_3V3;
 	return 0;
 }
 
@@ -117,6 +119,27 @@ s32 sw_mci_exit_host(struct sunxi_mmc_host* smc_host)
 		smc_host->sg_dma = 0;
 	}
 
+	return 0;
+}
+
+s32 sw_mci_set_vddio(struct sunxi_mmc_host* smc_host, u32 vdd)
+{
+	char* vddstr[] = {"3.3V", "1.8V", "1.2V", "OFF"};
+	switch (vdd) {
+		case SDC_WOLTAGE_3V3:
+
+			break;
+		case SDC_WOLTAGE_1V8:
+
+			break;
+		case SDC_WOLTAGE_1V2:
+
+			break;
+		case SDC_WOLTAGE_OFF:
+
+			break;
+	}
+	SMC_MSG(smc_host, "Switch voltage to %s\n", vddstr[vdd]);
 	return 0;
 }
 
@@ -146,7 +169,21 @@ s32 sw_mci_update_clk(struct sunxi_mmc_host* smc_host)
 	return ret;
 }
 
-/* Spec. Timing
+/* UHS-I Operation Modes
+ * DS		25MHz	12.5MB/s	3.3V
+ * HS		50MHz	25MB/s		3.3V
+ * SDR12	25MHz	12.5MB/s	1.8V
+ * SDR25	50MHz	25MB/s		1.8V
+ * SDR50	100MHz	50MB/s		1.8V
+ * SDR104	208MHz	104MB/s		1.8V
+ * DDR50	50MHz	50MB/s		1.8V
+ * MMC Operation Modes
+ * DS		26MHz	26MB/s		3/1.8/1.2V
+ * HS		52MHz	52MB/s		3/1.8/1.2V
+ * HSDDR	52MHz	104MB/s		3/1.8/1.2V
+ * HS200	200MHz	200MB/s		1.8/1.2V
+ *
+ * Spec. Timing
  * SD3.0
  * Fcclk    Tcclk   Fsclk   Tsclk   Tis     Tih     odly  RTis     RTih
  * 400K     2.5us   24M     41ns    5ns     5ns     1     2209ns   41ns
@@ -182,13 +219,13 @@ struct sw_mmc_clk_dly {
 	u32 oclk_dly;
 	u32 sclk_dly;
 } mmc_clk_dly [MMC_CLK_MOD_NUM] = {
-	{MMC_CLK_400K, 3, 1},
-	{MMC_CLK_25M, 3, 4},
-	{MMC_CLK_50M, 3, 4},
-	{MMC_CLK_50MDDR, 2, 4},
-	{MMC_CLK_50MDDR_8BIT, 2, 4},
-	{MMC_CLK_100M, 1, 4},
-	{MMC_CLK_200M, 1, 4}
+	{MMC_CLK_400K, 		3, 1},
+	{MMC_CLK_25M, 		3, 4},
+	{MMC_CLK_50M, 		3, 4},
+	{MMC_CLK_50MDDR, 	2, 4},
+	{MMC_CLK_50MDDR_8BIT, 	2, 4},
+	{MMC_CLK_100M, 		1, 4},
+	{MMC_CLK_200M, 		1, 4},
 };
 
 s32 sw_mci_set_clk_dly(struct sunxi_mmc_host* smc_host, u32 oclk_dly, u32 sclk_dly)
@@ -196,9 +233,30 @@ s32 sw_mci_set_clk_dly(struct sunxi_mmc_host* smc_host, u32 oclk_dly, u32 sclk_d
 	u32 smc_no = smc_host->pdev->id;
 	void __iomem *mclk_base = __io_address(0x01c02088 + 0x4 * smc_no);
 	u32 rval = readl(mclk_base);
+
 	rval &= ~((0x7U << 8) | (0x7U << 20));
 	rval |= (oclk_dly << 8) | (sclk_dly << 20);
+
+	spin_lock(&smc_host->lock);
 	writel(rval, mclk_base);
+	spin_unlock(&smc_host->lock);
+
+	smc_host->oclk_dly = oclk_dly;
+	smc_host->sclk_dly = sclk_dly;
+	return 0;
+}
+
+s32 sw_mci_oclk_onoff(struct sunxi_mmc_host* smc_host, u32 oclk_en, u32 pwr_save)
+{
+	u32 rval = mci_readl(smc_host, REG_CLKCR);
+
+	rval &= ~(SDXC_CardClkOn | SDXC_LowPowerOn);
+	if (oclk_en)
+		rval |= SDXC_CardClkOn;
+	if (pwr_save)
+		rval |= SDXC_LowPowerOn;
+	mci_writel(smc_host, REG_CLKCR, rval);
+	sw_mci_update_clk(smc_host);
 	return 0;
 }
 
@@ -210,6 +268,11 @@ static void sw_mci_send_cmd(struct sunxi_mmc_host* smc_host, struct mmc_command*
 	smc_host->wait = SDC_WAIT_CMD_DONE;
 	if (cmd->opcode == MMC_GO_IDLE_STATE)
 		cmd_val |= SDXC_SendInitSeq;
+
+	if (cmd->opcode == SD_SWITCH_VOLTAGE) {
+		cmd_val |= SDXC_VolSwitch;
+		smc_host->wait = SDC_WAIT_SWITCH1V8;
+	}
 
 	if (cmd->flags & MMC_RSP_PRESENT) {
 		cmd_val |= SDXC_RspExp;
@@ -524,29 +587,37 @@ static int sw_mci_set_clk(struct sunxi_mmc_host* smc_host, u32 clk)
 	temp |= idiv | SDXC_CardClkOn;
 	mci_writel(smc_host, REG_CLKCR, temp);
 
-	if (clk <= 400000) {
-		dly = &mmc_clk_dly[MMC_CLK_400K];
-	} else if (clk <= 25000000) {
-		dly = &mmc_clk_dly[MMC_CLK_25M];
-	} else if (clk <= 50000000) {
-		if (smc_host->ddr) {
-			if (smc_host->bus_width == 8)
-				dly = &mmc_clk_dly[MMC_CLK_50MDDR_8BIT];
-			else
-				dly = &mmc_clk_dly[MMC_CLK_50MDDR];
-		} else {
+	if (!idiv) {
+		oclk_dly = 0;
+		sclk_dly = 0;
+	} else {
+		if (clk <= 400000) {
+			dly = &mmc_clk_dly[MMC_CLK_400K];
+		} else if (clk <= 25000000) {
+			dly = &mmc_clk_dly[MMC_CLK_25M];
+		} else if (clk <= 50000000) {
+			if (smc_host->ddr) {
+				if (smc_host->bus_width == 8)
+					dly = &mmc_clk_dly[MMC_CLK_50MDDR_8BIT];
+				else
+					dly = &mmc_clk_dly[MMC_CLK_50MDDR];
+			} else {
+				dly = &mmc_clk_dly[MMC_CLK_50M];
+			}
+		} else if (clk <= 104000000) {
+			dly = &mmc_clk_dly[MMC_CLK_100M];
+		} else if (clk <= 208000000) {
+			dly = &mmc_clk_dly[MMC_CLK_200M];
+		} else
 			dly = &mmc_clk_dly[MMC_CLK_50M];
+		oclk_dly = dly->oclk_dly;
+		sclk_dly = dly->sclk_dly;
+		if (mod_clk <= 400000000) {
+			if (oclk_dly)
+				oclk_dly--;
+			if (sclk_dly)
+				sclk_dly--;
 		}
-	} else if (clk <= 104000000) {
-		dly = &mmc_clk_dly[MMC_CLK_100M];
-	} else if (clk <= 208000000) {
-		dly = &mmc_clk_dly[MMC_CLK_200M];
-	}
-	oclk_dly = dly->oclk_dly;
-	sclk_dly = dly->sclk_dly;
-	if (mod_clk <= 400000000) {
-		oclk_dly--;
-		sclk_dly--;
 	}
 	sw_mci_set_clk_dly(smc_host, oclk_dly, sclk_dly);
 	sw_mci_update_clk(smc_host);
@@ -842,7 +913,8 @@ static irqreturn_t sw_mci_irq(int irq, void *dev_id)
 	if ((smc_host->wait == SDC_WAIT_AUTOCMD_DONE && (msk_int&SDXC_AutoCMDDone))
 		|| (smc_host->wait == SDC_WAIT_DATA_OVER && (msk_int&SDXC_DataOver))
 		|| (smc_host->wait == SDC_WAIT_CMD_DONE && (msk_int&SDXC_CmdDone)
-			&& !(smc_host->int_sum&SDXC_IntErrBit))) {
+			&& !(smc_host->int_sum&SDXC_IntErrBit))
+		|| (smc_host->wait == SDC_WAIT_SWITCH1V8 && (msk_int&SDXC_VolChgDone))) {
 		smc_host->wait = SDC_WAIT_FINALIZE;
 		smc_host->state = SDC_STATE_CMDDONE;
 	}
@@ -911,7 +983,11 @@ static void sw_mci_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 		else
 			smc_host->mod_clk = ios->clock;
 		smc_host->card_clk = ios->clock;
-
+		#ifdef MMC_FPGA
+		smc_host->mod_clk = 24000000;
+		if (smc_host->card_clk > smc_host->mod_clk)
+			smc_host->card_clk = smc_host->mod_clk;
+		#endif
 		sw_mci_set_clk(smc_host, smc_host->card_clk);
 	}
 
@@ -1010,6 +1086,199 @@ static void sw_mci_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	sw_mci_send_cmd(smc_host, cmd);
 }
 
+static int sw_mci_do_voltage_switch(struct mmc_host *mmc, struct mmc_ios *ios)
+{
+	struct sunxi_mmc_host *smc_host = mmc_priv(mmc);
+
+	if (smc_host->voltage != SDC_WOLTAGE_3V3 &&
+			ios->signal_voltage == MMC_SIGNAL_VOLTAGE_330) {
+		sw_mci_set_vddio(smc_host, SDC_WOLTAGE_3V3);
+		/* wait for 5ms */
+		usleep_range(1000, 1500);
+		smc_host->voltage = SDC_WOLTAGE_3V3;
+		return 0;
+	} else if (smc_host->voltage != SDC_WOLTAGE_1V8 &&
+			(ios->signal_voltage == MMC_SIGNAL_VOLTAGE_180)) {
+		u32 data_down;
+		/* clock off */
+		sw_mci_oclk_onoff(smc_host, 0, 0);
+		/* check whether data[3:0] is 0000 */
+		data_down = mci_readl(smc_host, REG_STAS);
+		if (!(data_down & SDXC_CardPresent)) {
+			/* switch voltage of card vdd to 1.8V */
+			sw_mci_set_vddio(smc_host, SDC_WOLTAGE_1V8);
+			/* wait for 5ms */
+			usleep_range(5000, 5500);
+			/* clock on again */
+			sw_mci_oclk_onoff(smc_host, 1, 0);
+			/* wait for 1ms */
+			usleep_range(1000, 1500);
+			/* check whether data[3:0] is 1111 */
+			data_down = mci_readl(smc_host, REG_STAS);
+			if (data_down & SDXC_CardPresent) {
+				u32 rval = mci_readl(smc_host, REG_RINTR);
+				if ((rval & SDXC_VolChgDone & SDXC_CmdDone)
+					== (SDXC_VolChgDone & SDXC_CmdDone)) {
+					smc_host->voltage = SDC_WOLTAGE_1V8;
+					mci_writew(smc_host, REG_RINTR,
+						SDXC_VolChgDone & SDXC_CmdDone);
+				}
+			}
+			return 0;
+		}
+
+		/*
+		 * If we are here, that means the switch to 1.8V signaling
+		 * failed. We power cycle the card, and retry initialization
+		 * sequence by setting S18R to 0.
+		 */
+		sw_mci_set_vddio(smc_host, SDC_WOLTAGE_OFF);
+		usleep_range(1000, 1500);
+		sw_mci_set_vddio(smc_host, SDC_WOLTAGE_3V3);
+		SMC_ERR(smc_host, ": Switching to 1.8V signalling "
+			"voltage failed, retrying with S18R set to 0\n");
+		return -EAGAIN;
+	} else
+		return 0;
+}
+
+/*
+ * Here we execute a tuning operation to find the sample window of MMC host.
+ * Then we select the best sampling point in the host for DDR50, SDR50, and
+ * SDR104 modes.
+ */
+static int sw_mci_execute_tuning(struct mmc_host *mmc, u32 opcode)
+{
+	static const char tuning_blk_4b[] = {
+		0xff, 0x0f, 0xff, 0x00, 0xff, 0xcc, 0xc3, 0xcc,
+		0xc3, 0x3c, 0xcc, 0xff, 0xfe, 0xff, 0xfe, 0xef,
+		0xff, 0xdf, 0xff, 0xdd, 0xff, 0xfb, 0xff, 0xfb,
+		0xbf, 0xff, 0x7f, 0xff, 0x77, 0xf7, 0xbd, 0xef,
+		0xff, 0xf0, 0xff, 0xf0, 0x0f, 0xfc, 0xcc, 0x3c,
+		0xcc, 0x33, 0xcc, 0xcf, 0xff, 0xef, 0xff, 0xee,
+		0xff, 0xfd, 0xff, 0xfd, 0xdf, 0xff, 0xbf, 0xff,
+		0xbb, 0xff, 0xf7, 0xff, 0xf7, 0x7f, 0x7b, 0xde
+	};
+	static const char tuning_blk_8b[] = {
+		0xff, 0xff, 0x00, 0xff, 0xff, 0xff, 0x00, 0x00,
+		0xff, 0xff, 0xcc, 0xcc, 0xcc, 0x33, 0xcc, 0xcc,
+		0xcc, 0x33, 0x33, 0xcc, 0xcc, 0xcc, 0xff, 0xff,
+		0xff, 0xee, 0xff, 0xff, 0xff, 0xee, 0xee, 0xff,
+		0xff, 0xff, 0xdd, 0xff, 0xff, 0xff, 0xdd, 0xdd,
+		0xff, 0xff, 0xff, 0xbb, 0xff, 0xff, 0xff, 0xbb,
+		0xbb, 0xff, 0xff, 0xff, 0x77, 0xff, 0xff, 0xff,
+		0x77, 0x77, 0xff, 0x77, 0xbb, 0xdd, 0xee, 0xff,
+		0xff, 0xff, 0xff, 0x00, 0xff, 0xff, 0xff, 0x00,
+		0x00, 0xff, 0xff, 0xcc, 0xcc, 0xcc, 0x33, 0xcc,
+		0xcc, 0xcc, 0x33, 0x33, 0xcc, 0xcc, 0xcc, 0xff,
+		0xff, 0xff, 0xee, 0xff, 0xff, 0xff, 0xee, 0xee,
+		0xff, 0xff, 0xff, 0xdd, 0xff, 0xff, 0xff, 0xdd,
+		0xdd, 0xff, 0xff, 0xff, 0xbb, 0xff, 0xff, 0xff,
+		0xbb, 0xbb, 0xff, 0xff, 0xff, 0x77, 0xff, 0xff,
+		0xff, 0x77, 0x77, 0xff, 0x77, 0xbb, 0xdd, 0xee
+	};
+	struct sunxi_mmc_host *smc_host = mmc_priv(mmc);
+	u32 sample_min = 0;
+	u32 sample_max = 0;
+	u32 sample_bak = smc_host->sclk_dly;
+	u32 sample_dly = smc_host->sclk_dly;
+	u32 sample_win = 0;
+	u32 loops = 40;
+	u32 tuning_done = 0;
+	char* rcv_pattern = (char*)kmalloc(128, GFP_KERNEL);
+	char* std_pattern = NULL;
+	int err = 0;
+
+	SMC_MSG(smc_host, "sdc%d executes tuning operation\n", smc_host->pdev->id);
+	/*
+	 * The Host Controller needs tuning only in case of SDR104 mode
+	 * and for SDR50 mode. Issue CMD19 repeatedly till get all of the
+	 * sample points or the number of loops reaches 40 times or a
+	 * timeout of 150ms occurs.
+	 */
+	do {
+		struct mmc_command cmd = {0};
+		struct mmc_data data = {0};
+		struct mmc_request mrq = {0};
+		struct scatterlist sg;
+
+		cmd.opcode = opcode;
+		cmd.arg = 0;
+		cmd.flags = MMC_RSP_R1 | MMC_CMD_ADTC;
+		if (opcode == MMC_SEND_TUNING_BLOCK_HS200) {
+			if (mmc->ios.bus_width == MMC_BUS_WIDTH_8) {
+				data.blksz = 128;
+				std_pattern = (char*)tuning_blk_8b;
+			} else if (mmc->ios.bus_width == MMC_BUS_WIDTH_4) {
+				data.blksz = 64;
+				std_pattern = (char*)tuning_blk_4b;
+			}
+		} else {
+			data.blksz = 64;
+			std_pattern = (char*)tuning_blk_4b;
+		}
+		data.blocks = 1;
+		data.flags = MMC_DATA_READ;
+		data.sg = &sg;
+		data.sg_len = 1;
+		sg_init_one(&sg, rcv_pattern, 4);
+
+		mrq.cmd = &cmd;
+		mrq.data = &data;
+
+		mmc_wait_for_req(mmc, &mrq);
+		/*
+		 * If no error happened in the transmission, compare data with
+		 * the tuning pattern. If there is no error, record the minimal
+		 * and the maximal value of the sampling clock delay to find
+		 * the best sampling point in the sampling window.
+		 */
+		if (!cmd.error && !data.error) {
+			if (!memcmp(rcv_pattern, std_pattern, data.blksz)) {
+				if (!sample_win)
+					sample_min = sample_dly;
+				sample_win++;
+			} else if (sample_win) {
+				tuning_done = 1;
+				sample_max = sample_dly-1;
+				break;
+			}
+		} else if (sample_win) {
+			tuning_done = 1;
+			sample_max = sample_dly-1;
+			break;
+		}
+		sample_dly++;
+		sw_mci_set_clk_dly(smc_host, smc_host->oclk_dly, sample_dly);
+	} while (!tuning_done && loops--);
+
+	/* select the best sampling point from the sampling window */
+	if (sample_win) {
+		sample_dly = sample_min + sample_win/2;
+		SMC_MSG(smc_host, "sdc%d sam_window:[%d, %d], sam_point %d\n",
+				smc_host->pdev->id, sample_min, sample_max, sample_dly);
+		sw_mci_set_clk_dly(smc_host, smc_host->oclk_dly, sample_dly);
+		err = 0;
+	} else {
+		SMC_MSG(smc_host, "sdc%d cannot find a sampling point\n", smc_host->pdev->id);
+		sw_mci_set_clk_dly(smc_host, smc_host->oclk_dly, sample_bak);
+		err = -EIO;
+	}
+
+	kfree(rcv_pattern);
+	return err;
+}
+
+int sw_mci_select_drive_strength(unsigned int max_dtr, int host_drv, int card_drv)
+{
+	return 0;
+}
+/*
+ * Here provide a function to scan card, for some SDIO cards that
+ * may stay in busy status after writing operations. MMC host does
+ * not wait for ready itself. So the driver of this kind of cards
+ * should call this function to check the real status of the card.
+ */
 void sw_mci_rescan_card(unsigned id, unsigned insert)
 {
 	struct sunxi_mmc_host *smc_host = NULL;
@@ -1030,18 +1299,20 @@ static struct mmc_host_ops sw_mci_ops = {
 	.get_ro		= sw_mci_get_ro,
 	.get_cd		= sw_mci_card_present,
 	.enable_sdio_irq= sw_mci_enable_sdio_irq,
-	.hw_reset	= sw_mci_hw_reset
+	.hw_reset	= sw_mci_hw_reset,
+	.start_signal_voltage_switch = sw_mci_do_voltage_switch,
+	.execute_tuning = sw_mci_execute_tuning,
+	.select_drive_strength = sw_mci_select_drive_strength,
 };
 
 #ifdef CONFIG_PROC_FS
 #include <linux/proc_fs.h>
-static const char sw_mci_drv_version[] = DRIVER_VERSION;
 static int sw_mci_proc_drvversion(char *page, char **start, off_t off,
 					int count, int *eof, void *data)
 {
 	char *p = page;
 
-	p += sprintf(p, "%s\n", sw_mci_drv_version);
+	p += sprintf(p, "%s\n", DRIVER_VERSION);
 	return p - page;
 }
 
@@ -1051,19 +1322,28 @@ static int sw_mci_proc_hostinfo(char *page, char **start, off_t off,
 	char *p = page;
 	struct sunxi_mmc_host *smc_host = (struct sunxi_mmc_host *)data;
 	struct device* dev = &smc_host->pdev->dev;
-	char* cd_mode[] = {"none", "gpio mode", "data3 mode", "always in", "manual"};
-	char* state[] = {"Idle", "sending cmd", "cmd done"};
+	char* cd_mode[] = {"None", "GPIO Check", "GPIO IRQ", "Always In", "Manual"};
+	char* state[] = {"Idle", "Sending CMD", "CMD Done"};
+	char* vol[] = {"3.3V", "1.8V", "1.2V", "off"};
+	u32 Fmclk_MHz = smc_host->mod_clk/1000000;
+	u32 Tmclk_ns = 1000/Fmclk_MHz;
+	u32 odly = smc_host->oclk_dly ? Tmclk_ns*smc_host->oclk_dly : Tmclk_ns >> 1;
+	u32 sdly = smc_host->sclk_dly ? Tmclk_ns*smc_host->sclk_dly : Tmclk_ns >> 1;
 
-	p += sprintf(p, "%s Host Info:\n", dev_name(dev));
-	p += sprintf(p, "Reg Base  : %p\n", smc_host->reg_base);
-	p += sprintf(p, "Mod Clock : %d\n", smc_host->mod_clk);
-	p += sprintf(p, "Card Clock: %d\n", smc_host->card_clk);
-	p += sprintf(p, "Bus Width : %d\n", smc_host->bus_width);
-	p += sprintf(p, "DDR Mode  : %d\n", smc_host->ddr);
-	p += sprintf(p, "Present   : %d\n", smc_host->present);
-	p += sprintf(p, "CD Mode   : %s\n", cd_mode[smc_host->cd_mode]);
-	p += sprintf(p, "Read Only : %d\n", smc_host->read_only);
-	p += sprintf(p, "State     : %s\n", state[smc_host->state]);
+	p += sprintf(p, " %s Host Info:\n", dev_name(dev));
+	p += sprintf(p, " REG Base  : %p\n", smc_host->reg_base);
+	p += sprintf(p, " DMA Desp  : %p(%08x)\n", smc_host->sg_cpu, smc_host->sg_dma);
+	p += sprintf(p, " Mod Clock : %d\n", smc_host->mod_clk);
+	p += sprintf(p, " Card Clock: %d\n", smc_host->card_clk);
+	p += sprintf(p, " Oclk Delay: %d(%dns)\n", smc_host->oclk_dly, odly);
+	p += sprintf(p, " Sclk Delay: %d(%dns)\n", smc_host->sclk_dly, sdly);
+	p += sprintf(p, " Bus Width : %d\n", smc_host->bus_width);
+	p += sprintf(p, " DDR Mode  : %d\n", smc_host->ddr);
+	p += sprintf(p, " Voltage   : %s\n", vol[smc_host->voltage]);
+	p += sprintf(p, " Present   : %d\n", smc_host->present);
+	p += sprintf(p, " CD Mode   : %s\n", cd_mode[smc_host->cd_mode]);
+	p += sprintf(p, " Read Only : %d\n", smc_host->read_only);
+	p += sprintf(p, " State     : %s\n", state[smc_host->state]);
 
 	return p - page;
 }
@@ -1241,25 +1521,9 @@ static int __devinit sw_mci_probe(struct platform_device *pdev)
 
 	smc_host = mmc_priv(mmc);
 	memset((void*)smc_host, 0, sizeof(smc_host));
-
 	smc_host->mmc	= mmc;
 	smc_host->pdev	= pdev;
-
-	mmc->ops        = &sw_mci_ops;
-	mmc->ocr_avail	= MMC_VDD_32_33 | MMC_VDD_33_34;
-	mmc->caps	= MMC_CAP_4_BIT_DATA|MMC_CAP_MMC_HIGHSPEED
-			|MMC_CAP_SD_HIGHSPEED|MMC_CAP_SDIO_IRQ;
-	mmc->f_min	= 400000;
-	mmc->f_max      = 150000000;
-	if (pdev->id==3)
-//		mmc->pm_flags = MMC_PM_IGNORE_PM_NOTIFY;
-		mmc->pm_flags = MMC_PM_KEEP_POWER;	//fpga
-
-	mmc->max_blk_count	= 512;
-	mmc->max_blk_size	= 65536;
-	mmc->max_req_size	= mmc->max_blk_size * mmc->max_blk_count;
-	mmc->max_seg_size	= mmc->max_req_size;
-	mmc->max_segs	    	= 64;
+	smc_host->pdata	= pdev->dev.platform_data;
 
 	spin_lock_init(&smc_host->lock);
 	tasklet_init(&smc_host->tasklet, sw_mci_tasklet, (unsigned long) smc_host);
@@ -1298,6 +1562,20 @@ static int __devinit sw_mci_probe(struct platform_device *pdev)
 		add_timer(&smc_host->cd_timer);
 		smc_host->present = 0;
 	}
+
+	mmc->ops        = &sw_mci_ops;
+	mmc->ocr_avail	= smc_host->pdata->ocr_avail;
+	mmc->caps	= smc_host->pdata->caps;
+	mmc->f_min	= smc_host->pdata->f_min;
+	mmc->f_max      = smc_host->pdata->f_max;
+
+//	mmc->pm_flags	= MMC_PM_KEEP_POWER;	//fpga
+
+	mmc->max_blk_count	= 512;
+	mmc->max_blk_size	= 65536;
+	mmc->max_req_size	= mmc->max_blk_size * mmc->max_blk_count;
+	mmc->max_seg_size	= mmc->max_req_size;
+	mmc->max_segs	    	= 64;
 
 	ret = mmc_add_host(mmc);
 	if (ret) {
@@ -1381,7 +1659,6 @@ void sw_mci_regs_restore(struct sunxi_mmc_host* smc_host)
 	mci_writel(smc_host, REG_DMAC , bak_regs->idmacc  );
 }
 
-
 static int sw_mci_suspend(struct device *dev)
 {
 	struct platform_device *pdev = to_platform_device(dev);
@@ -1391,7 +1668,7 @@ static int sw_mci_suspend(struct device *dev)
 	if (mmc) {
 		struct sunxi_mmc_host *smc_host = mmc_priv(mmc);
 
-		if (mmc->card && (mmc->card->type!=MMC_TYPE_SDIO || mmc_pm_io_shd_suspend_host()))
+		if (mmc->card && mmc->card->type!=MMC_TYPE_SDIO)
 			ret = mmc_suspend_host(mmc);
 
 		if (smc_host->power_on) {
@@ -1430,7 +1707,7 @@ static int sw_mci_resume(struct device *dev)
 			enable_irq(smc_host->irq);
 		}
 
-		if (mmc->card && (mmc->card->type!=MMC_TYPE_SDIO || mmc_pm_io_shd_suspend_host()))
+		if (mmc->card && mmc->card->type!=MMC_TYPE_SDIO)
 			ret = mmc_resume_host(mmc);
 	}
 
@@ -1450,11 +1727,55 @@ static const struct dev_pm_ops sw_mci_pm = {
 
 #endif /* CONFIG_PM */
 
-static struct platform_device awmmc_device[4] = {
-	[0] = {.name = DRIVER_NAME, .id = 0},
-	[1] = {.name = DRIVER_NAME, .id = 1},
-	[2] = {.name = DRIVER_NAME, .id = 2},
-	[3] = {.name = DRIVER_NAME, .id = 3},
+static struct sunxi_mmc_platform_data sw_mci_pdata[4] = {
+	[0] = {
+		.ocr_avail = MMC_VDD_32_33 | MMC_VDD_33_34,
+		.caps = MMC_CAP_4_BIT_DATA | MMC_CAP_MMC_HIGHSPEED | MMC_CAP_SD_HIGHSPEED
+			| MMC_CAP_SDIO_IRQ
+			| MMC_CAP_SET_XPC_330 | MMC_CAP_DRIVER_TYPE_A,
+		.f_min = 400000,
+		.f_max = 120000000,
+	},
+	[1] = {
+		.ocr_avail = MMC_VDD_32_33 | MMC_VDD_33_34,
+		.caps = MMC_CAP_4_BIT_DATA | MMC_CAP_MMC_HIGHSPEED | MMC_CAP_SD_HIGHSPEED
+			| MMC_CAP_SDIO_IRQ,
+		.f_min = 400000,
+		.f_max = 120000000,
+	},
+	[2] = {
+		.ocr_avail = MMC_VDD_32_33 | MMC_VDD_33_34 | MMC_VDD_165_195,
+		.caps = MMC_CAP_4_BIT_DATA | MMC_CAP_NONREMOVABLE
+			| MMC_CAP_MMC_HIGHSPEED | MMC_CAP_SD_HIGHSPEED
+			| MMC_CAP_UHS_SDR12 | MMC_CAP_UHS_SDR25 | MMC_CAP_UHS_SDR50
+			| MMC_CAP_UHS_DDR50 | MMC_CAP2_HS200_1_8V_SDR
+			| MMC_CAP_1_8V_DDR
+			#ifndef MMC_FPGA
+			| MMC_CAP_8_BIT_DATA
+			#endif
+			| MMC_CAP_SDIO_IRQ
+			| MMC_CAP_SET_XPC_330 | MMC_CAP_DRIVER_TYPE_A,
+		.f_min = 400000,
+		.f_max = 120000000,
+	},
+	[3] = {
+		.ocr_avail = MMC_VDD_32_33 | MMC_VDD_33_34 | MMC_VDD_165_195,
+		.caps = MMC_CAP_4_BIT_DATA | MMC_CAP_8_BIT_DATA | MMC_CAP_NONREMOVABLE
+			| MMC_CAP_MMC_HIGHSPEED | MMC_CAP_SD_HIGHSPEED
+			| MMC_CAP_UHS_SDR12 | MMC_CAP_UHS_SDR25 | MMC_CAP_UHS_SDR50
+			| MMC_CAP_UHS_DDR50 | MMC_CAP2_HS200_1_8V_SDR
+			| MMC_CAP_1_8V_DDR
+			| MMC_CAP_SDIO_IRQ
+			| MMC_CAP_SET_XPC_330 | MMC_CAP_DRIVER_TYPE_A,
+		.f_min = 400000,
+		.f_max = 120000000,
+	},
+};
+static struct platform_device sw_mci_device[4] = {
+	[0] = {.name = DRIVER_NAME, .id = 0, .dev.platform_data = &sw_mci_pdata[0]},
+	[1] = {.name = DRIVER_NAME, .id = 1, .dev.platform_data = &sw_mci_pdata[1]},
+	[2] = {.name = DRIVER_NAME, .id = 2, .dev.platform_data = &sw_mci_pdata[2]},
+	[3] = {.name = DRIVER_NAME, .id = 3, .dev.platform_data = &sw_mci_pdata[3]},
 };
 
 static struct platform_driver sw_mci_driver = {
@@ -1465,22 +1786,30 @@ static struct platform_driver sw_mci_driver = {
 	.remove         = __devexit_p(sw_mci_remove),
 };
 
-static int sdc_used;
 static int __init sw_mci_init(void)
 {
 	int ret;
 	int i;
 	char mmc_para[16] = {0};
 	int used = 0;
+	int cd_mode = 0;
+	int boot_card = 0;
+	int sdc_used = 0;
 
-	SMC_MSG(smc_host, "sw_mci_init\n");
+	SMC_MSG(NULL, "sw_mci_init\n");
+	/*
+	 * Here we check whether there is a boot card. If the boot card exists,
+	 * we register it firstly to make it be associatiated with the device
+	 * node 'mmcblk0'. Then the applicantions of Android can fix the boot,
+	 * system, data patitions on mmcblk0p1, mmcblk0p2... etc.
+	 */
 	for (i=0; i<4; i++) {
 		memset(mmc_para, 0, sizeof(mmc_para));
 		sprintf(mmc_para, "mmc%d_para", i);
 		used = 0;
-		ret = script_parser_fetch(mmc_para,"sdc_used", &used, sizeof(int));
+		ret = script_parser_fetch(mmc_para, "sdc_used", &used, sizeof(int));
 		if (ret)
-			printk("sw_mci_init fetch mmc%d using configuration failed\n", i);
+			SMC_MSG(NULL, "get sdc%d's configuration(sdc_used) failed\n", i);
 
 		#ifdef MMC_FPGA
 		ret = ret;
@@ -1489,26 +1818,38 @@ static int __init sw_mci_init(void)
 
 		if (used) {
 			sdc_used |= 1 << i;
-			platform_device_register(&awmmc_device[i]);
+			ret = script_parser_fetch(mmc_para, "sdc_detmode", &cd_mode, sizeof(int));
+			if (ret) {
+				SMC_MSG(NULL, "get sdc%d's configuration(sdc_detmode) failed\n", i);
+				continue;
+			}
+			if (cd_mode == CARD_ALWAYS_PRESENT) {
+				SMC_MSG(NULL, "Found boot card: sdc%d\n", i);
+				boot_card |= 1 << i;
+			}
 		}
-
+	}
+	SMC_MSG(NULL, "MMC host used card: 0x%x, boot card: 0x%x\n", sdc_used, boot_card);
+	/* register boot card firstly */
+	for (i=0; i<4; i++) {
+		if (boot_card & (1 << i))
+			platform_device_register(&sw_mci_device[i]);
+	}
+	/* register other cards */
+	for (i=0; i<4; i++) {
+		if (boot_card & (1 << i))
+			continue;
+		if (sdc_used & (1 << i))
+			platform_device_register(&sw_mci_device[i]);
 	}
 
-	SMC_MSG(smc_host, "sunxi mmc host using config : 0x%x\n", sdc_used);
-
-	if (sdc_used)
-		return platform_driver_register(&sw_mci_driver);
-
-	return 0;
+	return platform_driver_register(&sw_mci_driver);
 }
 
 static void __exit sw_mci_exit(void)
 {
-	SMC_MSG(smc_host, "sw_mci_exit\n");
-	if (sdc_used) {
-		sdc_used = 0;
-		platform_driver_unregister(&sw_mci_driver);
-	}
+	SMC_MSG(NULL, "sw_mci_exit\n");
+	platform_driver_unregister(&sw_mci_driver);
 }
 
 
@@ -1517,5 +1858,5 @@ module_exit(sw_mci_exit);
 
 MODULE_DESCRIPTION("Winner's SD/MMC Card Controller Driver");
 MODULE_LICENSE("GPL v2");
-MODULE_AUTHOR("Aaron.maoye<leafy.myeh@allwinnertech.com>");
+MODULE_AUTHOR("Aaron.maoye<leafy.myeh@reuuimllatech.com>");
 MODULE_ALIAS("platform:sunxi-mmc");
