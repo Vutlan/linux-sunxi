@@ -1,10 +1,10 @@
 ===========================================
 
-Version: V1_50
+Version: V1_51
 
 Author:  raymonxiu
 
-Date:     2012-6-21 17:03:45
+Date:     2012-7-27 9:22:33
 
 Description:
 
@@ -25,6 +25,15 @@ insmod sun4i_csiX.ko ccm="gc2015" i2c_addr=0x60
 insmod sun4i_csiX.ko ccm="ov2643" i2c_addr=0x60
 insmod sun4i_csiX.ko ccm="gc0329" i2c_addr=0x62
 insmod sun4i_csiX.ko ccm="gc0309" i2c_addr=0x42
+insmod sun4i_csiX.ko ccm="tvp5150" i2c_addr=0xb8
+insmod sun4i_csiX.ko ccm="s5k4ec" i2c_addr=0x5a
+
+V1_51
+CSI: Optimizing ov5640/gc0308/sp0838/ov2655 and new module s5k4ec support
+1) Optimizing ov5640/gc0308 for fast response
+2) Fix sp0838 for CTS test
+3) Add delay after ov2655 pll changed
+4) New samsung 5M module s5k4ec support
 
 V1_50
 CSI: Support BT656 I/F, add tvp5150 device and add ov5640 g_af

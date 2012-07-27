@@ -395,7 +395,7 @@ static struct csi_fmt formats[] = {
 		.depth    		= 12,
 		.planes_cnt		= 2,
 	},
-		{
+	{
 		.name     		= "planar YUV 422 VU combined",
 		.csi_if				= CSI_IF_CCIR656,
 		.ccm_fmt			= V4L2_MBUS_FMT_UYVY8_2X8,	//linux-3.0
@@ -780,9 +780,14 @@ static irqreturn_t csi_isr(int irq, void *priv)
 	} else {
 		bsp_csi_int_disable(dev,CSI_INT_FRAME_DONE);
 		if (first_flag == 0) {
-			first_flag=1;
+			first_flag++;
 			csi_print("capture video mode!\n");
 			goto set_next_addr;
+		}
+		
+		if (first_flag == 1) {
+			first_flag++;
+			csi_print("capture video first frame done!\n");
 		}
 		
 		if (list_empty(&dma_q->active)) {		
@@ -1502,10 +1507,15 @@ altend:
 	
 recover:
 	/*Power down target device*/
+	if (dev->input == -1) {
+		dev->input = (i ==0 ? 1 : 0 );
+	}
 	ret = v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_STBY_ON);
 	if(ret < 0)
+	{	
+		csi_err("sensor standby on error at current device!\n");
 		goto altend;
-
+	}
 	/* Alternate the device info and select the current device*/
   ret = update_ccm_info(dev, dev->ccm_cfg[dev->input]);
   if (ret < 0)
@@ -1656,7 +1666,6 @@ static int csi_open(struct file *file)
 {
 	struct csi_dev *dev = video_drvdata(file);
 	int ret,input_num;
-//	struct v4l2_control ctrl;
 	
 	csi_dbg(0,"csi_open\n");
 
@@ -1668,64 +1677,37 @@ static int csi_open(struct file *file)
 	csi_clk_enable(dev);
 	csi_reset_disable(dev);
 	
-	//open all the device power and set it to standby on
-	for (input_num=dev->dev_qty-1; input_num>=0; input_num--) {
-		/* update target device info and select it*/
-		ret = update_ccm_info(dev, dev->ccm_cfg[input_num]);
-		if (ret < 0)
-		{
-			csi_err("Error when set ccm info when csi open!\n");
+	if(dev->stby_mode == 1)	{
+		//open all the device power and set it to standby on
+		for (input_num=dev->dev_qty-1; input_num>=0; input_num--) {
+			/* update target device info and select it*/
+			ret = update_ccm_info(dev, dev->ccm_cfg[input_num]);
+			if (ret < 0)
+			{
+				csi_err("Error when set ccm info when csi open!\n");
+			}
+			
+			dev->csi_mode.vref       = dev->ccm_info->vref;
+		  dev->csi_mode.href       = dev->ccm_info->href;
+		  dev->csi_mode.clock      = dev->ccm_info->clock;
+			csi_clk_out_set(dev);
+			
+			ret = v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_PWR_ON);
+		  if (ret!=0) {
+		  	csi_err("sensor CSI_SUBDEV_PWR_ON error at device number %d when csi open!\n",input_num);
+		  }
+	
+			ret = v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_STBY_ON);
+			if (ret!=0) {
+		  	csi_err("sensor CSI_SUBDEV_STBY_ON error at device number %d when csi open!\n",input_num);
+		  } 
 		}
-		
-		dev->csi_mode.vref       = dev->ccm_info->vref;
-	  dev->csi_mode.href       = dev->ccm_info->href;
-	  dev->csi_mode.clock      = dev->ccm_info->clock;
-		csi_clk_out_set(dev);
-		
-		ret = v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_PWR_ON);
-	  if (ret!=0) {
-	  	csi_err("sensor CSI_SUBDEV_PWR_ON error at device number %d when csi open!\n",input_num);
-	  }
-
-		ret = v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_STBY_ON);
-		if (ret!=0) {
-	  	csi_err("sensor CSI_SUBDEV_STBY_ON error at device number %d when csi open!\n",input_num);
-	  } 
 	}
 	
 	dev->input=-1;//default input null
 
 	bsp_csi_open(dev);
 	bsp_csi_set_offset(dev,0,0);//h and v offset is initialed to zero
-	
-//	ret = v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_STBY_OFF);
-//	if (ret!=0) {
-//	  csi_err("sensor standby off error when csi open!\n");
-//	  return ret;
-//	}
-//	
-//	ret = v4l2_subdev_call(dev->sd,core, init, 0);
-//	if (ret!=0) {
-//		csi_err("sensor initial error when csi open!\n");
-//		return ret;
-//	} else {
-//		csi_print("sensor initial success when csi open!\n");
-//	}	
-//
-//	ctrl.id = V4L2_CID_VFLIP;
-//	ctrl.value = dev->vflip;
-//	ret = v4l2_subdev_call(dev->sd,core, s_ctrl, &ctrl);
-//	if (ret!=0) {
-//		csi_err("sensor sensor_s_ctrl V4L2_CID_VFLIP error when csi open!\n");
-//	}
-//	
-//	ctrl.id = V4L2_CID_HFLIP;
-//	ctrl.value = dev->hflip;
-//	ret = v4l2_subdev_call(dev->sd,core, s_ctrl, &ctrl);
-//	if (ret!=0) {
-//		csi_err("sensor sensor_s_ctrl V4L2_CID_HFLIP error when csi open!\n");
-//	}
-
 	dev->opened = 1;
 	dev->fmt = &formats[5]; //default format
 	return 0;		
@@ -1908,6 +1890,11 @@ static int fetch_config(struct csi_dev *dev)
 			csi_err("fetch csi_dvdd from sys_config failed\n");
 		}
 		
+		/* fetch standby mode */
+		ret = script_parser_fetch("csi0_para","csi_stby_mode", &dev->ccm_cfg[0]->stby_mode , sizeof(int));
+		if (ret) {
+			csi_err("fetch csi_stby_mode from sys_config failed\n");
+		}
 		/* fetch flip issue */
 		ret = script_parser_fetch("csi1_para","csi_vflip", &dev->ccm_cfg[0]->vflip , sizeof(int));
 		if (ret) {
@@ -1997,6 +1984,12 @@ static int fetch_config(struct csi_dev *dev)
 		ret = script_parser_fetch("csi1_para","csi_dvdd_b", (int *)&dev->ccm_cfg[1]->dvdd_str , 32*sizeof(char));
 		if (ret) {
 			csi_err("fetch csi_dvdd_b from sys_config failed\n");
+		}
+
+		/* fetch standby mode */
+		ret = script_parser_fetch("csi0_para","csi_stby_mode", &dev->ccm_cfg[1]->stby_mode , sizeof(int));
+		if (ret) {
+			csi_err("fetch csi_stby_mode from sys_config failed\n");
 		}
 		
 		/* fetch flip issue */
@@ -2205,7 +2198,8 @@ reg_sd:
 		dev->ccm_cfg[input_num]->ccm_info.vref = CSI_LOW;
 		dev->ccm_cfg[input_num]->ccm_info.href = CSI_LOW;
 		dev->ccm_cfg[input_num]->ccm_info.clock = CSI_FALLING;
-
+		dev->ccm_cfg[input_num]->ccm_info.stby_mode = dev->stby_mode;
+		
 		ret = v4l2_subdev_call(dev->ccm_cfg[input_num]->sd,core,ioctl,CSI_SUBDEV_CMD_GET_INFO,&dev->ccm_cfg[input_num]->ccm_info);
 		if (ret < 0)
 		{
@@ -2276,14 +2270,20 @@ reg_sd:
 	/* power on and power off device */
 	for(input_num=0; input_num<dev->dev_qty; input_num++)
 	{
-		if(dev->stby_mode == 1) {
-			csi_print("power on and power off camera!\n");
       ret = update_ccm_info(dev, dev->ccm_cfg[input_num]);
       if(ret<0)
       	csi_err("Error when set ccm info when probe!\n");
       
+		if(dev->stby_mode == 1) {
+			csi_print("power on and power off camera %d!\n",input_num);
 			v4l2_subdev_call(dev->ccm_cfg[input_num]->sd,core, s_power, CSI_SUBDEV_PWR_ON);
 			v4l2_subdev_call(dev->ccm_cfg[input_num]->sd,core, s_power, CSI_SUBDEV_PWR_OFF);
+		} else {
+			csi_print("power on and standy on camera %d!\n",input_num);
+			csi_clk_out_set(dev);
+			v4l2_subdev_call(dev->ccm_cfg[input_num]->sd,core, s_power, CSI_SUBDEV_PWR_ON);
+			v4l2_subdev_call(dev->ccm_cfg[input_num]->sd,core, s_power, CSI_SUBDEV_STBY_OFF);
+			v4l2_subdev_call(dev->ccm_cfg[input_num]->sd,core, s_power, CSI_SUBDEV_STBY_ON);
 		}
 	}
 //	csi_dbg("%s(): csi-%d registered successfully\n",__func__, dev->id);
