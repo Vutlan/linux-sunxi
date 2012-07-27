@@ -248,6 +248,7 @@ typedef struct tag_CSI_SUBDEV_INFO
     __csi_ref_t        href;        /* input href signal polarity */
     __csi_clk_t        clock;       /* input data valid of the input clock edge type */
     int								 iocfg;				/*0 for csi back , 1 for csi front*/				
+    int 							 stby_mode;			
 }__csi_subdev_info_t;
 
 struct csi_buf_addr {

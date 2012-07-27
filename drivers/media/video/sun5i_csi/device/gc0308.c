@@ -938,100 +938,79 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
 	{
 		case CSI_SUBDEV_STBY_ON:
 			csi_dev_dbg("CSI_SUBDEV_STBY_ON\n");
-			//reset off io
-			csi_gpio_write(sd,&dev->reset_io,CSI_RST_OFF);
-			mdelay(10);
+//			//reset on io
+//			csi_gpio_write(sd,&dev->reset_io,CSI_RST_ON);
+//			mdelay(10);
 			//standby on io
-			csi_gpio_write(sd,&dev->standby_io,CSI_STBY_ON);
-			mdelay(10);
-			csi_gpio_write(sd,&dev->standby_io,CSI_STBY_OFF);
-			mdelay(10);
 			csi_gpio_write(sd,&dev->standby_io,CSI_STBY_ON);
 			mdelay(10);
 			//inactive mclk after stadby in
 			clk_disable(dev->csi_module_clk);
-			//reset on io
-			csi_gpio_write(sd,&dev->reset_io,CSI_RST_ON);
-			mdelay(10);
 			break;
 		case CSI_SUBDEV_STBY_OFF:
 			csi_dev_dbg("CSI_SUBDEV_STBY_OFF\n");
 			//active mclk before stadby out
 			clk_enable(dev->csi_module_clk);
-			mdelay(10);
+			mdelay(30);
 			//standby off io
 			csi_gpio_write(sd,&dev->standby_io,CSI_STBY_OFF);
 			mdelay(10);
-			//reset off io
-			csi_gpio_write(sd,&dev->reset_io,CSI_RST_OFF);
-			mdelay(10);
-			csi_gpio_write(sd,&dev->reset_io,CSI_RST_ON);
-			mdelay(30);
-			csi_gpio_write(sd,&dev->reset_io,CSI_RST_OFF);
-			mdelay(10);
+//			//reset off io
+//			csi_gpio_write(sd,&dev->reset_io,CSI_RST_OFF);
+//			mdelay(30);
 			break;
 		case CSI_SUBDEV_PWR_ON:
 			csi_dev_dbg("CSI_SUBDEV_PWR_ON\n");
 			//power on reset
 			csi_gpio_set_status(sd,&dev->standby_io,1);//set the gpio to output
 			csi_gpio_set_status(sd,&dev->reset_io,1);//set the gpio to output
-			csi_gpio_write(sd,&dev->standby_io,CSI_STBY_ON);
-			//reset on io
-			csi_gpio_write(sd,&dev->reset_io,CSI_RST_ON);
-			mdelay(10);
-			//active mclk before power on
-			clk_enable(dev->csi_module_clk);
-			mdelay(10);
 			//power supply
 			csi_gpio_write(sd,&dev->power_io,CSI_PWR_ON);
-			mdelay(10);
 			if(dev->dvdd) {
 				regulator_enable(dev->dvdd);
-				mdelay(10);
 			}
 			if(dev->avdd) {
 				regulator_enable(dev->avdd);
-				mdelay(10);
 			}
 			if(dev->iovdd) {
 				regulator_enable(dev->iovdd);
-				mdelay(10);
 			}
+			mdelay(10);
 			//standby off io
 			csi_gpio_write(sd,&dev->standby_io,CSI_STBY_OFF);
 			mdelay(10);
-			//reset after power on
-			csi_gpio_write(sd,&dev->reset_io,CSI_RST_OFF);
+			//active mclk
+			clk_enable(dev->csi_module_clk);
 			mdelay(10);
+			//reset on io
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_ON);
 			mdelay(30);
+			//reset off io
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_OFF);
 			mdelay(10);
 			break;
 		case CSI_SUBDEV_PWR_OFF:
 			csi_dev_dbg("CSI_SUBDEV_PWR_OFF\n");
-			//standby and reset io
-			csi_gpio_write(sd,&dev->standby_io,CSI_STBY_ON);
-			mdelay(10);
+			//reset on io
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_ON);
-			mdelay(10);
-			//power supply off
-			if(dev->iovdd) {
-				regulator_disable(dev->iovdd);
-				mdelay(10);
-			}
-			if(dev->avdd) {
-				regulator_disable(dev->avdd);
-				mdelay(10);
-			}
-			if(dev->dvdd) {
-				regulator_disable(dev->dvdd);
-				mdelay(10);	
-			}
-			csi_gpio_write(sd,&dev->power_io,CSI_PWR_OFF);
 			mdelay(10);
 			//inactive mclk after power off
 			clk_disable(dev->csi_module_clk);
+			//power supply off
+			if(dev->iovdd) {
+				regulator_disable(dev->iovdd);
+			}
+			if(dev->avdd) {
+				regulator_disable(dev->avdd);
+			}
+			if(dev->dvdd) {
+				regulator_disable(dev->dvdd);
+			}
+			csi_gpio_write(sd,&dev->power_io,CSI_PWR_OFF);
+			mdelay(10);
+			//standby of io
+			csi_gpio_write(sd,&dev->standby_io,CSI_STBY_ON);
+			mdelay(10);
 			//set the io to hi-z
 			csi_gpio_set_status(sd,&dev->reset_io,0);//set the gpio to input
 			csi_gpio_set_status(sd,&dev->standby_io,0);//set the gpio to input
@@ -1522,10 +1501,10 @@ static int sensor_s_hflip(struct v4l2_subdev *sd, int value)
 	
 	switch (value) {
 		case 0:
-		  regs.value[0] &= 0xfe;
+		  regs.value[0] &= 0xfc;
 			break;
 		case 1:
-			regs.value[0] |= 0x01;
+			regs.value[0] |= (0x01|(info->vflip<<1));
 			break;
 		default:
 			return -EINVAL;
@@ -1536,7 +1515,7 @@ static int sensor_s_hflip(struct v4l2_subdev *sd, int value)
 		return ret;
 	}
 	
-	mdelay(100);
+	mdelay(10);
 	
 	info->hflip = value;
 	return 0;
@@ -1595,10 +1574,10 @@ static int sensor_s_vflip(struct v4l2_subdev *sd, int value)
 	
 	switch (value) {
 		case 0:
-		  regs.value[0] &= 0xfd;
+		  regs.value[0] &= 0xfc;
 			break;
 		case 1:
-			regs.value[0] |= 0x02;
+			regs.value[0] |= (0x02|info->hflip);
 			break;
 		default:
 			return -EINVAL;
@@ -1609,7 +1588,7 @@ static int sensor_s_vflip(struct v4l2_subdev *sd, int value)
 		return ret;
 	}
 	
-	mdelay(100);
+	mdelay(10);
 	
 	info->vflip = value;
 	return 0;

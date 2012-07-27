@@ -353,6 +353,7 @@ static struct regval_list sensor_lsc_mirror_regs[]= {
 
 static struct regval_list sensor_uxga_regs[] = {
 {{0x30, 0x0e}, {0x34}},
+{{0xff, 0xff}, {0x0a}}, //delay 10ms
 {{0x30, 0x12}, {0x00}},
 {{0x30, 0x2A}, {0x04}},
 {{0x30, 0x2B}, {0xd4}}, 
@@ -394,6 +395,7 @@ static struct regval_list sensor_uxga_regs[] = {
 
 static struct regval_list sensor_svga_regs[] = {
 {{0x30, 0x0e}, {0x34}}, //<5:0>plldiv
+{{0xff, 0xff}, {0x0a}}, //delay 10ms
 {{0x30, 0x12}, {0x10}}, //<4>vario
 {{0x30, 0x2A}, {0x02}}, //VTS high-byte 
 {{0x30, 0x2B}, {0x6a}}, //VTS low-byte 
@@ -434,6 +436,7 @@ static struct regval_list sensor_svga_regs[] = {
 
 static struct regval_list sensor_vga_regs[] = {
 {{0x30, 0x0e}, {0x34}}, //<5:0>plldiv
+{{0xff, 0xff}, {0x0a}}, //delay 10ms
 {{0x30, 0x12}, {0x10}}, //<4>vario
 {{0x30, 0x2A}, {0x02}}, //VTS high-byte 
 {{0x30, 0x2B}, {0x6a}}, //VTS low-byte 
@@ -839,16 +842,20 @@ static int sensor_write_array(struct v4l2_subdev *sd, struct regval_list *vals ,
 
 	for(i = 0; i < size ; i++)
 	{
-		ret = sensor_write(sd, vals->reg_num, vals->value);
-		if (ret < 0)
-			{
-				csi_dev_err("sensor_write_err!\n");
-				return ret;
-			}
+        if(vals->reg_num[0] == 0xff && vals->reg_num[1] == 0xff) {
+            msleep(vals->value[0]);
+        } else {
+            ret = sensor_write(sd, vals->reg_num, vals->value);
+    		if (ret < 0)
+    			{
+    				csi_dev_err("sensor_write_err!\n");
+    				return ret;
+    			}
+    		
+    		//udelay(10);	//some module need delay between i2c writing
 		
-		udelay(10);	//some module need delay between i2c writing
-		
-		vals++;
+    		vals++;
+        }
 	}
 
 	return 0;
@@ -1052,6 +1059,17 @@ static int sensor_detect(struct v4l2_subdev *sd)
 	}
 
 	if(regs.value[0] != 0x26)
+		return -ENODEV;
+	
+	regs.reg_num[0] = 0x30;
+	regs.reg_num[1] = 0x0B;
+	ret = sensor_read(sd, regs.reg_num, regs.value);
+	if (ret < 0) {
+		csi_dev_err("sensor_read err at sensor_detect!\n");
+		return ret;
+	}
+
+	if(regs.value[0] != 0x56)
 		return -ENODEV;
 	
 	return 0;
