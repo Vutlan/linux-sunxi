@@ -1,5 +1,5 @@
 /*
- * drivers/mmc/sunxi-host/host_op.c
+ * drivers/mmc/host/sunxi-mci.c
  * (C) Copyright 2007-2011
  * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
  * Aaron.Maoye <leafy.myeh@reuuimllatech.com>
