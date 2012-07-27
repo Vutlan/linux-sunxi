@@ -629,7 +629,7 @@ typedef struct __CCMU_REG_LIST
     volatile __ccmu_csi_clk_t                   Csi1;       //0x0138, csi1 module clock
     volatile __ccmu_ve_clk_reg013c_t            Ve;         //0x013c, ve module clock
     volatile __ccmu_module1_clk_t               Adda;       //0x0140, adda module clock
-    volatile __ccmu_module1_clk_t               Avs;        //0x0144, avs module clock
+    volatile __ccmu_module_clk_t                Avs;        //0x0144, avs module clock
     volatile __u32                              reserved15[2];  //0x0148, reserved
     volatile __ccmu_hdmi_clk_reg0150_t          Hdmi;       //0x0150, hdmi module clock
     volatile __ccmu_module1_clk_t               Ps;         //0x0154, ps module clock

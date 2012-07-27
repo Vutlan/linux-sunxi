@@ -228,7 +228,7 @@ static __aw_ccu_clk_id_e mod_clk_get_parent(__aw_ccu_clk_id_e id)
         case AW_MOD_CLK_ADDA:
             return _get_module1_clk_src(&aw_ccu_reg->Adda);
         case AW_MOD_CLK_AVS:
-            return _get_module1_clk_src(&aw_ccu_reg->Avs);
+            return AW_SYS_CLK_HOSC;
         case AW_MOD_CLK_PS:
             return _get_module1_clk_src(&aw_ccu_reg->Ps);
         case AW_MOD_CLK_MTCACC:
@@ -829,7 +829,7 @@ static __s32 mod_clk_set_parent(__aw_ccu_clk_id_e id, __aw_ccu_clk_id_e parent)
         case AW_MOD_CLK_ADDA:
             return _set_module1_clk_src(&aw_ccu_reg->Adda, parent);
         case AW_MOD_CLK_AVS:
-            return _set_module1_clk_src(&aw_ccu_reg->Avs, parent);
+            return parent == AW_SYS_CLK_HOSC? 0 : -1;
         case AW_MOD_CLK_PS:
             return _set_module1_clk_src(&aw_ccu_reg->Ps, parent);
         case AW_MOD_CLK_MTCACC:
