@@ -87,6 +87,7 @@ struct mma7660_data_s {
 #endif
 } mma7660_data;
 
+static struct input_polled_dev *mma7660_idev;
 
 /* Addresses to scan */
 static union{
@@ -245,15 +246,35 @@ exit:
 	return error;
 }
 
+static ssize_t mma7660_delay_store(struct device *dev,struct device_attribute *attr,
+		const char *buf, size_t count)
+{
+   unsigned long data;
+	int error;
+
+	error = strict_strtoul(buf, 10, &data);
+	if (error)
+		return error;
+	if (data > POLL_INTERVAL_MAX)
+		data = POLL_INTERVAL_MAX;
+	mma7660_idev->poll_interval = data;
+
+	return count;
+		}
+
 static DEVICE_ATTR(enable, S_IRUGO|S_IWUSR|S_IWGRP,
 		NULL, mma7660_enable_store);
 
 static DEVICE_ATTR(value, S_IRUGO|S_IWUSR|S_IWGRP,
 		mma7660_value_show, NULL);
+		
+static DEVICE_ATTR(delay, S_IRUGO|S_IWUSR|S_IWGRP,
+		NULL, mma7660_delay_store);
 
 static struct attribute *mma7660_attributes[] = {
 	&dev_attr_value.attr,
 	&dev_attr_enable.attr,
+	&dev_attr_delay.attr,
 	NULL
 };
 
@@ -323,7 +344,7 @@ static int mma7660_init_client(struct i2c_client *client)
 	return result;
 }
 
-static struct input_polled_dev *mma7660_idev;
+
 
 static void report_abs(void)
 {
