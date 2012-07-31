@@ -648,7 +648,7 @@ typedef struct __CCMU_REG_LIST
     volatile __ccmu_module0_clk_t               GpuCore;    //0x01A0, GPU Core clock
     volatile __ccmu_module0_clk_t               GpuMem;     //0x01A4, GPU Memory clock
     volatile __ccmu_module0_clk_t               GpuHyd;     //0x01A8, GPU hyd clock
-    volatile __u32                              reserved19[17]; //0x01AC, reserved
+    volatile __u32                              reserved19[21]; //0x01AC, reserved
     volatile __ccmu_plllock_reg0200_t           PllLock;    //0x0200, pll lock time
     volatile __u32                              reserved20[47]; //0x0204, reserved
     volatile __ccmu_mod_rst_reg02c0_t           AhbReset0;  //0x02c0, AHB1 module reset register 0
