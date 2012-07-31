@@ -85,6 +85,11 @@ config SUNXI_REG
 	  To compile this driver as a module, choose M here: the
 	  module will be called sun4i-reg.
 
+config SUNXI_HW_TEST
+    tristate "Sunxi platform hardware judging"
+	help
+		a driver which use to judging this board whether belong our platform
+
 config ANDROID_PMEM
 	bool "Android pmem allocator"
 	default y
