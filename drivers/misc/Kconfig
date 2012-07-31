@@ -76,6 +76,12 @@ config SUNXI_DBGREG
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called sun4i-dbgreg.
+config SUNXI_HW_TEST
+	tristate "Sunxi platform hardware test"
+	help
+	 a driver which use to judging the hardware which belong to our
+	 platfoem
+
 
 config ANDROID_PMEM
 	bool "Android pmem allocator"

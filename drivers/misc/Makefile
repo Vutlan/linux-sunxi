@@ -53,3 +53,4 @@ obj-$(CONFIG_APANIC)		+= apanic.o
 obj-$(CONFIG_SENSORS_AK8975)	+= akm8975.o
 obj-$(CONFIG_SUN4I_VIBRATOR)	+= sun4i-vibrator.o
 obj-$(CONFIG_SUNXI_DBGREG)		+= sunxi-dbgreg.o
+obj-$(CONFIG_SUNXI_HW_TEST)      += sunxi_hw_test.o
