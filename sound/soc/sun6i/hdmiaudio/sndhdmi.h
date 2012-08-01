@@ -1,8 +1,8 @@
 /*
  * sound\soc\sun6i\hdmiaudio\sndhdmi.h
  * (C) Copyright 2010-2016
- * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
- * chenpailin <chenpailin@allwinnertech.com>
+ * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
+ * chenpailin <chenpailin@Reuuimllatech.com>
  *
  * some simple description for this code
  *

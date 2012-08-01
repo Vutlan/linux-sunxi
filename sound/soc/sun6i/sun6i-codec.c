@@ -1,8 +1,8 @@
 /*
  * sound\soc\sun6i\sun6i-codec.c
  * (C) Copyright 2010-2016
- * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
- * huangxin <huangxin@allwinnertech.com>
+ * reuuimllatech Technology Co., Ltd. <www.reuuimllatech.com>
+ * huangxin <huangxin@reuuimllatech.com>
  *
  * some simple description for this code
  *
@@ -492,7 +492,6 @@ static const struct snd_kcontrol_new codec_snd_controls[] = {
 	/*SUN6I_ADC_ACTL = 0x2c*/
 	CODEC_SINGLE("ADC Right channel en", SUN6I_MIC_CTRL,31,0x1,0),
 	CODEC_SINGLE("ADC Left channel en", SUN6I_MIC_CTRL,30,0x1,0),
-	CODEC_SINGLE("ADC Left channel en", SUN6I_MIC_CTRL,30,0x1,0),
 	CODEC_SINGLE("ADC right channel input gain ctrl", SUN6I_MIC_CTRL,27,0x7,0),
 	CODEC_SINGLE("ADC left channel input gain ctrl", SUN6I_MIC_CTRL,24,0x7,0),
 	CODEC_SINGLE("Right ADC mixer mute ctrl", SUN6I_MIC_CTRL,7,0x7f,0),
@@ -568,26 +567,24 @@ static const struct snd_kcontrol_new codec_snd_controls[] = {
 	CODEC_SINGLE("DAP Right signal-debounce time", SUN6I_ADC_DAP_VOL,0,0xf,0),
 };
 
-int __init snd_chip_codec_mixer_new(struct snd_card *card)
+int __init snd_chip_codec_mixer_new(struct sun6i_codec *chip)
 {
-	unsigned char *clnt = "codec";
+	struct snd_card *card;
 	int idx, err;
 
 	static struct snd_device_ops ops = {
   		.dev_free	=	codec_dev_free,
   	};
-  	
+  	card = chip->card;
 	for (idx = 0; idx < ARRAY_SIZE(codec_snd_controls); idx++) {
-		if ((err = snd_ctl_add(card, snd_ctl_new1(&codec_snd_controls[idx],clnt))) < 0) {
+		if ((err = snd_ctl_add(card, snd_ctl_new1(&codec_snd_controls[idx],chip))) < 0) {
 			return err;
 		}
 	}
 	
-	if ((err = snd_device_new(card, SNDRV_DEV_CODEC, clnt, &ops)) < 0) {
+	if ((err = snd_device_new(card, SNDRV_DEV_CODEC, chip, &ops)) < 0) {
 		return err;
 	}
-	
-	strcpy(card->mixername, "codec Mixer");
 	       
 	return 0;
 }
@@ -1438,75 +1435,71 @@ static int __init sun6i_codec_probe(struct platform_device *pdev)
 	card->private_free = snd_sun6i_codec_free;
 	chip->card = card;
 	chip->samplerate = AUDIO_RATE_DEFAULT;
-	
-	if ((err = snd_chip_codec_mixer_new(card)))
+
+	if ((err = snd_chip_codec_mixer_new(chip)))
 		goto nodev;
+
 	if ((err = snd_card_sun6i_codec_pcm(chip, 0)) < 0)
 	    goto nodev;
 
 	strcpy(card->driver, "sun6i-CODEC");
 	strcpy(card->shortname, "audiocodec");
 	sprintf(card->longname, "sun6i-CODEC  Audio Codec");
-
 	snd_card_set_dev(card, &pdev->dev);
-	
 	if ((err = snd_card_register(card)) == 0) {
 		printk( KERN_INFO "sun6i audio support initialized\n" );
 		platform_set_drvdata(pdev, card);
 	}else{
-      return err;
+		printk("err:%s,line:%d\n", __func__, __LINE__);
+		return err;
 	}
-
 	db = kzalloc(sizeof(*db), GFP_KERNEL);
 	if (!db)
 		return -ENOMEM;
   	/* codec_apbclk */
-	codec_apbclk = clk_get(NULL,"apb_audio_codec");
+	codec_apbclk = clk_get(NULL,"apb_adda");
 	if (-1 == clk_enable(codec_apbclk)) {
-		printk("codec_apbclk failed; \n");
+		printk("err:codec_apbclk failed; \n");
 	}
 	/* codec_pll2clk */
-	codec_pll2clk = clk_get(NULL,"audio_pll");
+	codec_pll2clk = clk_get(NULL,"sys_pll2");
 	/* codec_moduleclk */
-	codec_moduleclk = clk_get(NULL,"audio_codec");
+	codec_moduleclk = clk_get(NULL,"mod_adda");
 
 	if (clk_set_parent(codec_moduleclk, codec_pll2clk)) {
-		printk("try to set parent of codec_moduleclk to codec_pll2clk failed!\n");		
+		printk("err:try to set parent of codec_moduleclk to codec_pll2clk failed!\n");
 	}
 	if (clk_set_rate(codec_moduleclk, 24576000)) {
-		printk("set codec_moduleclk clock freq 24576000 failed!\n");
+		printk("err:set codec_moduleclk clock freq 24576000 failed!\n");
 	}
 	if (-1 == clk_enable(codec_moduleclk)){
-		printk("open codec_moduleclk failed; \n");
+		printk("err:open codec_moduleclk failed; \n");
 	}
 
 	db->codec_base_res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	db->dev = &pdev->dev;
 	if (db->codec_base_res == NULL) {
 		ret = -ENOENT;
-		printk("codec insufficient resources\n");
+		printk("err:codec insufficient resources\n");
 		goto out;
 	}
-	 /* codec address remap */
-	 db->codec_base_req = request_mem_region(db->codec_base_res->start, 0x40,
-					   pdev->name);
-	 if (db->codec_base_req == NULL) {
-		 ret = -EIO;
-		 printk("cannot claim codec address reg area\n");
-		 goto out;
+	/* codec address remap */
+	db->codec_base_req = request_mem_region(db->codec_base_res->start, 0x40, pdev->name);
+	if (db->codec_base_req == NULL) {
+		ret = -EIO;
+		printk("err:cannot claim codec address reg area\n");
+		goto out;
 	 }
-
 	 baseaddr = ioremap(db->codec_base_res->start, 0x40);
 	 if (baseaddr == NULL) {
 		 ret = -EINVAL;
 		 dev_err(db->dev,"failed to ioremap codec address reg\n");
 		 goto out;
 	 }
-
 	 kfree(db);
 	 codec_init();
 
-	 printk("sun6i Audio codec successfully loaded..\n");
+	 printk("sun6i Audio codec init end\n");
 	 return 0;
 	 out:
 		 dev_err(db->dev, "not found (%d).\n", ret);

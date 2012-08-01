@@ -1,8 +1,8 @@
 /*
  * sound\soc\sun6i\spdif\sun6i_spdma.c
  * (C) Copyright 2010-2016
- * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
- * chenpailin <chenpailin@allwinnertech.com>
+ * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
+ * chenpailin <chenpailin@Reuuimllatech.com>
  *
  * some simple description for this code
  *
@@ -12,7 +12,6 @@
  * the License, or (at your option) any later version.
  *
  */
-
 
 #include <linux/module.h>
 #include <linux/init.h>
@@ -488,9 +487,7 @@ static int sun6i_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 		case SNDRV_PCM_TRIGGER_START:
 		case SNDRV_PCM_TRIGGER_RESUME:
 		case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
-			printk("[SPDIF] playback dma trigger start, line = %d\n", __LINE__);
-			
-			/*
+     		/*
 			* start dma transfer
 			*/
 			if (0 != sw_dma_ctl(play_prtd->dma_hdl, DMA_OP_START, NULL)) {
@@ -501,8 +498,6 @@ static int sun6i_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 		case SNDRV_PCM_TRIGGER_SUSPEND:
 		case SNDRV_PCM_TRIGGER_STOP:
 		case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
-	        printk("[SPDIF] playback dma trigger stop, line = %d\n", __LINE__);
-
 			/*
 			 * stop play dma transfer
 			 */
@@ -525,8 +520,6 @@ static int sun6i_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 		case SNDRV_PCM_TRIGGER_START:
 		case SNDRV_PCM_TRIGGER_RESUME:
 		case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
-			printk("[SPDIF] capture dma trigger start, line = %d\n", __LINE__);
-
 			/*
 			* start dma transfer
 			*/
@@ -539,7 +532,6 @@ static int sun6i_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 		case SNDRV_PCM_TRIGGER_SUSPEND:
 		case SNDRV_PCM_TRIGGER_STOP:
 		case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
-	        printk("[SPDIF] capture dma trigger stop, line = %d\n", __LINE__);
 			/*
 			 * stop capture dma transfer
 			 */

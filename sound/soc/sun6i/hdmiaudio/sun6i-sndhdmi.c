@@ -1,8 +1,8 @@
 /*
  * sound\soc\sun6i\hdmiaudio\sun6i-sndhdmi.c
  * (C) Copyright 2010-2016
- * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
- * chenpailin <chenpailin@allwinnertech.com>
+ * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
+ * chenpailin <chenpailin@Reuuimllatech.com>
  *
  * some simple description for this code
  *
@@ -268,9 +268,8 @@ static int __init sun6i_sndhdmi_init(void)
 		
 	if(!sun6i_sndhdmi_device)
 		return -ENOMEM;
-			
+
 	platform_set_drvdata(sun6i_sndhdmi_device, &snd_soc_sun6i_sndhdmi);
-		
 	ret = platform_device_add(sun6i_sndhdmi_device);		
 		
 	if (ret) {			
@@ -288,6 +287,6 @@ static void __exit sun6i_sndhdmi_exit(void)
 module_init(sun6i_sndhdmi_init);
 module_exit(sun6i_sndhdmi_exit);
 
-MODULE_AUTHOR("ALL WINNER");
+MODULE_AUTHOR("chenpailin");
 MODULE_DESCRIPTION("SUN6I_SNDHDMI ALSA SoC audio driver");
 MODULE_LICENSE("GPL");

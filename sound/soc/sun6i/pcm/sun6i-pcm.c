@@ -1,8 +1,8 @@
 /*
  * sound\soc\sun6i\pcm\sun6i-pcm.c
  * (C) Copyright 2010-2016
- * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
- * chenpailin <chenpailin@allwinnertech.com>
+ * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
+ * chenpailin <chenpailin@Reuuimllatech.com>
  *
  * some simple description for this code
  *
@@ -135,8 +135,6 @@ static void sun6i_snd_txctrl_pcm(struct snd_pcm_substream *substream, int on)
 static void sun6i_snd_rxctrl_pcm(struct snd_pcm_substream *substream, int on)
 {
 	u32 reg_val;
-	//printk("Enter %s, line = %d, on = %d\n", __func__, __LINE__, on);
-
 	reg_val = readl(sun6i_pcm.regs + SUN6I_PCMRXCHSEL);
 	reg_val &= ~0x7;
 	reg_val |= SUN6I_PCMRXCHSEL_CHNUM(substream->runtime->channels);
@@ -308,9 +306,6 @@ static int sun6i_pcm_trigger(struct snd_pcm_substream *substream,
                               int cmd, struct snd_soc_dai *dai)
 {
 	int ret = 0;
-	//struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	//struct sun6i_dma_params *dma_data = 
-	//				snd_soc_dai_get_dma_data(rtd->cpu_dai, substream);
 
 	switch (cmd) {
 		case SNDRV_PCM_TRIGGER_START:
@@ -321,17 +316,6 @@ static int sun6i_pcm_trigger(struct snd_pcm_substream *substream,
 			} else {
 				sun6i_snd_txctrl_pcm(substream, 1);
 			}
-		#if 0
-			printk("[PCM] 0x01c22400+0x00 = %#x, line= %d\n", readl(0xf1c22400+0x00), __LINE__);
-			printk("[PCM] 0x01c22400+0x04 = %#x, line= %d\n", readl(0xf1c22400+0x04), __LINE__);
-			printk("[PCM] 0x01c22400+0x14 = %#x, line= %d\n", readl(0xf1c22400+0x14), __LINE__);
-			printk("[PCM] 0x01c22400+0x18 = %#x, line= %d\n", readl(0xf1c22400+0x18), __LINE__);
-			printk("[PCM] 0x01c22400+0x1c = %#x, line= %d\n", readl(0xf1c22400+0x1c), __LINE__);
-			printk("[PCM] 0x01c22400+0x20 = %#x, line= %d\n", readl(0xf1c22400+0x20), __LINE__);
-			printk("[PCM] 0x01c22400+0x2c = %#x, line= %d\n", readl(0xf1c22400+0x2c), __LINE__);
-			printk("[PCM] 0x01c22400+0x38 = %#x, line= %d\n", readl(0xf1c22400+0x38), __LINE__);
-			printk("[PCM] 0x01c22400+0x3c = %#x, line= %d\n", readl(0xf1c22400+0x3c), __LINE__);
-		#endif
 			break;
 		case SNDRV_PCM_TRIGGER_STOP:
 		case SNDRV_PCM_TRIGGER_SUSPEND:
@@ -752,18 +736,18 @@ static int __devinit sun6i_pcm_dev_probe(struct platform_device *pdev)
 		return -ENXIO;
 
 	//pcm apbclk
-	pcm_apbclk = clk_get(NULL, "apb_pcm");
+	pcm_apbclk = clk_get(NULL, "apb_i2s1");
 	if(-1 == clk_enable(pcm_apbclk)){
 		printk("pcm_apbclk failed! line = %d\n", __LINE__);
 	}
 	
-	pcm_pllx8 = clk_get(NULL, "audio_pllx8");
+	pcm_pllx8 = clk_get(NULL, "sys_pll2X8");
 	
 	//pcm pll2clk
-	pcm_pll2clk = clk_get(NULL, "audio_pll");
+	pcm_pll2clk = clk_get(NULL, "sys_pll2");
 	
 	//pcm module clk
-	pcm_moduleclk = clk_get(NULL, "pcm");
+	pcm_moduleclk = clk_get(NULL, "mod_i2s1");
 	
 	if(clk_set_parent(pcm_moduleclk, pcm_pll2clk)){
 		printk("try to set parent of pcm_moduleclk to pcm_pll2ck failed! line = %d\n",__LINE__);
@@ -851,9 +835,8 @@ static void __exit sun6i_pcm_exit(void)
 }
 module_exit(sun6i_pcm_exit);
 
-module_platform_driver(sun6i_pcm_driver);
 /* Module information */
-MODULE_AUTHOR("ALLWINNER");
+MODULE_AUTHOR("REUUIMLLA");
 MODULE_DESCRIPTION("sun6i PCM SoC Interface");
 MODULE_LICENSE("GPL");
 MODULE_ALIAS("platform:sun6i-pcm");

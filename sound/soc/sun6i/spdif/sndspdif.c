@@ -1,8 +1,8 @@
 /*
  * sound\soc\sun6i\spdif\sndspdif.c
  * (C) Copyright 2010-2016
- * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
- * chenpailin <chenpailin@allwinnertech.com>
+ * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
+ * chenpailin <chenpailin@Reuuimllatech.com>
  *
  * some simple description for this code
  *
@@ -189,7 +189,6 @@ static void __exit sndspdif_codec_exit(void)
 	}
 }
 module_exit(sndspdif_codec_exit);
-
 
 MODULE_DESCRIPTION("SNDSPDIF ALSA soc codec driver");
 MODULE_AUTHOR("chenpailin");

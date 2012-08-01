@@ -1,8 +1,8 @@
 /*
  * sound\soc\sun6i\i2s\sun6i-i2s.c
  * (C) Copyright 2010-2016
- * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
- * chenpailin <chenpailin@allwinnertech.com>
+ * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
+ * chenpailin <chenpailin@Reuuimllatech.com>
  *
  * some simple description for this code
  *
@@ -339,17 +339,6 @@ static int sun6i_i2s_trigger(struct snd_pcm_substream *substream,
 			} else {
 				sun6i_snd_txctrl_i2s(substream, 1);
 			}
-		#if 0
-			printk("[IIS] 0x01c22000+0x00 = %#x, line= %d\n", readl(0xf1c22000+0x00), __LINE__);
-			printk("[IIS] 0x01c22000+0x04 = %#x, line= %d\n", readl(0xf1c22000+0x04), __LINE__);
-			printk("[IIS] 0x01c22000+0x14 = %#x, line= %d\n", readl(0xf1c22000+0x14), __LINE__);
-			printk("[IIS] 0x01c22000+0x18 = %#x, line= %d\n", readl(0xf1c22000+0x18), __LINE__);
-			printk("[IIS] 0x01c22000+0x1c = %#x, line= %d\n", readl(0xf1c22000+0x1c), __LINE__);
-			printk("[IIS] 0x01c22000+0x20 = %#x, line= %d\n", readl(0xf1c22000+0x20), __LINE__);
-			printk("[IIS] 0x01c22000+0x2c = %#x, line= %d\n", readl(0xf1c22000+0x2c), __LINE__);
-			printk("[IIS] 0x01c22000+0x38 = %#x, line= %d\n", readl(0xf1c22000+0x38), __LINE__);
-			printk("[IIS] 0x01c22000+0x3c = %#x, line= %d\n", readl(0xf1c22000+0x3c), __LINE__);
-		#endif			
 			break;
 		case SNDRV_PCM_TRIGGER_STOP:
 		case SNDRV_PCM_TRIGGER_SUSPEND:
@@ -770,18 +759,18 @@ static int __devinit sun6i_i2s_dev_probe(struct platform_device *pdev)
 		return -ENXIO;
 
 	//i2s apbclk
-	i2s_apbclk = clk_get(NULL, "apb_i2s");
+	i2s_apbclk = clk_get(NULL, "apb_i2s0");
 	if(-1 == clk_enable(i2s_apbclk)){
 		printk("i2s_apbclk failed! line = %d\n", __LINE__);
 	}
 	
-	i2s_pllx8 = clk_get(NULL, "audio_pllx8");
+	i2s_pllx8 = clk_get(NULL, "sys_pll2X8");
 	
 	//i2s pll2clk
-	i2s_pll2clk = clk_get(NULL, "audio_pll");
+	i2s_pll2clk = clk_get(NULL, "sys_pll2");
 	
 	//i2s module clk
-	i2s_moduleclk = clk_get(NULL, "i2s");
+	i2s_moduleclk = clk_get(NULL, "mod_i2s0");
 	
 	if(clk_set_parent(i2s_moduleclk, i2s_pll2clk)){
 		printk("try to set parent of i2s_moduleclk to i2s_pll2ck failed! line = %d\n",__LINE__);
@@ -869,9 +858,8 @@ static void __exit sun6i_i2s_exit(void)
 }
 module_exit(sun6i_i2s_exit);
 
-module_platform_driver(sun6i_i2s_driver);
 /* Module information */
-MODULE_AUTHOR("ALLWINNER");
+MODULE_AUTHOR("REUUIMLLA");
 MODULE_DESCRIPTION("sun6i I2S SoC Interface");
 MODULE_LICENSE("GPL");
 MODULE_ALIAS("platform:sun6i-i2s");

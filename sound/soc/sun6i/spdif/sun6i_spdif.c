@@ -1,8 +1,8 @@
 /*
  * sound\soc\sun6i\spdif\sun6i_spdif.c
  * (C) Copyright 2010-2016
- * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
- * chenpailin <chenpailin@allwinnertech.com>
+ * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
+ * chenpailin <chenpailin@Reuuimllatech.com>
  *
  * some simple description for this code
  *
@@ -243,17 +243,6 @@ static int sun6i_spdif_trigger(struct snd_pcm_substream *substream,
 			} else {
 				sun6i_snd_txctrl(substream, 1);
 			}
-		#if 0
-			printk("[SPDIF]0x01c21000 = %#x, line = %d\n", readl(0xf1c21000+0x00), __LINE__);
-			printk("[SPDIF]0x01c21004 = %#x, line = %d\n", readl(0xf1c21000+0x04), __LINE__);
-			printk("[SPDIF]0x01c21008 = %#x, line = %d\n", readl(0xf1c21000+0x08), __LINE__);
-			printk("[SPDIF]0x01c21014 = %#x, line = %d\n", readl(0xf1c21000+0x14), __LINE__);
-			printk("[SPDIF]0x01c21018 = %#x, line = %d\n", readl(0xf1c21000+0x18), __LINE__);
-			printk("[SPDIF]0x01c2101c = %#x, line = %d\n", readl(0xf1c21000+0x1c), __LINE__);
-			printk("[SPDIF]0x01c21020 = %#x, line = %d\n", readl(0xf1c21000+0x20), __LINE__);
-			printk("[SPDIF]0x01c21024 = %#x, line = %d\n", readl(0xf1c21000+0x24), __LINE__);
-			printk("[SPDIF]0x01c21028 = %#x, line = %d\n", readl(0xf1c21000+0x28), __LINE__);
-		#endif
 			break;
 		case SNDRV_PCM_TRIGGER_STOP:
 		case SNDRV_PCM_TRIGGER_SUSPEND:
@@ -263,17 +252,6 @@ static int sun6i_spdif_trigger(struct snd_pcm_substream *substream,
 			} else {
 			  sun6i_snd_txctrl(substream, 0);
 			}
-		#if 0
-			printk("[SPDIF]0x01c21000 = %#x, line = %d\n", readl(0xf1c21000+0x00), __LINE__);
-			printk("[SPDIF]0x01c21004 = %#x, line = %d\n", readl(0xf1c21000+0x04), __LINE__);
-			printk("[SPDIF]0x01c21008 = %#x, line = %d\n", readl(0xf1c21000+0x08), __LINE__);
-			printk("[SPDIF]0x01c21014 = %#x, line = %d\n", readl(0xf1c21000+0x14), __LINE__);
-			printk("[SPDIF]0x01c21018 = %#x, line = %d\n", readl(0xf1c21000+0x18), __LINE__);
-			printk("[SPDIF]0x01c2101c = %#x, line = %d\n", readl(0xf1c21000+0x1c), __LINE__);
-			printk("[SPDIF]0x01c21020 = %#x, line = %d\n", readl(0xf1c21000+0x20), __LINE__);
-			printk("[SPDIF]0x01c21024 = %#x, line = %d\n", readl(0xf1c21000+0x24), __LINE__);
-			printk("[SPDIF]0x01c21028 = %#x, line = %d\n", readl(0xf1c21000+0x28), __LINE__);
-		#endif
 			break;
 		default:
 			ret = -EINVAL;
@@ -675,13 +653,13 @@ static int __devinit sun6i_spdif_dev_probe(struct platform_device *pdev)
 			printk("spdif_apbclk failed! line = %d\n", __LINE__);
 		}
 
-		spdif_pllx8 = clk_get(NULL, "audio_pllx8");
+		spdif_pllx8 = clk_get(NULL, "sys_pll2X8");
 
 		//spdif pll2clk
-		spdif_pll2clk = clk_get(NULL, "audio_pll");
+		spdif_pll2clk = clk_get(NULL, "sys_pll2");
 
 		//spdif module clk
-		spdif_moduleclk = clk_get(NULL, "spdif");
+		spdif_moduleclk = clk_get(NULL, "mod_spdif");
 
 		if(clk_set_parent(spdif_moduleclk, spdif_pll2clk)){
 			printk("try to set parent of spdif_moduleclk to spdif_pll2ck failed! line = %d\n",__LINE__);
@@ -770,10 +748,8 @@ static void __exit sun6i_spdif_exit(void)
 }
 module_exit(sun6i_spdif_exit);
 
-module_platform_driver(sun6i_spdif_driver);
-
 /* Module information */
-MODULE_AUTHOR("ALLWINNER");
+MODULE_AUTHOR("REUUIMLLA");
 MODULE_DESCRIPTION("sun6i SPDIF SoC Interface");
 MODULE_LICENSE("GPL");
 MODULE_ALIAS("platform:sun6i-spdif");

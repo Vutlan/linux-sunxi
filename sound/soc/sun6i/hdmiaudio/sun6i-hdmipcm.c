@@ -1,8 +1,8 @@
 /*
  * sound\soc\sun6i\hdmiaudio\sun6i-hdmipcm.c
  * (C) Copyright 2010-2016
- * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
- * chenpailin <chenpailin@allwinnertech.com>
+ * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
+ * chenpailin <chenpailin@Reuuimllatech.com>
  *
  * some simple description for this code
  *
@@ -164,7 +164,7 @@ static int sun6i_pcm_hw_params(struct snd_pcm_substream *substream,
 		prtd->play_done_cb.parg = substream;
 		/*use the full buffer callback, maybe we should use the half buffer callback?*/
 		if (0 != sw_dma_ctl(prtd->dma_hdl, DMA_OP_SET_QD_CB, (void *)&(prtd->play_done_cb))) {
-			printk("%s,line:%d\n", __func__, __LINE__);
+			printk("err:%s,line:%d\n", __func__, __LINE__);
 			sw_dma_release(prtd->dma_hdl);
 			return -EINVAL;
 		}
@@ -261,7 +261,6 @@ static int sun6i_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 	case SNDRV_PCM_TRIGGER_START:
 	case SNDRV_PCM_TRIGGER_RESUME:
 	case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
-		printk("[HDMI-AUDIO] PCM trigger start...\n");
 		if (0 != sw_dma_ctl(prtd->dma_hdl, DMA_OP_START, NULL)) {
 			printk("%s err, dma start err\n", __FUNCTION__);
 			return -EINVAL;
@@ -271,7 +270,6 @@ static int sun6i_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 	case SNDRV_PCM_TRIGGER_SUSPEND:
 	case SNDRV_PCM_TRIGGER_STOP:
 	case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
-		printk("[HDMI-AUDIO] PCM trigger stop...\n");
 		buffdone_flag = false;
 		if (0 != sw_dma_ctl(prtd->dma_hdl, DMA_OP_STOP, NULL)) {
 			printk("%s err, dma stop err\n", __FUNCTION__);
@@ -468,12 +466,14 @@ static struct platform_driver sun6i_hdmiaudio_pcm_driver = {
 
 static int __init sun6i_soc_platform_hdmiaudio_init(void)
 {
-	int err = 0;	
+	int err = 0;
+
 	if((err = platform_device_register(&sun6i_hdmiaudio_pcm_device)) < 0)
 		return err;
 
 	if ((err = platform_driver_register(&sun6i_hdmiaudio_pcm_driver)) < 0)
 		return err;
+
 	return 0;	
 }
 module_init(sun6i_soc_platform_hdmiaudio_init);

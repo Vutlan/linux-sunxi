@@ -1,8 +1,8 @@
 /*
  * sound\soc\sun6i\i2s\sun6i-i2sdma.c
  * (C) Copyright 2010-2016
- * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
- * chenpailin <chenpailin@allwinnertech.com>
+ * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
+ * chenpailin <chenpailin@Reuuimllatech.com>
  *
  * some simple description for this code
  *
@@ -485,8 +485,6 @@ static int sun6i_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 		case SNDRV_PCM_TRIGGER_START:
 		case SNDRV_PCM_TRIGGER_RESUME:
 		case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
-			printk("[IIS] playback dma trigger start, line = %d\n", __LINE__);
-			
 			/*
 			* start dma transfer
 			*/
@@ -498,8 +496,6 @@ static int sun6i_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 		case SNDRV_PCM_TRIGGER_SUSPEND:
 		case SNDRV_PCM_TRIGGER_STOP:
 		case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
-	        printk("[IIS] playback dma trigger stop, line = %d\n", __LINE__);
-
 			/*
 			 * stop play dma transfer
 			 */
@@ -522,8 +518,6 @@ static int sun6i_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 		case SNDRV_PCM_TRIGGER_START:
 		case SNDRV_PCM_TRIGGER_RESUME:
 		case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
-			printk("[IIS] capture dma trigger start, line = %d\n", __LINE__);
-
 			/*
 			* start dma transfer
 			*/
@@ -536,7 +530,6 @@ static int sun6i_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 		case SNDRV_PCM_TRIGGER_SUSPEND:
 		case SNDRV_PCM_TRIGGER_STOP:
 		case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
-	        printk("[IIS] capture dma trigger stop, line = %d\n", __LINE__);
 			/*
 			 * stop capture dma transfer
 			 */
@@ -830,7 +823,7 @@ static void __exit sun6i_soc_platform_i2s_exit(void)
 }
 module_exit(sun6i_soc_platform_i2s_exit);
 
-MODULE_AUTHOR("All winner");
+MODULE_AUTHOR("chenpailin");
 MODULE_DESCRIPTION("SUN6I I2S DMA module");
 MODULE_LICENSE("GPL");
 

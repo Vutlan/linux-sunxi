@@ -1,8 +1,8 @@
 /*
  * sound\soc\sun6i\pcm\sun6i_sndpcm.c
  * (C) Copyright 2010-2016
- * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
- * chenpailin <chenpailin@allwinnertech.com>
+ * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
+ * chenpailin <chenpailin@Reuuimllatech.com>
  *
  * some simple description for this code
  *
@@ -174,6 +174,6 @@ static void __exit sun6i_sndpcm_exit(void)
 module_init(sun6i_sndpcm_init);
 module_exit(sun6i_sndpcm_exit);
 
-MODULE_AUTHOR("ALL WINNER");
+MODULE_AUTHOR("chenpailin");
 MODULE_DESCRIPTION("SUN6I_sndpcm ALSA SoC audio driver");
 MODULE_LICENSE("GPL");

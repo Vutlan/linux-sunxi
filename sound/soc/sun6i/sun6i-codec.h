@@ -1,8 +1,8 @@
 /*
  * sound\soc\sun6i\sun6i-codec.h
  * (C) Copyright 2010-2016
- * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
- * huangxin <huangxin@allwinnertech.com>
+ * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
+ * huangxin <huangxin@reuuimllatech.com>
  *
  * some simple description for this code
  *
@@ -330,5 +330,4 @@ struct	codec_mixer_control{
 	unsigned int value;
 };
 
-extern int __init snd_chip_codec_mixer_new(struct snd_card *card);
 #endif
