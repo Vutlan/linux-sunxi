@@ -366,7 +366,18 @@ static __s64 sys_clk_get_rate(__aw_ccu_sys_clk_e id)
             }
             else
             {
-                return (__s64)3000000*aw_ccu_reg->Pll7Ctl.FactorM;
+                tmp_rate = 3000000*aw_ccu_reg->Pll7Ctl.FactorM;
+                /* skip 270M and 297M */
+                if(tmp_rate == 270000000)
+                {
+                    return 273000000;
+                }
+                else if(tmp_rate == 297000000)
+                {
+                    return 300000000;
+                }
+
+                return tmp_rate;
             }
         }
         case AW_SYS_CLK_PLL7X2:
