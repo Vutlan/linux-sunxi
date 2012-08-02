@@ -353,6 +353,8 @@ static __s64 sys_clk_get_rate(__aw_ccu_sys_clk_e id)
         }
         case AW_SYS_CLK_PLL7:
         {
+            __s64   tmp_rate;
+
             if(!aw_ccu_reg->Pll7Ctl.ModeSel)
             {
                 if(aw_ccu_reg->Pll7Ctl.FracSet)
