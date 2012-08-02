@@ -83,6 +83,34 @@ build_nand_lib()
 	fi
 }
 
+copy_nand_mod()
+{
+    cd $LICHEE_KDIR/rootfs
+
+    if [ -x "./build.sh" ]; then
+        ./build.sh e sun5i_rootfs.cpio.gz
+    else
+        echo "No such file: $LICHEE_KDIR/rootfs/build.sh"
+        exit 1
+    fi
+
+    if [ ! -d "./skel/lib/modules/$KERNEL_VERSION" ]; then
+        mkdir -p ./skel/lib/modules/$KERNEL_VERSION
+    fi
+    cp $LICHEE_MOD_DIR/nand.ko ./skel/lib/modules/$KERNEL_VERSION
+    if [ $? -ne 0 ]; then
+        echo "copy nand module error: $?"
+        exit 1
+    fi
+    if [ -f "./sun5i_rootfs.cpio.gz" ]; then
+        rm sun5i_rootfs.cpio.gz
+    fi
+    ./build.sh c sun5i_rootfs.cpio.gz
+    rm -rf skel
+
+    cd $LICHEE_KDIR
+}
+
 build_kernel()
 {
 	if [ ! -e .config ]; then
@@ -103,14 +131,6 @@ build_kernel()
 	${OBJCOPY} -R .note.gnu.build-id -S -O binary vmlinux output/bImage
 	cp -vf arch/arm/boot/[zu]Image output/
 	cp .config output/
-	cp rootfs/sun5i_rootfs.cpio.gz output/
-
-	mkbootimg --kernel output/bImage \
-			--ramdisk output/sun5i_rootfs.cpio.gz \
-			--board 'sun5i' \
-			--base 0x40000000 \
-			-o output/boot.img
-
 
 	for file in $(find drivers sound crypto block fs security net -name "*.ko"); do
 		cp $file ${LICHEE_MOD_DIR}
@@ -165,6 +185,21 @@ build_modules()
 	make -C modules/nand LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LICHEE_KDIR=${LICHEE_KDIR} \
 		CONFIG_CHIP_ID=${CONFIG_CHIP_ID} install
 	echo "build module end"
+
+    echo "copy nand module"
+    copy_nand_mod
+}
+
+build_ramfs()
+{
+    echo "build ramfs"
+	cp rootfs/sun5i_rootfs.cpio.gz output/
+
+	mkbootimg --kernel output/bImage \
+			--ramdisk output/sun5i_rootfs.cpio.gz \
+			--board 'sun5i' \
+			--base 0x40000000 \
+			-o output/boot.img
 }
 
 clean_kernel()
@@ -214,6 +249,7 @@ clean)
 all)
 	build_kernel
 	build_modules
+    build_ramfs
 	;;
 *)
 	show_help
