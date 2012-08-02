@@ -3,7 +3,7 @@
  * (C) Copyright 2007-2011
  * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
  * Aaron.Maoye <leafy.myeh@reuuimllatech.com>
- * 
+ *
  * description for this code
  *
  * This program is free software; you can redistribute it and/or
@@ -64,53 +64,54 @@ struct sunximmc_ctrl_regs {
 };
 
 struct sunxi_mmc_host {
-    
-    struct platform_device      *pdev;
-    struct mmc_host             *mmc;
-    
-    void __iomem	            *smc_base;          /* sdc I/O base address  */       
-     
-    struct resource	            *smc_base_res;      /* resources found       */
-    
-    /* clock management */
-    struct clk                  *hclk;              //
-    struct clk                  *mclk;              //
-    u32                         clk_source;         // clock, source, 0-video pll, 1-ac320 pll
-    
-    u32                         power_on;         // power save, 0-normal, 1-power save
-    u32                         power_save;         // power save, 0-normal, 1-power save
-    u32                         mod_clk;            // source clock of controller
-    u32                         cclk;               // requested card clock frequence
-    u32                         real_cclk;          // real card clock to output
-    u32                         bus_width;
-    
-    /* irq */
-    int                         irq;                // irq number
-    volatile u32				irq_flag;
-    volatile u32                sdio_int;
-    volatile u32                int_sum;
-    
-    int                         dma_no;             //dma number
-    volatile u32                dodma;              //transfer with dma mode
-    volatile u32                todma;
-    volatile u32                dma_done;           //dma complete
-    volatile u32                ahb_done;           //dma complete
-    volatile u32                dataover;           //dma complete
-    struct sunxi_mmc_idma_des*  pdes;
-    
-	u32                         pio_sgptr;
-	u32                         pio_bytes;
-	u32                         pio_count;
-	u32                         *pio_ptr;
-	u32                         pio_active;
+
+	struct platform_device	*pdev;
+	struct mmc_host		*mmc;
+
+	void __iomem		*smc_base;          /* sdc I/O base address  */
+
+	struct resource		*smc_base_res;      /* resources found       */
+
+	/* clock management */
+	struct clk		*hclk;              //
+	struct clk		*mclk;              //
+	u32			clk_source;         // clock, source, 0-video pll, 1-ac320 pll
+
+	u32			power_on;         // power save, 0-normal, 1-power save
+	u32			power_save;         // power save, 0-normal, 1-power save
+	u32			mod_clk;            // source clock of controller
+	u32			cclk;               // requested card clock frequence
+	u32			real_cclk;          // real card clock to output
+	u32			bus_width;
+
+	/* irq */
+	int			irq;                // irq number
+	volatile u32		irq_flag;
+	volatile u32		sdio_int;
+	volatile u32		int_sum;
+
+	int			dma_no;             //dma number
+	volatile u32		dodma;              //transfer with dma mode
+	volatile u32		todma;
+	volatile u32		dma_done;           //dma complete
+	volatile u32		ahb_done;           //dma complete
+	volatile u32		dataover;           //dma complete
+	dma_addr_t		sg_dma;
+	void			*sg_cpu;
+
+	u32			pio_sgptr;
+	u32			pio_bytes;
+	u32			pio_count;
+	u32			*pio_ptr;
+	u32			pio_active;
 #define XFER_NONE 0
 #define XFER_READ 1
 #define XFER_WRITE 2
-	
-    struct mmc_request	        *mrq;
-    
-    volatile u32                with_autostop;
-    volatile u32                wait;
+
+	struct mmc_request	*mrq;
+
+	volatile u32		with_autostop;
+	volatile u32		wait;
 #define SDC_WAIT_NONE           (1<<0)
 #define SDC_WAIT_CMD_DONE       (1<<1)
 #define SDC_WAIT_DATA_OVER      (1<<2)
@@ -120,27 +121,27 @@ struct sunxi_mmc_host {
 #define SDC_WAIT_ERROR          (1<<6)
 #define SDC_WAIT_FINALIZE       (1<<7)
 
-    volatile u32                error;
-    volatile u32                ferror;
-    spinlock_t		            lock;
-	struct tasklet_struct       tasklet;
-	
-    volatile u32                present;
-    volatile u32                change;
-    
-    struct timer_list           cd_timer;
-    s32                         cd_gpio;
-    s32                         cd_mode;
-    u32                         pio_hdle;
-    u32                         read_only;
-    
+	volatile u32		error;
+	volatile u32		ferror;
+	spinlock_t		lock;
+	struct tasklet_struct	tasklet;
+
+	volatile u32		present;
+	volatile u32		change;
+
+	struct timer_list	cd_timer;
+	s32			cd_gpio;
+	s32			cd_mode;
+	u32			pio_hdle;
+	u32			read_only;
+
 #ifdef CONFIG_PROC_FS
-	struct proc_dir_entry		*proc_root;
-	struct proc_dir_entry		*proc_drvver;
-	struct proc_dir_entry		*proc_hostinfo;
-	struct proc_dir_entry		*proc_dbglevel;
-	struct proc_dir_entry		*proc_regs;
-	struct proc_dir_entry		*proc_insert;
+	struct proc_dir_entry	*proc_root;
+	struct proc_dir_entry	*proc_drvver;
+	struct proc_dir_entry	*proc_hostinfo;
+	struct proc_dir_entry	*proc_dbglevel;
+	struct proc_dir_entry	*proc_regs;
+	struct proc_dir_entry	*proc_insert;
 #endif
 
 	/* backup register structrue */
@@ -149,13 +150,7 @@ struct sunxi_mmc_host {
 	u32                         gpio_suspend_ok;
 };
 
-
-static __inline void eLIBs_CleanFlushDCacheRegion(void *adr, __u32 bytes)
-{
-	__cpuc_flush_dcache_area(adr, bytes + (1 << 5) * 2 - 2);
-}
-
-#define RESSIZE(res)        (((res)->end - (res)->start)+1)
+#define RESSIZE(res) (((res)->end - (res)->start)+1)
 
 void hexdump(char* name, char* base, int len);
 void sunximmc_procfs_attach(struct sunxi_mmc_host *smc_host);

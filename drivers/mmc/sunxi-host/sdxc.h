@@ -3,9 +3,9 @@
  * (C) Copyright 2007-2011
  * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
  * Aaron.Maoye <leafy.myeh@reuuimllatech.com>
- * 
+ *
  * description for this code
- * sdxc.h - 
+ * sdxc.h -
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -144,7 +144,7 @@
 #define SDXC_CardInsert               (0x1U<<30) //0x40000000
 #define SDXC_CardRemove               (0x1U<<31) //0x80000000
 #define SDXC_IntErrBit                (SDXC_RespErr | SDXC_RespCRCErr | SDXC_DataCRCErr | SDXC_RespTimeout | SDXC_DataTimeout  \
-                                        | SDXC_FIFORunErr | SDXC_HardWLocked | SDXC_StartBitErr | SDXC_EndBitErr)  //0xbfc2
+	                                    | SDXC_FIFORunErr | SDXC_HardWLocked | SDXC_StartBitErr | SDXC_EndBitErr)  //0xbfc2
 /* status */
 #define SDXC_RXWLFlag                 (0x1U<<0)
 #define SDXC_TXWLFlag                 (0x1U<<1)
@@ -196,27 +196,27 @@
  * 这里支持最大1024个描述符，即支持单次传输的最大长度为1024*8192 = 8M数据，在传输中一次性分配
  * 描述符空间，避免多次分配使效率低下，描述符共占用1024*16 = 16K空间，传输完毕后释放
  */
-#define SDXC_DES_BUFFER_MAX_LEN       (1 << SUNXI_MMC_MAX_DMA_DES_BIT) //16bits in aw1625, 13bit in aw1623
-#define SDXC_DES_NUM_SHIFT            (SUNXI_MMC_MAX_DMA_DES_BIT)  //65536 == 1<<16; change to 16bits, 13bit used in aw1623
+#define SDXC_DES_BUFFER_MAX_LEN       (1 << (SUNXI_MMC_MAX_DMA_DES_BIT-1)) //16bits in aw1625, 13bit in aw1623
+#define SDXC_DES_NUM_SHIFT            (SUNXI_MMC_MAX_DMA_DES_BIT - 1)  //65536 == 1<<16; change to 16bits, 13bit used in aw1623
 #define SDXC_MAX_DES_NUM              (1024)
 #define SDXC_DES_MODE                 0 //0-chain mode, 1-fix length skip
 
 struct sunxi_mmc_idma_des{
-    u32                     :1,
-            dic             :1,     //disable interrupt on completion
-            last_des        :1,     //1-this data buffer is the last buffer
-            first_des       :1,     //1-data buffer is the first buffer, 0-data buffer contained in the next descriptor is the first data buffer
-            des_chain       :1,     //1-the 2nd address in the descriptor is the next descriptor address
-            end_of_ring     :1,     //1-last descriptor flag when using dual data buffer in descriptor
-                            :24,
-            card_err_sum    :1,     //transfer error flag
-            own             :1;     //des owner:1-idma owns it, 0-host owns it
+	u32                     :1,
+	        dic             :1,     //disable interrupt on completion
+	        last_des        :1,     //1-this data buffer is the last buffer
+	        first_des       :1,     //1-data buffer is the first buffer, 0-data buffer contained in the next descriptor is the first data buffer
+	        des_chain       :1,     //1-the 2nd address in the descriptor is the next descriptor address
+	        end_of_ring     :1,     //1-last descriptor flag when using dual data buffer in descriptor
+	                        :24,
+	        card_err_sum    :1,     //transfer error flag
+	        own             :1;     //des owner:1-idma owns it, 0-host owns it
 
-    u32     data_buf1_sz    :SUNXI_MMC_MAX_DMA_DES_BIT,    //change to 16bits, 13bit used in aw1623
-            data_buf2_sz    :SUNXI_MMC_MAX_DMA_DES_BIT,    //change to 16bits, 13bit used in aw1623
-                            :SUNXI_MMC_DMA_DES_BIT_LEFT;
-    u32     buf_addr_ptr1;
-    u32     buf_addr_ptr2;
+	u32     data_buf1_sz    :SUNXI_MMC_MAX_DMA_DES_BIT,    //change to 16bits, 13bit used in aw1623
+	        data_buf2_sz    :SUNXI_MMC_MAX_DMA_DES_BIT,    //change to 16bits, 13bit used in aw1623
+	                        :SUNXI_MMC_DMA_DES_BIT_LEFT;
+	u32     buf_addr_ptr1;
+	u32     buf_addr_ptr2;
 };
 
 struct sunxi_mmc_host;

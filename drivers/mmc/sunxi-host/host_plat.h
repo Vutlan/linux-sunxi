@@ -65,7 +65,7 @@ enum mclk_src {
 	SMC_MCLK_SRC_SATAPLL,
 	SMC_MCLK_SRC_DRAMPLL
 };
-#define SMC_MAX_MOD_CLOCK(n)    (104000000)
+#define SMC_MAX_MOD_CLOCK(n)    (90000000)
 #define SMC_MAX_IO_CLOCK(n)     (52000000)
 #define SMC_MOD_CLK_SRC(n)      (SMC_MCLK_SRC_SATAPLL)
 
