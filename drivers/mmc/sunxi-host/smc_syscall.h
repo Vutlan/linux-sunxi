@@ -2,7 +2,7 @@
  * drivers/mmc/sunxi-host/smc_syscall.h
  * (C) Copyright 2007-2011
  * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
- * Aaron.Maoye <leafy.myeh@Reuuimllatech.com>
+ * Aaron.Maoye <leafy.myeh@reuuimllatech.com>
  * 
  * description for this code
  *

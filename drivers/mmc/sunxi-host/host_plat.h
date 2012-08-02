@@ -2,8 +2,8 @@
  * drivers/mmc/sunxi-host/host_plat.h
  * (C) Copyright 2007-2011
  * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
- * Aaron.Maoye <leafy.myeh@Reuuimllatech.com>
- *
+ * Aaron.Maoye <leafy.myeh@reuuimllatech.com>
+ * 
  * description for this code
  *
  * This program is free software; you can redistribute it and/or
