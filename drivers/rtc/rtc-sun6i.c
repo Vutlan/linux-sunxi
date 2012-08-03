@@ -34,15 +34,15 @@
 #undef RTC_DBG
 #undef RTC_ERR
 #if (0)
-    #define RTC_DBG(format,args...)  printk("[CLKSRC] "format,##args)
-    #define RTC_ERR(format,args...)  printk("[CLKSRC] "format,##args)
+    #define RTC_DBG(format,args...)  printk("[rtc] "format,##args)
+    #define RTC_ERR(format,args...)  printk("[rtc] "format,##args)
 #else
     #define RTC_DBG(...)
     #define RTC_ERR(...)
 #endif
 
 /*Alarm 0 is a general alarm, its counter is based on second*/
-#define SW_INT_IRQNO_ALARM0					(72)
+#define SW_INT_IRQNO_ALARM0					(50)//the irq is 50 for fpga.(72)
 
 #define SW_VA_TIMERC_IO_BASE				(0xf1f00000)
 
@@ -104,11 +104,12 @@ static irqreturn_t sun6i_rtc_alarmirq(int irq, void *id)
 	struct rtc_device *rdev = id;
 	u32 val;
 	
-	RTC_DBG("%s: line:%d\n", __func__, __LINE__);
+	RTC_DBG("hx-%s: line:%d\n", __func__, __LINE__);
 
     /*judge the irq is beyond to the alarm0*/
     val = readl(sun6i_rtc_base + SUN6I_ALARM_INT_STATUS_REG)&(RTC_ENABLE_CNT_IRQ);
     if (val) {
+    	RTC_DBG("%s: line:%d\n", __func__, __LINE__);
 		/*Clear pending count alarm*/
 		val = readl(sun6i_rtc_base + SUN6I_ALARM_INT_STATUS_REG);//0x0030
 		val |= (RTC_ENABLE_CNT_IRQ);	//0x00000001
@@ -126,16 +127,15 @@ static void sun6i_rtc_setaie(int to)
 {
 	u32 alarm_irq_val;  
 	
-#ifdef RTC_ALARM_DEBUG
 	RTC_DBG("%s: aie=%d\n", __func__, to);
-#endif	   
 
-	alarm_irq_val = readl(sun6i_rtc_base + SUN6I_ALARM_EN_REG);//0x0028
+	//alarm_irq_val = readl(sun6i_rtc_base + SUN6I_ALARM_EN_REG);//0x0028
 	switch(to){		
 		case 1:
-		alarm_irq_val |= RTC_ALARM_COUNT_INT_EN;		//0x00000100
-	    writel(alarm_irq_val, sun6i_rtc_base + SUN6I_ALARM_EN_REG);//0x0028
+		alarm_irq_val = 0x00000001;		//0x00000100
+	    writel(0x00000001, sun6i_rtc_base + SUN6I_ALARM_EN_REG);//0x0028
 	    writel(0x00000001, sun6i_rtc_base + SUN6I_ALARM_CONFIG);
+	    RTC_DBG("%s,line:%d,28 reg val:%x\n", __func__, __LINE__, *(volatile int *)(0xf1f00000+0x28));
 		break;
 		case 0:
 		default:
@@ -443,9 +443,7 @@ static int sun6i_rtc_setalarm(struct device *dev, struct rtc_wkalrm *alrm)
     	return -EINVAL;
     }
 
-   	RTC_DBG("line:%d,%s year:%d, month:%d, day:%ld. hour:%ld.minute:%ld.second:%ld\n",\
-    __LINE__, __func__, tm->tm_year, tm->tm_mon,\
-    	 time_gap_day, time_gap_hour, time_gap_minute, time_gap_second);
+   	RTC_DBG("%s,line:%d,time_gap:%ld,alrm->enabled:%d\n", __func__, __LINE__, time_gap, alrm->enabled);
     RTC_DBG("*****************************\n\n");	
 	
 	/*clear the alarm counter enable bit*/
@@ -456,7 +454,7 @@ static int sun6i_rtc_setalarm(struct device *dev, struct rtc_wkalrm *alrm)
     
     /*rewrite the alarm count value!!!*/
     writel(time_gap, base + SUN6I_RTC_ALARM_COUNTER_REG);//0x0020
-	
+
     /*clear the count enable alarm irq bit*/
     writel(0x00000000, base + SUN6I_ALARM_INT_CTRL_REG);
 	alarm_en = readl(base + SUN6I_ALARM_INT_CTRL_REG);//0x002c
@@ -469,15 +467,14 @@ static int sun6i_rtc_setalarm(struct device *dev, struct rtc_wkalrm *alrm)
 	if(alrm->enabled != 1){
 		RTC_DBG("warning:the rtc counter interrupt isnot enable!!!,%s,%d\n", __func__, __LINE__);		
 	}
-	
+
 	/*decided whether we should start the counter to down count*/	
 	sun6i_rtc_setaie(alrm->enabled);
 	
 	RTC_DBG("------------------------------------------\n\n");
-	RTC_DBG("%d,10c reg val:%x\n", __LINE__, *(volatile int *)(0xf1c20c00+0x10c));
-	RTC_DBG("%d,114 reg val:%x\n", __LINE__, *(volatile int *)(0xf1c20c00+0x114));
-	RTC_DBG("%d,118 reg val:%x\n", __LINE__, *(volatile int *)(0xf1c20c00+0x118));
-	RTC_DBG("%d,11c reg val:%x\n", __LINE__, *(volatile int *)(0xf1c20c00+0x11c));
+	RTC_DBG("%d,2c reg val:%x\n", __LINE__, *(volatile int *)(0xf1f00000+0x2c));
+	RTC_DBG("%d,30 reg val:%x\n", __LINE__, *(volatile int *)(0xf1f00000+0x30));
+	RTC_DBG("%d,28 reg val:%x\n", __LINE__, *(volatile int *)(0xf1f00000+0x28));	
 	RTC_DBG("------------------------------------------\n\n");	
 
 	return 0;
@@ -565,7 +562,7 @@ static int __devinit sun6i_rtc_probe(struct platform_device *pdev)
 		return ret;
 	}
 #endif
-	
+
 	platform_set_drvdata(pdev, rtc);
 
 	/*clean the alarm count value*/
