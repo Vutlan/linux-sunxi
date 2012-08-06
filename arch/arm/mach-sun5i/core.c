@@ -145,7 +145,7 @@ static void __init sw_core_reserve(void)
 #ifdef CONFIG_SUN5I_FPGA
 #else
 	memblock_reserve(fb_start, fb_size);
-	memblock_reserve(ve_start, SZ_64M);
+	memblock_reserve(ve_start, ve_size);
 	//memblock_reserve(ve_start + SZ_64M, SZ_16M);
 
 	pr_info("Memory Reserved(in bytes):\n");
