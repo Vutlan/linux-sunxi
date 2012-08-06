@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright(c) 2007 - 2011 Realtek Corporation. All rights reserved.
+ * Copyright(c) 2007 - 2012 Realtek Corporation. All rights reserved.
  *                                        
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of version 2 of the GNU General Public License as
@@ -27,6 +27,10 @@
 #include <wlan_bssdef.h>
 #include <mlme_osdep.h>
 #include <recv_osdep.h>
+
+#ifdef CONFIG_BT_COEXIST
+#include <rtl8723a_hal.h>
+#endif
 
 struct mlme_handler mlme_sta_tbl[]={
 	{WIFI_ASSOCREQ,		"OnAssocReq",	&OnAssocReq},
@@ -243,7 +247,7 @@ static RT_CHANNEL_PLAN_MAP	RTW_ChannelPlanMap[RT_CHANNEL_DOMAIN_MAX] = {
 	{0x02,0x10},	//0x40, RT_CHANNEL_DOMAIN_FCC1_NCC2
 };
 
-static RT_CHANNEL_PLAN_MAP	RTW_CHANNEL_PLAN_MAP_REALTEK_DEFINE = {0x02,0x05};
+static RT_CHANNEL_PLAN_MAP	RTW_CHANNEL_PLAN_MAP_REALTEK_DEFINE = {0x03,0x02}; //use the conbination for max channel numbers
 
 /*
 * Test if the given @param channel_set contains the channel specified by @param channel_num
@@ -4401,7 +4405,7 @@ void issue_probereq_p2p(_adapter *padapter)
 
 	pattrib->last_txcmdsz = pattrib->pktlen;
 
-	RT_TRACE(_module_rtl871x_mlme_c_,_drv_err_,("issuing probe_req, tx_len=%d\n", pattrib->last_txcmdsz));
+	RT_TRACE(_module_rtl871x_mlme_c_,_drv_info_,("issuing probe_req, tx_len=%d\n", pattrib->last_txcmdsz));
 
 	dump_mgntframe(padapter, pmgntframe);
 
@@ -6105,7 +6109,7 @@ void issue_probereq(_adapter *padapter, NDIS_802_11_SSID *pssid, u8 blnbc)
 	int	bssrate_len = 0;
 	u8	bc_addr[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
-	RT_TRACE(_module_rtl871x_mlme_c_,_drv_err_,("+issue_probereq\n"));
+	RT_TRACE(_module_rtl871x_mlme_c_,_drv_notice_,("+issue_probereq\n"));
 
 	if ((pmgntframe = alloc_mgtxmitframe(pxmitpriv)) == NULL)
 	{
@@ -6179,7 +6183,7 @@ void issue_probereq(_adapter *padapter, NDIS_802_11_SSID *pssid, u8 blnbc)
 
 	pattrib->last_txcmdsz = pattrib->pktlen;
 
-	RT_TRACE(_module_rtl871x_mlme_c_,_drv_err_,("issuing probe_req, tx_len=%d\n", pattrib->last_txcmdsz));
+	RT_TRACE(_module_rtl871x_mlme_c_,_drv_notice_,("issuing probe_req, tx_len=%d\n", pattrib->last_txcmdsz));
 
 	dump_mgntframe(padapter, pmgntframe);
 
@@ -6747,6 +6751,16 @@ void issue_assocreq(_adapter *padapter)
 			}
 #endif
 			pmlmeinfo->HT_caps.u.HT_cap_element.HT_caps_info = cpu_to_le16(pmlmeinfo->HT_caps.u.HT_cap_element.HT_caps_info);
+
+#ifdef CONFIG_BT_COEXIST
+			if (BT_1Ant(padapter) == _TRUE)
+			{
+				// set to 8K
+				pmlmeinfo->HT_caps.u.HT_cap_element.AMPDU_para &= (u8)~IEEE80211_HT_CAP_AMPDU_FACTOR;
+//				pmlmeinfo->HT_caps.u.HT_cap_element.AMPDU_para |= MAX_AMPDU_FACTOR_8K
+			}
+#endif
+
 			pframe = rtw_set_ie(pframe, _HT_CAPABILITY_IE_, ie_len , (u8 *)(&(pmlmeinfo->HT_caps)), &(pattrib->pktlen));
 
 		}
@@ -7163,6 +7177,9 @@ void issue_action_BA(_adapter *padapter, unsigned char *raddr, unsigned char act
 	struct sta_info		*psta;
 	struct sta_priv		*pstapriv = &padapter->stapriv;
 	struct registry_priv	 	*pregpriv = &padapter->registrypriv;
+#ifdef CONFIG_BT_COEXIST
+	u8 tendaAPMac[] = {0xC8, 0x3A, 0x35};
+#endif
 
 
 	DBG_871X("%s, category=%d, action=%d, status=%d\n", __FUNCTION__, category, action, status);
@@ -7211,11 +7228,30 @@ void issue_action_BA(_adapter *padapter, unsigned char *raddr, unsigned char act
 					pmlmeinfo->dialogToken++;
 				} while (pmlmeinfo->dialogToken == 0);
 				pframe = rtw_set_fixed_ie(pframe, 1, &(pmlmeinfo->dialogToken), &(pattrib->pktlen));
-				#if defined(CONFIG_RTL8188E )&& defined (CONFIG_SDIO_HCI)
-				BA_para_set = (0x0802 | ((status & 0xf) << 2)); //immediate ack & 16 buffer size
-				#else
-				BA_para_set = (0x1002 | ((status & 0xf) << 2)); //immediate ack & 64 buffer size
-				#endif
+
+#ifdef CONFIG_BT_COEXIST
+				if ((BT_1Ant(padapter) == _TRUE) &&
+					((pmlmeinfo->assoc_AP_vendor != broadcomAP) ||
+					 (_rtw_memcmp(raddr, tendaAPMac, 3) == _FALSE)))
+				{
+					// A-MSDU NOT Supported
+					BA_para_set = 0;
+					// immediate Block Ack
+					BA_para_set |= (1 << 1) & IEEE80211_ADDBA_PARAM_POLICY_MASK;
+					// TID
+					BA_para_set |= (status << 2) & IEEE80211_ADDBA_PARAM_TID_MASK;
+					// max buffer size is 8 MSDU
+					BA_para_set |= (8 << 6) & RTW_IEEE80211_ADDBA_PARAM_BUF_SIZE_MASK;
+				}
+				else
+#endif
+				{
+					#if defined(CONFIG_RTL8188E) && defined(CONFIG_SDIO_HCI)
+					BA_para_set = (0x0802 | ((status & 0xf) << 2)); //immediate ack & 16 buffer size
+					#else
+					BA_para_set = (0x1002 | ((status & 0xf) << 2)); //immediate ack & 64 buffer size
+					#endif
+				}
 				//sys_mib.BA_para_set = 0x0802; //immediate ack & 32 buffer size
 				BA_para_set = cpu_to_le16(BA_para_set);
 				pframe = rtw_set_fixed_ie(pframe, 2, (unsigned char *)(&(BA_para_set)), &(pattrib->pktlen));
@@ -7263,7 +7299,18 @@ void issue_action_BA(_adapter *padapter, unsigned char *raddr, unsigned char act
 					BA_para_set = ((le16_to_cpu(pmlmeinfo->ADDBA_req.BA_para_set) & 0x3f) | 0x0200); //8 buffer size
 				else
 					BA_para_set = ((le16_to_cpu(pmlmeinfo->ADDBA_req.BA_para_set) & 0x3f) | 0x1000); //64 buffer size	
-				
+
+#ifdef CONFIG_BT_COEXIST
+				if ((BT_1Ant(padapter) == _TRUE) &&
+					((pmlmeinfo->assoc_AP_vendor != broadcomAP) ||
+					 (_rtw_memcmp(raddr, tendaAPMac, 3) == _FALSE)))
+				{
+					// max buffer size is 8 MSDU
+					BA_para_set &= ~RTW_IEEE80211_ADDBA_PARAM_BUF_SIZE_MASK;
+					BA_para_set |= (8 << 6) & RTW_IEEE80211_ADDBA_PARAM_BUF_SIZE_MASK;
+				}
+#endif
+
 				if(pregpriv->ampdu_amsdu==0)//disabled
 					BA_para_set = cpu_to_le16(BA_para_set & ~BIT(0));
 				else if(pregpriv->ampdu_amsdu==1)//enabled
@@ -7510,7 +7557,8 @@ unsigned int send_delba(_adapter *padapter, u8 initiator, u8 *addr)
 unsigned int send_beacon(_adapter *padapter)
 {
 	u8	bxmitok = _FALSE;
-	int	retry=0;
+	int	issue=0;
+	int poll = 0;
 //#ifdef CONFIG_CONCURRENT_MODE
 	//struct mlme_ext_priv	*pmlmeext = &(padapter->mlmeextpriv);
 	//struct mlme_ext_info	*pmlmeinfo = &(pmlmeext->mlmext_info);
@@ -7529,23 +7577,41 @@ unsigned int send_beacon(_adapter *padapter)
 #endif
 
 #if defined(CONFIG_USB_HCI) || defined(CONFIG_SDIO_HCI)
+	u32 start = rtw_get_current_time();
+
+	padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_BCN_VALID, NULL);
 	do{
-
 		issue_beacon(padapter);
+		issue++;
+		do {
+			rtw_yield_os();
+			padapter->HalFunc.GetHwRegHandler(padapter, HW_VAR_BCN_VALID, (u8 *)(&bxmitok));
+			poll++;
+		}while((poll%10)!=0 && _FALSE == bxmitok && !padapter->bSurpriseRemoved && !padapter->bDriverStopped);
 
-		padapter->HalFunc.GetHwRegHandler(padapter, HW_VAR_TX_BCN_DONE, (u8 *)(&bxmitok));
+	}while(_FALSE == bxmitok && issue<100 && !padapter->bSurpriseRemoved && !padapter->bDriverStopped);
 
-	}while((_FALSE == bxmitok) &&((retry++)<100 ));
-
-	if(retry == 100)
+	if(padapter->bSurpriseRemoved || padapter->bDriverStopped)
 	{
-		DBG_871X("send_beacon, fail!\n");
+		return _FAIL;
+	}
+	if(_FALSE == bxmitok)
+	{
+		DBG_871X("%s fail! %u ms\n", __FUNCTION__, rtw_get_passing_time_ms(start));
 		return _FAIL;
 	}
 	else
 	{
+		u32 passing_time = rtw_get_passing_time_ms(start);
+
+		if(passing_time > 100 || issue > 3)
+			DBG_871X("%s success, issue:%d, poll:%d, %u ms\n", __FUNCTION__, issue, poll, rtw_get_passing_time_ms(start));
+		//else
+		//	DBG_871X("%s success, issue:%d, poll:%d, %u ms\n", __FUNCTION__, issue, poll, rtw_get_passing_time_ms(start));
+		
 		return _SUCCESS;
 	}
+
 #endif	
 	
 }
@@ -7623,8 +7689,10 @@ void site_survey(_adapter *padapter)
 	if(survey_channel != 0)
 	{
 
-		//DBG_871X("switching to channel:%d at %dms\n", 
-		//	survey_channel, rtw_get_passing_time_ms(padapter->mlmepriv.scan_start_time)
+		//DBG_871X("switching to ch:%d at %dms, %c%c%c\n"
+		//	, survey_channel, rtw_get_passing_time_ms(padapter->mlmepriv.scan_start_time)
+		//	, ScanType?'A':'P', pmlmeext->sitesurvey_res.scan_mode?'A':'P'
+		//	, pmlmeext->sitesurvey_res.ssid[0].SsidLength?'S':' '
 		//);
 		//PAUSE 4-AC Queue when site_survey
 		//padapter->HalFunc.GetHwRegHandler(padapter, HW_VAR_TXPAUSE, (u8 *)(&val8));
@@ -7640,9 +7708,6 @@ void site_survey(_adapter *padapter)
 			SelectChannel(padapter, survey_channel);
 		}
 
-		//DBG_871X("%s scan_mode:%d, ScanType:%d%s\n", __FUNCTION__, pmlmeext->sitesurvey_res.scan_mode, ScanType
-		//	, pmlmeext->sitesurvey_res.ssid[0].SsidLength?", with ssid list":""
-		//);
 
 		if(ScanType == SCAN_ACTIVE) //obey the channel plan setting...
 		{
@@ -7923,6 +7988,11 @@ u8 collect_bss_info(_adapter *padapter, union recv_frame *precv_frame, WLAN_BSSI
 
 	if (*(p + 1))
 	{
+		if (len > NDIS_802_11_LENGTH_SSID)
+		{
+			DBG_871X("%s()-%d: IE too long (%d) for survey event\n", __FUNCTION__, __LINE__, len);
+			return _FAIL;
+		}
 		_rtw_memcpy(bssid->Ssid.Ssid, (p + 2), *(p + 1));
 		bssid->Ssid.SsidLength = *(p + 1);
 	}
@@ -7938,6 +8008,11 @@ u8 collect_bss_info(_adapter *padapter, union recv_frame *precv_frame, WLAN_BSSI
 	p = rtw_get_ie(bssid->IEs + _FIXED_IE_LENGTH_, _SUPPORTEDRATES_IE_, &len, bssid->IELength - _FIXED_IE_LENGTH_);
 	if (p != NULL)
 	{
+		if (len > NDIS_802_11_LENGTH_RATES)
+		{
+			DBG_871X("%s()-%d: IE too long (%d) for survey event\n", __FUNCTION__, __LINE__, len);
+			return _FAIL;
+		}
 		_rtw_memcpy(bssid->SupportedRates, (p + 2), len);
 		i = len;
 	}
@@ -7945,6 +8020,11 @@ u8 collect_bss_info(_adapter *padapter, union recv_frame *precv_frame, WLAN_BSSI
 	p = rtw_get_ie(bssid->IEs + _FIXED_IE_LENGTH_, _EXT_SUPPORTEDRATES_IE_, &len, bssid->IELength - _FIXED_IE_LENGTH_);
 	if (p != NULL)
 	{
+		if (len > (NDIS_802_11_LENGTH_RATES_EX-i))
+		{
+			DBG_871X("%s()-%d: IE too long (%d) for survey event\n", __FUNCTION__, __LINE__, len);
+			return _FAIL;
+		}
 		_rtw_memcpy(bssid->SupportedRates + i, (p + 2), len);
 	}
 
@@ -9953,12 +10033,8 @@ u8 sitesurvey_cmd_hdl(_adapter *padapter, u8 *pbuf)
 		}
 		else
 #endif			
-		{
-			#ifdef CONFIG_RECFG_AGC_TAB
-			initialgain = 0x1E;
-			#else
-			initialgain = 0x20;	// Changed to 0x20 for 8188E 
-			#endif
+		{			
+			initialgain = 0x1E;			
 		}
 		padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_INITIAL_GAIN, (u8 *)(&initialgain));
 		
@@ -11389,7 +11465,7 @@ static void update_BCNTIM(_adapter *padapter)
 	}
 
 
-#ifdef CONFIG_USB_HCI
+#if defined(CONFIG_USB_HCI) || defined(CONFIG_SDIO_HCI)
 	set_tx_beacon_cmd(padapter);
 #endif
 
@@ -13897,3 +13973,4 @@ u8 tdls_hdl(_adapter *padapter, unsigned char *pbuf)
 #endif //CONFIG_TDLS
 
 }
+

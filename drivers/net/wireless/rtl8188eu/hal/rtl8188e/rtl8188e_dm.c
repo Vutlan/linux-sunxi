@@ -24,7 +24,7 @@
 //
 //
 //============================================================
-#define _RTL8723A_DM_C_
+#define _RTL8188E_DM_C_
 
 //============================================================
 // include files
@@ -322,6 +322,9 @@ static void Init_ODM_ComInfo_88E(PADAPTER	Adapter)
 	else if(pHalData->rf_type == RF_1T2R){		
 		ODM_CmnInfoUpdate(pDM_Odm,ODM_CMNINFO_RF_TYPE,ODM_1T2R);		
 	}	
+
+ 	ODM_CmnInfoInit(pDM_Odm, ODM_CMNINFO_RF_ANTENNA_TYPE, pHalData->TRxAntDivType);
+	
 	#ifdef CONFIG_DISABLE_ODM
 	pdmpriv->InitODMFlag = 0;
 	#else
@@ -348,7 +351,9 @@ static void Update_ODM_ComInfo_88E(PADAPTER	Adapter)
 	pdmpriv->InitODMFlag = 0;
 	#else
 	pdmpriv->InitODMFlag =	ODM_BB_DIG				|
+#ifdef	CONFIG_ODM_REFRESH_RAMASK
 							ODM_BB_RA_MASK			|
+#endif							
 							ODM_BB_DYNAMIC_TXPWR	|
 							ODM_BB_FA_CNT			|
 							ODM_BB_RSSI_MONITOR	|
@@ -356,10 +361,11 @@ static void Update_ODM_ComInfo_88E(PADAPTER	Adapter)
 							ODM_BB_PWR_SAVE		|							
 							ODM_MAC_EDCA_TURBO	|
 							ODM_RF_CALIBRATION		|
-							ODM_RF_TX_PWR_TRACK	//|
+							ODM_RF_TX_PWR_TRACK	
 							;	
-	//if(pHalData->AntDivCfg)
-	//	pdmpriv->InitODMFlag |= ODM_BB_ANT_DIV;
+	if(pHalData->AntDivCfg)
+		pdmpriv->InitODMFlag |= ODM_BB_ANT_DIV;
+	
 	#endif	
 	ODM_CmnInfoUpdate(pDM_Odm,ODM_CMNINFO_ABILITY,pdmpriv->InitODMFlag);
 	
@@ -533,16 +539,6 @@ rtl8188e_HalDmWatchDog(
 		bFwPSAwake = _FALSE;
 #endif //CONFIG_P2P
 
-	// Stop dynamic mechanism when:
-	// 1. RF is OFF. (No need to do DM.)
-	// 2. Fw is under power saving mode for FwLPS. (Prevent from SW/FW I/O racing.)
-	// 3. IPS workitem is scheduled. (Prevent from IPS sequence to be swapped with DM.
-	//     Sometimes DM execution time is longer than 100ms such that the assertion
-	//     in MgntActSet_RF_State() called by InactivePsWorkItem will be triggered by
-	//     wating to long for RFChangeInProgress.)
-	// 4. RFChangeInProgress is TRUE. (Prevent from broken by IPS/HW/SW Rf off.)
-	// Noted by tynli. 2010.06.01.
-	//if(rfState == eRfOn)
 	if( (Adapter->hw_init_completed == _TRUE)
 		&& ((!bFwCurrentInPSMode) && bFwPSAwake))
 	{
@@ -592,38 +588,37 @@ rtl8188e_HalDmWatchDog(
 		//if(Adapter->HalFunc.TxCheckStuckHandler(Adapter))
 		//	PlatformScheduleWorkItem(&(GET_HAL_DATA(Adapter)->HalResetWorkItem));
 #endif
+		_record_initrate:
+		_func_exit_;	
+	}
 
-		{//ODM
-			struct mlme_priv	*pmlmepriv = &Adapter->mlmepriv;
-			u8	bLinked=_FALSE;
-			#ifdef CONFIG_DISABLE_ODM
-			pHalData->odmpriv.SupportAbility = 0;
-			#endif
+	//ODM
+	if (Adapter->hw_init_completed == _TRUE)
+	{
+		struct mlme_priv	*pmlmepriv = &Adapter->mlmepriv;
+		u8	bLinked=_FALSE;
+		#ifdef CONFIG_DISABLE_ODM
+		pHalData->odmpriv.SupportAbility = 0;
+		#endif
 			
-			if(	(check_fwstate(pmlmepriv, WIFI_AP_STATE) == _TRUE) ||
-				(check_fwstate(pmlmepriv, WIFI_ADHOC_STATE|WIFI_ADHOC_MASTER_STATE) == _TRUE))
-			{				
-				if(Adapter->stapriv.asoc_sta_count > 2)
-					bLinked = _TRUE;
-			}
-			else{//Station mode
-				if(check_fwstate(pmlmepriv, _FW_LINKED)== _TRUE)
-					bLinked = _TRUE;
-			}
-
-			ODM_CmnInfoUpdate(&pHalData->odmpriv ,ODM_CMNINFO_LINK, bLinked);
-
-			FindMinimumRSSI_88e(Adapter);
-			ODM_CmnInfoUpdate(&pHalData->odmpriv ,ODM_CMNINFO_RSSI_MIN, pdmpriv->MinUndecoratedPWDBForDM);
-				
-			
-			ODM_DMWatchdog(&pHalData->odmpriv);
-			
+		if(	(check_fwstate(pmlmepriv, WIFI_AP_STATE) == _TRUE) ||
+			(check_fwstate(pmlmepriv, WIFI_ADHOC_STATE|WIFI_ADHOC_MASTER_STATE) == _TRUE))
+		{				
+			if(Adapter->stapriv.asoc_sta_count > 2)
+				bLinked = _TRUE;
+		}
+		else{//Station mode
+			if(check_fwstate(pmlmepriv, _FW_LINKED)== _TRUE)
+				bLinked = _TRUE;
 		}
 
-_record_initrate:
-	_func_exit_;		
+		ODM_CmnInfoUpdate(&pHalData->odmpriv ,ODM_CMNINFO_LINK, bLinked);
 
+		FindMinimumRSSI_88e(Adapter);
+		ODM_CmnInfoUpdate(&pHalData->odmpriv ,ODM_CMNINFO_RSSI_MIN, pdmpriv->MinUndecoratedPWDBForDM);
+				
+		ODM_DMWatchdog(&pHalData->odmpriv);
+			
 	}
 
 	// Check GPIO to determine current RF on/off and Pbc status.
@@ -633,7 +628,7 @@ _record_initrate:
 #endif
 	{
 		//temp removed
-		//dm_CheckPbcGPIO(Adapter);				// Add by hpfan 2008-03-11
+		//dm_CheckPbcGPIO(Adapter);				
 	}
 	return;
 }

@@ -78,6 +78,30 @@ static void nano_standby(int instadby)
     }
 }
 
+static void nano_power(int mode, int* updown)
+{
+	if (mode) {
+		if (*updown) {
+            nano_gpio_ctrl("swl_n20_vcc_en", 1);
+            udelay(100);
+            nano_gpio_ctrl("swl_n20_shdn", 1);
+            udelay(50);
+            nano_gpio_ctrl("swl_n20_vdd_en", 1);
+            udelay(50);
+		} else {
+            nano_gpio_ctrl("swl_n20_shdn", 0);
+            nano_gpio_ctrl("swl_n20_vdd_en", 0);
+            nano_gpio_ctrl("swl_n20_vcc_en", 0);
+		}
+	} else {
+        if (nano_powerup)
+            *updown = 1;
+        else
+            *updown = 0;
+		nano_msg("sdio wifi power state: %s\n", nano_powerup ? "on" : "off");
+	}
+}
+
 void nano_wifi_gpio_init(void)
 {
     struct mmc_pm_ops *ops = &mmc_card_pm_ops;
@@ -86,4 +110,5 @@ void nano_wifi_gpio_init(void)
     ops->gpio_ctrl = nano_gpio_ctrl;
     ops->get_io_val = nano_get_io_value;
     ops->standby = nano_standby;
+    ops->power = nano_power;
 }

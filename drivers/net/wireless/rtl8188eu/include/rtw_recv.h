@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright(c) 2007 - 2011 Realtek Corporation. All rights reserved.
+ * Copyright(c) 2007 - 2012 Realtek Corporation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of version 2 of the GNU General Public License as
@@ -143,11 +143,15 @@ struct rx_pkt_attrib	{
 	u8	crc_err;
 	u8	icv_err;
 
+	u16 eth_type;
+
 	u8 	dst[ETH_ALEN];
 	u8 	src[ETH_ALEN];
 	u8 	ta[ETH_ALEN];
 	u8 	ra[ETH_ALEN];
 	u8 	bssid[ETH_ALEN];
+	
+	u8 ack_policy;
 	
 //#ifdef CONFIG_TCP_CSUM_OFFLOAD_RX
 	u8	tcpchk_valid; // 0: invalid, 1: valid

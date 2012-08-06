@@ -1,12 +1,11 @@
 
 /*
- * USI wm-bn-bm-01-5(bcm4329) sdio wifi power management API
- * gpio define
- * apm_6981_vcc_en         = port:PA09<1><default><default><0>
- * apm_6981_vdd_en         = port:PA10<1><default><default><0>
- * apm_6981_wakeup         = port:PA11<1><default><default><0>
- * apm_6981_rst_n          = port:PA12<1><default><default><0>
- * apm_6981_pwd_n          = port:PA13<1><default><default><0>
+ *; 4 - apm sdio wifi gpio config
+ *;apm_6981_vcc_en         = port:PA01<1><default><default><0>
+ *;apm_6981_vdd_en         = port:PA02<1><default><default><0>
+ *;apm_6981_wakeup         = port:PA03<1><default><default><0>
+ *;apm_6981_rst_n          = port:PA04<1><default><default><0>
+ *;apm_6981_pwd_n          = port:PA05<1><default><default><0>
  */
 #include <linux/kernel.h>
 #include <linux/module.h>

@@ -1541,6 +1541,18 @@ static void CardDisableRTL8188ESdio(PADAPTER padapter)
 	rtw_write8(padapter, REG_RSV_CTRL+1, u1bTmp);
 */
 
+#if 1
+	// For Power Consumption.
+	u1bTmp = rtw_read8(padapter, GPIO_IN);
+	rtw_write8(padapter, GPIO_OUT, u1bTmp);
+	rtw_write8(padapter, GPIO_IO_SEL, 0xFF);//Reg0x46
+
+	u1bTmp = rtw_read8(padapter, REG_GPIO_IO_SEL);
+	rtw_write8(padapter, REG_GPIO_IO_SEL, (u1bTmp<<4)|u1bTmp);
+	u1bTmp = rtw_read8(padapter, REG_GPIO_IO_SEL+1);
+	rtw_write8(padapter, REG_GPIO_IO_SEL+1, u1bTmp|0x0F);//Reg0x43
+#endif
+
 	// RSV_CTRL 0x1C[7:0]=0x0E
 	// lock ISO/CLK/Power control register
 	rtw_write8(padapter, REG_RSV_CTRL, 0x0E);
@@ -1748,7 +1760,7 @@ readAdapterInfo(
 	Hal_ReadPowerSavingMode88E(padapter, hwinfo, pEEPROM->bautoload_fail_flag);	
 	Hal_ReadTxPowerInfo88E(padapter, hwinfo, pEEPROM->bautoload_fail_flag);	
 	Hal_EfuseParseEEPROMVer88E(padapter, hwinfo, pEEPROM->bautoload_fail_flag);
-	Hal_EfuseParseChnlPlan88E(padapter, hwinfo, pEEPROM->bautoload_fail_flag);
+	rtl8188e_EfuseParseChnlPlan(padapter, hwinfo, pEEPROM->bautoload_fail_flag);
 	Hal_EfuseParseXtal_8188E(padapter, hwinfo, pEEPROM->bautoload_fail_flag);
 	Hal_EfuseParseCustomerID88E(padapter, hwinfo, pEEPROM->bautoload_fail_flag);	
 	//Hal_ReadAntennaDiversity88E(padapter, hwinfo, pEEPROM->bautoload_fail_flag);	
@@ -2493,20 +2505,28 @@ _func_enter_;
 			}
 			break;
 #endif
-#ifdef CONFIG_ANTENNA_DIVERSITY
 
+#ifdef CONFIG_SW_ANTENNA_DIVERSITY
 		case HW_VAR_ANTENNA_DIVERSITY_LINK:
 			//SwAntDivRestAfterLink8192C(Adapter);
 			ODM_SwAntDivRestAfterLink(podmpriv);
 			break;
+#endif
+#ifdef CONFIG_ANTENNA_DIVERSITY
 		case HW_VAR_ANTENNA_DIVERSITY_SELECT:
 			{
 				u8	Optimum_antenna = (*(u8 *)val);
-
+				u8 	Ant ; 
+				//switch antenna to Optimum_antenna
 				//DBG_8192C("==> HW_VAR_ANTENNA_DIVERSITY_SELECT , Ant_(%s)\n",(Optimum_antenna==2)?"A":"B");
-
-				//PHY_SetBBReg(Adapter, rFPGA0_XA_RFInterfaceOE, 0x300, Optimum_antenna);
-				ODM_SetAntenna(podmpriv,Optimum_antenna);
+				if(pHalData->CurAntenna !=  Optimum_antenna)		
+				{					
+					Ant = (Optimum_antenna==2)?MAIN_ANT:AUX_ANT;
+					ODM_UpdateRxIdleAnt_88E(&pHalData->odmpriv, Ant);
+					
+					pHalData->CurAntenna = Optimum_antenna ;
+					//DBG_8192C("==> HW_VAR_ANTENNA_DIVERSITY_SELECT , Ant_(%s)\n",(Optimum_antenna==2)?"A":"B");
+				}
 			}
 			break;
 #endif
@@ -2562,11 +2582,10 @@ _func_enter_;
 				rtl8188e_set_FwMediaStatus_cmd(Adapter , (*(u16 *)val));
 			}
 			break;
-#ifdef CONFIG_RECFG_AGC_TAB
-		case HW_VAR_LPS_RF_ON_RECFG_AGC:
-			rtl8188e_recfg_agc_tab(Adapter);
+		case HW_VAR_BCN_VALID:
+			//BCN_VALID, BIT16 of REG_TDECTRL = BIT0 of REG_TDECTRL+2, write 1 to clear, Clear by sw
+			rtw_write8(Adapter, REG_TDECTRL+2, rtw_read8(Adapter, REG_TDECTRL+2) | BIT0); 
 			break;
-#endif	/* CONFIG_RECFG_AGC_TAB */
 		default:
 			
 			break;
@@ -2591,15 +2610,9 @@ _func_enter_;
 			val[0] = rtw_read8(padapter, REG_TXPAUSE);
 			break;
 
-		case HW_VAR_TX_BCN_DONE:
-			{
-				u32 xmitbcnDown;
-				xmitbcnDown= rtw_read32(padapter, REG_TDECTRL);
-				if (xmitbcnDown & BCN_VALID) {
-					rtw_write32(padapter, REG_TDECTRL, xmitbcnDown | BCN_VALID); // write 1 to clear, Clear by sw
-					val[0] = _TRUE;
-				}
-			}
+		case HW_VAR_BCN_VALID:
+			//BCN_VALID, BIT16 of REG_TDECTRL = BIT0 of REG_TDECTRL+2
+			val[0] = (BIT0 & rtw_read8(padapter, REG_TDECTRL+2))?_TRUE:_FALSE;
 			break;
 
 		case HW_VAR_DM_FLAG:
@@ -2684,13 +2697,13 @@ GetHalDefVar8188ESDIO(
 			break;
 		case HAL_DEF_IS_SUPPORT_ANT_DIV:
 			#ifdef CONFIG_ANTENNA_DIVERSITY
-			*((u8 *)pValue) = (IS_92C_SERIAL(pHalData->VersionID) ||(pHalData->AntDivCfg==0))?_FALSE:_TRUE;
+			*((u8 *)pValue) = (pHalData->AntDivCfg==0)?_FALSE:_TRUE;
 			#endif
 			break;
 		case HAL_DEF_CURRENT_ANTENNA:
-			#ifdef CONFIG_ANTENNA_DIVERSITY
+#ifdef CONFIG_ANTENNA_DIVERSITY
 			*(( u8*)pValue) = pHalData->CurAntenna;
-			#endif
+#endif
 			break;
 		case HAL_DEF_DBG_DM_FUNC:
 			*(( u32*)pValue) =pHalData->odmpriv.SupportAbility;
@@ -2827,12 +2840,12 @@ SetHalDefVar8188ESDIO(
 	return bResult;
 }
 
-void UpdateHalRAMask8188ESdio(PADAPTER padapter, u32 mac_id)
+void UpdateHalRAMask8188ESdio(PADAPTER padapter, u32 mac_id, u8 rssi_level)
 {
 	//volatile unsigned int result;
 	u8	init_rate=0;
 	u8	networkType, raid;	
-	u32	mask;
+	u32	mask,rate_bitmap;
 	u8	shortGIrate = _FALSE;
 	int	supportRateNum = 0;
 	struct sta_info	*psta;
@@ -2899,7 +2912,16 @@ void UpdateHalRAMask8188ESdio(PADAPTER padapter, u32 mac_id)
 			break;
 	}
 	
-	mask &=0xffffffff;
+	//mask &=0xffffffff;
+	rate_bitmap = 0xffffffff;	
+#ifdef	CONFIG_ODM_REFRESH_RAMASK
+	{				
+		rate_bitmap = ODM_Get_Rate_Bitmap(&pHalData->odmpriv,mask,rssi_level);
+		printk("%s => mac_id:%d, networkType:0x%02x, mask:0x%08x\n\t ==> rssi_level:%d, rate_bitmap:0x%08x\n",
+			__FUNCTION__,mac_id,networkType,mask,rssi_level,rate_bitmap);
+	}
+#endif
+	mask &= rate_bitmap; 
 	
 	
 	init_rate = get_highest_rate_idx(mask)&0x3f;

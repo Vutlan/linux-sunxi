@@ -1050,3 +1050,4 @@ void Hal_SetContinuousTx(PADAPTER pAdapter, u8 bStart)
 }
 
 #endif // CONFIG_MP_INCLUDE
+

@@ -277,7 +277,7 @@ void fill_txdesc_phy(struct pkt_attrib *pattrib, u32 *pdw)
 #ifdef INTEGRATE_FILL_TX_DESC
 static s32 update_txdesc(struct xmit_frame *pxmitframe, u8 *pmem, s32 sz ,u8 bagg_pkt)
 {	
-        int	pull=0;
+      int	pull=0;
 	uint	qsel;
 	u8 data_rate,pwr_status,offset;
 	_adapter			*padapter = pxmitframe->padapter;
@@ -324,7 +324,9 @@ static s32 update_txdesc(struct xmit_frame *pxmitframe, u8 *pmem, s32 sz ,u8 bag
 
 #ifndef CONFIG_USE_USB_BUFFER_ALLOC_TX
 	if(!bagg_pkt){
-	if(pull && (pxmitframe->pkt_offset>0)) 	pxmitframe->pkt_offset = pxmitframe->pkt_offset -1;		
+		if((pull) && (pxmitframe->pkt_offset>0)) {	
+			pxmitframe->pkt_offset = pxmitframe->pkt_offset -1;		
+		}
 	}
 #endif
 	//printk("%s, pkt_offset=0x%02x\n",__FUNCTION__,pxmitframe->pkt_offset);
@@ -459,7 +461,8 @@ static s32 update_txdesc(struct xmit_frame *pxmitframe, u8 *pmem, s32 sz ,u8 bag
 			ptxdesc->txdw7 = (1 << 31) | (ip_hdr_offset << 16);
 			DBG_8192C("ptxdesc->txdw7 = %08x\n", ptxdesc->txdw7);
 		}
-#endif
+#endif	
+
 	}
 	else if((pxmitframe->frame_tag&0x0f)== MGNT_FRAMETAG)
 	{
@@ -551,6 +554,10 @@ static s32 update_txdesc(struct xmit_frame *pxmitframe, u8 *pmem, s32 sz ,u8 bag
 		
 	}
 
+#ifdef CONFIG_HW_ANTENNA_DIVERSITY //CONFIG_ANTENNA_DIVERSITY 
+	ODM_SetTxAntByTxInfo_88E(&pHalData->odmpriv, pmem, pattrib->mac_id);
+#endif
+	
 	rtl8188eu_cal_txdesc_chksum(ptxdesc);
 	_dbg_dump_tx_info(padapter,pxmitframe->frame_tag,ptxdesc);	
 	return pull;
@@ -1092,9 +1099,9 @@ static void _rtw_dump_xframe(_adapter *padapter, struct xmit_frame *pxmitframe, 
 		{
 			sz = pattrib->last_txcmdsz;
 		}
-                #ifdef INTEGRATE_FILL_TX_DESC
-                pull = update_txdesc(pxmitframe, mem_addr, sz,_FALSE);
-                #else 
+            	#ifdef INTEGRATE_FILL_TX_DESC
+            	pull = update_txdesc(pxmitframe, mem_addr, sz,_FALSE);
+             #else 
 		pull = update_txdesc(pxmitframe, mem_addr, sz);
 		#endif
 		if(pull)
@@ -1323,7 +1330,7 @@ s32 rtl8188eu_xmitframe_complete(_adapter *padapter, struct xmit_priv *pxmitpriv
 		pxmitframe = LIST_CONTAINOR(xmitframe_plist, struct xmit_frame, list);
 		xmitframe_plist = get_next(xmitframe_plist);
 
-               	pxmitframe->agg_num = 0; // not first frame of aggregation
+             pxmitframe->agg_num = 0; // not first frame of aggregation
 		#ifdef CONFIG_TX_EARLY_MODE
 		pxmitframe->pkt_offset = 1;// not first frame of aggregation,reserve offset for EM Info
 		#else
@@ -1336,6 +1343,8 @@ s32 rtl8188eu_xmitframe_complete(_adapter *padapter, struct xmit_priv *pxmitpriv
 		//if (_RND8(pbuf + len) > (MAX_XMITBUF_SZ/2))//to do : for TX TP finial tune , Georgia 2012-0323
 		{
 			//printk("%s....len> MAX_XMITBUF_SZ\n",__FUNCTION__);
+			pxmitframe->agg_num = 1;
+			pxmitframe->pkt_offset = 1;			
 			break;		
 		}
 		rtw_list_delete(&pxmitframe->list);

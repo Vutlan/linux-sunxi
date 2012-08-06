@@ -259,7 +259,7 @@ struct sta_info {
 	u8		bValid;				// record the sta status link or not?
 	//u8		WirelessMode;		// 
 	u8		IOTPeer;			// Enum value.	HT_IOT_PEER_E
-
+	u8		rssi_level;			//for Refresh RA mask
 	// ODM Write
 	//1 PHY_STATUS_INFO
 	u8		RSSI_Path[4];		// 
@@ -373,3 +373,4 @@ extern struct sta_info* rtw_get_bcmc_stainfo(_adapter* padapter);
 extern u8 rtw_access_ctrl(struct wlan_acl_pool* pacl_list, u8 * mac_addr);
 
 #endif //_STA_INFO_H_
+

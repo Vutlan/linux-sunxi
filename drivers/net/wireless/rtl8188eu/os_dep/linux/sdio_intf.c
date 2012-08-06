@@ -96,7 +96,7 @@ _func_enter_;
 
 	RT_TRACE(_module_hci_intfs_c_, _drv_notice_, ("+sdio_init\n"));
 	if (padapter == NULL) {
-		DBG_871X(KERN_ERR "%s: padapter is NULL!\n", __func__);
+		printk(KERN_ERR "%s: padapter is NULL!\n", __func__);
 		err = -1;
 		goto exit;
 	}
@@ -110,18 +110,24 @@ _func_enter_;
 
 	err = sdio_enable_func(func);
 	if (err) {
-		DBG_871X(KERN_CRIT "%s: sdio_enable_func FAIL(%d)!\n", __func__, err);
+		printk(KERN_CRIT "%s: sdio_enable_func FAIL(%d)!\n", __func__, err);
 		goto release;
 	}
 
 	err = sdio_set_block_size(func, 512);
 	if (err) {
-		DBG_871X(KERN_CRIT "%s: sdio_set_block_size FAIL(%d)!\n", __func__, err);
+		printk(KERN_CRIT "%s: sdio_set_block_size FAIL(%d)!\n", __func__, err);
 		goto release;
 	}
 	psdio_data->block_transfer_len = 512;
 	psdio_data->tx_block_mode = 1;
 	psdio_data->rx_block_mode = 1;
+
+	err = sdio_claim_irq(func, &sd_sync_int_hdl);
+	if (err) {
+		printk(KERN_CRIT "%s: sdio_claim_irq FAIL(%d)!\n", __func__, err);
+		goto release;
+	}
 
 release:
 	sdio_release_host(func);
@@ -142,7 +148,10 @@ static void sdio_deinit(PADAPTER padapter)
 
 	RT_TRACE(_module_hci_intfs_c_, _drv_notice_, ("+sdio_deinit\n"));
 
-	if (padapter == NULL) return;
+	if (padapter == NULL) {
+		printk(KERN_ERR "%s: padapter is NULL!\n", __func__);
+		return;
+	}
 	psddev = &padapter->dvobjpriv;
 	func = psddev->intf_data.func;
 
@@ -150,7 +159,10 @@ static void sdio_deinit(PADAPTER padapter)
 		sdio_claim_host(func);
 		err = sdio_disable_func(func);
 		if (err)
-			DBG_871X(KERN_ERR "%s: sdio_disable_func(%d)\n", __func__, err);
+			printk(KERN_ERR "%s: sdio_disable_func(%d)\n", __func__, err);
+		err = sdio_release_irq(func);
+		if (err)
+			printk(KERN_ERR "%s: sdio_release_irq(%d)\n", __func__, err);
 		sdio_release_host(func);
 	}
 }
@@ -203,80 +215,32 @@ static void decide_chip_type_by_device_id(PADAPTER padapter, u32 id)
 
 static void sd_intf_start(PADAPTER padapter)
 {
-	struct dvobj_priv *psddev;
-	struct sdio_func *func;
-	int err;
-
-	if (padapter == NULL) goto exit;
-	
-	psddev = &padapter->dvobjpriv;
-	func = psddev->intf_data.func;
-
-	//os/intf dep
-	if (func) {		
-		sdio_claim_host(func);
-
-		//according to practice, this is needed...
-		err = sdio_set_block_size(func, 512);
-		if (err) {
-			DBG_871X(KERN_CRIT "%s: sdio_set_block_size FAIL(%d)!\n", __func__, err);
-			goto release_host;
-		}	
-		err = sdio_claim_irq(func, &sd_sync_int_hdl);
-		if (err) {
-			DBG_871X(KERN_CRIT "%s: sdio_claim_irq FAIL(%d)!\n", __func__, err);
-			goto release_host;
-		}
-	
-release_host:
-		sdio_release_host(func);
+	if (padapter == NULL) {
+		printk(KERN_ERR "%s: padapter is NULL!\n", __func__);
+		return;
 	}
 
 	//hal dep
 	if (padapter->HalFunc.enable_interrupt)
 		padapter->HalFunc.enable_interrupt(padapter);
 	else {
-		DBG_871X("%s HalFunc.enable_interrupt is %p\n", __FUNCTION__, padapter->HalFunc.enable_interrupt);
-		goto exit;
+		DBG_871X("%s: HalFunc.enable_interrupt is NULL!\n", __FUNCTION__);
 	}
-
-exit:
-	return;
 }
 
 static void sd_intf_stop(PADAPTER padapter)
 {
-	struct dvobj_priv *psddev;
-	struct sdio_func *func;
-	int err;
+	if (padapter == NULL) {
+		printk(KERN_ERR "%s: padapter is NULL!\n", __func__);
+		return;
+	}
 
-	if (padapter == NULL) goto exit;
-	
-	psddev = &padapter->dvobjpriv;
-	func = psddev->intf_data.func;
-
-	//hal dep
+	// hal dep
 	if (padapter->HalFunc.disable_interrupt)
 		padapter->HalFunc.disable_interrupt(padapter);
-	else
-	{
-		DBG_871X("%s HalFunc.disable_interrupt is %p\n", __FUNCTION__, padapter->HalFunc.disable_interrupt);
-		goto exit;
+	else {
+		DBG_871X("%s: HalFunc.disable_interrupt is NULL!\n", __FUNCTION__);
 	}
-
-	//os/intf dep
-	if (func) {
-		sdio_claim_host(func);
-
-		err = sdio_release_irq(func);
-		if (err)
-			DBG_871X(KERN_ERR "%s: sdio_release_irq(%d)\n", __func__, err);
-
-		sdio_release_host(func);
-	}
-
-exit:
-	return;
 }
 
 extern char* ifname;
@@ -337,7 +301,7 @@ static int rtw_drv_init(
 	//3 4. interface init
 	if (sdio_init(padapter) != _SUCCESS) {
 		RT_TRACE(_module_hci_intfs_c_, _drv_err_,
-			 ("rtw_drv_init: initialize device object priv Failed!\n"));
+			 ("%s: initialize SDIO Failed!\n", __FUNCTION__));
 		goto error;
 	}
 
@@ -567,7 +531,7 @@ _func_enter_;
 
 	// interface deinit
 	sdio_deinit(padapter);
-	RT_TRACE(_module_hci_intfs_c_, _drv_notice_, ("rtw_dev_remove: deinit intf complete!\n"));
+	RT_TRACE(_module_hci_intfs_c_, _drv_notice_, ("rtw_dev_remove: deinit SDIO complete!\n"));
 
 	rtw_free_drv_sw(padapter);
 
@@ -653,6 +617,10 @@ static int rtw_sdio_suspend(struct device *dev)
 	if(check_fwstate(pmlmepriv, _FW_UNDER_LINKING))
 		rtw_indicate_disconnect(padapter);
 
+	// interface deinit
+	sdio_deinit(padapter);
+	RT_TRACE(_module_hci_intfs_c_, _drv_notice_, ("%s: deinit SDIO complete!\n", __FUNCTION__));
+
 exit:
 	DBG_871X("<===  %s return %d.............. in %dms\n", __FUNCTION__
 		, ret, rtw_get_passing_time_ms(start_time));
@@ -675,14 +643,22 @@ int rtw_resume_process(_adapter *padapter)
 
 	DBG_871X("==> %s (%s:%d)\n",__FUNCTION__, current->comm, current->pid);
 
-	if(padapter) {
-		pnetdev= padapter->pnetdev;
+	if (padapter) {
+		pnetdev = padapter->pnetdev;
 		pwrpriv = &padapter->pwrctrlpriv;
 	} else {
-		ret =-1;
+		ret = -1;
 		goto exit;
 	}
-	
+
+	// interface init
+	if (sdio_init(padapter) != _SUCCESS)
+	{
+		ret = -1;
+		RT_TRACE(_module_hci_intfs_c_, _drv_err_, ("%s: initialize SDIO Failed!!\n", __FUNCTION__));
+		goto exit;
+	}
+
 	rtw_reset_drv_sw(padapter);
 	pwrpriv->bkeepfwalive = _FALSE;
 
@@ -701,6 +677,9 @@ int rtw_resume_process(_adapter *padapter)
 	}	
 
 	#ifdef CONFIG_LAYER2_ROAMING_RESUME
+	#if 1 // workaround for Reuuimlla resume issue
+	rtw_msleep_os(50);
+	#endif
 	rtw_roaming(padapter, NULL);
 	#endif	
 	
@@ -765,6 +744,10 @@ static drv_priv drvpriv = {
 	#endif
 };
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24)) 
+extern int console_suspend_enabled;
+#endif
+
 static int __init rtw_drv_entry(void)
 {
 	int ret;
@@ -772,7 +755,13 @@ static int __init rtw_drv_entry(void)
 
 //	DBG_871X(KERN_INFO "+%s", __func__);
 	RT_TRACE(_module_hci_intfs_c_, _drv_notice_, ("+rtw_drv_entry\n"));
-	DBG_871X(KERN_NOTICE DRV_NAME " driver version " DRIVERVERSION "\n");
+
+	DBG_871X(DRV_NAME " driver version=%s\n", DRIVERVERSION);
+	DBG_871X("build time: %s %s\n", __DATE__, __TIME__);
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24)) 
+	//console_suspend_enabled=0;
+#endif
 	
 	rtw_suspend_lock_init();
 
@@ -816,3 +805,4 @@ static void __exit rtw_drv_halt(void)
 
 module_init(rtw_drv_entry);
 module_exit(rtw_drv_halt);
+

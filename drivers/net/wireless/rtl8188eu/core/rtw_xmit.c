@@ -275,7 +275,7 @@ _func_enter_;
 #endif
 
 		rtw_list_insert_tail(&pxmitbuf->list, &(pxmitpriv->free_xmit_extbuf_queue.queue));
-		#ifdef DBG_XMIT_BUF
+		#ifdef DBG_XMIT_BUF_EXT
 		pxmitbuf->no=i;
 		#endif
 		pxmitbuf++;
@@ -761,7 +761,7 @@ static s32 update_attrib(_adapter *padapter, _pkt *pkt, struct pkt_attrib *pattr
 		{
 			RT_TRACE(_module_rtl871x_xmit_c_,_drv_err_,("\npsta->ieee8021x_blocked == _TRUE,  pattrib->ether_type(%.4x) != 0x888e\n",pattrib->ether_type));
 			#ifdef DBG_TX_DROP_FRAME
-			DBG_871X("DBG_TX_DROP_FRAME %s psta->ieee8021x_blocked == _TRUE,  pattrib->ether_type(%.4x) != 0x888e\n", __FUNCTION__,pattrib->ether_type);
+			DBG_871X("DBG_TX_DROP_FRAME %s psta->ieee8021x_blocked == _TRUE,  pattrib->ether_type(%04x) != 0x888e\n", __FUNCTION__,pattrib->ether_type);
 			#endif
 			res = _FAIL;
 			goto exit;
@@ -2649,12 +2649,13 @@ _func_enter_;
 	if (pxmitbuf !=  NULL)
 	{
 		pxmitpriv->free_xmit_extbuf_cnt--;
-		#ifdef DBG_XMIT_BUF
-		DBG_871X("DBG_XMIT_BUF ALLOC no=%d,  free_xmit_extbuf_cnt=%d\n",pxmitbuf->no, pxmitpriv->free_xmit_extbuf_cnt);
+		#ifdef DBG_XMIT_BUF_EXT
+		DBG_871X("DBG_XMIT_BUF_EXT ALLOC no=%d,  free_xmit_extbuf_cnt=%d\n",pxmitbuf->no, pxmitpriv->free_xmit_extbuf_cnt);
 		#endif
 		
 	
 		pxmitbuf->priv_data = NULL;
+		//pxmitbuf->ext_tag = _TRUE;
 
 #ifdef CONFIG_SDIO_HCI
 		pxmitbuf->len = 0;
@@ -2690,8 +2691,8 @@ _func_enter_;
 
 	rtw_list_insert_tail(&(pxmitbuf->list), get_list_head(pfree_queue));
 	pxmitpriv->free_xmit_extbuf_cnt++;
-	#ifdef DBG_XMIT_BUF
-	DBG_871X("DBG_XMIT_BUF FREE no=%d, free_xmit_extbuf_cnt=%d\n",pxmitbuf->no ,pxmitpriv->free_xmit_extbuf_cnt);
+	#ifdef DBG_XMIT_BUF_EXT
+	DBG_871X("DBG_XMIT_BUF_EXT FREE no=%d, free_xmit_extbuf_cnt=%d\n",pxmitbuf->no ,pxmitpriv->free_xmit_extbuf_cnt);
 	#endif
 
 	_exit_critical(&pfree_queue->lock, &irqL);
@@ -2736,7 +2737,7 @@ _func_enter_;
 		//DBG_871X("alloc, free_xmitbuf_cnt=%d\n", pxmitpriv->free_xmitbuf_cnt);
 
 		pxmitbuf->priv_data = NULL;
-
+		//pxmitbuf->ext_tag = _FALSE;
 #ifdef CONFIG_SDIO_HCI
 		pxmitbuf->len = 0;
 		pxmitbuf->pdata = pxmitbuf->ptail = pxmitbuf->phead;
@@ -3645,9 +3646,9 @@ s32 rtw_xmit(_adapter *padapter, _pkt **ppkt)
 	res = update_attrib(padapter, *ppkt, &pxmitframe->attrib);
 	if (res == _FAIL) {
 		RT_TRACE(_module_xmit_osdep_c_, _drv_err_, ("rtw_xmit: update attrib fail\n"));
-		//#ifdef DBG_TX_DROP_FRAME
+		#ifdef DBG_TX_DROP_FRAME
 		DBG_871X("DBG_TX_DROP_FRAME %s update attrib fail\n", __FUNCTION__);
-		//#endif
+		#endif
 		rtw_free_xmitframe(pxmitpriv, pxmitframe);
 		return -1;
 	}

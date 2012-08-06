@@ -89,28 +89,28 @@ unsigned char networktype_to_raid(unsigned char network_type)
 	switch(network_type)
 	{
 		case WIRELESS_11B:
-			raid = 6;
+			raid = RATR_INX_WIRELESS_B;
 			break;
 		case WIRELESS_11A:
 		case WIRELESS_11G:
-			raid = 5;
+			raid = RATR_INX_WIRELESS_G;
 			break;
 		case WIRELESS_11BG:
-			raid = 4;
+			raid = RATR_INX_WIRELESS_GB;
 			break;
 		case WIRELESS_11_24N:
 		case WIRELESS_11_5N:
-			raid = 3;
+			raid = RATR_INX_WIRELESS_N;
 			break;
 		case WIRELESS_11A_5N:
 		case WIRELESS_11G_24N:
-			raid = 1;
+			raid = RATR_INX_WIRELESS_NG;
 			break;
 		case WIRELESS_11BG_24N:
-			raid = 0;
+			raid = RATR_INX_WIRELESS_NGB;
 			break;
 		default:
-			raid = 4;
+			raid = RATR_INX_WIRELESS_GB;
 			break;	
 
 	}
@@ -119,9 +119,9 @@ unsigned char networktype_to_raid(unsigned char network_type)
 	
 }
 
-int judge_network_type(_adapter *padapter, unsigned char *rate, int ratelen)
+u8 judge_network_type(_adapter *padapter, unsigned char *rate, int ratelen)
 {
-	int network_type = 0;
+	u8 network_type = 0;
 	struct mlme_ext_priv	*pmlmeext = &padapter->mlmeextpriv;
 	struct mlme_ext_info	*pmlmeinfo = &(pmlmeext->mlmext_info);
 	
@@ -1504,7 +1504,7 @@ unsigned char get_highest_mcs_rate(struct HT_caps_element *pHT_caps)
 
 void Update_RA_Entry(_adapter *padapter, u32 mac_id)
 {
-	padapter->HalFunc.UpdateRAMaskHandler(padapter, mac_id);
+	padapter->HalFunc.UpdateRAMaskHandler(padapter, mac_id,0);
 }
 
 void enable_rate_adaptive(_adapter *padapter, u32 mac_id);

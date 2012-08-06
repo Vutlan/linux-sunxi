@@ -1,12 +1,12 @@
 /*
 ; 6 - huawei mw269x(v1/v2) sdio wifi gpio config
-;hw_mw269x_wl_pwr        = port:PH12<1><default><default><0>
-;hw_mw269x_wl_enb        = port:PH11<1><default><default><0>
-;hw_mw269x_wl_hostwake   = port:PH10<0><default><default><0>
-;hw_mw269x_wl_wake       = port:PH09<1><default><default><0>
-;hw_mw269x_bt_enb        = port:PB05<1><default><default><0>
-;hw_mw269x_bt_wake       = port:PI20<1><default><default><0>
-;hw_mw269x_bt_hostwake   = port:PI21<0><default><default><0>
+;hw_mw269x_wl_pwr        = 
+;hw_mw269x_wl_enb        = port:PA02<1><default><default><0>
+;hw_mw269x_wl_hostwake   = port:PA03<0><default><default><0>
+;hw_mw269x_wl_wake       = port:PA01<1><default><default><0>
+;hw_mw269x_bt_enb        = port:PA04<1><default><default><0>
+;hw_mw269x_bt_wake       = port:PA05<1><default><default><0>
+;hw_mw269x_bt_hostwake   = 
 
 */
 
@@ -110,22 +110,22 @@ static int hwmw269_get_gpio_value(char* name)
 
 void hwmw269_power(int mode, int* updown)
 {
-    struct mmc_pm_ops *ops = &mmc_card_pm_ops;
-    
     if (mode) {
         if (*updown) {
-            hw_msg("power up module %s\n", ops->mod_name);
+        	hwmw269_gpio_ctrl("hw_mw269x_wl_enb", 1);
         } else {
-            hw_msg("power down module %s\n", ops->mod_name);
+        	hwmw269_gpio_ctrl("hw_mw269x_wl_enb", 0);
         }
     } else {
-        if (hwmw269_wl_on || hwmw269_bt_on)
+        if (hwmw269_wl_on)
             *updown = 1;
         else
             *updown = 0;
+		hw_msg("sdio wifi power state: %s\n", hwmw269_wl_on ? "on" : "off");
     }
     return;
 }
+
 void hwmw269_gpio_init(void)
 {
     struct mmc_pm_ops *ops = &mmc_card_pm_ops;
