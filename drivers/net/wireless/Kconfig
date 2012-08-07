@@ -7,6 +7,8 @@ menuconfig WLAN
 	depends on !S390
 	depends on NET
 	select WIRELESS
+	select WIRELESS_EXT
+	select WEXT_PRIV
 	default y
 	---help---
 	  This section contains all the pre 802.11 and 802.11 wireless
@@ -270,6 +272,7 @@ config MWL8K
 
 source "drivers/net/wireless/ath/Kconfig"
 source "drivers/net/wireless/b43/Kconfig"
+source "drivers/net/wireless/bcm4330/Kconfig"
 source "drivers/net/wireless/b43legacy/Kconfig"
 source "drivers/net/wireless/brcm80211/Kconfig"
 source "drivers/net/wireless/hostap/Kconfig"

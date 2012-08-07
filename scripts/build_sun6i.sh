@@ -113,12 +113,12 @@ build_modules()
 	make -C modules/example LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LICHEE_KDIR=${LICHEE_KDIR} \
 		CONFIG_CHIP_ID=${CONFIG_CHIP_ID} install
 
-	(
-	export LANG=en_US.UTF-8
-	unset LANGUAGE
-	make -C modules/mali LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LICHEE_KDIR=${LICHEE_KDIR} \
-		CONFIG_CHIP_ID=${CONFIG_CHIP_ID} install
-	)
+#	(
+#	export LANG=en_US.UTF-8
+#	unset LANGUAGE
+#	make -C modules/mali LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LICHEE_KDIR=${LICHEE_KDIR} \
+#		CONFIG_CHIP_ID=${CONFIG_CHIP_ID} install
+#	)
 
 	#build usi-bmc4329 sdio wifi module
 	make -C modules/wifi/usi-bcm4329/v4.218.248.15/open-src/src/dhd/linux \
@@ -139,16 +139,21 @@ clean_kernel()
 #	)
 
 	#build usi-bmc4329 sdio wifi module
-#	make -C modules/wifi/usi-bcm4329/v4.218.248.15/open-src/src/dhd/linux \
-#			CROSS_COMPILE=${CROSS_COMPILE} ARCH=arm LINUXVER=${KERNEL_VERSION} \
-#			LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LINUXDIR=${LICHEE_KDIR} CONFIG_CHIP_ID=${CONFIG_CHIP_ID} \
-#			INSTALL_DIR=${LICHEE_MOD_DIR} clean
+	make -C modules/wifi/usi-bcm4329/v4.218.248.15/open-src/src/dhd/linux \
+			CROSS_COMPILE=${CROSS_COMPILE} ARCH=arm LINUXVER=${KERNEL_VERSION} \
+			LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LINUXDIR=${LICHEE_KDIR} CONFIG_CHIP_ID=${CONFIG_CHIP_ID} \
+			INSTALL_DIR=${LICHEE_MOD_DIR} clean
 }
 
 clean_modules()
 {
 	echo "Cleaning modules"
 	make -C modules/example LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LICHEE_KDIR=${LICHEE_KDIR} clean
+	#build usi-bmc4329 sdio wifi module
+	make -C modules/wifi/usi-bcm4329/v4.218.248.15/open-src/src/dhd/linux \
+			CROSS_COMPILE=${CROSS_COMPILE} ARCH=arm LINUXVER=${KERNEL_VERSION} \
+			LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LINUXDIR=${LICHEE_KDIR} CONFIG_CHIP_ID=${CONFIG_CHIP_ID} \
+			INSTALL_DIR=${LICHEE_MOD_DIR} clean
 }
 
 #####################################################################
@@ -164,17 +169,17 @@ case "$1" in
 kernel)
 	build_kernel
 	;;
-#modules)
-#	build_modules
-#	;;
+modules)
+	build_modules
+	;;
 clean)
 	clean_kernel
-#	clean_modules
+	clean_modules
 	;;
-#all)
-#	build_kernel
-#	build_modules
-#	;;
+all)
+	build_kernel
+	build_modules
+	;;
 *)
 	build_kernel
 	#show_help
