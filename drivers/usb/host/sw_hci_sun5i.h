@@ -221,8 +221,11 @@ struct sw_hci_hcd{
 
 
 	u32 drv_vbus_Handle;
+	u32 drv_vbus_1_Handle;
 	user_gpio_set_t drv_vbus_gpio_set;
+	user_gpio_set_t drv_vbus_1_gpio_set;
 	u32 drv_vbus_gpio_valid;
+	u32 drv_vbus_1_gpio_valid;
 	__u32 power_flag;                   /* flag. 是否供电       */
 
     __u32 used;                         /* flag. 控制器是否被使用 */

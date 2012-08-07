@@ -112,6 +112,14 @@ static s32 get_usb_cfg(struct sw_hci_hcd *sw_hci)
 		//return -1;
 	}
 
+	/* request gpio */
+	ret = script_parser_fetch(usbc_name[sw_hci->usbc_no], "usb_drv_vbus_1_gpio", (int *)&sw_hci->drv_vbus_1_gpio_set, 64);
+	if(ret != 0){
+		DMSG_PANIC("ERR: request gpio usbc%d(%s) id failed\n", sw_hci->usbc_no, usbc_name[sw_hci->usbc_no]);
+		//return -1;
+	}
+
+
 	/* usbc controller type */
 	ret = script_parser_fetch(usbc_name[sw_hci->usbc_no], "usb_controller_type", (int *)&sw_hci->usb_controller_type, 64);
 	if(ret != 0){
@@ -125,6 +133,13 @@ static s32 get_usb_cfg(struct sw_hci_hcd *sw_hci)
 		sw_hci->drv_vbus_gpio_valid = 0;
 	}
 
+	if(sw_hci->drv_vbus_1_gpio_set.port){
+		sw_hci->drv_vbus_1_gpio_valid = 1;
+	}else{
+		DMSG_PANIC("ERR: %s(drv vbus) is invalid\n", sw_hci->hci_name);
+		sw_hci->drv_vbus_1_gpio_valid = 0;
+	}
+
 	/* host_init_state */
 	ret = script_parser_fetch(usbc_name[sw_hci->usbc_no], "usb_host_init_state", (int *)&(sw_hci->host_init_state), 64);
 	if(ret != 0){
@@ -132,6 +147,9 @@ static s32 get_usb_cfg(struct sw_hci_hcd *sw_hci)
 		sw_hci->host_init_state = 0;
 		//return -1;
 	}
+
+
+
 
 	return 0;
 }
@@ -868,7 +886,31 @@ static u32 alloc_pin(struct sw_hci_hcd *sw_hci, user_gpio_set_t *gpio_list)
     if(gpio_list->port == 0xffff){  //axp
         if(gpio_list->port_num >= USB_EXTERN_PIN_LDO_MASK){
 #ifdef  CONFIG_REGULATOR
+
+				#ifdef CONFIG_AW_AXP15
             switch((gpio_list->port_num - USB_EXTERN_PIN_LDO_MASK)){
+                case 1:
+                    strcpy(name, "axp15_rtc");
+                break;
+
+                case 2:
+                    strcpy(name, "axp15_analog/fm");
+                break;
+
+                case 3:
+                    strcpy(name, "axp15_pll");
+                break;
+
+                case 4:
+                    strcpy(name, "axp15_hdmi");
+                break;
+
+                default:
+                    DMSG_PANIC("ERR: unkown gpio_list->port_num(%d)\n", gpio_list->port_num);
+                    goto failed;
+            }
+				#else
+						switch((gpio_list->port_num - USB_EXTERN_PIN_LDO_MASK)){
                 case 1:
                     strcpy(name, "axp20_rtc");
                 break;
@@ -889,7 +931,8 @@ static u32 alloc_pin(struct sw_hci_hcd *sw_hci, user_gpio_set_t *gpio_list)
                     DMSG_PANIC("ERR: unkown gpio_list->port_num(%d)\n", gpio_list->port_num);
                     goto failed;
             }
-
+        #endif
+        
             pin_handle = (u32)regulator_get(NULL, name);
             if(pin_handle == 0){
                 DMSG_PANIC("ERR: regulator_get failed\n");
@@ -1019,6 +1062,30 @@ static void __sw_set_vbus(struct sw_hci_hcd *sw_hci, int is_on)
         }
     }else{  //gpio
         gpio_write_one_pin_value(sw_hci->drv_vbus_Handle, on_off, NULL);
+	}
+
+	if(sw_hci->drv_vbus_1_gpio_set.data == 0){
+		on_off = is_on ? 1 : 0;
+	}else{
+		on_off = is_on ? 0 : 1;
+	}
+
+	if(sw_hci->drv_vbus_1_gpio_set.port == 0xffff){ //axp
+		if(sw_hci->drv_vbus_1_gpio_set.port_num >= USB_EXTERN_PIN_LDO_MASK){
+#ifdef  CONFIG_REGULATOR
+			if(is_on){
+				regulator_enable((struct regulator*)sw_hci->drv_vbus_1_Handle);
+			}else{
+				regulator_disable((struct regulator*)sw_hci->drv_vbus_1_Handle);
+			}
+#else
+			DMSG_PANIC("CONFIG_REGULATOR is not define\n");
+#endif
+		}else{
+			axp_gpio_set_value(sw_hci->drv_vbus_1_gpio_set.port_num, on_off);
+		}
+	}else{	//gpio
+		gpio_write_one_pin_value(sw_hci->drv_vbus_1_Handle, on_off, NULL);
 	}
 
 	return;
@@ -1319,6 +1386,20 @@ static int __init sw_hci_sun5i_init(void)
     }
 
 
+    if(sw_ehci0.drv_vbus_1_gpio_valid){
+        sw_ehci0.drv_vbus_1_Handle = alloc_pin(&sw_ehci0, &sw_ehci0.drv_vbus_1_gpio_set);
+        if(sw_ehci0.drv_vbus_1_Handle == 0){
+            DMSG_PANIC("ERR: usb1 alloc_pin failed\n");
+            goto failed0;
+        }
+
+        sw_ohci0.drv_vbus_1_Handle = sw_ehci0.drv_vbus_1_Handle;
+    }else{
+        sw_ehci0.drv_vbus_1_Handle = 0;
+        sw_ohci0.drv_vbus_1_Handle = 0;
+    }
+
+
 #ifdef  CONFIG_USB_SW_SUN5I_EHCI0
     if(sw_ehci0.used){
 		if(sw_ehci0.usb_controller_type != SW_USB_OHCI){
@@ -1423,6 +1504,9 @@ static void __exit sw_hci_sun5i_exit(void)
 
     free_pin(sw_ehci0.drv_vbus_Handle, &sw_ehci0.drv_vbus_gpio_set);
     sw_ehci0.drv_vbus_Handle = 0;
+
+    free_pin(sw_ehci0.drv_vbus_1_Handle, &sw_ehci0.drv_vbus_1_gpio_set);
+    sw_ehci0.drv_vbus_1_Handle = 0;
 
     return ;
 }
