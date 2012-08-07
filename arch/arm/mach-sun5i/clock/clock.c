@@ -260,10 +260,10 @@ int clk_init(void)
     }
 
     /* enable ss clock */
-    tmpSclk = &ccu_sys_clk[AW_MOD_CLK_SS];
+    tmpSclk = &ccu_mod_clk[AW_MOD_CLK_SS];
     tmpSclk->clk->onoff = AW_CCU_CLK_ON;
     tmpSclk->set_clk(tmpSclk->clk);
-    tmpSclk = &ccu_sys_clk[AW_MOD_CLK_AHB_SS];
+    tmpSclk = &ccu_mod_clk[AW_MOD_CLK_AHB_SS];
     tmpSclk->clk->onoff = AW_CCU_CLK_ON;
     tmpSclk->set_clk(tmpSclk->clk);
 
