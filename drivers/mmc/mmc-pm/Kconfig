@@ -8,6 +8,6 @@ config MMC_SDIOPM
 	tristate "Winner's SDIO Power Management Support"
 	depends on MMC
 	help
-	  This selects Allwinner SDIO Card Power Management support.  
+	  This selects Allwinner SDIO Card Power Management support.
 	  All power related gpio control here.
-	  
+
