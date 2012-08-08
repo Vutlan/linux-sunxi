@@ -393,23 +393,17 @@ enum sw_ic_ver sw_get_ic_ver(void)
         return version;
     }
 
+    val = readl(SW_VA_CCM_IO_BASE + 0x60);
+    val |= 1<<5;
+    writel(val, SW_VA_CCM_IO_BASE + 0x60);
+    val = readl(SW_VA_CCM_IO_BASE + 0x9c);
+    val |= 1<<31;
+    writel(val, SW_VA_CCM_IO_BASE + 0x9c);
+
     val = readl(SW_VA_SSE_IO_BASE);
     switch((val>>16)&0x07)
     {
         case 0:
-        {
-            val = readl(SW_VA_SID_IO_BASE+0x00);
-            val = (val>>8)&0xffffff;
-            if((val == 0x162541) || (val == 0x162565)|| (val == 0)) {
-                version = MAGIC_VER_A13A;
-            } else if(val == 0x162542) {
-                version = MAGIC_VER_A13B;
-            } else {
-                version = MAGIC_VER_UNKNOWN;
-            }
-            break;
-        }
-        case 1:
         {
             val = readl(SW_VA_SID_IO_BASE+0x08);
             val = (val>>12) & 0x0f;
@@ -433,6 +427,20 @@ enum sw_ic_ver sw_get_ic_ver(void)
                 } else {
                     version = MAGIC_VER_UNKNOWN;
                 }
+            } else {
+                version = MAGIC_VER_UNKNOWN;
+            }
+            break;
+        }
+
+        case 1:
+        {
+            val = readl(SW_VA_SID_IO_BASE+0x00);
+            val = (val>>8)&0xffffff;
+            if((val == 0x162541) || (val == 0x162565) || (val == 0)) {
+                version = MAGIC_VER_A13A;
+            } else if(val == 0x162542) {
+                version = MAGIC_VER_A13B;
             } else {
                 version = MAGIC_VER_UNKNOWN;
             }
