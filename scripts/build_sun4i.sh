@@ -82,6 +82,34 @@ build_nand_lib()
 	fi
 }
 
+copy_nand_mod()
+{
+    cd $LICHEE_KDIR/rootfs
+
+    if [ -x "./build.sh" ]; then
+        ./build.sh e sun4i_rootfs.cpio.gz
+    else
+        echo "No such file: $LICHEE_KDIR/rootfs/build.sh"
+        exit 1
+    fi
+
+    if [ ! -d "./skel/lib/modules/$KERNEL_VERSION" ]; then
+        mkdir -p ./skel/lib/modules/$KERNEL_VERSION
+    fi
+    cp $LICHEE_MOD_DIR/nand.ko ./skel/lib/modules/$KERNEL_VERSION
+    if [ $? -ne 0 ]; then
+        echo "copy nand module error: $?"
+        exit 1
+    fi
+    if [ -f "./sun4i_rootfs.cpio.gz" ]; then
+        rm sun4i_rootfs.cpio.gz
+    fi
+    ./build.sh c sun4i_rootfs.cpio.gz
+    rm -rf skel
+
+    cd $LICHEE_KDIR
+}
+
 build_kernel()
 {
 	if [ ! -e .config ]; then
@@ -104,11 +132,11 @@ build_kernel()
 	cp .config output/
 	cp rootfs/sun4i_rootfs.cpio.gz output/
 
-	mkbootimg --kernel output/bImage \
-			--ramdisk output/sun4i_rootfs.cpio.gz \
-			--board 'sun4i' \
-			--base 0x40000000 \
-			-o output/boot.img
+#	mkbootimg --kernel output/bImage \
+#			--ramdisk output/sun4i_rootfs.cpio.gz \
+#			--board 'sun4i' \
+#			--base 0x40000000 \
+#			-o output/boot.img
 
 
 	for file in $(find drivers sound crypto block fs security net -name "*.ko"); do
@@ -121,6 +149,16 @@ build_kernel()
 	cp drivers/net/wireless/bcm4330/firmware/bcm4330.bin ${LICHEE_MOD_DIR}
 	cp drivers/net/wireless/bcm4330/firmware/bcm4330.hcd ${LICHEE_MOD_DIR}
 	cp drivers/net/wireless/bcm4330/firmware/nvram.txt ${LICHEE_MOD_DIR}/bcm4330_nvram.txt
+}
+
+build_ramfs()
+{
+	cp rootfs/sun4i_rootfs.cpio.gz output/
+	mkbootimg --kernel output/bImage \
+		 --ramdisk output/sun4i_rootfs.cpio.gz \
+		 --board 'sun4i' \
+		 --base 0x40000000 \
+		 -o output/boot.img
 }
 
 build_modules()
@@ -175,6 +213,7 @@ build_modules()
 		CONFIG_CHIP_ID=${CONFIG_CHIP_ID} install
 	echo "build module end"
 
+    copy_nand_mod
 }
 
 clean_kernel()
@@ -235,6 +274,7 @@ clean)
 all)
 	build_kernel
 	build_modules
+	build_ramfs
 	;;
 *)
 	show_help
