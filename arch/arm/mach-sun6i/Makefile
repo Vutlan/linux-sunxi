@@ -9,7 +9,7 @@ obj-y += gpio/
 obj-y += ar100/
 obj-y += sys_config.o
 obj-$(CONFIG_CPU_FREQ)			+= cpu-freq/
-
+obj-$(CONFIG_PM) += pm/
 ifeq ($(CONFIG_SMP),y)
 obj-y += platsmp.o headsmp.o
 obj-$(CONFIG_HOTPLUG_CPU)		+= hotplug.o

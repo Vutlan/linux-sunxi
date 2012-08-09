@@ -26,14 +26,14 @@
  * freq:  target frequency to be set, based on KHZ.
  * return: result, 0 - set frequency successed, !0 - set frequency failed;
  */
-int ar100_dvfs_set_cpufreq(unsigned long freq, unsigned long mode)
+int ar100_dvfs_set_cpufreq(unsigned long freq, unsigned long mode, ar100_cb_t cb)
 {
 	unsigned int          msg_attr;
 	struct ar100_message *pmessage;
 	
 	msg_attr = 0;
 	if (mode & AR100_DVFS_SYN) {
-		msg_attr |= AR100_MESSAGE_ATTR_SYN;
+		msg_attr |= AR100_MESSAGE_ATTR_HARDSYN;
 	}
 	//allocate a message frame
 	pmessage = ar100_message_allocate(msg_attr);

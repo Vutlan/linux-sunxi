@@ -46,7 +46,7 @@ int ar100_standby_super(struct super_standby_para *para)
 		return -EINVAL;
 	}
 	//initialize message
-	pmessage->type     = AR100_STANDBY_ENTER_REQ;
+	pmessage->type     = AR100_SSTANDBY_ENTER_REQ;
 	pmessage->attr     = 0;
 	memcpy(pmessage->paras, para, sizeof(struct super_standby_para));
 	pmessage->state    = AR100_MESSAGE_INITIALIZED;
@@ -58,17 +58,6 @@ int ar100_standby_super(struct super_standby_para *para)
 }
 EXPORT_SYMBOL(ar100_standby_super);
 
-
-/*
- * enter normal standby.
- * para:  parameter for enter normal standby.
- * return: result, 0 - normal standby successed, !0 - normal standby failed;
- */
-int ar100_standby_normal(struct normal_standby_para *para)
-{
-	return 0;
-}
-EXPORT_SYMBOL(ar100_standby_normal);
 
 /*
  * query super-standby wakeup source.
@@ -93,14 +82,14 @@ int ar100_cpux_ready_notify(void)
 	struct ar100_message *pmessage;
 	
 	//allocate a message frame
-	pmessage = ar100_message_allocate(AR100_MESSAGE_ATTR_SYN);
+	pmessage = ar100_message_allocate(AR100_MESSAGE_ATTR_HARDSYN);
 	if (pmessage == NULL) {
 		AR100_WRN("allocate message failed\n");
 		return -ENOMEM;
 	}
 	//initialize message
-	pmessage->type     = AR100_STANDBY_RESTORE_NOTIFY;
-	pmessage->attr     = AR100_MESSAGE_ATTR_SYN;
+	pmessage->type     = AR100_SSTANDBY_RESTORE_NOTIFY;
+	pmessage->attr     = AR100_MESSAGE_ATTR_HARDSYN;
 	pmessage->state    = AR100_MESSAGE_INITIALIZED;
 	ar100_hwmsgbox_send_message(pmessage, AR100_SEND_MSG_TIMEOUT);
 	

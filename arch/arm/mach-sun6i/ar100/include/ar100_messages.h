@@ -24,7 +24,8 @@
 #define	__AR100_MESSAGES_H__
 
 //message attributes(only use 8bit)
-#define	AR100_MESSAGE_ATTR_SYN		(1<<0)	//need syn with another cpu
+#define	AR100_MESSAGE_ATTR_SOFTSYN		(1<<0)	//need soft syn with another cpu
+#define	AR100_MESSAGE_ATTR_HARDSYN		(1<<1)	//need hard syn with another cpu
 
 //message states
 #define	AR100_MESSAGE_FREED			(0x0)	//freed state
@@ -37,7 +38,7 @@
 
 //the structure of message frame,
 //this structure will transfer between ar100 and ac327.
-//sizeof(struct message) : 32Byte.
+//sizeof(struct message) : 64Byte.
 typedef struct ar100_message
 {
 	unsigned char   		state;		//identify the used status of message frame
@@ -46,15 +47,19 @@ typedef struct ar100_message
 	unsigned char   		result;		//message process result
 	struct ar100_message 	*next;		//pointer of next message frame
 	void    	   			*private;	//message private data
-	unsigned int   			 paras[5];	//the parameters of message
+	unsigned int   			 paras[13];	//the parameters of message
 } ar100_message_t;
 
 //the base of messages
 #define	AR100_MESSAGE_BASE		 	(0x10)
 
 //standby commands
-#define	AR100_STANDBY_ENTER_REQ	 	 (AR100_MESSAGE_BASE + 0x00) //request to enter(ac327 to ar100)
-#define	AR100_STANDBY_RESTORE_NOTIFY (AR100_MESSAGE_BASE + 0x01) //restore finished(ac327 to ar100)
+#define	AR100_SSTANDBY_ENTER_REQ	 	   (AR100_MESSAGE_BASE + 0x00)  //request to enter(ac327 to ar100)
+#define	AR100_SSTANDBY_RESTORE_NOTIFY      (AR100_MESSAGE_BASE + 0x01)  //restore finished(ac327 to ar100)
+#define	AR100_NSTANDBY_ENTER_REQ	 	   (AR100_MESSAGE_BASE + 0x02)  //request to enter(ac327 to ar100)
+#define	AR100_NSTANDBY_WAKEUP_NOTIFY       (AR100_MESSAGE_BASE + 0x03)  //wakeup notify   (ar100 to ac327)
+#define	AR100_NSTANDBY_RESTORE_REQ         (AR100_MESSAGE_BASE + 0x04)  //request to restore    (ac327 to ar100)
+#define	AR100_NSTANDBY_RESTORE_COMPLETE    (AR100_MESSAGE_BASE + 0x05)  //ar100 restore complete(ar100 to ac327)
 
 //dvfs commands
 #define	AR100_CPUX_DVFS_REQ		 	(AR100_MESSAGE_BASE + 0x20)  //request dvfs    (ac327 to ar100)

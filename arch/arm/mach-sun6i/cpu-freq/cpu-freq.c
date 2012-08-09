@@ -130,7 +130,7 @@ static int sunxi_cpufreq_target(struct cpufreq_policy *policy, __u32 freq, __u32
     }
 
     /* try to set cpu frequency */
-    if (ar100_dvfs_set_cpufreq(freq, 0)) {
+    if (ar100_dvfs_set_cpufreq(freq, AR100_DVFS_SYN, NULL)) {
         /* set cpu frequency failed */
         if (policy) {
             freqs.cpu = policy->cpu;

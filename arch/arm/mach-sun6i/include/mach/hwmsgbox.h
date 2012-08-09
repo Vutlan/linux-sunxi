@@ -26,11 +26,11 @@
 #define AW_HWMSG_QUEUE_NUMBER	(8)
 
 //the user of hardware message queue.
-typedef enum hwmsg_queue_user
+typedef enum aw_hwmsg_queue_user
 {
-	AW_HWMSG_QUEUE_USER0,	//cpu0
-	AW_HWMSG_QUEUE_USER1,	//cpu1
-} hwmsg_queue_user_e;
+	AW_HWMSG_QUEUE_USER_AR100,	//cpu0
+	AW_HWMSG_QUEUE_USER_AC327,	//cpu1
+} aw_hwmsg_queue_user_e;
 
 //hardware message-box register list
 #define	AW_MSGBOX_CTRL_REG(m)			(AW_MSGBOX_BASE + 0x0000 + (0x4 * (m>>2)))

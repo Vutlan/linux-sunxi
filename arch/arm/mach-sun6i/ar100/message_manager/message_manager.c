@@ -151,11 +151,15 @@ struct ar100_message *ar100_message_allocate(unsigned int msg_attr)
 		//allocate the head node.
 		spin_lock(&(msg_mgr_lock));
 		palloc = free_list.head;
+		
+		print_call_info();
+		printk("free_list.head = 0x%x. \n", free_list.head);
+
 		free_list.head = palloc->next;
 		free_list.number--;
 		palloc->next   = 0;
 		spin_unlock(&(msg_mgr_lock));
-		if (msg_attr & AR100_MESSAGE_ATTR_SYN) {
+		if (msg_attr & AR100_MESSAGE_ATTR_SOFTSYN) {
 			//syn message,allocate one semaphore for private
 			palloc->private = ar100_semaphore_allocate();
 		} else {
@@ -193,7 +197,7 @@ struct ar100_message *ar100_message_allocate(unsigned int msg_attr)
 		AR100_ERR("allocate message frame fail\n");
 	}
 	
-	if (msg_attr & AR100_MESSAGE_ATTR_SYN) {
+	if (msg_attr & AR100_MESSAGE_ATTR_SOFTSYN) {
 		//syn message,allocate one semaphore for private
 		palloc->private = ar100_semaphore_allocate();
 	} else {
@@ -219,7 +223,7 @@ void ar100_message_free(struct ar100_message *pmessage)
 {
 	//try to add free_list first
 	if (free_list.number < AR100_MESSAGE_CACHED_MAX) {
-		if (pmessage->attr & AR100_MESSAGE_ATTR_SYN) {
+		if (pmessage->attr & AR100_MESSAGE_ATTR_SOFTSYN) {
 			//free message semaphore first
 			ar100_semaphore_free((struct semaphore *)(pmessage->private));
 			pmessage->private = NULL;
@@ -239,7 +243,7 @@ void ar100_message_free(struct ar100_message *pmessage)
 		pmessage->state = AR100_MESSAGE_ALLOCATED;
 		spin_unlock(&(msg_mgr_lock));
 	} else {
-		if (pmessage->attr & AR100_MESSAGE_ATTR_SYN) {
+		if (pmessage->attr & AR100_MESSAGE_ATTR_SOFTSYN) {
 			//free message semaphore first
 			ar100_semaphore_free((struct semaphore *)(pmessage->private));
 			pmessage->private = NULL;
@@ -295,9 +299,10 @@ int ar100_message_coming_notify(struct ar100_message *pmessage)
 	}
 	//message post process
 	pmessage->state = AR100_MESSAGE_PROCESSED;
-	if (pmessage->attr & AR100_MESSAGE_ATTR_SYN) {
+	if ((pmessage->attr & AR100_MESSAGE_ATTR_SOFTSYN) || 
+		(pmessage->attr & AR100_MESSAGE_ATTR_HARDSYN)) {
 		//synchronous message, should feedback process result.
-		ar100_hwmsgbox_send_message(pmessage, AR100_SEND_MSG_TIMEOUT);
+		ar100_hwmsgbox_feedback_message(pmessage, AR100_SEND_MSG_TIMEOUT);
 	} else {
 		//asyn message, no need feedback message result,
 		//free message directly.

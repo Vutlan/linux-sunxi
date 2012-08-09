@@ -55,6 +55,8 @@ static int timer_set_next_clkevt(unsigned long delta, struct clock_event_device 
 static spinlock_t timer0_spin_lock;
 
 static struct map_desc sun6i_io_desc[] __initdata = {
+	{IO_ADDRESS(AW_SRAM_A1_BASE), __phys_to_pfn(AW_SRAM_A1_BASE),  AW_SRAM_A1_SIZE, MT_MEMORY_ITCM},
+	{IO_ADDRESS(AW_SRAM_A2_BASE), __phys_to_pfn(AW_SRAM_A2_BASE),  AW_SRAM_A2_SIZE, MT_DEVICE_NONSHARED},
 	{IO_ADDRESS(AW_IO_PHYS_BASE), __phys_to_pfn(AW_IO_PHYS_BASE),  AW_IO_SIZE, MT_DEVICE_NONSHARED},
 };
 
@@ -199,7 +201,9 @@ static void sun6i_fixup(struct tag *tags, char **from,
 	meminfo->bank[0].size = SZ_1G;
 
 	memblock_reserve(0x40000000 + 0x4000000, SZ_32M);
-
+	//for standby: 0x4600,0000-0x4600,0000+1k;
+	memblock_reserve(SUPER_STANDBY_MEM_BASE, SUPER_STANDBY_MEM_SIZE);
+	
 	meminfo->nr_banks = 1;
 }
 

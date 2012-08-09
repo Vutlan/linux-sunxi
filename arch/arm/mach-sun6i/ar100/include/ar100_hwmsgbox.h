@@ -69,13 +69,14 @@ int ar100_hwmsgbox_send_message(struct ar100_message *pmessage, unsigned int tim
 *
 * Description: 	query message of hwmsgbox by hand, mainly for.
 *
-* Arguments  : 	timeout	: the timeout which we want to wait.
+* Arguments  : 	none.
 *
 * Returns    : 	the point of message, NULL if timeout.
 *********************************************************************************************************
 */
-struct ar100_message *ar100_hwmsgbox_query_message(u32 timeout);
+struct ar100_message *ar100_hwmsgbox_query_message(void);
 
 int ar100_hwmsgbox_enable_receiver_int(int queue, int user);
+int ar100_hwmsgbox_feedback_message(struct ar100_message *pmessage, unsigned int timeout);
 
 #endif	//__AR100_HWMSGBOX_H__

@@ -75,14 +75,14 @@ int ar100_axp_read_reg(unsigned char *addr, unsigned char *data, unsigned long l
 	}
 	
 	//allocate a message frame
-	pmessage = ar100_message_allocate(AR100_MESSAGE_ATTR_SYN);
+	pmessage = ar100_message_allocate(AR100_MESSAGE_ATTR_SOFTSYN);
 	if (pmessage == NULL) {
 		AR100_WRN("allocate message failed\n");
 		return -ENOMEM;
 	}
 	//initialize message
 	pmessage->type     = AR100_AXP_READ_REGS;
-	pmessage->attr     = AR100_MESSAGE_ATTR_SYN;
+	pmessage->attr     = AR100_MESSAGE_ATTR_SOFTSYN;
 	pmessage->state    = AR100_MESSAGE_INITIALIZED;
 	
 	//package address and data to message->paras,
@@ -141,14 +141,14 @@ int ar100_axp_write_reg(unsigned char *addr, unsigned char *data, unsigned long 
 	}
 	
 	//allocate a message frame
-	pmessage = ar100_message_allocate(AR100_MESSAGE_ATTR_SYN);
+	pmessage = ar100_message_allocate(AR100_MESSAGE_ATTR_SOFTSYN);
 	if (pmessage == NULL) {
 		AR100_WRN("allocate message failed\n");
 		return -ENOMEM;
 	}
 	//initialize message
 	pmessage->type  = AR100_AXP_WRITE_REGS;
-	pmessage->attr  = AR100_MESSAGE_ATTR_SYN;
+	pmessage->attr  = AR100_MESSAGE_ATTR_SOFTSYN;
 	pmessage->state = AR100_MESSAGE_INITIALIZED;
 	
 	//package address and data to message->paras,
@@ -196,14 +196,14 @@ int ar100_axp_get_battery(void *para)
 	struct ar100_message *pmessage;
 	
 	//allocate a message frame
-	pmessage = ar100_message_allocate(AR100_MESSAGE_ATTR_SYN);
+	pmessage = ar100_message_allocate(AR100_MESSAGE_ATTR_SOFTSYN);
 	if (pmessage == NULL) {
 		AR100_ERR("allocate message for get battery request failed\n");
 		return -ENOMEM;
 	}
 	//initialize message
 	pmessage->type  = AR100_AXP_GET_BATTERY;
-	pmessage->attr  = AR100_MESSAGE_ATTR_SYN;
+	pmessage->attr  = AR100_MESSAGE_ATTR_SOFTSYN;
 	pmessage->state = AR100_MESSAGE_INITIALIZED;
 	
 	//send set battery request to ar100
@@ -227,14 +227,14 @@ int ar100_axp_set_battery(void *para)
 	struct ar100_message *pmessage;
 	
 	//allocate a message frame
-	pmessage = ar100_message_allocate(AR100_MESSAGE_ATTR_SYN);
+	pmessage = ar100_message_allocate(AR100_MESSAGE_ATTR_SOFTSYN);
 	if (pmessage == NULL) {
 		AR100_ERR("allocate message for set battery request failed\n");
 		return -ENOMEM;
 	}
 	//initialize message
 	pmessage->type  = AR100_AXP_SET_BATTERY;
-	pmessage->attr  = AR100_MESSAGE_ATTR_SYN;
+	pmessage->attr  = AR100_MESSAGE_ATTR_SOFTSYN;
 	pmessage->state = AR100_MESSAGE_INITIALIZED;
 	
 	//send set battery request to ar100
@@ -257,7 +257,7 @@ EXPORT_SYMBOL(ar100_axp_set_battery);
  *                !0 - register call-back function failed;
  * NOTE: the function is like "int callback(void *para)";
  */
-int ar100_cb_register(ar100_cb_t func, void *para)
+int ar100_axp_cb_register(ar100_cb_t func, void *para)
 {
 	if (axp_isr_node.handler) {
 		//just output warning message, overlay handler.
@@ -269,14 +269,14 @@ int ar100_cb_register(ar100_cb_t func, void *para)
 	
 	return 0;
 }
-EXPORT_SYMBOL(ar100_cb_register);
+EXPORT_SYMBOL(ar100_axp_cb_register);
 
 
 /*
  * unregister call-back function.
  * func:  call-back function which need be unregister;
  */
-void ar100_cb_unregister(ar100_cb_t func)
+void ar100_axp_cb_unregister(ar100_cb_t func)
 {
 	if ((u32)(axp_isr_node.handler) != (u32)(func)) {
 		//invalid handler.
@@ -286,7 +286,7 @@ void ar100_cb_unregister(ar100_cb_t func)
 	axp_isr_node.handler = NULL;
 	axp_isr_node.arg     = NULL;
 }
-EXPORT_SYMBOL(ar100_cb_unregister);
+EXPORT_SYMBOL(ar100_axp_cb_unregister);
 
 
 int ar100_axp_int_notify(struct ar100_message *pmessage)

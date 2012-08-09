@@ -14,51 +14,23 @@
 #ifndef	__ASM_ARCH_A100_H
 #define	__ASM_ARCH_A100_H
 
+#include <linux/power/aw_pm.h>
 
-//the mode of ar100 dvfs
-#define	AR100_DVFS_SYN	(1<<0)
-
+//the modes of ar100 dvfs
+#define	AR100_DVFS_SYN		(1<<0)
 
 //axp driver interfaces
 #define AXP_TRANS_BYTE_MAX	(8)
 
-
+//ar100 call-back
 typedef int (*ar100_cb_t)(void *arg);
-
-//temp here, ?????
-//the wakeup source of super-standby
-#define	SUPER_STANDBY_WAKEUP_SRC_NMI	(1<<0)	//pmu wakeup source
-#define	SUPER_STANDBY_WAKEUP_SRC_PIN	(1<<1)	//pin wakeup source
-#define	SUPER_STANDBY_WAKEUP_SRC_CIR	(1<<2)	//cir wakeup source
-#define	SUPER_STANDBY_WAKEUP_SRC_ALM0	(1<<3)	//alarm0 wakeup source
-#define	SUPER_STANDBY_WAKEUP_SRC_ALM1	(1<<3)	//alarm1 wakeup source
-typedef	struct super_standby_para
-{
-	unsigned long event;	//wakeup event types
-	unsigned long time_off;	//the time of power-off
-} super_standby_para_t;
-
-typedef	struct normal_standby_para
-{
-	unsigned long event;	//wakeup event types
-	unsigned long time_off;	//the time of power-off
-} normal_standby_para_t;
 
 /*
  * set target frequency.
  * freq:  target frequency to be set, based on HZ.
  * return: result, 0 - set frequency successed, !0 - set frequency failed;
  */
-int ar100_dvfs_set_cpufreq(unsigned long freq, unsigned long mode);
-
-
-/*
- * enter normal standby.
- * para:  parameter for enter normal standby.
- * return: result, 0 - normal standby successed, !0 - normal standby failed;
- */
-int ar100_standby_normal(struct normal_standby_para *para);
-
+int ar100_dvfs_set_cpufreq(unsigned long freq, unsigned long mode, ar100_cb_t cb);
 
 /*
  * enter super standby.
@@ -134,14 +106,14 @@ int ar100_axp_power_off(void);
  *                !0 - register call-back function failed;
  * NOTE: the function is like "int callback(void *para)";
  */
-int ar100_cb_register(ar100_cb_t func, void *para);
+int ar100_axp_cb_register(ar100_cb_t func, void *para);
 
 
 /*
  * unregister call-back function.
  * func:  call-back function which need be unregister;
  */
-void ar100_cb_unregister(ar100_cb_t func);
+void ar100_axp_cb_unregister(ar100_cb_t func);
 
 
 #endif	//__ASM_ARCH_A100_H

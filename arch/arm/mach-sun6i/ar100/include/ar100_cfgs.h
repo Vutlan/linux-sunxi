@@ -29,7 +29,7 @@
 #define	AR100_MESSAGE_CACHED_MAX	(4)
 
 //the start address of message pool
-#define AR100_MESSAGE_POOL_START	(0x13C00)
+#define AR100_MESSAGE_POOL_START	(0x13000)
 #define AR100_MESSAGE_POOL_END		(0x14000)
 
 //spinlock max timeout, base on ms
@@ -37,5 +37,13 @@
 
 //send message max timeout, base on ms
 #define AR100_SEND_MSG_TIMEOUT		(10)
+
+//hwmsgbox channels configure
+#define	AR100_HWMSGBOX_AR100_ASYN_TX_CH	(0)
+#define	AR100_HWMSGBOX_AR100_ASYN_RX_CH	(1)
+#define	AR100_HWMSGBOX_AR100_SYN_TX_CH	(2)
+#define	AR100_HWMSGBOX_AR100_SYN_RX_CH	(3)
+#define	AR100_HWMSGBOX_AC327_SYN_TX_CH	(4)
+#define	AR100_HWMSGBOX_AC327_SYN_RX_CH	(5)
 
 #endif //__AR100_CFGS_H__

@@ -46,7 +46,7 @@ build_standby()
 {
 	echo "build standby"
 	make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} KDIR=${LICHEE_KDIR} \
-		-C ${LICHEE_KDIR}/arch/arm/mach-sun5i/pm/standby all
+		-C ${LICHEE_KDIR}/arch/arm/mach-sun6i/pm/standby all
 }
 
 build_kernel()
@@ -56,7 +56,7 @@ build_kernel()
 		echo -e "\n\t\tUsing default config... ...!\n"
 		cp arch/arm/configs/sun6ismp_defconfig .config
 	fi
-
+build_standby
 make ARCH=arm CROSS_COMPILE=${CROSS_COMPILE} -j8 uImage modules
 
 ${OBJCOPY} -R .note.gnu.build-id -S -O binary vmlinux bImage
