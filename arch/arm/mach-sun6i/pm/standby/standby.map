@@ -1,0 +1,573 @@
+
+Allocating common symbols
+Common symbol       size              file
+
+cpu_ms_loopcnt      0x4               standby_clock.o
+pm_info             0x14              standby.o
+normal_standby_para_info
+                    0x8               standby.o
+
+Memory Configuration
+
+Name             Origin             Length             Attributes
+*default*        0x00000000         0xffffffff
+
+Linker script and memory map
+
+                0x00000000                __standby_start = .
+
+.text           0xf0000000     0x4480
+ standby.o(.text)
+ .text          0xf0000000      0x428 standby.o
+                0xf0000000                main
+ *(.text)
+ .text          0xf0000428       0xcc common.o
+                0xf0000428                standby_memcpy
+                0xf00004c0                standby_mdelay
+ .text          0xf00004f4       0x2c stack.o
+                0xf00004f4                save_sp
+                0xf0000500                restore_sp
+                0xf0000508                standby_flush_tlb
+                0xf0000518                standby_preload_tlb
+ .text          0xf0000520      0x184 standby_clock.o
+                0xf0000520                standby_clk_init
+                0xf0000550                standby_clk_hoscenable
+                0xf00005b8                standby_clk_ldoenable
+ .text          0xf00006a4      0x2dc standby_int.o
+                0xf00006a4                standby_int_init
+                0xf000080c                standby_int_exit
+                0xf0000828                standby_enable_int
+                0xf00008f4                standby_query_int
+ .text          0xf0000980       0x70 standby_ir.o
+                0xf0000980                standby_ir_init
+                0xf000099c                standby_ir_exit
+                0xf00009b8                standby_ir_detect
+                0xf00009d4                standby_ir_verify
+ .text          0xf00009f0      0x168 standby_key.o
+                0xf00009f0                standby_key_init
+                0xf0000ab0                standby_key_exit
+                0xf0000b04                standby_query_key
+ .text          0xf0000b58      0x500 standby_power.o
+                0xf0000d20                standby_set_voltage
+                0xf0000f60                standby_get_voltage
+ .text          0xf0001058      0x214 standby_tmr.o
+                0xf0001058                standby_tmr_init
+                0xf00010c8                standby_tmr_exit
+                0xf0001124                standby_tmr_enable_watchdog
+                0xf00011d4                standby_tmr_disable_watchdog
+ .text          0xf000126c      0x8c8 standby_twi.o
+                0xf000126c                standby_twi_init
+                0xf0001348                standby_twi_exit
+                0xf0001558                twi_byte_rw
+ .text          0xf0001b34       0x78 standby_usb.o
+                0xf0001b34                standby_usb_init
+                0xf0001b50                standby_usb_exit
+                0xf0001b6c                standby_is_usb_status_change
+                0xf0001b90                standby_query_usb_event
+ .text          0xf0001bac       0x34 standby_delay.o
+                0xf0001bac                standby_delay
+                0xf0001bd4                standby_delay_cycle
+ .text          0xf0001be0      0x404 ./ar100/standby_ar100.o
+                0xf0001be0                standby_ar100_init
+                0xf0001c20                standby_ar100_exit
+                0xf0001c60                standby_ar100_notify_restore
+                0xf0001d18                standby_ar100_check_restore_status
+                0xf0001df0                standby_ar100_query_wakeup_src
+                0xf0001f34                standby_ar100_standby_normal
+ .text          0xf0001fe4      0x60c ./ar100/ar100_hwmsgbox.o
+                0xf0001fe4                ar100_hwmsgbox_init
+                0xf0002000                ar100_hwmsgbox_exit
+                0xf000201c                ar100_hwmsgbox_send_message
+                0xf00021a8                ar100_hwmsgbox_feedback_message
+                0xf00022b0                ar100_hwmsgbox_enable_receiver_int
+                0xf0002354                ar100_hwmsgbox_query_receiver_pending
+                0xf00023b4                ar100_hwmsgbox_clear_receiver_pending
+                0xf0002408                ar100_hwmsgbox_query_message
+                0xf000258c                ar100_message_valid
+ .text          0xf00025f0       0xc4 ./ar100/ar100_hwspinlock.o
+                0xf00025f0                ar100_hwspinlock_init
+                0xf000260c                ar100_hwspinlock_exit
+                0xf0002628                ar100_hwspin_lock_timeout
+                0xf0002674                ar100_hwspin_unlock
+ .text          0xf00026b4      0x190 ./ar100/ar100_message_manager.o
+                0xf00026b4                ar100_message_manager_init
+                0xf0002710                ar100_message_manager_exit
+                0xf000272c                ar100_message_allocate
+                0xf0002800                ar100_message_free
+ .text          0xf0002844      0x728 ./../pm_debug.o
+                0xf0002928                busy_waiting
+                0xf0002958                fake_busy_waiting
+                0xf0002988                save_mem_flag
+                0xf000299c                clear_mem_flag
+                0xf00029b0                save_mem_status
+                0xf00029dc                get_mem_status
+                0xf0002a00                save_mem_status_nommu
+                0xf0002a2c                get_cyclecount
+                0xf0002a54                backup_perfcounter
+                0xf0002a88                init_perfcounters
+                0xf0002b18                restore_perfcounter
+                0xf0002b4c                reset_counter
+                0xf0002b88                change_runtime_env
+                0xf0002d34                delay_us
+                0xf0002e0c                delay_ms
+                0xf0002e38                io_init
+                0xf0002e60                io_init_high
+                0xf0002ea4                io_init_low
+                0xf0002ee8                io_high
+ .text          0xf0002f6c      0x670 ./../mem_serial.o
+                0xf0002f6c                serial_init_nommu
+                0xf000319c                serial_puts_nommu
+                0xf0003220                serial_gets_nommu
+                0xf00032a4                serial_init
+                0xf00034d4                serial_puts
+                0xf0003558                serial_gets
+ .text          0xf00035dc      0xea4 ./../mem_printk.o
+                0xf0003bac                _vsprintf
+                0xf00043d8                printk
+                0xf000442c                printk_nommu
+
+.glue_7         0xf0004480        0x0
+ .glue_7        0x00000000        0x0 linker stubs
+
+.glue_7t        0xf0004480        0x0
+ .glue_7t       0x00000000        0x0 linker stubs
+
+.vfp11_veneer   0xf0004480        0x0
+ .vfp11_veneer  0x00000000        0x0 linker stubs
+
+.v4_bx          0xf0004480        0x0
+ .v4_bx         0x00000000        0x0 linker stubs
+
+.rodata         0xf0004480      0x3fc
+ *(.rodata)
+ .rodata        0xf0004480       0xbc standby.o
+ .rodata        0xf000453c       0x84 standby_int.o
+ .rodata        0xf00045c0       0xec ./ar100/standby_ar100.o
+ .rodata        0xf00046ac      0x174 ./ar100/ar100_hwmsgbox.o
+ .rodata        0xf0004820       0x44 ./ar100/ar100_message_manager.o
+ .rodata        0xf0004864       0x18 ./../mem_printk.o
+
+.data           0xf000487c       0xf8
+ *(.data)
+ .data          0xf000487c        0x0 standby.o
+ .data          0xf000487c        0x0 common.o
+ .data          0xf000487c        0x0 stack.o
+ .data          0xf000487c        0x0 standby_clock.o
+ .data          0xf000487c        0x0 standby_int.o
+ .data          0xf000487c        0x0 standby_ir.o
+ .data          0xf000487c        0x0 standby_key.o
+ .data          0xf000487c       0xe8 standby_power.o
+ .data          0xf0004964        0x0 standby_tmr.o
+ .data          0xf0004964        0xc standby_twi.o
+ .data          0xf0004970        0x0 standby_usb.o
+ .data          0xf0004970        0x0 standby_delay.o
+ .data          0xf0004970        0x4 ./ar100/standby_ar100.o
+                0xf0004970                ar100_sram_a2_vbase
+ .data          0xf0004974        0x0 ./ar100/ar100_hwmsgbox.o
+ .data          0xf0004974        0x0 ./ar100/ar100_hwspinlock.o
+ .data          0xf0004974        0x0 ./ar100/ar100_message_manager.o
+ .data          0xf0004974        0x0 ./../pm_debug.o
+ .data          0xf0004974        0x0 ./../mem_serial.o
+ .data          0xf0004974        0x0 ./../mem_printk.o
+                0xf0004974                __bss_start = .
+
+.bss            0xf0004974       0x80
+ *(.sbss)
+ *(.scommon)
+ *(.bss)
+ .bss           0xf0004974        0x4 standby.o
+ .bss           0xf0004978        0x0 common.o
+ .bss           0xf0004978        0x0 stack.o
+ .bss           0xf0004978        0x4 standby_clock.o
+ .bss           0xf000497c        0x8 standby_int.o
+ .bss           0xf0004984        0x0 standby_ir.o
+ .bss           0xf0004984       0x18 standby_key.o
+ .bss           0xf000499c        0x0 standby_power.o
+ .bss           0xf000499c        0xc standby_tmr.o
+ .bss           0xf00049a8        0xc standby_twi.o
+ .bss           0xf00049b4        0x0 standby_usb.o
+ .bss           0xf00049b4        0x0 standby_delay.o
+ .bss           0xf00049b4        0x8 ./ar100/standby_ar100.o
+ .bss           0xf00049bc        0x0 ./ar100/ar100_hwmsgbox.o
+ .bss           0xf00049bc        0x0 ./ar100/ar100_hwspinlock.o
+ .bss           0xf00049bc        0x8 ./ar100/ar100_message_manager.o
+ .bss           0xf00049c4       0x10 ./../pm_debug.o
+ .bss           0xf00049d4        0x0 ./../mem_serial.o
+ .bss           0xf00049d4        0x0 ./../mem_printk.o
+ *(COMMON)
+ COMMON         0xf00049d4       0x1c standby.o
+                0xf00049d4                pm_info
+                0xf00049e8                normal_standby_para_info
+ COMMON         0xf00049f0        0x4 standby_clock.o
+                0xf00049f0                cpu_ms_loopcnt
+                0xf00049f4                __bss_end = .
+                0xf00049f4                __standby_end = .
+LOAD common.o
+LOAD standby.o
+LOAD stack.o
+LOAD standby_clock.o
+LOAD standby_int.o
+LOAD standby_ir.o
+LOAD standby_key.o
+LOAD standby_power.o
+LOAD standby_tmr.o
+LOAD standby_twi.o
+LOAD standby_usb.o
+LOAD standby_delay.o
+LOAD ./ar100/standby_ar100.o
+LOAD ./ar100/ar100_hwmsgbox.o
+LOAD ./ar100/ar100_hwspinlock.o
+LOAD ./ar100/ar100_message_manager.o
+LOAD ./../pm_debug.o
+LOAD ./../mem_serial.o
+LOAD ./../mem_printk.o
+OUTPUT(standby.elf elf32-littlearm)
+
+.debug_abbrev   0x00000000      0xe59
+ .debug_abbrev  0x00000000      0x130 standby.o
+ .debug_abbrev  0x00000130       0x9c common.o
+ .debug_abbrev  0x000001cc       0x14 stack.o
+ .debug_abbrev  0x000001e0       0x9d standby_clock.o
+ .debug_abbrev  0x0000027d       0xc9 standby_int.o
+ .debug_abbrev  0x00000346       0x4e standby_ir.o
+ .debug_abbrev  0x00000394       0x8b standby_key.o
+ .debug_abbrev  0x0000041f      0x11a standby_power.o
+ .debug_abbrev  0x00000539       0x7b standby_tmr.o
+ .debug_abbrev  0x000005b4      0x11f standby_twi.o
+ .debug_abbrev  0x000006d3       0x76 standby_usb.o
+ .debug_abbrev  0x00000749       0x14 standby_delay.o
+ .debug_abbrev  0x0000075d       0xc9 ./ar100/standby_ar100.o
+ .debug_abbrev  0x00000826      0x140 ./ar100/ar100_hwmsgbox.o
+ .debug_abbrev  0x00000966       0x80 ./ar100/ar100_hwspinlock.o
+ .debug_abbrev  0x000009e6       0xe0 ./ar100/ar100_message_manager.o
+ .debug_abbrev  0x00000ac6      0x14b ./../pm_debug.o
+ .debug_abbrev  0x00000c11       0xe7 ./../mem_serial.o
+ .debug_abbrev  0x00000cf8      0x161 ./../mem_printk.o
+
+.debug_info     0x00000000     0x2680
+ .debug_info    0x00000000      0x317 standby.o
+ .debug_info    0x00000317      0x11e common.o
+ .debug_info    0x00000435       0x74 stack.o
+ .debug_info    0x000004a9      0x111 standby_clock.o
+ .debug_info    0x000005ba      0x1bd standby_int.o
+ .debug_info    0x00000777       0xd4 standby_ir.o
+ .debug_info    0x0000084b      0x195 standby_key.o
+ .debug_info    0x000009e0      0x32f standby_power.o
+ .debug_info    0x00000d0f      0x110 standby_tmr.o
+ .debug_info    0x00000e1f      0x2a3 standby_twi.o
+ .debug_info    0x000010c2       0xf2 standby_usb.o
+ .debug_info    0x000011b4       0x7c standby_delay.o
+ .debug_info    0x00001230      0x27d ./ar100/standby_ar100.o
+ .debug_info    0x000014ad      0x34f ./ar100/ar100_hwmsgbox.o
+ .debug_info    0x000017fc       0xf9 ./ar100/ar100_hwspinlock.o
+ .debug_info    0x000018f5      0x1ca ./ar100/ar100_message_manager.o
+ .debug_info    0x00001abf      0x4bc ./../pm_debug.o
+ .debug_info    0x00001f7b      0x31b ./../mem_serial.o
+ .debug_info    0x00002296      0x3ea ./../mem_printk.o
+
+.debug_line     0x00000000      0xf6e
+ .debug_line    0x00000000      0x15b standby.o
+ .debug_line    0x0000015b       0x83 common.o
+ .debug_line    0x000001de       0x3e stack.o
+ .debug_line    0x0000021c       0x6e standby_clock.o
+ .debug_line    0x0000028a       0xbf standby_int.o
+ .debug_line    0x00000349       0x5e standby_ir.o
+ .debug_line    0x000003a7       0x78 standby_key.o
+ .debug_line    0x0000041f       0xf0 standby_power.o
+ .debug_line    0x0000050f       0x6f standby_tmr.o
+ .debug_line    0x0000057e      0x177 standby_twi.o
+ .debug_line    0x000006f5       0x5f standby_usb.o
+ .debug_line    0x00000754       0x49 standby_delay.o
+ .debug_line    0x0000079d      0x10a ./ar100/standby_ar100.o
+ .debug_line    0x000008a7      0x16b ./ar100/ar100_hwmsgbox.o
+ .debug_line    0x00000a12       0x64 ./ar100/ar100_hwspinlock.o
+ .debug_line    0x00000a76       0xa6 ./ar100/ar100_message_manager.o
+ .debug_line    0x00000b1c      0x110 ./../pm_debug.o
+ .debug_line    0x00000c2c      0x112 ./../mem_serial.o
+ .debug_line    0x00000d3e      0x230 ./../mem_printk.o
+
+.debug_loc      0x00000000     0x1098
+ .debug_loc     0x00000000       0xb0 standby.o
+ .debug_loc     0x000000b0       0x58 common.o
+ .debug_loc     0x00000108       0x84 standby_clock.o
+ .debug_loc     0x0000018c       0xb0 standby_int.o
+ .debug_loc     0x0000023c       0xb0 standby_ir.o
+ .debug_loc     0x000002ec       0x84 standby_key.o
+ .debug_loc     0x00000370       0xdc standby_power.o
+ .debug_loc     0x0000044c       0xb0 standby_tmr.o
+ .debug_loc     0x000004fc       0xb0 standby_twi.o
+ .debug_loc     0x000005ac       0xb0 standby_usb.o
+ .debug_loc     0x0000065c      0x108 ./ar100/standby_ar100.o
+ .debug_loc     0x00000764      0x18c ./ar100/ar100_hwmsgbox.o
+ .debug_loc     0x000008f0       0xb0 ./ar100/ar100_hwspinlock.o
+ .debug_loc     0x000009a0       0xb0 ./ar100/ar100_message_manager.o
+ .debug_loc     0x00000a50      0x370 ./../pm_debug.o
+ .debug_loc     0x00000dc0      0x1b8 ./../mem_serial.o
+ .debug_loc     0x00000f78      0x120 ./../mem_printk.o
+
+.debug_pubnames
+                0x00000000      0x8df
+ .debug_pubnames
+                0x00000000       0x44 standby.o
+ .debug_pubnames
+                0x00000044       0x38 common.o
+ .debug_pubnames
+                0x0000007c       0x6f standby_clock.o
+ .debug_pubnames
+                0x000000eb       0x69 standby_int.o
+ .debug_pubnames
+                0x00000154       0x66 standby_ir.o
+ .debug_pubnames
+                0x000001ba       0x52 standby_key.o
+ .debug_pubnames
+                0x0000020c       0x42 standby_power.o
+ .debug_pubnames
+                0x0000024e       0x7d standby_tmr.o
+ .debug_pubnames
+                0x000002cb       0x4c standby_twi.o
+ .debug_pubnames
+                0x00000317       0x79 standby_usb.o
+ .debug_pubnames
+                0x00000390       0xe4 ./ar100/standby_ar100.o
+ .debug_pubnames
+                0x00000474      0x13a ./ar100/ar100_hwmsgbox.o
+ .debug_pubnames
+                0x000005ae       0x7c ./ar100/ar100_hwspinlock.o
+ .debug_pubnames
+                0x0000062a       0x82 ./ar100/ar100_message_manager.o
+ .debug_pubnames
+                0x000006ac      0x173 ./../pm_debug.o
+ .debug_pubnames
+                0x0000081f       0x84 ./../mem_serial.o
+ .debug_pubnames
+                0x000008a3       0x3c ./../mem_printk.o
+
+.debug_pubtypes
+                0x00000000      0x3c2
+ .debug_pubtypes
+                0x00000000       0x7d standby.o
+ .debug_pubtypes
+                0x0000007d       0x1c common.o
+ .debug_pubtypes
+                0x00000099       0x26 standby_clock.o
+ .debug_pubtypes
+                0x000000bf       0x3d standby_int.o
+ .debug_pubtypes
+                0x000000fc       0x1c standby_ir.o
+ .debug_pubtypes
+                0x00000118       0x54 standby_key.o
+ .debug_pubtypes
+                0x0000016c       0x63 standby_power.o
+ .debug_pubtypes
+                0x000001cf       0x26 standby_tmr.o
+ .debug_pubtypes
+                0x000001f5       0x63 standby_twi.o
+ .debug_pubtypes
+                0x00000258       0x26 standby_usb.o
+ .debug_pubtypes
+                0x0000027e       0x3c ./ar100/standby_ar100.o
+ .debug_pubtypes
+                0x000002ba       0x46 ./ar100/ar100_hwmsgbox.o
+ .debug_pubtypes
+                0x00000300       0x12 ./ar100/ar100_hwspinlock.o
+ .debug_pubtypes
+                0x00000312       0x24 ./ar100/ar100_message_manager.o
+ .debug_pubtypes
+                0x00000336       0x26 ./../pm_debug.o
+ .debug_pubtypes
+                0x0000035c       0x1c ./../mem_serial.o
+ .debug_pubtypes
+                0x00000378       0x4a ./../mem_printk.o
+
+.debug_aranges  0x00000000      0x260
+ .debug_aranges
+                0x00000000       0x20 standby.o
+ .debug_aranges
+                0x00000020       0x20 common.o
+ .debug_aranges
+                0x00000040       0x20 stack.o
+ .debug_aranges
+                0x00000060       0x20 standby_clock.o
+ .debug_aranges
+                0x00000080       0x20 standby_int.o
+ .debug_aranges
+                0x000000a0       0x20 standby_ir.o
+ .debug_aranges
+                0x000000c0       0x20 standby_key.o
+ .debug_aranges
+                0x000000e0       0x20 standby_power.o
+ .debug_aranges
+                0x00000100       0x20 standby_tmr.o
+ .debug_aranges
+                0x00000120       0x20 standby_twi.o
+ .debug_aranges
+                0x00000140       0x20 standby_usb.o
+ .debug_aranges
+                0x00000160       0x20 standby_delay.o
+ .debug_aranges
+                0x00000180       0x20 ./ar100/standby_ar100.o
+ .debug_aranges
+                0x000001a0       0x20 ./ar100/ar100_hwmsgbox.o
+ .debug_aranges
+                0x000001c0       0x20 ./ar100/ar100_hwspinlock.o
+ .debug_aranges
+                0x000001e0       0x20 ./ar100/ar100_message_manager.o
+ .debug_aranges
+                0x00000200       0x20 ./../pm_debug.o
+ .debug_aranges
+                0x00000220       0x20 ./../mem_serial.o
+ .debug_aranges
+                0x00000240       0x20 ./../mem_printk.o
+
+.debug_str      0x00000000      0xeaf
+ .debug_str     0x00000000      0x1b3 standby.o
+                                0x216 (size before relaxing)
+ .debug_str     0x000001b3       0x4b common.o
+                                0x120 (size before relaxing)
+ .debug_str     0x000001fe       0x5b standby_clock.o
+                                0x13a (size before relaxing)
+ .debug_str     0x00000259       0x7c standby_int.o
+                                0x1a4 (size before relaxing)
+ .debug_str     0x000002d5       0x51 standby_ir.o
+                                0x121 (size before relaxing)
+ .debug_str     0x00000326       0xd2 standby_key.o
+                                0x1a8 (size before relaxing)
+ .debug_str     0x000003f8      0x188 standby_power.o
+                                0x271 (size before relaxing)
+ .debug_str     0x00000580       0x9f standby_tmr.o
+                                0x175 (size before relaxing)
+ .debug_str     0x0000061f      0x114 standby_twi.o
+                                0x224 (size before relaxing)
+ .debug_str     0x00000733       0x65 standby_usb.o
+                                0x140 (size before relaxing)
+ .debug_str     0x00000798      0x122 ./ar100/standby_ar100.o
+                                0x224 (size before relaxing)
+ .debug_str     0x000008ba      0x171 ./ar100/ar100_hwmsgbox.o
+                                0x2a3 (size before relaxing)
+ .debug_str     0x00000a2b       0x7a ./ar100/ar100_hwspinlock.o
+                                0x14c (size before relaxing)
+ .debug_str     0x00000aa5       0xaa ./ar100/ar100_message_manager.o
+                                0x1c9 (size before relaxing)
+ .debug_str     0x00000b4f      0x1dc ./../pm_debug.o
+                                0x2fa (size before relaxing)
+ .debug_str     0x00000d2b       0xc3 ./../mem_serial.o
+                                0x18b (size before relaxing)
+ .debug_str     0x00000dee       0xc1 ./../mem_printk.o
+                                0x1a2 (size before relaxing)
+
+.comment        0x00000000       0x2a
+ .comment       0x00000000       0x2a standby.o
+                                 0x2b (size before relaxing)
+ .comment       0x00000000       0x2b common.o
+ .comment       0x00000000       0x2b standby_clock.o
+ .comment       0x00000000       0x2b standby_int.o
+ .comment       0x00000000       0x2b standby_ir.o
+ .comment       0x00000000       0x2b standby_key.o
+ .comment       0x00000000       0x2b standby_power.o
+ .comment       0x00000000       0x2b standby_tmr.o
+ .comment       0x00000000       0x2b standby_twi.o
+ .comment       0x00000000       0x2b standby_usb.o
+ .comment       0x00000000       0x2b ./ar100/standby_ar100.o
+ .comment       0x00000000       0x2b ./ar100/ar100_hwmsgbox.o
+ .comment       0x00000000       0x2b ./ar100/ar100_hwspinlock.o
+ .comment       0x00000000       0x2b ./ar100/ar100_message_manager.o
+ .comment       0x00000000       0x2b ./../pm_debug.o
+ .comment       0x00000000       0x2b ./../mem_serial.o
+ .comment       0x00000000       0x2b ./../mem_printk.o
+
+.note.GNU-stack
+                0x00000000        0x0
+ .note.GNU-stack
+                0x00000000        0x0 standby.o
+ .note.GNU-stack
+                0x00000000        0x0 common.o
+ .note.GNU-stack
+                0x00000000        0x0 standby_clock.o
+ .note.GNU-stack
+                0x00000000        0x0 standby_int.o
+ .note.GNU-stack
+                0x00000000        0x0 standby_ir.o
+ .note.GNU-stack
+                0x00000000        0x0 standby_key.o
+ .note.GNU-stack
+                0x00000000        0x0 standby_power.o
+ .note.GNU-stack
+                0x00000000        0x0 standby_tmr.o
+ .note.GNU-stack
+                0x00000000        0x0 standby_twi.o
+ .note.GNU-stack
+                0x00000000        0x0 standby_usb.o
+ .note.GNU-stack
+                0x00000000        0x0 ./ar100/standby_ar100.o
+ .note.GNU-stack
+                0x00000000        0x0 ./ar100/ar100_hwmsgbox.o
+ .note.GNU-stack
+                0x00000000        0x0 ./ar100/ar100_hwspinlock.o
+ .note.GNU-stack
+                0x00000000        0x0 ./ar100/ar100_message_manager.o
+ .note.GNU-stack
+                0x00000000        0x0 ./../pm_debug.o
+ .note.GNU-stack
+                0x00000000        0x0 ./../mem_serial.o
+ .note.GNU-stack
+                0x00000000        0x0 ./../mem_printk.o
+
+.ARM.attributes
+                0x00000000       0x2d
+ .ARM.attributes
+                0x00000000       0x2f standby.o
+ .ARM.attributes
+                0x0000002f       0x2f common.o
+ .ARM.attributes
+                0x0000005e       0x1f stack.o
+ .ARM.attributes
+                0x0000007d       0x2f standby_clock.o
+ .ARM.attributes
+                0x000000ac       0x2f standby_int.o
+ .ARM.attributes
+                0x000000db       0x2f standby_ir.o
+ .ARM.attributes
+                0x0000010a       0x2f standby_key.o
+ .ARM.attributes
+                0x00000139       0x2f standby_power.o
+ .ARM.attributes
+                0x00000168       0x2f standby_tmr.o
+ .ARM.attributes
+                0x00000197       0x2f standby_twi.o
+ .ARM.attributes
+                0x000001c6       0x2f standby_usb.o
+ .ARM.attributes
+                0x000001f5       0x1f standby_delay.o
+ .ARM.attributes
+                0x00000214       0x2f ./ar100/standby_ar100.o
+ .ARM.attributes
+                0x00000243       0x2f ./ar100/ar100_hwmsgbox.o
+ .ARM.attributes
+                0x00000272       0x2f ./ar100/ar100_hwspinlock.o
+ .ARM.attributes
+                0x000002a1       0x2f ./ar100/ar100_message_manager.o
+ .ARM.attributes
+                0x000002d0       0x2f ./../pm_debug.o
+ .ARM.attributes
+                0x000002ff       0x2f ./../mem_serial.o
+ .ARM.attributes
+                0x0000032e       0x2f ./../mem_printk.o
+
+.debug_frame    0x00000000      0xab4
+ .debug_frame   0x00000000       0x80 standby.o
+ .debug_frame   0x00000080       0x44 common.o
+ .debug_frame   0x000000c4       0x58 standby_clock.o
+ .debug_frame   0x0000011c       0x78 standby_int.o
+ .debug_frame   0x00000194       0x70 standby_ir.o
+ .debug_frame   0x00000204       0x5c standby_key.o
+ .debug_frame   0x00000260       0x90 standby_power.o
+ .debug_frame   0x000002f0       0x70 standby_tmr.o
+ .debug_frame   0x00000360       0x78 standby_twi.o
+ .debug_frame   0x000003d8       0x70 standby_usb.o
+ .debug_frame   0x00000448       0xb8 ./ar100/standby_ar100.o
+ .debug_frame   0x00000500       0xf4 ./ar100/ar100_hwmsgbox.o
+ .debug_frame   0x000005f4       0x70 ./ar100/ar100_hwspinlock.o
+ .debug_frame   0x00000664       0x78 ./ar100/ar100_message_manager.o
+ .debug_frame   0x000006dc      0x204 ./../pm_debug.o
+ .debug_frame   0x000008e0      0x110 ./../mem_serial.o
+ .debug_frame   0x000009f0       0xc4 ./../mem_printk.o

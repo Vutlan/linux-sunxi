@@ -1,0 +1,82 @@
+#ifndef _PM_CONFIG_H
+#define _PM_CONFIG_H
+
+#include "mach/memory.h"
+#include "asm-generic/sizes.h"
+/*
+* Copyright (c) 2011-2015 yanggq.young@allwinnertech.com
+*
+* This program is free software; you can redistribute it and/or modify it
+* under the terms of the GNU General Public License version 2 as published by
+* the Free Software Foundation.
+*/
+#ifdef CONFIG_ARCH_SUN6I
+#undef CONFIG_ARCH_SUN6I
+#endif
+
+#define __AC(X,Y)	(X##Y)
+#define _AC(X,Y)	__AC(X,Y)
+#define _AT(T,X)	((T)(X))
+#define UL(x) _AC(x, UL)
+#define IO_ADDRESS(x)		((x) + 0xf0000000)
+
+#define CONFIG_ARCH_SUN6I
+#define ENABLE_SUPER_STANDBY
+#define SUN6I_FPGA_SIM
+//#define CHECK_IC_VERSION
+
+//#define RETURN_FROM_RESUME0_WITH_MMU    //suspend: 0xf000, resume0: 0xc010, resume1: 0xf000
+//#define RETURN_FROM_RESUME0_WITH_NOMMU // suspend: 0x0000, resume0: 0x4010, resume1: 0x0000
+//#define DIRECT_RETURN_FROM_SUSPEND //not support yet
+#define ENTER_SUPER_STANDBY    //suspend: 0xf000, resume0: 0x4010, resume1: 0x0000
+//#define ENTER_SUPER_STANDBY_WITH_NOMMU //not support yet, suspend: 0x0000, resume0: 0x4010, resume1: 0x0000
+//#define WATCH_DOG_RESET
+
+//NOTICE: only need one definiton
+#define RESUME_FROM_RESUME1
+
+/**start address for function run in sram*/
+#define SRAM_FUNC_START    (0xf0000000)
+#define SRAM_FUNC_START_PA (0x00000000)
+
+#define DRAM_BASE_ADDR      0xc0000000
+#define DRAM_BASE_ADDR_PA      0x40000000
+#define DRAM_TRANING_SIZE   (16)
+
+#define DRAM_BACKUP_BASE_ADDR1_PA (SUPER_STANDBY_MEM_BASE)	//0x4600,0000-0x4600,0000+1k;
+#define DRAM_BACKUP_SIZE1 (0x0100) // 2^8 * 4 = 1K bytes.
+
+#define RUNTIME_CONTEXT_SIZE (14 * sizeof(__u32)) //r0-r13
+
+#define DRAM_COMPARE_DATA_ADDR (0xc0100000) //1Mbytes offset
+#define DRAM_COMPARE_SIZE (0x10000) //?
+
+
+//for mem mapping
+#define MEM_SW_VA_SRAM_BASE (0x00000000)
+#define MEM_SW_PA_SRAM_BASE (0x00000000)
+
+#define	SW_VA_CCM_IO_BASE	(0xf1c20000)
+#define	SW_VA_PIO_IO_BASE	(0xf1c20800)
+#define	SW_VA_TIMERC_IO_BASE 	(0xf1c20c00)
+#define	SW_VA_LRADC_IO_BASE 	(0xf1c22800)
+#define	SW_VA_TWI0_IO_BASE	(0xf1c2ac00)
+#define	SW_VA_TWI1_IO_BASE	(0xf1c2b000)
+#define	SW_VA_TWI2_IO_BASE	(0xf1c2b400)
+#define	SW_VA_TWI3_IO_BASE	(0xf1c2b800)
+#define	SW_VA_SRAM_IO_BASE	(0xf1c00000)
+
+#define	SW_PA_CCM_IO_BASE	(0x01c20000)
+#define	SW_PA_PIO_IO_BASE	(0x01c20800)
+#define	SW_PA_TIMERC_IO_BASE 	(0x01c20c00)
+#define	SW_PA_LRADC_IO_BASE 	(0x01c22800)
+#define	SW_PA_TWI0_IO_BASE	(0x01c2ac00)
+#define	SW_PA_TWI1_IO_BASE	(0x01c2b000)
+#define	SW_PA_TWI2_IO_BASE	(0x01c2b400)
+#define	SW_PA_TWI3_IO_BASE	(0x01c2b800)
+#define	SW_PA_SRAM_IO_BASE	(0x01c00000)
+
+
+
+
+#endif /*_PM_CONFIG_H*/
