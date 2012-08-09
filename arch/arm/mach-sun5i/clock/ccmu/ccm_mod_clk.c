@@ -1580,9 +1580,12 @@ static __s32 mod_clk_set_rate(__aw_ccu_mod_clk_e id, __s64 rate)
         }
 
         case AW_MOD_CLK_GPS:
+        {
             if((rate < 1) || (rate > 8))
                 return -1;
-            return aw_ccu_reg->GpsClk.DivM = rate-1;
+            aw_ccu_reg->GpsClk.DivM = rate-1;
+            return 0;
+        }
 
         case AW_MOD_CLK_LCD0CH0:
         case AW_MOD_CLK_LVDS:
