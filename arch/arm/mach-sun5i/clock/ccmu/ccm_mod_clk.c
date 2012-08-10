@@ -758,6 +758,7 @@ static __s64 mod_clk_get_rate(__aw_ccu_mod_clk_e id)
         case AW_MOD_CLK_USBPHY0:
         case AW_MOD_CLK_USBPHY1:
         case AW_MOD_CLK_USBOHCI0:
+            return 1;
         case AW_MOD_CLK_GPS:
             return aw_ccu_reg->GpsClk.DivM + 1;
         case AW_MOD_CLK_DEBE0:
