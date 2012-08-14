@@ -10,7 +10,7 @@
 
 /*IR Key Match Config*/
 #define IR_CHECK_ADDR_CODE  
-#define IR_ADDR_CODE               (0x9f00)
+#define IR_ADDR_CODE               (0xfd02)
 //#define INPUT_VALUE_MAPPING
 
 /*
