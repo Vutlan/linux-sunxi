@@ -167,7 +167,7 @@ static void sun6i_fixup(struct tag *tags, char **from,
 {
 	printk("[%s] enter\n", __FUNCTION__);
 	meminfo->bank[0].start = 0x40000000;
-	meminfo->bank[0].size = SZ_128M;
+	meminfo->bank[0].size = SZ_1G;
 
 	memblock_reserve(0x40000000 + 0x4000000, SZ_32M);
 
