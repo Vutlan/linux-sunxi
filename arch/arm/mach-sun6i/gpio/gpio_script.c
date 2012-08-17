@@ -1326,3 +1326,15 @@ End:
 }
 EXPORT_SYMBOL(sw_gpio_get_index);
 
+/**
+ * sw_gpio_port_to_index - gpio port to global index, port is from script
+ * @port: gpio port group index, eg: 1 for PA, 2 for PB...
+ * @port_num: port index in gpio group, eg: 0 for PA0, 1 for PA1...
+ *
+ * return the gpio index for the port, GPIO_INDEX_INVALID indicate err
+ */
+u32 sw_gpio_port_to_index(u32 port, u32 port_num)
+{
+	return port_to_gpio_index(port, port_num);
+}
+EXPORT_SYMBOL(sw_gpio_port_to_index);
