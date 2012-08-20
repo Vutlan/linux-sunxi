@@ -736,6 +736,36 @@ static int Fb_release(struct fb_info *info, int user)
 	return 0;
 }
 
+
+static int Fb_wait_for_vsync(struct fb_info *info)
+{
+	unsigned long count;
+	__u32 sel = 0;
+	int ret;
+
+    for(sel = 0; sel < 2; sel++)
+    {
+        if(((sel==0) && ((g_fbi.fb_mode[info->node] == FB_MODE_SCREEN0) || (g_fbi.fb_mode[info->node] == FB_MODE_DUAL_SAME_SCREEN_TB) || (g_fbi.fb_mode[info->node] == FB_MODE_SCREEN0_PARTLY)))
+            || ((sel==1) && ((g_fbi.fb_mode[info->node] == FB_MODE_SCREEN1) || (g_fbi.fb_mode[info->node] == FB_MODE_DUAL_SAME_SCREEN_TB))))
+        {
+            if(BSP_disp_get_output_type(sel) == DISP_OUTPUT_TYPE_NONE)
+            {
+                return 0;
+            }
+            
+        	count = g_fbi.wait_count[sel];
+        	ret = wait_event_interruptible_timeout(g_fbi.wait[sel], count != g_fbi.wait_count[sel], msecs_to_jiffies(50));
+        	if (ret == 0)
+        	{
+        	    __inf("timeout\n");
+        		return -ETIMEDOUT;
+        	}
+        }
+    }
+    
+	return 0;
+}
+
 static int Fb_pan_display(struct fb_var_screeninfo *var,struct fb_info *info)
 {
 	__u32 sel = 0;
@@ -744,57 +774,38 @@ static int Fb_pan_display(struct fb_var_screeninfo *var,struct fb_info *info)
 
     for(sel = 0; sel < 2; sel++)
     {
-        if(((sel==0) && (g_fbi.fb_mode[info->node] != FB_MODE_SCREEN1))
-            || ((sel==1) && (g_fbi.fb_mode[info->node] != FB_MODE_SCREEN0)))
+        if(((sel==0) && ((g_fbi.fb_mode[info->node] == FB_MODE_SCREEN0) || (g_fbi.fb_mode[info->node] == FB_MODE_DUAL_SAME_SCREEN_TB) || (g_fbi.fb_mode[info->node] == FB_MODE_SCREEN0_PARTLY)))
+            || ((sel==1) && ((g_fbi.fb_mode[info->node] == FB_MODE_SCREEN1) || (g_fbi.fb_mode[info->node] == FB_MODE_DUAL_SAME_SCREEN_TB))))
         {
             __s32 layer_hdl = g_fbi.layer_hdl[info->node][sel];
             __disp_layer_info_t layer_para;
-            __u32 buffer_num = 1;
             __u32 y_offset = 0;
 
-            if(g_fbi.fb_mode[info->node] == FB_MODE_DUAL_DIFF_SCREEN_SAME_CONTENTS)
-            {
-                if(sel != var->reserved[0])
-                {
-                    return -1;
-                }
-            }
-
-            if(g_fbi.fb_mode[info->node] == FB_MODE_DUAL_SAME_SCREEN_TB)
-            {   
-                buffer_num = 2;
-            }
+        	BSP_disp_layer_get_para(sel, layer_hdl, &layer_para);
+        	
             if((sel==0) && (g_fbi.fb_mode[info->node] == FB_MODE_DUAL_SAME_SCREEN_TB))
             {
                 y_offset = var->yres / 2;
             }
-            
-        	BSP_disp_layer_get_para(sel, layer_hdl, &layer_para);
-
-        	if(layer_para.mode == DISP_LAYER_WORK_MODE_SCALER)
-        	{
-            	layer_para.src_win.x = var->xoffset;
-            	layer_para.src_win.y = var->yoffset + y_offset;
-            	layer_para.src_win.width = var->xres;
-            	layer_para.src_win.height = var->yres / buffer_num;
-
-            	BSP_disp_layer_set_src_window(sel, layer_hdl, &(layer_para.src_win));
-            }
-            else
+            else if(g_fbi.fb_mode[info->node] == FB_MODE_SCREEN0_PARTLY)
             {
-            	layer_para.src_win.x = var->xoffset;
-            	layer_para.src_win.y = var->yoffset + y_offset;
-            	layer_para.src_win.width = var->xres;
-            	layer_para.src_win.height = var->yres / buffer_num;
-
-            	layer_para.scn_win.width = var->xres;
-            	layer_para.scn_win.height = var->yres / buffer_num;
-
-                BSP_disp_layer_set_src_window(sel, layer_hdl, &(layer_para.src_win));
-            	BSP_disp_layer_set_screen_window(sel, layer_hdl, &(layer_para.scn_win));
+            	if(layer_para.src_win.y >= var->yres)
+            	{
+            	    y_offset = layer_para.src_win.y - var->yres;
+            	}
+            	else
+            	{
+            	    y_offset = layer_para.src_win.y;
+            	}
             }
+            
+        	layer_para.src_win.y = var->yoffset + y_offset;
+        	BSP_disp_layer_set_src_window(sel, layer_hdl, &(layer_para.src_win));
         }
     }
+    
+    Fb_wait_for_vsync(info);
+    
 	return 0;
 }
 
@@ -811,8 +822,8 @@ static int Fb_set_par(struct fb_info *info)//todo
 
     for(sel = 0; sel < 2; sel++)
     {
-        if(((sel==0) && (g_fbi.fb_mode[info->node] != FB_MODE_SCREEN1))
-            || ((sel==1) && (g_fbi.fb_mode[info->node] != FB_MODE_SCREEN0)))
+        if(((sel==0) && ((g_fbi.fb_mode[info->node] == FB_MODE_SCREEN0) || (g_fbi.fb_mode[info->node] == FB_MODE_DUAL_SAME_SCREEN_TB) || (g_fbi.fb_mode[info->node] == FB_MODE_SCREEN0_PARTLY)))
+            || ((sel==1) && ((g_fbi.fb_mode[info->node] == FB_MODE_SCREEN1) || (g_fbi.fb_mode[info->node] == FB_MODE_DUAL_SAME_SCREEN_TB))))
         {
             struct fb_var_screeninfo *var = &info->var;
             struct fb_fix_screeninfo * fix = &info->fix;
@@ -832,14 +843,18 @@ static int Fb_set_par(struct fb_info *info)//todo
             BSP_disp_layer_get_para(sel, layer_hdl, &layer_para);
 
             var_to_disp_fb(&(layer_para.fb), var, fix);
-        	layer_para.src_win.x = var->xoffset;
-        	layer_para.src_win.y = var->yoffset + y_offset;
-        	layer_para.src_win.width = var->xres;
-        	layer_para.src_win.height = var->yres / buffer_num;
-        	if(layer_para.mode != DISP_LAYER_WORK_MODE_SCALER)
-        	{
-            	layer_para.scn_win.width = layer_para.src_win.width;
-            	layer_para.scn_win.height = layer_para.src_win.height;
+            
+            if(g_fbi.fb_mode[info->node] != FB_MODE_SCREEN0_PARTLY)
+            {
+            	layer_para.src_win.x = var->xoffset;
+            	layer_para.src_win.y = var->yoffset + y_offset;
+            	layer_para.src_win.width = var->xres;
+            	layer_para.src_win.height = var->yres / buffer_num;
+            	if(layer_para.mode != DISP_LAYER_WORK_MODE_SCALER)
+            	{
+                	layer_para.scn_win.width = layer_para.src_win.width;
+                	layer_para.scn_win.height = layer_para.src_win.height;
+            	}
         	}
             BSP_disp_layer_set_para(sel, layer_hdl, &layer_para);
         }
@@ -856,8 +871,8 @@ static int Fb_setcolreg(unsigned regno,unsigned red, unsigned green, unsigned bl
 
     for(sel = 0; sel < 2; sel++)
     {
-        if(((sel==0) && (g_fbi.fb_mode[info->node] != FB_MODE_SCREEN1))
-            || ((sel==1) && (g_fbi.fb_mode[info->node] != FB_MODE_SCREEN0)))
+        if(((sel==0) && ((g_fbi.fb_mode[info->node] == FB_MODE_SCREEN0) || (g_fbi.fb_mode[info->node] == FB_MODE_DUAL_SAME_SCREEN_TB) || (g_fbi.fb_mode[info->node] == FB_MODE_SCREEN0_PARTLY)))
+            || ((sel==1) && ((g_fbi.fb_mode[info->node] == FB_MODE_SCREEN1) || (g_fbi.fb_mode[info->node] == FB_MODE_DUAL_SAME_SCREEN_TB))))
         {
             unsigned int val;
 
@@ -888,8 +903,8 @@ static int Fb_setcmap(struct fb_cmap *cmap, struct fb_info *info)
 	
     for(sel = 0; sel < 2; sel++)
     {
-        if(((sel==0) && (g_fbi.fb_mode[info->node] != FB_MODE_SCREEN1))
-            || ((sel==1) && (g_fbi.fb_mode[info->node] != FB_MODE_SCREEN0)))
+        if(((sel==0) && ((g_fbi.fb_mode[info->node] == FB_MODE_SCREEN0) || (g_fbi.fb_mode[info->node] == FB_MODE_DUAL_SAME_SCREEN_TB) || (g_fbi.fb_mode[info->node] == FB_MODE_SCREEN0_PARTLY)))
+            || ((sel==1) && ((g_fbi.fb_mode[info->node] == FB_MODE_SCREEN1) || (g_fbi.fb_mode[info->node] == FB_MODE_DUAL_SAME_SCREEN_TB))))
         {
             unsigned int j = 0, val = 0;
             unsigned char hred, hgreen, hblue, htransp = 0xff;
@@ -930,8 +945,8 @@ int Fb_blank(int blank_mode, struct fb_info *info)
 
     for(sel = 0; sel < 2; sel++)
     {
-        if(((sel==0) && (g_fbi.fb_mode[info->node] != FB_MODE_SCREEN1))
-            || ((sel==1) && (g_fbi.fb_mode[info->node] != FB_MODE_SCREEN0)))
+        if(((sel==0) && ((g_fbi.fb_mode[info->node] == FB_MODE_SCREEN0) || (g_fbi.fb_mode[info->node] == FB_MODE_DUAL_SAME_SCREEN_TB) || (g_fbi.fb_mode[info->node] == FB_MODE_SCREEN0_PARTLY)))
+            || ((sel==1) && ((g_fbi.fb_mode[info->node] == FB_MODE_SCREEN1) || (g_fbi.fb_mode[info->node] == FB_MODE_DUAL_SAME_SCREEN_TB))))
         {
             __s32 layer_hdl = g_fbi.layer_hdl[info->node][sel];
 
@@ -956,35 +971,6 @@ static int Fb_cursor(struct fb_info *info, struct fb_cursor *cursor)
     return 0;
 }
 
-static int Fb_wait_for_vsync(struct fb_info *info)
-{
-	unsigned long count;
-	__u32 sel = 0;
-	int ret;
-
-    for(sel = 0; sel < 2; sel++)
-    {
-        if(((sel==0) && (g_fbi.fb_mode[info->node] != FB_MODE_SCREEN1))
-            || ((sel==1) && (g_fbi.fb_mode[info->node] != FB_MODE_SCREEN0)))
-        {
-            if(BSP_disp_get_output_type(sel) == DISP_OUTPUT_TYPE_NONE)
-            {
-                return 0;
-            }
-            
-        	count = g_fbi.wait_count[sel];
-        	ret = wait_event_interruptible_timeout(g_fbi.wait[sel], count != g_fbi.wait_count[sel], msecs_to_jiffies(50));
-        	if (ret == 0)
-        	{
-        	    __inf("timeout\n");
-        		return -ETIMEDOUT;
-        	}
-        }
-    }
-    
-	return 0;
-}
-
 __s32 DRV_disp_int_process(__u32 sel)
 {
     g_fbi.wait_count[sel]++;
@@ -1001,7 +987,7 @@ static int Fb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 	switch (cmd) 
 	{
     case FBIOGET_LAYER_HDL_0:
-        if(g_fbi.fb_mode[info->node] != FB_MODE_SCREEN1)
+        if((g_fbi.fb_mode[info->node] == FB_MODE_SCREEN0) || (g_fbi.fb_mode[info->node] == FB_MODE_DUAL_SAME_SCREEN_TB) || (g_fbi.fb_mode[info->node] == FB_MODE_SCREEN0_PARTLY))
         {
             layer_hdl = g_fbi.layer_hdl[info->node][0];
             ret = copy_to_user((void __user *)arg, &layer_hdl, sizeof(unsigned long));
@@ -1013,7 +999,7 @@ static int Fb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
         break; 
 
     case FBIOGET_LAYER_HDL_1:
-        if(g_fbi.fb_mode[info->node] != FB_MODE_SCREEN0)
+        if((g_fbi.fb_mode[info->node] == FB_MODE_SCREEN1) || (g_fbi.fb_mode[info->node] == FB_MODE_DUAL_SAME_SCREEN_TB))
         {
             layer_hdl = g_fbi.layer_hdl[info->node][1];
             ret = copy_to_user((void __user *)arg, &layer_hdl, sizeof(unsigned long));
@@ -1057,7 +1043,7 @@ static int Fb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 
     case FBIO_WAITFORVSYNC:
     {
-        ret = Fb_wait_for_vsync(info);
+        //ret = Fb_wait_for_vsync(info);
         break;
     }
 
@@ -1094,43 +1080,45 @@ __s32 Display_Fb_Request(__u32 fb_id, __disp_fb_create_para_t *fb_para)
 	__inf("Display_Fb_Request,fb_id:%d\n", fb_id);
 
     info = g_fbi.fbinfo[fb_id];
-
-    xres = fb_para->width;
-    yres = fb_para->height;
-	
+    
+    if(fb_para->fb_mode == FB_MODE_SCREEN0_PARTLY)
+    {
+        xres = 1920;
+        yres = 1080;
+    }
+    else
+    {
+        xres = fb_para->width;
+        yres = fb_para->height;
+    }
+    
 	info->var.xoffset       = 0;
 	info->var.yoffset       = 0;
 	info->var.xres          = xres;
 	info->var.yres          = yres;
 	info->var.xres_virtual  = xres;
 	info->var.yres_virtual  = yres * fb_para->buffer_num;
-    info->fix.line_length   = (fb_para->width * info->var.bits_per_pixel) >> 3;
-    info->fix.smem_len      = info->fix.line_length * fb_para->height * fb_para->buffer_num;
+    info->fix.line_length   = (xres * info->var.bits_per_pixel) >> 3;
+    info->fix.smem_len      = info->fix.line_length * yres  * fb_para->buffer_num;
     Fb_map_video_memory(info);
 
     for(sel = 0; sel < 2; sel++)
     {
-        if(((sel==0) && (fb_para->fb_mode != FB_MODE_SCREEN1))
-        || ((sel==1) && (fb_para->fb_mode != FB_MODE_SCREEN0)))
+        if(((sel==0) && ((fb_para->fb_mode == FB_MODE_SCREEN0) || (fb_para->fb_mode == FB_MODE_DUAL_SAME_SCREEN_TB) || (fb_para->fb_mode == FB_MODE_SCREEN0_PARTLY)))
+            || ((sel==1) && ((fb_para->fb_mode == FB_MODE_SCREEN1) || (fb_para->fb_mode == FB_MODE_DUAL_SAME_SCREEN_TB))))
         {
     	    __u32 y_offset = 0, src_width = xres, src_height = yres;
+            __disp_tcon_timing_t tt;
 
-	        if(((sel==0) && (fb_para->fb_mode == FB_MODE_SCREEN0 || fb_para->fb_mode == FB_MODE_DUAL_SAME_SCREEN_TB))
-                || ((sel==1) && (fb_para->fb_mode == FB_MODE_SCREEN1))
-                || ((sel == fb_para->primary_screen_id) && (fb_para->fb_mode == FB_MODE_DUAL_DIFF_SCREEN_SAME_CONTENTS)))
+            if(BSP_disp_get_timming(sel, &tt) >= 0)
             {
-                __disp_tcon_timing_t tt;
-
-                if(BSP_disp_get_timming(sel, &tt) >= 0)
-                {
-                    info->var.pixclock = 1000000000 / tt.pixel_clk;
-                    info->var.left_margin = tt.hor_back_porch;
-                    info->var.right_margin = tt.hor_front_porch;
-                    info->var.upper_margin = tt.ver_back_porch;
-                    info->var.lower_margin = tt.ver_front_porch;
-                    info->var.hsync_len = tt.hor_sync_time;
-                    info->var.vsync_len = tt.ver_sync_time;
-                }
+                info->var.pixclock = 1000000000 / tt.pixel_clk;
+                info->var.left_margin = tt.hor_back_porch;
+                info->var.right_margin = tt.hor_front_porch;
+                info->var.upper_margin = tt.ver_back_porch;
+                info->var.lower_margin = tt.ver_front_porch;
+                info->var.hsync_len = tt.hor_sync_time;
+                info->var.vsync_len = tt.ver_sync_time;
             }
 
             if(fb_para->fb_mode == FB_MODE_DUAL_SAME_SCREEN_TB)
@@ -1146,24 +1134,17 @@ __s32 Display_Fb_Request(__u32 fb_id, __disp_fb_create_para_t *fb_para)
             layer_para.mode = fb_para->mode;
             layer_para.scn_win.width = src_width;
             layer_para.scn_win.height = src_height;
-            if(fb_para->fb_mode == FB_MODE_DUAL_DIFF_SCREEN_SAME_CONTENTS)
-            {
-                if(sel != fb_para->primary_screen_id)
-                {
-                    layer_para.mode = DISP_LAYER_WORK_MODE_SCALER;
-                    layer_para.scn_win.width = fb_para->aux_output_width;
-                    layer_para.scn_win.height = fb_para->aux_output_height;
-                }
-                else if(fb_para->mode == DISP_LAYER_WORK_MODE_SCALER)
-                {
-                    layer_para.scn_win.width = fb_para->output_width;
-                    layer_para.scn_win.height = fb_para->output_height;
-                }
-            }
-            else if(fb_para->mode == DISP_LAYER_WORK_MODE_SCALER)
+            if(fb_para->mode == DISP_LAYER_WORK_MODE_SCALER)
             {
                 layer_para.scn_win.width = fb_para->output_width;
                 layer_para.scn_win.height = fb_para->output_height;
+            }
+            if(fb_para->fb_mode == FB_MODE_SCREEN0_PARTLY)
+            {
+                layer_para.scn_win.width = fb_para->width;
+                layer_para.scn_win.height = fb_para->height;
+                src_width = fb_para->width;
+                src_height = fb_para->height;
             }
                             
             hdl = BSP_disp_layer_request(sel, layer_para.mode);
@@ -1212,8 +1193,8 @@ __s32 Display_Fb_Release(__u32 fb_id)
 
         for(sel = 0; sel < 2; sel++)
         {
-            if(((sel==0) && (g_fbi.fb_mode[fb_id] != FB_MODE_SCREEN1))
-            || ((sel==1) && (g_fbi.fb_mode[fb_id] != FB_MODE_SCREEN0)))
+            if(((sel==0) && ((g_fbi.fb_mode[fb_id] == FB_MODE_SCREEN0) || (g_fbi.fb_mode[fb_id] == FB_MODE_DUAL_SAME_SCREEN_TB) || (g_fbi.fb_mode[fb_id] == FB_MODE_SCREEN0_PARTLY)))
+            || ((sel==1) && ((g_fbi.fb_mode[fb_id] == FB_MODE_SCREEN1) || (g_fbi.fb_mode[fb_id] == FB_MODE_DUAL_SAME_SCREEN_TB))))
             {
                 __s32 layer_hdl = g_fbi.layer_hdl[fb_id][sel];
                 
@@ -1269,9 +1250,8 @@ __s32 Display_set_fb_timming(__u32 sel)
 	{
 		if(g_fbi.fb_enable[fb_id])
 		{
-	        if(((sel==0) && (g_fbi.fb_mode[fb_id] == FB_MODE_SCREEN0 || g_fbi.fb_mode[fb_id] == FB_MODE_DUAL_SAME_SCREEN_TB))
-                || ((sel==1) && (g_fbi.fb_mode[fb_id] == FB_MODE_SCREEN1))
-                || ((sel == g_fbi.fb_para[fb_id].primary_screen_id) && (g_fbi.fb_mode[fb_id] == FB_MODE_DUAL_DIFF_SCREEN_SAME_CONTENTS)))
+	        if(((sel==0) && ((g_fbi.fb_mode[fb_id] == FB_MODE_SCREEN0) || (g_fbi.fb_mode[fb_id] == FB_MODE_DUAL_SAME_SCREEN_TB) || (g_fbi.fb_mode[fb_id] == FB_MODE_SCREEN0_PARTLY)))
+            || ((sel==1) && ((g_fbi.fb_mode[fb_id] == FB_MODE_SCREEN1) || (g_fbi.fb_mode[fb_id] == FB_MODE_DUAL_SAME_SCREEN_TB))))
             {
                 __disp_tcon_timing_t tt;
 
@@ -1356,8 +1336,10 @@ __s32 Fb_Init(__u32 from)
 
         for(sel = 0; sel<2; sel++)
         {
-            if(((sel==0) && (g_fbi.disp_init.disp_mode!=DISP_INIT_MODE_SCREEN1)) || 
-                ((sel==1) && (g_fbi.disp_init.disp_mode!=DISP_INIT_MODE_SCREEN0)))
+            if(((sel==0) && ((g_fbi.disp_init.disp_mode == DISP_INIT_MODE_SCREEN0) || (g_fbi.disp_init.disp_mode == DISP_INIT_MODE_TWO_DIFF_SCREEN) ||
+    	               (g_fbi.disp_init.disp_mode == DISP_INIT_MODE_TWO_SAME_SCREEN) || (g_fbi.disp_init.disp_mode == DISP_INIT_MODE_SCREEN0_GPU))) || 
+                ((sel==1) && ((g_fbi.disp_init.disp_mode == DISP_INIT_MODE_SCREEN1) || (g_fbi.disp_init.disp_mode == DISP_INIT_MODE_TWO_DIFF_SCREEN) ||
+    	               (g_fbi.disp_init.disp_mode == DISP_INIT_MODE_TWO_SAME_SCREEN))))
             {
                 if(g_fbi.disp_init.output_type[sel] == DISP_OUTPUT_TYPE_HDMI)
                 {
@@ -1382,8 +1364,10 @@ __s32 Fb_Init(__u32 from)
 
         for(sel = 0; sel<2; sel++)
         {
-            if(((sel==0) && (g_fbi.disp_init.disp_mode!=DISP_INIT_MODE_SCREEN1)) || 
-                ((sel==1) && (g_fbi.disp_init.disp_mode!=DISP_INIT_MODE_SCREEN0)))
+            if(((sel==0) && ((g_fbi.disp_init.disp_mode == DISP_INIT_MODE_SCREEN0) || (g_fbi.disp_init.disp_mode == DISP_INIT_MODE_TWO_DIFF_SCREEN) ||
+    	               (g_fbi.disp_init.disp_mode == DISP_INIT_MODE_TWO_SAME_SCREEN) || (g_fbi.disp_init.disp_mode == DISP_INIT_MODE_SCREEN0_GPU))) || 
+                ((sel==1) && ((g_fbi.disp_init.disp_mode == DISP_INIT_MODE_SCREEN1) || (g_fbi.disp_init.disp_mode == DISP_INIT_MODE_TWO_DIFF_SCREEN) ||
+    	               (g_fbi.disp_init.disp_mode == DISP_INIT_MODE_TWO_SAME_SCREEN))))
             {
                 if(g_fbi.disp_init.output_type[sel] == DISP_OUTPUT_TYPE_LCD)
                 {
@@ -1449,16 +1433,12 @@ __s32 Fb_Init(__u32 from)
                 fb_para.height *= 2;
                 fb_para.output_height *= 2;
             }
-            else if(g_fbi.disp_init.disp_mode == DISP_INIT_MODE_TWO_DIFF_SCREEN_SAME_CONTENTS)
+            else if(g_fbi.disp_init.disp_mode == DISP_INIT_MODE_SCREEN0_GPU)
             {
-                fb_para.fb_mode = FB_MODE_DUAL_DIFF_SCREEN_SAME_CONTENTS;
-                fb_para.output_width = BSP_disp_get_screen_width(fb_para.primary_screen_id);
-                fb_para.output_height = BSP_disp_get_screen_height(fb_para.primary_screen_id);
-                fb_para.aux_output_width = BSP_disp_get_screen_width(1 - fb_para.primary_screen_id);
-                fb_para.aux_output_height = BSP_disp_get_screen_height(1 - fb_para.primary_screen_id);
+                fb_para.fb_mode = FB_MODE_SCREEN0_PARTLY;
             }
             Display_Fb_Request(i, &fb_para);
-
+            
             //fb_draw_colorbar((__u32)g_fbi.fbinfo[i]->screen_base, fb_para.width, fb_para.height*fb_para.buffer_num, &(g_fbi.fbinfo[i]->var));
         }
 
@@ -1470,7 +1450,8 @@ __s32 Fb_Init(__u32 from)
         {
             BSP_disp_print_reg(0, DISP_REG_SCALER1);
         }
-    	if(g_fbi.disp_init.disp_mode != DISP_INIT_MODE_SCREEN1)
+    	if((g_fbi.disp_init.disp_mode == DISP_INIT_MODE_SCREEN0) || (g_fbi.disp_init.disp_mode == DISP_INIT_MODE_TWO_DIFF_SCREEN) ||
+    	    (g_fbi.disp_init.disp_mode == DISP_INIT_MODE_TWO_SAME_SCREEN) || (g_fbi.disp_init.disp_mode == DISP_INIT_MODE_SCREEN0_GPU))
     	{
             BSP_disp_print_reg(0, DISP_REG_IMAGE0);
             BSP_disp_print_reg(0, DISP_REG_LCDC0);
@@ -1479,7 +1460,8 @@ __s32 Fb_Init(__u32 from)
                 BSP_disp_print_reg(0, DISP_REG_TVEC0);
             }
         }
-        if(g_fbi.disp_init.disp_mode != DISP_INIT_MODE_SCREEN0)
+        if((g_fbi.disp_init.disp_mode == DISP_INIT_MODE_SCREEN1) || (g_fbi.disp_init.disp_mode == DISP_INIT_MODE_TWO_DIFF_SCREEN) ||
+    	    (g_fbi.disp_init.disp_mode == DISP_INIT_MODE_TWO_SAME_SCREEN))
         {
     	    BSP_disp_print_reg(0, DISP_REG_IMAGE1);
     	    BSP_disp_print_reg(0, DISP_REG_LCDC1); 
