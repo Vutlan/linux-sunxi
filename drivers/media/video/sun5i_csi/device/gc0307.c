@@ -40,7 +40,7 @@ MODULE_LICENSE("GPL");
 #define csi_dev_err(x,arg...) printk(KERN_INFO"[CSI_ERR][GC0307]"x,##arg)
 #define csi_dev_print(x,arg...) printk(KERN_INFO"[CSI][GC0307]"x,##arg)
 
-#define MCLK (12*1000*1000)
+#define MCLK (24*1000*1000)
 #define VREF_POL	CSI_HIGH
 #define HREF_POL	CSI_HIGH
 #define CLK_POL		CSI_RISING
@@ -158,7 +158,7 @@ static struct regval_list sensor_default_regs[] =
 {{0x41},{0x00}},          
 {{0x42},{0x10}},                      
 {{0x47},{0x00}},//mode1,                  
-{{0x48},{0xc1}},//mode2,
+{{0x48},{0xc7}},//mode2,  
 {{0x49},{0x00}},//dither_mode         
 {{0x4a},{0x00}},//clock_gating_en
 {{0x4b},{0x00}},//mode_reg3
@@ -312,7 +312,7 @@ static struct regval_list sensor_default_regs[] =
 {{0xa0},{0x40}},//global_saturation
 {{0xa1},{0x40}},//luma_contrast                                                                     
 {{0xa2},{0x34}},//saturation_Cb//0x34                                                                   
-{{0xa3},{0x32}},// 34  saturation_Cr//0x34
+{{0xa3},{0x34}},//saturation_Cr//0x34
           
 {{0xa4},{0xc8}},                                                                
 {{0xa5},{0x02}},
@@ -333,7 +333,7 @@ static struct regval_list sensor_default_regs[] =
 {{0xb0},{0xe0}},    
 {{0xb1},{0x20}},
 {{0xb2},{0x6c}},
-{{0xb3},{0x40}},
+{{0xb3},{0xc0}},
 {{0xb4},{0x04}},
      
                //========= AWB 
@@ -351,9 +351,9 @@ static struct regval_list sensor_default_regs[] =
 {{0xc5},{0x56}},
 {{0xc6},{0x1d}},  
 
-{{0xca},{0x70}},//0x70
-{{0xcb},{0x70}},//0x70
-{{0xcc},{0x78}},//0x78
+{{0xca},{0x56}},//0x70
+{{0xcb},{0x52}},//0x70
+{{0xcc},{0x66}},//0x78
 
 {{0xcd},{0x80}},//R_ratio                                      
 {{0xce},{0x80}},//G_ratio  , cold_white white                                    
@@ -362,7 +362,7 @@ static struct regval_list sensor_default_regs[] =
                    //=========  aecT  
 {{0x20},{0x06}},//02
 {{0x21},{0xc0}},
-{{0x22},{0x40}},   
+{{0x22},{0x60}},   
 {{0x23},{0x88}},
 {{0x24},{0x96}},
 {{0x25},{0x30}},
@@ -395,10 +395,10 @@ static struct regval_list sensor_default_regs[] =
 {{0xd6},{0x4b}},//antiflicker_step //96                      
 {{0xd7},{0x03}},//AEC_exp_time_min //10              
 {{0xd8},{0x02}},
-      
-{{0xdd},{0x12}},
-     
-         //========= measure window                                      
+
+{{0xdd},{0x22}},
+            
+//========= measure window                                      
 {{0xe0},{0x03}},                       
 {{0xe1},{0x02}},                           
 {{0xe2},{0x27}},                               
@@ -498,8 +498,8 @@ static struct regval_list sensor_default_regs[] =
           //============================= AGP
      
 {{0x7e},{0x00}}, 
-{{0x7f},{0x30}},   //  00    select gamma  
-{{0x80},{0x48}}, //  c8
+{{0x7f},{0x00}}, //select gamma  
+{{0x80},{0xc8}}, 
 {{0x81},{0x06}}, 
 {{0x82},{0x08}}, 
       

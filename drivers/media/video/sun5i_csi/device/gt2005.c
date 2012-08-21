@@ -734,6 +734,7 @@ static struct regval_list sensor_hd720_regs[] = {
 	{{0x03,	0x15} , {0x16}},                  			
 	{{0x03,	0x13} , {0x38}},
 	{{0x03,	0x14} , {0x8B}},
+      {{0x03,	0x00} , {0x81}},   // alc on  2012-2-17
 };
 
 static struct regval_list sensor_svga_regs[] = {
@@ -757,6 +758,7 @@ static struct regval_list sensor_svga_regs[] = {
 	{{0x03,	0x15} , {0x16}},                  			
 	{{0x03,	0x13} , {0x38}},//0x35
 	{{0x03,	0x14} , {0x8B}},//0x36
+      {{0x03,	0x00} , {0x81}},   // alc on  2012-2-17
 };
 
 static struct regval_list sensor_vga_regs[] = {
@@ -781,6 +783,7 @@ static struct regval_list sensor_vga_regs[] = {
 	{{0x03,	0x13} , {0x38}},//0x35
 	{{0x03,	0x14} , {0x8B}},//0x36
 	{{0xff, 0xff} , {0x64}},
+      {{0x03,	0x00} , {0x81}},   // alc on  2012-2-17
 };
 
 
@@ -1678,12 +1681,145 @@ static int sensor_try_fmt(struct v4l2_subdev *sd,
 	return sensor_try_fmt_internal(sd, fmt, NULL, NULL);
 }
 
+static unsigned char g_pv_shutter_reg12 = 0;
+static unsigned char g_pv_shutter_reg13 = 0;
+
+static unsigned char AGain_shutter_reg14 = 0;
+static unsigned char AGain_shutter_reg15 = 0;
+static unsigned char DGain_shutter_reg16 = 0;
+static unsigned char DGain_shutter_reg17 = 0;
+
+static int sensor_s_fmt_before(struct v4l2_subdev *sd)
+{
+  struct regval_list regs; 
+	int ret;
+
+	regs.reg_num[0] = 0x03;
+	regs.reg_num[1] = 0x00;
+	regs.value[0] = 0xC1;
+	ret = sensor_write(sd, regs.reg_num, regs.value);
+
+	regs.reg_num[0] = 0x00;
+	regs.reg_num[1] = 0x12;
+	ret = sensor_read(sd, regs.reg_num, &g_pv_shutter_reg12);
+
+	//g_pv_shutter_reg12 = regs.value; 
+	printk("snesor_s_fmt_before g_pv_shutter_reg12 = [%x]\n", g_pv_shutter_reg12);
+	regs.reg_num[0] = 0x00;
+	regs.reg_num[1] = 0x13;
+
+	ret = sensor_read(sd, regs.reg_num, &g_pv_shutter_reg13);//  regs.value); james
+
+	//g_pv_shutter_reg13 = regs.value; 
+
+	printk("snesor_s_fmt_before g_pv_shutter_reg13 = [%x]\n", g_pv_shutter_reg13);
+	regs.reg_num[0] = 0x00;
+	regs.reg_num[1] = 0x14;
+	   
+	ret = sensor_read(sd, regs.reg_num, &AGain_shutter_reg14);
+	   
+	regs.reg_num[0] = 0x00;
+	regs.reg_num[1] = 0x15;
+	   
+	ret = sensor_read(sd, regs.reg_num, &AGain_shutter_reg15);
+	   
+	regs.reg_num[0] = 0x00;
+	regs.reg_num[1] = 0x16;
+	   
+	ret = sensor_read(sd, regs.reg_num, &DGain_shutter_reg16);
+	   
+	regs.reg_num[0] = 0x00;
+	regs.reg_num[1] = 0x17;
+	   
+	ret = sensor_read(sd, regs.reg_num, &DGain_shutter_reg17);
+	   
+	printk("AGain_shutter_reg14 = [%d], AGain_shutter_reg15 = %x, DGain_shutter_reg16 = %x, DGain_shutter_reg17 = %x\n", 
+	AGain_shutter_reg14, AGain_shutter_reg15, DGain_shutter_reg16, DGain_shutter_reg17);
+	return 0;
+};
+
+static int sensor_s_fmt_after(struct v4l2_subdev *sd)
+{
+  struct regval_list regs; 
+
+	int ret;
+#if 0//just for test   james 2012-2-17
+	regs.reg_num[0] = 0x00;
+	regs.reg_num[1] = 0x14;
+
+	ret = sensor_read(sd, regs.reg_num, &AGain_shutter_reg14);
+
+	regs.reg_num[0] = 0x00;
+	regs.reg_num[1] = 0x15;
+
+	ret = sensor_read(sd, regs.reg_num, &AGain_shutter_reg15);
+
+	regs.reg_num[0] = 0x00;
+	regs.reg_num[1] = 0x16;
+
+	ret = sensor_read(sd, regs.reg_num, &DGain_shutter_reg16);
+
+	regs.reg_num[0] = 0x00;
+	regs.reg_num[1] = 0x17;
+
+	ret = sensor_read(sd, regs.reg_num, &DGain_shutter_reg17);
+
+    printk("AGain_shutter_reg14 = [%d], AGain_shutter_reg15 = %x, DGain_shutter_reg16 = %x, DGain_shutter_reg17 = %x\n", 
+        AGain_shutter_reg14, AGain_shutter_reg15, DGain_shutter_reg16, DGain_shutter_reg17);
+#endif //just for test   james 2012-2-17
+#if 0	
+	regs.reg_num[0] = 0x03;
+	regs.reg_num[1] = 0x00;
+	regs.value[0] = 0xc1;
+
+	ret = sensor_write(sd, regs.reg_num, regs.value);
+
+#endif
+	regs.reg_num[0] = 0x03;
+	regs.reg_num[1] = 0x04;  //   james
+	regs.value[0] = g_pv_shutter_reg12;
+
+	ret = sensor_write(sd, regs.reg_num, regs.value);
+
+	regs.reg_num[0] = 0x03;
+	regs.reg_num[1] = 0x05;//james
+	regs.value[0] = g_pv_shutter_reg13;
+
+	ret = sensor_write(sd, regs.reg_num, regs.value);
+	regs.reg_num[0] = 0x03;
+	regs.reg_num[1] = 0x07;
+	regs.value[0] = AGain_shutter_reg15;
+
+	ret = sensor_write(sd, regs.reg_num, regs.value);
+
+	regs.reg_num[0] = 0x03;
+	regs.reg_num[1] = 0x06;
+	regs.value[0] = AGain_shutter_reg14;
+
+	ret = sensor_write(sd, regs.reg_num, regs.value);
+
+	regs.reg_num[0] = 0x03;
+	regs.reg_num[1] = 0x08;
+	regs.value[0] = ((((DGain_shutter_reg16 << 8) | (DGain_shutter_reg17 & 0xFF)) >> 2) & 0xFF);
+
+	ret = sensor_write(sd, regs.reg_num, regs.value);
+
+	regs.reg_num[0] = 0x03;
+	regs.reg_num[1] = 0x00;  
+	regs.value[0] = 0x01;  //0x41  2012-2-17
+	ret = sensor_write(sd, regs.reg_num, regs.value);
+
+	msleep(50);
+	return 0;
+};
+
 /*
  * Set a format.
  */
 static int sensor_s_fmt(struct v4l2_subdev *sd, 
              struct v4l2_mbus_framefmt *fmt)//linux-3.0
 {
+	struct regval_list regs; 
 	int ret;
 	struct sensor_format_struct *sensor_fmt;
 	struct sensor_win_size *wsize;
@@ -1695,7 +1831,10 @@ static int sensor_s_fmt(struct v4l2_subdev *sd,
 	
 	
 	sensor_write_array(sd, sensor_fmt->regs , sensor_fmt->regs_size);
-	
+    if (wsize->width == 1600 && wsize->height == 1200)
+	{
+		sensor_s_fmt_before(sd);  // james added before capture
+	}
 	ret = 0;
 	if (wsize->regs)
 	{
@@ -1703,7 +1842,18 @@ static int sensor_s_fmt(struct v4l2_subdev *sd,
 		if (ret < 0)
 			return ret;
 	}
+    if (wsize->width == 1600 && wsize->height == 1200){
+		sensor_s_fmt_after(sd); //james
+		msleep(300);
+	}
+	 if ((wsize->width == 640 && wsize->height == 480)||(wsize->width == 800 && wsize->height==600)){
 	
+	regs.reg_num[0] = 0x03;
+	regs.reg_num[1] = 0x00;
+	regs.value[0] = 0x81;
+	ret = sensor_write(sd, regs.reg_num, regs.value);
+		msleep(300); //james 2012-2-15
+	}
 	if (wsize->set_size)
 	{
 		ret = wsize->set_size(sd);

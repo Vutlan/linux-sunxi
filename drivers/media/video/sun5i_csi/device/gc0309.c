@@ -385,7 +385,7 @@ static struct regval_list sensor_default_regs[] =
 	{{0x75},{0x60}},          
 	{{0xfe},{0x00}},
            
-  {{0xd2},{0x90}},  // Open AEC at last.  
+        {{0xd2},{0x90}},  // Open AEC at last.  
 	{{0x14},{0x10}},
 	
 	
@@ -408,18 +408,7 @@ static struct regval_list sensor_default_regs[] =
 	{{0xd3},{0x50}},  // ae target
 	
 	//GC0309_SET_PAGE1;
-	{{0xfe},{0x01}},
-	// awb update  
-	{{0x02},{0x20}}, 
-	{{0x04},{0x06}},
-	{{0x05},{0x20}},
-	{{0x06},{0x20}},
-	{{0x10},{0x41}}, 
-	{{0x13},{0x19}}, 
-	{{0x1b},{0xe0}}, 
-	
-	//GC0309_SET_PAGE0;
-	{{0xfe},{0x00}},
+
 /******* end update for image performance *****************/
 
 
@@ -429,11 +418,48 @@ static struct regval_list sensor_default_regs[] =
 	{{0x1d},{0x98}},
 	{{0x10},{0x26}},
 	{{0x1a},{0x26}}, 
+
+
+	{{0x9F},{0x0E}},
+	{{0xA0},{0x1C}},
+	{{0xA1},{0x34}},
+	{{0xA2},{0x48}},
+	{{0xA3},{0x5A}},
+	{{0xA4},{0x6B}},
+	{{0xA5},{0x7B}},
+	{{0xA6},{0x95}},
+	{{0xA7},{0xAB}},
+	{{0xA8},{0xBF}},
+	{{0xA9},{0xCE}},
+	{{0xAA},{0xD9}},
+	{{0xAB},{0xE4}},
+	{{0xAC},{0xEC}},
+	{{0xAD},{0xF7}},
+	{{0xAE},{0xFD}},
+	{{0xAF},{0xFF}},
+
+	{{0xfe},{0x00}},																					 
+	//MCLK=24MHz 10fps
+	{{0x0f},{0x05}},	 //0x00                                        
+	{{0x01},{0x1a}},   //0x6a                                        
+	{{0x02},{0x70}},   //0x70                                        
+	{{0xe2},{0x00}},                                           
+	{{0xe3},{0x3c}},                                           
+	{{0xe4},{0x02}},                                           
+	{{0xe5},{0x58}},                                           
+	{{0xe6},{0x02}},                                           
+	{{0xe7},{0x58}},                                           
+	{{0xe8},{0x02}},                                           
+	{{0xe9},{0x58}},                                           
+	{{0xea},{0x07}},                                           
+	{{0xeb},{0x08}},
+
+
 };
 
 static struct regval_list sensor_oe_disable[] =
 {
-	{{0xf0},{0x00}},
+	{{0xfe},{0x00}},
 	{{0x25},{0x00}},
 };
 
@@ -443,7 +469,6 @@ static struct regval_list sensor_oe_disable[] =
  * The white balance enalbe bit is modified in sensor_s_autowb and sensor_s_wb
  */
 static struct regval_list sensor_wb_auto_regs[] = {
-	{{0xf0},{0x00}},
 	{{0x5a},{0x56}},//for AWB can adjust back, first write the RGB wb gain, and then enable AWB
 	{{0x5b},{0x40}},
 	{{0x5c},{0x4a}},
@@ -451,7 +476,6 @@ static struct regval_list sensor_wb_auto_regs[] = {
 };
 
 static struct regval_list sensor_wb_cloud_regs[] = {
-	{{0xf0},{0x00}},
 	{{0x22},{0x55}},
 	{{0x5a},{0x8c}},
 	{{0x5b},{0x50}},
@@ -460,7 +484,6 @@ static struct regval_list sensor_wb_cloud_regs[] = {
 
 static struct regval_list sensor_wb_daylight_regs[] = {
 	//tai yang guang
-	{{0xf0},{0x00}},
 	{{0x22},{0x55}},
 	{{0x5a},{0x74}},
 	{{0x5b},{0x52}},
@@ -469,7 +492,6 @@ static struct regval_list sensor_wb_daylight_regs[] = {
 
 static struct regval_list sensor_wb_incandescence_regs[] = {
 	//bai re guang
-	{{0xf0},{0x00}},
 	{{0x22},{0x55}},
 	{{0x5a},{0x48}},
 	{{0x5b},{0x40}},
@@ -478,7 +500,6 @@ static struct regval_list sensor_wb_incandescence_regs[] = {
 
 static struct regval_list sensor_wb_fluorescent_regs[] = {
 	//ri guang deng
-	{{0xf0},{0x00}},
 	{{0x22},{0x55}},
 	{{0x5a},{0x40}},
 	{{0x5b},{0x42}},
@@ -487,7 +508,6 @@ static struct regval_list sensor_wb_fluorescent_regs[] = {
 
 static struct regval_list sensor_wb_tungsten_regs[] = {
 	//wu si deng
-	{{0xf0},{0x00}},
 	{{0x22},{0x55}},
 	{{0x5a},{0x40}},
 	{{0x5b},{0x54}},
@@ -498,7 +518,6 @@ static struct regval_list sensor_wb_tungsten_regs[] = {
  * The color effect settings
  */
 static struct regval_list sensor_colorfx_none_regs[] = {
-	{{0xf0},{0x00}},
 	{{0x23},{0x00}},
 	{{0x2d},{0x0a}},
 	{{0x20},{0xff}},
@@ -512,7 +531,6 @@ static struct regval_list sensor_colorfx_none_regs[] = {
 };
 
 static struct regval_list sensor_colorfx_bw_regs[] = {
-	{{0xf0},{0x00}},
 	{{0x23},{0x02}},
 	{{0x2d},{0x0a}},
 	{{0x20},{0xff}},
@@ -526,7 +544,6 @@ static struct regval_list sensor_colorfx_bw_regs[] = {
 };
 
 static struct regval_list sensor_colorfx_sepia_regs[] = {
-	{{0xf0},{0x00}},
 	{{0x23},{0x02}},
 	{{0x2d},{0x0a}},
 	{{0x20},{0xff}},
@@ -540,7 +557,6 @@ static struct regval_list sensor_colorfx_sepia_regs[] = {
 };
 
 static struct regval_list sensor_colorfx_negative_regs[] = {
-	{{0xf0},{0x00}},
 	{{0x23},{0x01}},
 	{{0x2d},{0x0a}},
 	{{0x20},{0xff}},
@@ -554,7 +570,6 @@ static struct regval_list sensor_colorfx_negative_regs[] = {
 };
 
 static struct regval_list sensor_colorfx_emboss_regs[] = {
-	{{0xf0},{0x00}},
 	{{0x23},{0x02}},
 	{{0x2d},{0x0a}},
 	{{0x20},{0xbf}},
@@ -571,7 +586,6 @@ static struct regval_list sensor_colorfx_emboss_regs[] = {
 };
 
 static struct regval_list sensor_colorfx_sketch_regs[] = {
-	{{0xf0},{0x00}},
 	{{0x23},{0x02}},
 	{{0x2d},{0x0a}},
 	{{0x20},{0xbf}},
@@ -588,7 +602,6 @@ static struct regval_list sensor_colorfx_sketch_regs[] = {
 };
 
 static struct regval_list sensor_colorfx_sky_blue_regs[] = {
-	{{0xf0},{0x00}},
 	{{0x23},{0x02}},
 	{{0x2d},{0x0a}},
 	{{0x20},{0xff}},
@@ -602,7 +615,6 @@ static struct regval_list sensor_colorfx_sky_blue_regs[] = {
 };
 
 static struct regval_list sensor_colorfx_grass_green_regs[] = {
-	{{0xf0},{0x00}},
 	{{0x23},{0x02}},
 	{{0x2d},{0x0a}},
 	{{0x20},{0xff}},
@@ -616,7 +628,6 @@ static struct regval_list sensor_colorfx_grass_green_regs[] = {
 };
 
 static struct regval_list sensor_colorfx_skin_whiten_regs[] = {
-	{{0xf0},{0x00}},
 	{{0x23},{0x02}},
 	{{0x2d},{0x0a}},
 	{{0x20},{0xbf}},
@@ -757,57 +768,48 @@ static struct regval_list sensor_saturation_pos4_regs[] = {
  * The exposure target setttings
  */
 static struct regval_list sensor_ev_neg4_regs[] = {
-	{{0xf0},{0x00}},
-	{{0xb5},{0xc0}},
-	{{0xd3},{0x28}}
-};
-
-static struct regval_list sensor_ev_neg3_regs[] = {
-	{{0xf0},{0x00}},
 	{{0xb5},{0xd0}},
-	{{0xd3},{0x30}}
-};
-
-static struct regval_list sensor_ev_neg2_regs[] = {
-	{{0xf0},{0x00}},
-	{{0xb5},{0xe0}},
 	{{0xd3},{0x38}}
 };
 
-static struct regval_list sensor_ev_neg1_regs[] = {
-	{{0xf0},{0x00}},
-	{{0xb5},{0xf0}},
+static struct regval_list sensor_ev_neg3_regs[] = {
+	{{0xb5},{0xe0}},
 	{{0xd3},{0x40}}
 };
 
-static struct regval_list sensor_ev_zero_regs[] = {
-	{{0xf0},{0x00}},
-	{{0xb5},{0x00}},
+static struct regval_list sensor_ev_neg2_regs[] = {
+	{{0xb5},{0xf0}},
 	{{0xd3},{0x48}}
 };
 
-static struct regval_list sensor_ev_pos1_regs[] = {
-	{{0xf0},{0x00}},
-	{{0xb5},{0x10}},
+static struct regval_list sensor_ev_neg1_regs[] = {
+	{{0xb5},{0x00}},
 	{{0xd3},{0x50}}
 };
 
-static struct regval_list sensor_ev_pos2_regs[] = {
-	{{0xf0},{0x00}},
-	{{0xb5},{0x20}},
+static struct regval_list sensor_ev_zero_regs[] = {
+	{{0xb5},{0x00}},
 	{{0xd3},{0x58}}
 };
 
-static struct regval_list sensor_ev_pos3_regs[] = {
-	{{0xf0},{0x00}},
+static struct regval_list sensor_ev_pos1_regs[] = {
 	{{0xb5},{0x30}},
 	{{0xd3},{0x60}}
 };
 
-static struct regval_list sensor_ev_pos4_regs[] = {
-	{{0xf0},{0x00}},
+static struct regval_list sensor_ev_pos2_regs[] = {
 	{{0xb5},{0x40}},
 	{{0xd3},{0x68}}
+};
+
+static struct regval_list sensor_ev_pos3_regs[] = {
+	{{0xb5},{0x50}},
+	{{0xd3},{0x70}}
+};
+
+static struct regval_list sensor_ev_pos4_regs[] = {
+	{{0xb5},{0x60}},
+	{{0xd3},{0x78}}
 };
 
 
@@ -820,26 +822,22 @@ static struct regval_list sensor_ev_pos4_regs[] = {
 
 static struct regval_list sensor_fmt_yuv422_yuyv[] = {
 	//YCbYCr
-	{{0xf0},{0x00}},
 	{{0x24},{0xa2}},
 };
 
 
 static struct regval_list sensor_fmt_yuv422_yvyu[] = {
 	//YCrYCb
-	{{0xf0},{0x00}},
 	{{0x24},{0xa3}},
 };
 
 static struct regval_list sensor_fmt_yuv422_vyuy[] = {
 	//CrYCbY
-	{{0xf0},{0x00}},
 	{{0x24},{0xa1}},
 };
 
 static struct regval_list sensor_fmt_yuv422_uyvy[] = {
 	//CbYCrY
-	{{0xf0},{0x00}},
 	{{0x24},{0xa0}},
 };
 
@@ -1719,14 +1717,6 @@ static int sensor_g_autoexp(struct v4l2_subdev *sd, __s32 *value)
 	struct sensor_info *info = to_state(sd);
 	struct regval_list regs;
 	
-	regs.reg_num[0] = 0xf0;
-	regs.value[0] = 0x00;		//page 0
-	ret = sensor_write(sd, regs.reg_num, regs.value);
-	if (ret < 0) {
-		csi_dev_err("sensor_write err at sensor_g_autoexp!\n");
-		return ret;
-	}
-	
 	regs.reg_num[0] = 0xd2;
 	ret = sensor_read(sd, regs.reg_num, regs.value);
 	if (ret < 0) {
@@ -1753,14 +1743,6 @@ static int sensor_s_autoexp(struct v4l2_subdev *sd,
 	int ret;
 	struct sensor_info *info = to_state(sd);
 	struct regval_list regs;
-	
-	regs.reg_num[0] = 0xf0;
-	regs.value[0] = 0x00;		//page 0
-	ret = sensor_write(sd, regs.reg_num, regs.value);
-	if (ret < 0) {
-		csi_dev_err("sensor_write err at sensor_s_autoexp!\n");
-		return ret;
-	}
 	
 	regs.reg_num[0] = 0xd2;
 	ret = sensor_read(sd, regs.reg_num, regs.value);
@@ -1802,14 +1784,6 @@ static int sensor_g_autowb(struct v4l2_subdev *sd, int *value)
 	struct sensor_info *info = to_state(sd);
 	struct regval_list regs;
 	
-	regs.reg_num[0] = 0xf0;
-	regs.value[0] = 0x00;		//page 0
-	ret = sensor_write(sd, regs.reg_num, regs.value);
-	if (ret < 0) {
-		csi_dev_err("sensor_write err at sensor_g_autowb!\n");
-		return ret;
-	}
-	
 	regs.reg_num[0] = 0x22;
 	ret = sensor_read(sd, regs.reg_num, regs.value);
 	if (ret < 0) {
@@ -1835,14 +1809,6 @@ static int sensor_s_autowb(struct v4l2_subdev *sd, int value)
 	ret = sensor_write_array(sd, sensor_wb_auto_regs, ARRAY_SIZE(sensor_wb_auto_regs));
 	if (ret < 0) {
 		csi_dev_err("sensor_write_array err at sensor_s_autowb!\n");
-		return ret;
-	}
-	
-	regs.reg_num[0] = 0xf0;
-	regs.value[0] = 0x00;		//page 0
-	ret = sensor_write(sd, regs.reg_num, regs.value);
-	if (ret < 0) {
-		csi_dev_err("sensor_write err at sensor_s_autowb!\n");
 		return ret;
 	}
 	
