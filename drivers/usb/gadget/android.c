@@ -30,6 +30,7 @@
 #include <linux/usb/ch9.h>
 #include <linux/usb/composite.h>
 #include <linux/usb/gadget.h>
+#include <mach/system.h>
 #include <asm/cputype.h>
 
 #include "gadget_chips.h"
@@ -1020,18 +1021,18 @@ static int android_bind(struct usb_composite_dev *cdev)
 #else
 {
     struct android_usb_config usb_config;
-	int chip_id = 0;
+	struct sw_chip_id chip_id;
 	char temp_str[128];
 
     get_android_usb_config(&usb_config);
-	chip_id = read_cpuid_id();
+	sw_get_chip_id(&chip_id);
 
 	strncpy(manufacturer_string, usb_config.usb_manufacturer_name, sizeof(manufacturer_string) - 1);
 	strncpy(product_string, usb_config.usb_product_name, sizeof(product_string) - 1);
 	strncpy(serial_string, usb_config.usb_serial_number, sizeof(serial_string) - 1);
 
 	memset(temp_str, 0, 128);
-	sprintf(temp_str, "%x", chip_id);
+	sprintf(temp_str, "%x", chip_id.sid_rkey3);
 	strcat(serial_string, temp_str);
 
 	/* ȡ32λ */

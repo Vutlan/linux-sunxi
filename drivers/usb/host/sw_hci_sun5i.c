@@ -108,7 +108,14 @@ static s32 get_usb_cfg(struct sw_hci_hcd *sw_hci)
 	/* request gpio */
 	ret = script_parser_fetch(usbc_name[sw_hci->usbc_no], "usb_drv_vbus_gpio", (int *)&sw_hci->drv_vbus_gpio_set, 64);
 	if(ret != 0){
-		DMSG_PANIC("ERR: request gpio usbc%d(%s) id failed\n", sw_hci->usbc_no, usbc_name[sw_hci->usbc_no]);
+		DMSG_PANIC("ERR: get usb_drv_vbus_gpio usbc%d(%s) id failed\n", sw_hci->usbc_no, usbc_name[sw_hci->usbc_no]);
+		//return -1;
+	}
+
+	/* request gpio */
+	ret = script_parser_fetch(usbc_name[sw_hci->usbc_no], "usb_drv_vbus_1_gpio", (int *)&sw_hci->drv_vbus_1_gpio_set, 64);
+	if(ret != 0){
+		DMSG_PANIC("ERR: get usb_drv_vbus_1_gpio usbc%d(%s) id failed\n", sw_hci->usbc_no, usbc_name[sw_hci->usbc_no]);
 		//return -1;
 	}
 
@@ -123,6 +130,13 @@ static s32 get_usb_cfg(struct sw_hci_hcd *sw_hci)
 	}else{
 		DMSG_PANIC("ERR: %s(drv vbus) is invalid\n", sw_hci->hci_name);
 		sw_hci->drv_vbus_gpio_valid = 0;
+	}
+
+	if(sw_hci->drv_vbus_1_gpio_set.port){
+		sw_hci->drv_vbus_1_gpio_valid = 1;
+	}else{
+		DMSG_PANIC("ERR: %s(drv vbus_1) is invalid\n", sw_hci->hci_name);
+		sw_hci->drv_vbus_1_gpio_valid = 0;
 	}
 
 	/* host_init_state */
@@ -964,6 +978,58 @@ static void free_pin(u32 pin_handle, user_gpio_set_t *gpio_list)
 	return;
 }
 
+
+/*
+*******************************************************************************
+*                     __sw_set_vbus_ex
+*
+* Description:
+*    void
+*
+* Parameters:
+*    void
+*
+* Return value:
+*    void
+*
+* note:
+*    void
+*
+*******************************************************************************
+*/
+static void __sw_set_vbus_ex(user_gpio_set_t *drv_vbus_gpio_set, u32 drv_vbus_Handle, int is_on)
+{
+    u32 on_off = 0;
+
+    /* set power */
+    if(drv_vbus_gpio_set->data == 0){
+        on_off = is_on ? 1 : 0;
+    }else{
+        on_off = is_on ? 0 : 1;
+    }
+
+    if(drv_vbus_gpio_set->port == 0xffff){ //axp
+        if(drv_vbus_gpio_set->port_num >= USB_EXTERN_PIN_LDO_MASK){
+#ifdef  CONFIG_REGULATOR
+            if(is_on){
+                regulator_enable((struct regulator*)drv_vbus_Handle);
+            }else{
+                regulator_disable((struct regulator*)drv_vbus_Handle);
+            }
+#else
+			DMSG_PANIC("CONFIG_REGULATOR is not define\n");
+#endif
+        }else{
+            axp_gpio_set_value(drv_vbus_gpio_set->port_num, on_off);
+        }
+    }else{  //gpio
+        gpio_write_one_pin_value(drv_vbus_Handle, on_off, NULL);
+	}
+
+	return;
+}
+
+
 /*
 *******************************************************************************
 *                     __sw_set_vbus
@@ -996,30 +1062,8 @@ static void __sw_set_vbus(struct sw_hci_hcd *sw_hci, int is_on)
     /* set power flag */
 	sw_hci->power_flag = is_on;
 
-    /* set power */
-    if(sw_hci->drv_vbus_gpio_set.data == 0){
-        on_off = is_on ? 1 : 0;
-    }else{
-        on_off = is_on ? 0 : 1;
-    }
-
-    if(sw_hci->drv_vbus_gpio_set.port == 0xffff){ //axp
-        if(sw_hci->drv_vbus_gpio_set.port_num >= USB_EXTERN_PIN_LDO_MASK){
-#ifdef  CONFIG_REGULATOR
-            if(is_on){
-                regulator_enable((struct regulator*)sw_hci->drv_vbus_Handle);
-            }else{
-                regulator_disable((struct regulator*)sw_hci->drv_vbus_Handle);
-            }
-#else
-			DMSG_PANIC("CONFIG_REGULATOR is not define\n");
-#endif
-        }else{
-            axp_gpio_set_value(sw_hci->drv_vbus_gpio_set.port_num, on_off);
-        }
-    }else{  //gpio
-        gpio_write_one_pin_value(sw_hci->drv_vbus_Handle, on_off, NULL);
-	}
+	__sw_set_vbus_ex(&sw_hci->drv_vbus_gpio_set, sw_hci->drv_vbus_Handle, is_on);
+	__sw_set_vbus_ex(&sw_hci->drv_vbus_1_gpio_set, sw_hci->drv_vbus_1_Handle, is_on);
 
 	return;
 }
@@ -1308,7 +1352,7 @@ static int __init sw_hci_sun5i_init(void)
     if(sw_ehci0.drv_vbus_gpio_valid){
         sw_ehci0.drv_vbus_Handle = alloc_pin(&sw_ehci0, &sw_ehci0.drv_vbus_gpio_set);
         if(sw_ehci0.drv_vbus_Handle == 0){
-            DMSG_PANIC("ERR: usb1 alloc_pin failed\n");
+            DMSG_PANIC("ERR: drv_vbus_gpio_set alloc_pin failed\n");
             goto failed0;
         }
 
@@ -1316,6 +1360,19 @@ static int __init sw_hci_sun5i_init(void)
     }else{
         sw_ehci0.drv_vbus_Handle = 0;
         sw_ohci0.drv_vbus_Handle = 0;
+    }
+
+    if(sw_ehci0.drv_vbus_1_gpio_valid){
+        sw_ehci0.drv_vbus_1_Handle = alloc_pin(&sw_ehci0, &sw_ehci0.drv_vbus_1_gpio_set);
+        if(sw_ehci0.drv_vbus_1_Handle == 0){
+            DMSG_PANIC("ERR: drv_vbus_1_gpio_set alloc_pin failed\n");
+            goto failed0;
+        }
+
+        sw_ohci0.drv_vbus_1_Handle = sw_ehci0.drv_vbus_1_Handle;
+    }else{
+        sw_ehci0.drv_vbus_1_Handle = 0;
+        sw_ohci0.drv_vbus_1_Handle = 0;
     }
 
 
@@ -1423,6 +1480,9 @@ static void __exit sw_hci_sun5i_exit(void)
 
     free_pin(sw_ehci0.drv_vbus_Handle, &sw_ehci0.drv_vbus_gpio_set);
     sw_ehci0.drv_vbus_Handle = 0;
+
+    free_pin(sw_ehci0.drv_vbus_1_Handle, &sw_ehci0.drv_vbus_1_gpio_set);
+    sw_ehci0.drv_vbus_1_Handle = 0;
 
     return ;
 }
