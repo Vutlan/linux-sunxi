@@ -1463,7 +1463,7 @@ static int __devinit sitronix_ts_probe(struct i2c_client *client, const struct i
 	// Check Version
 	// Check Power 
 	//sitronix_ts_internal_update(client);
-#if 1
+#ifdef CONFIG_HAS_EARLYSUSPEND
 	priv->early_suspend.suspend = sitronix_ts_early_suspend;
 	priv->early_suspend.resume = sitronix_ts_late_resume;
 	priv->early_suspend.level = EARLY_SUSPEND_LEVEL_DISABLE_FB - 3;
