@@ -86,10 +86,10 @@ typedef enum tag_CSI_OUTPUT_FMT
     CSI_MB_YUV420=9,
     
     /* only when input is yuv444 */
-    CSI_FIELD_PLANAR_YUV444 			 = 0,         /* parse a field(odd or even) into planar yuv444 */
-    CSI_FIELD_UV_CB_YUV444_YUV422 = 1,         /* parse a field(odd or even) into planar yuv422 */
-    CSI_FRAME_PLANAR_YUV444 			 = 2,				
-    CSI_FRAME_UV_CB_YUV444_YUV422 = 3,
+    CSI_FIELD_PLANAR_YUV444 			 = 12,         /* parse a field(odd or even) into planar yuv444 */
+    CSI_FIELD_UV_CB_YUV444_YUV422 = 13,         /* parse a field(odd or even) into planar yuv422 */
+    CSI_FRAME_PLANAR_YUV444 			 = 14,				
+    CSI_FRAME_UV_CB_YUV444_YUV422 = 15,
     
 }__csi_output_fmt_t;
 
@@ -148,6 +148,7 @@ typedef struct tag_CSI_CONF
     __csi_output_fmt_t output_fmt;  /* output data format */
     __csi_field_sel_t  field_sel;   /* input field selection */
     __csi_seq_t        seq;         /* input data sequence */
+    __csi_ref_t				 fref;				/* input field signal polarity */
     __csi_ref_t        vref;        /* input vref signal polarity */
     __csi_ref_t        href;        /* input href signal polarity */
     __csi_clk_t        clock;       /* input data valid of the input clock edge type */
@@ -341,6 +342,8 @@ struct csi_dev {
 	struct csi_fmt          *fmt;
 	unsigned int            width;
 	unsigned int            height;
+	unsigned int						hstart;
+	unsigned int						vstart;
 	unsigned int						frame_size;
 	struct videobuf_queue   vb_vidq;
 	unsigned int 						capture_mode;

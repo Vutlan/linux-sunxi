@@ -1,10 +1,10 @@
 ===========================================
 
-Version: V1_51
+Version: V1_60
 
 Author:  raymonxiu
 
-Date:     2012-7-27 9:22:33
+Date:     2012-8-21 18:19:54
 
 Description:
 
@@ -27,6 +27,13 @@ insmod sun4i_csiX.ko ccm="gc0329" i2c_addr=0x62
 insmod sun4i_csiX.ko ccm="gc0309" i2c_addr=0x42
 insmod sun4i_csiX.ko ccm="tvp5150" i2c_addr=0xb8
 insmod sun4i_csiX.ko ccm="s5k4ec" i2c_addr=0x5a
+
+V1_60
+CSI: Optimizing GC and OV sensor/cached videobuf/support 24bit interface
+1) Optimizing gc0307,gc0308,gc0309,gc0329,gt2005,gc2015
+2) Fix ov5640 flicker when capturing image
+3) Support 24bit YUV444 interface
+4) Modify videobuf to be cached
 
 V1_51
 CSI: Optimizing ov5640/gc0308/sp0838/ov2655 and new module s5k4ec support

@@ -468,10 +468,10 @@ static struct regval_list sensor_qsxga_regs[] = { //qsxga: 2592*1936
 	//power down
 //	{{0x30,0x08},{0x42}},
 	//pll and clock setting
-	{{0x30,0x34},{0x1a}},                            	    
-	{{0x30,0x35},{0x11}},                            	    
-	{{0x30,0x36},{0x46}},                            	    
-	{{0x30,0x37},{0x14}},                            	    
+	{{0x30,0x34},{0x18}},                            	    
+	{{0x30,0x35},{0x21}},                            	    
+	{{0x30,0x36},{0x54}},                            	    
+	{{0x30,0x37},{0x13}},                            	    
 	{{0x31,0x08},{0x01}},                            	    
 	{{0x38,0x24},{0x01}},                            	    
 	{{0xff,0xff},{0x05}},//delay 5ms              
@@ -487,11 +487,11 @@ static struct regval_list sensor_qsxga_regs[] = { //qsxga: 2592*1936
 	{{0x38,0x0f},{0xb0}}, //LSB                           
 	//banding step                                        
 	{{0x3a,0x08},{0x00}}, //50HZ step MSB                 
-	{{0x3a,0x09},{0x62}}, //50HZ step LSB                 
+	{{0x3a,0x09},{0x93}}, //50HZ step LSB                 
 	{{0x3a,0x0a},{0x00}}, //60HZ step MSB                 
-	{{0x3a,0x0b},{0x52}}, //60HZ step LSB                 
-	{{0x3a,0x0e},{0x14}}, //50HZ step max                 
-	{{0x3a,0x0d},{0x18}}, //60HZ step max                 
+	{{0x3a,0x0b},{0x7b}}, //60HZ step LSB                 
+	{{0x3a,0x0e},{0x0d}}, //50HZ step max                 
+	{{0x3a,0x0d},{0x10}}, //60HZ step max                 
 	                                                                                              
 //	{{0x35,0x03},{0x07}}, //AEC disable                  	                                     	                                   
 	{{0x35,0x0c},{0x00}},                                   
@@ -544,10 +544,10 @@ static struct regval_list sensor_qxga_regs[] = { //qxga: 2048*1536
 	//power down
 //	{{0x30,0x08},{0x42}},
 	//pll and clock setting
-	{{0x30,0x34},{0x1a}},                            	 
-	{{0x30,0x35},{0x11}},                            	 
-	{{0x30,0x36},{0x46}},                            	 
-	{{0x30,0x37},{0x14}},                            	 
+	{{0x30,0x34},{0x18}},                            	    
+	{{0x30,0x35},{0x21}},                            	    
+	{{0x30,0x36},{0x54}},                            	    
+	{{0x30,0x37},{0x13}},                            	 
 	{{0x31,0x08},{0x01}},                            	 
 	{{0x38,0x24},{0x01}},                            	 
 	{{0xff,0xff},{0x05}},//delay 5ms              
@@ -562,12 +562,12 @@ static struct regval_list sensor_qxga_regs[] = { //qxga: 2048*1536
 	{{0x38,0x0e},{0x07}}, //VTS MSB                    
 	{{0x38,0x0f},{0xb0}}, //LSB                        
 	//banding step                                     
-	{{0x3a,0x08},{0x00}}, //50HZ step MSB              
-	{{0x3a,0x09},{0x62}}, //50HZ step LSB              
-	{{0x3a,0x0a},{0x00}}, //60HZ step MSB              
-	{{0x3a,0x0b},{0x52}}, //60HZ step LSB              
-	{{0x3a,0x0e},{0x14}}, //50HZ step max              
-	{{0x3a,0x0d},{0x18}}, //60HZ step max              
+	{{0x3a,0x08},{0x00}}, //50HZ step MSB                 
+	{{0x3a,0x09},{0x93}}, //50HZ step LSB                 
+	{{0x3a,0x0a},{0x00}}, //60HZ step MSB                 
+	{{0x3a,0x0b},{0x7b}}, //60HZ step LSB                 
+	{{0x3a,0x0e},{0x0d}}, //50HZ step max                 
+	{{0x3a,0x0d},{0x10}}, //60HZ step max              
 	                                                   
 //	{{0x35,0x03},{0x07}}, //AEC disable                                	           
 	{{0x35,0x0c},{0x00}},                              
@@ -618,10 +618,10 @@ static struct regval_list sensor_uxga_regs[] = { //UXGA: 1600*1200
 	//power down
 //	{{0x30,0x08},{0x42}},
 	//pll and clock setting                     			                                 								                                             
-	{{0x30,0x34},{0x1a}},                            	                  	                                                           
-	{{0x30,0x35},{0x11}},                            	                  	                                                           
-	{{0x30,0x36},{0x46}},                            	                  	                                                           
-	{{0x30,0x37},{0x14}},                            	                  	                                                           
+	{{0x30,0x34},{0x18}},                            	    
+	{{0x30,0x35},{0x21}},                            	    
+	{{0x30,0x36},{0x54}},                            	    
+	{{0x30,0x37},{0x13}},                            	                  	                                                           
 	{{0x31,0x08},{0x01}},                            	                  	                                                           
 	{{0x38,0x24},{0x01}},                            	                  	                                                           
 	{{0xff,0xff},{0x05}},//delay 5ms                      	                
@@ -636,12 +636,12 @@ static struct regval_list sensor_uxga_regs[] = { //UXGA: 1600*1200
 	{{0x38,0x0e},{0x07}}, //VTS MSB                                                                                                
 	{{0x38,0x0f},{0xb0}}, //LSB                                                                                                    
 	//banding step                                                	                       	                                             
-	{{0x3a,0x08},{0x00}}, //50HZ step MSB                                                                                                 
-	{{0x3a,0x09},{0x62}}, //50HZ step LSB                                                                                                 
-	{{0x3a,0x0a},{0x00}}, //60HZ step MSB                                                                                                 
-	{{0x3a,0x0b},{0x52}}, //60HZ step LSB                                                                                                 
-	{{0x3a,0x0e},{0x14}}, //50HZ step max                                                                                                 
-	{{0x3a,0x0d},{0x18}}, //60HZ step max                                                                                                 
+	{{0x3a,0x08},{0x00}}, //50HZ step MSB                 
+	{{0x3a,0x09},{0x93}}, //50HZ step LSB                 
+	{{0x3a,0x0a},{0x00}}, //60HZ step MSB                 
+	{{0x3a,0x0b},{0x7b}}, //60HZ step LSB                 
+	{{0x3a,0x0e},{0x0d}}, //50HZ step max                 
+	{{0x3a,0x0d},{0x10}}, //60HZ step max                                                                                                
 	                                                              	                       	                                             
 //	{{0x35,0x03},{0x07}}, //AEC disable                                                         											                                    	                                                                                              
 	{{0x35,0x0c},{0x00}},                                                                                                                 
@@ -693,10 +693,10 @@ static struct regval_list sensor_sxga_regs[] = { //SXGA: 1280*960
 	//power down
 //	{{0x30,0x08},{0x42}},
 	//pll and clock setting                                      								                              
-	{{0x30,0x34},{0x1a}},                                       	              
-	{{0x30,0x35},{0x11}},                                       	              
-	{{0x30,0x36},{0x46}},                                       	              
-	{{0x30,0x37},{0x14}},                                       	              
+	{{0x30,0x34},{0x18}},                            	    
+	{{0x30,0x35},{0x21}},                            	    
+	{{0x30,0x36},{0x54}},                            	    
+	{{0x30,0x37},{0x13}},                                       	              
 	{{0x31,0x08},{0x01}},                                       	              
 	{{0x38,0x24},{0x01}},                                       	              
 	{{0xff,0xff},{0x05}},//delay 5ms                                 	
@@ -711,12 +711,12 @@ static struct regval_list sensor_sxga_regs[] = { //SXGA: 1280*960
 	{{0x38,0x0e},{0x07}}, //VTS MSB                                                                     
 	{{0x38,0x0f},{0xb0}}, //LSB                                                                         
 	//banding step                                                            	                              
-	{{0x3a,0x08},{0x00}}, //50HZ step MSB                                                                     
-	{{0x3a,0x09},{0x62}}, //50HZ step LSB                                                                     
-	{{0x3a,0x0a},{0x00}}, //60HZ step MSB                                                                     
-	{{0x3a,0x0b},{0x52}}, //60HZ step LSB                                                                     
-	{{0x3a,0x0e},{0x14}}, //50HZ step max                                                                     
-	{{0x3a,0x0d},{0x18}}, //60HZ step max                                                                     
+	{{0x3a,0x08},{0x00}}, //50HZ step MSB                 
+	{{0x3a,0x09},{0x93}}, //50HZ step LSB                 
+	{{0x3a,0x0a},{0x00}}, //60HZ step MSB                 
+	{{0x3a,0x0b},{0x7b}}, //60HZ step LSB                 
+	{{0x3a,0x0e},{0x0d}}, //50HZ step max                 
+	{{0x3a,0x0d},{0x10}}, //60HZ step max                                                                    
 	                                                                          	                              
 //	{{0x35,0x03},{0x07}}, //AEC disable                                            											                     	                                                                  
 	{{0x35,0x0c},{0x00}},                                                                                     
@@ -767,10 +767,10 @@ static struct regval_list sensor_xga_regs[] = { //XGA: 1024*768
 	//power down
 //	{{0x30,0x08},{0x42}},
 	//pll and clock setting
-	{{0x30,0x34},{0x1a}},
-	{{0x30,0x35},{0x11}},
-	{{0x30,0x36},{0x46}},
-	{{0x30,0x37},{0x14}},
+	{{0x30,0x34},{0x18}},                            	    
+	{{0x30,0x35},{0x21}},                            	    
+	{{0x30,0x36},{0x54}},                            	    
+	{{0x30,0x37},{0x13}}, 
 	{{0x31,0x08},{0x01}},
 	{{0x38,0x24},{0x01}},
 	{{0xff,0xff},{0x05}},//delay 5ms
@@ -785,12 +785,12 @@ static struct regval_list sensor_xga_regs[] = { //XGA: 1024*768
 	{{0x38,0x0e},{0x07}}, //VTS MSB    
 	{{0x38,0x0f},{0xb0}}, //LSB
 	//banding step
-	{{0x3a,0x08},{0x00}},//50HZ step MSB
-	{{0x3a,0x09},{0x62}},//50HZ step LSB
-	{{0x3a,0x0a},{0x00}},//60HZ step MSB
-	{{0x3a,0x0b},{0x52}},//60HZ step LSB
-	{{0x3a,0x0e},{0x14}},//50HZ step max
-	{{0x3a,0x0d},{0x18}},//60HZ step max
+	{{0x3a,0x08},{0x00}}, //50HZ step MSB                 
+	{{0x3a,0x09},{0x93}}, //50HZ step LSB                 
+	{{0x3a,0x0a},{0x00}}, //60HZ step MSB                 
+	{{0x3a,0x0b},{0x7b}}, //60HZ step LSB                 
+	{{0x3a,0x0e},{0x0d}}, //50HZ step max                 
+	{{0x3a,0x0d},{0x10}}, //60HZ step max 
 	
 //	{{0x35,0x03},{0x07}}, //AEC disable                 											                    	                                  
 	{{0x35,0x0c},{0x00}},                              
@@ -855,9 +855,9 @@ static struct regval_list sensor_1080p_regs[] = { //1080: 1920*1080
 	//power down
 //	{{0x30,0x08},{0x42}},
 	//pll and clock setting
-	{{0x30,0x34},{0x1a}},
+	{{0x30,0x34},{0x18}},
 	{{0x30,0x35},{0x11}},	//0x11:30fps 0x21:15fps
-	{{0x30,0x36},{0x69}},
+	{{0x30,0x36},{0x54}},
 	{{0x30,0x37},{0x13}},
 	{{0x31,0x08},{0x01}},
 	{{0x38,0x24},{0x01}},
@@ -930,9 +930,9 @@ static struct regval_list sensor_720p_regs[] = { //1280*720
 //	//power down
 //	{{0x30,0x08},{0x42}},
 //	//pll and clock setting
-	{{0x30,0x34},{0x1a}},
+	{{0x30,0x34},{0x18}},
 	{{0x30,0x35},{0x21}},	//0x11:60fps 0x21:30fps 0x41:15fps
-	{{0x30,0x36},{0x69}},
+	{{0x30,0x36},{0x54}},
 	{{0x30,0x37},{0x13}},
 	{{0x31,0x08},{0x01}},
 	{{0x38,0x24},{0x01}},
@@ -2825,7 +2825,7 @@ static int sensor_s_af_zone(struct v4l2_subdev *sd, unsigned int xc, unsigned in
 	
 	csi_dev_print("sensor_s_af_zone\n");
 	csi_dev_dbg("af zone input xc=%d,yc=%d\n",xc,yc);
-	
+
 	if(info->width == 0 || info->height == 0) {
 		csi_dev_err("current width or height is zero!\n");
 		return -EINVAL;
@@ -2869,7 +2869,7 @@ static int sensor_s_af_zone(struct v4l2_subdev *sd, unsigned int xc, unsigned in
 		return ret;
 	}
 
-	//msleep(5);
+	msleep(5);
 	
 	return 0;
 }

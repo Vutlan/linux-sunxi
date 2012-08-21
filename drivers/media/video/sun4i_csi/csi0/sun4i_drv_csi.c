@@ -321,31 +321,6 @@ static struct csi_fmt formats[] = {
 		.depth    		= 12,
 		.planes_cnt		= 2,
 	},
-	//24bit
-	{
-		.name     		= "planar YUV 422",
-		.csi_if				= CSI_IF_HV24,
-		.ccm_fmt			= V4L2_MBUS_FMT_YUV8_1X24,//linux-3.0
-		.fourcc   		= V4L2_PIX_FMT_YUV422P,
-		.field				= V4L2_FIELD_NONE,
-		.input_fmt		= CSI_YUV444,
-		.output_fmt		= CSI_FIELD_UV_CB_YUV444_YUV422,
-		.csi_field		= CSI_ODD,
-		.depth    		= 16,
-		.planes_cnt		= 3,
-	},
-	{
-		.name     		= "planar YUV 422",
-		.csi_if				= CSI_IF_HV24,
-		.ccm_fmt			= V4L2_MBUS_FMT_YUV8_1X24,	//linux-3.0
-		.fourcc   		= V4L2_PIX_FMT_YUV422P,
-		.field				= V4L2_FIELD_INTERLACED,
-		.input_fmt		= CSI_YUV444,
-		.output_fmt		= CSI_FRAME_UV_CB_YUV444_YUV422,
-		.csi_field		= CSI_ODD,
-		.depth    		= 16,
-		.planes_cnt		= 3,
-	},
 	//BT656 8bit
 	{
 		.name     		= "planar YUV 422",
@@ -526,6 +501,9 @@ static inline void csi_set_addr(struct csi_dev *dev,struct csi_buffer *buffer)
 				break;
 
 			default:
+				dev->csi_buf_addr.y  = addr_org;
+				dev->csi_buf_addr.cb = addr_org + dev->width*dev->height;
+				dev->csi_buf_addr.cr = addr_org + dev->width*dev->height*3/2;
 				break;
 		}
 	}else if(dev->fmt->input_fmt==CSI_YUV422){
@@ -553,12 +531,20 @@ static inline void csi_set_addr(struct csi_dev *dev,struct csi_buffer *buffer)
 				break;
 
 			default:
+				dev->csi_buf_addr.y  = addr_org;
+				dev->csi_buf_addr.cb = addr_org + dev->width*dev->height;
+				dev->csi_buf_addr.cr = addr_org + dev->width*dev->height*3/2;
 				break;
 		}
 	}else if(dev->fmt->input_fmt==CSI_YUV422_16){
 		//TODO
 	}
-	
+	else {
+		dev->csi_buf_addr.y  = addr_org;
+		dev->csi_buf_addr.cb = addr_org;
+		dev->csi_buf_addr.cr = addr_org;
+	}
+
 	bsp_csi_set_buffer_address(dev, CSI_BUF_0_A, dev->csi_buf_addr.y);
 	bsp_csi_set_buffer_address(dev, CSI_BUF_0_B, dev->csi_buf_addr.y);
 	bsp_csi_set_buffer_address(dev, CSI_BUF_1_A, dev->csi_buf_addr.cb);
@@ -1178,9 +1164,9 @@ static int vidioc_s_fmt_vid_cap(struct file *file, void *priv,
 	
 	//save the current format info
 	dev->fmt = csi_fmt;
-	dev->vb_vidq.field = f->fmt.pix.field;
-	dev->width  = f->fmt.pix.width;
-	dev->height = f->fmt.pix.height;
+	dev->vb_vidq.field = ccm_fmt.field;//f->fmt.pix.field;
+	dev->width  = ccm_fmt.width;//f->fmt.pix.width;
+	dev->height = ccm_fmt.height;//f->fmt.pix.height;
 	
 	//set format
 	dev->csi_mode.output_fmt = dev->fmt->output_fmt;
@@ -1252,6 +1238,7 @@ static int vidioc_s_fmt_vid_cap(struct file *file, void *priv,
 
 	bsp_csi_configure(dev,&dev->csi_mode);
 	//horizontal and vertical offset are constant zero
+	bsp_csi_set_offset(dev,dev->hstart,dev->vstart);
 	bsp_csi_set_size(dev,width_buf,height_buf,width_len);
 
 	ret = 0;
@@ -1703,9 +1690,10 @@ static int csi_open(struct file *file)
 	}
 	
 	dev->input=-1;//default input null
-
+	dev->hstart = 0;
+	dev->vstart = 0;//h and v offset is initialed to zero
+	
 	bsp_csi_open(dev);
-	bsp_csi_set_offset(dev,0,0);//h and v offset is initialed to zero
 	dev->opened = 1;
 	dev->fmt = &formats[5]; //default format
 	return 0;		

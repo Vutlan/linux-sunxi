@@ -70,10 +70,12 @@ MODULE_LICENSE("GPL");
  */
 #define UXGA_WIDTH		1600
 #define UXGA_HEIGHT		1200
-#define SXGA_WIDTH 	1280
-#define SXGA_HEIGHT	1024
-#define XGA_WIDTH 	1024
-#define XGA_HEIGHT	768
+#define SXGA_WIDTH 		1280
+#define SXGA_HEIGHT		1024
+#define HD720_WIDTH 	1280
+#define HD720_HEIGHT	720
+#define XGA_WIDTH 		1024
+#define XGA_HEIGHT		768
 #define SVGA_WIDTH		800
 #define SVGA_HEIGHT 	600
 #define VGA_WIDTH			640
@@ -96,7 +98,7 @@ MODULE_LICENSE("GPL");
 #define I2C_ADDR 0x60
 
 /* Registers */
-
+static unsigned char	low_expose, high_expose;
 
 /*
  * Information we maintain about a known sensor.
@@ -156,274 +158,316 @@ struct regval_list {
 
 
 static struct regval_list sensor_default_regs[] = {
-{{0xfe},{0x80}}, //soft reset
-{{0xfe},{0x80}}, //soft reset
-{{0xfe},{0x80}}, //soft reset
-     
-{{0xfe},{0x00}}, //page0
-{{0x45},{0x00}}, //output_enable
-//////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////preview capture switch /////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////
-//preview
-{{0x02},{0x01}},//preview mode
-{{0x2a},{0xca}},//[7]col_binning  [6]even skip
-{{0x48},{0x40}},//manual_gain
-      
-      
-{{0x7d} , {0x86}},// r ratio
-{{0x7e} , {0x80}},// g ratio
-{{0x7f} , {0x80}}, //b ratio 
+	{{0xfe},{0x80}}, //soft reset
+	{{0xfe},{0x80}}, //soft reset
+	{{0xfe},{0x80}}, //soft reset
+	     
+	{{0xfe},{0x00}}, //page0
+	{{0x45},{ 0x00}}, //output_disable
 
-{{0xfe},{0x01}},//page1
-////////////////////////////////////////////////////////////////////////
-////////////////////////// preview LSC /////////////////////////////////
-////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////preview capture switch /////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////
+	//preview
+	{{0x02},{ 0x01}}, //preview mode
+	{{0x2a},{ 0xca}}, //[7]col_binning},{ 0x[6]even skip
+	{{0x48},{ 0x40}}, //manual_gain
 
-{{0xb0},{0x13}},//[4]Y_LSC_en [3]lsc_compensate [2]signed_b4 [1:0]pixel array select
-{{0xb1},{0x20}},//P_LSC_red_b2
-{{0xb2},{0x20}},//P_LSC_green_b2
-{{0xb3},{0x20}},//P_LSC_blue_b2
-{{0xb4},{0x18}},//P_LSC_red_b4
-{{0xb5},{0x18}},//P_LSC_green_b4
-{{0xb6},{0x18}},//P_LSC_blue_b4
-{{0xb7},{0x00}},//P_LSC_compensate_b2
-{{0xb8},{0x94}},//P_LSC_row_center  344   (600/2-100)/2=100
-{{0xb9},{0xac}},//P_LSC_col_center  544   (800/2-200)/2=100
-
-////////////////////////////////////////////////////////////////////////
-////////////////////////// capture LSC ///////////////////////////
-////////////////////////////////////////////////////////////////////////
-{{0xba},{0x13}}, //[4]Y_LSC_en [3]lsc_compensate [2]signed_b4 [1:0]pixel array select
-{{0xbb},{0x20}}, //C_LSC_red_b2
-{{0xbc},{0x20}}, //C_LSC_green_b2
-{{0xbd},{0x20}}, //C_LSC_blue_b2
-{{0xbe},{0x18}}, //C_LSC_red_b4
-{{0xbf},{0x18}}, //C_LSC_green_b4
-{{0xc0},{0x18}}, //C_LSC_blue_b4
-{{0xc1},{0x00}}, //C_Lsc_compensate_b2
-{{0xc2},{0x94}}, //C_LSC_row_center  344   (1200/2-344)/2=128
-{{0xc3},{0xac}}, //C_LSC_col_center  544   (1600/2-544)/2=128
-    
-{{0xfe},{0x00}}, //page0
-
-////////////////////////////////////////////////////////////////////////
-////////////////////////// analog configure ///////////////////////////
-////////////////////////////////////////////////////////////////////////
-{{0x29},{0x00}}, //cisctl mode 1
-{{0x2b},{0x06}}, //cisctl mode 3	
-{{0x32},{0x0c}}, //analog mode 1
-{{0x33},{0x0f}}, //analog mode 2
-{{0x34},{0x00}}, //[6:4]da_rsg
-            
-{{0x35},{0x88}}, //Vref_A25
-{{0x37},{0x16}}, //Drive Current
-     
-//////////////////////////////////////////////////////////////////
-/////////////////////////ISP Related//////////////////////////////
-///////////////////////////////////////////////////////////////////
-{{0x40},{0xff}}, 
-{{0x41},{0x20}}, //[5]skin_detectionenable[2]auto_gray  [1]y_gamma
-{{0x42},{0x76}}, //[7]auto_sa[6]auto_ee[5]auto_dndd[4]auto_lsc[3]na[2]abs  [1]awb
-{{0x4b},{0xea}}, //[1]AWB_gain_mode  1:atpregain0:atpostgain
-{{0x4d},{0x03}}, //[1]inbf_en
-{{0x4f},{0x01}}, //AEC enable
-     
-//////////////////////////////////////////////////////////////////
-///////////////////////// BLK  ///////////////////////////////////
-//////////////////////////////////////////////////////////////////
-{{0x63},{0x77}},//BLK mode 1
-{{0x66},{0x00}},//BLK global offset
-{{0x6d},{0x04}},
-{{0x6e},{0x18}},//BLK offset submode,offset R
-{{0x6f},{0x10}},
-{{0x70},{0x18}},
-{{0x71},{0x10}},
-{{0x73},{0x03}},
-      
-      
-//////////////////////////////////////////////////////////////////
-///////////////////////// DNDD ////////////////////////////////
-//////////////////////////////////////////////////////////////////
-{{0x80},{0x07}}, //[7]dn_inc_or_dec [4]zero_weight_mode[3]share [2]c_weight_adap [1]dn_lsc_mode [0]dn_b
-{{0x82},{0x08}}, //DN lilat b base
-      
-//////////////////////////////////////////////////////////////////
-///////////////////////// EEINTP ////////////////////////////////
-//////////////////////////////////////////////////////////////////
-{{0x8a},{0x7c}},
-{{0x8c},{0x02}},
-{{0x8e},{0x02}},
-{{0x8f},{0x48}},
-     
-//////////////////////////////////////////////////////////////////
-//////////////////////// CC_t ///////////////////////////////
-//////////////////////////////////////////////////////////////////
-{{0xb0},{0x44}},
-{{0xb1},{0xfe}},
-{{0xb2},{0x00}},
-{{0xb3},{0xf8}},
-{{0xb4},{0x48}},
-{{0xb5},{0xf8}},
-{{0xb6},{0x00}},
-{{0xb7},{0x04}},
-{{0xb8},{0x00}},
-
-{{0xd3},{0x34}},//contrast
-      
-///////////////////////////////////////////////////////////////////
-///////////////////////// GAMMA ///////////////////////////////////
-///////////////////////////////////////////////////////////////////
-//RGB_gamma
-#if 0
-{{0xbf},{0x0e}},
-{{0xc0},{0x1c}},
-{{0xc1},{0x34}},
-{{0xc2},{0x48}},
-{{0xc3},{0x5a}},
-{{0xc4},{0x6b}},
-{{0xc5},{0x7b}},
-{{0xc6},{0x95}},
-{{0xc7},{0xab}},
-{{0xc8},{0xbf}},
-{{0xc9},{0xce}},
-{{0xca},{0xd9}},
-{{0xcb},{0xe4}},
-{{0xcc},{0xec}},
-{{0xcd},{0xf7}},
-{{0xce},{0xfd}},
-{{0xcf},{0xff}},
-#endif
-{{0xbF},{ 0x0B}}, 
-{{0xc0},{ 0x16}}, 
-{{0xc1},{ 0x29}}, 
-{{0xc2},{ 0x3C}}, 
-{{0xc3},{ 0x4F}}, 
-{{0xc4},{ 0x5F}}, 
-{{0xc5},{ 0x6F}}, 
-{{0xc6},{ 0x8A}}, 
-{{0xc7},{ 0x9F}}, 
-{{0xc8},{ 0xB4}}, 
-{{0xc9},{ 0xC6}}, 
-{{0xcA},{ 0xD3}}, 
-{{0xcB},{ 0xDD}},  
-{{0xcC},{ 0xE5}},  
-{{0xcD},{ 0xF1}}, 
-{{0xcE},{ 0xFA}}, 
-{{0xcF},{ 0xFF}}, 
-//////////////////////////////////////////////////////////////////
-//////////////////////// YCP_t  ///////////////////////////////
-//////////////////////////////////////////////////////////////////
-{{0xd1},{0x38}}, //saturation
-{{0xd2},{0x38}}, //saturation
-{{0xde},{0x23}}, //auto_gray  21
-      
-//////////////////////////////////////////////////////////////////
-///////////////////////// ASDE ////////////////////////////////
-//////////////////////////////////////////////////////////////////
-{{0x98},{0x30}},
-{{0x99},{0xf0}},
-{{0x9b},{0x00}},
-            
-{{0xfe},{0x01}}, //page1
-//////////////////////////////////////////////////////////////////
-///////////////////////// AEC  ////////////////////////////////
-//////////////////////////////////////////////////////////////////
-{{0x10},{0x05}},//AEC mode 1
-{{0x11},{0x22}},//[7]fix target  0x32
-{{0x13},{0x68}},//0x60
-{{0x17},{0x00}},
-{{0x1b},{0x97}},//aec fast
-{{0x1c},{0x96}},
-{{0x1e},{0x11}},
-{{0x21},{0xa0}},//max_post_gain
-{{0x22},{0x40}},//max_pre_gain
-{{0x2d},{0x06}},//P_N_AEC_exp_level_1[12:8]
-{{0x2e},{0x00}},//P_N_AEC_exp_level_1[7:0]
-{{0x1e},{0x32}},
-{{0x33},{0x00}},//[6:5]max_exp_level [4:0]min_exp_level
-     
-/////////////////////////////////////////////////////////////////
-////////////////////////  AWB  ////////////////////////////////
-/////////////////////////////////////////////////////////////////
-{{0x57},{0x40}}, //number limit
-{{0x5d},{0x44}}, //
-{{0x5c},{0x35}}, //show mode,close dark_mode
-{{0x5e},{0x29}}, //close color temp
-{{0x5f},{0x50}},
-{{0x60},{0x50}}, 
-{{0x65},{0xc0}},
-      
-//////////////////////////////////////////////////////////////////
-/////////////////////////  ABS  ////////////////////////////////
-//////////////////////////////////////////////////////////////////
-{{0x80},{0x82}},
-{{0x81},{0x00}},
-{{0x83},{0x00}}, //ABS Y stretch limit
-            
-{{0xfe},{0x00}},
-//////////////////////////////////////////////////////////////////
-/////////////////////////  OUT  ////////////////////////////////
-////////////////////////////////////////////////////////////////
-{{0x44},{0xa2}}, //YUV sequence
-{{0x45},{0x0f}}, //output enable
-{{0x46},{0x03}}, //sync mode
-    
-//--------Updated By Mormo 2011/03/14 Start----------------//
-{{0xfe},{0x01}}, //page1
-{{0x34},{0x02}}, //Preview minimum exposure
-{{0xfe},{0x00}}, //page0
-//-------------Updated By Mormo 2011/03/14 End----------------//
-      
-      
-//GAMM
-{{0xbF},{0x0B}},
-{{0xc0},{0x16}},
-{{0xc1},{0x29}},
-{{0xc2},{0x3C}},
-{{0xc3},{0x4F}},
-{{0xc4},{0x5F}},
-{{0xc5},{0x6F}},
-{{0xc6},{0x8A}},
-{{0xc7},{0x9F}},
-{{0xc8},{0xB4}},
-{{0xc9},{0xC6}},
-{{0xcA},{0xD3}},
-{{0xcB},{0xDD}},
-{{0xcC},{0xE5}},
-{{0xcD},{0xF1}},
-{{0xcE},{0xFA}},
-{{0xcF},{0xFF}},
+	////////////////////////////////////////////////////////////////////////
+	////////////////////////// preview LSC /////////////////////////////////
+	////////////////////////////////////////////////////////////////////////
+	{{0xfe},{ 0x01}}, //page1
+	{{0xb0},{ 0x03}}, //[4]Y_LSC_en [3]lsc_compensate [2]signed_b4 [1:0]pixel array select
+	{{0xb1},{ 0x23}}, //P_LSC_red_b2
+	{{0xb2},{ 0x20}}, //P_LSC_green_b2
+	{{0xb3},{ 0x20}}, //P_LSC_blue_b2
+	{{0xb4},{ 0x24}}, //P_LSC_red_b4
+	{{0xb5},{ 0x20}}, //P_LSC_green_b4
+	{{0xb6},{ 0x22}}, //P_LSC_blue_b4
+	{{0xb7},{ 0x00}}, //P_LSC_compensate_b2
+	{{0xb8},{ 0x80}}, //P_LSC_row_center},{ 0x344},{ 0x (1200/2-344)/2=128},{ 0x},{ 0x
+	{{0xb9},{ 0x80}}, //P_LSC_col_center},{ 0x544},{ 0x (1600/2-544)/2=128
 
 
-{{0x02},{0x01}},
-{{0x2a},{0xca}},
-{{0x55},{0x02}},
-{{0x56},{0x58}},
-{{0x57},{0x03}},
-{{0x58},{0x20}},
-{{0xfe},{0x00}},
+	////////////////////////////////////////////////////////////////////////
+	////////////////////////// capture LSC /////////////////////////////////
+	////////////////////////////////////////////////////////////////////////
+	{{0xba},{ 0x03}}, //[4]Y_LSC_en [3]lsc_compensate [2]signed_b4 [1:0]pixel array select
+	{{0xbb},{ 0x23}}, //C_LSC_red_b2
+	{{0xbc},{ 0x20}}, //C_LSC_green_b2
+	{{0xbd},{ 0x20}}, //C_LSC_blue_b2
+	{{0xbe},{ 0x24}}, //C_LSC_red_b4
+	{{0xbf},{ 0x20}}, //C_LSC_green_b4
+	{{0xc0},{ 0x22}}, //C_LSC_blue_b4
+	{{0xc1},{ 0x00}}, //C_Lsc_compensate_b2
+	{{0xc2},{ 0x80}}, //C_LSC_row_center},{ 0x344},{ 0x (1200/2-344)/2=128
+	{{0xc3},{ 0x80}}, //C_LSC_col_center},{ 0x544},{ 0x (1600/2-544)/2=128
+	{{0xfe},{ 0x00}}, //page0
 
+	////////////////////////////////////////////////////////////////////////
+	////////////////////////// analog configure ///////////////////////////
+	////////////////////////////////////////////////////////////////////////
+	{{0xfe},{ 0x00}}, //page0
+	{{0x29},{ 0x00}}, //cisctl mode 1
+	{{0x2b},{ 0x06}}, //cisctl mode 3	
+	{{0x32},{ 0x1c}}, //analog mode 1
+	{{0x33},{ 0x0f}}, //analog mode 2
+	{{0x34},{ 0x30}}, //[6:4]da_rsg
+
+	{{0x35},{ 0x88}}, //Vref_A25
+	{{0x37},{0x13}}, //Drive Current  0x16 2012-3-15
+
+	/////////////////////////////////////////////////////////////////////
+	/////////////////////////// ISP Related /////////////////////////////
+	/////////////////////////////////////////////////////////////////////
+	{{0x40},{ 0xff}}, 
+	{{0x41},{ 0x20}}, //[5]skin_detectionenable[2]auto_gray},{ 0x[1]y_gamma
+	{{0x42},{ 0xf6}}, //[7]auto_sa[6]auto_ee[5]auto_dndd[4]auto_lsc[3]na[2]abs},{ 0x[1]awb
+	{{0x4b},{ 0xe8}}, //[1]AWB_gain_mode},{ 0x1:atpregain0:atpostgain
+	{{0x4d},{ 0x03}}, //[1]inbf_en
+	{{0x4f},{ 0x01}}, //AEC enable
+
+	////////////////////////////////////////////////////////////////////
+	///////////////////////////  BLK  //////////////////////////////////
+	////////////////////////////////////////////////////////////////////
+	{{0x63},{ 0x77}}, //BLK mode 1
+	{{0x66},{ 0x00}}, //BLK global offset
+	{{0x6d},{ 0x00}},
+	{{0x6e},{ 0x1a}}, //BLK offset submode},{offset R
+	{{0x6f},{ 0x20}},
+	{{0x70},{ 0x1a}},
+	{{0x71},{ 0x20}},
+	{{0x73},{ 0x00}},
+	{{0x77},{ 0x80}},
+	{{0x78},{ 0x80}},
+	{{0x79},{ 0x90}},
+
+	////////////////////////////////////////////////////////////////////
+	/////////////////////////// DNDD ///////////////////////////////////
+	////////////////////////////////////////////////////////////////////
+	{{0x80},{ 0x07}}, //[7]dn_inc_or_dec [4]zero_weight_mode[3]share [2]c_weight_adap [1]dn_lsc_mode [0]dn_b
+	{{0x82},{ 0x0c}}, //DN lilat b base
+	{{0x83},{ 0x03}},
+
+	////////////////////////////////////////////////////////////////////
+	/////////////////////////// EEINTP ////////////////////////////////
+	////////////////////////////////////////////////////////////////////
+	{{0x8a},{ 0x7c}},
+	{{0x8c},{ 0x02}},
+	{{0x8e},{ 0x02}},
+	{{0x8f},{ 0x45}},
+
+
+	/////////////////////////////////////////////////////////////////////
+	/////////////////////////// CC_t ////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////
+	{{0xb0},{ 0x48}},
+	{{0xb1},{ 0xfe}},
+	{{0xb2},{ 0x00}},
+	{{0xb3},{ 0xf0}},
+	{{0xb4},{ 0x50}},
+	{{0xb5},{ 0xf8}},
+	{{0xb6},{ 0x00}},
+	{{0xb7},{ 0x00}},
+	{{0xb8},{ 0x00}},
+
+
+	/////////////////////////////////////////////////////////////////////
+	/////////////////////////// GAMMA ///////////////////////////////////
+	/////////////////////////////////////////////////////////////////////
+	//RGB_GAMMA
+	{{0xbf},{ 0x08}}, 
+	{{0xc0},{ 0x1e}},
+	{{0xc1},{ 0x33}},
+	{{0xc2},{ 0x47}},
+	{{0xc3},{ 0x59}},
+	{{0xc4},{ 0x68}},
+	{{0xc5},{ 0x74}},
+	{{0xc6},{ 0x86}},
+	{{0xc7},{ 0x97}},
+	{{0xc8},{ 0xA5}},
+	{{0xc9},{ 0xB1}},
+	{{0xca},{ 0xBd}},
+	{{0xcb},{ 0xC8}},
+	{{0xcc},{ 0xD3}},
+	{{0xcd},{ 0xE4}},
+	{{0xce},{ 0xF4}},
+	{{0xcf},{ 0xff}},
+
+	/////////////////////////////////////////////////////////////////////
+	/////////////////////////// YCP_t ///////////////////////////////////
+	/////////////////////////////////////////////////////////////////////
+	{{0xd1},{ 0x38}}, //saturation
+	{{0xd2},{ 0x38}}, //saturation
+	{{0xdd},{ 0x38}}, //edge_dec
+	{{0xde},{ 0x21}}, //auto_gray
+
+	////////////////////////////////////////////////////////////////////
+	/////////////////////////// ASDE ///////////////////////////////////
+	////////////////////////////////////////////////////////////////////
+	{{0x98},{ 0x3a}}, 
+	{{0x99},{ 0x60}}, 
+	{{0x9b},{ 0x00}}, 
+	{{0x9f},{ 0x12}}, 
+	{{0xa1},{ 0x80}}, 
+	{{0xa2},{ 0x21}}, 
+	
+	{{0xfe},{ 0x01}}, //page1
+	{{0xc5},{ 0x10}}, 
+	{{0xc6},{ 0xff}}, 
+	{{0xc7},{ 0xff}}, 
+	{{0xc8},{ 0xff}}, 
+	////////////////////////////////////////////////////////////////////
+	/////////////////////////// AEC  ////////////////////////////////
+	////////////////////////////////////////////////////////////////////
+	{{0x10},{0x09}}, //AEC mode 1
+	{{0x11},{0xb2}}, //[7]fix target
+	{{0x12},{0x20}}, 
+	{{0x13},{0x78}}, 
+	{{0x17},{0x00}}, 
+	{{0x1c},{0x96}}, 
+	{{0x1d},{0x04}}, // sunlight step 
+	{{0x1e},{0x11}}, 
+	{{0x21},{0xc0}}, //max_post_gain
+	{{0x22},{0x60}}, //max_pre_gain
+	{{0x2d},{0x06}}, //P_N_AEC_exp_level_1[12:8]
+	{{0x2e},{0x00}}, //P_N_AEC_exp_level_1[7:0]
+	{{0x1e},{0x32}}, 
+	{{0x33},{0x00}}, //[6:5]max_exp_level [4:0]min_exp_level
+	{{0x34},{0x04}}, // min exp
+
+	////////////////////////////////////////////////////////////////////
+	/////////////////////////// Measure Window /////////////////////////
+	////////////////////////////////////////////////////////////////////
+	{{0x06},{0x07}},
+	{{0x07},{0x03}},
+	{{0x08},{0x64}},
+	{{0x09},{0x4a}},
+
+	////////////////////////////////////////////////////////////////////
+	/////////////////////////// AWB ////////////////////////////////////
+	////////////////////////////////////////////////////////////////////
+	{{0x50},{0xf5}},
+	{{0x51},{0x18}},
+	{{0x53},{0x10}},
+	{{0x54},{0x20}},
+	{{0x55},{0x60}},
+	{{0x57},{0x33}}, //number limit , 33 half , must <0x65 base on measure wnd now
+	{{0x5d},{0x52}}, //44
+	{{0x5c},{0x25}}, //show mode,close dark_mode
+	{{0x5e},{0x19}}, //close color temp
+	{{0x5f},{0x50}}, //50
+	{{0x60},{0x57}}, //50
+	{{0x61},{0xdf}},
+	{{0x62},{0x80}}, //7b
+	{{0x63},{0x08}}, //20
+	{{0x64},{0x5B}},
+	{{0x65},{0x90}},
+	{{0x66},{0xd0}},
+	{{0x67},{0x80}}, //5a
+	{{0x68},{0x68}}, //68
+	{{0x69},{0x90}}, //80
+
+	////////////////////////////////////////////////////////////////////
+	///////////////////////////  ABS  ////////////////////////////////
+	////////////////////////////////////////////////////////////////////
+	{{0x80},{0x82}},
+	{{0x81},{0x00}},
+	{{0x83},{0x10}}, //ABS Y stretch limit
+	{{0xfe},{0x00}},
+	
+	////////////////////////////////////////////////////////////////////
+	/////////////////////////// OUT ////////////////////////////////////
+	////////////////////////////////////////////////////////////////////
+	{{0xfe},{ 0x00}},
+	//crop 
+	{{0x50},{ 0x01}},
+	{{0x51},{ 0x00}},
+	{{0x52},{ 0x00}},
+	{{0x53},{ 0x00}},
+	{{0x54},{ 0x00}},
+	{{0x55},{ 0x02}},
+	{{0x56},{ 0x58}},
+	{{0x57},{ 0x03}},
+	{{0x58},{ 0x20}},
+
+	{{0x44},{ 0xa2}}, //YUV sequence
+	{{0x45},{ 0x0f}}, //output enable
+	{{0x46},{ 0x03}}, //sync mode
+
+	//--------------------Updated By Mormo 2011/08/08 Start --------------------//
+       {{0xfe},{ 0x00}},
+	{{0x32},{ 0x34}},
+	{{0x34},{ 0x00}},
+//--------------------Updated By Mormo 2011/08/08 End ---------------------//	
+
+	{{0xbF},{ 0x0B}}, 
+	{{0xc0},{ 0x16}}, 
+	{{0xc1},{ 0x29}}, 
+	{{0xc2},{ 0x3C}}, 
+	{{0xc3},{ 0x4F}}, 
+	{{0xc4},{ 0x5F}}, 
+	{{0xc5},{ 0x6F}}, 
+	{{0xc6},{ 0x8A}}, 
+	{{0xc7},{ 0x9F}}, 
+	{{0xc8},{ 0xB4}}, 
+	{{0xc9},{ 0xC6}}, 
+	{{0xcA},{ 0xD3}}, 
+	{{0xcB},{ 0xDD}},  
+	{{0xcC},{ 0xE5}},  
+	{{0xcD},{ 0xF1}}, 
+	{{0xcE},{ 0xFA}}, 
+	{{0xcF},{ 0xFF}}, 
+//////////////////////////////////////////////////////////////////
+	//////////////////////// YCP_t  ///////////////////////////////
+
+
+/////////window for svga preview///////
+ 	{{0xfe}, {0x00}},
+	{{0x02}, {0x01}},  // preview mode
+	{{0x2a}, {0xca}},  // [7] Column Bin (default Preview)  [6] Row evenskip (default Preview)
+	
+	{{0x59} , {0x11}},//out window
+	{{0x5a} , {0x06}},
+	{{0x5b} , {0x00}},
+	{{0x5c} , {0x00}},
+	{{0x5d} , {0x00}},
+	{{0x5e} , {0x00}},
+	{{0x5f} , {0x00}}, 
+	{{0x60} , {0x00}},
+	{{0x61} , {0x00}},
+       {{0x62} , {0x00}},
+	
+	{{0x50} , {0x01}},//out window
+	{{0x51} , {0x00}},
+	{{0x52} , {0x00}},
+	{{0x53} , {0x00}},
+	{{0x54} , {0x00}},
+	{{0x55} , {0x02}},
+	{{0x56} , {0x58}},// 600
+	{{0x57} , {0x03}},
+	{{0x58} , {0x20}},//800
+//////////////window end///////////////
 //frame rate
-{{0x05},{0x01}},
-{{0x06},{0xc1}},
-{{0x07},{0x00}},
-{{0x08},{0x40}},
+	{{0x05},{0x01}},
+	{{0x06},{0xc1}},
+	{{0x07},{0x00}},
+	{{0x08},{0x40}},
 
-{{0xfe},{0x01}},
-{{0x29},{0x00}},
-{{0x2a},{0x80}},
-{{0x2b},{0x05}},
-{{0x2c},{0x00}},
-{{0x2d},{0x06}},
-{{0x2e},{0x00}},
-{{0x2f},{0x08}},
-{{0x30},{0x00}},
-{{0x31},{0x09}},
-{{0x32},{0x00}},
-{{0x33},{0x20}},
+	{{0xfe},{0x01}},
+	{{0x29},{0x00}},
+	{{0x2a},{0x80}},
+	{{0x2b},{0x05}},
+	{{0x2c},{0x00}},
+	{{0x2d},{0x06}},
+	{{0x2e},{0x00}},
+	{{0x2f},{0x08}},
+	{{0x30},{0x00}},
+	{{0x31},{0x09}},
+	{{0x32},{0x00}},
+	{{0x33},{0x20}},
 
-{{0xfe},{0x00}},
+	{{0xfe},{0x00}},
 };
 
 /* 1600X1200 UXGA capture */
@@ -493,7 +537,39 @@ static struct regval_list sensor_sxga_regs[] =
 	{{0x58},  {0x00}}
  
 };
-/*1024*768*/
+
+
+//1280*720---init---///
+static struct regval_list sensor_hd720_regs[] = {
+
+	{{0xfe},  {0x00}},
+	{{0x02},  {0x00}},
+	{{0x2a},  {0x0a}},
+
+	//subsample 4/5
+	{{0x59},  {0x55}},
+	{{0x5a},  {0x06}},
+	{{0x5b},  {0x00}},
+	{{0x5c},  {0x00}},
+	{{0x5d},  {0x01}},
+	{{0x5e},  {0x23}},
+	{{0x5f},  {0x00}},
+	{{0x60},  {0x00}},
+	{{0x61},  {0x01}},
+	{{0x62},  {0x23}},
+
+	//crop 
+	{{0x50},  {0x01}},
+	{{0x51},  {0x00}},
+	{{0x52},  {0x00}},
+	{{0x53},  {0x00}},
+	{{0x54},  {0x00}},
+	{{0x55},  {0x02}},//720  for height
+	{{0x56},  {0xd0}},
+	{{0x57},  {0x05}}, //1280 for width
+	{{0x58},  {0x00}},
+};
+
 static struct regval_list sensor_xga_regs[] =
 {
   {{0xfe}, {0x00}},
@@ -551,9 +627,15 @@ static struct regval_list sensor_svga_regs[] =
 	{{0x57} , {0x03}},
 	{{0x58} , {0x20}},//800
 
+	   ///offset////
+	{{0x6e} , {0x1a}},
+	{{0x6f} , {0x20}},
+	{{0x70} , {0x1a}},
+	{{0x71} , {0x20}},
+	
 	{{0x48} , {0x40}},
 	{{0x4f},  {0x01}},//aec
-	{{0x42},  {0x76}},//awb
+	//{{0x42},  {0x76}},//awb
 };
 
 /* 640X480 VGA */
@@ -584,10 +666,16 @@ static struct regval_list sensor_vga_regs[] =
 	{{0x56} , {0xe0}},// 480
 	{{0x57} , {0x02}},
 	{{0x58} , {0x80}},//640 
+
+	   ///offset////
+	{{0x6e} , {0x1a}},
+	{{0x6f} , {0x20}},
+	{{0x70} , {0x1a}},
+	{{0x71} , {0x20}},
 	
 	{{0x48} , {0x40}},
 	{{0x4f},  {0x01}},//aec
-	{{0x42},  {0x76}},//awb
+	//{{0x42},  {0x76}},//awb
 
 	
 	//{{0x45} , {0x0f}} //output enable
@@ -1230,6 +1318,9 @@ static int sensor_detect(struct v4l2_subdev *sd)
 {
 	int ret;
 	struct regval_list regs;
+	regs.reg_num[0] = 0xfe;
+	regs.value[0] = 0x80;           //for GC2015 SOFT reset!  2012-3-15
+	ret = sensor_write(sd, regs.reg_num, regs.value);
 	
 	regs.reg_num[0] = 0xfe;
 	regs.value[0] = 0x00; //PAGE 0x00
@@ -1331,88 +1422,95 @@ static long sensor_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
 
 /* stuff about exposure when capturing image */
 
-static int sensor_set_exposure(struct v4l2_subdev *sd)
+static void sensor_get_exposure(struct v4l2_subdev *sd, unsigned int *shutter)
 {
-#if 1
-	//////////////james added////////
-	int ret=0;
-//	unsigned int temp_reg1, temp_reg2,test ;
-//	int   ret23;
-//	char value;
-	unsigned   int pid=0,shutter=0;
-//	unsigned int  hb_ori, hb_total=298;
-	unsigned int  hb_total=298;
-	unsigned int  temp_reg;
+	unsigned int pid=0;
 	struct regval_list regs;
 	
-	csi_dev_dbg("sensor_set_exposure\n");
-	
 	regs.reg_num[0] = 0xfe;
-	regs.value[0] = 0x00; //PAGE 0x00
-	ret = sensor_write(sd, regs.reg_num, regs.value);
-
+	regs.value[0] = 0x00; //PAGE 0
+	sensor_write(sd, regs.reg_num, regs.value);
+	
 	regs.reg_num[0] = 0x4f;
 	regs.value[0] = 0x00; //turn off aec
-	ret= sensor_write(sd, regs.reg_num, regs.value);
+	sensor_write(sd, regs.reg_num, regs.value);
 
-	regs.reg_num[0] = 0x42;
-	regs.value[0] = 0x74; //turn off awb
-	ret= sensor_write(sd, regs.reg_num, regs.value);
-
-	/* check if it is an sensor sensor */
+	/*read shutter */
 	regs.reg_num[0] = 0x03;
-	ret = sensor_read(sd, regs.reg_num, regs.value);
-	pid = (regs.value[0] * 256);
+	sensor_read(sd, regs.reg_num, regs.value);
+	low_expose=regs.value[0];
+	pid |= (regs.value[0]<< 8);
 
 	regs.reg_num[0] = 0x04;	
-	ret = sensor_read(sd, regs.reg_num,regs.value);
-	shutter = pid + regs.value[0];
+	sensor_read(sd, regs.reg_num,regs.value);
+	high_expose=regs.value[0];
+	pid |= (regs.value[0] & 0xff);
+	
+	*shutter=pid;
+}
+
+static void sensor_set_preview_exposure(struct v4l2_subdev *sd)
+{
+	struct regval_list regs;
+	
+	regs.reg_num[0] = 0x03;
+	regs.value[0] = low_expose; 
+	sensor_write(sd, regs.reg_num, regs.value);	
+
+	regs.reg_num[0] = 0x04;
+	regs.value[0] = high_expose; 
+	sensor_write(sd, regs.reg_num, regs.value);	
+}
+
+static void sensor_set_capture_exposure(struct v4l2_subdev *sd,unsigned int shutter)
+{
+	unsigned int  temp_reg;
+	unsigned int  hb_total = 298;
+	struct regval_list regs;
 	
 	regs.reg_num[0] = 0x12;
-	regs.value[0] = ((hb_total>>8)&0xff); //
-	ret= sensor_write(sd, regs.reg_num, regs.value);
+	regs.value[0] = ((hb_total>>8)&0xff); 
+	sensor_write(sd, regs.reg_num, regs.value);
 
 	regs.reg_num[0] = 0x13;
-	regs.value[0] = (hb_total&0xff); //
-	ret= sensor_write(sd, regs.reg_num, regs.value);	
-
-	temp_reg = shutter * (1702 + 298 ) * 10  / ( 15 * (1702 + 298 ));
+	regs.value[0] = (hb_total&0xff); 
+	sensor_write(sd, regs.reg_num, regs.value);	
+	
+	temp_reg = shutter * 10  /  16 ;
 
 	if(temp_reg < 1) temp_reg = 1;
 
 	regs.reg_num[0] = 0x03;
-	regs.value[0] =  ((temp_reg>>8)&0xff); //
-	ret= sensor_write(sd, regs.reg_num, regs.value);
-
+	regs.value[0] =  ((temp_reg>>8)&0xff); 
+	sensor_write(sd, regs.reg_num, regs.value);
+	
 	regs.reg_num[0] = 0x04;
 	regs.value[0] =  (temp_reg&0xff); // write shutter
-	ret= sensor_write(sd, regs.reg_num, regs.value);
-
+	sensor_write(sd, regs.reg_num, regs.value);
+	
 	regs.reg_num[0] = 0x6e;
-	regs.value[0] = 0x19; //
-	ret= sensor_write(sd, regs.reg_num, regs.value);
-
+	regs.value[0] = 0x1b; 
+	sensor_write(sd, regs.reg_num, regs.value);
+	
 	regs.reg_num[0] = 0x6f;
-	regs.value[0] = 0x10; //
-	ret= sensor_write(sd, regs.reg_num, regs.value);
-
+	regs.value[0] = 0x20; 
+	sensor_write(sd, regs.reg_num, regs.value);
+	
 	regs.reg_num[0] = 0x70;
-	regs.value[0] = 0x19; //
-	ret= sensor_write(sd, regs.reg_num, regs.value);
-
+	regs.value[0] = 0x1b; 
+	sensor_write(sd, regs.reg_num, regs.value);
+	
 	regs.reg_num[0] = 0x71;
-	regs.value[0] = 0x10; //
-	ret= sensor_write(sd, regs.reg_num, regs.value);
+	regs.value[0] = 0x20; 
+	sensor_write(sd, regs.reg_num, regs.value);
 
-	mdelay(100);
-
+	
+#if 0
 	regs.reg_num[0] = 0x45;
 	regs.value[0] = 0x0f;
-	ret= sensor_write(sd, regs.reg_num, regs.value);  // open output
-	/////////james added end//////
-#endif	
+	sensor_write(sd, regs.reg_num, regs.value);  // open output
+#endif
 
-	return ret;
 }
 
 /*
@@ -1505,6 +1603,14 @@ static struct sensor_win_size {
 		.height			= XGA_HEIGHT,
 		.regs				= sensor_xga_regs,
 		.regs_size	= ARRAY_SIZE(sensor_xga_regs),
+		.set_size		= NULL,
+	},
+	/* HD720 */
+	{
+		.width			= HD720_WIDTH,
+		.height			= HD720_HEIGHT,
+		.regs				= sensor_hd720_regs,
+		.regs_size	= ARRAY_SIZE(sensor_hd720_regs),
 		.set_size		= NULL,
 	},
 	/* SVGA */
@@ -1617,7 +1723,8 @@ static int sensor_s_fmt(struct v4l2_subdev *sd,
 	struct sensor_format_struct *sensor_fmt;
 	struct sensor_win_size *wsize;
 	struct sensor_info *info = to_state(sd);
-		
+	static unsigned int	shutter = 0;
+			
 	csi_dev_dbg("sensor_s_fmt\n");
 	
 	ret = sensor_try_fmt_internal(sd, fmt, &sensor_fmt, &wsize);
@@ -1627,17 +1734,12 @@ static int sensor_s_fmt(struct v4l2_subdev *sd,
 	if(info->capture_mode == V4L2_MODE_VIDEO)
 	{
 		//video
-		
+		sensor_set_preview_exposure(sd);
 	}
 	else if(info->capture_mode == V4L2_MODE_IMAGE)
 	{
 		//capture
-		ret = sensor_set_exposure(sd);
-		if (ret < 0)
-		{
-			csi_dev_err("sensor_set_exposure err !\n");
-			return ret;
-		}	
+		sensor_get_exposure(sd,&shutter);
 	}
 	
 	sensor_write_array(sd, sensor_fmt->regs , sensor_fmt->regs_size);
@@ -1655,6 +1757,18 @@ static int sensor_s_fmt(struct v4l2_subdev *sd,
 		ret = wsize->set_size(sd);
 		if (ret < 0)
 			return ret;
+	}
+	
+	if(info->capture_mode == V4L2_MODE_VIDEO)
+	{
+		//video
+
+	}
+	else if(info->capture_mode == V4L2_MODE_IMAGE)
+	{
+		//capture
+		sensor_set_capture_exposure(sd,shutter);
+		msleep(300);
 	}
 	
 	info->fmt = sensor_fmt;

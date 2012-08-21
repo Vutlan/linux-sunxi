@@ -113,7 +113,7 @@ void bsp_csi_set_size(struct csi_dev *dev, u32 length_h, u32 length_v, u32 buf_l
 		t = (t&0x0000ffff)|(length_h<<16);
     W(dev->regs+CSI_REG_RESIZE_H, t);
     
-    t = R(dev->regs+CSI_REG_RESIZE_H);
+    t = R(dev->regs+CSI_REG_RESIZE_V);
     t = (t&0x0000ffff)|(length_v<<16);
     W(dev->regs+CSI_REG_RESIZE_V, t);
     

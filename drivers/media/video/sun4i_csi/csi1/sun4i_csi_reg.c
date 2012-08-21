@@ -27,6 +27,7 @@ void bsp_csi_configure(struct csi_dev *dev,__csi_conf_t *mode)
 							  mode->output_fmt<< 16 | /* [18:16] */
 							  mode->field_sel << 10 | /* [11:10] */
 							  mode->seq       << 8  | /* [9:8] */
+							  mode->fref			<< 3	| /* [3] */
 							  mode->vref      << 2  | /* [2] */
 							  mode->href      << 1  | /* [1] */
 							  mode->clock     << 0    /* [0] */
@@ -113,7 +114,7 @@ void bsp_csi_set_size(struct csi_dev *dev, u32 length_h, u32 length_v, u32 buf_l
 		t = (t&0x0000ffff)|(length_h<<16);
     W(dev->regs+CSI_REG_RESIZE_H, t);
     
-    t = R(dev->regs+CSI_REG_RESIZE_H);
+    t = R(dev->regs+CSI_REG_RESIZE_V);
     t = (t&0x0000ffff)|(length_v<<16);
     W(dev->regs+CSI_REG_RESIZE_V, t);
     
