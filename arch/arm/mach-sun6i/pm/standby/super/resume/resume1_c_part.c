@@ -58,7 +58,7 @@ int resume1_c_part(void)
 {
 	serial_init_nommu();
 	//busy_waiting();
-	serial_puts_nommu("resume1: 0. \n", 13);
+	serial_puts_nommu("resume1: 0. \n");
 	/* clear bss segment */
 	do{*tmpPtr ++ = 0;}while(tmpPtr <= (char *)&__bss_end);
 	
@@ -84,7 +84,7 @@ int resume1_c_part(void)
 	//save_mem_status(RESUME1_START |0x03);
 	
 	//busy_waiting();
-	serial_puts_nommu("resume1: 2. \n", 13);
+	serial_puts_nommu("resume1: 2. \n");
 	
 	restore_mmu_state(&(mem_para_info.saved_mmu_state));
 	save_mem_status(RESUME1_START |0x13);
@@ -112,7 +112,7 @@ int resume1_c_part(void)
 	//busy_waiting();
 	jump_to_resume((void *)mem_para_info.resume_pointer, mem_para_info.saved_runtime_context_svc);
 
-	serial_puts("resume1: e. \n", 13);
+	serial_puts("resume1: e. \n");
 	return;
 }
 

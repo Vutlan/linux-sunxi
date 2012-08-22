@@ -8,6 +8,15 @@
 #include "pm_types.h"
 #include "pm.h"
 
+//------------------------------------------------------------------------------
+//return value defines
+//------------------------------------------------------------------------------
+#define	OK		(0)
+#define	FAIL	(-1)
+#define TRUE	(1)
+#define	FALSE	(0)
+
+#define NULL	(0)
 
 #define readb(addr)		(*((volatile unsigned char  *)(addr)))
 #define readw(addr)		(*((volatile unsigned short *)(addr)))
@@ -68,19 +77,22 @@ static char serial_get_char_nommu(void)
 	return readb(SUART_RBR_PA);
 }
 
-__u32 serial_puts_nommu(char* buf, __u32 n)
+__s32 serial_puts_nommu(const char *string)
 {
-	__u32 i;
-	for (i=0; i<n; i++)
+	//ASSERT(string != NULL);
+	
+	while(*string != '\0')
 	{
-		if (buf[i] == '\n')
+		if(*string == '\n')
 		{
+			// if current character is '\n', 
+			// insert output with '\r'.
 			serial_put_char_nommu('\r');
 		}
-
-		serial_put_char_nommu(buf[i]);
+		serial_put_char_nommu(*string++);
 	}
-	return n;
+	
+	return OK;
 }
 
 __u32 serial_gets_nommu(char* buf, __u32 n)
@@ -151,20 +163,36 @@ static char serial_get_char(void)
 	return readb(SUART_RBR);
 }
 
-__u32 serial_puts(char* buf, __u32 n)
+
+/*
+*********************************************************************************************************
+*                                       	PUT A STRING
+*
+* Description: 	put out a string.
+*
+* Arguments  : 	string	: the string which we want to put out.
+*
+* Returns    : 	OK if put out string succeeded, others if failed.
+*********************************************************************************************************
+*/
+__s32 serial_puts(const char *string)
 {
-	__u32 i;
-	for (i=0; i<n; i++)
+	//ASSERT(string != NULL);
+	
+	while(*string != '\0')
 	{
-		if (buf[i] == '\n')
+		if(*string == '\n')
 		{
+			// if current character is '\n', 
+			// insert output with '\r'.
 			serial_put_char('\r');
 		}
-
-		serial_put_char(buf[i]);
+		serial_put_char(*string++);
 	}
-	return n;
+	
+	return OK;
 }
+
 
 __u32 serial_gets(char* buf, __u32 n)
 {

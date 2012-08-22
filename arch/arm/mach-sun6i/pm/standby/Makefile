@@ -22,7 +22,9 @@ STANDBY_OBJ = 	common.o         	\
 		./ar100/ar100_message_manager.o	\
 		./../pm_debug.o       		\
 		./../mem_serial.o		\
-		./../mem_printk.o  	
+		./../mem_printk.o  		\
+		./../mem_divlib.o		\
+		./../mem_misc.o
 
 
 RESUME1_OBJ =	./super/common.o             	\
@@ -41,8 +43,10 @@ RESUME1_OBJ =	./super/common.o             	\
 		./../mem_mmu_pc_asm.o           \
 		./../mem_cpu.o                  \
 		./../mem_serial.o		\
-		./../mem_printk.o  	               
-	
+		./../mem_printk.o		\
+		./../mem_divlib.o		\
+		./../mem_misc.o
+		
 STANDBY_OUPUTFILE = standby
 RESUME1_OUPUTFILE = resume1
 
@@ -51,7 +55,11 @@ RESUME1_LD_FILE = resume1_scatter.scat
 
 CC = $(CROSS_COMPILE)gcc
 
-CFLAGS = -O0 -g -march=armv7-a -fno-unwind-tables -fno-asynchronous-unwind-tables -mlittle-endian  -c
+#CFLAGS = -g -c -nostdlib -march=armv7-a -marm -fno-unwind-tables -fno-asynchronous-unwind-tables -mlittle-endian  --min_array_alignment=4 --no_unaligned_access -O2 
+CFLAGS = -g -c -nostdlib -march=armv7-a -marm -fno-unwind-tables -fno-asynchronous-unwind-tables -mlittle-endian -O2 
+
+LD_FLAGS = -static 
+LIBS = 
 
 all: standby resume1 
 standby:
@@ -74,8 +82,10 @@ standby:
 	$(CC) $(INCLUDE) $(CFLAGS) ./../pm_debug.c    -o 		./../pm_debug.o 
 	$(CC) $(INCLUDE) $(CFLAGS) ./../mem_serial.c    -o 		./../mem_serial.o 
 	$(CC) $(INCLUDE) $(CFLAGS) ./../mem_printk.c    -o 		./../mem_printk.o 
+	$(CC) $(INCLUDE) $(CFLAGS) ./../mem_divlib.S    -o 		./../mem_divlib.o 
+	$(CC) $(INCLUDE) $(CFLAGS) ./../mem_misc.c    -o 		./../mem_misc.o 
 
-	$(CROSS_COMPILE)ld -T $(STANDBY_LD_FILE)  -EL  $(STANDBY_OBJ) -o $(STANDBY_OUPUTFILE).elf  -Map $(STANDBY_OUPUTFILE).map
+	$(CROSS_COMPILE)ld -T $(STANDBY_LD_FILE) $(LD_FLAGS) $(LIBS) -EL  $(STANDBY_OBJ) -o $(STANDBY_OUPUTFILE).elf  -Map $(STANDBY_OUPUTFILE).map
 	$(CROSS_COMPILE)objdump -D $(STANDBY_OUPUTFILE).elf > $(STANDBY_OUPUTFILE).lst
 	$(CROSS_COMPILE)objcopy -O binary $(STANDBY_OUPUTFILE).elf $(STANDBY_OUPUTFILE).bin
 
@@ -108,6 +118,8 @@ resume1:
 	$(CC) $(INCLUDE) $(CFLAGS) ./../mem_cpu.c		       -o ./../mem_cpu.o
 	$(CC) $(INCLUDE) $(CFLAGS) ./../mem_serial.c    		-o ./../mem_serial.o 
 	$(CC) $(INCLUDE) $(CFLAGS) ./../mem_printk.c    		-o ./../mem_printk.o
+	$(CC) $(INCLUDE) $(CFLAGS) ./../mem_divlib.S    -o 		./../mem_divlib.o 
+	$(CC) $(INCLUDE) $(CFLAGS) ./../mem_misc.c    -o 		./../mem_misc.o 
 	
 	$(CROSS_COMPILE)ld -T $(RESUME1_LD_FILE)  -EL  $(RESUME1_OBJ) -o $(RESUME1_OUPUTFILE).elf  -Map $(RESUME1_OUPUTFILE).map
 	$(CROSS_COMPILE)objdump -D $(RESUME1_OUPUTFILE).elf > $(RESUME1_OUPUTFILE).lst

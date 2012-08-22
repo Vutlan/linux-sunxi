@@ -9,9 +9,6 @@
 #include "pm.h"
 #include <stdarg.h>
 
-typedef unsigned int		size_t;
-typedef unsigned int		ptrdiff_t;
-
 #define NUM_TYPE long long
 
 #define ZEROPAD	1		/* pad with zero */
@@ -23,7 +20,15 @@ typedef unsigned int		ptrdiff_t;
 #define SPECIAL	64		/* 0x */
 #define is_digit(c)	((c) >= '0' && (c) <= '9')
 
-static size_t _strlen(const char *s)
+
+/* Basic string functions */
+
+/*
+  s t r l e n
+
+  returns number of characters in s (not including terminating null character)
+*/
+size_t strlen(const char *s)
 {
 	const char *sc;
 
@@ -35,6 +40,115 @@ static size_t _strlen(const char *s)
 	return sc - s;
 }
 
+/*
+  s t r c p y
+
+  Copy 'src' to 'dest'. Strings may not overlap.
+*/
+char *strcpy(char *dest, const char *src)
+{
+	char *tmp = dest;
+
+	while ((*dest++ = *src++) != '\0')
+	{
+		/* nothing */
+		;
+	}
+	return tmp;
+}
+
+char *strncpy(char *dest, const char *src, size_t count)
+{
+	char *tmp = dest;
+
+	while (count)
+	{
+		if ((*tmp = *src) != 0)
+		{
+			src++;
+		}
+		tmp++;
+		count--;
+	}
+	return dest;
+}
+
+
+char *strcat(char *dest, const char *src)
+{
+	char *tmp = dest;
+
+	while (*dest)
+	{
+		dest++;
+	}
+	while ((*dest++ = *src++) != '\0')
+	{
+		;
+	}
+	return tmp;
+}
+
+
+char *strncat(char *dest, const char *src, size_t count)
+{
+	char *tmp = dest;
+
+	if (count)
+	{
+		while (*dest)
+		{
+			dest++;
+		}
+		while ((*dest++ = *src++) != 0)
+		{
+			if (--count == 0)
+			{
+				*dest = '\0';
+				break;
+			}
+		}
+	}
+	return tmp;
+}
+
+int strcmp(const char *cs, const char *ct)
+{
+	unsigned char c1, c2;
+
+	while (1)
+	{
+		c1 = *cs++;
+		c2 = *ct++;
+		if (c1 != c2)
+		{
+			return c1 < c2 ? -1 : 1;
+		}
+		if (!c1)
+		{
+			break;
+		}
+	}
+	return 0;
+}
+
+
+int strncmp(const char *cs, const char *ct, size_t count)
+{
+	unsigned char c1, c2;
+
+	while (count) {
+		c1 = *cs++;
+		c2 = *ct++;
+		if (c1 != c2)
+			return c1 < c2 ? -1 : 1;
+		if (!c1)
+			break;
+		count--;
+	}
+	return 0;
+}
+
 static int skip_atoi(const char **s)
 {
 	int i=0;
@@ -44,255 +158,322 @@ static int skip_atoi(const char **s)
 	return i;
 }
 
-static char *number(char *buf, unsigned NUM_TYPE num, int base, int size, int type)
+char *itoa(int value, char *string, int radix)
 {
-	static const char digits[16] = "0123456789ABCDEF"; /* "GHIJKLMNOPQRSTUVWXYZ"; */
-	char sign;
-	char locase;
-	int need_pfx = ((type & SPECIAL) && base != 10);
-	char tmp[66];
-	int precision;
-	int i;
+	char stack[16];
+	int  negative = 0;			//defualt is positive value
+	int  i;
+	int  j;
+	char digit_string[] = "0123456789ABCDEF";	
 	
-	/* locase = 0 or 0x20. ORing digits or letters with 'locase'
-	 * produces same digits or (maybe lowercased) letters */
-	locase = (type & SMALL);
-	if (type & LEFT)
-		type &= ~ZEROPAD;
-	sign = 0;
-	if (type & SIGN) {
-		if ((signed NUM_TYPE) num < 0) {
-			sign = '-';
-			num = - (signed NUM_TYPE) num;
-			size--;
-		} else if (type & PLUS) {
-			sign = '+';
-			size--;
-		} else if (type & SPACE) {
-			sign = ' ';
-			size--;
-		}
-	}
-	if (need_pfx) {
-		size--;
-		if (base == 16)
-			size--;
-	}
-	/* generate full string in tmp[], in reverse order */
-	i = 0;
-	if (num == 0)
-		tmp[i++] = '0';
-	else if (base != 10) { /* 8 or 16 */
-		int mask = base - 1;
-		int shift = 3;
-		if (base == 16) shift = 4;
-		do {
-			tmp[i++] = (digits[((unsigned char)num) & mask] | locase);
-			num >>= shift;
-		} while (num);
-	} else { /* base 10 */
-		unsigned val = (unsigned)num;
-		while (val) {
-			tmp[i++] = digits[val%10];
-			val /= 10;
-		}
+	if(value == 0)
+	{
+		//zero
+		string[0] = '0';
+		string[1] = '\0';
+		return string;
 	}
 	
-	/* printing 100 using %2d gives "100", not "00" */
-	precision = i;
-	/* leading space padding */
-	size -= precision;
-	if (!(type & (ZEROPAD+LEFT)))
-		while(--size >= 0)
-			*buf++ = ' ';
-	/* sign */
-	if (sign)
-		*buf++ = sign;
-	/* "0x" / "0" prefix */
-	if (need_pfx) {
-		*buf++ = '0';
-		if (base == 16)
-			*buf++ = ('X' | locase);
+	if(value < 0)
+	{
+		//'value' is negative, convert to postive first
+		negative = 1;
+		value = -value ;
 	}
-	/* zero or space padding */
-	if (!(type & LEFT)) {
-		char c = (type & ZEROPAD) ? '0' : ' ';
-		while (--size >= 0)
-			*buf++ = c;
+	
+	for(i = 0; value > 0; ++i)
+	{
+		// characters in reverse order are put in 'stack'.
+		stack[i] = digit_string[value % radix];
+		value /= radix;
 	}
-	/* hmm even more zero padding? */
-	while (i <= --precision)
-		*buf++ = '0';
-	/* actual digits of result */
-	while (--i >= 0)
-		*buf++ = tmp[i];
-	/* trailing space padding */
-	while (--size >= 0)
-		*buf++ = ' ';
-	return buf;
+	
+	//restore reversed order result to user string
+    j = 0;
+	if(negative)
+	{
+		//add sign at first charset.
+		string[j++] = '-';
+	}
+	for(--i; i >= 0; --i, ++j)
+	{
+		string[j] = stack[i];
+	}
+	//must end with '\0'.
+	string[j] = '\0';
+	
+	return string;
 }
 
-int _vsprintf(char *buf, const char *fmt, va_list args)
+char *utoa(unsigned int value, char *string, int radix)
 {
-	unsigned NUM_TYPE num;
-	int flags = ' ';	/* flag: *, -,  */
-	int field_width;/* width of output field */
-	int qualifier;		/* 'h', 'l', or 'L' for integer fields */
-				/* 'z' support added 23/7/1999 S.H.    */
-				/* 'z' changed to 'Z' --davidm 1/25/99 */
-				/* 't' added for ptrdiff_t */
-	char *str = buf;
-	int base;
-	char* s;
-	int arglen;
+	char stack[16];
+	int  i;
+	int  j;
+	char digit_string[] = "0123456789ABCDEF";	
 	
-	for (; *fmt; ++fmt) {
-		if (*fmt != '%') {
-			*str++ = *fmt;
-			continue;
-		}
-		
-		/* process flags */
-		flags = 0;
-		repeat:
-			++fmt;		/* this also skips first '%' */
-			switch (*fmt) {
-				case '-': flags |= LEFT; goto repeat;
-				case '+': flags |= PLUS; goto repeat;
-				case ' ': flags |= SPACE; goto repeat;
-				case '#': flags |= SPECIAL; goto repeat;
-				case '0': flags |= ZEROPAD; goto repeat;
-			}
-		
-		/* get field width */
-		field_width = -1;
-		if (is_digit(*fmt))
-			field_width = skip_atoi(&fmt);
-		else if (*fmt == '*') {
-			++fmt;
-			/* it's the next argument */
-			field_width = va_arg(args, int);
-			if (field_width < 0) {
-				field_width = -field_width;
-				flags |= LEFT;
-			}
-		}
-		
-		/* get the conversion qualifier */
-		qualifier = -1;
-		if (*fmt == 'h' || *fmt == 'l' || *fmt == 'L' ||
-		    *fmt == 'Z' || *fmt == 'z' || *fmt == 't') {
-			qualifier = *fmt;
-			++fmt;
-			if (qualifier == 'l' && *fmt == 'l') {
-				qualifier = 'L';
-				++fmt;
-			}
-		}
-		
-		/* default base */
-		base = 10;
-		switch (*fmt) {
-			case 'c':
-				if (!(flags & LEFT))
-					while (--field_width > 0)
-						*str++ = ' ';
-				*str++ = (unsigned char) va_arg(args, int);
-				while (--field_width > 0)
-					*str++ = ' ';
-				continue;
-				
-			case 's':
-				s = va_arg(args, char*);
-				if (!s)
-					s = "<NULL>";
-				arglen = _strlen(s);
-				if (!(flags & LEFT))
-					while (field_width-- > arglen)
-						*str++ = ' ';
-				while (arglen--)
-					*str++ = *s++;
-				while (field_width-- > arglen)
-					*str++ = ' ';
-				continue;
-				
-			case '%':
-				*str++ = '%';
-				continue;
-			
-			/* integer number formats - set up the flags and "break" */
-			case 'o':
-				base = 8;
-				break;
-				
-			case 'p':
-			case 'x':
-				flags |= SMALL;
-			case 'X':
-				base = 16;
-				break;
-			
-			case 'd':
-			case 'i':
-				flags |= SIGN;
-			case 'u':
-				break;
-	
-			default:
-				*str++ = '%';
-				if (*fmt)
-					*str++ = *fmt;
-				else
-					--fmt;
-				continue;
-		}
-		
-		if (qualifier == 'L')  /* "quad" for 64 bit variables */
-			num = va_arg(args, unsigned long long);
-		else if (qualifier == 'l') {
-			num = va_arg(args, unsigned long);
-			if (flags & SIGN)
-				num = (signed long) num;
-		} else if (qualifier == 'Z' || qualifier == 'z') {
-			num = va_arg(args, size_t);
-		} else if (qualifier == 't') {
-			num = va_arg(args, ptrdiff_t);
-		} else if (qualifier == 'h') {
-			num = (unsigned short) va_arg(args, int);
-			if (flags & SIGN)
-				num = (signed short) num;
-		} else {
-			num = va_arg(args, unsigned int);
-			if (flags & SIGN)
-				num = (signed int) num;
-		}
-		str = number(str, num, base, field_width, flags);
+	if(value == 0)
+	{
+		//zero
+		string[0] = '0';
+		string[1] = '\0';
+		return string;
 	}
-	*str = '\0';
-	return str - buf;
+	
+	for(i = 0; value > 0; ++i)
+	{
+		// characters in reverse order are put in 'stack'.
+		stack[i] = digit_string[value % radix];
+		value /= radix;
+	}
+	
+	//restore reversed order result to user string
+    for(--i, j = 0; i >= 0; --i, ++j)
+	{
+		string[j] = stack[i];
+	}
+	//must end with '\0'.
+	string[j] = '\0';
+	
+	return string;
 }
 
-void printk(const char *fmt, ...)
+/*
+*********************************************************************************************************
+*                                       	FORMATTED PRINTF
+*
+* Description: 	print out a formatted string, similar to ANSI-C function printf().
+*				This function can support and only support the following conversion specifiers:
+*              	%d	signed decimal integer.
+*              	%u	unsigned decimal integer.
+*              	%x	unsigned hexadecimal integer, using hex digits 0x.
+*              	%c	single character.
+*              	%s	character string.
+*
+* Arguments  : 	format	: format control.
+*				...		: arguments.
+*
+* Returns    : 	the number of characters printed out.
+*
+* Note		 : 	the usage refer to ANSI-C function printf().
+*********************************************************************************************************
+*/
+char debugger_buffer[DEBUG_BUFFER_SIZE];
+__s32 printk(const char *format, ...)
 {
-	char buf[384];
-	int n;
-	va_list ap;
-
-	va_start(ap, fmt);
-	n = _vsprintf(buf, fmt, ap);
-	serial_puts(buf, n);
-	va_end(ap);
+	va_list args;
+	char 	string[16];	//align by cpu word
+	char 	*pdest;
+	char 	*psrc;
+	__s32 	align;
+	__s32		len = 0;
+	
+	//dump current timestemp
+	//print_current_time();
+	
+	pdest = debugger_buffer;
+	va_start(args, format);
+	while(*format)
+	{
+		if(*format == '%')
+		{
+			++format;
+			if (('0' < (*format)) && ((*format) <= '9'))
+			{
+				//we just suport wide from 1 to 9.
+				align = *format - '0';
+				++format;
+			}
+			else
+			{
+				align = 0;
+			}
+			switch(*format)
+			{
+				case 'd':
+				{
+					//int
+					itoa(va_arg(args, int), string, 10);
+                    len = strlen(string);
+                    len += print_align(string, len, align);
+                    strcpy(pdest, string);
+                    pdest += len;
+                    break;
+				}
+				case 'x': 
+				case 'p':
+				{
+					//hex
+					utoa(va_arg(args, int), string, 16);
+					len = strlen(string);
+					len += print_align(string, len, align);
+					strcpy(pdest, string);
+                    pdest += len;
+                    break;
+				}
+				case 'u': 
+				{
+					//unsigned int
+					utoa(va_arg(args, int), string, 10);
+                    len = strlen(string);
+                    len += print_align(string, len, align);
+                    strcpy(pdest, string);
+					pdest += len;
+					break;
+				}
+				case 'c': 
+				{
+					//charset, aligned by cpu word
+					*pdest = (char)va_arg(args, int);
+					break;
+				}
+				case 's':
+				{
+					//string
+					psrc = va_arg(args, char *);
+					strcpy(pdest, psrc);
+					pdest += strlen(psrc);
+					break;
+				}
+				default : 
+				{
+					//no-conversion
+					*pdest++ = '%';
+					*pdest++ = *format;
+				}
+			}
+		}
+		else
+		{
+			*pdest++ = *format;
+		}
+		//parse next token
+		++format;
+	}
+	va_end(args);
+	
+	//must end with '\0'
+	*pdest = '\0';
+	pdest++;
+	serial_puts(debugger_buffer);
+	
+	return (pdest - debugger_buffer);
 }
 
-void printk_nommu(const char *fmt, ...)
-{
-	char buf[384];
-	int n;
-	va_list ap;
 
-	va_start(ap, fmt);
-	n = _vsprintf(buf, fmt, ap);
-	serial_puts_nommu(buf, n);
-	va_end(ap);
+__s32 print_align(char *string, __s32 len, __s32 align)
+{
+	//fill with space ' ' when align request,
+	//the max align length is 16 byte.
+	char fill_ch[] = "                ";
+	if (len < align)
+	{
+		//fill at right
+		strncat(string, fill_ch, align - len);
+		return align - len;
+	}
+	//not fill anything
+	return 0;
+}
+
+__s32 printk_nommu(const char *format, ...)
+{
+	va_list args;
+	char 	string[16];	//align by cpu word
+	char 	*pdest;
+	char 	*psrc;
+	__s32 	align;
+	__s32		len = 0;
+	
+	//dump current timestemp
+	//print_current_time();
+	
+	pdest = debugger_buffer;
+	va_start(args, format);
+	while(*format)
+	{
+		if(*format == '%')
+		{
+			++format;
+			if (('0' < (*format)) && ((*format) <= '9'))
+			{
+				//we just suport wide from 1 to 9.
+				align = *format - '0';
+				++format;
+			}
+			else
+			{
+				align = 0;
+			}
+			switch(*format)
+			{
+				case 'd':
+				{
+					//int
+					itoa(va_arg(args, int), string, 10);
+                    len = strlen(string);
+                    len += print_align(string, len, align);
+                    strcpy(pdest, string);
+                    pdest += len;
+                    break;
+				}
+				case 'x': 
+				case 'p':
+				{
+					//hex
+					utoa(va_arg(args, int), string, 16);
+					len = strlen(string);
+					len += print_align(string, len, align);
+					strcpy(pdest, string);
+                    pdest += len;
+                    break;
+				}
+				case 'u': 
+				{
+					//unsigned int
+					utoa(va_arg(args, int), string, 10);
+                    len = strlen(string);
+                    len += print_align(string, len, align);
+                    strcpy(pdest, string);
+					pdest += len;
+					break;
+				}
+				case 'c': 
+				{
+					//charset, aligned by cpu word
+					*pdest = (char)va_arg(args, int);
+					break;
+				}
+				case 's':
+				{
+					//string
+					psrc = va_arg(args, char *);
+					strcpy(pdest, psrc);
+					pdest += strlen(psrc);
+					break;
+				}
+				default : 
+				{
+					//no-conversion
+					*pdest++ = '%';
+					*pdest++ = *format;
+				}
+			}
+		}
+		else
+		{
+			*pdest++ = *format;
+		}
+		//parse next token
+		++format;
+	}
+	va_end(args);
+	
+	//must end with '\0'
+	*pdest = '\0';
+	pdest++;
+	serial_puts_nommu(debugger_buffer);
+	
+	return (pdest - debugger_buffer);
 }
 

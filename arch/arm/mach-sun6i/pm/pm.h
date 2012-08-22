@@ -17,6 +17,8 @@
 #include "mem_serial.h"
 #include "mem_printk.h"
 #include "mach/platform.h"
+#include "mem_misc.h"
+
 
 typedef struct __MEM_TMR_REG
 {
@@ -153,5 +155,9 @@ static inline __u32 raw_lib_udiv(__u32 dividend, __u32 divisior)
     return tmpQuot;
 }
 
+extern void __aeabi_idiv(void);
+extern void __aeabi_idivmod(void);
+extern void __aeabi_uidiv(void);
+extern void __aeabi_uidivmod(void);
 
 #endif /*_PM_H*/

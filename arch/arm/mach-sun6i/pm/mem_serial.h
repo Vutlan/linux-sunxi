@@ -17,10 +17,11 @@
 */
 #ifndef __MEM_SERIAL_H__
 #define __MEM_SERIAL_H__
+#include "pm.h"
 
 
-#define SUART_BASE_PA	(0x01c28000)
-#define SUART_BASE_VA	(0xf1c28000)
+#define SUART_BASE_PA	(AW_UART0_BASE)
+#define SUART_BASE_VA	IO_ADDRESS(SUART_BASE_PA)
 
 #define SUART_RBR_PA	(SUART_BASE_PA + 0x00)
 #define SUART_THR_PA	(SUART_BASE_PA + 0x00)
@@ -45,10 +46,10 @@
 #define CCU_UART_VA		(0xF1c2006C)
 
 void serial_init(void);
-__u32 serial_puts(char* buf, __u32 n);
+__s32 serial_puts(const char *string);
 __u32 serial_gets(char* buf, __u32 n);
 void serial_init_nommu(void);
-__u32 serial_puts_nommu(char* buf, __u32 n);
+__s32 serial_puts_nommu(const char *string);
 __u32 serial_gets_nommu(char* buf, __u32 n);
 
 

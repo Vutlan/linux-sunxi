@@ -46,5 +46,16 @@
 
 extern struct aw_pm_info  pm_info;
 
+#ifdef CHECK_CACHE_TLB_MISS
+extern int d_cache_miss_start;
+extern int d_tlb_miss_start;
+extern int i_tlb_miss_start;
+extern int i_cache_miss_start;
+extern int d_cache_miss_end;
+extern int d_tlb_miss_end;
+extern int i_tlb_miss_end;
+extern int i_cache_miss_end;
+#endif
+
 #endif  //__STANDBY_I_H__
 

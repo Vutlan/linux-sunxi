@@ -215,7 +215,7 @@ void create_mapping(struct map_desc *md)
 	//__cpuc_flush_user_all();
 	*((volatile __u32 *)(PAGE_TBL_ADDR)) = 0xc4a;
 	//clean cache
-	__cpuc_flush_dcache_area((long unsigned int)(PAGE_TBL_ADDR), (long unsigned int)(PAGE_TBL_ADDR + 64*(sizeof(u32))));
+	__cpuc_flush_dcache_area((void *)(PAGE_TBL_ADDR), (long unsigned int)(PAGE_TBL_ADDR + 64*(sizeof(u32))));
 #if 0
 	__cpuc_coherent_user_range((long unsigned int)(PAGE_TBL_ADDR), (long unsigned int)(PAGE_TBL_ADDR + 64*(sizeof(u32))));
 	__cpuc_coherent_kern_range((long unsigned int)(PAGE_TBL_ADDR), (long unsigned int)(PAGE_TBL_ADDR + 64*(sizeof(u32))));

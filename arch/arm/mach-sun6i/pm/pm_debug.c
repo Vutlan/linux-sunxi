@@ -14,6 +14,7 @@ static __u32 backup_perf_counter_enable_reg = 0;
 #define PORT_CONFIG PORT_E_CONFIG
 #define PORT_DATA PORT_E_DATA
 
+volatile int  print_flag = 0;
 
 void busy_waiting(void)
 {
@@ -321,5 +322,98 @@ void io_high(int num)
 	return;
 }
 
+void init_event_counter (__u32 do_reset, __u32 enable_divider)
+{
+	// in general enable all counters (including cycle counter)
+	__u32 value = 1;
+
+	// peform reset:
+	if (do_reset)
+	{
+		value |= 2;     // reset all counters to zero.
+		value |= 4;     // reset cycle counter to zero.
+	}
+
+	if (enable_divider)
+		value |= 8;     // enable "by 64" divider for CCNT.
+
+	value |= 16;
+
+	// program the performance-counter control-register:
+	asm volatile ("mcr p15, 0, %0, c9, c12, 0" : : "r"(value));
+
+	// enable all counters:
+	value = 0x8000000f;
+	asm volatile ("mcr p15, 0, %0, c9, c12, 1" : : "r"(value));
+
+	// clear overflows:
+	asm volatile ("MCR p15, 0, %0, c9, c12, 3" : : "r"(value));
+
+	return;
+}
+
+__u32 match_event_counter(enum counter_type_e type)
+{
+	int cnter = 0;
+	
+	switch(type){
+		case I_CACHE_MISS: 
+			cnter = 0;
+			break;
+		case I_TLB_MISS: 
+			cnter = 1;
+			break;
+		case D_CACHE_MISS: 
+			cnter = 2;
+			break;
+		case D_TLB_MISS: 
+			cnter = 3;
+			break;
+
+		default:
+			break;
+	
+	}
+	return cnter;
+
+}
+
+
+void set_event_counter(enum counter_type_e type)
+{
+	
+	__u32 cnter = 0;
+	cnter = match_event_counter(type);
+
+	//set counter selection reg
+	asm volatile ("MCR p15, 0, %0, c9, c12, 5" : : "r"(cnter));
+
+	//set event type
+	asm volatile ("MCR p15, 0, %0, c9, c13, 1" : : "r"(type));
+
+	asm volatile ("dsb");
+	asm volatile ("isb");
+
+	return;
+}
+
+
+int get_event_counter(enum counter_type_e type)
+{
+	int cnter = 0;
+	int event_cnt = 0;
+	cnter = match_event_counter(type);
+
+	//set counter selection reg
+	asm volatile ("MCR p15, 0, %0, c9, c12, 5" : : "r"(cnter));
+
+	//read event counter
+	asm volatile ("MRC p15, 0, %0, c9, c13, 2\t\n": "=r"(event_cnt)); 
+	
+	asm volatile ("dsb");
+	asm volatile ("isb");
+
+	return event_cnt;
+}
 
 

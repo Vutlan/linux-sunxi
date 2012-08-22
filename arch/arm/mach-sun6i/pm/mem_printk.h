@@ -18,5 +18,6 @@
 #ifndef __MEM_PRINTK_H__
 #define __MEM_PRINTK_H__
 
+#define DEBUG_BUFFER_SIZE (256)
 
 #endif  //__MEM_PRINTK_H__

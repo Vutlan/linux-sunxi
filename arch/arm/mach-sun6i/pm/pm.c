@@ -169,7 +169,6 @@ standby_level_e standby_level = STANDBY_INITIAL;
 EXPORT_SYMBOL(standby_level);
 
 //static volatile int enter_flag = 0;
-volatile int print_flag = 0;
 static int standby_mode = 0;
 static int suspend_status_flag = 0;
 
@@ -339,8 +338,6 @@ int aw_pm_prepare_late(void)
 static int aw_early_suspend(void)
 {
 #define MAX_RETRY_TIMES (5)
-
-	__s32 retry = MAX_RETRY_TIMES;
 	
 	//backup device state
 	mem_ccu_save((__ccmu_reg_list_t *)(SW_VA_CCM_IO_BASE));
@@ -419,19 +416,17 @@ static int aw_early_suspend(void)
 	super_standby_para_info.event = mem_para_info.axp_event;
 
 #ifdef RESUME_FROM_RESUME1
-	super_standby_para_info.resume_code_src = (unsigned long)(virt_to_phys((int)&resume1_bin_start));
+	super_standby_para_info.resume_code_src = (unsigned long)(virt_to_phys((void *)&resume1_bin_start));
 	super_standby_para_info.resume_code_length = ((int)&resume1_bin_end - (int)&resume1_bin_start);
 	super_standby_para_info.resume_entry = SRAM_FUNC_START_PA;
 #endif
 
 	super_standby_para_info.timeout = 0;
-	pr_info("resume1_bin_start = 0x%lx, resume1_bin_end = 0x%lx. \n", (int)&resume1_bin_start, (int)&resume1_bin_end);
+	pr_info("resume1_bin_start = 0x%x, resume1_bin_end = 0x%x. \n", (int)&resume1_bin_start, (int)&resume1_bin_end);
 	pr_info("resume_code_src = 0x%lx, resume_code_length = %ld. resume_code_length = %lx \n", super_standby_para_info.resume_code_src, super_standby_para_info.resume_code_length, super_standby_para_info.resume_code_length);
 
 	
 	ar100_standby_super((struct super_standby_para *)(&super_standby_para_info));
-	printk("gic iar == 0x%x. \n", *(volatile __u32   *)(IO_ADDRESS(AW_GIC_CPU_BASE)+0x0c));
-	print_call_info();
 	asm("WFI");
 	printk("gic iar == 0x%x. \n", *(volatile __u32   *)(IO_ADDRESS(AW_GIC_CPU_BASE)+0x0c));
 	busy_waiting();
@@ -439,8 +434,6 @@ static int aw_early_suspend(void)
 #elif defined(RETURN_FROM_RESUME0_WITH_MMU)
 	//print_call_info();
 	jump_to_suspend(mem_para_info.saved_cpu_context.ttb_1r, (int (*)(void))DRAM_BACKUP_BASE_ADDR);
-	print_call_info();
-	mem_serial_puts("pm: 2. \n", 8);
 	busy_waiting();
 #endif
 

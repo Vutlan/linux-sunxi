@@ -37,8 +37,8 @@ static void *GicCDisc;
 __s32 standby_int_init(void)
 {
 	__u32 i = 0; 
-	GicDDisc = IO_ADDRESS(AW_GIC_DIST_BASE);
-	GicCDisc = IO_ADDRESS(AW_GIC_CPU_BASE);
+	GicDDisc = (void *)IO_ADDRESS(AW_GIC_DIST_BASE);
+	GicCDisc = (void *)IO_ADDRESS(AW_GIC_CPU_BASE);
 	
 	//printk("gic iar == 0x%x. \n", *(volatile __u32	 *)(IO_ADDRESS(AW_GIC_CPU_BASE)+0x0c));
 
@@ -63,19 +63,14 @@ __s32 standby_int_init(void)
 		*(volatile __u32 *)(GicDDisc + GIC_DIST_PENDING_CLEAR + i) = 0xffffffff;
 #endif
 	//the print info just to check the pending state, actually, after u read iar, u need to access end of interrupt reg;
-	printk("gic iar == 0x%x. \n", *(volatile __u32	 *)(IO_ADDRESS(AW_GIC_CPU_BASE)+0x0c));
+	i = *(volatile __u32   *)(GicCDisc + 0x0c);
 
-	i = *(volatile __u32   *)(GicCDisc +0x0c);
-
-	
 	if(i != 0x3ff){
 		//u need to 
 		*(volatile __u32 *)(GicCDisc + 0x10) = i;
-		printk("tmp: gic iar == 0x%x. \n", i);
+		printk("notice: gic iar == 0x%x. \n", i);
 	}
 	
-	i = *(volatile __u32   *)(GicCDisc+0x0c);
-	printk("tmp: gic iar == 0x%x. \n", i);
 	
 	return 0;
 }
@@ -117,8 +112,8 @@ __s32 standby_enable_int(enum interrupt_source_e src)
 
     //enable interrupt source
     *(volatile __u32 *)(GicDDisc + GIC_DIST_ENABLE_SET + tmpGrp*4) |= (1<<tmpSrc);
-    printk("GicDDisc + GIC_DIST_ENABLE_SET + tmpGrp*4 = 0x%x. tmpGrp = 0x%x.\n", GicDDisc + GIC_DIST_ENABLE_SET + tmpGrp*4, tmpGrp);
-    printk("tmpSrc = 0x%x. \n", tmpSrc);
+    //printk("GicDDisc + GIC_DIST_ENABLE_SET + tmpGrp*4 = 0x%x. tmpGrp = 0x%x.\n", GicDDisc + GIC_DIST_ENABLE_SET + tmpGrp*4, tmpGrp);
+    //printk("tmpSrc = 0x%x. \n", tmpSrc);
     
     //need to care mask or priority?
 

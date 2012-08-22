@@ -53,7 +53,7 @@ __u32   cpu_ms_loopcnt;
 */
 __s32 standby_clk_init(void)
 {
-    r_prcm = (void *)R_PRCM_REG_BASE_VA;
+    r_prcm = (void *)IO_ADDRESS(AW_R_PRCM_BASE);
 
     return 0;
 }

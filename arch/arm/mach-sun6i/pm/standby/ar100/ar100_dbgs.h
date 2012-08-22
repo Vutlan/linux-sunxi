@@ -34,21 +34,22 @@ extern void printk(const char *, ...);
 #define	AR100_INF(...)
 #define	AR100_WRN(...)
 #define	AR100_ERR(...)
+#define	AR100_LOG(...)
 #elif 	(AR100_DEBUG_LEVEL == 1)
 #define	AR100_INF(...)
 #define	AR100_WRN(...)
 #define	AR100_ERR(...)		printk(__VA_ARGS__)
+#define	AR100_LOG(...)		printk(__VA_ARGS__)
 #elif 	(AR100_DEBUG_LEVEL == 2)
 #define	AR100_INF(...)
 #define	AR100_WRN(...)		printk(__VA_ARGS__)
 #define	AR100_ERR(...)		printk(__VA_ARGS__)
+#define	AR100_LOG(...)		printk(__VA_ARGS__)
 #elif 	(AR100_DEBUG_LEVEL == 3)
 #define	AR100_INF(...)		printk(__VA_ARGS__)
 #define	AR100_WRN(...)		printk(__VA_ARGS__)
 #define	AR100_ERR(...)		printk(__VA_ARGS__)
+#define	AR100_LOG(...)		printk(__VA_ARGS__)
 #endif	//AR100_DEBUG_LEVEL
-
-//LOG dump debug information always
-#define	AR100_LOG(...)	    printk(__VA_ARGS__)
 
 #endif	//__AR100_DBGS_H__

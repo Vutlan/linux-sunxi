@@ -29,7 +29,6 @@ struct sun4i_clk_div_t {
     __u32   reserved:16;
 };
 
-#define R_PRCM_REG_BASE_VA	(0xf1f01400)
 #define PLL_CTRL_REG0_OFFSET	(0x40)
 #define PLL_CTRL_REG1_OFFSET	(0x44)
 

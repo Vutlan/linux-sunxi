@@ -33,6 +33,18 @@
 
 //#define GET_CYCLE_CNT
 #define IO_MEASURE
+extern volatile int print_flag;
+
+enum counter_type_e{
+	I_CACHE_MISS = 0X01,
+	I_TLB_MISS = 0X02,
+	D_CACHE_MISS = 0X03,
+	D_TLB_MISS = 0X05,
+};
+
+void set_event_counter(enum counter_type_e type);
+int get_event_counter(enum counter_type_e type);
+void init_event_counter (__u32 do_reset, __u32 enable_divider);
 
 /*
  * Check at compile time that something is of a particular type.
