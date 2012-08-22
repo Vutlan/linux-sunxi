@@ -29,7 +29,11 @@ extern void standby_flush_tlb(void);
 extern void standby_preload_tlb(void);
 static void restore_ccu(void);
 static void backup_ccu(void);
-static void destory_mmu();
+static void destory_mmu(void);
+static void restore_mmu(void);
+static void cache_count_init(void);
+static void cache_count_get(void);
+static void cache_count_output(void);
 
 extern char *__bss_start;
 extern char *__bss_end;
@@ -37,6 +41,11 @@ extern char *__standby_start;
 extern char *__standby_end;
 
 static __u32 sp_backup;
+static __u32 ttb_0r_backup = 0;
+#define MMU_START	(0xc0004000)
+#define MMU_END 	(0xc0007ffc) //reserve 0xffff0000 range.
+__u32 mmu_backup[(MMU_END - MMU_START)>>2 + 1];
+
 static void standby(void);
 
 #ifdef CHECK_CACHE_TLB_MISS
@@ -72,13 +81,6 @@ int main(struct aw_pm_info *arg)
 {
 	char    *tmpPtr = (char *)&__bss_start;
 	//int i = 0;
-#if 0
-	/*to disable non-0xf000,0000 range*/
-	//destory_mmu();
-	flush_dcache();
-	flush_icache();
-	invalidate_icache();
-#endif
 
 	/* flush data and instruction tlb, there is 32 items of data tlb and 32 items of instruction tlb,
 	The TLB is normally allocated on a rotating basis. The oldest entry is always the next allocated */
@@ -108,6 +110,13 @@ int main(struct aw_pm_info *arg)
 	/* preload tlb for standby */
 	standby_preload_tlb();
 
+#if 1
+		/*to disable non-0xf000,0000 range*/
+		flush_dcache();
+		flush_icache();
+		destory_mmu();
+		//invalidate_icache();
+#endif
 
 	/* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 	/* init module before dram enter selfrefresh */
@@ -129,46 +138,11 @@ int main(struct aw_pm_info *arg)
 
 
 	/* process standby */
-#if 0	
-
-	for (i = 4; i < (0x40); i += 4){
-		printk("enable bit = 0x%x. \n",	*(volatile __u32 *)(IO_ADDRESS(AW_GIC_DIST_BASE) + GIC_DIST_ENABLE_SET + i));
-
-	}
-	
-	for (i = 4; i < (0x40); i += 4){
-		printk("pending bit = 0x%x. \n", *(volatile __u32 *)(IO_ADDRESS(AW_GIC_DIST_BASE) + GIC_DIST_PENDING_SET + i));
-
-	}
-#endif
-
-
 #ifdef CHECK_CACHE_TLB_MISS
-		set_event_counter(D_CACHE_MISS);
-		set_event_counter(D_TLB_MISS);
-		set_event_counter(I_CACHE_MISS);
-		set_event_counter(I_TLB_MISS);
-		init_event_counter(1, 0);
-		d_cache_miss_start = get_event_counter(D_CACHE_MISS);
-		d_tlb_miss_start = get_event_counter(D_TLB_MISS);
-		i_tlb_miss_start = get_event_counter(I_TLB_MISS);
-		i_cache_miss_start = get_event_counter(I_CACHE_MISS);
+	cache_count_init();
 #endif
-	//busy_waiting();
+
 	standby();
-
-#if 0	
-	for (i = 4; i < (0x40); i += 4){
-		printk("enable bit = 0x%x. \n",	*(volatile __u32 *)(IO_ADDRESS(AW_GIC_DIST_BASE) + GIC_DIST_ENABLE_SET + i));
-
-	}
-	
-	for (i = 4; i < (0x40); i += 4){
-		printk("pending bit = 0x%x. \n", *(volatile __u32 *)(IO_ADDRESS(AW_GIC_DIST_BASE) + GIC_DIST_PENDING_SET + i));
-
-	}
-#endif
-
 	/* check system wakeup event */
 	pm_info.standby_para.event = 0;
 	pm_info.standby_para.event |= standby_query_int(INT_SOURCE_MSG_BOX)? 0:CPU0_WAKEUP_MSGBOX;
@@ -185,43 +159,25 @@ int main(struct aw_pm_info *arg)
 	while(standby_ar100_check_restore_status())
 		;
 #ifdef CHECK_CACHE_TLB_MISS
-       d_cache_miss_end = get_event_counter(D_CACHE_MISS);
-       d_tlb_miss_end = get_event_counter(D_TLB_MISS);
-       i_tlb_miss_end = get_event_counter(I_TLB_MISS);
-       i_cache_miss_end = get_event_counter(I_CACHE_MISS);
+	cache_count_get();
 #endif
 
 #ifdef CHECK_CACHE_TLB_MISS
 	if(d_cache_miss_end || d_tlb_miss_end || i_tlb_miss_end || i_cache_miss_end){
 		printk("=============================NOTICE====================================. \n");
-		printk("d_cache_miss_start = %d, d_cache_miss_end= %d. \n", d_cache_miss_start, d_cache_miss_end);
-		printk("d_tlb_miss_start = %d, d_tlb_miss_end= %d. \n", d_tlb_miss_start, d_tlb_miss_end);
-		printk("i_cache_miss_start = %d, i_cache_miss_end= %d. \n", i_cache_miss_start, i_cache_miss_end);
-		printk("i_tlb_miss_start = %d, i_tlb_miss_end= %d. \n", i_tlb_miss_start, i_tlb_miss_end);
+		cache_count_output();
 	}else{
 		printk("no miss. \n");
-		printk("d_cache_miss_start = %d, d_cache_miss_end= %d. \n", d_cache_miss_start, d_cache_miss_end);
-		printk("d_tlb_miss_start = %d, d_tlb_miss_end= %d. \n", d_tlb_miss_start, d_tlb_miss_end);
-		printk("i_cache_miss_start = %d, i_cache_miss_end= %d. \n", i_cache_miss_start, i_cache_miss_end);
-		printk("i_tlb_miss_start = %d, i_tlb_miss_end= %d. \n", i_tlb_miss_start, i_tlb_miss_end);
+		cache_count_output();
 	}
 	
 #endif
 
-
-#if 0
-	d_cache_miss_end = get_event_counter(D_CACHE_MISS);
-	d_tlb_miss_end = get_event_counter(D_TLB_MISS);
-	i_tlb_miss_end = get_event_counter(I_TLB_MISS);
-	i_cache_miss_end = get_event_counter(I_CACHE_MISS);
-	if(d_cache_miss_end || d_tlb_miss_end || i_tlb_miss_end || i_cache_miss_end){
-		printk("=============================NOTICE====================================. \n");
-		printk("d_cache_miss_start = %d, d_cache_miss_end= %d. \n", d_cache_miss_start, d_cache_miss_end);
-		printk("d_tlb_miss_start = %d, d_tlb_miss_end= %d. \n", d_tlb_miss_start, d_tlb_miss_end);
-		printk("i_cache_miss_start = %d, i_cache_miss_end= %d. \n", i_cache_miss_start, i_cache_miss_end);
-		printk("i_tlb_miss_start = %d, i_tlb_miss_end= %d. \n", i_tlb_miss_start, i_tlb_miss_end);
-	}
-
+#if 1
+	flush_dcache();
+	flush_icache();
+	restore_mmu();
+	invalidate_icache();
 #endif
 
 	/* restore stack pointer register, switch stack back to dram */
@@ -304,22 +260,79 @@ static void restore_ccu(void)
 
 }
 
-static void destory_mmu()
+static void destory_mmu(void)
 {
-	#define MMU_START 	(0xc0004000)
-	#define MMU_END 	(0xc0007ffc) //reserve 0xffff0000 range.
-	volatile  __u32 * p_mmu = MMU_START;
-	for(p_mmu = MMU_START; p_mmu < MMU_END; p_mmu++)
-	{
-		if(p_mmu != 0xc0007000){
-			*p_mmu = 0;
-		}else{
-			//*p_mmu = 0;
-		}
-		
+	__u32 ttb_1r = 0;
+	int i = 0;
+	volatile  __u32 * p_mmu = (volatile  __u32 *)MMU_START;
+	
+	for(p_mmu = (volatile  __u32 *)MMU_START; p_mmu < (volatile  __u32 *)MMU_END; p_mmu++, i++)
+	{		
+		mmu_backup[i] = *p_mmu;	
+		*p_mmu = 0;			
 	}
-	p_mmu = 0xc0007000;
-	*p_mmu = 0;
+	flush_dcache();
+
 	//u need to set ttbr0 to 0xc0004000?
+	//backup
+	asm volatile ("mrc p15, 0, %0, c2, c0, 0" : "=r"(ttb_0r_backup));
+	//get ttbr1
+	asm volatile ("mrc p15, 0, %0, c2, c0, 1" : "=r"(ttb_1r));
+	//use ttbr1 to set ttbr0
+	asm volatile ("mcr p15, 0, %0, c2, c0, 0" : : "r"(ttb_1r));
+
 	return;
 }
+
+static void restore_mmu(void)
+{
+	volatile  __u32 * p_mmu = (volatile  __u32 *)MMU_START;
+	int i = 0;
+	
+	//restore ttbr0
+	asm volatile ("mcr p15, 0, %0, c2, c0, 0" : : "r"(ttb_0r_backup));
+
+	for(p_mmu = (volatile  __u32 *)MMU_START; p_mmu < (volatile  __u32 *)MMU_END; p_mmu++, i++)
+	{
+			*p_mmu = mmu_backup[i];			
+	}
+
+	flush_dcache();
+	return;
+}
+
+static void cache_count_init(void)
+{
+	set_event_counter(D_CACHE_MISS);
+	set_event_counter(D_TLB_MISS);
+	set_event_counter(I_CACHE_MISS);
+	set_event_counter(I_TLB_MISS);
+	init_event_counter(1, 0);
+	d_cache_miss_start = get_event_counter(D_CACHE_MISS);
+	d_tlb_miss_start = get_event_counter(D_TLB_MISS);
+	i_tlb_miss_start = get_event_counter(I_TLB_MISS);
+	i_cache_miss_start = get_event_counter(I_CACHE_MISS);
+
+	return;
+}
+
+static void cache_count_get(void)
+{
+	d_cache_miss_end = get_event_counter(D_CACHE_MISS);
+	d_tlb_miss_end = get_event_counter(D_TLB_MISS);
+	i_tlb_miss_end = get_event_counter(I_TLB_MISS);
+	i_cache_miss_end = get_event_counter(I_CACHE_MISS);
+
+	return;
+}
+
+static void cache_count_output(void)
+{
+	printk("d_cache_miss_start = %d, d_cache_miss_end= %d. \n", d_cache_miss_start, d_cache_miss_end);
+	printk("d_tlb_miss_start = %d, d_tlb_miss_end= %d. \n", d_tlb_miss_start, d_tlb_miss_end);
+	printk("i_cache_miss_start = %d, i_cache_miss_end= %d. \n", i_cache_miss_start, i_cache_miss_end);
+	printk("i_tlb_miss_start = %d, i_tlb_miss_end= %d. \n", i_tlb_miss_start, i_tlb_miss_end);
+
+	return;
+}
+

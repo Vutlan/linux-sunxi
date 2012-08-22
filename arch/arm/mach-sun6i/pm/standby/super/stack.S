@@ -24,22 +24,22 @@ restore_sp:
     mov r13, r0
     mov pc,lr
 
-
-    .text
-    .globl mem_flush_tlb
+	.text
+	.globl mem_flush_tlb
 mem_flush_tlb:
-    push    {r0-r3}
-    DSB
-    mov r0, #0
-    /* invalid un-locked data and instruction tlb */
-    mcr p15, 0, r0, c8, c7, 0
-    /*Write to @CP15_FLUSH_BRANCH_TARGET_CACHE*/
-    MCR p15,#0x0,r0,c7,c5,#6
-    DSB      
-    ISB
-    
-    pop     {r0-r3}
-    mov pc,lr
+	push    {r0-r3}
+	MOV     r0, #0 
+	/*instruction entire instruction tlb*/
+	mcr p15, 0, r0, c8, c5, 0
+	/* invalid entire data tlb */
+	mcr p15, 0, r0, c8, c6, 0
+	/*invalidate entire unified TLB inner shareable*/
+	mcr p15, 0, r0, c8, c3, 0
+	dsb
+    	ISB      
+	pop     {r0-r3}
+	mov pc,lr
+	
 
     .text
     .globl flush_dcache

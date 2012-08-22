@@ -82,9 +82,7 @@ int resume1_c_part(void)
 	/*restore mmu configuration*/
 	save_mem_status_nommu(RESUME1_START |0x03);
 	//save_mem_status(RESUME1_START |0x03);
-	
-	//busy_waiting();
-	serial_puts_nommu("resume1: 2. \n");
+
 	
 	restore_mmu_state(&(mem_para_info.saved_mmu_state));
 	save_mem_status(RESUME1_START |0x13);
@@ -95,7 +93,6 @@ int resume1_c_part(void)
 	/* disable watch-dog: coresponding with  */
 	mem_tmr_init();
 	mem_tmr_disable_watchdog();
-	//serial_puts("resume1: a. \n", 13);
 #endif
 
 //before jump to late_resume	
@@ -112,7 +109,6 @@ int resume1_c_part(void)
 	//busy_waiting();
 	jump_to_resume((void *)mem_para_info.resume_pointer, mem_para_info.saved_runtime_context_svc);
 
-	serial_puts("resume1: e. \n");
 	return;
 }
 
