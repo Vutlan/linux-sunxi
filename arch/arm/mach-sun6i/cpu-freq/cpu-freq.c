@@ -1,8 +1,7 @@
 /*
  *  arch/arm/mach-sun6i/cpu-freq/cpu-freq.c
  *
- * Copyright (c) 2012 Allwinner.
- * kevin.z.m (kevin@allwinnertech.com)
+ * Copyright (c) 2012 softwinner.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,7 +29,7 @@
 #include <mach/sys_config.h>
 #include "cpu-freq.h"
 #include <linux/pm.h>
-#include <mach/ar100_cp.h>
+#include <mach/ar100.h>
 
 static struct sunxi_cpu_freq_t  cpu_cur;    /* current cpu frequency configuration  */
 static unsigned int last_target = ~0;       /* backup last target frequency         */
@@ -49,9 +48,6 @@ static unsigned int cpu_freq_min = SUNXI_CPUFREQ_MIN / 1000;
  */
 static int sunxi_cpufreq_verify(struct cpufreq_policy *policy)
 {
-	if (policy->cpu != 0)
-		return -EINVAL;
-
 	return 0;
 }
 
@@ -112,7 +108,7 @@ static int sunxi_cpufreq_target(struct cpufreq_policy *policy, __u32 freq, __u32
 	}
 
     /* try to set cpu frequency */
-    if (ar100_dvfs_setcpufreq(freq)) {
+    if (ar100_dvfs_set_cpufreq(freq, 0)) {
         /* set cpu frequency failed */
     	if (policy) {
 	        freqs.cpu = policy->cpu;
@@ -275,8 +271,6 @@ static int __init sunxi_cpufreq_initcall(void)
     ret = cpufreq_register_driver(&sunxi_cpufreq_driver);
     /* register cpu frequency table to cpufreq core */
     cpufreq_frequency_table_get_attr(sunxi_freq_tbl, 0);
-    /* update policy for boot cpu */
-    cpufreq_update_policy(0);
 
 	return ret;
 }
@@ -293,11 +287,6 @@ static void __exit sunxi_cpufreq_exitcall(void)
 	cpufreq_unregister_driver(&sunxi_cpufreq_driver);
 }
 
-/* !!!!!!!!!!!!!!!!!!!!!!! just for debug */
-int ar100_dvfs_setcpufreq(unsigned long freq)
-{
-    return 0;
-}
 
 MODULE_DESCRIPTION("cpufreq driver for sunxi SOCs");
 MODULE_LICENSE("GPL");

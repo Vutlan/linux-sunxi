@@ -1,8 +1,7 @@
 /*
  *  arch/arm/mach-sun6i/cpu-freq/cpu-freq-table.c
  *
- * Copyright (c) 2012 Allwinner.
- * kevin.z.m (kevin@allwinnertech.com)
+ * Copyright (c) 2012 Softwinner.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
