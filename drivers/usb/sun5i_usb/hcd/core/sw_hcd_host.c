@@ -2299,7 +2299,18 @@ void sw_hcd_host_rx(struct sw_hcd *sw_hcd, u8 epnum)
 
         /* if the device is usb hub, then the hub may be disconnect */
 		if(qh->type == USB_ENDPOINT_XFER_INT){
-			status = -ECONNRESET;
+		    
+    		sw_hcd_set_vbus(sw_hcd, 0);
+    
+            /* delay */
+            {
+                u32 cnt = 10000;
+                while(cnt--);
+            }
+    
+    		sw_hcd_set_vbus(sw_hcd, 1);
+    		return;
+			//status = -ECONNRESET;
 		}else{
 			status = -EPROTO;
 		}
