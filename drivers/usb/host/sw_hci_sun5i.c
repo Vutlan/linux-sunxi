@@ -896,13 +896,17 @@ static u32 alloc_pin(struct sw_hci_hcd *sw_hci, user_gpio_set_t *gpio_list)
                 case 2:
                     strcpy(name, "axp15_analog/fm");
                 break;
-
+                
                 case 3:
-                    strcpy(name, "axp15_pll");
+                    strcpy(name, "axp15_analog/fm2");
+                break;
+                
+                case 4:
+                    strcpy(name, "axp15_pll/sdram");
                 break;
 
-                case 4:
-                    strcpy(name, "axp15_hdmi");
+                case 5:
+                    strcpy(name, "axp15_pll/hdmi");
                 break;
 
                 default:
@@ -1028,6 +1032,7 @@ static void free_pin(u32 pin_handle, user_gpio_set_t *gpio_list)
 static void __sw_set_vbus(struct sw_hci_hcd *sw_hci, int is_on)
 {
     u32 on_off = 0;
+		int new_vdd = 3300;
 
     if(sw_hci->drv_vbus_Handle == 0){
         DMSG_PANIC("wrn: sw_hci->drv_vbus_Handle is null\n");
@@ -1051,6 +1056,7 @@ static void __sw_set_vbus(struct sw_hci_hcd *sw_hci, int is_on)
 #ifdef  CONFIG_REGULATOR
             if(is_on){
                 regulator_enable((struct regulator*)sw_hci->drv_vbus_Handle);
+                regulator_set_voltage((struct regulator*)sw_hci->drv_vbus_Handle, new_vdd*1000, new_vdd*1000);
             }else{
                 regulator_disable((struct regulator*)sw_hci->drv_vbus_Handle);
             }
@@ -1075,6 +1081,7 @@ static void __sw_set_vbus(struct sw_hci_hcd *sw_hci, int is_on)
 #ifdef  CONFIG_REGULATOR
 			if(is_on){
 				regulator_enable((struct regulator*)sw_hci->drv_vbus_1_Handle);
+				regulator_set_voltage((struct regulator*)sw_hci->drv_vbus_1_Handle, new_vdd*1000, new_vdd*1000);
 			}else{
 				regulator_disable((struct regulator*)sw_hci->drv_vbus_1_Handle);
 			}
