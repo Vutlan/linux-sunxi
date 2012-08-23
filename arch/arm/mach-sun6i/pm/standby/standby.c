@@ -24,6 +24,8 @@ extern void restore_sp(unsigned int sp);
 extern void flush_dcache(void);
 extern void invalidate_icache(void);
 extern void flush_icache(void);
+extern void disable_cache(void);
+extern void enable_cache(void);
 
 extern void standby_flush_tlb(void);
 extern void standby_preload_tlb(void);
@@ -81,6 +83,12 @@ int main(struct aw_pm_info *arg)
 {
 	char    *tmpPtr = (char *)&__bss_start;
 	//int i = 0;
+#if 0
+		/*to disable non-0xf000,0000 range*/
+		flush_dcache();
+		flush_icache();
+#endif
+	//disable_cache();
 
 	/* flush data and instruction tlb, there is 32 items of data tlb and 32 items of instruction tlb,
 	The TLB is normally allocated on a rotating basis. The oldest entry is always the next allocated */
@@ -109,13 +117,10 @@ int main(struct aw_pm_info *arg)
 	//standby_memcpy((char *)&__standby_end, (char *)&__standby_start, (char *)&__bss_end - (char *)&__bss_start);
 	/* preload tlb for standby */
 	standby_preload_tlb();
-
+	
 #if 1
-		/*to disable non-0xf000,0000 range*/
-		flush_dcache();
-		flush_icache();
-		destory_mmu();
-		//invalidate_icache();
+	//destory_mmu();
+	//invalidate_icache();
 #endif
 
 	/* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
@@ -141,10 +146,11 @@ int main(struct aw_pm_info *arg)
 #ifdef CHECK_CACHE_TLB_MISS
 	cache_count_init();
 #endif
-
+	//busy_waiting();
 	standby();
 	/* check system wakeup event */
 	pm_info.standby_para.event = 0;
+	//actually, msg_box int will be clear by ar100-driver.
 	pm_info.standby_para.event |= standby_query_int(INT_SOURCE_MSG_BOX)? 0:CPU0_WAKEUP_MSGBOX;
 	pm_info.standby_para.event |= standby_query_int(INT_SOURCE_LRADC)? 0:CPU0_WAKEUP_KEY;
 
@@ -168,15 +174,15 @@ int main(struct aw_pm_info *arg)
 		cache_count_output();
 	}else{
 		printk("no miss. \n");
-		cache_count_output();
+		//cache_count_output();
 	}
 	
 #endif
 
-#if 1
+#if 0
 	flush_dcache();
 	flush_icache();
-	restore_mmu();
+	//restore_mmu();
 	invalidate_icache();
 #endif
 
@@ -191,6 +197,8 @@ int main(struct aw_pm_info *arg)
 	arg->standby_para.event = pm_info.standby_para.event;
 	arg->standby_para.axp_event = pm_info.standby_para.axp_event;
 
+	//enable_cache();
+	
 	return 0;
 }
 
@@ -223,16 +231,13 @@ static void standby(void)
 	/*restore cpu0 ccu: enable hosc and change to 24M. */
 	restore_ccu();
 
-
 	/*query wakeup src*/
 	standby_ar100_query_wakeup_src((unsigned long *)&(pm_info.standby_para.axp_event));
-	
 	/* enable watch-dog to prevent in case dram training failed */
 	standby_tmr_enable_watchdog();
-
 	/* notify for cpus to: restore cpus freq and volt, restore dram */
 	standby_ar100_notify_restore(STANDBY_AR100_ASYNC);	
-	
+
 	return;
 }
 
@@ -280,6 +285,8 @@ static void destory_mmu(void)
 	asm volatile ("mrc p15, 0, %0, c2, c0, 1" : "=r"(ttb_1r));
 	//use ttbr1 to set ttbr0
 	asm volatile ("mcr p15, 0, %0, c2, c0, 0" : : "r"(ttb_1r));
+	asm volatile ("dsb");
+	asm volatile ("isb");
 
 	return;
 }
@@ -291,6 +298,8 @@ static void restore_mmu(void)
 	
 	//restore ttbr0
 	asm volatile ("mcr p15, 0, %0, c2, c0, 0" : : "r"(ttb_0r_backup));
+	asm volatile ("dsb");
+	asm volatile ("isb");
 
 	for(p_mmu = (volatile  __u32 *)MMU_START; p_mmu < (volatile  __u32 *)MMU_END; p_mmu++, i++)
 	{

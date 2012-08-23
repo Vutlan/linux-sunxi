@@ -139,6 +139,9 @@ __s32 standby_query_int(enum interrupt_source_e src)
     __u32   tmpSrc = (__u32)src & 0x1f;
 
     result = *(volatile __u32 *)(GicDDisc + GIC_DIST_PENDING_SET + tmpGrp*4) & (1<<tmpSrc);
+    
+    //printk("GicDDisc + GIC_DIST_PENDING_SET + tmpGrp*4 = 0x%x. tmpGrp = 0x%x.\n", GicDDisc + GIC_DIST_PENDING_SET + tmpGrp*4, tmpGrp);
+    //printk("tmpSrc = 0x%x. result = 0x%x. \n", tmpSrc, result);
 
     return result? 0:-1;
 }

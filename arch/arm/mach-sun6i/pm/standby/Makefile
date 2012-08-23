@@ -56,7 +56,7 @@ RESUME1_LD_FILE = resume1_scatter.scat
 CC = $(CROSS_COMPILE)gcc
 
 #CFLAGS = -g -c -nostdlib -march=armv7-a -marm -fno-unwind-tables -fno-asynchronous-unwind-tables -mlittle-endian  --min_array_alignment=4 --no_unaligned_access -O2 
-CFLAGS = -g -c -nostdlib -march=armv7-a -marm -fno-unwind-tables -fno-asynchronous-unwind-tables -mlittle-endian -O2 
+CFLAGS = -g -c -nostdlib -march=armv7-a -marm -fno-unwind-tables -fno-asynchronous-unwind-tables -mlittle-endian -O2 --min_array_alignment=4 --no_unaligned_access
 
 LD_FLAGS = -static 
 LIBS = 

@@ -40,6 +40,7 @@ standby_flush_tlb:
 	pop     {r0-r3}
 	mov pc,lr
 	
+	
     .text
     .globl flush_dcache
 flush_dcache:
@@ -174,24 +175,10 @@ standby_preload_tlb:
 	ldr r0, =IO_ADDRESS(AW_SRAM_A2_BASE + 0x13000)
 	ldr r1, [r0]
 
-	
-	ldr r0, =IO_ADDRESS(AW_IO_PHYS_BASE)
-	ldr r1, [r0]
-	ldr r0, =IO_ADDRESS(AW_IO_PHYS_BASE + 0x100000)
-	ldr r1, [r0]
-	ldr r0, =IO_ADDRESS(AW_IO_PHYS_BASE + 0x100000)
-	ldr r1, [r0]
-	ldr r0, =IO_ADDRESS(AW_IO_PHYS_BASE + 0x100000)
-	ldr r1, [r0]
-
 	ldr r0, =IO_ADDRESS(AW_MSGBOX_BASE)
 	ldr r1, [r0]
-	//ldr r0, =IO_ADDRESS(AW_MSGBOX_BASE)
-	//ldr r1, [r0, #0x200]
 	ldr r0, =IO_ADDRESS(AW_SPINLOCK_BASE)
 	ldr r1, [r0]
-	//ldr r0, =IO_ADDRESS(AW_SPINLOCK_BASE + 0x100)
-	//ldr r1, [r0]
 	ldr r0, =IO_ADDRESS(AW_PIO_BASE)
 	ldr r1, [r0]
 	ldr r0, =IO_ADDRESS(AW_R_PRCM_BASE)
@@ -200,13 +187,33 @@ standby_preload_tlb:
 	ldr r1, [r0]
 	ldr r0, =IO_ADDRESS(AW_RTC_REG)
 	ldr r1, [r0]
-		
-	ldr r0, =IO_ADDRESS(AW_SRAM_A1_BASE + 0x1000)
-	ldr r1, [r0]
-	ldr r0, =IO_ADDRESS(AW_SRAM_A1_BASE + 0x13dc)
-	ldr r1, [r0]
+	
 	dsb
 	isb
+	
 	pop     {r0-r3}
 	mov pc,lr
 
+    .text                                                                        
+    .globl disable_cache                                                          
+disable_cache:  
+    push    {r0-r3}                                                                   
+    MRC     p15, 0, r0, c1, c0, 0       /*read cr                  */
+    BIC	    r0, r0, #0x1 << 12
+    BIC	    r0, r0, #0x1 << 2
+    MCR     p15, 0, r0, c1, c0, 0       /*disable cache                  */
+    ISB
+    pop     {r0-r3}
+    MOV     pc, lr
+    
+    .text                                                                        
+    .globl enable_cache                                                          
+enable_cache:           
+    push    {r0-r3}                                                          
+    MRC     p15, 0, r0, c1, c0, 0       /*read cr                  */
+    ORR	    r0, r0, #0x1 << 12
+    ORR	    r0, r0, #0x1 << 2
+    MCR     p15, 0, r0, c1, c0, 0       /*disable cache                  */
+    ISB
+    pop     {r0-r3}
+    MOV     pc, lr
