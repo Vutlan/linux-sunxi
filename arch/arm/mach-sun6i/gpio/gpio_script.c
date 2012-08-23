@@ -1320,9 +1320,8 @@ End:
 	if(0 != usign) {
 		PIO_ERR("%s err, line %d", __FUNCTION__, usign);
 		return GPIO_INDEX_INVALID;
-	} else {
+	} else
 		return pio_index;
-	}
 }
 EXPORT_SYMBOL(sw_gpio_get_index);
 
