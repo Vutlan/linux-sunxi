@@ -32,8 +32,8 @@ __s32 scaler_clk_off(__u32 sel);
 
 __s32 lcdc_clk_init(__u32 sel);
 __s32 lcdc_clk_exit(__u32 sel);
-__s32 lcdc_clk_on(__u32 sel);
-__s32 lcdc_clk_off(__u32 sel);
+__s32 lcdc_clk_on(__u32 sel, __u32 tcon_index);
+__s32 lcdc_clk_off(__u32 sel, __u32 tcon_index);
 
 __s32 tve_clk_init(__u32 sel);
 __s32 tve_clk_exit(__u32 sel);

@@ -29,7 +29,7 @@ __s32 BSP_disp_vga_open(__u32 sel)
 
     	vga_mode = gdisp.screen[sel].vga_mode;
     	
-    	lcdc_clk_on(sel);
+    	lcdc_clk_on(sel, 1);
     	image_clk_on(sel);
         Image_open(sel);//set image normal channel start bit , because every de_clk_off( )will reset this bit
     	tve_clk_on(sel);
@@ -78,7 +78,7 @@ __s32 BSP_disp_vga_close(__u32 sel)
     	
     	tve_clk_off(sel);
     	image_clk_off(sel);
-    	lcdc_clk_off(sel);
+    	lcdc_clk_off(sel, 1);
     	Disp_lcdc_pin_cfg(sel, DISP_OUTPUT_TYPE_VGA, 0);
 
         gdisp.screen[sel].b_out_interlace = 0;

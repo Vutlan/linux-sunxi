@@ -197,7 +197,7 @@ __s32 BSP_disp_tv_open(__u32 sel)
 
         disp_clk_cfg(sel,DISP_OUTPUT_TYPE_TV, tv_mod);
         tve_clk_on(sel);
-        lcdc_clk_on(sel);
+        lcdc_clk_on(sel, 1);
 
         BSP_disp_set_output_csc(sel, DISP_OUTPUT_TYPE_TV,gdisp.screen[sel].iep_status&DRC_USED);
         DE_BE_set_display_size(sel, tv_mode_to_width(tv_mod), tv_mode_to_height(tv_mod));
@@ -278,7 +278,7 @@ __s32 BSP_disp_tv_close(__u32 sel)
 
         tve_clk_off(sel);
         image_clk_off(sel);
-        lcdc_clk_off(sel);
+        lcdc_clk_off(sel, 1);
         Disp_de_flicker_enable(sel, 2);	//must close immediately, because vbi may not come
 		DE_BE_Set_Outitl_enable(sel, FALSE);
         for(scaler_index=0; scaler_index<2; scaler_index++)

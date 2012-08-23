@@ -320,7 +320,7 @@ __s32 BSP_disp_iep_set_demo_win(__u32 sel, __u32 mode, __disp_rect_t *regn)
 //en : 2-close immediately
 __s32 Disp_drc_enable(__u32 sel, __u32 en)
 {
-	if(sel == 0)
+	if(BSP_disp_lcd_used(sel) && (sel == 0))
 	{
 		switch(en)
 		{

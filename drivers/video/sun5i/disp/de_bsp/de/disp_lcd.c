@@ -1196,9 +1196,9 @@ __s32 Disp_lcdc_init(__u32 sel)
 
     lcdc_clk_init(sel);
     lvds_clk_init();
-    lcdc_clk_on(sel);	//??need to be open
+    lcdc_clk_on(sel, 0xff);	//??need to be open
     LCDC_init(sel);
-    lcdc_clk_off(sel);
+    lcdc_clk_off(sel, 0xff);
     
     if(sel == 0)
     {        
@@ -1626,7 +1626,7 @@ __s32 BSP_disp_get_frame_rate(__u32 sel)
 __s32 BSP_disp_lcd_open_before(__u32 sel)
 {    
     disp_clk_cfg(sel, DISP_OUTPUT_TYPE_LCD, DIS_NULL);
-    lcdc_clk_on(sel);
+    lcdc_clk_on(sel, gpanel_info[sel].tcon_index);
     image_clk_on(sel);
     Image_open(sel);//set image normal channel start bit , because every de_clk_off( )will reset this bit
     Disp_lcdc_pin_cfg(sel, DISP_OUTPUT_TYPE_LCD, 1);
@@ -1685,7 +1685,7 @@ __s32 BSP_disp_lcd_close_after(__u32 sel)
 
     Disp_lcdc_pin_cfg(sel, DISP_OUTPUT_TYPE_LCD, 0);
 	image_clk_off(sel);
-	lcdc_clk_off(sel);
+	lcdc_clk_off(sel, gpanel_info[sel].tcon_index);
 
 	gdisp.screen[sel].pll_use_status &= ((gdisp.screen[sel].pll_use_status == VIDEO_PLL0_USED)? VIDEO_PLL0_USED_MASK : VIDEO_PLL1_USED_MASK);
 	
@@ -1937,6 +1937,12 @@ __s32 BSP_disp_restore_lcdc_reg(__u32 sel)
     
     return 0;
 }
+
+__s32 BSP_disp_lcd_used(__u32 sel)
+{
+    return gdisp.screen[sel].lcd_cfg.lcd_used;
+}
+
 #ifdef __LINUX_OSAL__
 EXPORT_SYMBOL(LCD_OPEN_FUNC);
 EXPORT_SYMBOL(LCD_CLOSE_FUNC);
