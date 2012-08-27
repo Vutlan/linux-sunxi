@@ -56,7 +56,7 @@ void enable_aw_cpu(int cpu)
 	if(cpu)
 		writel(3, IO_ADDRESS(AW_R_CPUCFG_BASE) + (0x40 + cpu * 0x40));
 	/* let cpus go */
-/*	writel(1, IO_ADDRESS(AW_R_CPUCFG_BASE) + 0x80);
+	writel(1, IO_ADDRESS(AW_R_CPUCFG_BASE) + 0x80);
 
 	reg1 = readl(IO_ADDRESS(AW_R_CPUCFG_BASE) + AW_CPUCFG_P_REG1);
 
@@ -69,9 +69,7 @@ void enable_aw_cpu(int cpu)
 	}
 
 	writel(reg1, IO_ADDRESS(AW_R_CPUCFG_BASE) + AW_CPUCFG_P_REG1);
-*/
 }
-
 
 void __init smp_init_cpus(void)
 {
@@ -104,16 +102,15 @@ void __init platform_smp_prepare_cpus(unsigned int max_cpus)
 extern int arch_timer_common_register(void);
 void __cpuinit platform_secondary_init(unsigned int cpu)
 {
-	printk("[%s] enter\n", __FUNCTION__);
-	gic_secondary_init(0);
+	printk("[%s] enter, cpu:%d\n", __FUNCTION__, cpu);
+
+		gic_secondary_init(0);
 
         spin_lock(&boot_lock);
         spin_unlock(&boot_lock);
-/*
-	arch_timer_common_register();
 
 	printk("[%s] leave\n", __FUNCTION__);
-*/
+
 }
 
 /*
