@@ -310,6 +310,8 @@ static void restore_mmu(void)
 	return;
 }
 
+#ifdef CHECK_CACHE_TLB_MISS
+
 static void cache_count_init(void)
 {
 	set_event_counter(D_CACHE_MISS);
@@ -344,4 +346,23 @@ static void cache_count_output(void)
 
 	return;
 }
+
+#else
+static void cache_count_init(void)
+{
+	return;
+}
+
+static void cache_count_get(void)
+{
+	return;
+}
+
+static void cache_count_output(void)
+{
+	return;
+}
+
+
+#endif
 

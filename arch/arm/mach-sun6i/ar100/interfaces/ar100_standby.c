@@ -20,6 +20,8 @@
  */
  
 #include "..//ar100_i.h"
+#include <asm/tlbflush.h>
+#include <asm/cacheflush.h>
 
 //record super-standby wakeup event
 static unsigned long wakeup_event;
@@ -50,6 +52,10 @@ int ar100_standby_super(struct super_standby_para *para)
 	pmessage->attr     = 0;
 	memcpy(pmessage->paras, para, sizeof(struct super_standby_para));
 	pmessage->state    = AR100_MESSAGE_INITIALIZED;
+	//before creating mapping, build the coherent between cache and memory
+	//clean and flush
+	__cpuc_flush_kern_all();
+	__cpuc_coherent_kern_range(0xc0000000, 0xffffffff-1);
 	
 	//send enter super-standby request to ar100
 	ar100_hwmsgbox_send_message(pmessage, AR100_SEND_MSG_TIMEOUT);

@@ -89,6 +89,14 @@ __s32 standby_int_init(void)
 */
 __s32 standby_int_exit(void)
 {
+	int i = 0;
+	volatile __u32 enable_bit = 0;
+	
+	//all the disable-int-src pending, need to be clear
+	for(i = 0; i < 0x40; i += 4){
+		enable_bit = *(volatile __u32 *)(GicDDisc + GIC_DIST_ENABLE_SET + i);
+		*(volatile __u32 *)(GicDDisc + GIC_DIST_PENDING_CLEAR + i) &= (~enable_bit);
+	}
 
 	return 0;
 }

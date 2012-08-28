@@ -47,7 +47,7 @@ typedef struct ar100_message
 	unsigned char   		result;		//message process result
 	struct ar100_message 	*next;		//pointer of next message frame
 	void    	   			*private;	//message private data
-	unsigned int   			 paras[5];	//the parameters of message
+	unsigned int   			 paras[13];	//the parameters of message
 } ar100_message_t;
 
 //the base of messages

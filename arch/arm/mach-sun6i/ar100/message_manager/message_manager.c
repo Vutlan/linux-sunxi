@@ -154,6 +154,7 @@ struct ar100_message *ar100_message_allocate(unsigned int msg_attr)
 		
 		print_call_info();
 		printk("free_list.head = 0x%x. \n", free_list.head);
+		printk("free_list.number = %d\n", free_list.number);
 
 		free_list.head = palloc->next;
 		free_list.number--;
@@ -228,6 +229,9 @@ void ar100_message_free(struct ar100_message *pmessage)
 			ar100_semaphore_free((struct semaphore *)(pmessage->private));
 			pmessage->private = NULL;
 		}
+		printk("insert message [%x] to free_list\n", pmessage);
+		printk("free_list number : %d\n", free_list.number);
+		
 		//cached this message, message state: ALLOCATED.
 		spin_lock(&(msg_mgr_lock));
 		if (free_list.number) {
