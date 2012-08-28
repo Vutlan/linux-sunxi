@@ -94,6 +94,8 @@ void axp20_correct_restcap(struct axp_mfd_chip *chip)
 			__axp_read(chip->client, POWER20_DATA_BUFFER1, val);
 			Cou_Correction_Flag	= (val[0]	>> 5) &	0x1;
 			if(Cou_Correction_Flag){
+				printk("[AXP20-MFD] ----------charger finish need to be corrected-----------\n");
+				printk("[AXP20-MFD] ----------correct the coulunb counter-----------\n");
 				__axp_read(chip->client, POWER20_DATA_BUFFER6, val);
 				Cur_CoulombCounter = Get_Bat_Coulomb_Count_mfd(chip);
 				bat_cap	= ABS(Cur_CoulombCounter) / (100 - val[0]) * 100;
@@ -105,6 +107,7 @@ void axp20_correct_restcap(struct axp_mfd_chip *chip)
 				Cou_Count_Clear_mfd(chip);
 			}
 			else{
+				printk("[AXP20-MFD] ----------charger finish need to be corrected-----------\n");
 				saved_cap =	100;
 				Set_Rest_Cap_mfd(chip,saved_cap);
 				Cou_Count_Clear_mfd(chip);

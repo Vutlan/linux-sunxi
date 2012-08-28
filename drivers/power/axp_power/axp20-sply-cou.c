@@ -59,6 +59,8 @@ static int pmu_suspendpwroff_vol = 0;
 static int cap_count1 = 0;
 static int cap_count2 = 0;
 static int cap_count3 = 0;
+static int cap_count4 = 0;
+
 
 static int pmu_batdeten = 0;
 struct axp_adc_res adc;
@@ -1478,6 +1480,7 @@ static void axp_charging_monitor(struct work_struct *work)
 		if(Cur_CoulombCounter < 0){
 			charger->rest_vol = charger->rest_vol - 1;
 		}
+		/*
 		if((charger->rest_vol <= (BATCAPCORRATE))&&(rt_rest_vol <= (BATCAPCORRATE + 1)) &&(!charger->ext_valid) && (!flag_cou)){
 			Cou_Correction_Flag	= 1;
 			flag_cou = 1;
@@ -1488,7 +1491,7 @@ static void axp_charging_monitor(struct work_struct *work)
 			printk("\n ============Capacity	Calibration	Start============ \n");
 			printk("\n ============	  Rest	Capacity  =	 %d	 ============ \n",rt_rest_vol);
 		}
-		
+		*/
 		if(charger->rest_vol > BATCAPCORRATE){
 			flag_cou = 0;
 		}
@@ -1503,7 +1506,7 @@ static void axp_charging_monitor(struct work_struct *work)
 			charger->rest_vol =	0;
 		}
 
-		/*电池剩余容量校正，当其小于99，ocv百分比大于99，且在充电时，电池剩余容量自加*/
+		/*电池剩余容量校正，当其小于95，ocv百分比大于95，且在充电时，电池剩余容量自加*/
 		if((rt_rest_vol	> 94) && (charger->rest_vol	< 95) && (charger->bat_current_direction ==	1)) {
 			if(cap_count1 >= TIMER5) {
 				DBG_PSY_MSG("Correct1:rt_rest_vol = %d,charger->rest_vol =%d +1\n",rt_rest_vol,charger->rest_vol);
@@ -1533,9 +1536,9 @@ static void axp_charging_monitor(struct work_struct *work)
 			cap_count2 = 0;	
 		}
 
-		/*电池剩余容量校正，当其小于（电池总容量校正百分+2），ocv百分比大于（电池总容量校正百分比+1），且在放电时，电池剩余容量保持不变，等ocv百分比降下来*/
+		/*电池剩余容量校正，当其小于（电池总容量校正百分+5），ocv百分比大于（电池总容量校正百分比+4），且在放电时，电池剩余容量保持不变，等ocv百分比降下来*/
 		if((rt_rest_vol	> (BATCAPCORRATE + 4)) &&	(charger->rest_vol < (BATCAPCORRATE+ 5)) && charger->bat_current_direction == 0) {
-			DBG_PSY_MSG("Correct3:discharging:(rt_rest_vol > %d)&&(charger->rest_vol < %d)\n",BATCAPCORRATE+1,BATCAPCORRATE+2);
+			DBG_PSY_MSG("Correct3:discharging:(rt_rest_vol > %d)&&(charger->rest_vol < %d)\n",BATCAPCORRATE+4,BATCAPCORRATE+5);
 			if(pre_rest_vol	> charger->rest_vol) {
 				Cur_CoulombCounter = Get_Bat_Coulomb_Count(charger);
 				saved_cap =	pre_rest_vol - 100 * (Cur_CoulombCounter) /	bat_cap;
@@ -1543,11 +1546,26 @@ static void axp_charging_monitor(struct work_struct *work)
 			}
 			charger->rest_vol =	 pre_rest_vol;
 		}
+
+		/*电池剩余容量校正，当其大于（电池总容量校正百分+12），ocv百分比小于（电池总容量校正百分比+13），且在放电时，电池剩余容量自减*/
+		if((rt_rest_vol	< (BATCAPCORRATE + 14)) &&	(charger->rest_vol > (BATCAPCORRATE + 13)) && (charger->bat_current_direction == 0)) {
+			if(cap_count4 >= TIMER5) {
+				DBG_PSY_MSG("Correct5:discharging:(rt_rest_vol < %d)&&(charger->rest_vol > %d)\n",BATCAPCORRATE+13,BATCAPCORRATE+12);
+				charger->rest_vol --;
+				saved_cap --;
+				Set_Rest_Cap(charger,saved_cap);
+				cap_count4 = 0;
+			} else {
+				cap_count4++;
+			}
+		} else {
+			cap_count4 = 0;	
+		}
 		
-		/*电池剩余容量校正，当其大于（电池总容量校正百分+1），ocv百分比小于（电池总容量校正百分比+2），且在放电时，电池剩余容量自减*/
+		/*电池剩余容量校正，当其大于（电池总容量校正百分+4），ocv百分比小于（电池总容量校正百分比+5），且在放电时，电池剩余容量自减*/
 		if((rt_rest_vol	< (BATCAPCORRATE + 6)) &&	(charger->rest_vol > (BATCAPCORRATE + 5)) && (charger->bat_current_direction == 0)) {
 			if(cap_count3 >= TIMER5) {
-				DBG_PSY_MSG("Correct4:discharging:(rt_rest_vol < %d)&&(charger->rest_vol > %d)\n",BATCAPCORRATE+3,BATCAPCORRATE+2);
+				DBG_PSY_MSG("Correct4:discharging:(rt_rest_vol < %d)&&(charger->rest_vol > %d)\n",BATCAPCORRATE+5,BATCAPCORRATE+4);
 				charger->rest_vol --;
 				saved_cap --;
 				Set_Rest_Cap(charger,saved_cap);
@@ -1627,7 +1645,17 @@ static void axp_charging_monitor(struct work_struct *work)
 	if((rt_rest_vol <= BATCAPCORRATE)&&(charger->rest_vol > (BATCAPCORRATE + 5))){
 		axp_clr_bits(charger->master, AXP20_DATA_BUFFER0, 0x60);
 	}
-	
+	/*set capacity calibration flag*/
+	if((charger->rest_vol <= (BATCAPCORRATE))&&(rt_rest_vol <= (BATCAPCORRATE + 1)) &&(!charger->ext_valid) && (!flag_cou)){
+		Cou_Correction_Flag	= 1;
+		flag_cou = 1;
+		Set_Rest_Cap(charger,BATCAPCORRATE);
+		axp_write(charger->master, AXP20_DATA_BUFFER5, rt_rest_vol);
+		Cou_Count_Clear(charger);
+		axp_set_bits(charger->master,AXP20_DATA_BUFFER0,0x20);
+		printk("\n ============Capacity	Calibration	Start============ \n");
+		printk("\n ============	  Rest	Capacity  =	 %d	 ============ \n",rt_rest_vol);
+	}
 	if(axp_debug){
 		DBG_PSY_MSG("charger->ic_temp = %d\n",charger->ic_temp);
 		DBG_PSY_MSG("charger->vbat = %d\n",charger->vbat);
@@ -2318,6 +2346,8 @@ static int axp20_resume(struct platform_device *dev)
 			axp_read(charger->master, POWER20_DATA_BUFFER1, v);
 			Cou_Correction_Flag	= (v[0]>> 5)&0x1;
 			if(Cou_Correction_Flag){
+				printk("[AXP20-MFD] ----------charger finish need to be corrected-----------\n");
+				printk("[AXP20-MFD] ----------correct the coulunb counter-----------\n");
 				axp_read(charger->master, POWER20_DATA_BUFFER6, v);
 				Cur_CoulombCounter = Get_Bat_Coulomb_Count(charger);
 				bat_cap	= ABS(Cur_CoulombCounter) / (100 - v[0]) * 100;
@@ -2329,6 +2359,7 @@ static int axp20_resume(struct platform_device *dev)
 				Cou_Count_Clear(charger);
 			}
 			else{
+				printk("[AXP20-MFD] ----------charger finish need to be corrected-----------\n");
 				saved_cap =	100;
 				Set_Rest_Cap(charger,saved_cap);
 				Cou_Count_Clear(charger);
