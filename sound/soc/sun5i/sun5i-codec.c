@@ -338,7 +338,7 @@ static  int codec_init(void)
 	/*dither*/
 	codec_wr_control(SUN5I_ADC_ACTL, 0x1, 8, 0x0);
 
-	codec_wr_control(SUN5I_DAC_ACTL, 0x6, VOLUME, 0x3b);
+	codec_wr_control(SUN5I_DAC_ACTL, 0x3f, VOLUME, 0x3b);
 
 	bias_reg_val = readl(baseaddr + (SUN5I_BIAS_CRT));
 	
@@ -446,7 +446,7 @@ static int codec_capture_stop(void)
 	//flush RX FIFO
 	codec_wr_control(SUN5I_ADC_FIFOC, 0x1, ADC_FIFO_FLUSH, 0x0);
 	//disable adc1 analog
-	codec_wr_control(SUN5I_ADC_ACTL, 0x3,  ADC_EN, 0x0);
+	//codec_wr_control(SUN5I_ADC_ACTL, 0x3,  ADC_EN, 0x0);//移到外部控制
 	return 0;
 }
 
@@ -1313,8 +1313,8 @@ static int __init snd_card_sun5i_codec_pcm(struct sun5i_codec *sun5i_codec, int 
 
 	err = script_parser_fetch("audio_para","capture_used", &capture_used, sizeof(int));
 	if (err) {
+		printk("[audiocodec]capture using configuration failed\n");
 		return -1;
-        printk("[audiocodec]capture using configuration failed\n");
     }
 
 	/*
