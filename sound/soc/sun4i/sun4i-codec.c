@@ -343,9 +343,9 @@ static  int codec_init(void)
 
 	//set volume
 	if(codec_chip_ver == MAGIC_VER_A){
-		codec_wr_control(SUN4I_DAC_ACTL, 0x6, VOLUME, 0x01);
+		codec_wr_control(SUN4I_DAC_ACTL, 0x3f, VOLUME, 0x01);
 	}else if(codec_chip_ver == MAGIC_VER_B || codec_chip_ver == MAGIC_VER_C){
-		codec_wr_control(SUN4I_DAC_ACTL, 0x6, VOLUME, 0x3b);
+		codec_wr_control(SUN4I_DAC_ACTL, 0x3f, VOLUME, 0x3b);
 	}else{
 		printk("[audio codec] chip version is unknown!\n");
 		return -1;
@@ -455,7 +455,7 @@ static int codec_capture_stop(void)
 	//flush RX FIFO
 	codec_wr_control(SUN4I_ADC_FIFOC, 0x1, ADC_FIFO_FLUSH, 0x0);
 	//enable adc1 analog
-	codec_wr_control(SUN4I_ADC_ACTL, 0x3,  ADC_EN, 0x0);
+	//codec_wr_control(SUN4I_ADC_ACTL, 0x3,  ADC_EN, 0x0);
 	return 0;
 }
 
@@ -1452,8 +1452,8 @@ static int __init snd_card_sun4i_codec_pcm(struct sun4i_codec *sun4i_codec, int 
 
 	err = script_parser_fetch("audio_para","capture_used", &capture_used, sizeof(int));
 	if (err) {
+		printk("[audiocodec]capture using configuration failed\n");
 		return -1;
-        printk("[audiocodec]capture using configuration failed\n");
     }
 
 	/*
