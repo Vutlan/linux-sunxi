@@ -503,8 +503,9 @@ else
 endif
 	test -r $(INSTALL_DIR) || mkdir $(INSTALL_DIR);
 	cp -vf $(OBJDIR)/dhd.ko $(INSTALL_DIR)/bcm40181_dhd.ko
-	cp -vf $(FWBASE)/sdio-g-pool.bin $(INSTALL_DIR)/bcm40181_fw.bin
+	#cp -vf $(FWBASE)/sdio-g-pool.bin $(INSTALL_DIR)/bcm40181_fw.bin
 	cp -vf $(FWBASE)/nvram_iw8101.txt $(INSTALL_DIR)/bcm40181_nvram.txt
+	cp  $(FWBASE)/fw_bcm40181a2.bin $(INSTALL_DIR)/fw_bcm40181a2.bin
 
 dep: $(foreach file,$(CFILES),.$(file).depend)
 .%.c.depend: %.c

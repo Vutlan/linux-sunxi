@@ -21,7 +21,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: wl_iw.h,v 1.15.80.6 2010-12-23 01:13:23 Exp $
+ * $Id: wl_iw.h,v 1.15.80.6 2010-12-23 01:13:23 $
  */
 
 
@@ -51,9 +51,10 @@
 #define PNOSSIDCLR_SET_CMD			"PNOSSIDCLR"
 
 #define PNOSETUP_SET_CMD			"PNOSETUP " 
+#define PNOSETADD_SET_CMD			"PNOSETADD"
 #define PNOENABLE_SET_CMD			"PNOFORCE"
 #define PNODEBUG_SET_CMD			"PNODEBUG"
-#define TXPOWER_SET_CMD			"TXPOWER"
+#define TXPOWER_SET_CMD				"TXPOWER"
 
 #define MAC2STR(a) (a)[0], (a)[1], (a)[2], (a)[3], (a)[4], (a)[5]
 #define MACSTR "%02x:%02x:%02x:%02x:%02x:%02x"
@@ -126,6 +127,10 @@ typedef struct wl_iw {
 	struct iw_quality spy_qual[IW_MAX_SPY];
 	void  *wlinfo;
 	dhd_pub_t * pub;
+#if defined(RSSIOFFSET) || 1
+	uint chip;
+	uint chiprev;
+#endif
 } wl_iw_t;
 
 int	 wl_control_wl_start(struct net_device *dev);
@@ -133,6 +138,21 @@ int	 wl_control_wl_start(struct net_device *dev);
 #define WLC_IW_SS_CACHE_CTRL_FIELD_MAXLEN	32
 #define WLC_IW_BSS_INFO_MAXLEN 				\
 	(WLC_IW_SS_CACHE_MAXLEN - WLC_IW_SS_CACHE_CTRL_FIELD_MAXLEN)
+
+#if defined(RSSIAVG) || 1
+#define MAX_RSSI_LEN 8
+
+typedef struct wl_iw_rssi_cache {
+	struct wl_iw_rssi_cache *next;
+	int dirty;
+	struct ether_addr BSSID;
+	int16       RSSI[MAX_RSSI_LEN];
+} wl_iw_rssi_cache_t;
+
+typedef struct wl_iw_rssi_cache_ctrl {
+	wl_iw_rssi_cache_t *m_cache_head;
+} wl_iw_rssi_cache_ctrl_t;
+#endif
 
 typedef struct wl_iw_ss_cache {
 	struct wl_iw_ss_cache *next;
@@ -197,9 +217,19 @@ extern const struct iw_handler_def wl_iw_handler_def;
 extern int wl_iw_ioctl(struct net_device *dev, struct ifreq *rq, int cmd);
 extern void wl_iw_event(struct net_device *dev, wl_event_msg_t *e, void* data);
 extern int wl_iw_get_wireless_stats(struct net_device *dev, struct iw_statistics *wstats);
+#if defined(RSSIOFFSET) || 1
+int wl_iw_attach(struct net_device *dev, void * dhdp, uint chip, uint chiprev);
+#else
 int wl_iw_attach(struct net_device *dev, void * dhdp);
+#endif
 void wl_iw_detach(void);
 
+#ifndef DHD_PACKET_TIMEOUT_MS
+#define DHD_PACKET_TIMEOUT_MS	1000
+#endif
+#ifndef DHD_EVENT_TIMEOUT_MS
+#define DHD_EVENT_TIMEOUT_MS	2000
+#endif
 extern int net_os_wake_lock(struct net_device *dev);
 extern int net_os_wake_unlock(struct net_device *dev);
 extern int net_os_wake_lock_timeout(struct net_device *dev);
@@ -225,6 +255,18 @@ extern void get_customized_country_code(char *country_iso_code, wl_country_t *cs
 #define IWE_STREAM_ADD_POINT(info, stream, ends, iwe, extra) \
 	iwe_stream_add_point(stream, ends, iwe, extra)
 #endif
+
+extern int dhd_pno_enable(dhd_pub_t *dhd, int pfn_enabled);
+extern int dhd_pno_clean(dhd_pub_t *dhd);
+extern int dhd_pno_set(dhd_pub_t *dhd, wlc_ssid_t* ssids_local, int nssid,
+                       ushort  scan_fr, int pno_repeat, int pno_freq_expo_max);
+extern int dhd_pno_get_status(dhd_pub_t *dhd);
+extern int dhd_dev_pno_reset(struct net_device *dev);
+extern int dhd_dev_pno_set(struct net_device *dev, wlc_ssid_t* ssids_local,
+                           int nssid, ushort  scan_fr, int pno_repeat, int pno_freq_expo_max);
+extern int dhd_dev_pno_enable(struct net_device *dev,  int pfn_enabled);
+extern int dhd_dev_get_pno_status(struct net_device *dev);
+extern int dhd_get_dtim_skip(dhd_pub_t *dhd);
 
 void	dhd_bus_country_set(struct net_device *dev, wl_country_t *cspec);
 
@@ -301,6 +343,6 @@ extern int wl_iw_parse_channel_list(char** list_str, uint16* channel_list, int c
 #define WPS_ADD_PROBE_REQ_IE_CMD "ADD_WPS_PROBE_REQ_IE "
 #define WPS_DEL_PROBE_REQ_IE_CMD "DEL_WPS_PROBE_REQ_IE "
 #define WPS_PROBE_REQ_IE_CMD_LENGTH 21
-#endif
+#endif 
 
 #endif 

@@ -64,8 +64,10 @@ EXPORT_SYMBOL(mmc_pm_get_io_val);
 void mmc_pm_power(int mode, int* updown)
 {
     struct mmc_pm_ops *ops = &mmc_card_pm_ops;
-    if (ops->sdio_card_used && ops->power)
+    if (ops->sdio_card_used && ops->power){
+    		printk("mmc_pm_power  updown=%x",updown);
         return ops->power(mode, updown);
+    }
     else {
         mmc_pm_msg("No sdio card, please check your config !!\n");
         return;
