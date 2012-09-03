@@ -54,6 +54,48 @@ build_standby()
 		-C ${LICHEE_KDIR}/arch/arm/mach-sun4i/pm/standby all
 }
 
+NAND_ROOT=${LICHEE_KDIR}/modules/nand
+
+build_nand_lib()
+{
+	echo "build nand library ${NAND_ROOT}/lib"
+	if [ -d ${NAND_ROOT}/lib ]; then
+		echo "build nand library"		
+	make -C modules/nand/lib LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LICHEE_KDIR=${LICHEE_KDIR} \
+		CONFIG_CHIP_ID=${CONFIG_CHIP_ID} install
+	else
+		echo "build nand library"
+	fi
+}
+
+copy_nand_mod()
+{
+    cd $LICHEE_KDIR/rootfs
+
+    if [ -x "./build.sh" ]; then
+        ./build.sh e sun4i_rootfs.cpio.gz
+    else
+        echo "No such file: $LICHEE_KDIR/rootfs/build.sh"
+        exit 1
+    fi
+
+    if [ ! -d "./skel/lib/modules/$KERNEL_VERSION" ]; then
+        mkdir -p ./skel/lib/modules/$KERNEL_VERSION
+    fi
+    cp $LICHEE_MOD_DIR/nand.ko ./skel/lib/modules/$KERNEL_VERSION
+    if [ $? -ne 0 ]; then
+        echo "copy nand module error: $?"
+        exit 1
+    fi
+    if [ -f "./sun4i_rootfs.cpio.gz" ]; then
+        rm sun4i_rootfs.cpio.gz
+    fi
+    ./build.sh c sun4i_rootfs.cpio.gz
+    rm -rf skel
+
+    cd $LICHEE_KDIR
+}
+
 build_kernel()
 {
 	if [ ! -e .config ]; then
@@ -133,6 +175,15 @@ build_modules()
 			LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LINUXDIR=${LICHEE_KDIR} CONFIG_CHIP_ID=${CONFIG_CHIP_ID} \
 			INSTALL_DIR=${LICHEE_MOD_DIR} dhd-cdc-sdmmc-gpl
 	
+	#build nand driver
+	echo "build_nand_lib"
+	build_nand_lib
+	
+	make -C modules/nand LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LICHEE_KDIR=${LICHEE_KDIR} \
+		CONFIG_CHIP_ID=${CONFIG_CHIP_ID} install
+	echo "build module end"
+
+    copy_nand_mod
 }
 
 clean_kernel()

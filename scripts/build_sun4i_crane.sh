@@ -54,6 +54,20 @@ build_standby()
 		-C ${LICHEE_KDIR}/arch/arm/mach-sun4i/pm/standby all
 }
 
+NAND_ROOT=${LICHEE_KDIR}/modules/nand
+
+build_nand_lib()
+{
+	echo "build nand library ${NAND_ROOT}/lib"
+	if [ -d ${NAND_ROOT}/lib ]; then
+		echo "build nand library"		
+	make -C modules/nand/lib LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LICHEE_KDIR=${LICHEE_KDIR} \
+		CONFIG_CHIP_ID=${CONFIG_CHIP_ID} install
+	else
+		echo "build nand library"
+	fi
+}
+
 build_kernel()
 {
 	if [ ! -e .config ]; then
@@ -144,6 +158,14 @@ build_modules()
 
 	#copy gps driver to module
 	cp modules/gps/gps.ko_ $LICHEE_MOD_DIR/gps.ko
+	#build nand driver
+	echo "build_nand_lib"
+	build_nand_lib
+	
+	make -C modules/nand LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LICHEE_KDIR=${LICHEE_KDIR} \
+		CONFIG_CHIP_ID=${CONFIG_CHIP_ID} install
+	echo "build module end"
+
 }
 
 clean_kernel()
