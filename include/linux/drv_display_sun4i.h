@@ -375,6 +375,8 @@ typedef struct
     __s32 (*hdmi_mode_support)(__disp_tv_mode_t mode);
     __s32 (*hdmi_get_HPD_status)(void);
     __s32 (*hdmi_set_pll)(__u32 pll, __u32 clk);
+    __s32 (*hdmi_suspend)(void);
+    __s32 (*hdmi_resume)(void);
 }__disp_hdmi_func;
 
 typedef struct

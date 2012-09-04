@@ -517,6 +517,7 @@ __s32 DE_SCAL_Set_Scaling_Coef(__u8 sel, __scal_scan_mod_t *in_scan, __scal_src_
     __u32 ch0v_fir_coef_ofst, ch0h_fir_coef_ofst, ch1v_fir_coef_ofst, ch1h_fir_coef_ofst;
     __s32 fir_ofst_tmp;
     __u32 i;
+    __u32 loop_count = 0;
     
     in_w0 = in_size->scal_width;
     in_h0 = in_size->scal_height;
@@ -689,8 +690,9 @@ __s32 DE_SCAL_Set_Scaling_Coef(__u8 sel, __scal_scan_mod_t *in_scan, __scal_src_
 
 	//added for aw1625, wait ceof access
 	scal_dev[sel]->frm_ctrl.bits.coef_access_ctrl= 1; 
-	while(scal_dev[sel]->status.bits.coef_access_status == 0)
+	while((scal_dev[sel]->status.bits.coef_access_status == 0) && (loop_count < 10))
 	{
+            loop_count ++;
 	}
     for(i=0; i<32; i++)
     {

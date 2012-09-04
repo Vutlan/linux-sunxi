@@ -14,6 +14,7 @@ static struct alloc_struct_t boot_heap_head, boot_heap_tail;
 
 static unsigned int gbuffer[4096];
 static __u32 suspend_output_type[2] = {0,0};
+static __u32 suspend_output_mode[2] = {0,0};
 static __u32 suspend_status = 0;//0:normal; suspend_status&1 != 0:in early_suspend; suspend_status&2 != 0:in suspend;
 static __u32 suspend_prestep = 0; //0:after early suspend; 1:after suspend; 2:after resume; 3 :after late resume
 
@@ -23,9 +24,6 @@ static int g_disp_mm_sel = 0;
 static struct cdev *my_cdev;
 static dev_t devid ;
 static struct class *disp_class;
-
-static unsigned long jiffies_resume;
-static unsigned long jiffies_late_resume;
 
 static struct resource disp_resource[DISP_IO_NUM] =
 {
@@ -567,8 +565,10 @@ void backlight_late_resume(struct early_suspend *h)
 
     pr_info("==display late resume enter\n");
 
-    BSP_disp_clk_on(2);
-
+    if(suspend_prestep != 2)
+    {
+    	BSP_disp_clk_on(2);
+    }
     for(i=0; i<2; i++)
     {
         if(suspend_output_type[i] == DISP_OUTPUT_TYPE_LCD)
@@ -591,9 +591,6 @@ void backlight_late_resume(struct early_suspend *h)
             {
                 DRV_lcd_open(i);
             }
-            jiffies_late_resume = jiffies;
-            //pr_info("==jiffies_resume:%ld,  late_resume:%ld\n", jiffies_resume, jiffies_late_resume);
-            
         }
         else if(suspend_output_type[i] == DISP_OUTPUT_TYPE_TV)
         {
@@ -605,6 +602,7 @@ void backlight_late_resume(struct early_suspend *h)
         }
         else if(suspend_output_type[i] == DISP_OUTPUT_TYPE_HDMI)
         {
+	    BSP_disp_hdmi_set_mode(i, suspend_output_type[i]);
             BSP_disp_hdmi_open(i);
         }
     }
@@ -677,10 +675,12 @@ int disp_suspend(struct platform_device *pdev, pm_message_t state)
         BSP_disp_store_scaler_reg(0, scaler0_reg_bak);
      }
 
+    BSP_disp_hdmi_suspend();
 #ifndef CONFIG_HAS_EARLYSUSPEND
     BSP_disp_clk_off(3);
 #else
     BSP_disp_clk_off(1);
+    BSP_disp_clk_off(2);
 #endif
 
     suspend_status |= 2;
@@ -694,11 +694,8 @@ int disp_resume(struct platform_device *pdev)
     int i = 0;
     pr_info("==disp_resume call\n");
 
-#ifndef CONFIG_HAS_EARLYSUSPEND
-    BSP_disp_clk_on(3);
-#else
     BSP_disp_clk_on(1);
-#endif
+    BSP_disp_clk_on(2);
 
     if(SUPER_STANDBY == standby_type)
     {
@@ -718,7 +715,6 @@ int disp_resume(struct platform_device *pdev)
 #ifndef CONFIG_HAS_EARLYSUSPEND
     {
 
-        BSP_disp_clk_on(3);
 
         for(i=0; i<2; i++)
         {
@@ -741,7 +737,6 @@ int disp_resume(struct platform_device *pdev)
         }
     }
 #else
-    jiffies_resume = jiffies;
 
    for(i=0; i<2; i++)
     {
@@ -754,6 +749,7 @@ int disp_resume(struct platform_device *pdev)
 
 #endif
 
+    BSP_disp_hdmi_resume();
     suspend_status &= (~2);
     suspend_prestep = 2;
 
@@ -1465,6 +1461,11 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
     	case DISP_CMD_TV_SET_MODE:
     		ret = BSP_disp_tv_set_mode(ubuffer[0], (__disp_tv_mode_t)ubuffer[1]);
+		 if(suspend_status != 0)
+                 {
+          	      suspend_output_mode[ubuffer[0]] = ubuffer[1];
+                 }
+
     		break;
 
     	case DISP_CMD_TV_GET_MODE:
@@ -1532,6 +1533,11 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
     	case DISP_CMD_HDMI_SET_MODE:
     		ret = BSP_disp_hdmi_set_mode(ubuffer[0], ubuffer[1]);
+	 	if(suspend_status != 0)
+            	{
+                	suspend_output_mode[ubuffer[0]] = ubuffer[1];
+            	}
+
     		break;
 
     	case DISP_CMD_HDMI_GET_MODE:
