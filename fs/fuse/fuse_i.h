@@ -26,6 +26,8 @@
 /** Max number of pages that can be used in a single read request */
 #define FUSE_MAX_PAGES_PER_REQ 32
 
+/** read cache threshhold */
+#define FUSE_READ_CACHE_THRESHHOLD 8
 /** Bias for fi->writectr, meaning new writepages must not be sent */
 #define FUSE_NOWRITE INT_MIN
 
@@ -44,6 +46,7 @@
     doing the mount will be allowed to access the filesystem */
 #define FUSE_ALLOW_OTHER         (1 << 1)
 
+#define CACHE_REQ_ENABLE 1
 /** List of active connections */
 extern struct list_head fuse_conn_list;
 
@@ -308,7 +311,14 @@ struct fuse_req {
 	/** Request is stolen from fuse_file->reserved_req */
 	struct file *stolen_file;
 };
-
+struct cache_req_list{
+	loff_t pos;
+	ssize_t count;
+	ssize_t lock;
+	struct inode *inode;
+	struct file *file;
+	struct list_head *req;
+};
 /**
  * A Fuse connection.
  *
@@ -350,6 +360,8 @@ struct fuse_conn {
 	/** The list of requests being processed */
 	struct list_head processing;
 
+	/**The list of req to merge */
+	struct cache_req_list cache_req;
 	/** The list of requests under I/O */
 	struct list_head io;
 
@@ -515,6 +527,34 @@ struct fuse_conn {
 	struct rw_semaphore killsb;
 };
 
+struct file_thread_info {
+    struct file *file;
+	struct fuse_conn *f_conn;
+	struct file_thread_info *next, *prev;
+};
+
+struct  file_thread_struct{
+	int    file_num;
+	int    mutex_init;
+	struct mutex fuse_mutex;
+	struct mutex fuse_open_rel_mutex;
+	struct mutex fuse_write_mutex;
+	struct file_thread_info *file_info;
+	struct file_thread_info *file_info_curr;
+	struct task_struct *req_task;
+};
+
+struct read_cache_manager{
+	loff_t	pos;
+	size_t	count;
+	u32		times;
+	loff_t	b_pos;
+	size_t	len;
+	void	*buf;
+	void	*virtual;
+	struct page *page;
+	struct file *file;
+};
 static inline struct fuse_conn *get_fuse_conn_super(struct super_block *sb)
 {
 	return sb->s_fs_info;
@@ -540,6 +580,8 @@ extern const struct file_operations fuse_dev_operations;
 
 extern const struct dentry_operations fuse_dentry_operations;
 
+void init_fuse_lock();
+int  add_file_to_list(struct file *file, struct fuse_conn *fc, bool isdir);
 /**
  * Inode to nodeid comparison.
  */
@@ -764,3 +806,4 @@ int fuse_dev_release(struct inode *inode, struct file *file);
 void fuse_write_update_size(struct inode *inode, loff_t pos);
 
 #endif /* _FS_FUSE_I_H */
+

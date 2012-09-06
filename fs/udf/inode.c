@@ -37,6 +37,7 @@
 #include <linux/writeback.h>
 #include <linux/slab.h>
 #include <linux/crc-itu-t.h>
+#include <linux/mpage.h>
 
 #include "udf_i.h"
 #include "udf_sb.h"
@@ -104,9 +105,17 @@ static int udf_writepage(struct page *page, struct writeback_control *wbc)
 
 static int udf_readpage(struct file *file, struct page *page)
 {
-	return block_read_full_page(page, udf_get_block);
+	int ret;
+	ret = block_read_full_page(page, udf_get_block);
+	return  ret;
 }
 
+static int udf_readpages(struct file *file, struct address_space *mapping, struct list_head *pages,	unsigned nr_pages)
+{
+	int ret;
+	ret =	mpage_readpages(mapping, pages, nr_pages,  udf_get_block);
+	return ret;
+}
 static int udf_write_begin(struct file *file, struct address_space *mapping,
 			loff_t pos, unsigned len, unsigned flags,
 			struct page **pagep, void **fsdata)
@@ -140,6 +149,7 @@ static sector_t udf_bmap(struct address_space *mapping, sector_t block)
 const struct address_space_operations udf_aops = {
 	.readpage	= udf_readpage,
 	.writepage	= udf_writepage,
+	.readpages	= udf_readpages,
 	.write_begin		= udf_write_begin,
 	.write_end		= generic_write_end,
 	.bmap		= udf_bmap,
@@ -300,18 +310,34 @@ struct buffer_head *udf_expand_dir_adinicb(struct inode *inode, int *block,
 	return dbh;
 }
 
+struct udf_phy_info phy_info = {0, 0, 0, 0, 0xffffffffffffffff};
 static int udf_get_block(struct inode *inode, sector_t block,
 			 struct buffer_head *bh_result, int create)
 {
-	int err, new;
+	int err, new, i;
 	struct buffer_head *bh;
-	sector_t phys = 0;
+	sector_t phys = 0, temp;
 	struct udf_inode_info *iinfo;
+	unsigned int total_len = 1;
+
+	if(bh_result)
+		total_len = bh_result->b_size >> inode->i_blkbits;
 
 	if (!create) {
-		phys = udf_block_map(inode, block);
-		if (phys)
+		temp = block - phy_info.block;
+		temp += phy_info.offset;
+		temp <<= inode->i_blkbits;
+		if(temp >= phy_info.elen || block == 0 || phy_info.i_ino != inode->i_ino){
+			phys = udf_block_map(inode, block, &phy_info);
+			phy_info.block = block;
+			phy_info.i_ino = inode->i_ino;
+		}
+		else{
+			phys = phy_info.phy_blk + block - phy_info.block;
+		}
+		if(phys){
 			map_bh(bh_result, inode->i_sb, phys);
+		}
 		return 0;
 	}
 
@@ -2125,7 +2151,7 @@ int8_t inode_bmap(struct inode *inode, sector_t block,
 	return etype;
 }
 
-long udf_block_map(struct inode *inode, sector_t block)
+long udf_block_map(struct inode *inode, sector_t block,struct udf_phy_info *phy_info)
 {
 	struct kernel_lb_addr eloc;
 	uint32_t elen;
@@ -2141,6 +2167,11 @@ long udf_block_map(struct inode *inode, sector_t block)
 	else
 		ret = 0;
 
+	if(phy_info){
+		phy_info->elen = elen;
+		phy_info->offset = offset;
+		phy_info->phy_blk = ret;
+	}
 	up_read(&UDF_I(inode)->i_data_sem);
 	brelse(epos.bh);
 

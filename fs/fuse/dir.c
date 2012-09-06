@@ -464,6 +464,8 @@ static int fuse_create_open(struct inode *dir, struct dentry *entry, int mode,
 	}
 	file->private_data = fuse_file_get(ff);
 	fuse_finish_open(inode, file);
+	init_fuse_lock();
+	add_file_to_list(file, fc, false);
 	return 0;
 
  out_free_ff:
