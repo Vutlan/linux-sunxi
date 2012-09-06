@@ -87,6 +87,9 @@
 #define F25_ALARM
 //#define RTC_ALARM_DEBUG
 
+//define RTC 32.768khz clock output
+#define RTC_CLOCK
+
 static struct i2c_driver pcf8563_driver;
 static __u32 twi_id = 0;
 
@@ -938,6 +941,21 @@ static int pcf8563_probe(struct i2c_client *client,
 			dev_err(&client->dev, "pcf8563_probe: request irq failed\n");
 			goto exit_kfree;
 		}
+	}
+	#endif
+
+	#ifdef RTC_CLOCK
+	printk("RTC:%s set clock output to 32.768khz\n",__func__);
+	ret = i2c_smbus_read_byte_data(client,PCF8563_REG_CLKO);
+	if(ret < 0){
+		printk("%s,line:%d,err:can not get data for clock\n", __func__,__LINE__);
+		goto out;
+	}
+	printk("RTC: init clock data is %x,must be set to 0x80\n",ret);
+	ret = i2c_smbus_write_byte_data(client, PCF8563_REG_CLKO, 0x80);
+	if(ret < 0){
+		printk("%s,line:%d,err:can not set data for clock\n", __func__,__LINE__);
+		goto out;
 	}
 	#endif
 
