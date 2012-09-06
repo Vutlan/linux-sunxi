@@ -499,12 +499,11 @@ static int sun6i_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 			/*
 			 * stop play dma transfer
 			 */
-			play_buffdone_flag = false; 
 			if (0 != sw_dma_ctl(play_prtd->dma_hdl, DMA_OP_STOP, NULL)) {
 			printk("%s err, dma stop err\n", __FUNCTION__);
 			return -EINVAL;
 			}
-			break;	
+			break;
 		default:
 			ret = -EINVAL;
 			break;
@@ -533,9 +532,6 @@ static int sun6i_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 			/*
 			 * stop capture dma transfer
 			 */
-			
-			capture_buffdone_flag = false;
-			
 			if (0 != sw_dma_ctl(capture_prtd->dma_hdl, DMA_OP_STOP, NULL)) {
 			printk("%s err, dma stop err\n", __FUNCTION__);
 			return -EINVAL;

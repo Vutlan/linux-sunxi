@@ -270,7 +270,6 @@ static int sun6i_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 	case SNDRV_PCM_TRIGGER_SUSPEND:
 	case SNDRV_PCM_TRIGGER_STOP:
 	case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
-		buffdone_flag = false;
 		if (0 != sw_dma_ctl(prtd->dma_hdl, DMA_OP_STOP, NULL)) {
 			printk("%s err, dma stop err\n", __FUNCTION__);
 			return -EINVAL;
