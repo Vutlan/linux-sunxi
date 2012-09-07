@@ -38,8 +38,8 @@
 #include "sun4i-i2s.h"
 
 //=============mode selection====================
-//#define I2S_COMMUNICATION
-#define PCM_COMMUNICATION
+#define I2S_COMMUNICATION
+//#define PCM_COMMUNICATION
 /*--------------BT module definition-----------*/
 #define BCM4329		//default setup: BT: slave, A10 master / 8KHZ / mono / 16bits / bclk: 512KHz / period: 64 clks / invert BCLK /normal SYNC / short frame
 //-----------------------------------------------
@@ -183,9 +183,9 @@ void sun4i_snd_txctrl_i2s(struct snd_pcm_substream *substream, int on)
 		writel(reg_val, sun4i_iis.regs + SUN4I_IISINT);
 			
 		//Global disable Digital Audio Interface
-		reg_val = readl(sun4i_iis.regs + SUN4I_IISCTL);
-		reg_val &= ~SUN4I_IISCTL_GEN;
-		writel(reg_val, sun4i_iis.regs + SUN4I_IISCTL);
+//		reg_val = readl(sun4i_iis.regs + SUN4I_IISCTL);
+//		reg_val &= ~SUN4I_IISCTL_GEN;
+//		writel(reg_val, sun4i_iis.regs + SUN4I_IISCTL);
 	}		
 }
 
@@ -244,9 +244,9 @@ void sun4i_snd_rxctrl_i2s(struct snd_pcm_substream *substream, int on)
 		writel(reg_val, sun4i_iis.regs + SUN4I_IISINT);
 				
 		//Global disable Digital Audio Interface
-		reg_val = readl(sun4i_iis.regs + SUN4I_IISCTL);
-		reg_val &= ~SUN4I_IISCTL_GEN;
-		writel(reg_val, sun4i_iis.regs + SUN4I_IISCTL);
+//		reg_val = readl(sun4i_iis.regs + SUN4I_IISCTL);
+//		reg_val &= ~SUN4I_IISCTL_GEN;
+//		writel(reg_val, sun4i_iis.regs + SUN4I_IISCTL);
 	}		
 }
 

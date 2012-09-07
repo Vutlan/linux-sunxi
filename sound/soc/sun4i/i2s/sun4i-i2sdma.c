@@ -155,9 +155,10 @@ static void sun4i_audio_capture_buffdone(struct sw_dma_chan *channel,
 {
 	struct sun4i_capture_runtime_data *capture_prtd;
 	struct snd_pcm_substream *substream = dev_id;
+
 	if (result == SW_RES_ABORT || result == SW_RES_ERR)
 		return;
-		
+
 	capture_prtd = substream->runtime->private_data;
 		if (substream) {				
 			snd_pcm_period_elapsed(substream);
@@ -177,9 +178,10 @@ static void sun4i_audio_play_buffdone(struct sw_dma_chan *channel,
 {
 	struct sun4i_playback_runtime_data *play_prtd;
 	struct snd_pcm_substream *substream = dev_id;
+
 	if (result == SW_RES_ABORT || result == SW_RES_ERR)
 		return;
-		
+
 	play_prtd = substream->runtime->private_data;
 	if (substream) {
 		snd_pcm_period_elapsed(substream);
@@ -449,6 +451,7 @@ static int sun4i_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 		case SNDRV_PCM_TRIGGER_START:
 		case SNDRV_PCM_TRIGGER_RESUME:
 		case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
+			printk("[IIS] capture dma trigger start, line = %d\n", __LINE__);
 			sw_dma_ctrl(capture_prtd->params->channel, SW_DMAOP_START);
 			break;			
 		case SNDRV_PCM_TRIGGER_SUSPEND:
