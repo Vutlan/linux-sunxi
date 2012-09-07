@@ -208,8 +208,9 @@ u32 sw_gpio_setcfg(u32 gpio, u32 val)
 
 	pchip = gpio_to_aw_gpiochip(gpio);
 	if(NULL == pchip) {
-		uret = __LINE__;
-		goto End;
+		PIO_ERR("%s err: line %d, gpio_to_aw_gpiochip(%d) return NULL\n",
+			__FUNCTION__, __LINE__, gpio);
+		return __LINE__;
 	}
 
 	PIO_CHIP_LOCK(&pchip->lock, flags);
@@ -226,9 +227,8 @@ u32 sw_gpio_setcfg(u32 gpio, u32 val)
 
 End:
 	PIO_CHIP_UNLOCK(&pchip->lock, flags);
-	if(0 != uret) {
+	if(0 != uret)
 		PIO_ERR("%s err, line %d\n", __FUNCTION__, uret);
-	}
 
 	return uret;
 }
@@ -256,8 +256,9 @@ u32 sw_gpio_getcfg(u32 gpio)
 
 	pchip = gpio_to_aw_gpiochip(gpio);
 	if(NULL == pchip) {
-		usign = __LINE__;
-		goto End;
+		PIO_ERR("%s err: line %d, gpio_to_aw_gpiochip(%d) return NULL\n",
+			__FUNCTION__, __LINE__, gpio);
+		return GPIO_CFG_INVALID;
 	}
 
 	PIO_CHIP_LOCK(&pchip->lock, flags);
@@ -302,8 +303,9 @@ u32 sw_gpio_setpull(u32 gpio, u32 val)
 
 	pchip = gpio_to_aw_gpiochip(gpio);
 	if(NULL == pchip) {
-		uret = __LINE__;
-		goto End;
+		PIO_ERR("%s err: line %d, gpio_to_aw_gpiochip(%d) return NULL\n",
+			__FUNCTION__, __LINE__, gpio);
+		return __LINE__;
 	}
 
 	PIO_CHIP_LOCK(&pchip->lock, flags);
@@ -320,9 +322,8 @@ u32 sw_gpio_setpull(u32 gpio, u32 val)
 
 End:
 	PIO_CHIP_UNLOCK(&pchip->lock, flags);
-	if(0 != uret) {
+	if(0 != uret)
 		PIO_ERR("%s err, line %d\n", __FUNCTION__, uret);
-	}
 
 	return uret;
 }
@@ -350,8 +351,9 @@ u32 sw_gpio_getpull(u32 gpio)
 
 	pchip = gpio_to_aw_gpiochip(gpio);
 	if(NULL == pchip) {
-		usign = __LINE__;
-		goto End;
+		PIO_ERR("%s err: line %d, gpio_to_aw_gpiochip(%d) return NULL\n",
+			__FUNCTION__, __LINE__, gpio);
+		return GPIO_PULL_INVALID;
 	}
 
 	PIO_CHIP_LOCK(&pchip->lock, flags);
@@ -396,8 +398,9 @@ u32 sw_gpio_setdrvlevel(u32 gpio, u32 val)
 
 	pchip = gpio_to_aw_gpiochip(gpio);
 	if(NULL == pchip) {
-		uret = __LINE__;
-		goto End;
+		PIO_ERR("%s err: line %d, gpio_to_aw_gpiochip(%d) return NULL\n",
+			__FUNCTION__, __LINE__, gpio);
+		return __LINE__;
 	}
 
 	PIO_CHIP_LOCK(&pchip->lock, flags);
@@ -414,9 +417,8 @@ u32 sw_gpio_setdrvlevel(u32 gpio, u32 val)
 
 End:
 	PIO_CHIP_UNLOCK(&pchip->lock, flags);
-	if(0 != uret) {
+	if(0 != uret)
 		PIO_ERR("%s err, line %d\n", __FUNCTION__, uret);
-	}
 
 	return uret;
 }
@@ -444,8 +446,9 @@ u32 sw_gpio_getdrvlevel(u32 gpio)
 
 	pchip = gpio_to_aw_gpiochip(gpio);
 	if(NULL == pchip) {
-		usign = __LINE__;
-		goto End;
+		PIO_ERR("%s err: line %d, gpio_to_aw_gpiochip(%d) return NULL\n",
+			__FUNCTION__, __LINE__, gpio);
+		return GPIO_DRVLVL_INVALID;
 	}
 
 	PIO_CHIP_LOCK(&pchip->lock, flags);
