@@ -493,7 +493,8 @@ u32 sw_gpio_setall_range(struct gpio_config *pcfg, u32 cfg_num)
 #endif /* DBG_GPIO */
 		pchip = gpio_to_aw_gpiochip(pcfg->gpio);
 		if(NULL == pchip) {
-			PIO_ERR_FUN_LINE;
+			PIO_ERR("%s err: line %d, gpio_to_aw_gpiochip(%d) return NULL\n",
+				__FUNCTION__, __LINE__, pcfg->gpio);
 			return __LINE__;
 		}
 
@@ -534,7 +535,8 @@ u32 sw_gpio_getall_range(struct gpio_config *pcfg, u32 cfg_num)
 #endif /* DBG_GPIO */
 		pchip = gpio_to_aw_gpiochip(pcfg->gpio);
 		if(NULL == pchip) {
-			PIO_ERR_FUN_LINE;
+			PIO_ERR("%s err: line %d, gpio_to_aw_gpiochip(%d) return NULL\n",
+				__FUNCTION__, __LINE__, pcfg->gpio);
 			return __LINE__;
 		}
 
