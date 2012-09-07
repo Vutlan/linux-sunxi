@@ -146,11 +146,6 @@ void sun6i_snd_txctrl_i2s(struct snd_pcm_substream *substream, int on)
 		reg_val = readl(sun6i_iis.regs + SUN6I_IISINT);
 		reg_val &= ~SUN6I_IISINT_TXDRQEN;
 		writel(reg_val, sun6i_iis.regs + SUN6I_IISINT);
-			
-		//Global disable Digital Audio Interface
-		reg_val = readl(sun6i_iis.regs + SUN6I_IISCTL);
-		reg_val &= ~SUN6I_IISCTL_GEN;
-		writel(reg_val, sun6i_iis.regs + SUN6I_IISCTL);
 	}		
 }
 
@@ -206,11 +201,6 @@ void sun6i_snd_rxctrl_i2s(struct snd_pcm_substream *substream, int on)
 		reg_val = readl(sun6i_iis.regs + SUN6I_IISINT);
 		reg_val &= ~SUN6I_IISINT_RXDRQEN;
 		writel(reg_val, sun6i_iis.regs + SUN6I_IISINT);
-				
-		//Global disable Digital Audio Interface
-		reg_val = readl(sun6i_iis.regs + SUN6I_IISCTL);
-		reg_val &= ~SUN6I_IISCTL_GEN;
-		writel(reg_val, sun6i_iis.regs + SUN6I_IISCTL);
 	}		
 }
 
