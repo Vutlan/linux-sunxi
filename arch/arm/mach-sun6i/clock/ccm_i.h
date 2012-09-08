@@ -24,6 +24,7 @@
 #include <mach/clock.h>
 #include <mach/ccmu.h>
 
+extern __aw_ccu_clk_t aw_ccu_clk_tbl[]; /* liugang, for ccu test */
 
 extern __ccmu_reg_list_t   *aw_ccu_reg;
 extern __ccmu_reg_cpu0_list_t  *aw_cpu0_reg;
