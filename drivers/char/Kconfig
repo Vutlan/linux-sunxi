@@ -647,5 +647,6 @@ config TILE_SROM
 source "drivers/char/dma_test/Kconfig"
 source "drivers/char/ar100_test/Kconfig"
 source "drivers/char/sun6i_g2d/Kconfig"
+source "drivers/char/timer_test/Kconfig"
 endmenu
 

@@ -72,3 +72,4 @@ obj-$(CONFIG_SUN6I_G2D) += sun6i_g2d/
 js-rtc-y = rtc.o
 
 obj-$(CONFIG_TILE_SROM)		+= tile-srom.o
+obj-$(CONFIG_SUNXI_TIMER_TEST)	+= timer_test/
