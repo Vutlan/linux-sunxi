@@ -557,7 +557,7 @@ config MMC_DEBUG_SUNXI
 
 config MMC_PRE_DBGLVL_SUNXI
 	int "Pre-defined debug level for SUNXI MMC driver"
-	depends on MMC && MMC_SUN6I && MMC_DEBUG_SUNXI
+	depends on MMC && MMC_SUN6I
 	default 0
 
 config MMC_JZ4740
