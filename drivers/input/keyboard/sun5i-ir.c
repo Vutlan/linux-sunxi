@@ -622,8 +622,11 @@ static void sun4i_ir_suspend(struct early_suspend *h)
 	tmp &= 0xfffffffc;
     writel(tmp, IR_BASE+IR_CTRL_REG);
 */
+
+#if 0
 	clk_disable(ir_clk);
 	clk_disable(apb_ir_clk);
+#endif
 
 	return ;
 }
@@ -639,11 +642,13 @@ static void sun4i_ir_resume(struct early_suspend *h)
 	printk("enter laterresume: sun4i_ir_resume. \n");
 #endif
 
+#if 0
 	ir_code = 0;
 	timer_used = 0;	
 	ir_reset_rawbuffer();	
 	ir_clk_cfg();	
 	ir_reg_cfg();
+#endif
 
 	return ; 
 }
