@@ -97,7 +97,8 @@ static int sun4i_sndi2s_hw_params(struct snd_pcm_substream *substream,
 			mclk = 24576000;
 			break;
 	}
-	
+
+#ifdef PCM_COMMUNICATION	
 	ret = snd_soc_dai_set_fmt(codec_dai, SND_SOC_DAIFMT_DSP_A |
 			SND_SOC_DAIFMT_IB_NF | SND_SOC_DAIFMT_CBS_CFS);
 	if (ret < 0)
@@ -106,7 +107,18 @@ static int sun4i_sndi2s_hw_params(struct snd_pcm_substream *substream,
 	ret = snd_soc_dai_set_fmt(cpu_dai, SND_SOC_DAIFMT_DSP_A |
 			SND_SOC_DAIFMT_IB_NF | SND_SOC_DAIFMT_CBS_CFS);
 	if (ret < 0)
+		return ret;		
+#else 
+	ret = snd_soc_dai_set_fmt(codec_dai, SND_SOC_DAIFMT_I2S |
+			SND_SOC_DAIFMT_NB_NF | SND_SOC_DAIFMT_CBS_CFS);
+	if (ret < 0)
 		return ret;
+
+	ret = snd_soc_dai_set_fmt(cpu_dai, SND_SOC_DAIFMT_I2S |
+			SND_SOC_DAIFMT_NB_NF | SND_SOC_DAIFMT_CBS_CFS);
+	if (ret < 0)
+		return ret;	
+#endif
 
 	ret = snd_soc_dai_set_sysclk(cpu_dai, 0 , mclk, 0);
 	if (ret < 0)

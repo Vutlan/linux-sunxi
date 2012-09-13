@@ -37,9 +37,9 @@
 #include "sun4i-i2sdma.h"
 #include "sun4i-i2s.h"
 
-//=============mode selection====================
-#define I2S_COMMUNICATION
-//#define PCM_COMMUNICATION
+#include "sun4i-sndi2s.h"
+
+
 /*--------------BT module definition-----------*/
 #define BCM4329		//default setup: BT: slave, A10 master / 8KHZ / mono / 16bits / bclk: 512KHz / period: 64 clks / invert BCLK /normal SYNC / short frame
 //-----------------------------------------------

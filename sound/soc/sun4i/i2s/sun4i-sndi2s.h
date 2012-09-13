@@ -15,6 +15,11 @@
 #ifndef SUN4I_SNDI2S_H_
 #define SUN4I_SNDI2S_H_
 
+//=============mode selection====================
+#define I2S_COMMUNICATION
+//#define PCM_COMMUNICATION
+
+/*
 struct sun4i_sndi2s_platform_data {
 	int iis_bclk;
 	int iis_ws;
@@ -22,4 +27,5 @@ struct sun4i_sndi2s_platform_data {
 	void (*power)(int);
 	int model;
 }
+*/
 #endif
