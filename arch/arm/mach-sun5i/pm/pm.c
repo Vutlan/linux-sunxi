@@ -1,7 +1,7 @@
 /*
 *********************************************************************************************************
 *                                                    LINUX-KERNEL
-*                                        AllWinner Linux Platform Develop Kits
+*                                        newbie Linux Platform Develop Kits
 *                                                   Kernel Module
 *
 *                                    (c) Copyright 2006-2011, kevin.z China
@@ -11,7 +11,7 @@
 * By      : kevin.z
 * Version : v1.0
 * Date    : 2011-5-27 14:08
-* Descript: power manager for allwinners chips platform.
+* Descript: power manager for newbies chips platform.
 * Update  : date                auther      ver     notes
 *********************************************************************************************************
 */
@@ -130,7 +130,8 @@ static struct map_desc mem_sram_md = {
 
 static struct aw_pm_info standby_info = {
     .standby_para = {
-        .event = SUSPEND_WAKEUP_SRC_EXINT,
+		.event = SUSPEND_WAKEUP_SRC_EXINT,
+		.axp_event = AXP_MEM_WAKEUP,
     },
     .pmu_arg = {
         .twi_port = 0,
@@ -176,6 +177,9 @@ standby_type_e standby_type = NON_STANDBY;
 EXPORT_SYMBOL(standby_type);
 standby_level_e standby_level = STANDBY_INITIAL;
 EXPORT_SYMBOL(standby_level);
+struct standby_output_t standby_output;
+EXPORT_SYMBOL(standby_output);
+
 
 //static volatile int enter_flag = 0;
 volatile int print_flag = 0;
@@ -183,7 +187,6 @@ static bool mem_allocated_flag = false;
 static int dram_backup = 0;
 static int standby_mode = 0;
 static int suspend_status_flag = 0;
-
 
 extern void create_mapping(struct map_desc *md);
 extern void save_mapping(unsigned long vaddr);
@@ -237,8 +240,10 @@ static void check_int_src(void)
 */
 static int aw_pm_valid(suspend_state_t state)
 {
+#ifdef CHECK_IC_VERSION
 	enum sw_ic_ver version = MAGIC_VER_NULL;
-	
+#endif
+
     PM_DBG("valid\n");
 	
     if(!((state > PM_SUSPEND_ON) && (state < PM_SUSPEND_MAX))){
@@ -246,6 +251,7 @@ static int aw_pm_valid(suspend_state_t state)
         return 0;
     }
 
+#ifdef CHECK_IC_VERSION
 	if(1 == standby_mode){
 			version = sw_get_ic_ver();
 			if(!(MAGIC_VER_A13B == version || MAGIC_VER_A12B == version || MAGIC_VER_A10SB == version)){
@@ -253,6 +259,7 @@ static int aw_pm_valid(suspend_state_t state)
 				standby_mode = 0;
 			}
 	}
+#endif
 		
 	//if 1 == standby_mode, actually, mean mem corresponding with super standby 
 	if(PM_SUSPEND_STANDBY == state){
@@ -436,7 +443,7 @@ static int aw_early_suspend(void)
 
 	/*backup bus ratio*/
 	mem_clk_getdiv(&mem_para_info.clk_div);
-	/*backup pll ration*/
+	/*backup pll ratio*/
 	mem_clk_get_pll_factor(&mem_para_info.pll_factor);
 	
 	//backup mmu
@@ -508,6 +515,7 @@ static int aw_early_suspend(void)
 	
 #ifdef PRE_DISABLE_MMU
 	//enable the mapping and jump
+	//invalidate tlb? maybe, but now, at this situation,  0x0000 <--> 0x0000 mapping never stay in tlb before this.
 	jump_to_suspend(mem_para_info.saved_cpu_context.ttb_1r, mem);
 #else
 	mem();
@@ -612,6 +620,75 @@ static void aw_late_resume(void)
 	return;
 }
 
+/*
+*********************************************************************************************************
+*                           aw_early_suspend
+*
+*Description: prepare necessary info for suspend&resume;
+*
+*Return     : return 0 is process successed;
+*
+*Notes      : 
+*********************************************************************************************************
+*/
+static int aw_super_standby(suspend_state_t state)
+{
+	int result = 0;
+	suspend_status_flag = 0;
+	
+mem_enter:
+	if( 1 == mem_para_info.mem_flag){
+		invalidate_branch_predictor();
+		//must be called to invalidate I-cache inner shareable?
+		// I+BTB cache invalidate
+		__cpuc_flush_icache_all();
+		//disable 0x0000 <---> 0x0000 mapping
+		restore_processor_state();
+		//destroy 0x0000 <---> 0x0000 mapping
+		restore_mapping(MEM_SW_VA_SRAM_BASE);
+		mem_arch_resume();
+		goto resume;
+	}
+
+	save_runtime_context(mem_para_info.saved_runtime_context_svc);
+	mem_para_info.mem_flag = 1;
+	standby_level = STANDBY_WITH_POWER_OFF;
+	mem_para_info.resume_pointer = (void *)&&mem_enter;
+	//busy_waiting();
+	pr_info("resume_pointer = 0x%x. \n", (unsigned int)(mem_para_info.resume_pointer));
+	
+#if 1
+	/* config system wakeup evetn type */
+	if(PM_SUSPEND_MEM == state || PM_SUSPEND_STANDBY == state){
+		mem_para_info.axp_event = AXP_MEM_WAKEUP;
+	}else if(PM_SUSPEND_BOOTFAST == state){
+		mem_para_info.axp_event = AXP_BOOTFAST_WAKEUP;
+	}
+#endif	
+
+	result = aw_early_suspend();
+	if(-2 == result){
+		//mem_para_info.mem_flag = 1;
+		//busy_waiting();
+		suspend_status_flag = 2;
+		goto mem_enter;
+	}else if(-1 == result){
+		suspend_status_flag = 1;
+		goto suspend_err;
+	}
+	
+resume:
+	aw_late_resume();
+	save_sun5i_mem_status(dram_backup);
+	//have been disable dcache in resume1
+	enable_cache();
+	
+suspend_err:
+	pr_info("suspend_status_flag = %d. \n", suspend_status_flag);
+
+	return 0;
+
+}
 
 /*
 *********************************************************************************************************
@@ -630,9 +707,6 @@ static int aw_pm_enter(suspend_state_t state)
 {
 	asm volatile ("stmfd sp!, {r1-r12, lr}" );
 	int (*standby)(struct aw_pm_info *arg) = 0;
-	int result = 0;
-	
-	suspend_status_flag = 0;
 	
 	PM_DBG("enter state %d\n", state);     
 	if(NORMAL_STANDBY== standby_type){
@@ -640,59 +714,25 @@ static int aw_pm_enter(suspend_state_t state)
 		//move standby code to sram
 		memcpy((void *)SRAM_FUNC_START, (void *)&standby_bin_start, (int)&standby_bin_end - (int)&standby_bin_start);
 		/* config system wakeup evetn type */
-		standby_info.standby_para.event = SUSPEND_WAKEUP_SRC_EXINT | SUSPEND_WAKEUP_SRC_ALARM;
+		if(PM_SUSPEND_MEM == state || PM_SUSPEND_STANDBY == state){
+			standby_info.standby_para.axp_event = AXP_MEM_WAKEUP;
+		}else if(PM_SUSPEND_BOOTFAST == state){
+			standby_info.standby_para.axp_event = AXP_BOOTFAST_WAKEUP;
+		}
+		standby_info.standby_para.event = (SUSPEND_WAKEUP_SRC_EXINT | SUSPEND_WAKEUP_SRC_ALARM | SUSPEND_WAKEUP_SRC_IR);
+
 		/* goto sram and run */
 		standby(&standby_info);
+        standby_output.event = standby_info.standby_para.event;
+        standby_output.ir_data_cnt = standby_info.standby_para.ir_data_cnt;
+		memcpy(standby_output.ir_buffer, standby_info.standby_para.ir_buffer, STANDBY_IR_BUF_SIZE);
+
 #ifdef CHECK_INT_SRC
 		check_int_src();
 #endif
 	}else if(SUPER_STANDBY == standby_type){
-mem_enter:
-		if( 1 == mem_para_info.mem_flag){
-			invalidate_branch_predictor();
-			//must be called to invalidate I-cache inner shareable?
-			// I+BTB cache invalidate
-			__cpuc_flush_icache_all();
-			//disable 0x0000 <---> 0x0000 mapping
- 			restore_processor_state();
- 			//destroy 0x0000 <---> 0x0000 mapping
-			restore_mapping(MEM_SW_VA_SRAM_BASE);
-			mem_arch_resume();
-			goto resume;
-		}
-
-		save_runtime_context(mem_para_info.saved_runtime_context_svc);
-		mem_para_info.mem_flag = 1;
-		standby_level = STANDBY_WITH_POWER_OFF;
-		mem_para_info.resume_pointer = (void *)&&mem_enter;
-		//busy_waiting();
-		result = aw_early_suspend();
-		if(-2 == result){
-			//mem_para_info.mem_flag = 1;
-			//busy_waiting();
-			suspend_status_flag = 2;
-			goto mem_enter;
-		}else if(-1 == result){
-			suspend_status_flag = 1;
-			goto suspend_err;
-		}
-		
-resume:
-	
-#ifdef IO_MEASURE
-	io_init();
-	io_high(0);
-#endif
-		aw_late_resume();
-		save_sun5i_mem_status(dram_backup);
-		//have been disable dcache in resume1
-		enable_cache();
-				
+			aw_super_standby(state);	
 	}
-
-suspend_err:
-
-	pr_info("suspend_status_flag = %d. \n", suspend_status_flag);
 
 	asm volatile ("ldmfd sp!, {r1-r12, lr}" );
 	return 0;

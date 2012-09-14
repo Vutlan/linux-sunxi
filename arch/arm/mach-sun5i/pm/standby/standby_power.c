@@ -1,7 +1,7 @@
 /*
 *********************************************************************************************************
 *                                                    LINUX-KERNEL
-*                                        AllWinner Linux Platform Develop Kits
+*                                        newbie Linux Platform Develop Kits
 *                                                   Kernel Module
 *
 *                                    (c) Copyright 2006-2011, kevin.z China
@@ -34,44 +34,76 @@
 * Returns    : result;
 *********************************************************************************************************
 */
-__s32 standby_power_init(void)
+__s32 standby_power_init(__u32 wakeup_src)
 {
-    __u8	reg_val;
+	__u8	reg_val;
 
 	standby_twi_init(AXP_IICBUS);
 
-    #if(AXP_WAKEUP & AXP_WAKEUP_KEY)
-    /* enable pek long/short */
-	twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN3, &reg_val);
-	reg_val |= 0x03;
-	twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN3, &reg_val);
-    #endif
+	if(wakeup_src & AXP_WAKEUP_KEY){
+		/* enable pek long/short */
+		twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN3, &reg_val);
+		reg_val |= 0x03;
+		twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN3, &reg_val);
+	}
 
-    #if(AXP_WAKEUP & AXP_WAKEUP_LOWBATT)
-    /* enable low voltage warning */
-	twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN4, &reg_val);
-	reg_val |= 0x03;
-	twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN4, &reg_val);
-    /* clear pending */
-	reg_val = 0x03;
-	twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQ4, &reg_val);
-    #endif
+	if(wakeup_src & AXP_WAKEUP_LONG_KEY){
+		/* enable pek long */
+		twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN3, &reg_val);
+		reg_val |= 0x01;
+		twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN3, &reg_val);
+		/*pek long period setting: 1s*/
+		twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_PEK, &reg_val);
+		reg_val &= 0xcf;
+		twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_PEK, &reg_val);
+	}
+	
+	if(wakeup_src & AXP_WAKEUP_SHORT_KEY){
+		/* enable pek short */
+		twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN3, &reg_val);
+		reg_val |= 0x02;
+		twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN3, &reg_val);
+	}
 
-    #if(AXP_WAKEUP & AXP_WAKEUP_USB)
-    /* enable usb plug-in / plug-out */
-	twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN1, &reg_val);
-	reg_val |= 0x03<<2;
-	twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN1, &reg_val);
-    #endif
+	if(wakeup_src & AXP_WAKEUP_DESCEND){
+		/* enable pek desend trigger */
+		twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN5, &reg_val);
+		reg_val |= 0x20;
+		twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN5, &reg_val);
+	}
 
-    #if(AXP_WAKEUP & AXP_WAKEUP_AC)
-    /* enable ac plug-in / plug-out */
-	twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN1, &reg_val);
-	reg_val |= 0x03<<5;
-	twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN1, &reg_val);
-    #endif
+	if(wakeup_src & AXP_WAKEUP_ASCEND){
+		/* enable pek ascend trigger */
+		twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN5, &reg_val);
+		reg_val |= 0x40;
+		twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN5, &reg_val);
+	}
+	
+	if(wakeup_src & AXP_WAKEUP_LOWBATT){
+		/* enable low voltage warning */
+		twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN4, &reg_val);
+		reg_val |= 0x03;
+		twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN4, &reg_val);
+		/* clear pending */
+		reg_val |= 0x03;
+		twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQ4, &reg_val);
+	}
+	
+	if(wakeup_src & AXP_WAKEUP_USB){
+		/* enable usb plug-in / plug-out */
+		twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN1, &reg_val);
+		reg_val |= 0x03<<2;
+		twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN1, &reg_val);
+	}
 
-    return 0;
+	if(wakeup_src & AXP_WAKEUP_AC){
+		/* enable ac plug-in / plug-out */
+		twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN1, &reg_val);
+		reg_val |= 0x03<<5;
+		twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN1, &reg_val);
+	}
+
+	return 0;
 }
 
 
@@ -86,43 +118,71 @@ __s32 standby_power_init(void)
 * Returns    : result;
 *********************************************************************************************************
 */
-__s32 standby_power_exit(void)
+__s32 standby_power_exit(__u32 wakeup_src)
 {
-    __u8    reg_val;
+	__u8    reg_val;
 
 	twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQ4, &reg_val);
 	twi_byte_rw(TWI_OP_WR, AXP_ADDR,0x0E, &reg_val);
 
-    #if(AXP_WAKEUP & AXP_WAKEUP_KEY)
-    /* disable pek long/short */
-	twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN3, &reg_val);
-	reg_val &= ~0x03;
-	twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN3, &reg_val);
-    #endif
+	if(wakeup_src & AXP_WAKEUP_KEY){
+		/* disable pek long/short */
+		twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN3, &reg_val);
+		reg_val &= ~0x03;
+		twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN3, &reg_val);
+	}
+	
+	if(wakeup_src & AXP_WAKEUP_LONG_KEY){
+		/* enable pek long/short */
+		twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN3, &reg_val);
+		reg_val &= ~0x01;
+		twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN3, &reg_val);
+	}
+	
+	if(wakeup_src & AXP_WAKEUP_SHORT_KEY){
+		/* enable pek long/short */
+		twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN3, &reg_val);
+		reg_val &= ~0x02;
+		twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN3, &reg_val);
+	}
 
-    #if(AXP_WAKEUP & AXP_WAKEUP_LOWBATT)
-    /* disable low voltage warning */
-	twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN4, &reg_val);
-	reg_val &= ~0x03;
-	twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN4, &reg_val);
-    #endif
+	if(wakeup_src & AXP_WAKEUP_DESCEND){
+		/* disable pek desend trigger */
+		twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN5, &reg_val);
+		reg_val &= ~0x20;
+		twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN5, &reg_val);
+	}
 
-    #if(AXP_WAKEUP & AXP_WAKEUP_USB)
-    /* enable usb plug-in / plug-out */
-	twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN1, &reg_val);
-	reg_val &= ~(0x03<<2);
-	twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN1, &reg_val);
-    #endif
+	if(wakeup_src & AXP_WAKEUP_ASCEND){
+		/* disable pek desend trigger */
+		twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN5, &reg_val);
+		reg_val &= ~0x40;
+		twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN5, &reg_val);
+	}
+	
+	if(wakeup_src & AXP_WAKEUP_LOWBATT){
+		/* disable low voltage warning */
+		twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN4, &reg_val);
+		reg_val &= ~0x03;
+		twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN4, &reg_val);
+	}
 
-    #if(AXP_WAKEUP & AXP_WAKEUP_AC)
-    /* enable ac plug-in / plug-out */
-	twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN1, &reg_val);
-	reg_val &= ~(0x03<<5);
-	twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN1, &reg_val);
-    #endif
+	if(wakeup_src & AXP_WAKEUP_USB){
+		/* disable usb plug-in / plug-out */
+		twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN1, &reg_val);
+		reg_val &= ~(0x03<<2);
+		twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN1, &reg_val);
+	}
 
-    standby_twi_exit();
-    return 0;
+	if(wakeup_src & AXP_WAKEUP_AC){
+		/* disable ac plug-in / plug-out */
+		twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN1, &reg_val);
+		reg_val &= ~(0x03<<5);
+		twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN1, &reg_val);
+	}
+
+	standby_twi_exit();
+	return 0;
 }
 
 

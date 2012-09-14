@@ -1,7 +1,7 @@
 /*
 *********************************************************************************************************
 *                                                    LINUX-KERNEL
-*                                        AllWinner Linux Platform Develop Kits
+*                                        newbie Linux Platform Develop Kits
 *                                                   Kernel Module
 *
 *                                    (c) Copyright 2006-2011, kevin.z China
@@ -174,39 +174,83 @@ __s32 mem_get_voltage(enum power_vol_type_e type)
 *			 -1: failed;
 *********************************************************************************************************
 */
-__s32 mem_power_init(void)
+__s32 mem_power_init(__u32 wakeup_src)
 {
 	__u8 reg_val;
 	
 	save_mem_status(TWI_TRANSFER_STATUS );
-	#if(AXP_WAKEUP & AXP_WAKEUP_KEY)
 	/* enable power key long/short */
-	if(twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN3, &reg_val)){
-		return -1;
+	if(wakeup_src & AXP_WAKEUP_KEY){
+			if(twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN3, &reg_val)){
+				return -1;
+			}
+			reg_val |= 0x03;
+			if(twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN3, &reg_val) ){
+				return -1;
+			}
 	}
-	reg_val |= 0x03;
-	
-	if(twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN3, &reg_val) ){
-		return -1;
+
+	/*enable power key short: bit1*/
+	if(wakeup_src & AXP_WAKEUP_SHORT_KEY){
+			if(twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN3, &reg_val)){
+				return -1;
+			}
+			reg_val |= 0x02;
+			if(twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN3, &reg_val) ){
+				return -1;
+			}
 	}
-	#endif
+
+	/*enable power key long: bit0*/
+	if(wakeup_src & AXP_WAKEUP_LONG_KEY){
+			if(twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN3, &reg_val)){
+				return -1;
+			}
+			reg_val |= 0x01;
+			if(twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN3, &reg_val) ){
+				return -1;
+			}
+	}	
+
+	/*把44H寄存器的bit6(按键上升沿触发)置1*/
+	if(wakeup_src & AXP_WAKEUP_ASCEND){
+			if(twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN5, &reg_val)){
+				return -1;
+			}
+			reg_val |= 0x40;
+			if(twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN5, &reg_val)){
+				return -1;
+			}
+	}
 	
-	#if(AXP_WAKEUP & AXP_WAKEUP_LOWBATT)
+	/*把44H寄存器的bit5(下降沿触发)置1*/
+	if(wakeup_src & AXP_WAKEUP_DESCEND){
+			if(twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN5, &reg_val)){
+				return -1;
+			}
+			reg_val |= 0x20;
+			if(twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN5, &reg_val)){
+				return -1;
+			}
+	}
+	
 	/* enable low voltage warning */
-	if(twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN4, &reg_val)){
-		return -1;
+	if(wakeup_src & AXP_WAKEUP_LOWBATT){
+			if(twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN4, &reg_val)){
+				return -1;
+			}
+			reg_val |= 0x03;
+			if(twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN4, &reg_val)){
+				return -1;
+			}
+
+			/* clear pending */
+			reg_val = 0x03;
+			if(twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQ4, &reg_val)){
+				return -1;
+			}
 	}
-	reg_val |= 0x03;
-	if(twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN4, &reg_val)){
-		return -1;
-	}
-	/* clear pending */
-	reg_val = 0x03;
-	if(twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQ4, &reg_val)){
-		return -1;
-	}
-	#endif
-	
+		
 	return 0;
 }
 
@@ -222,43 +266,78 @@ __s32 mem_power_init(void)
 *			 -1: failed;
 *********************************************************************************************************
 */
-__s32 mem_power_exit(void)
+__s32 mem_power_exit(__u32 wakeup_src)
 {
 	__u8    reg_val;
 
 	//setup_env();
-
-	/*把44H寄存器的bit5, bit6(按键上升沿触发、下降沿触发)置0*/
-	if(twi_byte_rw(TWI_OP_RD, AXP_ADDR,0x44, &reg_val)){
-		return -1;
+	/* disable power key long/short */
+	if(wakeup_src & AXP_WAKEUP_KEY){
+			if(twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN3, &reg_val)){
+				return -1;
+			}
+			reg_val &= ~0x03;
+			if(twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN3, &reg_val) ){
+				return -1;
+			}
 	}
-	reg_val &= ~0x60;
-	if(twi_byte_rw(TWI_OP_WR, AXP_ADDR,0x44, &reg_val)){
-		return -1;
+
+	/*enable power key short: bit1*/
+	if(wakeup_src & AXP_WAKEUP_SHORT_KEY){
+			if(twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN3, &reg_val)){
+				return -1;
+			}
+			reg_val &= ~0x02;
+			if(twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN3, &reg_val) ){
+				return -1;
+			}
+	}
+
+	/*enable power key long: bit0*/
+	if(wakeup_src & AXP_WAKEUP_LONG_KEY){
+			if(twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN3, &reg_val)){
+				return -1;
+			}
+			reg_val &= ~0x01;
+			if(twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN3, &reg_val) ){
+				return -1;
+			}
+	}	
+
+	/*把44H寄存器的bit6(按键上升沿触发)置1*/
+	if(wakeup_src & AXP_WAKEUP_ASCEND){
+			if(twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN5, &reg_val)){
+				return -1;
+			}
+			reg_val &= ~0x40;
+			if(twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN5, &reg_val)){
+				return -1;
+			}
 	}
 	
-	#if(AXP_WAKEUP & AXP_WAKEUP_KEY)
-	/* disable pek long/short */
-	if(twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN3, &reg_val)){
-		return -1;
+	/*把44H寄存器的bit5(下降沿触发)置1*/
+	if(wakeup_src & AXP_WAKEUP_DESCEND){
+			if(twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN5, &reg_val)){
+				return -1;
+			}
+			reg_val &= ~0x20;
+			if(twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN5, &reg_val)){
+				return -1;
+			}
 	}
-	reg_val &= ~0x03;
-	if(twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN3, &reg_val)){
-		return -1;
-	}
-	#endif
-	
-	#if(AXP_WAKEUP & AXP_WAKEUP_LOWBATT)
-	/* disable low voltage warning */
-	if(twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN4, &reg_val)){
-		return -1;
-	}
-	reg_val &= ~0x03;
-	if(twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN4, &reg_val)){
-		return -1;
-	}
-	#endif
+		
+	/* enable low voltage warning */
+	if(wakeup_src & AXP_WAKEUP_LOWBATT){
+			if(twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN4, &reg_val)){
+				return -1;
+			}
+			reg_val &= ~0x03;
+			if(twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN4, &reg_val)){
+				return -1;
+			}
 
+	}
+	
 	return 0;
 }
 
@@ -278,7 +357,7 @@ __s32 mem_power_off(void)
 {
 	__u8 reg_val = 0;
 	/*config wakeup signal*/
-	/*把31H寄存器的bit3(按键、gpio唤醒位)置1*/
+	/*把31H寄存器的bit3(按键、gpio唤醒位)置1: low battery to power off*/
 	if(twi_byte_rw(TWI_OP_RD, AXP_ADDR,0x31, &reg_val)){
 		return -1;
 	}
@@ -287,14 +366,6 @@ __s32 mem_power_off(void)
 		return -1;
 	}
 
-	/*把44H寄存器的bit5, bit6(按键上升沿触发、下降沿触发)置1*/
-	if(twi_byte_rw(TWI_OP_RD, AXP_ADDR,0x44, &reg_val)){
-		return -1;
-	}
-	reg_val |= 0x60;
-	if(twi_byte_rw(TWI_OP_WR, AXP_ADDR,0x44, &reg_val)){
-		return -1;
-	}
 #if 1
 	/*power off*/
 	/*把12H寄存器的bit0、1、3、4、6置0*/
@@ -320,7 +391,7 @@ __s32 mem_power_off(void)
 #endif
 
 	/* cpu enter sleep, wait wakeup by interrupt */
-	busy_waiting();
+	//busy_waiting();
 	asm("WFI");
 
 	/*never get here.
@@ -357,14 +428,6 @@ __s32 mem_power_off_nommu(void)
 		return -1;
 	}
 
-	/*把44H寄存器的bit5, bit6(按键上升沿触发、下降沿触发)置1*/
-	if(twi_byte_rw_nommu(TWI_OP_RD, AXP_ADDR,0x44, &reg_val)){
-		return -1;
-	}
-	reg_val |= 0x60;
-	if(twi_byte_rw_nommu(TWI_OP_WR, AXP_ADDR,0x44, &reg_val)){
-		return -1;	
-	}
 #if 1
 	/*power off*/
 	/*把12H寄存器的bit0、1、3、4、6置0*/

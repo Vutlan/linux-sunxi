@@ -1,7 +1,7 @@
 /*
 *********************************************************************************************************
 *                                                    LINUX-KERNEL
-*                                        AllWinner Linux Platform Develop Kits
+*                                        newbie Linux Platform Develop Kits
 *                                                   Kernel Module
 *
 *                                    (c) Copyright 2006-2011, kevin.z China
@@ -17,6 +17,8 @@
 */
 #include "standby_i.h"
 
+#define CPU_CLK_SRC_PLL 0
+#define ENABLE_DRAM_SELF_REFRESH 1
 
 extern unsigned int save_sp(void);
 extern void restore_sp(unsigned int sp);
@@ -36,12 +38,15 @@ static struct pll_factor_t local_pll;
 static struct sun4i_clk_div_t  clk_div;
 static struct sun4i_clk_div_t  tmp_clk_div;
 
+static __u32 hosc_enabled = 0;
+
 /* parameter for standby, it will be transfered from sys_pwm module */
 struct aw_pm_info  pm_info;
 
 #define DRAM_BASE_ADDR      0xc0000000
 #define DRAM_TRANING_SIZE   (16)
 static __u32 dram_traning_area_back[DRAM_TRANING_SIZE];
+struct standby_ir_buffer ir_buffer;
 
 
 
@@ -61,7 +66,8 @@ static __u32 dram_traning_area_back[DRAM_TRANING_SIZE];
 int main(struct aw_pm_info *arg)
 {
     char    *tmpPtr = (char *)&__bss_start;
-
+    unsigned int wake_event = 0;
+    
     if(!arg){
         /* standby parameter is invalid */
         return -1;
@@ -75,6 +81,12 @@ int main(struct aw_pm_info *arg)
 
     /* clear bss segment */
     do{*tmpPtr ++ = 0;}while(tmpPtr <= (char *)&__bss_end);
+
+#if(ALLOW_DISABLE_HOSC)
+    hosc_enabled = 1;
+#else
+    hosc_enabled = 0;
+#endif
 
     /* copy standby parameter from dram */
     standby_memcpy(&pm_info, arg, sizeof(pm_info));
@@ -92,7 +104,7 @@ int main(struct aw_pm_info *arg)
     standby_clk_apbinit();
     standby_int_init();
     standby_tmr_init();
-    standby_power_init();
+    standby_power_init(pm_info.standby_para.axp_event);
     /* init some system wake source */
     if(pm_info.standby_para.event & SUSPEND_WAKEUP_SRC_EXINT){
         standby_enable_int(INT_SOURCE_EXTNMI);
@@ -102,6 +114,8 @@ int main(struct aw_pm_info *arg)
         standby_enable_int(INT_SOURCE_LRADC);
     }
     if(pm_info.standby_para.event & SUSPEND_WAKEUP_SRC_IR){
+        hosc_enabled = 1;
+        ir_buffer.dcnt = 0;
         standby_ir_init();
         standby_enable_int(INT_SOURCE_IR0);
         standby_enable_int(INT_SOURCE_IR1);
@@ -128,6 +142,24 @@ int main(struct aw_pm_info *arg)
     dram_power_save_process();
     /* process standby */
     standby();
+
+    /* check system wakeup event */
+    wake_event |= standby_query_int(INT_SOURCE_EXTNMI)? 0:SUSPEND_WAKEUP_SRC_EXINT;
+    wake_event |= standby_query_int(INT_SOURCE_USB0)? 0:SUSPEND_WAKEUP_SRC_USB;
+    wake_event |= standby_query_int(INT_SOURCE_LRADC)? 0:SUSPEND_WAKEUP_SRC_KEY;
+    wake_event |= standby_query_int(INT_SOURCE_IR0)? 0:SUSPEND_WAKEUP_SRC_IR;
+    wake_event |= standby_query_int(INT_SOURCE_ALARM)? 0:SUSPEND_WAKEUP_SRC_ALARM;
+    wake_event |= standby_query_int(INT_SOURCE_TIMER0)? 0:SUSPEND_WAKEUP_SRC_TIMEOFF;
+#if 0 
+	change_runtime_env(1);
+	io_init(); 
+	io_init_high(); 
+	delay_ms(10); 
+	io_init_low(); 
+	delay_ms(20); 
+	io_init_high(); 
+#endif
+
     /* enable watch-dog to preserve dram training failed */
     standby_tmr_enable_watchdog();
     /* restore dram */
@@ -151,7 +183,7 @@ int main(struct aw_pm_info *arg)
     if(pm_info.standby_para.event & SUSPEND_WAKEUP_SRC_KEY){
         standby_key_exit();
     }
-    standby_power_exit();
+    standby_power_exit(pm_info.standby_para.event>>16);
     standby_tmr_exit();
     standby_int_exit();
     standby_clk_apbexit();
@@ -161,8 +193,9 @@ int main(struct aw_pm_info *arg)
     standby_memcpy((char *)DRAM_BASE_ADDR, (char *)dram_traning_area_back, sizeof(__u32)*DRAM_TRANING_SIZE);
 
     /* report which wake source wakeup system */
-    arg->standby_para.event = pm_info.standby_para.event;
-
+    arg->standby_para.event = wake_event;
+    arg->standby_para.ir_data_cnt = ir_buffer.dcnt;
+    standby_memcpy(arg->standby_para.ir_buffer, ir_buffer.buf, STANDBY_IR_BUF_SIZE);
     return 0;
 }
 
@@ -222,41 +255,36 @@ static void standby(void)
 	
     /* switch cpu to 32k */
     standby_clk_core2losc();
-    #if(ALLOW_DISABLE_HOSC)
-    // disable HOSC, and disable LDO
-    standby_clk_hoscdisable();
-    standby_clk_ldodisable();
-    #endif
+    if (hosc_enabled != 1)
+    {
+        // disable HOSC, and disable LDO
+        standby_clk_hoscdisable();
+        standby_clk_ldodisable();
+    }
 
     /* cpu enter sleep, wait wakeup by interrupt */
     asm("WFI");
 
-    #if(ALLOW_DISABLE_HOSC)
-    /* enable LDO, enable HOSC */
-    standby_clk_ldoenable();
-    /* delay 1ms for power be stable */
-	//2.2ms
-    standby_delay(1);
-    standby_clk_hoscenable();
-	//4.4ms
-    standby_delay(2);
-    #endif
+    if (hosc_enabled != 1)
+    {
+        /* enable LDO, enable HOSC */
+        standby_clk_ldoenable();
+        /* delay 1ms for power be stable */
+        //3ms
+        standby_delay_cycle(1);
+        standby_clk_hoscenable();
+        //3ms
+        standby_delay_cycle(1);
+    }
+
 	/* switch clock to hosc */
     standby_clk_core2hosc();
+
     /* swtich apb1 to hosc */
     standby_clk_apb2hosc();
 
     /* restore clock division */
     standby_clk_setdiv(&clk_div);
-
-    /* check system wakeup event */
-    pm_info.standby_para.event = 0;
-    pm_info.standby_para.event |= standby_query_int(INT_SOURCE_EXTNMI)? 0:SUSPEND_WAKEUP_SRC_EXINT;
-    pm_info.standby_para.event |= standby_query_int(INT_SOURCE_USB0)? 0:SUSPEND_WAKEUP_SRC_USB;
-    pm_info.standby_para.event |= standby_query_int(INT_SOURCE_LRADC)? 0:SUSPEND_WAKEUP_SRC_KEY;
-    pm_info.standby_para.event |= standby_query_int(INT_SOURCE_IR0)? 0:SUSPEND_WAKEUP_SRC_IR;
-    pm_info.standby_para.event |= standby_query_int(INT_SOURCE_ALARM)? 0:SUSPEND_WAKEUP_SRC_ALARM;
-    pm_info.standby_para.event |= standby_query_int(INT_SOURCE_TIMER0)? 0:SUSPEND_WAKEUP_SRC_TIMEOFF;
 
     /* restore voltage for exit standby */
     standby_set_voltage(POWER_VOL_DCDC2, dcdc2);

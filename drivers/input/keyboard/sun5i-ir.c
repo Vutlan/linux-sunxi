@@ -28,6 +28,7 @@
     #include <linux/earlysuspend.h>
 #endif
 
+#include <linux/power/aw_pm.h>
 #include "ir-keymap.h"
 
 static struct clk *apb_ir_clk;
@@ -140,6 +141,7 @@ static struct ir_raw_buffer	ir_rawbuf;
 #ifdef CONFIG_HAS_EARLYSUSPEND
 static struct sun4i_ir_data *ir_data;
 #endif
+static int suspend_falg = 0;
 
 
 static inline void ir_reset_rawbuffer(void)
@@ -152,6 +154,7 @@ static inline void ir_write_rawbuffer(unsigned char data)
 	if(ir_rawbuf.dcnt < IR_RAW_BUF_SIZE) 	
 	{
 		ir_rawbuf.buf[ir_rawbuf.dcnt++] = data;
+//		printk("%d\n", data);
 	}
 	else
 	{
@@ -384,7 +387,9 @@ static unsigned long ir_packet_handler(unsigned char *buf, unsigned long dcnt)
 	}
 
 	if((val&0x80) || (len<=IR_L1_MIN))
+	{
 		return IR_ERROR_CODE; /*Invalid Code*/
+	}
 		
 	/*Find Lead '0'*/
 	len = 0;
@@ -405,7 +410,9 @@ static unsigned long ir_packet_handler(unsigned char *buf, unsigned long dcnt)
 	}
 	
 	if((!(val&0x80)) || (len<=IR_L0_MIN))
+	{
 		return IR_ERROR_CODE; /*Invalid Code*/
+	}
 	
 	/*go decoding*/
 	code = 0;  /*0 for Repeat Code*/
@@ -499,10 +506,10 @@ static irqreturn_t ir_irq_service(int irqno, void *dev_id)
 	/*Read Data Every Time Enter this Routine*/
 	{
 		//unsigned long dcnt =  (ir_get_intsta()>>8) & 0x1f;
-		unsigned long dcnt =  (ir_get_intsta()>>8) & 0x3f;
+		unsigned long dcnt =  (ir_get_intsta()>>8) & 0x7f;
 		unsigned long i = 0;
 		
-		/*Read FIFO*/
+		/*Read FIFO*/        
 		for(i=0; i<dcnt; i++)
 		{
 			if(ir_rawbuffer_full())
@@ -518,6 +525,34 @@ static irqreturn_t ir_irq_service(int irqno, void *dev_id)
 			}			
 		}		
 	}
+
+    if (suspend_falg == 1 && standby_output.ir_data_cnt != 0)
+    {
+		unsigned long code;
+		int code_valid;
+
+		#ifdef DEBUG_IR_LEVEL0
+        printk("%x,:%x\n", *(unsigned int *)standby_output.ir_buffer, standby_output.ir_data_cnt);
+		#endif
+		code = ir_packet_handler(standby_output.ir_buffer, standby_output.ir_data_cnt);
+		code_valid = ir_code_valid(code);
+		#ifdef DEBUG_IR_LEVEL0
+        printk("code:%x, code_valid:%x\n", code, code_valid);
+		#endif
+        if(code_valid)  
+        {
+			if(code_valid)	ir_code = code;  /*update saved code with a new valid code*/
+			input_report_key(ir_dev, ir_keycodes[(ir_code>>16)&0xff], 1);
+			input_sync(ir_dev);			
+            
+            input_report_key(ir_dev, ir_keycodes[(ir_code>>16)&0xff], 0);
+            input_sync(ir_dev); 
+        }
+        
+		/*flush raw buffer*/
+		ir_reset_rawbuffer();
+        return IRQ_HANDLED;
+    }
 	
 	if(intsta & IR_RXINTS_RXPE)	 /*Packet End*/
 	{
@@ -622,6 +657,8 @@ static void sun4i_ir_suspend(struct early_suspend *h)
 	tmp &= 0xfffffffc;
     writel(tmp, IR_BASE+IR_CTRL_REG);
 */
+    suspend_falg = 1;
+    standby_output.ir_data_cnt = 0;
 
 #if 0
 	clk_disable(ir_clk);
@@ -641,6 +678,9 @@ static void sun4i_ir_resume(struct early_suspend *h)
 #ifdef PRINT_SUSPEND_INFO
 	printk("enter laterresume: sun4i_ir_resume. \n");
 #endif
+
+    suspend_falg = 0;
+    standby_output.ir_data_cnt = 0;
 
 #if 0
 	ir_code = 0;

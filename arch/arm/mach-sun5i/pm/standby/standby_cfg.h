@@ -1,7 +1,7 @@
 /*
 *********************************************************************************************************
 *                                                    LINUX-KERNEL
-*                                        AllWinner Linux Platform Develop Kits
+*                                        newbie Linux Platform Develop Kits
 *                                                   Kernel Module
 *
 *                                    (c) Copyright 2006-2011, kevin.z China
@@ -20,7 +20,7 @@
 
 
 //config wakeup source for standby
-#define ALLOW_DISABLE_HOSC          (1)     // if allow disable hosc
+#define ALLOW_DISABLE_HOSC          (0)     // if allow disable hosc
 
 #define STANDBY_LDO1_VOL            (1300)  //LDO1 voltage value
 #define STANDBY_LDO2_VOL            (3000)  //LDO2 voltage value

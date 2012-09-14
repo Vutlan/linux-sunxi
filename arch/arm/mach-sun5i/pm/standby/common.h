@@ -1,7 +1,7 @@
 /*
 *********************************************************************************************************
 *                                                    LINUX-KERNEL
-*                                        AllWinner Linux Platform Develop Kits
+*                                        newbie Linux Platform Develop Kits
 *                                                   Kernel Module
 *
 *                                    (c) Copyright 2006-2011, kevin.z China
@@ -69,6 +69,7 @@ static inline __u64 standby_uldiv(__u64 dividend, __u32 divisior)
 void standby_memcpy(void *dest, void *src, int n);
 void standby_mdelay(int ms);
 void standby_delay(int cycle);
+void standby_delay_cycle(int cycle);
 
 #endif  //__COMMON_H__
 

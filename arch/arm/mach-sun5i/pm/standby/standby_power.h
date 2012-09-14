@@ -1,7 +1,7 @@
 /*
 *********************************************************************************************************
 *                                                    LINUX-KERNEL
-*                                        AllWinner Linux Platform Develop Kits
+*                                        newbie Linux Platform Develop Kits
 *                                                   Kernel Module
 *
 *                                    (c) Copyright 2006-2011, kevin.z China
@@ -41,6 +41,8 @@ enum power_vol_type_e{
 #define AXP20_BUCK2     (0x23)
 #define AXP20_BUCK3     (0x27)
 
+#define AXP20_PEK    	(0x36)
+
 #define AXP20_IRQEN1    (0x40)
 #define AXP20_IRQEN2    (0x41)
 #define AXP20_IRQEN3    (0x42)
@@ -78,15 +80,8 @@ struct axp_info {
 };
 
 
-#define AXP_WAKEUP_KEY          (1<<0)
-#define AXP_WAKEUP_LOWBATT      (1<<1)
-#define AXP_WAKEUP_USB          (1<<2)
-#define AXP_WAKEUP_AC           (1<<3)
-
-#define AXP_WAKEUP              (AXP_WAKEUP_KEY | AXP_WAKEUP_LOWBATT | AXP_WAKEUP_USB | AXP_WAKEUP_AC)
-
-extern __s32 standby_power_init(void);
-extern __s32 standby_power_exit(void);
+extern __s32 standby_power_init(__u32 wakeup_src);
+extern __s32 standby_power_exit(__u32 wakeup_src);
 extern void  standby_set_voltage(enum power_vol_type_e type, __s32 voltage);
 extern __u32 standby_get_voltage(enum power_vol_type_e type);
 

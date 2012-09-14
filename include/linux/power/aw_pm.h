@@ -1,7 +1,7 @@
 /*
 *********************************************************************************************************
 *                                                    LINUX-KERNEL
-*                                        AllWinner Linux Platform Develop Kits
+*                                        ReuuiMlla Linux Platform Develop Kits
 *                                                   Kernel Module
 *
 *                                    (c) Copyright 2006-2011, kevin.z China
@@ -53,14 +53,25 @@ struct aw_pmu_arg{
 };
 
 
+#define STANDBY_IR_BUF_SIZE     128
 /**
 *@brief struct of standby
 */
 struct aw_standby_para{
-    unsigned int event;     /**<event type for system wakeup    */
+	unsigned int event;     /**<event type for system wakeup    */
+	unsigned int axp_event;     /**<axp event type for system wakeup    */
     signed int   time_off;  /**<time to power off from now, based on second */
+    unsigned char  ir_buffer[STANDBY_IR_BUF_SIZE];
+    unsigned int   ir_data_cnt;
 };
 
+//#define STANDBY_IR_BUF_SIZE     128
+struct standby_output_t{
+	unsigned int event;     /**<event type for system wakeup    */
+    unsigned char  ir_buffer[STANDBY_IR_BUF_SIZE];
+    unsigned int   ir_data_cnt;
+};
+extern struct standby_output_t standby_output;
 
 /**
 *@brief struct of power management info

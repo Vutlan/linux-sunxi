@@ -16,4 +16,13 @@ loop2:
 	
 	pop     {r0-r3}
 	mov     pc, lr
+
+    .text
+    .globl standby_delay_cycle
+standby_delay_cycle:
+loop3:
+	subs    r0, r0, #1
+	bhi	loop3
+	mov     pc, lr
+	
 	

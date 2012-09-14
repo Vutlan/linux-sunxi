@@ -211,8 +211,14 @@ void delay_us(__u32 us)
 	__u32 target = 0;
 	//__u32 cnt = 0;
 
+
+	if(cpu_freq > 1000){
+		us_cnt = ((raw_lib_udiv(cpu_freq, 1000)) + 1)*us;
+	}else{
+		//32 <--> 32k, 1cycle = 1s/32k =32us 
+		return;
+	}
 	
-	us_cnt = ((raw_lib_udiv(cpu_freq, 1000)) + 1)*us;
 	cur = get_cyclecount();
 	target = cur - overhead + us_cnt;
 
@@ -265,17 +271,29 @@ void delay_ms(__u32 ms)
  */
 void io_init(void)
 {
-	__u32 data;
-	//int loop = 1000;
 	//config port output
 	*(volatile unsigned int *)(PORT_CONFIG)  = 0x111111;
+	
+	return;
+}
+
+void io_init_high(void)
+{
+	__u32 data;
 	
 	//set port to high
 	data = *(volatile unsigned int *)(PORT_DATA);
 	data |= 0x3f;
 	*(volatile unsigned int *)(PORT_DATA) = data;
-	//delay 10 ms
-	delay_us(10000);
+
+	return;
+}
+
+void io_init_low(void)
+{
+	__u32 data;
+
+	data = *(volatile unsigned int *)(PORT_DATA);
 	//set port to low
 	data &= 0xffffffc0;
 	*(volatile unsigned int *)(PORT_DATA) = data;

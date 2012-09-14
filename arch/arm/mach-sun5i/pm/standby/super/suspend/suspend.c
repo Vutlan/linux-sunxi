@@ -1,5 +1,5 @@
 /*
- * Contact: gqyang <gqyang <at> allwinnertech.com>                               
+ * Contact: gqyang <gqyang <at> newbietech.com>                               
  *                                                                                   
  * License terms: GNU General Public License (GPL) version 2                         
  */       
@@ -14,6 +14,7 @@
 extern char *__bss_start;
 extern char *__bss_end;
 static int retry = RETRY_TIMES;
+static struct aw_mem_para mem_para_info;
 
 extern void mem_flush_tlb(void);
 extern void flush_icache(void);
@@ -87,7 +88,7 @@ static __s32 suspend_with_mmu(void);
 #define INVALIDATE_DCACHE
 #endif
 
-#if defined(ENTER_SUPER_STANDBY_WITH_NOMMU) //not support yet
+#if defined(ENTER_SUPER_STANDBY_WITH_NOMMU) 
 #define SWITCH_STACK
 #define PRE_DISABLE_MMU
 #define DRAM_ENTER_SELFRESH
@@ -173,7 +174,9 @@ int main(void)
 	/* clear bss segment */
 	do{*tmpPtr ++ = 0;}while(tmpPtr <= (char *)&__bss_end);
 	save_sun5i_mem_status(SUSPEND_START |0x04);	
-
+	/*get input para*/
+	mem_memcpy((void *)&mem_para_info, (void *)(DRAM_BACKUP_BASE_ADDR1), sizeof(mem_para_info));
+	
 	/* initialise mem modules */
 	mem_clk_init();
 	save_sun5i_mem_status(SUSPEND_START |0x05);
@@ -185,7 +188,7 @@ int main(void)
 	save_sun5i_mem_status(SUSPEND_START |0x08);
 
 	//busy_waiting();
-	while(mem_power_init()&&--retry){
+	while(mem_power_init(mem_para_info.axp_event)&&--retry){
 		;
 	}
 	if(0 == retry){
@@ -233,7 +236,7 @@ suspend_err:
 suspend_dram_err:
 mem_power_init_err:
 	
-    while(mem_power_exit()&&--retry){
+    while(mem_power_exit(mem_para_info.axp_event)&&--retry){
 		;
 	}
 	if(0 == retry){

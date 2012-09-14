@@ -2,7 +2,7 @@
 #define _PM_H
 
 /*
- * Copyright (c) 2011-2015 yanggq.young@allwinnertech.com
+ * Copyright (c) 2011-2015 yanggq.young@newbietech.com
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 as published by
@@ -58,6 +58,8 @@ struct aw_mem_para{
 	__s32 suspend_dcdc2;
 	__s32 suspend_dcdc3;
 	__u32 suspend_freq;
+	__u32 axp_event;
+	__u32 sys_event;	
 	struct clk_div_t clk_div;
 	struct pll_factor_t pll_factor;
 	__u32 saved_runtime_context_svc[RUNTIME_CONTEXT_SIZE];

@@ -1,7 +1,7 @@
 /*
 *********************************************************************************************************
 *                                                    LINUX-KERNEL
-*                                        AllWinner Linux Platform Develop Kits
+*                                        newbie Linux Platform Develop Kits
 *                                                   Kernel Module
 *
 *                                    (c) Copyright 2006-2011, kevin.z China
@@ -31,6 +31,7 @@
 #include "standby_ir.h"
 #include "standby_tmr.h"
 #include "standby_int.h"
+#include "standby_uart.h"
 #include "../pm.h"
 
 extern struct aw_pm_info  pm_info;

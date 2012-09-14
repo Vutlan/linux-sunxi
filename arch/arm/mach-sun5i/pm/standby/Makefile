@@ -16,6 +16,7 @@ STANDBY_OBJ = 	common.o         	\
 		standby_twi.o    	\
 		standby_usb.o    	\
 		standby_delay.o  	\
+		standby_uart.o      	\
 		pm_debug.o       	\
 		dram/dram.o      	\
 		dram/dram_init.o
@@ -86,6 +87,7 @@ standby:
 	$(CC) $(INCLUDE) $(CFLAGS) standby_clock.c    -o standby_clock.o
 	$(CC) $(INCLUDE) $(CFLAGS) standby_int.c      -o standby_int.o
 	$(CC) $(INCLUDE) $(CFLAGS) standby_ir.c       -o standby_ir.o
+	$(CC) $(INCLUDE) $(CFLAGS) standby_uart.c       -o standby_uart.o
 	$(CC) $(INCLUDE) $(CFLAGS) standby_key.c      -o standby_key.o
 	$(CC) $(INCLUDE) $(CFLAGS) standby_power.c    -o standby_power.o
 	$(CC) $(INCLUDE) $(CFLAGS) standby_tmr.c      -o standby_tmr.o

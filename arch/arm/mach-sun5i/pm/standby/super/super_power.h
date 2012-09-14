@@ -1,7 +1,7 @@
 /*
 *********************************************************************************************************
 *                                                    LINUX-KERNEL
-*                                        AllWinner Linux Platform Develop Kits
+*                                        newbie Linux Platform Develop Kits
 *                                                   Kernel Module
 *
 *                                    (c) Copyright 2006-2011, kevin.z China
@@ -78,15 +78,8 @@ struct axp_info {
 };
 
 
-#define AXP_WAKEUP_KEY          (1<<0)
-#define AXP_WAKEUP_LOWBATT      (1<<1)
-#define AXP_WAKEUP_USB          (1<<2)
-#define AXP_WAKEUP_AC           (1<<3)
-
-#define AXP_WAKEUP              (AXP_WAKEUP_KEY | AXP_WAKEUP_LOWBATT | AXP_WAKEUP_USB | AXP_WAKEUP_AC)
-
-extern __s32 mem_power_init(void);
-extern __s32 mem_power_exit(void);
+extern __s32 mem_power_init(__u32 wakeup_src);
+extern __s32 mem_power_exit(__u32 wakeup_src);
 extern __s32 mem_power_off(void);
 extern __s32 mem_power_off_nommu(void);
 

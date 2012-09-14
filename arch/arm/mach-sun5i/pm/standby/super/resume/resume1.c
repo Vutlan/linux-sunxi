@@ -118,7 +118,7 @@ int main(void)
 
 	/*restore pmu config*/
 #ifdef POWER_OFF
-	mem_power_exit();
+	mem_power_exit(mem_para_info.axp_event);
 	//save_mem_status(RESUME1_START |0x8);
 	save_sun5i_mem_status(RESUME1_START |0x8);
 	/* disable watch-dog: coresponding with boot0 */
