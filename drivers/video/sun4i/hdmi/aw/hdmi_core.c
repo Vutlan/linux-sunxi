@@ -49,7 +49,7 @@ __s32 main_Hpd_Check(void)
 
 	for(i=0;i<3;i++)
 	{
-		hdmi_delay_ms(1);
+		hdmi_delay_ms(10);
 		if( HDMI_RUINT32(0x00c)&0x01)
 			times++;
 	}
