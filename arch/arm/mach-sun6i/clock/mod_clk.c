@@ -128,22 +128,26 @@ static inline __s32 _set_module0_clk_rate(volatile __ccmu_module0_clk_t *reg, __
     if(rate < 17)
     {
         reg->DivN = 0;
-        reg->DivM = rate;
+        //reg->DivM = rate;
+        reg->DivM = rate - 1; /* liugang, 2012-9-14 */
     }
     else if(rate < 33)
     {
         reg->DivN = 1;
-        reg->DivM = (rate+1)/2;
+        //reg->DivM = (rate+1)/2;
+        reg->DivM = (rate+1)/2 - 1; /* liugang, 2012-9-14 */
     }
     else if(rate < 65)
     {
         reg->DivN = 2;
-        reg->DivM = (rate+3)/4;
+        //reg->DivM = (rate+3)/4;
+	reg->DivM = (rate+3)/4 - 1; /* liugang, 2012-9-14 */
     }
     else if(rate < 129)
     {
         reg->DivN = 3;
-        reg->DivM = (rate+7)/8;
+        //reg->DivM = (rate+7)/8;
+        reg->DivM = (rate+7)/8 - 1; /* liugang, 2012-9-14 */
     }
     else
     {
@@ -1413,8 +1417,11 @@ static __u64 mod_clk_get_rate_hz(__aw_ccu_clk_id_e id)
 static int mod_clk_set_rate_hz(__aw_ccu_clk_id_e id, __u64 rate)
 {
     __u64   parent_rate = sys_clk_ops.get_rate(mod_clk_get_parent(id));
+    __u32   rem = 0;
 
-    do_div(parent_rate, rate);
+    rem = do_div(parent_rate, rate);
+    if(0 != rem) /* for no-dividable rate, increase div by 1, liugang, 2012-9-14 */
+	parent_rate += 1;
     return mod_clk_set_rate(id, parent_rate);
 }
 
