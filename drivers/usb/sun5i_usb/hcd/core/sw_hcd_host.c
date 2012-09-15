@@ -2280,18 +2280,8 @@ void sw_hcd_host_rx(struct sw_hcd *sw_hcd, u8 epnum)
 		DMSG_PANIC("ERR: sw_hcd_host_rx, RX end %d STALL(0x%x)\n", epnum, rx_csr);
 		USBC_Host_ClearEpStall(sw_hcd->sw_hcd_io->usb_bsp_hdle, USBC_EP_TYPE_RX);
 
-		sw_hcd_set_vbus(sw_hcd, 0);
-
-        /* delay */
-        {
-            u32 cnt = 10000;
-            while(cnt--);
-        }
-
-		sw_hcd_set_vbus(sw_hcd, 1);
-        return;
 		/* stall; record URB status */
-		//status = -EPIPE;
+		status = -EPIPE;
 	}else if (rx_csr & (1 << USBC_BP_RXCSR_H_ERROR)){
 		DMSG_PANIC("ERR: sw_hcd_host_rx, end %d RX proto error(0x%x)\n", epnum, rx_csr);
 

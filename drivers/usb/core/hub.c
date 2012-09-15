@@ -421,6 +421,13 @@ static void hub_irq(struct urb *urb)
 	unsigned long bits;
 
 	switch (status) {
+		
+	case -EPIPE:  /*Modify-2012-9-14*/
+		hub->error = -EPIPE;
+		printk("line%d %s\n",__LINE__, __func__);
+		kick_khubd(hub);
+  		return;
+
 	case -ENOENT:		/* synchronous unlink */
 	case -ECONNRESET:	/* async unlink */
 	case -ESHUTDOWN:	/* hardware going away */
