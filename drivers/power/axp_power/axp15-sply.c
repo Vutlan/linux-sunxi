@@ -2203,9 +2203,8 @@ static int axp15_suspend(struct platform_device *dev, pm_message_t state)
 
     struct axp_charger *charger = platform_get_drvdata(dev);
 
-
-	cancel_delayed_work_sync(&charger->work);
-
+	
+    cancel_delayed_work_sync(&charger->work);
     /*clear all irqs events*/
     irq_w[0] = 0xff;
     irq_w[1] = POWER15_INTSTS2;
@@ -2250,14 +2249,21 @@ static int axp15_resume(struct platform_device *dev)
     int Cur_CoulombCounter;
 
     axp_register_notifier(charger->master, &charger->nb, AXP15_NOTIFIER_ON);
+	printk("%s,line:%d\n", __func__, __LINE__);
 
-    axp_charger_update_state(charger);
+	    axp_charger_update_state(charger);
+printk("%s,line:%d\n", __func__, __LINE__);
 
-
+if(charger==NULL){
+	printk("%s,line:%d\n", __func__, __LINE__);
+}
+	printk("%s,line:%d\n", __func__, __LINE__);
 
 	charger->rest_vol = 100;
+	printk("%s,line:%d\n", __func__, __LINE__);
 
-    schedule_delayed_work(&charger->work, charger->interval);
+  //  schedule_delayed_work(&charger->work, charger->interval);
+	printk("%s,line:%d\n", __func__, __LINE__);
 
     return 0;
 }
