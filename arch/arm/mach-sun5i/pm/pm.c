@@ -720,7 +720,9 @@ static int aw_pm_enter(suspend_state_t state)
 			standby_info.standby_para.axp_event = AXP_BOOTFAST_WAKEUP;
 		}
 		standby_info.standby_para.event = (SUSPEND_WAKEUP_SRC_EXINT | SUSPEND_WAKEUP_SRC_ALARM | SUSPEND_WAKEUP_SRC_IR);
-
+        #ifdef  CONFIG_USB_SW_PERIPHERAL_REMOTE
+		standby_info.standby_para.event |= SUSPEND_WAKEUP_SRC_USB;
+        #endif
 		/* goto sram and run */
 		standby(&standby_info);
         standby_output.event = standby_info.standby_para.event;

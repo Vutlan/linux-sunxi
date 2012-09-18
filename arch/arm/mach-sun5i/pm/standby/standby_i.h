@@ -34,7 +34,27 @@
 #include "standby_uart.h"
 #include "../pm.h"
 
+#define HOSC_ENABLE_MASK 0x1
+#define DRAM_ENABLE_MASK 0x2
+#define PLL1_ENABLE_MASK 0x4
+#define PLL2_ENABLE_MASK 0x8
+#define PLL3_ENABLE_MASK 0x10
+#define PLL4_ENABLE_MASK 0x20
+#define PLL5_ENABLE_MASK 0x40
+#define PLL6_ENABLE_MASK 0x80
+#define PLL7_ENABLE_MASK 0x100
+#define CPU_SRC_MASK 0x30000
+
+
+
+#define CPU_SRC_LOSC 0x00000
+#define CPU_SRC_HOSC 0x10000
+#define CPU_SRC_PLL1 0x20000
+#define CPU_SRC_PLL6 0x30000
+
+
 extern struct aw_pm_info  pm_info;
+extern __u32 standby_ctrl_flag;
 
 
 #endif  //__STANDBY_I_H__

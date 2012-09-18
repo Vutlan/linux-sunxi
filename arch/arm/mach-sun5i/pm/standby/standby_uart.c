@@ -138,6 +138,32 @@ void standby_put_hex(__u32 input)
     __standby_put_hex(input);
     standby_puts("\n");
 }
+__u32 tmptable[] = {1000000000, 100000000, 10000000, 1000000, 100000, 10000, 1000, 100, 10, 1};
+void standby_put_dec(__u32 input)
+{
+    __u32 div;
+    __u32 tmpc;
+    __u32 start = 1;
+    __u32 i = 0;
+    div = tmptable[i];
+    while (div > 1)
+    {
+        tmpc = 0;
+        while (input >= div)
+        {
+            tmpc++;
+            input -= div;
+        }
+        if (start != 1 || tmpc != 0)
+        {
+            standby_putc('0'+tmpc);
+            start = 0;
+        }
+        div = tmptable[++i];
+    }
+    standby_putc('0'+input);
+    standby_puts("\n");
+}
 
 void standby_put_hex_ext(__u32 *input, __u32 size)
 {
@@ -161,4 +187,3 @@ void standby_put_hex_ext(__u32 *input, __u32 size)
 }
 
 #endif
-

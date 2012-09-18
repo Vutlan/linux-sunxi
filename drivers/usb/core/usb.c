@@ -340,7 +340,9 @@ struct device_type usb_device_type = {
 	.uevent =	usb_dev_uevent,
 	.devnode = 	usb_devnode,
 #ifdef CONFIG_PM
+#ifndef  CONFIG_USB_SW_PERIPHERAL_REMOTE
 	.pm =		&usb_device_pm_ops,
+#endif
 #endif
 };
 

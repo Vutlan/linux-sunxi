@@ -26,13 +26,14 @@ void standby_puts(const char *str);
 void standby_put_uint(__u32 input);
 void standby_put_hex(__u32 input);
 void standby_puts(const char *str);
+void standby_put_dec(__u32 input);
 #else
 #define standby_putc(c) do{}while(0)
 #define standby_puts(str) do{}while(0)
 #define standby_put_uint(input) do{}while(0)
 #define standby_put_hex(input) do{}while(0)
 #define standby_puts(str) do{}while(0)
+#define standby_put_dec(str) do{}while(0)
 #endif
 #endif   //__STANDBY_UART_H__
-
 

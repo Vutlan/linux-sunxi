@@ -278,9 +278,11 @@ static const struct hc_driver sw_ohci_hc_driver ={
 	.hub_status_data    = ohci_hub_status_data,
 	.hub_control        = ohci_hub_control,
 
+#ifndef  CONFIG_USB_SW_PERIPHERAL_REMOTE
 #ifdef	CONFIG_PM
 	.bus_suspend        = ohci_bus_suspend,
 	.bus_resume         = ohci_bus_resume,
+#endif
 #endif
 	.start_port_reset   = ohci_start_port_reset,
 };
@@ -665,7 +667,9 @@ static struct platform_driver sw_ohci_hcd_driver = {
 	.driver		= {
 		.name	= ohci_name,
 		.owner	= THIS_MODULE,
+#ifndef  CONFIG_USB_SW_PERIPHERAL_REMOTE
 		.pm	    = SW_OHCI_PMOPS,
+#endif
 	},
 };
 

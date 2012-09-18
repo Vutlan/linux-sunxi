@@ -169,13 +169,34 @@ __s32 standby_clk_core2pll(void)
 */
 __s32 standby_clk_plldisable(void)
 {
-    CmuReg->Pll1Ctl.PLLEn = 0;
-    CmuReg->Pll2Ctl.PLLEn = 0;
-    CmuReg->Pll3Ctl.PLLEn = 0;
-    CmuReg->Pll4Ctl.PLLEn = 0;
-    CmuReg->Pll5Ctl.PLLEn = 0;
-    CmuReg->Pll6Ctl.PLLEn = 0;
-    CmuReg->Pll7Ctl.PLLEn = 0;
+    if ((standby_ctrl_flag & PLL1_ENABLE_MASK) == 0)
+    {
+        CmuReg->Pll1Ctl.PLLEn = 0;
+    }
+    if ((standby_ctrl_flag & PLL2_ENABLE_MASK) == 0)
+    {
+        CmuReg->Pll2Ctl.PLLEn = 0;
+    }
+    if ((standby_ctrl_flag & PLL3_ENABLE_MASK) == 0)
+    {
+        CmuReg->Pll3Ctl.PLLEn = 0;
+    }
+    if ((standby_ctrl_flag & PLL4_ENABLE_MASK) == 0)
+    {
+        CmuReg->Pll4Ctl.PLLEn = 0;
+    }
+    if ((standby_ctrl_flag & PLL5_ENABLE_MASK) == 0)
+    {
+        CmuReg->Pll5Ctl.PLLEn = 0;
+    }
+    if ((standby_ctrl_flag & PLL6_ENABLE_MASK) == 0)
+    {
+        CmuReg->Pll6Ctl.PLLEn = 0;
+    }
+    if ((standby_ctrl_flag & PLL7_ENABLE_MASK) == 0)
+    {
+        CmuReg->Pll7Ctl.PLLEn = 0;
+    }
 
     return 0;
 }

@@ -61,3 +61,8 @@ config USB_SW_SUN5I_USB_DEBUG
     depends on USB_SW_SUN5I_USB
     help
         SUN5I USB driver debug message.
+config USB_SW_PERIPHERAL_REMOTE
+    boolean "support peripheral remote"
+    depends on USB_SW_SUN5I_USB
+    help
+        support peripheral remote.

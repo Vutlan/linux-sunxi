@@ -1228,8 +1228,10 @@ static const struct hc_driver sw_hcd_hc_driver = {
 
 	.hub_status_data	= sw_hcd_hub_status_data,
 	.hub_control		= sw_hcd_hub_control,
+#ifndef  CONFIG_USB_SW_PERIPHERAL_REMOTE
 	.bus_suspend		= sw_hcd_bus_suspend,
 	.bus_resume		    = sw_hcd_bus_resume,
+#endif
 };
 
 /*
@@ -2348,7 +2350,9 @@ static struct platform_driver sw_hcd_driver = {
 		.name		= (char *)sw_hcd_driver_name,
 		.bus		= &platform_bus_type,
 		.owner		= THIS_MODULE,
+#ifndef  CONFIG_USB_SW_PERIPHERAL_REMOTE
 		.pm			= &sw_hcd_dev_pm_ops,
+#endif
 	},
 
 	.remove		    = __devexit_p(sw_hcd_remove),

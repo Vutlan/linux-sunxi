@@ -343,8 +343,10 @@ static const struct hc_driver sw_ehci_hc_driver = {
 	 */
 	.hub_status_data		= ehci_hub_status_data,
 	.hub_control			= ehci_hub_control,
+#ifndef  CONFIG_USB_SW_PERIPHERAL_REMOTE
 	.bus_suspend			= ehci_bus_suspend,
 	.bus_resume				= ehci_bus_resume,
+#endif
 	.relinquish_port		= ehci_relinquish_port,
 	.port_handed_over		= ehci_port_handed_over,
 
@@ -778,7 +780,9 @@ static struct platform_driver sw_ehci_hcd_driver ={
   .driver = {
 		.name	= ehci_name,
 		.owner	= THIS_MODULE,
+#ifndef  CONFIG_USB_SW_PERIPHERAL_REMOTE
 		.pm		= SW_EHCI_PMOPS,
+#endif
   	}
 };
 
