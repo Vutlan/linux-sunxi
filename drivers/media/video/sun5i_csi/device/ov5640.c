@@ -2512,7 +2512,7 @@ static int sensor_set_capture_exposure(struct v4l2_subdev *sd)
 		preview_fps = info->tpf.denominator/info->tpf.numerator*100;   
 	
 	if(info->tpf.denominator/info->tpf.numerator < 30) {
-		capture_fps = 500;
+		capture_fps = 375;
 	}
 		
 	preview_maxlines = 984;
@@ -4254,8 +4254,7 @@ static int sensor_s_fmt(struct v4l2_subdev *sd,
 		//sensor_s_sharpness_auto(sd); //sharpness auto
 
 		if(info->tpf.denominator/info->tpf.numerator < 30) {
-			sensor_write_im(sd,0x3035,0x21);
-			sensor_write_im(sd,0x3037,0x14);
+			sensor_write_im(sd,0x3035,0x41);
 		}
 		
 		msleep(200);

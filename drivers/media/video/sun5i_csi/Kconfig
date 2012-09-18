@@ -170,3 +170,10 @@ config CSI_S5K4EC
 	  This is a Video4Linux2 sensor-level driver for the 
 	  Samsung s5k4ec 5M sensor.	 
 	 
+config CSI_OV5650_MV9335
+	tristate "OV5650 5M sensor + MV9335 ISP support"
+	default m
+	depends on I2C && VIDEO_V4L2
+	select	CSI_DEV_SEL_SUN5I
+	---help---
+	  This is a Video4Linux2 sensor-level driver for the ov5650+mv9335.	 

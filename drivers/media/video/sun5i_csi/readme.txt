@@ -1,10 +1,10 @@
 ===========================================
 
-Version: V1_40
+Version: V1_41
 
 Author:  raymonxiu
 
-Date:     2012-8-21 18:58:15
+Date:     2012-9-18 18:34:34
 
 Description:
 
@@ -27,6 +27,16 @@ insmod sun4i_csiX.ko ccm="gc0329" i2c_addr=0x62
 insmod sun4i_csiX.ko ccm="gc0309" i2c_addr=0x42
 insmod sun4i_csiX.ko ccm="tvp5150" i2c_addr=0xb8
 insmod sun4i_csiX.ko ccm="s5k4ec" i2c_addr=0x5a
+insmod sun4i_csiX.ko ccm="ov5650_mv9335" i2c_addr=0x50
+
+V1_41
+CSI: Fix gc0309/gt2005/ov5640 bug and add ov5650+mv9335.
+1) Fix gc0309 red image
+2) Fix ov5640 capturing bug at low fps
+3) Add ov5650 + mv9335 isp support
+4) Fix gt2005 I2C error at CTS test
+5) Optimize gc0307 by galaxycore
+
 
 V1_40
 CSI: Optimizing GC and OV sensor/cached videobuf

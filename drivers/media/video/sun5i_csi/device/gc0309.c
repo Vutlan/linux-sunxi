@@ -152,6 +152,9 @@ static struct regval_list sensor_default_regs[] =
 	{{0xfe},{0x00}},   // set page0
 	{{0x1a},{0x16}},   	
 	{{0xd2},{0x10}},   // close AEC
+
+	{{0x14},{0x10}},
+
 	{{0x22},{0x55}},   // close AWB
 	{{0x5a},{0x56}}, 
 	{{0x5b},{0x40}},
@@ -386,7 +389,6 @@ static struct regval_list sensor_default_regs[] =
 	{{0xfe},{0x00}},
            
         {{0xd2},{0x90}},  // Open AEC at last.  
-	{{0x14},{0x10}},
 	
 	
 	/******* 5/11 daemon update for image performance *****************/
