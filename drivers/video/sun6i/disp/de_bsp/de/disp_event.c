@@ -53,11 +53,6 @@ void LCD_vbi_event_proc(__u32 sel, __u32 tcon_index)
         }
 	}
 
-    if(DISP_OUTPUT_TYPE_LCD ==BSP_disp_get_output_type(sel))
-    {
-        IEP_Drc_Operation_In_Vblanking(sel);
-    }
-
     if(gdisp.screen[sel].LCD_CPUIF_ISR)
     {
     	(*gdisp.screen[sel].LCD_CPUIF_ISR)();
@@ -85,6 +80,11 @@ void LCD_vbi_event_proc(__u32 sel, __u32 tcon_index)
                 gdisp.scaler[i].b_close = FALSE;
             }
         }
+        
+        if(DISP_OUTPUT_TYPE_LCD == BSP_disp_get_output_type(sel))
+        {
+            IEP_Drc_Operation_In_Vblanking(sel);
+        }
         DE_BE_Cfg_Ready(sel);
         IEP_CMU_Operation_In_Vblanking(sel);
 		gdisp.screen[sel].have_cfg_reg = TRUE;
@@ -99,17 +99,6 @@ void LCD_vbi_event_proc(__u32 sel, __u32 tcon_index)
     }
 #endif
 
-#ifdef __FPGA_DEBUG__
-{
-    static __u32 count = 0;
-    if(count == 300)
-    {
-        count = 0;
-        __inf("LCD_INT\n");
-    }
-    count++;
-}
-#endif
     return ;
 }
 
@@ -120,15 +109,4 @@ void LCD_line_event_proc(__u32 sel)
 	    gdisp.init_para.disp_int_process(sel);
 	    gdisp.screen[sel].have_cfg_reg = FALSE;
 	}
-#ifdef __FPGA_DEBUG__
-    {
-        static __u32 count = 0;
-        if(count == 300)
-        {
-            count = 0;
-            __inf("FE_INT\n");
-        }
-        count++;
-    }
-#endif
 }

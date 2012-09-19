@@ -37,8 +37,9 @@
 #include <linux/clk.h>
 #include <linux/cdev.h>
 //#include <mach/sys_config.h>  for what?
-//#include <mach/clock.h>
+#include <mach/clock.h>
 //#include <mach/aw_ccu.h>
+#include <mach/gpio.h>
 #include <mach/system.h>
 #include <linux/types.h>
 #include <linux/timer.h>
@@ -52,7 +53,7 @@ typedef unsigned int __hdle;
 
 #if 1
 #define OSAL_PRINTF(msg...) {printk(KERN_WARNING "[DISP] ");printk(msg);}
-#define __inf(msg...)
+#define __inf(msg...)       
 #define __msg(msg...)
 #define __wrn(msg...)       {printk(KERN_WARNING "[DISP WRN] file:%s,line:%d:    ",__FILE__,__LINE__);printk(msg);}
 #define __here__
@@ -102,6 +103,8 @@ typedef struct
     __u32 base_drc1;
     __u32 base_deu0;
     __u32 base_deu1;
+    __u32 base_dsi0;
+    __u32 base_dsi1;
 
 	void (*tve_interrup) (__u32 sel);
 	__s32 (*hdmi_set_mode)(__disp_tv_mode_t mode);
@@ -239,8 +242,7 @@ extern __s32 BSP_disp_get_timming(__u32 sel, __disp_tcon_timing_t * tt);
 extern __u32 BSP_disp_get_cur_line(__u32 sel);
 extern __s32 BSP_disp_close_lcd_backlight(__u32 sel);
 extern __s32 BSP_disp_lcd_set_bright_dimming(__u32 sel, __u32 bright_dimming);  //for drc 
-
-
+extern  __s32 BSP_disp_lcd_used(__u32 sel);
 
 extern __s32 BSP_disp_tv_open(__u32 sel);
 extern __s32 BSP_disp_tv_close(__u32 sel);
@@ -271,7 +273,6 @@ extern __s32 BSP_disp_vga_set_src(__u32 sel, __disp_lcdc_src_t src);
 
 extern __s32 BSP_disp_cmu_layer_enable(__u32 sel,__u32 hid, __bool en);
 extern __s32 BSP_disp_cmu_layer_get_enable(__u32 sel,__u32 hid);
-extern __s32 disp_cmu_layer_clear(__u32 sel);
 extern __s32 BSP_disp_cmu_layer_set_window(__u32 sel, __u32 hid, __disp_rect_t *rect);
 extern __s32 BSP_disp_cmu_layer_set_bright(__u32 sel, __u32 hid, __u32 bright);
 extern __s32 BSP_disp_cmu_layer_get_bright(__u32 sel, __u32 hid);

@@ -4,7 +4,7 @@
 #include "drv_disp_i.h"
 
 // 1M + 64M(ve) + 16M(fb)
-//#define FB_RESERVED_MEM
+#define FB_RESERVED_MEM
 
 
 struct info_mm {
@@ -39,6 +39,8 @@ typedef struct
     __u32                   base_drc1;
     __u32                   base_cmu0;
     __u32                   base_cmu1;
+    __u32                   base_dsi0;
+    __u32                   base_dsi1;
 	
     __disp_init_t           disp_init;
     
@@ -77,8 +79,8 @@ ssize_t disp_write(struct file *file, const char __user *buf, size_t count, loff
 int disp_mmap(struct file *file, struct vm_area_struct * vma);
 long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
 
-__s32 disp_create_heap(__u32 pHeapHead, __u32 nHeapSize);
-void *disp_malloc(__u32 num_bytes);
+__s32 disp_create_heap(__u32 pHeapHead, __u32 pHeapHeadPhy, __u32 nHeapSize);
+void *disp_malloc(__u32 num_bytes, __u32 *phy_addr);
 void  disp_free(void *p);
 
 

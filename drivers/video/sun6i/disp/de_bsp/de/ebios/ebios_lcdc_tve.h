@@ -148,6 +148,10 @@ __s32   dsi_dcs_wr_index(__u32 sel,__u8 index);
 __s32   dsi_dcs_wr_data(__u32 sel,__u8 data);
 __u32 	dsi_get_start_delay(__u32 sel);
 __u32 	dsi_get_cur_line(__u32 sel);
+__u32   dsi_io_open(__u32 sel,__panel_para_t * panel);
+__u32   dsi_io_close(__u32 sel);
+
+
 
 
 __s32   TVE_set_reg_base(__u32 sel,__u32 address);

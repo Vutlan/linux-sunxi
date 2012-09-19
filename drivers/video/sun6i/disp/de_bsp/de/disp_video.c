@@ -159,7 +159,10 @@ static __inline __s32 Hal_Set_Frame(__u32 sel, __u32 tcon_index, __u32 id)
     	        && (dit_mode_default[scaler_index] != 0xff) && (scaler->in_fb.size.width < 1920))//todo , full size of 3d mode < 1920
     	    {
     		    g_video[sel][id].dit_enable = TRUE;
-    		}
+    		}else
+            {
+                g_video[sel][id].dit_enable = FALSE;
+            }
 
             g_video[sel][id].fetch_field = FALSE;
         	if(g_video[sel][id].display_cnt == 0)

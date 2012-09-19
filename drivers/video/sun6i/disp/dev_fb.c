@@ -294,14 +294,13 @@ static int __init Fb_map_video_memory(struct fb_info *info)
 	unsigned map_size = PAGE_ALIGN(info->fix.smem_len);
 	struct page *page;
 
-#if 1
 	page = alloc_pages(GFP_KERNEL, get_order(map_size));
 	if(page != NULL)
 	{
 		info->screen_base = page_address(page);
 		info->fix.smem_start = virt_to_phys(info->screen_base);
 		memset(info->screen_base,0,info->fix.smem_len);
-		__inf("Fb_map_video_memory, pa=0x%08lx size:0x%x\n",info->fix.smem_start, info->fix.smem_len);
+		__inf("Fb_map_video_memory(alloc pages), pa=0x%08lx size:0x%x\n",info->fix.smem_start, info->fix.smem_len);
 		return 0;
 	}
 	else
@@ -309,28 +308,21 @@ static int __init Fb_map_video_memory(struct fb_info *info)
 		__wrn("alloc_pages fail!\n");
 		return -ENOMEM;
 	}
-#else
-    dma_addr_t dma_handle;
-    info->screen_base = dma_alloc_coherent(NULL, map_size, &dma_handle, GFP_KERNEL);
-    if(info->screen_base == NULL)
-    {
-        __wrn("dma_alloc_conherent fail!\n");
-		return -ENOMEM;
-    }
-    info->fix.smem_start = (unsigned long)dma_handle;
-    __inf("fb_map_video_memory, vbase=0x%08lx\n", (unsigned long)info->screen_base);
-    __inf("Fb_map_video_memory, pa=0x%08lx size:0x%x\n",info->fix.smem_start, info->fix.smem_len);
-
-    return 0;
-#endif
 
 #else        
-    info->screen_base = (char __iomem *)disp_malloc(info->fix.smem_len);
-    info->fix.smem_start = (unsigned long)__pa(info->screen_base);
-    memset(info->screen_base,0,info->fix.smem_len);
+    info->screen_base = (char __iomem *)disp_malloc(info->fix.smem_len, &info->fix.smem_start);
+    if(info->screen_base)
+    {
+        __inf("Fb_map_video_memory(reserve), pa=0x%x size:0x%x\n",info->fix.smem_start, info->fix.smem_len);
+        memset(info->screen_base,0,info->fix.smem_len);
 
-    __inf("fb_map_video_memory, vbase=0x%08lx\n", (unsigned long)info->screen_base);
-    __inf("Fb_map_video_memory, pa=0x%08lx size:0x%x\n",info->fix.smem_start, info->fix.smem_len);
+        return 0;
+    }else
+    {
+        __wrn("disp_malloc fail!\n");
+        return -ENOMEM;
+    }
+    
 
     return 0;
 #endif
@@ -1128,6 +1120,11 @@ __s32 Display_Fb_Request(__u32 fb_id, __disp_fb_create_para_t *fb_para)
     
 	__inf("Display_Fb_Request,fb_id:%d\n", fb_id);
 
+    if(g_fbi.fb_enable[fb_id])
+    {
+        __wrn("Display_Fb_Request, fb%d is already requested!\n", fb_id);
+        return DIS_NO_RES;
+    }
     info = g_fbi.fbinfo[fb_id];
 
     xres = fb_para->width;
@@ -1202,7 +1199,14 @@ __s32 Display_Fb_Request(__u32 fb_id, __disp_fb_create_para_t *fb_para)
             }
                             
             hdl = BSP_disp_layer_request(sel, layer_para.mode);
-            
+
+            if(hdl == 0)
+            {
+                __wrn("Display_Fb_Request, ch%d no layer resource\n", sel);
+                Fb_unmap_video_memory(info);
+
+                return DIS_NO_RES; 
+            }
             layer_para.pipe = 0;
             layer_para.alpha_en = 1;
             layer_para.alpha_val = 0xff;
@@ -1327,16 +1331,6 @@ __s32 Display_set_fb_timming(__u32 sel)
     return 0;
 }
 
-#ifndef __FPGA_DEBUG__
-extern unsigned long fb_start;
-extern unsigned long fb_size;
-
-#else
-
-unsigned long fb_start = 0x46000000; //0x40000000 PLAT_PHYS_OFFSET;  0x4000000:64M reserve for sys
-unsigned long fb_size = 0x2000000; //32M for FB
-#endif
-
 __s32 Fb_Init(__u32 from)
 {    
     __disp_fb_create_para_t fb_para;
@@ -1346,8 +1340,8 @@ __s32 Fb_Init(__u32 from)
     if(from == 0)//call from lcd driver
     {
 #ifdef FB_RESERVED_MEM
-        __inf("fbmem: fb_start=%lu, fb_size=%lu\n", fb_start, fb_size);
-        disp_create_heap((unsigned long)(__va(fb_start)),  fb_size);
+        __inf("fbmem: fb_start=%lu, fb_size=%lu\n", FB_MEM_BASE, FB_MEM_SIZE);
+        disp_create_heap((unsigned long)(ioremap_nocache(FB_MEM_BASE, FB_MEM_SIZE)),FB_MEM_BASE, FB_MEM_SIZE);
 #endif
 
         for(i=0; i<8; i++)
@@ -1393,7 +1387,7 @@ __s32 Fb_Init(__u32 from)
         g_fbi.disp_init.b_init = 1;
         g_fbi.disp_init.disp_mode = 0;
         g_fbi.disp_init.output_type[0] = 1;
-        g_fbi.disp_init.scaler_mode[0] = 1;
+        g_fbi.disp_init.scaler_mode[0] = 0;
         g_fbi.disp_init.buffer_num[0] =1;
         g_fbi.disp_init.format[0] = 0xa;
         g_fbi.disp_init.seq[0] = 0;

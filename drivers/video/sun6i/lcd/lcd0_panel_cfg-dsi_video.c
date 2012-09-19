@@ -42,10 +42,10 @@ static void LCD_cfg_panel_info(__panel_para_t * info)
     info->lcd_x             = 480;			//Hor Pixels
     info->lcd_y             = 800;			//Ver Pixels
 	info->lcd_vt			= 821;
-	info->lcd_vbp			= 7;
+	info->lcd_vbp			= 14;
 	info->lcd_vspw			= 7;
 	info->lcd_ht			= 480+64*3;
-	info->lcd_hbp			= 64;
+	info->lcd_hbp			= 128;
 	info->lcd_hspw			= 64;
 	
     info->lcd_dclk_freq     = 10;       	//Pixel Data Cycle

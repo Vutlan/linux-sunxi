@@ -294,6 +294,13 @@ typedef enum//only for debug!!!
     DISP_REG_CCMU = 8,
     DISP_REG_PIOC = 9,
     DISP_REG_PWM = 10,
+    DISP_REG_DEU0 = 11,
+    DISP_REG_DEU1 = 12,
+    DISP_REG_CMU0 = 13,
+    DISP_REG_CMU1 = 14,
+    DISP_REG_DRC0 = 15,
+    DISP_REG_DRC1 = 16,
+    DISP_REG_DSI = 17,
 }__disp_reg_index_t;
 
 
@@ -384,17 +391,18 @@ typedef enum
 
 typedef enum
 {
-    LCD_DSI_1LANE			= 1,
-    LCD_DSI_2LANE			= 3,
-    LCD_DSI_3LANE			= 7,
-    LCD_DSI_4LANE			= 15,
+    LCD_DSI_1LANE			= 0,
+    LCD_DSI_2LANE			= 1,
+    LCD_DSI_3LANE			= 2,
+    LCD_DSI_4LANE			= 3,
 }__lcd_dsi_lane_t;
 
 typedef enum
 {
-    LCD_DSI_FORMAT_RGB888	= 24,
-    LCD_DSI_FORMAT_RGB666P	= 18,
-    LCD_DSI_FORMAT_RGB565	= 16,
+    LCD_DSI_FORMAT_RGB888	= 0,  //24bit
+    LCD_DSI_FORMAT_RGB666	= 1,  //24bit
+    LCD_DSI_FORMAT_RGB666P	= 2,  //18bit
+    LCD_DSI_FORMAT_RGB565	= 3,  //16bit
 }__lcd_dsi_format_t;
 
 
@@ -904,16 +912,17 @@ typedef enum tag_DISP_CMD
 	DISP_CMD_FB_GET_PARA = 0x282,
 	DISP_CMD_GET_DISP_INIT_PARA = 0x283,
 	
-//---for Displayer Test --------	
+//--- memory --------	
 	DISP_CMD_MEM_REQUEST = 0x2c0,
 	DISP_CMD_MEM_RELASE = 0x2c1,
 	DISP_CMD_MEM_GETADR = 0x2c2,
 	DISP_CMD_MEM_SELIDX = 0x2c3,
 	
+//---- for test	
 	DISP_CMD_SUSPEND = 0x2d0,
 	DISP_CMD_RESUME = 0x2d1,
-
 	DISP_CMD_PRINT_REG = 0x2e0,
+	DISP_CMD_VIDEO_SET_DEINTERLACE_MODE = 0x2f0,
 
 //---pwm --------	
     DISP_CMD_PWM_SET_PARA = 0x300,

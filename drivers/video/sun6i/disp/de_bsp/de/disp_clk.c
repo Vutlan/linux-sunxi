@@ -138,9 +138,9 @@ __s32 image_clk_init(__u32 sel)
 #ifdef RESET_OSAL
 		OSAL_CCMU_MclkReset(h_debe0mclk, RST_INVAILD);
 #endif	
-		OSAL_CCMU_SetMclkSrc(h_debe0mclk, AW_SYS_CLK_PLL5P);	//FIX CONNECT TO DRAM PLL
+		OSAL_CCMU_SetMclkSrc(h_debe0mclk, AW_SYS_CLK_PLL5);//AW_SYS_CLK_PLL5P);	//FIX CONNECT TO DRAM PLL
 
-		dram_pll = OSAL_CCMU_GetSrcFreq(AW_SYS_CLK_PLL5P);
+		dram_pll = OSAL_CCMU_GetSrcFreq(AW_SYS_CLK_PLL5);//AW_SYS_CLK_PLL5P);
 		if(dram_pll < 300000000)
 		{
 			OSAL_CCMU_SetMclkDiv(h_debe0mclk, 1);
@@ -165,9 +165,9 @@ __s32 image_clk_init(__u32 sel)
 	
         OSAL_CCMU_MclkReset(h_debe1mclk, RST_INVAILD);
 #endif 
-        OSAL_CCMU_SetMclkSrc(h_debe1mclk, AW_SYS_CLK_PLL5P);	//FIX CONNECT TO DRAM PLL
+        OSAL_CCMU_SetMclkSrc(h_debe1mclk, AW_SYS_CLK_PLL5);//AW_SYS_CLK_PLL5P);	//FIX CONNECT TO DRAM PLL
 
-		dram_pll = OSAL_CCMU_GetSrcFreq(AW_SYS_CLK_PLL5P);
+		dram_pll = OSAL_CCMU_GetSrcFreq(AW_SYS_CLK_PLL5);//AW_SYS_CLK_PLL5P);
 		if(dram_pll < 300000000)
 		{
 			OSAL_CCMU_SetMclkDiv(h_debe1mclk, 1);
@@ -262,7 +262,6 @@ __s32 scaler_clk_init(__u32 sel)
 		h_defe0dramclk = OSAL_CCMU_OpenMclk(AW_MOD_CLK_SDRAM_DEFE0);
 		h_defe0mclk = OSAL_CCMU_OpenMclk(AW_MOD_CLK_DEFE0);
 #ifdef RESET_OSAL
-		
 		OSAL_CCMU_MclkReset(h_defe0mclk, RST_INVAILD);
 #endif
 	
@@ -380,24 +379,24 @@ __s32 lcdc_clk_init(__u32 sel)
 	{
 		h_lcd0ahbclk   = OSAL_CCMU_OpenMclk(AW_MOD_CLK_AHB_LCD0);
 		h_lcd0ch0mclk0 = OSAL_CCMU_OpenMclk(AW_MOD_CLK_LCD0CH0);
-		h_lcd0ch1mclk1 = OSAL_CCMU_OpenMclk(AW_MOD_CLK_LCD0CH1_S1);
-		h_lcd0ch1mclk2 = OSAL_CCMU_OpenMclk(AW_MOD_CLK_LCD0CH1_S2);
+		//h_lcd0ch1mclk1 = OSAL_CCMU_OpenMclk(AW_MOD_CLK_LCD0CH1_S1);
+		//h_lcd0ch1mclk2 = OSAL_CCMU_OpenMclk(AW_MOD_CLK_LCD0CH1_S2);
 	
 		OSAL_CCMU_SetMclkSrc(h_lcd0ch0mclk0, AW_SYS_CLK_PLL7);	//Default to Video Pll0
-		OSAL_CCMU_SetMclkSrc(h_lcd0ch1mclk1, AW_SYS_CLK_PLL7);	//Default to Video Pll0
+		//OSAL_CCMU_SetMclkSrc(h_lcd0ch1mclk1, AW_SYS_CLK_PLL7);	//Default to Video Pll0
 		//OSAL_CCMU_SetMclkSrc(h_lcd0ch1mclk2, AW_SYS_CLK_PLL7);	//Default to Video Pll0
-		OSAL_CCMU_SetMclkDiv(h_lcd0ch1mclk2, 10);
-		OSAL_CCMU_SetMclkDiv(h_lcd0ch1mclk1, 10);
+		//OSAL_CCMU_SetMclkDiv(h_lcd0ch1mclk2, 10);
+		//OSAL_CCMU_SetMclkDiv(h_lcd0ch1mclk1, 10);
 #ifdef RESET_OSAL
 		OSAL_CCMU_MclkReset(h_lcd0ch0mclk0, RST_INVAILD);
 #endif
 		OSAL_CCMU_MclkOnOff(h_lcd0ahbclk, CLK_ON);
 		OSAL_CCMU_MclkOnOff(h_lcd0ch0mclk0, CLK_ON);
 		OSAL_CCMU_MclkOnOff(h_lcd0ch0mclk0, CLK_OFF);
-		OSAL_CCMU_MclkOnOff(h_lcd0ch1mclk1, CLK_ON);
-		OSAL_CCMU_MclkOnOff(h_lcd0ch1mclk1, CLK_OFF);
-		OSAL_CCMU_MclkOnOff(h_lcd0ch1mclk2, CLK_ON);
-		OSAL_CCMU_MclkOnOff(h_lcd0ch1mclk2, CLK_OFF);
+		//OSAL_CCMU_MclkOnOff(h_lcd0ch1mclk1, CLK_ON);
+		//OSAL_CCMU_MclkOnOff(h_lcd0ch1mclk1, CLK_OFF);
+		//OSAL_CCMU_MclkOnOff(h_lcd0ch1mclk2, CLK_ON);
+		//OSAL_CCMU_MclkOnOff(h_lcd0ch1mclk2, CLK_OFF);
 
 		g_clk_status |= CLK_LCDC0_AHB_ON;
 	}
@@ -405,8 +404,8 @@ __s32 lcdc_clk_init(__u32 sel)
 	{
 		h_lcd1ahbclk   = OSAL_CCMU_OpenMclk(AW_MOD_CLK_AHB_LCD1);
 		h_lcd1ch0mclk0 = OSAL_CCMU_OpenMclk(AW_MOD_CLK_LCD1CH0);
-		h_lcd1ch1mclk1 = OSAL_CCMU_OpenMclk(AW_MOD_CLK_LCD1CH1_S1);
-		h_lcd1ch1mclk2 = OSAL_CCMU_OpenMclk(AW_MOD_CLK_LCD1CH1_S2);
+		//h_lcd1ch1mclk1 = OSAL_CCMU_OpenMclk(AW_MOD_CLK_LCD1CH1_S1);
+		//h_lcd1ch1mclk2 = OSAL_CCMU_OpenMclk(AW_MOD_CLK_LCD1CH1_S2);
 
 		OSAL_CCMU_SetMclkSrc(h_lcd1ch0mclk0, AW_SYS_CLK_PLL7);	//Default to Video Pll0
 		OSAL_CCMU_SetMclkSrc(h_lcd1ch1mclk1, AW_SYS_CLK_PLL7);	//Default to Video Pll0
@@ -439,12 +438,12 @@ __s32 lcdc_clk_exit(__u32 sel)
 #endif
 		OSAL_CCMU_MclkOnOff(h_lcd0ahbclk, CLK_OFF);
 		OSAL_CCMU_MclkOnOff(h_lcd0ch0mclk0, CLK_OFF);
-		OSAL_CCMU_MclkOnOff(h_lcd0ch1mclk1, CLK_OFF);
-		OSAL_CCMU_MclkOnOff(h_lcd0ch1mclk2, CLK_OFF);
+		//OSAL_CCMU_MclkOnOff(h_lcd0ch1mclk1, CLK_OFF);
+		//OSAL_CCMU_MclkOnOff(h_lcd0ch1mclk2, CLK_OFF);
 		OSAL_CCMU_CloseMclk(h_lcd0ahbclk);
 		OSAL_CCMU_CloseMclk(h_lcd0ch0mclk0);		
-		OSAL_CCMU_CloseMclk(h_lcd0ch1mclk1);
-		OSAL_CCMU_CloseMclk(h_lcd0ch1mclk2);
+		//OSAL_CCMU_CloseMclk(h_lcd0ch1mclk1);
+		//OSAL_CCMU_CloseMclk(h_lcd0ch1mclk2);
 
 		g_clk_status &= (CLK_LCDC0_AHB_OFF & CLK_LCDC0_MOD0_OFF & CLK_LCDC0_MOD1_OFF);
 	}
@@ -472,8 +471,8 @@ __s32 lcdc_clk_on(__u32 sel)
 	if(sel == 0)
 	{
 		OSAL_CCMU_MclkOnOff(h_lcd0ch0mclk0, CLK_ON);
-		OSAL_CCMU_MclkOnOff(h_lcd0ch1mclk1, CLK_ON);
-		OSAL_CCMU_MclkOnOff(h_lcd0ch1mclk2, CLK_ON);
+		//OSAL_CCMU_MclkOnOff(h_lcd0ch1mclk1, CLK_ON);
+		//OSAL_CCMU_MclkOnOff(h_lcd0ch1mclk2, CLK_ON);
 
 		g_clk_status |= (CLK_LCDC0_MOD0_ON | CLK_LCDC0_MOD1_ON);
 	}
@@ -494,8 +493,8 @@ __s32 lcdc_clk_off(__u32 sel)
 	if(sel == 0)
 	{
 		OSAL_CCMU_MclkOnOff(h_lcd0ch0mclk0, CLK_OFF);
-		OSAL_CCMU_MclkOnOff(h_lcd0ch1mclk1, CLK_OFF);
-		OSAL_CCMU_MclkOnOff(h_lcd0ch1mclk2, CLK_OFF);
+		//OSAL_CCMU_MclkOnOff(h_lcd0ch1mclk1, CLK_OFF);
+		//OSAL_CCMU_MclkOnOff(h_lcd0ch1mclk2, CLK_OFF);
 
 		g_clk_status &= (CLK_LCDC0_MOD0_OFF & CLK_LCDC0_MOD1_OFF);
 	}
@@ -687,14 +686,8 @@ static __s32 LCD_PLL_Calc(__u32 sel, __panel_para_t * info, __u32 *divider)
 	{
 	    __u32 clk_max;
 
-	    if(OSAL_sw_get_ic_ver() > 0xA)
-	    {
-	        clk_max = 150000000;
-	    }
-	    else
-	    {
-	        clk_max = 108000000;//pixel clock can't be larger than 108MHz, limited by Video pll frequency
-	    }
+	    clk_max = 600000000;//pixel clock can't be larger than 600MHz, limited by Video pll frequency
+	    
 		if(lcd_dclk_freq > clk_max)	
 		{
 			lcd_dclk_freq = clk_max;
@@ -766,7 +759,7 @@ static __s32 disp_pll_assign(__u32 sel, __u32 pll_clk)
 	another_lcdc = (sel == 0)? 1:0;
 	another_pll_use_status = gdisp.screen[another_lcdc].pll_use_status;
 
-	if(pll_clk >= 250000000 && pll_clk <= 300000000)
+	if(pll_clk ==  297000000)
 	{
 		if((!(another_pll_use_status & VIDEO_PLL1_USED)) || (OSAL_CCMU_GetSrcFreq(AW_SYS_CLK_PLL7) == pll_clk))
 		{
@@ -777,7 +770,7 @@ static __s32 disp_pll_assign(__u32 sel, __u32 pll_clk)
 			ret = 0;
 		}
 	}
-	else if(pll_clk <= (381000000 * 2))
+	else if(pll_clk <= (600000000 * 2))
 	{
 		if((!(another_pll_use_status & VIDEO_PLL0_USED)) || (OSAL_CCMU_GetSrcFreq(AW_SYS_CLK_PLL3) == pll_clk))
 		{
@@ -788,13 +781,6 @@ static __s32 disp_pll_assign(__u32 sel, __u32 pll_clk)
 			ret = 1;
 		}
     }
-	else if(pll_clk <= 1200000000)
-	{
-	    if(OSAL_sw_get_ic_ver() > 0xA)
-	    {
-	        ret = 2;//sata pll
-	    }
-	}
 
     if(ret == -1)
     {

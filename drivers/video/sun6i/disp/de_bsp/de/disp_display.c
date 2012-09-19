@@ -56,7 +56,7 @@ __s32 BSP_disp_init(__disp_bsp_init_para * para)
     //IEP_Drc_Set_Reg_base(1, para->base_drc1);
     IEP_CMU_Set_Reg_Base(0,  para->base_cmu0);
     //IEP_CMU_Set_Reg_base(1, para->base_cmu1);
-    dsi_set_reg_base(0, 0xf1ca0000);
+    dsi_set_reg_base(0, para->base_dsi0);
     //BSP_disp_close_lcd_backlight(0);
     //BSP_disp_close_lcd_backlight(1);
 
@@ -226,6 +226,36 @@ __s32 BSP_disp_print_reg(__bool b_force_on, __u32 id)
             base = gdisp.init_para.base_pwm;
             size = 0x40;
             sprintf(str, "pwm:\n");
+            break;
+        case DISP_REG_DEU0:
+            base = gdisp.init_para.base_deu0;
+            size = 0x60;
+            sprintf(str, "deu0:\n");
+            break;
+        case DISP_REG_DEU1:
+            base = gdisp.init_para.base_deu1;
+            size = 0x460;
+            sprintf(str, "deu1:\n");
+            break;
+        case DISP_REG_CMU0:
+            base = gdisp.init_para.base_cmu0;
+            size = 0x100;
+            sprintf(str, "cmu0:\n");
+            break;
+        case DISP_REG_CMU1:
+            base = gdisp.init_para.base_cmu1;
+            size = 0x100;
+            sprintf(str, "cmu1:\n");
+            break;
+        case DISP_REG_DRC0:
+            base = gdisp.init_para.base_drc0;
+            size = 0x300;
+            sprintf(str, "drc0:\n");
+            break;
+        case DISP_REG_DRC1:
+            base = gdisp.init_para.base_drc1;
+            size = 0x300;
+            sprintf(str, "drc1:\n");
             break;
             
         default:

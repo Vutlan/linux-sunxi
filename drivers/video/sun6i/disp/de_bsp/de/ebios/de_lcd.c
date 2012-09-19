@@ -316,8 +316,8 @@ __s32 tcon0_cfg_mode_tri(__u32 sel, __panel_para_t * panel)
 	}
 	else if(panel->lcd_if==LCD_IF_DSI && panel->lcd_dsi_if==LCD_DSI_IF_VIDEO_MODE)
 	{
-		__u32 hfp = panel->lcd_ht-panel->lcd_x-panel->lcd_hbp-panel->lcd_hspw;
-		lcd_dev[sel]->tcon0_cpu_tri0.bits.block_space = (panel->lcd_hspw+panel->lcd_hbp+hfp)*8/panel->lcd_dsi_format-2;
+		//__u32 hfp = panel->lcd_ht-panel->lcd_x-panel->lcd_hbp-panel->lcd_hspw;
+		lcd_dev[sel]->tcon0_cpu_tri0.bits.block_space = panel->lcd_ht - panel->lcd_x - 2;
 	}
 	if(panel->lcd_fresh_mode == 1)
 	{
@@ -400,6 +400,8 @@ __s32 tcon0_cfg(__u32 sel, __panel_para_t * panel)
 
 	lcd_dev[sel]->tcon0_ctl.bits.rb_swap = panel->lcd_rb_swap;
 	lcd_dev[sel]->tcon0_io_tri.bits.rgb_endian = panel->lcd_rgb_endian;
+	lcd_dev[sel]->tcon_volume_ctl.bits.safe_period_mode = 3;
+	lcd_dev[sel]->tcon_volume_ctl.bits.safe_period_fifo_num = panel->lcd_dclk_freq*15;
 	lcd_dev[sel]->tcon0_io_pol.dwval = panel->lcd_io_cfg0;
 
 	if(panel->lcd_fresh_mode == 1)

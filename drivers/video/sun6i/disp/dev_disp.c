@@ -9,6 +9,8 @@ __disp_drv_t g_disp_drv;
 
 #define MY_BYTE_ALIGN(x) ( ( (x + (4*1024-1)) >> 12) << 12)             /* alloc based on 4K byte */
 static struct alloc_struct_t boot_heap_head, boot_heap_tail;
+static unsigned int fb_start_phy, fb_start_virt;
+
 
 static unsigned int gbuffer[4096];
 static __u32 suspend_output_type[2] = {0,0};
@@ -67,7 +69,7 @@ static struct resource disp_resource[DISP_IO_NUM] =
 };
 
 
-__s32 disp_create_heap(__u32 pHeapHead, __u32 nHeapSize)
+__s32 disp_create_heap(__u32 pHeapHead, __u32 pHeapHeadPhy, __u32 nHeapSize)
 {
     boot_heap_head.size    = boot_heap_tail.size = 0;
     boot_heap_head.address = pHeapHead;
@@ -75,11 +77,13 @@ __s32 disp_create_heap(__u32 pHeapHead, __u32 nHeapSize)
     boot_heap_head.next    = &boot_heap_tail;
     boot_heap_tail.next    = 0;
 
+    fb_start_phy = pHeapHeadPhy;
+    fb_start_virt = pHeapHead;
     __inf("head:%x,tail:%x\n" ,boot_heap_head.address, boot_heap_tail.address);
     return 0;
 }
 
-void *disp_malloc(__u32 num_bytes)
+void *disp_malloc(__u32 num_bytes, __u32 *phy_addr)
 {
     struct alloc_struct_t *ptr, *newptr;
     __u32  actual_bytes;
@@ -124,6 +128,8 @@ void *disp_malloc(__u32 num_bytes)
     newptr->next    = ptr->next;
     ptr->next       = newptr;
 
+    *phy_addr = newptr->address - fb_start_virt + fb_start_phy;
+    
     return (void *)newptr->address;
 }
 
@@ -157,7 +163,7 @@ __s32 DRV_lcd_open(__u32 sel)
     __u32 i = 0;
     __lcd_flow_t *flow;
 
-	if(g_disp_drv.b_lcd_open[sel] == 0)
+	if(BSP_disp_lcd_used(sel) && (g_disp_drv.b_lcd_open[sel] == 0))
 	{
 	    BSP_disp_lcd_open_before(sel);
 
@@ -186,7 +192,7 @@ __s32 DRV_lcd_close(__u32 sel)
     __u32 i = 0;
     __lcd_flow_t *flow;
 
-	if(g_disp_drv.b_lcd_open[sel] == 1)
+	if(BSP_disp_lcd_used(sel) && (g_disp_drv.b_lcd_open[sel] == 1))
 	{
 	    BSP_disp_lcd_close_befor(sel);
 
@@ -244,6 +250,7 @@ __s32 DRV_DISP_Init(void)
     para.base_drc1       = (__u32)g_fbi.base_drc1;
     para.base_deu0       = (__u32)g_fbi.base_deu0;
     para.base_deu1       = (__u32)g_fbi.base_deu1;
+    para.base_dsi0       = (__u32)g_fbi.base_dsi0;
 
 	para.disp_int_process       = DRV_disp_int_process;
 
@@ -300,12 +307,13 @@ int disp_mem_request(int sel,__u32 size)
 	}
 #else
     __u32 ret = 0;
+    __u32 phy_addr;
 
-	ret = (__u32)disp_malloc(size);
+	ret = (__u32)disp_malloc(size, &phy_addr);
 	if(ret != 0)
 	{
 	    g_disp_mm[sel].info_base = (void*)ret;
-	    g_disp_mm[sel].mem_start = virt_to_phys(g_disp_mm[sel].info_base);
+	    g_disp_mm[sel].mem_start = phy_addr;
 	    memset(g_disp_mm[sel].info_base,0,size);
 	    __inf("pa=0x%08lx va=0x%p size:0x%x\n",g_disp_mm[sel].mem_start, g_disp_mm[sel].info_base, size);
 
@@ -396,6 +404,7 @@ static int __init disp_probe(struct platform_device *pdev)//called when platform
     info->base_drc1     = 0xf1e50000;
     info->base_cmu0     = 0xf1e60000;
     info->base_cmu1     = 0xf1e40000;
+    info->base_dsi0     = 0xf1ca0000;
 	info->base_ccmu     = 0xf1c20000;
 	info->base_sdram    = 0xf1c01000;
 	info->base_pioc     = 0xf1c20800;
@@ -414,6 +423,7 @@ static int __init disp_probe(struct platform_device *pdev)//called when platform
     __inf("DRC1 base 0x%08x\n", info->base_drc1);
     __inf("CMU0 base 0x%08x\n", info->base_cmu0);
     __inf("CMU1 base 0x%08x\n", info->base_cmu1);
+    __inf("DSI0 base 0x%08x\n", info->base_dsi0);
 	__inf("CCMU base 0x%08x\n", info->base_ccmu);
 	__inf("SDRAM base 0x%08x\n", info->base_sdram);
 	__inf("PIO base 0x%08x\n", info->base_pioc);
@@ -1341,11 +1351,12 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
     //----lcd----
     	case DISP_CMD_LCD_ON:
-    		ret = DRV_lcd_open(ubuffer[0]);
+        	ret = DRV_lcd_open(ubuffer[0]);
             if(suspend_status != 0)
             {
                 suspend_output_type[ubuffer[0]] = DISP_OUTPUT_TYPE_LCD;
             }
+           
     		break;
 
     	case DISP_CMD_LCD_OFF:

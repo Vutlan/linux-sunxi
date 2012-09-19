@@ -255,7 +255,7 @@ __s32 DEU_EBIOS_LP_STR_Cfg_Rdy(__u32 sel);
 __s32 DEU_EBIOS_LP_Set_Mode(__u32 sel, __u32 en_2d);
 __s32 DEU_EBIOS_LP_STR_Enable(__u32 sel, __u32 en);
 __s32 DEU_EBIOS_LP_Set_STR_Addr(__u32 sel, __u32 address);
-__s32 DEU_EBIOS_LP_Set_Para(__u32 sel, __u32 level, __u32 filtertype);
+__s32 DEU_EBIOS_LP_Set_Para(__u32 sel, __u32 level, __u32 filtertype, __u8 *pttab);
 __s32 DEU_EBIOS_LP_Enable(__u32 sel, __u32 en);
 #define ____SEPARATOR_DCTI____
 __s32 DEU_EBIOS_DCTI_Set_Para(__u32 sel, __u32 level);

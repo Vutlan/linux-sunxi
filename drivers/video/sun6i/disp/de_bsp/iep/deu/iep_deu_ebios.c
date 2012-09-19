@@ -61,6 +61,28 @@ __u8 deu_str_tab[512] =
 
 };
 
+//large LCD panel (10 inch above)
+__u8 deu_lp_tab_l[5][5][5] =
+{
+	//beta, tau, alpha, lmt, corthr
+	{{0	,0	,0	,0	,0 },{3	,3	,0	,5	,5 },{6	,6	,0	,5	,5 },{7	,7	,2	,5	,5 },{8	,8	,4	,5	,5 }},
+	{{0	,0	,0	,0	,0 },{4	,4	,0	,5	,5 },{8	,8	,0	,5	,5 },{8	,8	,4	,8	,5 },{8	,8	,8	,10	,5 }},
+	{{0	,0	,0	,0	,0 },{4	,4	,4	,5	,10},{8	,8	,8	,10	,10},{12,12	,12	,12	,10},{16,16	,16	,15	,10}},
+	{{0	,0	,0	,0	,0 },{5	,5	,5	,0	,10},{10,10	,10	,0	,10},{12,12	,12	,0	,10},{16,16	,16	,0	,10}},
+	{{0	,0	,0	,0	,0 },{6	,6	,6	,0	,10},{12,12	,12	,0	,10},{16,16	,16	,0	,10},{20,20	,20	,0	,10}}
+};
+
+//small LCD panel (10 inch below)
+__u8 deu_lp_tab_s[5][5][5] = 
+{
+	//beta, tau, alpha, lmt, corthr
+	{{0	,0	,0	,0	,0 },{0	,0	,0	,0	,0 },{0	,0	,0	,0	,0 },{1	,1	,0	,5	,5 },{3	,3	,0	,5	,5 }},
+	{{0	,0	,0	,0	,0 },{2	,2	,0	,5	,5 },{4	,4	,0	,5	,5 },{6	,6	,0	,5	,5 },{8	,8	,0	,5	,5 }},
+	{{0	,0	,0	,0	,0 },{2	,2	,2	,5	,10},{4	,4	,4	,5	,10},{6	,6	,6	,7	,10},{8	,8	,8	,10	,10}},
+	{{0	,0	,0	,0	,0 },{2	,2	,2	,0	,10},{5	,5	,5	,0	,10},{7	,7	,7	,0	,10},{10,10	,10	,0	,10}},
+	{{0	,0	,0	,0	,0 },{3	,3	,3	,0	,10},{6	,6	,6	,0	,10},{9	,9	,9	,0	,10},{12,12	,12	,0	,10}}
+};
+
 #define ____SEPARATOR_GLOBAL____
 
 
@@ -171,67 +193,15 @@ __s32 DEU_EBIOS_LP_Set_STR_Addr(__u32 sel, __u32 address)
 	return 0;
 }
 
-__s32 DEU_EBIOS_LP_Set_Para(__u32 sel, __u32 level, __u32 filtertype)
+__s32 DEU_EBIOS_LP_Set_Para(__u32 sel, __u32 level, __u32 filtertype, __u8 *pttab)
 {
 	deu_dev[sel]->lp1.bits.neggain = 3;
 	deu_dev[sel]->lp1.bits.delta = 3;
-	
-	switch(level)
-	{
-		case	0x0: deu_dev[sel]->lp1.bits.limit_thr = 255;	break;
-		case	0x1: deu_dev[sel]->lp1.bits.limit_thr = 10;		break;
-		case	0x2: deu_dev[sel]->lp1.bits.limit_thr = 7;		break;
-		case	0x3: deu_dev[sel]->lp1.bits.limit_thr = 3;		break;
-		case	0x4: deu_dev[sel]->lp1.bits.limit_thr = 0;		break;
-		default:	 deu_dev[sel]->lp1.bits.limit_thr = 255;	break;
-	}
-	
-	switch(filtertype)
-	{
-		case	0x0:
-			deu_dev[sel]->lp0.bits.tau = 0;
-			deu_dev[sel]->lp0.bits.alpha = 0;
-			deu_dev[sel]->lp0.bits.beta = 0;
-			deu_dev[sel]->lp1.bits.corthr = 255;
-		break;
-		
-		case	0x1:	
-			deu_dev[sel]->lp0.bits.tau = 4;
-			deu_dev[sel]->lp0.bits.alpha = 0;
-			deu_dev[sel]->lp0.bits.beta = 8;	//12-06-08
-			deu_dev[sel]->lp1.bits.corthr = 2;
-		break;
-
-		case	0x2:	
-			deu_dev[sel]->lp0.bits.tau = 11;
-			deu_dev[sel]->lp0.bits.alpha = 0;
-			deu_dev[sel]->lp0.bits.beta = 8;  //12-06-08
-			deu_dev[sel]->lp1.bits.corthr = 5;
-
-		break;
-
-		case	0x3:	
-			deu_dev[sel]->lp0.bits.tau = 15;
-			deu_dev[sel]->lp0.bits.alpha = 4;
-			deu_dev[sel]->lp0.bits.beta = 8;
-			deu_dev[sel]->lp1.bits.corthr = 5;
-		break;
-
-		case	0x4:	
-			deu_dev[sel]->lp0.bits.tau = 8;
-			deu_dev[sel]->lp0.bits.alpha = 16;
-			deu_dev[sel]->lp0.bits.beta = 8;
-			deu_dev[sel]->lp1.bits.corthr = 5;
-
-		break;
-
-		default:
-			deu_dev[sel]->lp0.bits.tau = 0;
-			deu_dev[sel]->lp0.bits.alpha = 0;
-			deu_dev[sel]->lp0.bits.beta = 0;
-			deu_dev[sel]->lp1.bits.corthr = 255;
-		break;
-	}
+	deu_dev[sel]->lp0.bits.beta = *(pttab + filtertype * 25 + level *5 + 0);	
+	deu_dev[sel]->lp0.bits.tau = *(pttab + filtertype * 25 + level *5 + 1);	
+	deu_dev[sel]->lp0.bits.alpha = *(pttab + filtertype * 25 + level *5 + 2);	
+	deu_dev[sel]->lp1.bits.limit_thr = *(pttab + filtertype * 25 + level *5 + 3);	
+	deu_dev[sel]->lp1.bits.corthr = *(pttab + filtertype * 25 + level *5 + 4);	
 
 	return 0;
 }

@@ -22,7 +22,7 @@
 #define  __OSAL_PIN_H__
 
 #include "OSAL.h"
-
+/*
 typedef struct
 {
     char  gpio_name[32];
@@ -33,7 +33,7 @@ typedef struct
     int drv_level;
     int data;
 } user_gpio_set_t;
-
+*/
 
 __hdle OSAL_GPIO_Request(user_gpio_set_t *gpio_list, __u32 group_count_max);
 

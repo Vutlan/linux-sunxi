@@ -99,9 +99,9 @@ static ssize_t disp_reg_dump_store(struct device *dev,
 		return err;
 	}
 
-    if((val>10))
+    if((val>17))
     {
-        printk("Invalid value, <11 is expected!\n");
+        printk("Invalid value, <18 is expected!\n");
     }else
     {
         BSP_disp_print_reg(1, (unsigned int)val);

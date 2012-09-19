@@ -31,9 +31,9 @@ __s32 drc_clk_init(__u32 sel)
 {
 	if(!sel)
 	{
-	    h_drcahbclk0 = OSAL_CCMU_OpenMclk(AW_MOD_CLK_AHB_DRC0);
-	    h_drcdramclk0 = OSAL_CCMU_OpenMclk(AW_MOD_CLK_SDRAM_DRC0);
-	    h_drcmclk0 = OSAL_CCMU_OpenMclk(AW_MOD_CLK_DRC0);
+	    h_drcahbclk0 = OSAL_CCMU_OpenMclk(AW_AHB_CLK_DRC0);
+	    h_drcdramclk0 = OSAL_CCMU_OpenMclk(AW_DRAM_CLK_DRC0);
+	    h_drcmclk0 = OSAL_CCMU_OpenMclk(AW_MOD_CLK_IEPDRC0);
 
 		OSAL_CCMU_MclkReset(h_drcmclk0, RST_INVAILD);
 		OSAL_CCMU_MclkOnOff(h_drcahbclk0, CLK_ON);
@@ -43,9 +43,9 @@ __s32 drc_clk_init(__u32 sel)
 	}
 	else
 	{
-		h_drcahbclk1 = OSAL_CCMU_OpenMclk(AW_MOD_CLK_AHB_DRC1);
-	    h_drcdramclk1 = OSAL_CCMU_OpenMclk(AW_MOD_CLK_SDRAM_DRC1);
-	    h_drcmclk1 = OSAL_CCMU_OpenMclk(AW_MOD_CLK_DRC1);
+		h_drcahbclk1 = OSAL_CCMU_OpenMclk(AW_AHB_CLK_DRC1);
+	    h_drcdramclk1 = OSAL_CCMU_OpenMclk(AW_DRAM_CLK_DRC1);
+	    h_drcmclk1 = OSAL_CCMU_OpenMclk(AW_MOD_CLK_IEPDRC1);
 
 		OSAL_CCMU_MclkReset(h_drcmclk1, RST_INVAILD);
 		OSAL_CCMU_MclkOnOff(h_drcahbclk1, CLK_ON);
@@ -426,7 +426,7 @@ __s32 drc_proc(__u32 sel)
 			bot = giep[sel].drc_win.y + giep[sel].drc_win.height - 1;
 			left = giep[sel].drc_win.x;
 			right = giep[sel].drc_win.x + giep[sel].drc_win.width - 1;
-			
+
 			DRC_EBIOS_Set_Win_Para(sel, top, bot, left, right);
 		}
 		//BACKLIGHT Control ALG

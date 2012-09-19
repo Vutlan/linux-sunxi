@@ -4,6 +4,8 @@
 
 extern __u32 deu_str_tab[512];
 static __u32 g_deu_clk_status;
+extern __u8 deu_lp_tab_s[5][5][5];
+extern __u8 deu_lp_tab_l[5][5][5];
 
 static __hdle h_deuahbclk0, h_deudramclk0, h_deumclk0, h_deuahbclk1, h_deudramclk1, h_deumclk1;
 
@@ -11,6 +13,8 @@ static __deu_t gdeu[2];	//DRC module parameters
 static __u32 g_deu_status[2] = {0,0};
 
 static __u32 *g_strtab_addr;
+
+static __u8 *plptab;
 
 #define CLK_ON 1
 #define CLK_OFF 0
@@ -22,9 +26,9 @@ __s32 deu_clk_init(__u32 sel)
 {
 	if(!sel)
 	{
-	    h_deuahbclk0 = OSAL_CCMU_OpenMclk(AW_MOD_CLK_AHB_DEU0);
-	    h_deudramclk0 = OSAL_CCMU_OpenMclk(AW_MOD_CLK_SDRAM_DEU0);
-	    h_deumclk0 = OSAL_CCMU_OpenMclk(AW_MOD_CLK_DEU0);
+	    h_deuahbclk0 = OSAL_CCMU_OpenMclk(AW_AHB_CLK_DEU0);
+	    h_deudramclk0 = OSAL_CCMU_OpenMclk(AW_DRAM_CLK_DEU0);
+	    h_deumclk0 = OSAL_CCMU_OpenMclk(AW_MOD_CLK_IEPDEU0);
 
 		OSAL_CCMU_MclkReset(h_deumclk0, RST_INVAILD);
 		OSAL_CCMU_MclkOnOff(h_deuahbclk0, CLK_ON);
@@ -34,9 +38,9 @@ __s32 deu_clk_init(__u32 sel)
 	}
 	else
 	{
-		h_deuahbclk1 = OSAL_CCMU_OpenMclk(AW_MOD_CLK_AHB_DEU1);
-	    h_deudramclk1 = OSAL_CCMU_OpenMclk(AW_MOD_CLK_SDRAM_DEU1);
-	    h_deumclk1 = OSAL_CCMU_OpenMclk(AW_MOD_CLK_DEU1);
+		h_deuahbclk1 = OSAL_CCMU_OpenMclk(AW_AHB_CLK_DEU1);
+	    h_deudramclk1 = OSAL_CCMU_OpenMclk(AW_DRAM_CLK_DEU1);
+	    h_deumclk1 = OSAL_CCMU_OpenMclk(AW_MOD_CLK_IEPDEU1);
 
 		OSAL_CCMU_MclkReset(h_deumclk1, RST_INVAILD);
 		OSAL_CCMU_MclkOnOff(h_deuahbclk1, CLK_ON);
@@ -141,7 +145,7 @@ __s32 DEU_ALG(__u32 sel)
 {	
 	__disp_frame_info_t frameinfo;
 	__u32 lpmode, dctimode;
-	__u32 scalefact;
+	__u32 scalefact, filtertype = 0;
 	__u32 deuwidth, deuheight;
 	
 	memcpy(&frameinfo, &gdeu[sel].frameinfo, sizeof(__disp_frame_info_t));
@@ -184,15 +188,37 @@ __s32 DEU_ALG(__u32 sel)
 		dctimode = 1;	//1d dcti
 	}
 
-	scalefact = frameinfo.out_size.width/frameinfo.in_size.width;
+	scalefact = (frameinfo.out_size.width<<2)/frameinfo.in_size.width;	//scale factor X4
+
+	if (scalefact<5)
+	{
+		filtertype = 0;
+	}
+	else if(scalefact>=5 && scalefact<7)
+	{
+		filtertype = 1;
+	}
+	else if(scalefact>=7 && scalefact<9)
+	{
+		filtertype = 2;
+	}
+	else if(scalefact>=9 && scalefact<11)
+	{
+		filtertype = 3;
+	}
+	else if(scalefact>=15)
+	{
+		filtertype = 4;
+	}
 
 	//set reg
 	DEU_EBIOS_Set_Display_Size(sel, deuwidth, deuheight);
 	DEU_EBIOS_LP_Enable(sel, ((lpmode==0)||(gdeu[sel].lumashplvl==0))?0:1);
 	DEU_EBIOS_LP_Set_Mode(sel, lpmode-1);
 	DEU_EBIOS_DCTI_Enable(sel, ((dctimode==0)||(gdeu[sel].chromashplvl==0))?0:1);
+
 	
-    DEU_EBIOS_LP_Set_Para(sel, gdeu[sel].lumashplvl, scalefact);
+    DEU_EBIOS_LP_Set_Para(sel, gdeu[sel].lumashplvl, filtertype, plptab);
     DEU_EBIOS_DCTI_Set_Para(sel, gdeu[sel].chromashplvl);
 
 
@@ -312,10 +338,34 @@ __s32 IEP_Deu_Output_Select(__u32 sel, __u32 be_ch)
 
 __s32 IEP_Deu_Init(__u32 sel)
 {
+	int ret;
+	int value = 1;
+	char primary_key[20];
+	
 	g_strtab_addr = (__u32 *)kmalloc(512, GFP_KERNEL | __GFP_ZERO);
 	memcpy(g_strtab_addr, deu_str_tab, 512);
 	deu_clk_init(sel);
-		
+
+	ret = OSAL_Script_FetchParser_Data(primary_key, "deu_mode", &value, 1);
+	if(ret < 0)
+	{
+		DE_WRN("deu_mode%d not exist.\n", sel);
+		plptab = &deu_lp_tab_s[0][0][0]; 
+	}
+	else
+	{
+		DE_INF("deu_mode%d = %d.\n", sel, value);
+		if(value > 1 || value < 0)
+		{
+			DE_WRN("deu_mode%d invalid.\n",sel);
+			plptab = &deu_lp_tab_s[0][0][0]; 
+		}
+		else
+		{
+			plptab = (value == 1)? (&deu_lp_tab_l[0][0][0]):(&deu_lp_tab_s[0][0][0]);
+		}
+	}
+	
 	return DIS_SUCCESS;
 	
 }

@@ -67,7 +67,7 @@ void OSAL_CacheRangeFlush(void*Address, __u32 Length, __u32 Flags)
             break;
             
         case CACHE_FLUSH_D_CACHE_REGION:
-            __cpuc_flush_dcache_area(phys_to_virt((phys_addr_t)Address), Length);
+            //__cpuc_flush_dcache_area(phys_to_virt((phys_addr_t)Address), Length);
            // flush_cach
             break;
             
@@ -80,7 +80,7 @@ void OSAL_CacheRangeFlush(void*Address, __u32 Length, __u32 Flags)
             break;
             
         case CACHE_CLEAN_FLUSH_D_CACHE_REGION:
-            __cpuc_flush_dcache_area(phys_to_virt((phys_addr_t)Address), Length);
+            //__cpuc_flush_dcache_area(phys_to_virt((phys_addr_t)Address), Length);
             //smp_mb();
             //mb();
             break;        

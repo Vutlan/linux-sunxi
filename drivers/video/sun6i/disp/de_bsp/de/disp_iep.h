@@ -38,6 +38,9 @@ extern __s32 IEP_Drc_Late_Resume(__u32 sel);//open clk
 __s32 Disp_drc_start_video_mode(__u32 sel);
 __s32 Disp_drc_start_ui_mode(__u32 sel);
 __s32 disp_deu_set_frame_info(__u32 sel, __u32 hid);
+__s32 disp_cmu_layer_clear(__u32 sel);
+__s32 disp_deu_clear(__u32 sel, __u32 hid);
+
 
 
 

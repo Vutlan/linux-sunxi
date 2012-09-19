@@ -816,14 +816,7 @@ void LCD_CLOSE_FUNC(__u32 sel, LCD_FUNC func, __u32 delay)
     close_flow[sel].func_num++;
 }
 
-void TCON_init(__u32 sel,__panel_para_t * panel)
-{
-    tcon0_cfg(sel, panel);
-    if(panel->lcd_if == LCD_IF_DSI)
-    {
-        dsi_cfg(sel, panel);
-    }
-}
+
 void TCON_open(__u32 sel)
 {    
     if(gpanel_info[sel].tcon_index == 0)
@@ -1053,7 +1046,7 @@ __s32 LCD_PWM_EN(__u32 sel, __bool b_en)
 
         memcpy(gpio_info, &(gdisp.screen[sel].lcd_cfg.lcd_pwm), sizeof(user_gpio_set_t));
         
-        if((OSAL_sw_get_ic_ver() != 0xA) && (gpanel_info[sel].lcd_pwm_not_used == 0))
+        if((gpanel_info[sel].lcd_pwm_not_used == 0))
         {
             if(b_en)
             {
@@ -1220,6 +1213,27 @@ __s32 Disp_lcdc_pin_cfg(__u32 sel, __disp_output_type_t out_type, __u32 bon)
         __hdle lcd_pin_hdl;
         int  i;
 
+#ifdef __FPGA_DEBUG__
+        if(!bon)
+        {        //pd28, pwm0 pin_cfg
+                //*(volatile __u32*)(0xf1c20800 + 0x78) = (*(volatile __u32*)(0xf1c20800 +  0x78)) & (~0x00020000);
+                sys_put_wvalue(gdisp.init_para.base_pioc+0x6c, 0x00000000);
+                sys_put_wvalue(gdisp.init_para.base_pioc+0x70, 0x00000000);
+                sys_put_wvalue(gdisp.init_para.base_pioc+0x74, 0x00000000);
+                sys_put_wvalue(gdisp.init_para.base_pioc+0x78, 0x00000000);
+         }else
+        {
+             //pd28, pwm0 pin_cfg
+             //*(volatile __u32*)(0xf1c20800 + 0x78) = (*(volatile __u32*)(0xf1c20800 +  0x78)) | 0x00020000;
+             sys_put_wvalue(gdisp.init_para.base_pioc+0x6c, 0x22222222);
+             sys_put_wvalue(gdisp.init_para.base_pioc+0x70, 0x22222222);
+             sys_put_wvalue(gdisp.init_para.base_pioc+0x74, 0x22222222);
+             sys_put_wvalue(gdisp.init_para.base_pioc+0x78, 0x00122222);
+             sys_put_wvalue(gdisp.init_para.base_pioc+0x7c, sys_get_wvalue(gdisp.init_para.base_pioc+0x7c) | 0xf0000000);
+
+        }
+#endif
+
         for(i=0; i<28; i++)
         {
             if(gdisp.screen[sel].lcd_cfg.lcd_io_used[i])
@@ -1230,14 +1244,7 @@ __s32 Disp_lcdc_pin_cfg(__u32 sel, __disp_output_type_t out_type, __u32 bon)
                 if(!bon)
                 {
                     gpio_info->mul_sel = 0;
-#ifdef __FPGA_DEBUG__
-        //pd28, pwm0 pin_cfg
-        //*(volatile __u32*)(0xf1c20800 + 0x78) = (*(volatile __u32*)(0xf1c20800 +  0x78)) & (~0x00020000);
-        sys_put_wvalue(gdisp.init_para.base_pioc+0x6c, 0x00000000);
-        sys_put_wvalue(gdisp.init_para.base_pioc+0x70, 0x00000000);
-        sys_put_wvalue(gdisp.init_para.base_pioc+0x74, 0x00000000);
-        sys_put_wvalue(gdisp.init_para.base_pioc+0x78, 0x00000000);
-#endif
+
                 }
                 else
                 {
@@ -1245,19 +1252,20 @@ __s32 Disp_lcdc_pin_cfg(__u32 sel, __disp_output_type_t out_type, __u32 bon)
                     {
                         gpio_info->mul_sel = 3;
                     }
-
-#ifdef __FPGA_DEBUG__
-        //pd28, pwm0 pin_cfg
-        //*(volatile __u32*)(0xf1c20800 + 0x78) = (*(volatile __u32*)(0xf1c20800 +  0x78)) | 0x00020000;
-        sys_put_wvalue(gdisp.init_para.base_pioc+0x6c, 0x22222222);
-        sys_put_wvalue(gdisp.init_para.base_pioc+0x70, 0x22222222);
-        sys_put_wvalue(gdisp.init_para.base_pioc+0x74, 0x22222222);
-        sys_put_wvalue(gdisp.init_para.base_pioc+0x78, 0x00122222);
-        sys_put_wvalue(gdisp.init_para.base_pioc+0x7c, sys_get_wvalue(gdisp.init_para.base_pioc+0x7c) | 0xf0000000);
-#endif
                 }
                 lcd_pin_hdl = OSAL_GPIO_Request(gpio_info, 1);
                 OSAL_GPIO_Release(lcd_pin_hdl, 2);
+            }
+        }
+
+        if(gpanel_info[sel].lcd_if == LCD_IF_DSI)
+        {
+            if(bon)
+            {
+                dsi_io_open(sel, &gpanel_info[sel]);
+            }else
+            {
+                dsi_io_close(sel);
             }
         }
 
@@ -1380,8 +1388,7 @@ __s32 Disp_lcdc_init(__u32 sel)
             LCD_get_panel_para(sel, &gpanel_info[sel]);
         }
         gpanel_info[sel].tcon_index = 0;
-//        TCON_init(sel,(__panel_para_t*)&gpanel_info[sel]);
-        if((OSAL_sw_get_ic_ver() != 0xA) && (gpanel_info[sel].lcd_pwm_not_used == 0))
+        if((gpanel_info[sel].lcd_pwm_not_used == 0))
         {
             __pwm_info_t pwm_info;
 
@@ -1876,7 +1883,7 @@ __s32 BSP_disp_lcd_set_bright(__u32 sel, __u32  bright, __u32 from_iep)
 {	    
     __u32 duty_ns;
     
-    if((OSAL_sw_get_ic_ver() != 0xA) && (gpanel_info[sel].lcd_pwm_not_used ==0) && (gdisp.screen[sel].lcd_cfg.lcd_used))
+    if((gpanel_info[sel].lcd_pwm_not_used ==0) && (gdisp.screen[sel].lcd_cfg.lcd_used))
     {
         if(bright != 0)
         {
@@ -1969,7 +1976,7 @@ __s32 BSP_disp_lcd_set_src(__u32 sel, __disp_lcdc_src_t src)
             break;
 
         default:
-            DE_WRN("not supported lcdc src:%d in BSP_disp_tv_set_src\n", src);
+            DE_WRN("not supported lcdc src:%d in BSP_disp_lcd_set_src\n", src);
             return DIS_NOT_SUPPORT;
     }
     return DIS_SUCCESS;
@@ -2105,6 +2112,10 @@ __s32 BSP_disp_lcd_set_bright_dimming(__u32 sel, __u32 backlight_dimming)
     return DIS_SUCCESS;
 }
 
+__s32 BSP_disp_lcd_used(__u32 sel)
+{
+    return gdisp.screen[sel].lcd_cfg.lcd_used;
+}
 
 __s32 LCD_CPU_WR(__u32 sel,__u32 index,__u32 data)
 {
