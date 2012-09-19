@@ -137,7 +137,15 @@ __s32 standby_ir_exit(void)
     dmac_src = (__u32   *)DMAC_REG_N1_SRC_ADDR;
     dmac_dst = (__u32   *)DMAC_REG_N1_DST_ADDR;
     dmac_byte = (__u32   *)DMAC_REG_N1_BYTE_CNT;
-    ir_buffer.dcnt = IR_DMA_BYTES - *dmac_byte;
+
+    if (standby_query_int(INT_SOURCE_IR0) == 0)    /*返回值为0表示有中断*/
+    {
+        /*等待dma传输完毕*/
+        while (dmac_byte != 0 && (IR_reg->CIR_RxSta&IR_RXSTA_RPE_MASK) == 0);
+        ir_buffer.dcnt = IR_DMA_BYTES - *dmac_byte;
+    }
+    standby_put_dec(ir_buffer.dcnt);
+    standby_put_hex_ext(ir_buffer.buf,ir_buffer.dcnt);
 
     *dmac_cfg = g_dma_cfg;
     *dmac_src = g_dma_src;
