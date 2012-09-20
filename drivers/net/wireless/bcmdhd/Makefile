@@ -1,15 +1,13 @@
 #bcmdhd flags
 DHDCFLAGS = -Wall -Wstrict-prototypes -Dlinux -DBCMDRIVER					\
 	-DBCMDONGLEHOST -DUNRELEASEDCHIP -DBCMDMA32 -DWLBTAMP -DBCMFILEIMAGE	\
-	-DDHDTHREAD -DDHD_GPL -DDHD_SCHED -DDHD_DEBUG -DBDC -DTOE				\
-	-DDHD_BCMEVENTS -DSHOW_EVENTS -DDONGLEOVERLAYS -DBCMDBG					\
+	-DDHDTHREAD -DDHD_GPL -DDHD_SCHED -DBDC -DTOE				\
+	-DDHD_BCMEVENTS -DSHOW_EVENTS -DDONGLEOVERLAYS					\
 	-DMMC_SDIO_ABORT -DBCMSDIO -DBCMLXSDMMC -DBCMPLATFORM_BUS -DWLP2P		\
 	-DNEW_COMPAT_WIRELESS -DWIFI_ACT_FRAME -DARP_OFFLOAD_SUPPORT			\
-	-DKEEP_ALIVE -DCSCAN -DSDIO_ISR_THREAD -DPKT_FILTER_SUPPORT     \
-	-DEMBEDDED_PLATFORM -DPNO_SUPPORT          \
-	-Idrivers/net/wireless/bcmdhd -Idrivers/net/wireless/bcmdhd/include -Iarch/arm/plat-samsung/include
-#	-DDHD_SDALIGN=64 -DMAX_HDR_READ=64 -DDHD_FIRSTREAD=64					\
-	-Idrivers/net/wireless/bcmdhd -Idrivers/net/wireless/bcmdhd/include -Iarch/arm/plat-samsung/include
+	-DKEEP_ALIVE -DCSCAN -DPKT_FILTER_SUPPORT     \
+	-DEMBEDDED_PLATFORM -DPNO_SUPPORT  -DENABLE_INSMOD_NO_FW_LOAD  -DSDIO_ISR_THREAD    \
+	-Idrivers/net/wireless/bcmdhd -Idrivers/net/wireless/bcmdhd/include 
 
 DHDOFILES = aiutils.o bcmsdh_sdmmc_linux.o dhd_linux.o siutils.o bcmutils.o \
 	dhd_linux_sched.o bcmwifi.o dhd_sdio.o bcmevent.o dhd_bta.o hndpmu.o  	\
@@ -19,13 +17,6 @@ DHDOFILES = aiutils.o bcmsdh_sdmmc_linux.o dhd_linux.o siutils.o bcmutils.o \
 obj-$(CONFIG_BCMDHD) += bcmdhd.o
 bcmdhd-objs += $(DHDOFILES)
 
-ifeq ($(CONFIG_MACH_ODROID_4210),y)
-	bcmdhd-objs += hardkernel.o
-	DHDCFLAGS += -DCUSTOMER_HW
-#	DHDCFLAGS += -DSDIO_ISR_THREAD
-	DHDCFLAGS += -DOOB_INTR_ONLY -DHW_OOB -DHARDKERNEL_OOB
-	DHDCFLAGS += -DENABLE_INSMOD_NO_FW_LOAD -DSET_RANDOM_MAC_SOFTAP
-endif
 
 ifneq ($(CONFIG_WIRELESS_EXT),)
 bcmdhd-objs += wl_iw.o

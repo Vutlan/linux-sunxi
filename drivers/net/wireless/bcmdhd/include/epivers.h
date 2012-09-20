@@ -35,7 +35,7 @@
 
 #define	EPI_INCREMENTAL_NUMBER	26
 
-#define EPI_BUILD_NUMBER	3
+#define EPI_BUILD_NUMBER	4
 
 #define	EPI_VERSION		5, 90, 195, 26
 
@@ -44,6 +44,6 @@
 #define EPI_VERSION_DEV		5.90.195
 
 
-#define	EPI_VERSION_STR		"5.90.195.26.1.3"
+#define	EPI_VERSION_STR		"5.90.195.26.1"
 
 #endif 

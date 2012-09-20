@@ -87,8 +87,7 @@ enum {
 #define DHD_BTA_VAL	0x1000
 #define DHD_ISCAN_VAL	0x2000
 #define DHD_ARPOE_VAL	0x4000
-#define DHD_WL_VAL	0x10000
-#define DHD_CFG_VAL	0x20000
+#define DHD_WL_VAL	0x8000
 
 #ifdef SDTEST
 /* For pktgen iovar */

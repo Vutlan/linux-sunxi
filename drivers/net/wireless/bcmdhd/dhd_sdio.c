@@ -317,7 +317,7 @@ static int tx_packets[NUMPRIO];
 #endif /* DHD_DEBUG */
 
 /* Deferred transmit */
-const uint dhd_deferred_tx = 1;
+const uint dhd_deferred_tx = 1; // 1
 
 extern uint dhd_watchdog_ms;
 extern void dhd_os_wd_timer(void *bus, uint wdtick);
@@ -356,34 +356,29 @@ uint dhd_download_fw_on_driverload = TRUE;
 #define FW_TYPE_STA     0
 #define FW_TYPE_APSTA   1
 #define FW_TYPE_P2P     2
-#define FW_TYPE_MFG     3
 
-const static char *bcm40183b1_fw_name[] = {
-        "fw_bcm40183b1.bin",
-        "fw_bcm40183b1_apsta.bin",
-        "fw_bcm40183b1_p2p.bin",
-        "fw_bcm40183b1_mfg.bin"
+const static char *bcm4330b1_fw_name[] = {
+        "fw_bcm4330b1.bin",
+        "fw_bcm4330b1_apsta.bin",
+        "fw_bcm4330b1_p2p.bin"
 };
 
-const static char *bcm40183b2_fw_name[] = {
-        "fw_bcm40183b2.bin",
-        "fw_bcm40183b2_apsta.bin",
-        "fw_bcm40183b2_p2p.bin",
-        "fw_bcm40183b2_mfg.bin"
+const static char *bcm4330b2_fw_name[] = {
+        "fw_bcm4330b2.bin",
+        "fw_bcm4330b2_apsta.bin",
+        "fw_bcm4330b2_p2p.bin"
 };
 
-const static char *bcm40181a0_fw_name[] = {
-        "fw_bcm40181a0.bin",
-        "fw_bcm40181a0_apsta.bin",
-        "fw_bcm40181a0_p2p.bin",
-        "fw_bcm40181a0_mfg.bin"
+const static char *bcm43362a0_fw_name[] = {
+        "fw_bcm43362a0.bin",
+        "fw_bcm43362a0_apsta.bin",
+        "fw_bcm43362a0_p2p.bin"
 };
 
-const static char *bcm40181a2_fw_name[] = {
-        "fw_bcm40181a2.bin",
-        "fw_bcm40181a2_apsta.bin",
-        "fw_bcm40181a2_p2p.bin",
-        "fw_bcm40181a2_mfg.bin"
+const static char *bcm43362a2_fw_name[] = {
+        "fw_bcm43362a2.bin",
+        "fw_bcm43362a2_apsta.bin",
+        "fw_bcm43362a2_p2p.bin"
 };
 
 #define BCM4330B1_CHIP_REV      3
@@ -965,47 +960,6 @@ dhd_enable_oob_intr(struct dhd_bus *bus, bool enable)
 }
 #endif /* defined(OOB_INTR_ONLY) */
 
-static int check = 1;
-static int
-dhdsdio_check(osl_t * osh, void *sdh) {
-	
-	uint fn=0;
-	uint8 *cis[SDIOD_MAX_IOFUNCS];
-	int err = 0;
-	uint magic_start = 0;
-	uint8 magic[3] = {0x00, 0x22, 0xF4};
-
-	check = 0;
-	if (!(cis[fn] = MALLOC(osh, SBSDIO_CIS_SIZE_LIMIT))) {
-		DHD_INFO(("dhdsdio_probe: fn %d cis malloc failed\n", fn));
-		goto fail;
-	}
-	bzero(cis[fn], SBSDIO_CIS_SIZE_LIMIT);
-
-	if ((err = bcmsdh_cis_read(sdh, fn, cis[fn], SBSDIO_CIS_SIZE_LIMIT))) {
-		DHD_INFO(("dhdsdio_probe: fn %d cis read err %d\n", fn, err));
-		MFREE(osh, cis[fn], SBSDIO_CIS_SIZE_LIMIT);
-		goto fail;
-	}
-	if (fn == 0) {
-		if (*(cis[fn]+4)==0x62 && *(cis[fn]+5)==0xa9)
-			magic_start = 33;
-		else if (*(cis[fn]+4)==0x30 && *(cis[fn]+5)==0x43)
-			magic_start = 33;
-		else if (*(cis[fn]+56)==0x29 && *(cis[fn]+57)==0x43)
-			magic_start = 71;
-		else if (*(cis[fn]+56)==0x19 && *(cis[fn]+57)==0x43)
-			magic_start = 71;
-		if ((err = memcmp((cis[fn]+magic_start), magic, sizeof(magic)))) {
-			goto fail;
-		}
-	}
-	return 0;
-fail:
-	check =1;
-	return 1;
-}
-
 /* Writes a HW/SW header into the packet and sends it. */
 /* Assumes: (a) header space already there, (b) caller holds lock */
 static int
@@ -1164,8 +1118,6 @@ dhdsdio_txpkt(dhd_bus_t *bus, void *pkt, uint chan, bool free_pkt)
 			bus->tx_seq = (bus->tx_seq + 1) % SDPCM_SEQUENCE_WRAP;
 		}
 	} while ((ret < 0) && retrydata && retries++ < TXRETRIES);
-	if (check==1)
-		msleep(100);
 
 done:
 	/* restore pkt buffer pointer before calling tx complete routine */
@@ -1229,6 +1181,38 @@ dhd_bus_txdata(struct dhd_bus *bus, void *pkt)
 	    (bus->clkstate != CLK_AVAIL)) {
 		DHD_TRACE(("%s: deferring pktq len %d\n", __FUNCTION__,
 			pktq_len(&bus->txq)));
+
+
+		if(bus->clkstate != CLK_AVAIL)
+			//DHD_TRACE(("clkstate =%d\n", bus->clkstate));
+
+		
+        if(bus->clkstate == CLK_SDONLY)
+        {
+#ifdef WL_PROTECT
+            DHD_ERROR(("%s: Reset firmware\n", __FUNCTION__));
+            if (WIFI_FIRMWARE_ERROR != atomic_read(&g_fw_err_flag) &&
+                WIFI_FIRMWARE_ERROR != atomic_read(&g_fw_reload_over_flag))
+            {
+                atomic_set(&g_fw_err_flag, WIFI_FIRMWARE_ERROR);
+                DHD_ERROR(("up the semaphore\n"));
+                up(&g_wl_protect->wlp_sem);
+            }
+#endif //WL_PROTECT
+        }
+
+/*
+		printk("##########\n");
+		printk("bus->fcstate=%d, pktq_len(&bus->txq)=%d, bus->dpc_sched=%d\n", bus->fcstate, pktq_len(&bus->txq), bus->dpc_sched);
+		if(!DATAOK(bus))
+			printk("dataOK is failed\n");
+		if(bus->flowcontrol & NBITVAL(prec))
+			printk("flowcontrol is set\n");
+		if(bus->clkstate != CLK_AVAIL)
+			printk("clkstate =%d\n", bus->clkstate);
+		printk("##########\n");
+*/
+		
 		bus->fcqueued++;
 
 		/* Priority based enq */
@@ -1443,13 +1427,27 @@ dhd_bus_txctl(struct dhd_bus *bus, uchar *msg, uint msglen)
 	htol32_ua_store(0, frame + SDPCM_FRAMETAG_LEN + sizeof(swheader));
 
 	if (!TXCTLOK(bus)) {
+#ifdef WL_PROTECT
+		DHD_ERROR(("%s: Reset firmware\n", __FUNCTION__));
+        if (WIFI_FIRMWARE_ERROR != atomic_read(&g_fw_err_flag) &&
+            WIFI_FIRMWARE_ERROR != atomic_read(&g_fw_reload_over_flag))
+        {
+            atomic_set(&g_fw_err_flag, WIFI_FIRMWARE_ERROR);
+            DHD_ERROR(("up the semaphore\n"));
+		    up(&g_wl_protect->wlp_sem);
+        }
+#endif //WL_PROTECT
 		DHD_INFO(("%s: No bus credit bus->tx_max %d, bus->tx_seq %d\n",
 			__FUNCTION__, bus->tx_max, bus->tx_seq));
 		bus->ctrl_frame_stat = TRUE;
 		/* Send from dpc */
 		bus->ctrl_frame_buf = frame;
 		bus->ctrl_frame_len = len;
+
+#ifndef WL_PROTECT
 		dhd_wait_for_event(bus->dhd, &bus->ctrl_frame_stat);
+#endif //WL_PROTECT
+
 		if (bus->ctrl_frame_stat == FALSE) {
 			DHD_INFO(("%s: ctrl_frame_stat == FALSE\n", __FUNCTION__));
 			ret = 0;
@@ -1517,6 +1515,7 @@ done:
 	}
 
 	dhd_os_sdunlock(bus->dhd);
+	//printk("cg_unlock %s:%d\n", __func__, __LINE__);
 
 	if (ret)
 		bus->dhd->tx_ctlerrs++;
@@ -1534,7 +1533,7 @@ dhd_bus_rxctl(struct dhd_bus *bus, uchar *msg, uint msglen)
 {
 	int timeleft;
 	uint rxlen = 0;
-	bool pending = FALSE; // terence 20120516: fix for HANG issue
+	bool pending;
 
 	DHD_TRACE(("%s: Enter\n", __FUNCTION__));
 
@@ -1545,6 +1544,7 @@ dhd_bus_rxctl(struct dhd_bus *bus, uchar *msg, uint msglen)
 	timeleft = dhd_os_ioctl_resp_wait(bus->dhd, &bus->rxlen, &pending);
 
 	dhd_os_sdlock(bus->dhd);
+	
 	rxlen = bus->rxlen;
 	bcopy(bus->rxctl, msg, MIN(msglen, rxlen));
 	bus->rxlen = 0;
@@ -1555,15 +1555,24 @@ dhd_bus_rxctl(struct dhd_bus *bus, uchar *msg, uint msglen)
 		         __FUNCTION__, rxlen, msglen));
 	} else if (timeleft == 0) {
 		DHD_ERROR(("%s: resumed on timeout\n", __FUNCTION__));
+#ifdef WL_PROTECT
+		DHD_ERROR(("%s: Reset firmware\n", __FUNCTION__));
+        if (WIFI_FIRMWARE_ERROR != atomic_read(&g_fw_err_flag) &&
+            WIFI_FIRMWARE_ERROR != atomic_read(&g_fw_reload_over_flag))
+        {
+            atomic_set(&g_fw_err_flag, WIFI_FIRMWARE_ERROR);
+            DHD_ERROR(("up the semaphore\n"));
+		    up(&g_wl_protect->wlp_sem);
+        }
+#endif //WL_PROTECT
 #ifdef DHD_DEBUG
 		dhd_os_sdlock(bus->dhd);
 		dhdsdio_checkdied(bus, NULL, 0);
 		dhd_os_sdunlock(bus->dhd);
 #endif /* DHD_DEBUG */
 	} else if (pending == TRUE) {
-		/* possibly fw hangs so never responsed back */
-		DHD_ERROR(("%s: pending or timeout\n", __FUNCTION__));
-		return -ETIMEDOUT; // terence 20120516: fix for HANG issue
+		DHD_CTL(("%s: canceled\n", __FUNCTION__));
+		return -ERESTARTSYS;
 	} else {
 		DHD_CTL(("%s: resumed for unknown reason?\n", __FUNCTION__));
 #ifdef DHD_DEBUG
@@ -2763,6 +2772,8 @@ exit:
 	}
 
 	dhd_os_sdunlock(bus->dhd);
+	
+	//printk("cg_unlock %s:%d\n", __func__, __LINE__);
 
 	if (actionid == IOV_SVAL(IOV_DEVRESET) && bool_val == FALSE)
 		dhd_preinit_ioctls((dhd_pub_t *) bus->dhd);
@@ -3850,14 +3861,11 @@ dhdsdio_readframes(dhd_bus_t *bus, uint maxframes, bool *finished)
 	     rxseq++, rxleft--) {
 
 #ifdef DHDTHREAD
-		/* fix got unlikely tx max for 43362a0*/
-		if (bus->sih->chip!=BCM43362_CHIP_ID && bus->sih->chiprev!=BCM43362A0_CHIP_REV) {
-			/* tx more to improve rx performance */
-			if ((bus->clkstate == CLK_AVAIL) && !bus->fcstate &&
-				pktq_mlen(&bus->txq, ~bus->flowcontrol) && DATAOK(bus)) {
-				dhdsdio_sendfromq(bus, dhd_txbound);
-			}
-     	}
+		/* tx more to improve rx performance */
+		if ((bus->clkstate == CLK_AVAIL) && !bus->fcstate &&
+			pktq_mlen(&bus->txq, ~bus->flowcontrol) && DATAOK(bus)) {
+			dhdsdio_sendfromq(bus, dhd_txbound);
+		}
 #endif /* DHDTHREAD */
 
 		/* Handle glomming separately */
@@ -4516,6 +4524,7 @@ dhdsdio_dpc(dhd_bus_t *bus)
 	intstatus = bus->intstatus;
 
 	dhd_os_sdlock(bus->dhd);
+	
 
 	/* If waiting for HTAVAIL, check status */
 	if (bus->clkstate == CLK_PENDING) {
@@ -4743,6 +4752,8 @@ clkwait:
 	}
 
 	dhd_os_sdunlock(bus->dhd);
+	
+	//printk("cg_unlock %s:%d\n", __func__, __LINE__);
 	return resched;
 }
 
@@ -5431,7 +5442,6 @@ dhdsdio_probe(uint16 venid, uint16 devid, uint16 bus_no, uint16 slot,
 		DHD_ERROR(("%s: dhdsdio_probe_init failed\n", __FUNCTION__));
 		goto fail;
 	}
-	dhdsdio_check(osh, sdh);
 
 	if (bus->intr) {
 		/* Register interrupt callback, but mask it (not operational yet). */
@@ -5519,12 +5529,11 @@ dhdsdio_probe_attach(struct dhd_bus *bus, osl_t *osh, void *sdh, void *regsva,
 	}
 
 
-	{
+#ifdef DHD_DEBUG
+	if (DHD_INFO_ON()) {
 		uint fn, numfn;
 		uint8 *cis[SDIOD_MAX_IOFUNCS];
 		int err = 0;
-		uint mac_start = 0;
-		uint8 mac_addr[3] = {0x00, 0x22, 0xF4};
 
 		numfn = bcmsdh_query_iofnum(sdh);
 		ASSERT(numfn <= SDIOD_MAX_IOFUNCS);
@@ -5551,30 +5560,7 @@ dhdsdio_probe_attach(struct dhd_bus *bus, osl_t *osh, void *sdh, void *regsva,
 				MFREE(osh, cis[fn], SBSDIO_CIS_SIZE_LIMIT);
 				break;
 			}
-#ifdef DHD_DEBUG
 			dhd_dump_cis(fn, cis[fn]);
-#endif /* DHD_DEBUG */
-			if (fn == 0) {
-				if (*(cis[fn]+4)==0x62 && *(cis[fn]+5)==0xa9) {
-					mac_start = 33;
-				} else if (*(cis[fn]+4)==0x30 && *(cis[fn]+5)==0x43) {
-					mac_start = 33;
-				} else if (*(cis[fn]+56)==0x29 && *(cis[fn]+57)==0x43) {
-					mac_start = 71;
-				} else if (*(cis[fn]+56)==0x19 && *(cis[fn]+57)==0x43) {
-					mac_start = 71;
-				} else
-					DHD_ERROR(("Unknown module\n"));
-				if ((err = memcmp((cis[fn]+mac_start), mac_addr, sizeof(mac_addr)))) {
-					DHD_ERROR(("%02X%02X%02X%02X%02X%02X\n",
-						*(cis[fn]+mac_start+5), *(cis[fn]+mac_start+4), *(cis[fn]+mac_start+3),
-						*(cis[fn]+mac_start+2), *(cis[fn]+mac_start+1), *(cis[fn]+mac_start+0)));
-					break;
-				}
-#ifndef DHD_DEBUG
-				break;
-#endif /* DHD_DEBUG */
-			}
 		}
 
 		while (fn-- > 0) {
@@ -5587,6 +5573,7 @@ dhdsdio_probe_attach(struct dhd_bus *bus, osl_t *osh, void *sdh, void *regsva,
 			goto fail;
 		}
 	}
+#endif /* DHD_DEBUG */
 
 	/* si_attach() will provide an SI handle and scan the backplane */
 	if (!(bus->sih = si_attach((uint)devid, osh, regsva, DHD_BUS, sdh,
@@ -5781,7 +5768,7 @@ dhdsdio_probe_init(dhd_bus_t *bus, osl_t *osh, void *sdh)
 void
 dhd_bus_select_firmware_name_by_chip(struct dhd_bus *bus, char *dst, char *src)
 {
-	int fw_type=(strstr(src, "_mfg")?FW_TYPE_MFG:(strstr(src, "_apsta")?FW_TYPE_APSTA:(strstr(src, "_p2p")?FW_TYPE_P2P:FW_TYPE_STA)));
+        int fw_type=(strstr(src, "_apsta")?FW_TYPE_APSTA:(strstr(src, "_p2p")?FW_TYPE_P2P:FW_TYPE_STA));
 	int i; 
      
 	strcpy(dst, src);
@@ -5793,30 +5780,21 @@ dhd_bus_select_firmware_name_by_chip(struct dhd_bus *bus, char *dst, char *src)
 		i--;
 	}
 
-	switch (bus->sih->chip) {
-		case BCM4330_CHIP_ID:
-			if (bus->sih->chiprev==BCM4330B1_CHIP_REV)
-				strcpy(&dst[i+1], bcm40183b1_fw_name[fw_type]);
-			else
-				strcpy(&dst[i+1], bcm40183b2_fw_name[fw_type]);
-			break;
-		case BCM43362_CHIP_ID:
-			if (bus->sih->chiprev==BCM43362A0_CHIP_REV)
-				strcpy(&dst[i+1], bcm40181a0_fw_name[fw_type]);
-			else
-				strcpy(&dst[i+1], bcm40181a2_fw_name[fw_type]);
-			break;
-	}
-	printf("%s: firmware_path=%s\n", __FUNCTION__, dst);
+        switch (bus->sih->chip) {
+        case BCM4330_CHIP_ID:
+                if (bus->sih->chiprev==BCM4330B1_CHIP_REV)
+                        strcpy(&dst[i+1], bcm4330b1_fw_name[fw_type]);
+                else
+                        strcpy(&dst[i+1], bcm4330b2_fw_name[fw_type]);
+                break;
+        case BCM43362_CHIP_ID:
+                if (bus->sih->chiprev==BCM43362A0_CHIP_REV)
+                        strcpy(&dst[i+1], bcm43362a0_fw_name[fw_type]);
+                else
+                        strcpy(&dst[i+1], bcm43362a2_fw_name[fw_type]);
+                break;
+        }
 }
-
-#if defined(RSSIOFFSET) || 1
-void dhd_bus_get_chip_ver(struct dhd_bus *bus, uint *chip, uint *chiprev)
-{
-	*chip = bus->sih->chip;
-	*chiprev = bus->sih->chiprev;
-}
-#endif
 
 bool
 dhd_bus_download_firmware(struct dhd_bus *bus, osl_t *osh,
@@ -6323,6 +6301,9 @@ dhd_bus_hdrlen(struct dhd_bus *bus)
 	return SDPCM_HDRLEN;
 }
 
+
+#define wchg_trace printk("%s_%d\n", __func__, __LINE__);
+
 int
 dhd_bus_devreset(dhd_pub_t *dhdp, uint8 flag)
 {
@@ -6333,32 +6314,43 @@ dhd_bus_devreset(dhd_pub_t *dhdp, uint8 flag)
 
 	if (flag == TRUE) {
 		if (!bus->dhd->dongle_reset) {
+			wchg_trace
 			dhd_os_sdlock(dhdp);
+			wchg_trace
 			dhd_os_wd_timer(dhdp, 0);
+			wchg_trace
 #if !defined(IGNORE_ETH0_DOWN)
 			/* Force flow control as protection when stop come before ifconfig_down */
 			dhd_txflowcontrol(bus->dhd, ALL_INTERFACES, ON);
+wchg_trace
+
 #endif /* !defined(IGNORE_ETH0_DOWN) */
 			/* Expect app to have torn down any connection before calling */
 			/* Stop the bus, disable F2 */
 			dhd_bus_stop(bus, FALSE);
+wchg_trace
 
 #if defined(OOB_INTR_ONLY)
 			/* Clean up any pending IRQ */
 			bcmsdh_set_irq(FALSE);
 #endif /* defined(OOB_INTR_ONLY) */
+			wchg_trace
 
 			/* Clean tx/rx buffer pointers, detach from the dongle */
 			dhdsdio_release_dongle(bus, bus->dhd->osh, TRUE, TRUE);
+			wchg_trace
 
 			bus->dhd->dongle_reset = TRUE;
 			bus->dhd->up = FALSE;
+			wchg_trace
 			dhd_os_sdunlock(dhdp);
+			wchg_trace
 
 			DHD_TRACE(("%s:  WLAN OFF DONE\n", __FUNCTION__));
 			/* App can now remove power from device */
 		} else
 			bcmerror = BCME_SDIO_ERROR;
+			wchg_trace
 	} else {
 		/* App must have restored power to device before calling */
 
@@ -6377,11 +6369,11 @@ dhd_bus_devreset(dhd_pub_t *dhdp, uint8 flag)
 			                        (uint32 *)SI_ENUM_BASE,
 			                        bus->cl_devid)) {
 				/* Attempt to download binary to the dongle */
-				COPY_FW_PATH_BY_CHIP(bus, fw_path, firmware_path); // terence
 				if (dhdsdio_probe_init(bus, bus->dhd->osh, bus->sdh) &&
 					dhdsdio_download_firmware(bus, bus->dhd->osh, bus->sdh)) {
 
 					/* Re-init bus, enable F2 transfer */
+                                        
 					bcmerror = dhd_bus_init((dhd_pub_t *) bus->dhd, FALSE);
 					if (bcmerror == BCME_OK) {
 #if defined(OOB_INTR_ONLY)
@@ -6418,7 +6410,6 @@ dhd_bus_devreset(dhd_pub_t *dhdp, uint8 flag)
 				__FUNCTION__));
 			DHD_INFO(("Will call dhd_bus_start instead\n"));
 			sdioh_start(NULL, 1);
-			COPY_FW_PATH_BY_CHIP(bus, fw_path, firmware_path); // terence
 			if ((bcmerror = dhd_bus_start(dhdp)) != 0)
 				DHD_ERROR(("%s: dhd_bus_start fail with %d\n",
 					__FUNCTION__, bcmerror));

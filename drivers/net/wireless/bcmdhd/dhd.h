@@ -291,6 +291,24 @@ extern int dhd_os_wake_unlock(dhd_pub_t *pub);
 extern int dhd_os_wake_lock_timeout(dhd_pub_t *pub);
 extern int dhd_os_wake_lock_timeout_enable(dhd_pub_t *pub, int val);
 
+#ifdef WL_PROTECT
+
+typedef struct wlp_info {
+    long wlp_pid;
+    struct semaphore wlp_sem;
+    struct completion wlp_exited;
+} wlp_info_t;
+
+#define WIFI_FIRMWARE_RECOVER 0
+#define WIFI_FIRMWARE_ERROR 1
+
+extern void dhd_os_start_lock(dhd_pub_t *pub);
+extern void dhd_os_start_unlock(dhd_pub_t *pub);
+extern wlp_info_t *g_wl_protect;
+extern atomic_t g_fw_err_flag;
+extern atomic_t g_fw_reload_over_flag;
+
+#endif //WL_PROTECT
 inline static void MUTEX_LOCK_SOFTAP_SET_INIT(dhd_pub_t * dhdp)
 {
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)) && 1
@@ -533,8 +551,8 @@ extern uint dhd_watchdog_ms;
 #if defined(DHD_DEBUG)
 /* Console output poll interval */
 extern uint dhd_console_ms;
-#endif /* defined(DHD_DEBUG) */
 extern uint wl_msg_level;
+#endif /* defined(DHD_DEBUG) */
 
 /* Use interrupts */
 extern uint dhd_intr;
@@ -590,20 +608,6 @@ extern uint dhd_pktgen_len;
 #define MOD_PARAM_PATHLEN	2048
 extern char fw_path[MOD_PARAM_PATHLEN];
 extern char nv_path[MOD_PARAM_PATHLEN];
-
-#define FW_PATH_AUTO_SELECT 1
-// terence
-extern char firmware_path[MOD_PARAM_PATHLEN];
-#ifdef FW_PATH_AUTO_SELECT
-extern void dhd_bus_select_firmware_name_by_chip(struct dhd_bus *bus, char *dst, char *src);
-#define COPY_FW_PATH_BY_CHIP( bus, dst, src)	dhd_bus_select_firmware_name_by_chip( bus, dst, src);	
-#else
-#define COPY_FW_PATH_BY_CHIP( bus, dst, src)	strcpy(dst, src)
-#endif
-#if defined(RSSIOFFSET) || 1
-extern void dhd_bus_get_chip_ver(struct dhd_bus *bus, uint *chip, uint *chiprev);
-#define GET_CHIP_VER( bus, chip, chiprev)	dhd_bus_get_chip_ver( bus, chip, chiprev)
-#endif
 
 #ifdef SOFTAP
 extern char fw_path2[MOD_PARAM_PATHLEN];

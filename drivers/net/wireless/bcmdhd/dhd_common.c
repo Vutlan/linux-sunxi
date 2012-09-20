@@ -283,6 +283,13 @@ dhd_wl_ioctl_cmd(dhd_pub_t *dhd_pub, int cmd, void *arg, int len, uint8 set, int
 {
 	wl_ioctl_t ioc;
 
+#ifdef WL_PROTECT
+    if (WIFI_FIRMWARE_ERROR == atomic_read(&g_fw_err_flag))
+    {
+	    return 0;
+    }
+#endif
+
 	ioc.cmd = cmd;
 	ioc.buf = arg;
 	ioc.len = len;
@@ -296,11 +303,17 @@ int
 dhd_wl_ioctl(dhd_pub_t *dhd_pub, int ifindex, wl_ioctl_t *ioc, void *buf, int len)
 {
 	int ret;
+#ifdef WL_PROTECT
+    if (WIFI_FIRMWARE_ERROR == atomic_read(&g_fw_err_flag))
+    {
+	    return 0;
+    }
+#endif
 
 	dhd_os_proto_block(dhd_pub);
 
 	ret = dhd_prot_ioctl(dhd_pub, ifindex, ioc, buf, len);
-	if (ret) // terence 20120516: fix for HANG issue
+	if (!ret)
 		dhd_os_check_hang(dhd_pub, ifindex, ret);
 
 	dhd_os_proto_unblock(dhd_pub);
@@ -335,19 +348,13 @@ dhd_doiovar(dhd_pub_t *dhd_pub, const bcm_iovar_t *vi, uint32 actionid, const ch
 		break;
 
 	case IOV_SVAL(IOV_MSGLEVEL):
-#if defined(CONFIG_WIRELESS_EXT) || defined(WL_WIRELESS_EXT)
-		if (int_val & DHD_WL_VAL)
-			wl_msg_level = int_val;
-		else
-#endif
-#ifdef WL_CFG80211
-		if (int_val & DHD_CFG_VAL)
-			wl_cfg80211_enable_trace(int_val);
-		else
-#endif
 		dhd_msg_level = int_val;
+#ifdef WL_CFG80211
+		/* Enable DHD and WL logs in oneshot */
+		if (dhd_msg_level & DHD_WL_VAL)
+			wl_cfg80211_enable_trace(dhd_msg_level);
+#endif
 		break;
-
 	case IOV_GVAL(IOV_BCMERRORSTR):
 		bcm_strncpy_s((char *)arg, len, bcmerrorstr(dhd_pub->bcmerror), BCME_STRLEN);
 		((char *)arg)[BCME_STRLEN - 1] = 0x00;
@@ -956,6 +963,7 @@ wl_show_host_event(wl_event_msg_t *event, void *event_data)
 		break;
 	}
 
+#if 0
 	/* show any appended data */
 	if (datalen) {
 		buf = (uchar *) event_data;
@@ -964,6 +972,8 @@ wl_show_host_event(wl_event_msg_t *event, void *event_data)
 			DHD_EVENT((" 0x%02x ", *buf++));
 		DHD_EVENT(("\n"));
 	}
+#endif
+
 }
 #endif /* SHOW_EVENTS */
 

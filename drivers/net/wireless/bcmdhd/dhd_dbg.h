@@ -29,8 +29,7 @@
 
 #if defined(DHD_DEBUG)
 
-#define DHD_ERROR(args)	       do {if ((dhd_msg_level & DHD_ERROR_VAL) && (net_ratelimit())) \
-								printf args;} while (0)
+#define DHD_ERROR(args)	       do {if  (dhd_msg_level & DHD_ERROR_VAL) printf args;} while (0)
 #define DHD_TRACE(args)		do {if (dhd_msg_level & DHD_TRACE_VAL) printf args;} while (0)
 #define DHD_INFO(args)		do {if (dhd_msg_level & DHD_INFO_VAL) printf args;} while (0)
 #define DHD_DATA(args)		do {if (dhd_msg_level & DHD_DATA_VAL) printf args;} while (0)
@@ -63,8 +62,8 @@
 #else /* defined(BCMDBG) || defined(DHD_DEBUG) */
 
 #define DHD_ERROR(args)    	do {if (net_ratelimit()) printf args;} while (0)
-#define DHD_TRACE(args)
-#define DHD_INFO(args)
+#define DHD_TRACE(args)		//printk args
+#define DHD_INFO(args)		//printk args
 #define DHD_DATA(args)
 #define DHD_CTL(args)
 #define DHD_TIMER(args)
@@ -72,7 +71,7 @@
 #define DHD_BYTES(args)
 #define DHD_INTR(args)
 #define DHD_GLOM(args)
-#define DHD_EVENT(args)
+#define DHD_EVENT(args)		//printk args
 #define DHD_BTA(args)
 #define DHD_ISCAN(args)
 #define DHD_ARPOE(args)

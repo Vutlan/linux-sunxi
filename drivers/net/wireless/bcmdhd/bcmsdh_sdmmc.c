@@ -840,8 +840,8 @@ sdioh_request_byte(sdioh_info_t *sd, uint rw, uint func, uint regaddr, uint8 *by
 	}
 
 	if (err_ret) {
-		sd_err(("bcmsdh_sdmmc: Failed to %s byte F%d:@0x%05x=%02x, Err: %d\n",
-		                        rw ? "Write" : "Read", func, regaddr, *byte, err_ret));
+		//sd_err(("bcmsdh_sdmmc: Failed to %s byte F%d:@0x%05x=%02x, Err: %d\n",             //magic resume error by SDIO
+		//                        rw ? "Write" : "Read", func, regaddr, *byte, err_ret));
 	}
 
 	return ((err_ret == 0) ? SDIOH_API_RC_SUCCESS : SDIOH_API_RC_FAIL);
@@ -1004,11 +1004,10 @@ sdioh_request_buffer(sdioh_info_t *sd, uint pio_dma, uint fix_inc, uint write, u
 		sd_data(("%s: Creating new %s Packet, len=%d\n",
 		         __FUNCTION__, write ? "TX" : "RX", buflen_u));
 #ifdef CONFIG_DHD_USE_STATIC_BUF
-		if (!(mypkt = PKTGET_STATIC(sd->osh, buflen_u, write ? TRUE : FALSE)))
+		if (!(mypkt = PKTGET_STATIC(sd->osh, buflen_u, write ? TRUE : FALSE))) {
 #else
-		if (!(mypkt = PKTGET(sd->osh, buflen_u, write ? TRUE : FALSE)))
+		if (!(mypkt = PKTGET(sd->osh, buflen_u, write ? TRUE : FALSE))) {
 #endif /* CONFIG_DHD_USE_STATIC_BUF */
-		{
 			sd_err(("%s: PKTGET failed: len %d\n",
 			           __FUNCTION__, buflen_u));
 			return SDIOH_API_RC_FAIL;
@@ -1039,11 +1038,10 @@ sdioh_request_buffer(sdioh_info_t *sd, uint pio_dma, uint fix_inc, uint write, u
 		sd_data(("%s: Creating aligned %s Packet, len=%d\n",
 		         __FUNCTION__, write ? "TX" : "RX", PKTLEN(sd->osh, pkt)));
 #ifdef CONFIG_DHD_USE_STATIC_BUF
-		if (!(mypkt = PKTGET_STATIC(sd->osh, PKTLEN(sd->osh, pkt), write ? TRUE : FALSE)))
+		if (!(mypkt = PKTGET_STATIC(sd->osh, PKTLEN(sd->osh, pkt), write ? TRUE : FALSE))) {
 #else
-		if (!(mypkt = PKTGET(sd->osh, PKTLEN(sd->osh, pkt), write ? TRUE : FALSE)))
+		if (!(mypkt = PKTGET(sd->osh, PKTLEN(sd->osh, pkt), write ? TRUE : FALSE))) {
 #endif /* CONFIG_DHD_USE_STATIC_BUF */
-		{
 			sd_err(("%s: PKTGET failed: len %d\n",
 			           __FUNCTION__, PKTLEN(sd->osh, pkt)));
 			return SDIOH_API_RC_FAIL;

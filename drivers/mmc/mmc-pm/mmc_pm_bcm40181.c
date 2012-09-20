@@ -221,36 +221,22 @@ static int bcm40181_get_io_value(char* name)
 
 void bcm40181_power(int mode, int* updown)
 {
-	printk("bcm40181 power mode=%d",mode);
-	printk("up value=%d\n",*updown);
+	printk("bcm40181 power mode=%d, updown=%d\n", mode, *updown);
     if (mode) {
         if (*updown) {
-			printk("--------0--------------\n");
-			//bcm40181_gpio_ctrl("bcm40181_vcc_en", 1);
-			udelay(100);
-			//bcm40181_gpio_ctrl("bcm40181_shdn", 1);
-			//udelay(50);
-			//bcm40181_gpio_ctrl("bcm40181_vdd_en", 1);
-			
+			udelay(10);
 			set_axp_power(axp_handler_1,drv_vbus_gpio_set1,1);
 			set_axp_power(axp_handler_2,drv_vbus_gpio_set2,1);
 			
         } else {
-			printk("--------1--------------\n");
-			//bcm40181_gpio_ctrl("bcm40181_vcc_en", 0);
-			//bcm40181_gpio_ctrl("bcm40181_shdn", 0);
-			//bcm40181_gpio_ctrl("bcm40181_vdd_en", 0);
-			
 			set_axp_power(axp_handler_1,drv_vbus_gpio_set1,0);
 			set_axp_power(axp_handler_2,drv_vbus_gpio_set2,0);
         }
     } else {
         if (bcm40181_powerup){
-			printk("--------2--------------\n");
             *updown = 1;
 		}
         else {
-			printk("--------3--------------\n");
             *updown = 0;
 		}
 		bcm40181_msg("sdio wifi power state: %s\n", bcm40181_powerup ? "on" : "off");
@@ -263,12 +249,10 @@ void bcm40181_wifi_gpio_init(void)
 
 	bcm40181_msg("exec bcm40181_wifi_gpio_init...\n");
 	bcm40181_powerup = 0;
-	printk("chenjd\n");
 	bcm40181_suspend = 0;
 	ops->gpio_ctrl = bcm40181_gpio_ctrl;
 	ops->get_io_val = bcm40181_get_io_value;
-	ops->power = bcm40181_power;
-	
+	ops->power = bcm40181_power;	
 	init_axp();
 }
 

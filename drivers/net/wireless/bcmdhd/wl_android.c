@@ -129,9 +129,9 @@ extern int dhd_os_check_if_up(void *dhdp);
 extern void *bcmsdh_get_drvdata(void);
 
 extern bool ap_fw_loaded;
-//#ifdef CUSTOMER_HW2
+#ifdef CUSTOMER_HW2
 extern char iface_name[IFNAMSIZ];
-//#endif
+#endif
 
 /**
  * Local (static) functions and variables
@@ -588,16 +588,16 @@ int wl_android_init(void)
 {
 	int ret = 0;
 
-	dhd_msg_level |= DHD_ERROR_VAL;
+	dhd_msg_level = DHD_ERROR_VAL;
 #ifdef ENABLE_INSMOD_NO_FW_LOAD
 	dhd_download_fw_on_driverload = FALSE;
 #endif /* ENABLE_INSMOD_NO_FW_LOAD */
-//#ifdef CUSTOMER_HW2
+#ifdef CUSTOMER_HW2
 	if (!iface_name[0]) {
 		memset(iface_name, 0, IFNAMSIZ);
 		bcm_strncpy_s(iface_name, IFNAMSIZ, "wlan", IFNAMSIZ);
 	}
-//#endif /* CUSTOMER_HW2 */
+#endif /* CUSTOMER_HW2 */
 	return ret;
 }
 
@@ -612,6 +612,8 @@ void wl_android_post_init(void)
 {
 	if (!dhd_download_fw_on_driverload) {
 		/* Call customer gpio to turn off power with WL_REG_ON signal */
+		msleep(100);
+		sdioh_stop(NULL);
 		dhd_customer_gpio_wlan_ctrl(WLAN_RESET_OFF);
 		g_wifi_on = 0;
 	}

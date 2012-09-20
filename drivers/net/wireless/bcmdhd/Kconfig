@@ -13,17 +13,17 @@ config BCMDHD
 config BCMDHD_FW_PATH
 	depends on BCMDHD
 	string "Firmware path"
-	default "/system/etc/firmware/fw_bcmdhd.bin"
+	default "/system/vendor/modules/fw_bcm40181a2.bin"
 	---help---
 	  Path to the firmware file.
 
 config BCMDHD_NVRAM_PATH
 	depends on BCMDHD
 	string "NVRAM path"
-	default "/system/etc/wifi/bcmdhd.cal"
+	default "/system/vendor/modules/bcm40181_nvram.txt"
 	---help---
 	  Path to the calibration file.
-
+	  	  
 config BCMDHD_WEXT
 	bool "Enable WEXT support"
 	depends on BCMDHD && CFG80211 = n
@@ -31,10 +31,3 @@ config BCMDHD_WEXT
 	select WEXT_PRIV
 	help
 	  Enables WEXT support
-
-config DHD_USE_STATIC_BUF
-	bool "Enable memory preallocation"
-	depends on BCMDHD
-	default n
-	---help---
-	  Use memory preallocated in platform

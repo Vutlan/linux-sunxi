@@ -138,12 +138,7 @@ build_modules()
 	make -C modules/wifi/usi-bcm4329/v4.218.248.15/open-src/src/dhd/linux \
 			CROSS_COMPILE=${CROSS_COMPILE} ARCH=arm LINUXVER=${KERNEL_VERSION} \
 			LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LINUXDIR=${LICHEE_KDIR} CONFIG_CHIP_ID=${CONFIG_CHIP_ID} \
-			INSTALL_DIR=${LICHEE_MOD_DIR} dhd-cdc-sdmmc-gpl
-	#build bcm40181 sdio wifi module 5.90.125.69.2
-	make -C modules/wifi/bcm40181/5.90.125.69.2/open-src/src/dhd/linux \
-			CROSS_COMPILE=${CROSS_COMPILE} ARCH=arm LINUXVER=${KERNEL_VERSION} \
-			LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LINUXDIR=${LICHEE_KDIR} CONFIG_CHIP_ID=${CONFIG_CHIP_ID} \
-			INSTALL_DIR=${LICHEE_MOD_DIR} OEM_ANDROID=1 dhd-cdc-sdmmc-gpl		
+			INSTALL_DIR=${LICHEE_MOD_DIR} dhd-cdc-sdmmc-gpl	
 			
 	#build cedar driver
 	#build nand driver
@@ -168,11 +163,6 @@ clean_kernel()
 
 	#build usi-bmc4329 sdio wifi module
 	make -C modules/wifi/usi-bcm4329/v4.218.248.15/open-src/src/dhd/linux \
-			CROSS_COMPILE=${CROSS_COMPILE} ARCH=arm LINUXVER=${KERNEL_VERSION} \
-			LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LINUXDIR=${LICHEE_KDIR} CONFIG_CHIP_ID=${CONFIG_CHIP_ID} \
-			INSTALL_DIR=${LICHEE_MOD_DIR} clean
-  #build bcm40181 sdio wifi module 5.90.125.69.2
-	make -C modules/wifi/bcm40181/5.90.125.69.2/open-src/src/dhd/linux \
 			CROSS_COMPILE=${CROSS_COMPILE} ARCH=arm LINUXVER=${KERNEL_VERSION} \
 			LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LINUXDIR=${LICHEE_KDIR} CONFIG_CHIP_ID=${CONFIG_CHIP_ID} \
 			INSTALL_DIR=${LICHEE_MOD_DIR} clean

@@ -248,9 +248,9 @@ static __inline u32 sdxc_enable_imask(struct sunxi_mmc_host* smc_host, u32 imask
 static __inline u32 sdxc_disable_imask(struct sunxi_mmc_host* smc_host, u32 imask)
 {
     u32 newmask = readl(SDXC_REG_IMASK) & (~imask);
-	if (!(imask & SDXC_SDIOInt))
-		writew(newmask, SDXC_REG_IMASK);
-	else
+	//if (!(imask & SDXC_SDIOInt))
+	//	writew(newmask, SDXC_REG_IMASK);
+	//else
 		writel(newmask, SDXC_REG_IMASK);
 	return newmask;
 }

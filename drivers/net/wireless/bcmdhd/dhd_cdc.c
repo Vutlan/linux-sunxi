@@ -166,10 +166,8 @@ dhdcdc_query_ioctl(dhd_pub_t *dhd, int ifidx, uint cmd, void *buf, uint len, uin
 		memcpy(prot->buf, buf, len);
 
 	if ((ret = dhdcdc_msg(dhd)) < 0) {
-		if (!dhd->hang_was_sent) {
-			dhd->busstate = DHD_BUS_DOWN; // terence 20120516: fix for HANG issue
+		if (!dhd->hang_was_sent)
 			DHD_ERROR(("dhdcdc_query_ioctl: dhdcdc_msg failed w/status %d\n", ret));
-		}
 		goto done;
 	}
 

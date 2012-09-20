@@ -23,6 +23,38 @@
 * $Id: dhd_custom_gpio.c 280266 2011-08-28 04:18:20Z $
 */
 
+/*
+#include <linux/module.h>
+#include <linux/init.h>
+#include <linux/kernel.h>
+#include <linux/mutex.h>
+#include <linux/skbuff.h>
+#include <linux/delay.h>
+#include <linux/serial_reg.h>
+#include <linux/circ_buf.h>
+#include <linux/gfp.h>
+#include <linux/tty.h>
+#include <linux/tty_flip.h>
+#include <linux/proc_fs.h>
+#include <linux/poll.h>
+#include <linux/firmware.h>
+#include <linux/workqueue.h>
+#include <linux/mmc/core.h>
+#include <linux/mmc/mmc.h>
+#include <linux/mmc/sd.h>
+#include <linux/mmc/card.h>
+#include <linux/mmc/sdio_func.h>
+#include <linux/mmc/sdio_ids.h>
+#include <linux/mmc/sdio.h>
+#include <linux/mmc/host.h>
+#include <linux/irq.h>
+#include <asm/ioctl.h>
+
+#include <linux/freezer.h>
+#include <linux/completion.h> 
+#include <linux/sched.h>
+*/
+//===================
 #include <typedefs.h>
 #include <linuxver.h>
 #include <osl.h>
@@ -35,7 +67,8 @@
 #include <wl_iw.h>
 
 #define WL_ERROR(x) printf x
-#define WL_TRACE(x) printf x
+#define WL_TRACE(x)
+
 
 #if 1
 extern void sunximmc_rescan_card(unsigned id, unsigned insert);
@@ -44,8 +77,6 @@ extern int mmc_pm_gpio_ctrl(char* name, int level);
 extern void mmc_pm_power(int mode, int* updown);
 extern int mmc_pm_get_io_val(char* name);
 #endif
-
-
 
 #ifdef CUSTOMER_HW
 extern  void bcm_wlan_power_off(int);
@@ -78,13 +109,6 @@ extern int sdioh_mmc_irq(int irq);
 /* Customer specific Host GPIO defintion  */
 static int dhd_oob_gpio_num = -1;
 
-#ifdef HARDKERNEL_OOB
-#include <linux/gpio.h>
-#include <mach/gpio.h>
-#include <mach/regs-gpio.h>
-#include <plat/gpio-cfg.h>
-#endif
-
 module_param(dhd_oob_gpio_num, int, 0644);
 MODULE_PARM_DESC(dhd_oob_gpio_num, "DHD oob gpio number");
 
@@ -105,12 +129,6 @@ int dhd_customer_oob_irq_map(unsigned long *irq_flags_ptr)
 
 #ifdef CUSTOMER_HW2
 	host_oob_irq = wifi_get_irq_number(irq_flags_ptr);
-
-#elif defined(HARDKERNEL_OOB)
-	printk("GPIO(WL_HOST_WAKE) = EXYNOS4_GPX0(7) = %d\n", EXYNOS4_GPX0(7));
-	host_oob_irq = gpio_to_irq(EXYNOS4_GPX0(7));
-	gpio_direction_input(EXYNOS4_GPX0(7));
-	printk("host_oob_irq: %d \r\n", host_oob_irq);
 
 #else
 #if defined(CUSTOM_OOB_GPIO_NUM)
@@ -145,81 +163,64 @@ int dhd_customer_oob_irq_map(unsigned long *irq_flags_ptr)
 void
 dhd_customer_gpio_wlan_ctrl(int onoff)
 {
+	WL_ERROR(("[bcm40181].....enter dhd_customer_gpio_wlan_ctrl ...\n"));
 	int x = 1;
 	int* updown=&x; 
 	switch (onoff) {
 		case WLAN_RESET_OFF:
-		              {
-                        WL_TRACE(("%s: call customer specific GPIO to insert WLAN RESET\n", __FUNCTION__));
+		{
+			WL_TRACE(("%s: call customer specific GPIO to insert WLAN RESET\n", __FUNCTION__));
  
-                        mmc_pm_gpio_ctrl("bcm40181_vcc_en", 0);
+                       mmc_pm_gpio_ctrl("bcm40181_vcc_en", 0);
                         printk("[bcm40181]: bcm40181_shdn=>0 !!\n");
 
-#ifdef CUSTOMER_HW
-                        bcm_wlan_power_off(2);
-#endif /* CUSTOMER_HW */
 
-#ifdef CONFIG_MACH_MAHIMAHI
-                        wifi_set_power(0, 0);
-#endif
-                        WL_ERROR(("=========== WLAN placed in RESET ========\n"));
-                }
+			WL_ERROR(("=========== WLAN placed in RESET ========\n"));
+		}
 		break;
 
 		case WLAN_RESET_ON:
-		                {
-                        WL_TRACE(("%s: callc customer specific GPIO to remove WLAN RESET\n", __FUNCTION__));
-                         udelay(1);
-                        mmc_pm_gpio_ctrl("bcm40181_vcc_en", 1);
-                        udelay(200);
-                        printk("[bcm40181]: bcm40181_shdn=>1 !!\n");
+		{
+			WL_TRACE(("%s: callc customer specific GPIO to remove WLAN RESET\n", __FUNCTION__));
+			mdelay(100);
+			mmc_pm_gpio_ctrl("bcm40181_vcc_en", 1);
+			printk("[bcm40181]: bcm40181_shdn=>1 !!\n");
+			mdelay(100);
 
-#ifdef CUSTOMER_HW
-                        bcm_wlan_power_on(2);
-#endif /* CUSTOMER_HW */
-
-#ifdef CONFIG_MACH_MAHIMAHI
-                        wifi_set_power(1, 0);
-#endif
-                        WL_ERROR(("=========== WLAN going back to live  ========\n"));
-                }
+			WL_ERROR(("=========== WLAN going back to live  ========\n"));
+		}
 		break;
 
 		case WLAN_POWER_OFF:
-		                {
-                        WL_TRACE(("%s: call customer specific GPIO to turn off WL_REG_ON\n", __FUNCTION__));
-                        mmc_pm_gpio_ctrl("bcm40181_vcc_en", 0);
+		{
+			WL_TRACE(("%s: call customer specific GPIO to turn off WL_REG_ON\n", __FUNCTION__));
+			mmc_pm_gpio_ctrl("bcm40181_vcc_en", 0);
                         *updown = 0;
                         udelay(200);         //for test
                         mmc_pm_power(1, updown);
                         sunximmc_rescan_card(1, 0);
 
 #ifdef CUSTOMER_HW
-                        bcm_wlan_power_off(1);
+			bcm_wlan_power_off(1);
 #endif /* CUSTOMER_HW */
-                }
-
+		}
 		break;
 
 		case WLAN_POWER_ON:
-		                {
-                        WL_TRACE(("%s: call customer specific GPIO to turn on WL_REG_ON\n", __FUNCTION__));
+		{
+			WL_TRACE(("%s: call customer specific GPIO to turn on WL_REG_ON\n", __FUNCTION__));
                         *updown = 1;
-                        printk("WLAN_POWER_ON updown=%x",updown);
-                        mmc_pm_power(1, updown);  //for test
+                        mmc_pm_power(1, updown);
                         udelay(2000);
-                        mmc_pm_gpio_ctrl("bcm40181_vcc_en", 0);
-                        udelay(200);
-                        mmc_pm_gpio_ctrl("bcm40181_vcc_en", 1);
+			mmc_pm_gpio_ctrl("bcm40181_vcc_en", 1);
 
 #ifdef CUSTOMER_HW
-                        bcm_wlan_power_on(1);
+			bcm_wlan_power_on(1);
 #endif /* CUSTOMER_HW */
-                        /* Lets customer power to get stable */
-                        OSL_DELAY(200);
+			/* Lets customer power to get stable */
+			OSL_DELAY(200);
             sunximmc_rescan_card(1, 1);
-                }
-
+		}
 		break;
 	}
 }

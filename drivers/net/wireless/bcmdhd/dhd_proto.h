@@ -34,7 +34,11 @@
 #include <wlioctl.h>
 
 #ifndef IOCTL_RESP_TIMEOUT
+#ifndef WL_PROTECT
 #define IOCTL_RESP_TIMEOUT  20000 /* In milli second */
+#else
+#define IOCTL_RESP_TIMEOUT  2000 /* In milli second */
+#endif
 #endif
 
 /*

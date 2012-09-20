@@ -102,7 +102,7 @@ struct wl_priv *wlcfg_drv_priv = NULL;
 static u8 ap_resp_ie[256];
 static int ap_resp_ie_len = 0;
 
-u32 wl_dbg_level = WL_DBG_ERR;
+u32 wl_dbg_level = WL_DBG_ERR; //| WL_DBG_TRACE | WL_DBG_INFO;
 
 #define MAC2STR(a) (a)[0], (a)[1], (a)[2], (a)[3], (a)[4], (a)[5]
 #define MACSTR "%02x:%02x:%02x:%02x:%02x:%02x"
@@ -4636,11 +4636,10 @@ static s32 wl_inform_single_bss(struct wl_priv *wl, struct wl_bss_info *bi)
 
 #if defined(WLP2P) && ENABLE_P2P_INTERFACE
 	if (wl->p2p_net && wl->scan_request &&
-		wl->scan_request->dev == wl->p2p_net)
+		wl->scan_request->dev == wl->p2p_net) {
 #else
-	if (p2p_is_on(wl) && p2p_scan(wl))
+	if (p2p_is_on(wl) && p2p_scan(wl)) {
 #endif
-	{
 		/* find the P2PIE, if we do not find it, we will discard this frame */
 		wifi_p2p_ie_t * p2p_ie;
 		if ((p2p_ie = wl_cfgp2p_find_p2pie((u8 *)beacon_proberesp->variable,

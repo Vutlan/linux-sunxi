@@ -127,10 +127,6 @@ typedef struct wl_iw {
 	struct iw_quality spy_qual[IW_MAX_SPY];
 	void  *wlinfo;
 	dhd_pub_t * pub;
-#if defined(RSSIOFFSET) || 1
-	uint chip;
-	uint chiprev;
-#endif
 } wl_iw_t;
 
 int	 wl_control_wl_start(struct net_device *dev);
@@ -138,21 +134,6 @@ int	 wl_control_wl_start(struct net_device *dev);
 #define WLC_IW_SS_CACHE_CTRL_FIELD_MAXLEN	32
 #define WLC_IW_BSS_INFO_MAXLEN 				\
 	(WLC_IW_SS_CACHE_MAXLEN - WLC_IW_SS_CACHE_CTRL_FIELD_MAXLEN)
-
-#if defined(RSSIAVG) || 1
-#define MAX_RSSI_LEN 8
-
-typedef struct wl_iw_rssi_cache {
-	struct wl_iw_rssi_cache *next;
-	int dirty;
-	struct ether_addr BSSID;
-	int16       RSSI[MAX_RSSI_LEN];
-} wl_iw_rssi_cache_t;
-
-typedef struct wl_iw_rssi_cache_ctrl {
-	wl_iw_rssi_cache_t *m_cache_head;
-} wl_iw_rssi_cache_ctrl_t;
-#endif
 
 typedef struct wl_iw_ss_cache {
 	struct wl_iw_ss_cache *next;
@@ -217,11 +198,7 @@ extern const struct iw_handler_def wl_iw_handler_def;
 extern int wl_iw_ioctl(struct net_device *dev, struct ifreq *rq, int cmd);
 extern void wl_iw_event(struct net_device *dev, wl_event_msg_t *e, void* data);
 extern int wl_iw_get_wireless_stats(struct net_device *dev, struct iw_statistics *wstats);
-#if defined(RSSIOFFSET) || 1
-int wl_iw_attach(struct net_device *dev, void * dhdp, uint chip, uint chiprev);
-#else
 int wl_iw_attach(struct net_device *dev, void * dhdp);
-#endif
 void wl_iw_detach(void);
 
 #ifndef DHD_PACKET_TIMEOUT_MS
