@@ -20,7 +20,7 @@
 * software in any way with any other Broadcom software provided under a license
 * other than the GPL, without Broadcom's express prior written consent.
 *
-* $Id: dhd_custom_gpio.c,v 1.2.42.1 2010-10-19 00:41:09 Exp $
+* $Id: dhd_custom_gpio.c 339054 2012-06-15 04:56:55Z $
 */
 
 #include <typedefs.h>
@@ -36,6 +36,14 @@
 
 #define WL_ERROR(x) printf x
 #define WL_TRACE(x)
+
+
+#if 1
+extern void sunximmc_rescan_card(unsigned id, unsigned insert);
+extern int mmc_pm_get_mod_type(void);
+extern int mmc_pm_gpio_ctrl(char* name, int level);
+extern int mmc_pm_get_io_val(char* name);
+#endif
 
 #ifdef CUSTOMER_HW
 extern  void bcm_wlan_power_off(int);
@@ -94,7 +102,7 @@ int dhd_customer_oob_irq_map(unsigned long *irq_flags_ptr)
 	if (dhd_oob_gpio_num < 0) {
 		dhd_oob_gpio_num = CUSTOM_OOB_GPIO_NUM;
 	}
-#endif /* CUSTOMER_HW2 */
+#endif /* CUSTOM_OOB_GPIO_NUM */
 
 	if (dhd_oob_gpio_num < 0) {
 		WL_ERROR(("%s: ERROR customer specific Host GPIO is NOT defined \n",
@@ -103,7 +111,7 @@ int dhd_customer_oob_irq_map(unsigned long *irq_flags_ptr)
 	}
 
 	WL_ERROR(("%s: customer specific Host GPIO number is (%d)\n",
-	         __FUNCTION__, dhd_oob_gpio_num));
+		__FUNCTION__, dhd_oob_gpio_num));
 
 #if defined CUSTOMER_HW
 	host_oob_irq = MSM_GPIO_TO_INT(dhd_oob_gpio_num);
@@ -122,47 +130,64 @@ int dhd_customer_oob_irq_map(unsigned long *irq_flags_ptr)
 void
 dhd_customer_gpio_wlan_ctrl(int onoff)
 {
+	WL_ERROR(("[broadcom].....enter dhd_customer_gpio_wlan_ctrl ...\n"));
 	switch (onoff) {
 		case WLAN_RESET_OFF:
-			WL_TRACE(("%s: call customer specific GPIO to insert WLAN RESET\n",
-				__FUNCTION__));
-#ifdef CUSTOMER_HW
-			bcm_wlan_power_off(2);
-#endif /* CUSTOMER_HW */
-#ifdef CUSTOMER_HW2
-			wifi_set_power(0, 0);
-#endif
+		{
+			WL_TRACE(("%s: call customer specific GPIO to insert WLAN RESET\n", __FUNCTION__));
+ 
+#if defined BCM40181 
+                       mmc_pm_gpio_ctrl("bcm40181_vcc_en", 0);
+                       printk("[bcm40181]: bcm40181_shdn=>0 !!\n");
+#endif /*BCM40181*/
+
 			WL_ERROR(("=========== WLAN placed in RESET ========\n"));
+		}
 		break;
 
 		case WLAN_RESET_ON:
-			WL_TRACE(("%s: callc customer specific GPIO to remove WLAN RESET\n",
-				__FUNCTION__));
-#ifdef CUSTOMER_HW
-			bcm_wlan_power_on(2);
-#endif /* CUSTOMER_HW */
-#ifdef CUSTOMER_HW2
-			wifi_set_power(1, 0);
-#endif
+		{
+			WL_TRACE(("%s: callc customer specific GPIO to remove WLAN RESET\n", __FUNCTION__));
+			mdelay(300);
+#if defined BCM40181 			
+			mmc_pm_gpio_ctrl("bcm40181_vcc_en", 1);
+			printk("[bcm40181]: bcm40181_shdn=>1 !!\n");
+#endif /*BCM40181*/			
+			mdelay(300);
+
 			WL_ERROR(("=========== WLAN going back to live  ========\n"));
+		}
 		break;
 
 		case WLAN_POWER_OFF:
-			WL_TRACE(("%s: call customer specific GPIO to turn off WL_REG_ON\n",
-				__FUNCTION__));
+		{
+			WL_TRACE(("%s: call customer specific GPIO to turn off WL_REG_ON\n", __FUNCTION__));
+#if defined BCM40181 			
+			mmc_pm_gpio_ctrl("bcm40181_vcc_en", 0);
+#endif /*BCM40181*/			
+			sunximmc_rescan_card(3, 0);
+
 #ifdef CUSTOMER_HW
 			bcm_wlan_power_off(1);
 #endif /* CUSTOMER_HW */
+		}
 		break;
 
 		case WLAN_POWER_ON:
-			WL_TRACE(("%s: call customer specific GPIO to turn on WL_REG_ON\n",
-				__FUNCTION__));
+		{
+			WL_TRACE(("%s: call customer specific GPIO to turn on WL_REG_ON\n", __FUNCTION__));
+#if defined BCM40181			
+			mmc_pm_gpio_ctrl("bcm40181_vcc_en", 1);
+			udelay(100);
+#endif /*BCM40181*/
+
 #ifdef CUSTOMER_HW
 			bcm_wlan_power_on(1);
+#endif /* CUSTOMER_HW */
 			/* Lets customer power to get stable */
 			OSL_DELAY(200);
-#endif /* CUSTOMER_HW */
+            sunximmc_rescan_card(3, 1);
+		}
 		break;
 	}
 }
@@ -289,5 +314,5 @@ void get_customized_country_code(char *country_iso_code, wl_country_t *cspec)
 	cspec->rev = translate_custom_table[0].custom_locale_rev;
 #endif /* EXMAPLE_TABLE */
 	return;
-#endif /* defined(CUSTOMER_HW2) && (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 39)) */
+#endif /* defined(CUSTOMER_HW2) && (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36)) */
 }
