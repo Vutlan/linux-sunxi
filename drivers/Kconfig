@@ -127,6 +127,8 @@ source "drivers/clk/Kconfig"
 
 source "drivers/hwspinlock/Kconfig"
 
+source "drivers/sunxi_gpio/Kconfig"
+
 source "drivers/clocksource/Kconfig"
 
 endmenu
