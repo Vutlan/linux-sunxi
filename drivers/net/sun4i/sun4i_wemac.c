@@ -1973,7 +1973,6 @@ __setup("mac_addr=", set_mac_addr);
 
 static int __init wemac_init(void)
 {
-#if 0
 	int emac_used = 0;
 
 	if(SCRIPT_PARSER_OK != script_parser_fetch("emac_para","emac_used", &emac_used, 1))
@@ -1983,7 +1982,6 @@ static int __init wemac_init(void)
 		printk(KERN_INFO "emac driver is disabled \n");
 		return 0;
 	}
-#endif
 
 	printk(KERN_INFO "[sunxi_emac]: Init %s Ethernet Driver, V%s\n", CARDNAME, DRV_VERSION);
 
@@ -1993,7 +1991,6 @@ static int __init wemac_init(void)
 
 static void __exit wemac_cleanup(void)
 {
-#if 0
 	int emac_used = 0;
 
 	if(SCRIPT_PARSER_OK != script_parser_fetch("emac_para","emac_used", &emac_used, 1))
@@ -2003,7 +2000,6 @@ static void __exit wemac_cleanup(void)
 		printk(KERN_INFO "emac driver is disabled \n");
 		return ;
 	}
-#endif
 
 	platform_driver_unregister(&wemac_driver);
 	platform_device_unregister(&wemac_device);
