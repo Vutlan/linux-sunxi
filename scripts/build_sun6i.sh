@@ -21,9 +21,9 @@ LICHEE_MOD_DIR==${LICHEE_KDIR}/output/lib/modules/${KERNEL_VERSION}
 
 update_kern_ver()
 {
-#	if [ -r include/generated/utsrelease.h ]; then
-#		KERNEL_VERSION=`cat include/generated/utsrelease.h |awk -F\" '{print $2}'`
-#	fi
+	if [ -r include/generated/utsrelease.h ]; then
+		KERNEL_VERSION=`cat include/generated/utsrelease.h |awk -F\" '{print $2}'`
+	fi
 	LICHEE_MOD_DIR=${LICHEE_KDIR}/output/lib/modules/${KERNEL_VERSION}
 }
 
