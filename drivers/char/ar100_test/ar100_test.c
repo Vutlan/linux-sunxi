@@ -29,13 +29,13 @@ void __ar100_dvfs_test(void)
 	};
 	for (i = 0; i < sizeof(freq_table) / sizeof(unsigned int); i++) {
 		printk("dvfs request freq: %d\n", freq_table[i]);
-		ar100_dvfs_set_cpufreq(freq_table[i], AR100_DVFS_SYN);
+		ar100_dvfs_set_cpufreq(freq_table[i], AR100_DVFS_SYN, 0);
 	}
 	/* test succeeded */
 	printk("dvfs test succeeded\n");
 }
 
-#define AXP_TEST_BASE_REG_ADDR	(0x10)
+#define AXP_TEST_BASE_REG_ADDR	(0x15)
 
 static int __ar100_axp_cb(void *arg)
 {
@@ -51,6 +51,27 @@ static void __ar100_axp_test(void)
 	unsigned int  len;
 	int           ret;
 	int           i;
+	
+	/* test write regs */
+	printk("test axp write regs begin...\n");
+	len = AXP_TRANS_BYTE_MAX;
+	for (i = 0; i < AXP_TRANS_BYTE_MAX; i++) {
+		addr_table[i] = AXP_TEST_BASE_REG_ADDR + i;
+		data_table[i] = 0x8;
+	}
+	for (len = 1; len <= AXP_TRANS_BYTE_MAX; len++) {
+		printk("write axp regs data:\n");
+		for (i = 0; i < len; i++) {
+			printk("addr%x : %x\n", (unsigned int)addr_table[i], 
+									(unsigned int)data_table[i]);
+		}
+		ret = ar100_axp_write_reg(addr_table, data_table, len);
+		if (ret) {
+			printk("test axp write failed, len = %d, ret = %d\n", len, ret);
+		}
+		printk("write axp regs data [len = %d] succeeded\n", len);
+	}
+	printk("test axp write regs succeeded\n");
 	
 	/* test read regs */
 	printk("test axp read regs begin...\n");
@@ -72,27 +93,6 @@ static void __ar100_axp_test(void)
 	}
 	printk("test axp read regs succeeded\n");
 	
-	/* test write regs */
-	printk("test axp write regs begin...\n");
-	len = AXP_TRANS_BYTE_MAX;
-	for (i = 0; i < AXP_TRANS_BYTE_MAX; i++) {
-		addr_table[i] = AXP_TEST_BASE_REG_ADDR + i;
-		data_table[i] = 0xfa;
-	}
-	for (len = 1; len <= AXP_TRANS_BYTE_MAX; len++) {
-		printk("write axp regs data:\n");
-		for (i = 0; i < len; i++) {
-			printk("addr%x : %x\n", (unsigned int)addr_table[i], 
-									(unsigned int)data_table[i]);
-		}
-		ret = ar100_axp_write_reg(addr_table, data_table, len);
-		if (ret) {
-			printk("test axp write failed, len = %d, ret = %d\n", len, ret);
-		}
-		printk("write axp regs data [len = %d] succeeded\n", len);
-	}
-	printk("test axp write regs succeeded\n");
-	
 	/* test axp set battery */
 	printk("test axp set battery begin...\n");
 	if(ar100_axp_set_battery(NULL)) {
@@ -109,7 +109,7 @@ static void __ar100_axp_test(void)
 	
 	/* test axp interrupt call-back */
 	printk("test axp call-back begin...\n");
-	if(ar100_cb_register(__ar100_axp_cb, NULL)) {
+	if(ar100_axp_cb_register(__ar100_axp_cb, NULL)) {
 		printk("test axp reg cb failed\n");
 	}
 	printk("test axp call-back succeeded\n");
