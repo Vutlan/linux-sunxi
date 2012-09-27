@@ -27,7 +27,7 @@
 #include <linux/memblock.h>
 #include <linux/amba/pl022.h>
 #include <linux/io.h>
-
+#include <linux/delay.h>
 #include <asm/io.h>
 #include <asm/irq.h>
 #include <asm/leds.h>
@@ -114,7 +114,7 @@ static int timer_set_next_clkevt(unsigned long delta, struct clock_event_device 
 	spin_lock_irqsave(&timer0_spin_lock, flags);
     /* disable timer and clear pending first    */
     TMR_REG_TMR0_CTL &= ~(1<<0);
-
+udelay(1);
     /* set timer intervalue         */
     TMR_REG_TMR0_INTV = delta;
     /* reload the timer intervalue  */
@@ -162,7 +162,7 @@ static void __init sun6i_timer_init(void)
 	int ret;
 
 	timer_cpu_base = ioremap_nocache(AW_TIMER_BASE, 0x1000);
-	printk("[%s] base=%p\n", __FUNCTION__,timer_cpu_base);
+	printk("hx-tickless-hrtimer:[%s] base=%p\n", __FUNCTION__,timer_cpu_base);
 
         /* Disable & clear all timers */
 	writel(0x3f, timer_cpu_base + AW_TMR_IRQ_EN_REG);
@@ -181,12 +181,12 @@ static void __init sun6i_timer_init(void)
     writel(0x1, timer_cpu_base + AW_TMR_IRQ_EN_REG);
 
     sun6i_timer0_clockevent.mult = div_sc(AW_CLOCK_SRC/AW_CLOCK_DIV, NSEC_PER_SEC, sun6i_timer0_clockevent.shift);
-    sun6i_timer0_clockevent.max_delta_ns = clockevent_delta2ns(0xff, &sun6i_timer0_clockevent);
+    sun6i_timer0_clockevent.max_delta_ns = clockevent_delta2ns(0x80000000, &sun6i_timer0_clockevent);
     sun6i_timer0_clockevent.min_delta_ns = clockevent_delta2ns(0x1, &sun6i_timer0_clockevent)+100000;
     sun6i_timer0_clockevent.cpumask = cpu_all_mask;
     sun6i_timer0_clockevent.irq = sun6i_timer_irq.irq;
     clockevents_register_device(&sun6i_timer0_clockevent);
-    aw_clksrc_init();
+//    aw_clksrc_init();
 }
 
 static struct sys_timer sun6i_timer = {
