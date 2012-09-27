@@ -602,7 +602,7 @@ void backlight_late_resume(struct early_suspend *h)
         }
         else if(suspend_output_type[i] == DISP_OUTPUT_TYPE_HDMI)
         {
-	    BSP_disp_hdmi_set_mode(i, suspend_output_type[i]);
+	    BSP_disp_hdmi_set_mode(i, BSP_disp_hdmi_get_mode(i));
             BSP_disp_hdmi_open(i);
         }
     }
@@ -732,6 +732,7 @@ int disp_resume(struct platform_device *pdev)
             }
             else if(suspend_output_type[i] == DISP_OUTPUT_TYPE_HDMI)
             {
+                BSP_disp_hdmi_set_mode(i, BSP_disp_hdmi_get_mode(i));
                 BSP_disp_hdmi_open(i);
             }
         }
