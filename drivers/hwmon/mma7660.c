@@ -60,9 +60,10 @@
 #define MMA7660_SR				0x08
 #define MMA7660_PDET			0x09
 #define MMA7660_PD				0x0A
+#define MMA7660ADDRESS          0x4c
 
 #define POLL_INTERVAL_MAX	500
-#define POLL_INTERVAL		100
+#define POLL_INTERVAL		50
 #define INPUT_FUZZ	2
 #define INPUT_FLAT	2
 
@@ -81,6 +82,10 @@ static struct device *hwmon_dev;
 static struct i2c_client *mma7660_i2c_client;
 
 struct mma7660_data_s {
+    struct i2c_client       *client;
+    struct input_polled_dev *pollDev; 
+    struct mutex interval_mutex; 
+    
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	struct early_suspend early_suspend;
 	volatile int suspend_indator;
@@ -90,10 +95,7 @@ struct mma7660_data_s {
 static struct input_polled_dev *mma7660_idev;
 
 /* Addresses to scan */
-static union{
-	unsigned short dirty_addr_buf[2];
-	const unsigned short normal_i2c[2];
-}u_i2c_addr = {{0x00},};
+static const unsigned short normal_i2c[2] = {0x4c,I2C_CLIENT_END};
 static __u32 twi_id = 0;
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
@@ -112,9 +114,6 @@ static int gsensor_fetch_sysconfig_para(void)
 {
 	int ret = -1;
 	int device_used = -1;
-	__u32 twi_addr = 0;
-	char name[I2C_NAME_SIZE];
-	script_parser_value_type_t type = SCIRPT_PARSER_VALUE_TYPE_STRING;
 		
 	printk("========%s===================\n", __func__);
 	 
@@ -123,31 +122,11 @@ static int gsensor_fetch_sysconfig_para(void)
 	                goto script_parser_fetch_err;
 	}
 	if(1 == device_used){
-		if(SCRIPT_PARSER_OK != script_parser_fetch_ex("gsensor_para", "gsensor_name", (int *)(&name), &type, sizeof(name)/sizeof(int))){
-			pr_err("%s: line: %d script_parser_fetch err. \n", __func__, __LINE__);
-			goto script_parser_fetch_err;
-		}
-		if(strcmp(SENSOR_NAME, name)){
-			pr_err("%s: name %s does not match SENSOR_NAME. \n", __func__, name);
-			pr_err(SENSOR_NAME);
-			//ret = 1;
-			return ret;
-		}
-		if(SCRIPT_PARSER_OK != script_parser_fetch("gsensor_para", "gsensor_twi_addr", &twi_addr, sizeof(twi_addr)/sizeof(__u32))){
-			pr_err("%s: line: %d: script_parser_fetch err. \n", name, __LINE__);
-			goto script_parser_fetch_err;
-		}
-		u_i2c_addr.dirty_addr_buf[0] = twi_addr;
-		u_i2c_addr.dirty_addr_buf[1] = I2C_CLIENT_END;
-		printk("%s: after: gsensor_twi_addr is 0x%x, dirty_addr_buf: 0x%hx. dirty_addr_buf[1]: 0x%hx \n", \
-			__func__, twi_addr, u_i2c_addr.dirty_addr_buf[0], u_i2c_addr.dirty_addr_buf[1]);
-
 		if(SCRIPT_PARSER_OK != script_parser_fetch("gsensor_para", "gsensor_twi_id", &twi_id, 1)){
-			pr_err("%s: script_parser_fetch err. \n", name);
+			pr_err("%s: script_parser_fetch err. \n", __func__);
 			goto script_parser_fetch_err;
 		}
 		printk("%s: twi_id is %d. \n", __func__, twi_id);
-
 		ret = 0;
 		
 	}else{
@@ -162,6 +141,35 @@ script_parser_fetch_err:
 	return ret;
 
 }
+//Function as i2c_master_send, and return 1 if operation is successful. 
+static int i2c_write_bytes(struct i2c_client *client, uint8_t *data, uint16_t len)
+{
+	struct i2c_msg msg;
+	int ret=-1;
+	
+	msg.flags = !I2C_M_RD;
+	msg.addr = client->addr;
+	msg.len = len;
+	msg.buf = data;		
+	
+	ret=i2c_transfer(client->adapter, &msg,1);
+	return ret;
+}
+static bool gsensor_i2c_test(struct i2c_client * client)
+{
+	int ret, retry;
+	uint8_t test_data[1] = { 0 };	//only write a data address.
+	
+	for(retry=0; retry < 2; retry++)
+	{
+		ret =i2c_write_bytes(client, test_data, 1);	//Test i2c.
+		if (ret == 1)
+			break;
+		msleep(5);
+	}
+	
+	return ret==1 ? true : false;
+}
 
 /**
  * gsensor_detect - Device detection callback for automatic device creation
@@ -172,13 +180,24 @@ script_parser_fetch_err:
 int gsensor_detect(struct i2c_client *client, struct i2c_board_info *info)
 {
 	struct i2c_adapter *adapter = client->adapter;
-	
-	if(twi_id == adapter->nr){
-		pr_info("%s: Detected chip %s at adapter %d, address 0x%02x\n",
-			 __func__, SENSOR_NAME, i2c_adapter_id(adapter), client->addr);
+	int ret;
 
-		strlcpy(info->type, SENSOR_NAME, I2C_NAME_SIZE);
-		return 0;
+    if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE_DATA))
+        return -ENODEV;
+    
+	if(twi_id == adapter->nr){
+            pr_info("%s: addr= %x\n",__func__,client->addr);
+
+            ret = gsensor_i2c_test(client);
+        	if(!ret){
+        		pr_info("%s:I2C connection might be something wrong or maybe the other gsensor equipment! \n",__func__);
+        		return -ENODEV;
+        	}else{           	    
+            	pr_info("I2C connection sucess!\n");
+            	strlcpy(info->type, SENSOR_NAME, I2C_NAME_SIZE);
+    		    return 0;	
+	             }
+
 	}else{
 		return -ENODEV;
 	}
@@ -196,6 +215,44 @@ static void mma7660_read_xyz(int idx, s8 *pf)
 	}while(result&(1<<6)); //read again if alert
 	*pf = (result&(1<<5)) ? (result|(~0x0000003f)) : (result&0x0000003f);
 }
+
+static ssize_t mma7660_delay_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct i2c_client *client       = mma7660_i2c_client;
+	struct mma7660_data_s *mma7660    = NULL;
+
+    mma7660    = i2c_get_clientdata(client);
+
+
+	return sprintf(buf, "%d\n", mma7660->pollDev->poll_interval);
+
+}
+
+static ssize_t mma7660_delay_store(struct device *dev,struct device_attribute *attr,const char *buf, size_t count)
+{
+	unsigned long data;
+	int error;
+	struct i2c_client *client = mma7660_i2c_client;
+	struct mma7660_data_s *mma7660 = NULL;
+
+
+    mma7660    = i2c_get_clientdata(client);
+
+
+	error = strict_strtoul(buf, 10, &data);
+	if (error)
+		return error;
+	if (data > POLL_INTERVAL_MAX)
+		data = POLL_INTERVAL_MAX;
+    
+    mutex_lock(&mma7660->interval_mutex);
+    mma7660->pollDev->poll_interval = data;
+    mutex_unlock(&mma7660->interval_mutex);
+
+	return count;
+}
+
 
 static ssize_t mma7660_value_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
@@ -216,9 +273,7 @@ static ssize_t mma7660_value_show(struct device *dev,
 
 }
 
-static ssize_t mma7660_enable_store(struct device *dev,
-		struct device_attribute *attr,
-		const char *buf, size_t count)
+static ssize_t mma7660_enable_store(struct device *dev,struct device_attribute *attr,const char *buf, size_t count)
 {
 	unsigned long data;
 	int error;
@@ -246,28 +301,13 @@ exit:
 	return error;
 }
 
-static ssize_t mma7660_delay_store(struct device *dev,struct device_attribute *attr,
-		const char *buf, size_t count)
-{
-   unsigned long data;
-	int error;
-
-	error = strict_strtoul(buf, 10, &data);
-	if (error)
-		return error;
-	if (data > POLL_INTERVAL_MAX)
-		data = POLL_INTERVAL_MAX;
-	mma7660_idev->poll_interval = data;
-
-	return count;
-		}
 
 static DEVICE_ATTR(enable, S_IRUGO|S_IWUSR|S_IWGRP,
 		NULL, mma7660_enable_store);
 
 static DEVICE_ATTR(value, S_IRUGO|S_IWUSR|S_IWGRP,
 		mma7660_value_show, NULL);
-		
+
 static DEVICE_ATTR(delay, S_IRUGO|S_IWUSR|S_IWGRP,
 		NULL, mma7660_delay_store);
 
@@ -390,6 +430,7 @@ static int __devinit mma7660_probe(struct i2c_client *client,
 	int result;
 	struct input_dev *idev;
 	struct i2c_adapter *adapter;
+    struct mma7660_data_s* data = &mma7660_data;
  
 	printk(KERN_INFO "mma7660 probe\n");
 	mma7660_i2c_client = client;
@@ -402,6 +443,14 @@ static int __devinit mma7660_probe(struct i2c_client *client,
 	/* Initialize the MMA7660 chip */
 	result = mma7660_init_client(client);
 	assert(result==0);
+	
+	//result = 1; // debug by lchen
+	printk("<%s> mma7660_init_client result %d\n", __func__, result);
+	if(result != 0)
+	{
+		printk("<%s> init err !", __func__);
+		return result;
+	}
 
 	hwmon_dev = hwmon_device_register(&client->dev);
 	assert(!(IS_ERR(hwmon_dev)));
@@ -422,6 +471,7 @@ static int __devinit mma7660_probe(struct i2c_client *client,
 	idev->name = MMA7660_DRV_NAME;
 	idev->id.bustype = BUS_I2C;
 	idev->evbit[0] = BIT_MASK(EV_ABS);
+    mutex_init(&data->interval_mutex);
 
 	input_set_abs_params(idev, ABS_X, -512, 512, INPUT_FUZZ, INPUT_FLAT);
 	input_set_abs_params(idev, ABS_Y, -512, 512, INPUT_FUZZ, INPUT_FLAT);
@@ -439,6 +489,10 @@ static int __devinit mma7660_probe(struct i2c_client *client,
 	if(result) {
 		dev_err(&client->dev, "create sys failed\n");
 	}
+
+    data->client  = client;
+    data->pollDev = mma7660_idev;
+	i2c_set_clientdata(client, data);
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	mma7660_data.early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;
@@ -459,6 +513,12 @@ static int __devexit mma7660_remove(struct i2c_client *client)
 	assert(result==0);
 
 	hwmon_device_unregister(hwmon_dev);
+	#ifdef CONFIG_HAS_EARLYSUSPEND	
+	  unregister_early_suspend(&mma7660_data.early_suspend);
+	#endif
+	input_unregister_polled_device(mma7660_idev);
+	input_free_polled_device(mma7660_idev);
+	i2c_set_clientdata(mma7660_i2c_client, NULL);
 
 	return result;
 }
@@ -499,12 +559,10 @@ static struct i2c_driver mma7660_driver = {
 		.name	= MMA7660_DRV_NAME,
 		.owner	= THIS_MODULE,
 	},
-	//.suspend = mma7660_suspend,
-	//.resume	= mma7660_resume,
 	.probe	= mma7660_probe,
 	.remove	= __devexit_p(mma7660_remove),
 	.id_table = mma7660_id,
-	.address_list	= u_i2c_addr.normal_i2c,
+	.address_list	= normal_i2c,
 };
 
 static int __init mma7660_init(void)
@@ -518,9 +576,10 @@ static int __init mma7660_init(void)
 	}
 
 	printk("%s: after fetch_sysconfig_para:  normal_i2c: 0x%hx. normal_i2c[1]: 0x%hx \n", \
-	__func__, u_i2c_addr.normal_i2c[0], u_i2c_addr.normal_i2c[1]);
+	__func__, normal_i2c[0], normal_i2c[1]);
 
 	mma7660_driver.detect = gsensor_detect;
+
 
 	ret = i2c_add_driver(&mma7660_driver);
 	if (ret < 0) {
@@ -528,6 +587,8 @@ static int __init mma7660_init(void)
 		return -ENODEV;
 	}
 	printk(KERN_INFO "add mma7660 i2c driver\n");
+	
+
 
 	return ret;
 }

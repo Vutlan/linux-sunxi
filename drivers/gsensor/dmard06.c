@@ -31,15 +31,14 @@
 
 #include <mach/system.h>
 #include <mach/hardware.h>
+#include <linux/fs.h>
 #include <mach/sys_config.h>
 
 #define SENSOR_NAME 			"dmard06"
-
+#define SENSOR_DATA_SIZE	3
+#define AVG_NUM 16
 /* Addresses to scan */
-static union{
-	unsigned short dirty_addr_buf[2];
-	const unsigned short normal_i2c[2];
-}u_i2c_addr = {{0x00},};
+static const unsigned short normal_i2c[2] = {0x1C,I2C_CLIENT_END};
 static __u32 twi_id = 0;
 //volatile unsigned char dmard06_on_off=0;
 static int dmard06_pin_hd;
@@ -69,6 +68,8 @@ static char dmard06_on_off_str[32];
 
 #define IOCTL_SENSOR_GET_CONVERT_PARA   _IO(SENSOR_DMARD_IOCTL_BASE, 401)
 
+#define SENSOR_CALIBRATION   	_IOWR(SENSOR_DMARD_IOCTL_BASE,  402, int[SENSOR_DATA_SIZE])
+
 
 #define DMARD06_CONVERT_PARAMETER       (1.5f * (9.80665f) / 256.0f)
 #define DMARD06_DISPLAY_NAME         "dmard06"
@@ -83,10 +84,36 @@ static char dmard06_on_off_str[32];
 #define DMARD06_I2C_NAME			"dmard06"
 #define A10ASENSOR_DEV_COUNT	        1
 #define A10ASENSOR_DURATION_DEFAULT	        20
+#define DMARD06ADDRESS  0x1C
+
 
 #define MAX_RETRY				20
 #define INPUT_FUZZ  0
 #define INPUT_FLAT  0
+
+#define AUTO_CALIBRATION 0
+
+struct dev_data {
+	struct i2c_client *client;
+};
+static struct dev_data dev;
+
+typedef union {
+	struct {
+		s16	x;
+		s16	y;
+		s16	z;
+	} u;
+	s16	v[SENSOR_DATA_SIZE];
+} raw_data;
+static raw_data offset;
+
+void gsensor_write_offset_to_file(void);
+void gsensor_read_offset_from_file(void);
+char OffsetFileName[] = "/data/misc/dmt/offset.txt";
+
+
+int gsensor_read_accel_avg(int,int);
 
 struct dmard06_data {
 	struct mutex lock;
@@ -113,6 +140,127 @@ struct dmard06_data {
 volatile static short a10asensor_duration = A10ASENSOR_DURATION_DEFAULT;
 volatile static short a10asensor_state_flag = 1;
 
+
+
+
+
+static int dmard06_chip_init(struct dmard06_data *sensor_data)
+{
+
+	char cAddress = 0 , cData = 0;
+
+	cAddress = SW_RESET;
+	i2c_master_send( sensor_data->client, (char*)&cAddress, 1);
+	i2c_master_recv( sensor_data->client, (char*)&cData, 1);
+	printk(KERN_INFO "i2c Read SW_RESET = %x \n", cData);
+
+
+	return 0;
+}
+
+static int dmard06_i2c_read_xyz(struct dmard06_data *data, u8 *pX, u8 *pY, u8 *pZ)
+{
+	int ret;
+	u8 axis[3];
+
+	ret = i2c_smbus_read_i2c_block_data(data->client , X_OUT , 3 , axis);
+	if(ret < 0){
+		printk("dmard06_i2c_read_xyz err->%d \n" , ret);
+		return -EAGAIN;
+	}
+
+//	printk("dmard06 [%x][%x][%x] " , axis[0] , axis[1] , axis[2]);
+
+	axis[0] = axis[0] >> 1;
+	axis[1] = axis[1] >> 1;
+	axis[2] = axis[2] >> 1;
+
+	*pX = axis[0];
+	*pY = axis[1];
+	*pZ = axis[2];
+
+	return 0;
+}
+
+
+static void dmard06_xyz_read_and_filter(struct dmard06_data *data,short *x,short *y,short *z)
+{
+	u8 x8, y8, z8;
+//	short x,y,z;
+
+	if(dmard06_i2c_read_xyz(data, &x8, &y8, &z8)){
+		return;
+	}
+	
+	*x = (short)(x8 << 9) >> 6;
+	*y = (short)(y8 << 9) >> 6;
+	*z = (short)(z8 << 9) >> 6;
+//	*z=-(*z);
+
+//	z = z + 74; //fix value
+
+//	x = x * 100 / 138;
+//	y = y * 100 / 138;
+//	z = z * 100 / 138;
+
+/*
+	if(a10asensor_state_flag)
+	{
+		input_report_abs(data->input_dev, data->map[0], data->inv[0]*x);
+		input_report_abs(data->input_dev, data->map[1], data->inv[1]*y);
+		input_report_abs(data->input_dev, data->map[2], -data->inv[2]*z);
+		input_sync(data->input_dev);
+	}
+*/
+}
+
+
+static void dmard06_work_func(struct work_struct *work)
+{
+	struct dmard06_data *data = container_of(work, struct dmard06_data, work);
+	short x,y,z;
+	static int firsttime=0;
+	if(!firsttime)
+	{
+		gsensor_read_offset_from_file();
+		firsttime=1;
+	}
+	
+
+	if(gpio_read_one_pin_value(dmard06_pin_hd,dmard06_on_off_str))                              
+		dmard06_xyz_read_and_filter(data,&x,&y,&z);
+
+	x-=offset.u.x;
+	y-=offset.u.y;
+	z-=offset.u.z;
+	input_report_abs(data->input_dev, data->map[0], data->inv[0]*x);
+	input_report_abs(data->input_dev, data->map[1], data->inv[1]*y);
+	input_report_abs(data->input_dev, data->map[2], data->inv[2]*z);
+	input_sync(data->input_dev);
+
+}
+
+static enum hrtimer_restart dmard06_timer_func(struct hrtimer *timer)
+{
+	struct dmard06_data *data = container_of(timer, struct dmard06_data, timer);
+
+	queue_work(data->dmard06_wq, &data->work);
+	hrtimer_start(&data->timer, ktime_set(0, a10asensor_duration*1000000), HRTIMER_MODE_REL);
+
+	return HRTIMER_NORESTART;
+}
+
+static int dmard06_enable(struct dmard06_data *data, int enable)
+{
+	if(enable){
+		msleep(10);
+		dmard06_chip_init(data);
+		hrtimer_start(&data->timer, ktime_set(0, a10asensor_duration*1000000), HRTIMER_MODE_REL);
+	}else{
+		hrtimer_cancel(&data->timer);
+	}
+	return 0;
+}
 static ssize_t dmard06_map_show(struct device *dev, struct device_attribute *attr,char *buf)
 {
 	struct i2c_client *client = to_i2c_client(dev);
@@ -207,131 +355,115 @@ static ssize_t dmard06_map_store(struct device *dev, struct device_attribute *at
 
 	return count;
 }
+static ssize_t dmard06_enable_store(struct device *dev,
+		struct device_attribute *attr,
+		const char *buf, size_t count)
+{
+	unsigned long data;
+	int error;
+	struct i2c_client *client = to_i2c_client(dev);
+    struct dmard06_data *da = i2c_get_clientdata(client);
+	error = strict_strtoul(buf, 10, &data);
+	if (error)
+		return error;
+	if ((data == 0)||(data==1)) {
+		dmard06_enable(da,data);
+	}
+
+	return count;
+}
+
+static ssize_t dmard06_delay_store(struct device *dev,
+		struct device_attribute *attr,
+		const char *buf, size_t count)
+{
+	unsigned long data;
+	int error;
+
+	error = strict_strtoul(buf, 10, &data);
+	if (error)
+		return error;
+	if (data > 500)
+		data = 500;
+	a10asensor_duration = data;
+
+	return count;
+}
 
 static DEVICE_ATTR(map, S_IWUSR | S_IRUGO, dmard06_map_show, dmard06_map_store);
-
+static DEVICE_ATTR(enable, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH, NULL, dmard06_enable_store);
+static DEVICE_ATTR(delay, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH, NULL, dmard06_delay_store);
 static struct attribute* dmard06_attrs[] =
 {
 	&dev_attr_map.attr,
+	&dev_attr_enable.attr,
+	&dev_attr_delay.attr,
 	NULL
 };
-
 static const struct attribute_group dmard06_group =
 {
 	.attrs = dmard06_attrs,
+	
 };
 
-static int dmard06_chip_init(struct dmard06_data *sensor_data)
+int gsensor_read_accel_avg(int max,int min)
 {
-
-	char cAddress = 0 , cData = 0;
-
-	cAddress = SW_RESET;
-	i2c_master_send( sensor_data->client, (char*)&cAddress, 1);
-	i2c_master_recv( sensor_data->client, (char*)&cData, 1);
-	printk(KERN_INFO "i2c Read SW_RESET = %x \n", cData);
-
-	cAddress = WHO_AM_I;
-	i2c_master_send( sensor_data->client, (char*)&cAddress, 1);
-	i2c_master_recv( sensor_data->client, (char*)&cData, 1);	
-	printk(KERN_INFO "i2c Read WHO_AM_I = %d \n", cData);
-
-	if(( cData&0x00FF) == WHO_AM_I_VALUE) 
-	{
-		printk("dmard06 gsensor registered I2C driver!\n");
-	}else{
-		printk("dmard06 gsensor I2C err = %d!\n",cData);
-		return -1;
-	}
-
-	return 0;
-}
-
-static int dmard06_i2c_read_xyz(struct dmard06_data *data, u8 *pX, u8 *pY, u8 *pZ)
-{
-	int ret;
-	u8 axis[3];
-
-	ret = i2c_smbus_read_i2c_block_data(data->client , X_OUT , 3 , axis);
-	if(ret < 0){
-		printk("dmard06_i2c_read_xyz err->%d \n" , ret);
-		return -EAGAIN;
-	}
-
-	//printk("dmard06 [%x][%x][%x] \n" , axis[0] , axis[1] , axis[2]);
-
-	axis[0] = axis[0] >> 1;
-	axis[1] = axis[1] >> 1;
-	axis[2] = axis[2] >> 1;
-
-	*pX = axis[0];
-	*pY = axis[1];
-	*pZ = axis[2];
-
-	return 0;
-}
-
-
-static void dmard06_xyz_read_and_filter(struct dmard06_data *data)
-{
-	u8 x8, y8, z8;
+   	long xyz_acc[SENSOR_DATA_SIZE];   
+  	short xyz[SENSOR_DATA_SIZE];
 	short x,y,z;
+  	int i, j;
+	struct dmard06_data *data=i2c_get_clientdata(dev.client);
 
-	if(dmard06_i2c_read_xyz(data, &x8, &y8, &z8)){
-		return;
-	}
+	printk("%s:%d,%d,%d\n",__func__,data->inv[0],data->inv[1],data->inv[2]);
+	
+	//initialize the accumulation buffer
+  	for(i = 0; i < SENSOR_DATA_SIZE; ++i) 
+		xyz_acc[i] = 0;
 
-	x = (short)(x8 << 9) >> 6;
-	y = (short)(y8 << 9) >> 6;
-	z = (short)(z8 << 9) >> 6;
+	
+	for(i = 0; i < AVG_NUM; i++) 
+	{      
+		dmard06_xyz_read_and_filter(data,&x,&y,&z);
+		xyz[0]=x;
+		xyz[1]=y;
+		xyz[2]=z;
+		for(j = 0; j < SENSOR_DATA_SIZE; ++j) 
+			xyz_acc[j] += xyz[j];
+  	}
 
-	x = x * 100 / 138;
-	y = y * 100 / 138;
-	z = z * 100 / 138;
+	// calculate averages
+  	for(i = 0; i < SENSOR_DATA_SIZE; ++i) 
+		xyz_acc[i] =(xyz_acc[i] / AVG_NUM);
+	
+	printk("*** xyz_acc[]=%ld %ld %ld\n",xyz_acc[0],xyz_acc[1],xyz_acc[2]);
 
-	if(a10asensor_state_flag)
+	if(xyz_acc[0] < max && xyz_acc[0] > min && xyz_acc[1] < max && xyz_acc[1] > min)
 	{
-		input_report_abs(data->input_dev, data->map[0], data->inv[0]*x);
-		input_report_abs(data->input_dev, data->map[1], data->inv[1]*y);
-		input_report_abs(data->input_dev, data->map[2], data->inv[2]*z);
-		input_sync(data->input_dev);
+	if(xyz_acc[2] < 0)
+	{
+		offset.u.x =  xyz_acc[0] ;    
+		offset.u.y =  xyz_acc[1] ;
+		offset.u.z =  xyz_acc[2] + 256;
+		return 2; // CONFIG_GSEN_CALIBRATION_GRAVITY_ON_Z_NEGATIVE
 	}
-}
-
-
-static void dmard06_work_func(struct work_struct *work)
-{
-	struct dmard06_data *data = container_of(work, struct dmard06_data, work);
-
-	if(gpio_read_one_pin_value(dmard06_pin_hd,dmard06_on_off_str))
-		dmard06_xyz_read_and_filter(data);
-}
-
-static enum hrtimer_restart dmard06_timer_func(struct hrtimer *timer)
-{
-	struct dmard06_data *data = container_of(timer, struct dmard06_data, timer);
-
-	queue_work(data->dmard06_wq, &data->work);
-	hrtimer_start(&data->timer, ktime_set(0, a10asensor_duration*1000000), HRTIMER_MODE_REL);
-
-	return HRTIMER_NORESTART;
-}
-
-static int dmard06_enable(struct dmard06_data *data, int enable)
-{
-	if(enable){
-		msleep(10);
-		dmard06_chip_init(data);
-		hrtimer_start(&data->timer, ktime_set(0, a10asensor_duration*1000000), HRTIMER_MODE_REL);
-	}else{
-		hrtimer_cancel(&data->timer);
+	else
+	{	
+		offset.u.x =  xyz_acc[0] ;    
+		offset.u.y =  xyz_acc[1] ;
+		offset.u.z =  xyz_acc[2] - 256;
+		return 1; // CONFIG_GSEN_CALIBRATION_GRAVITY_ON_Z_POSITIVE
+	}
 	}
 	return 0;
 }
+
+
+
 
 static long dmard06_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
-	int ret = 0;
+	int intBuf[SENSOR_DATA_SIZE];
+	int ret = 0,i;
 	float convert_para=0.0f;
 
 	switch (cmd) {
@@ -380,6 +512,20 @@ static long dmard06_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 				printk("copy to error in %s.\n",__func__);
 			}     			
 
+		case SENSOR_CALIBRATION:
+			//get orientation info
+			if(copy_from_user(&intBuf, (int*)arg, sizeof(int))) return -EFAULT;
+			gsensor_read_accel_avg(256,-256);
+			// save file 2011-11-30	
+			gsensor_write_offset_to_file();
+			
+			//return the offset
+			for(i = 0; i < SENSOR_DATA_SIZE; ++i)
+				intBuf[i] = offset.v[i];
+
+			ret = copy_to_user((int *)arg, &intBuf, sizeof(intBuf));
+			return ret;
+		
 		default:
 			ret = -EINVAL;
 			break;
@@ -462,11 +608,9 @@ static struct miscdevice dmard06_device = {
  */
 static int gsensor_fetch_sysconfig_para(void)
 {
+											
 	int ret = -1;
 	int device_used = -1;
-	__u32 twi_addr = 0;
-	char name[I2C_NAME_SIZE];
-	script_parser_value_type_t type = SCIRPT_PARSER_VALUE_TYPE_STRING;
 
 	printk("========%s===================\n", __func__);
 
@@ -475,27 +619,8 @@ static int gsensor_fetch_sysconfig_para(void)
 		goto script_parser_fetch_err;
 	}
 	if(1 == device_used){
-		if(SCRIPT_PARSER_OK != script_parser_fetch_ex("gsensor_para", "gsensor_name", (int *)(&name), &type, sizeof(name)/sizeof(int))){
-			pr_err("%s: line: %d script_parser_fetch err. \n", __func__, __LINE__);
-			goto script_parser_fetch_err;
-		}
-		if(strcmp(SENSOR_NAME, name)){
-			pr_err("%s: name %s does not match SENSOR_NAME. \n", __func__, name);
-			pr_err(SENSOR_NAME);
-			//ret = 1;
-			return ret;
-		}
-		if(SCRIPT_PARSER_OK != script_parser_fetch("gsensor_para", "gsensor_twi_addr", &twi_addr, sizeof(twi_addr)/sizeof(__u32))){
-			pr_err("%s: line: %d: script_parser_fetch err. \n", name, __LINE__);
-			goto script_parser_fetch_err;
-		}
-		u_i2c_addr.dirty_addr_buf[0] = twi_addr;
-		u_i2c_addr.dirty_addr_buf[1] = I2C_CLIENT_END;
-		printk("%s: after: gsensor_twi_addr is 0x%x, dirty_addr_buf: 0x%hx. dirty_addr_buf[1]: 0x%hx \n", \
-				__func__, twi_addr, u_i2c_addr.dirty_addr_buf[0], u_i2c_addr.dirty_addr_buf[1]);
-
 		if(SCRIPT_PARSER_OK != script_parser_fetch("gsensor_para", "gsensor_twi_id", &twi_id, 1)){
-			pr_err("%s: script_parser_fetch err. \n", name);
+			pr_err("%s: script_parser_fetch err. \n",__func__);
 			goto script_parser_fetch_err;
 		}
 		printk("%s: twi_id is %d. \n", __func__, twi_id);
@@ -516,7 +641,6 @@ static int gsensor_fetch_sysconfig_para(void)
 script_parser_fetch_err:
 	pr_notice("=========script_parser_fetch_err============\n");
 	return ret;
-
 }
 
 
@@ -529,25 +653,71 @@ script_parser_fetch_err:
 int gsensor_detect(struct i2c_client *client, struct i2c_board_info *info)
 {
 	struct i2c_adapter *adapter = client->adapter;
+    int ret;
 
-	if(twi_id == adapter->nr){
-		pr_info("%s: Detected chip %s at adapter %d, address 0x%02x\n",
-				__func__, SENSOR_NAME, i2c_adapter_id(adapter), client->addr);
+    if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE_DATA))
+        return -ENODEV;
+   
+    if(twi_id == adapter->nr){
+             client->addr = DMARD06ADDRESS ;
+             pr_info("%s: addr= %x\n",__func__,client->addr);
+             ret = i2c_smbus_read_byte_data(client, WHO_AM_I);
+             if ((ret&0x00FF) == WHO_AM_I_VALUE) {
+            		printk( "%s: DMARD06 equipment is detected!\n",__func__);
+            		strlcpy(info->type, SENSOR_NAME, I2C_NAME_SIZE);
+                    return 0;
+             }else {
+                      pr_info("%s: DMARD06  equipment is not found, \
+                      i2c error %d \n maybe the other gsensor equipment! \n",__func__, ret);
+                      return  -ENODEV;
+                     
+         
+            
+            	}
 
-		strlcpy(info->type, SENSOR_NAME, I2C_NAME_SIZE);
-		return 0;
-	}else{
-		return -ENODEV;
-	}
+    }else{
+          return -ENODEV;
+    }
 }
 
+//Function as i2c_master_send, and return 1 if operation is successful. 
+static int i2c_write_bytes(struct i2c_client *client, uint8_t *data, uint16_t len)
+{
+	struct i2c_msg msg;
+	int ret=-1;
+	
+	msg.flags = !I2C_M_RD;//Ð´ÏûÏ¢
+	msg.addr = client->addr;
+	msg.len = len;
+	msg.buf = data;		
+	
+	ret=i2c_transfer(client->adapter, &msg,1);
+	return ret;
+}
+
+static bool gsensor_i2c_test(struct i2c_client * client)
+{
+	int ret, retry;
+	uint8_t test_data[1] = { 0 };	//only write a data address.
+	
+	for(retry=0; retry < 5; retry++)
+	{
+		ret =i2c_write_bytes(client, test_data, 1);	//Test i2c.
+		if (ret == 1)
+			break;
+		msleep(5);
+	}
+	
+	return ret==1 ? true : false;
+}
 
 static int dmard06_probe(struct i2c_client *client,
 		const struct i2c_device_id *id)
 {
 	int ret = 0;
 	struct dmard06_data *data;
-
+	
+	client->addr = DMARD06ADDRESS ;
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) 
 	{
 		ret = -ENODEV;
@@ -580,6 +750,8 @@ static int dmard06_probe(struct i2c_client *client,
 	}
 
 	data->client = client;
+	dev.client=client;
+
 	i2c_set_clientdata(client, data);	
 	ret = dmard06_chip_init(data);
 	if (ret < 0) {
@@ -594,10 +766,12 @@ static int dmard06_probe(struct i2c_client *client,
 	data->inv[1] = G_1_REVERSE;
 	data->inv[2] = G_2_REVERSE;
 
+    input_set_capability(data->input_dev, EV_ABS, ABS_MISC);
 	input_set_abs_params(data->input_dev, ABS_X, -32*8, 32*8, INPUT_FUZZ, INPUT_FLAT);
 	input_set_abs_params(data->input_dev, ABS_Y, -32*8, 32*8, INPUT_FUZZ, INPUT_FLAT);
 	input_set_abs_params(data->input_dev, ABS_Z, -32*8, 32*8, INPUT_FUZZ, INPUT_FLAT);
-
+    input_set_drvdata(data->input_dev, data);
+    
 	data->input_dev->name = "dmard06";
 
 	ret = input_register_device(data->input_dev);
@@ -610,7 +784,7 @@ static int dmard06_probe(struct i2c_client *client,
 		goto exit_misc_device_register_failed;
 	}
 
-	ret = sysfs_create_group(&client->dev.kobj, &dmard06_group);
+	ret = sysfs_create_group(&data->input_dev->dev.kobj, &dmard06_group);
 
 	if (!data->use_irq){
 		hrtimer_init(&data->timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
@@ -626,7 +800,7 @@ static int dmard06_probe(struct i2c_client *client,
 #endif
 	data->enabled = 1;
 	strcpy(dmard06_on_off_str,"gsensor_int2");
-	gpio_set_one_pin_io_status(dmard06_pin_hd,0,dmard06_on_off_str);
+	gpio_set_one_pin_io_status(dmard06_pin_hd,0,dmard06_on_off_str); 	
 	printk("dmard06 probe ok \n");
 
 	return 0;
@@ -641,6 +815,8 @@ err_create_workqueue_failed:
 err_alloc_data_failed:
 err_check_functionality_failed:
 	printk("dmard06 probe failed \n");
+
+     
 	return ret;
 
 }
@@ -665,6 +841,8 @@ static void dmard06_shutdown(struct i2c_client *client)
 		dmard06_enable(data,0);
 }
 
+
+
 static const struct i2c_device_id dmard06_id[] = {
 	{ SENSOR_NAME, 0 },
 	{ }
@@ -682,7 +860,7 @@ static struct i2c_driver dmard06_driver = {
 	.probe		= dmard06_probe,
 	.remove		= dmard06_remove,
 	.shutdown	= dmard06_shutdown,
-	.address_list	= u_i2c_addr.normal_i2c,
+	.address_list	= normal_i2c,
 };
 
 static int __init dmard06_init(void)
@@ -696,7 +874,7 @@ static int __init dmard06_init(void)
 	}
 
 	printk("%s: after fetch_sysconfig_para:  normal_i2c: 0x%hx. normal_i2c[1]: 0x%hx \n", \
-			__func__, u_i2c_addr.normal_i2c[0], u_i2c_addr.normal_i2c[1]);
+			__func__, normal_i2c[0], normal_i2c[1]);
 
 	dmard06_driver.detect = gsensor_detect;
 
@@ -710,6 +888,77 @@ static void __exit dmard06_exit(void)
 	i2c_del_driver(&dmard06_driver);
 }
 
+//*********************************************************************************************************
+
+void gsensor_write_offset_to_file(void)
+{
+	char data[18];
+	unsigned int orgfs;
+	struct file *fp=NULL;
+	sprintf(data,"%5d %5d %5d",offset.u.x,offset.u.y,offset.u.z);
+	printk("%d %s\n",__LINE__,__func__);
+	orgfs = get_fs();
+	set_fs(KERNEL_DS);
+	
+	fp = filp_open(OffsetFileName, O_RDWR | O_CREAT, 0777); //S_IRWXU+S_IRWXG+S_IRWXO
+	if(IS_ERR(fp))
+	{
+		printk("filp_open %s error!!.\n",OffsetFileName);
+	}
+	else
+	{
+		printk("filp_open %s SUCCESS!!.\n",OffsetFileName);
+		fp->f_op->write(fp,data,18, &fp->f_pos);
+ 		filp_close(fp,NULL);
+	}
+	
+	set_fs(orgfs);
+}
+
+void gsensor_read_offset_from_file(void)
+{
+	unsigned int orgfs;
+	char data[18]="000 000 000";
+	struct file *fp=NULL;
+	int ux,uy,uz;
+	orgfs = get_fs();
+	set_fs(KERNEL_DS);
+
+	fp = filp_open(OffsetFileName, O_RDWR, 0); 
+	if(IS_ERR(fp))
+	{
+		offset.v[0]=0;offset.v[1]=0;offset.v[2]=0;
+#if AUTO_CALIBRATION
+		// get acceleration average reading
+		ret = gsensor_read_accel_avg(35,-35);
+		printk("@@@ cheak GRAVITY @@@ ret = %d\n",ret);
+		
+		if( ret == 1 || ret == 2 )
+		{	
+			// write in to file	
+			gsensor_write_offset_to_file();
+		}
+		else{
+			offset.v[0]=0;offset.v[1]=0;offset.v[2]=0;
+		}
+#endif
+
+	}
+	else{
+		printk("filp_open %s SUCCESS!!.\n",OffsetFileName);
+		fp->f_op->read(fp,data,18, &fp->f_pos);		
+		printk("filp_read result %s\n",data);
+		sscanf(data,"%d %d %d",&ux,&uy,&uz);
+		offset.u.x=ux;
+		offset.u.y=uy;
+		offset.u.z=uz;
+		
+		filp_close(fp,NULL);
+	}
+	printk("offset.txt %5d %5d %5d\n",offset.u.x,offset.u.y,offset.u.z);
+	set_fs(orgfs);
+}
+//*********************************************************************************************************
 MODULE_AUTHOR("Albert Zhang <xu.zhang@bosch-sensortec.com>");
 MODULE_DESCRIPTION("dmard06 driver");
 MODULE_LICENSE("GPL");

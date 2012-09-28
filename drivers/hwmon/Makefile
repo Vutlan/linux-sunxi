@@ -12,8 +12,9 @@ obj-$(CONFIG_SENSORS_ATK0110)	+= asus_atk0110.o
 # Native drivers
 # asb100, then w83781d go first, as they can override other drivers' addresses.
 obj-$(CONFIG_SENSORS_MMA7660)	+= mma7660.o
-obj-$(CONFIG_SENSORS_MMA8452)	+= mma8452.o
-obj-$(CONFIG_SENSORS_DMARD06)	+= dmard06.o
+obj-$(CONFIG_SENSORS_MMA7660)	+= mma8452.o
+obj-$(CONFIG_SENSORS_KIONIX_ACCEL)		+= kxtik.o
+obj-$(CONFIG_SENSORS_AFA750)	+= afa750.o
 obj-$(CONFIG_SENSORS_ASB100)	+= asb100.o
 obj-$(CONFIG_SENSORS_W83627HF)	+= w83627hf.o
 obj-$(CONFIG_SENSORS_W83792D)	+= w83792d.o

@@ -49,7 +49,8 @@
 
 #define MMA8452_DRV_NAME	"mma8452"
 #define SENSOR_NAME 			MMA8452_DRV_NAME
-#define MMA8452_I2C_ADDR	0x1C
+#define MMA8452_I2C_ADDR0	0x1C
+#define MMA8452_I2C_ADDR1	0x1D
 #define MMA8452_ID			0x2A
 
 #define POLL_INTERVAL_MAX	500
@@ -59,11 +60,11 @@
 #define MODE_CHANGE_DELAY_MS	100
 
 /* register enum for mma8452 registers */
-static union{
-	unsigned short dirty_addr_buf[2];
-	const unsigned short normal_i2c[2];
-}u_i2c_addr = {{0x00},};
+
+static const unsigned short normal_i2c[2] = {0x1d,I2C_CLIENT_END};
+static const unsigned short i2c_address[2] = {MMA8452_I2C_ADDR0,MMA8452_I2C_ADDR1};
 static __u32 twi_id = 0;
+static int i2c_num = 0;
 
 #ifdef CONFIG_HAS_EARLYSUSPEND	
 struct mma8452_data {
@@ -153,9 +154,6 @@ static int gsensor_fetch_sysconfig_para(void)
 {
 	int ret = -1;
 	int device_used = -1;
-	__u32 twi_addr = 0;
-	char name[I2C_NAME_SIZE];
-	script_parser_value_type_t type = SCIRPT_PARSER_VALUE_TYPE_STRING;
 		
 	printk("========%s===================\n", __func__);
 	 
@@ -164,27 +162,8 @@ static int gsensor_fetch_sysconfig_para(void)
 	                goto script_parser_fetch_err;
 	}
 	if(1 == device_used){
-		if(SCRIPT_PARSER_OK != script_parser_fetch_ex("gsensor_para", "gsensor_name", (int *)(&name), &type, sizeof(name)/sizeof(int))){
-			pr_err("%s: line: %d script_parser_fetch err. \n", __func__, __LINE__);
-			goto script_parser_fetch_err;
-		}
-		if(strcmp(SENSOR_NAME, name)){
-			pr_err("%s: name %s does not match SENSOR_NAME. \n", __func__, name);
-			pr_err(SENSOR_NAME);
-			//ret = 1;
-			return ret;
-		}
-		if(SCRIPT_PARSER_OK != script_parser_fetch("gsensor_para", "gsensor_twi_addr", &twi_addr, sizeof(twi_addr)/sizeof(__u32))){
-			pr_err("%s: line: %d: script_parser_fetch err. \n", name, __LINE__);
-			goto script_parser_fetch_err;
-		}
-		u_i2c_addr.dirty_addr_buf[0] = twi_addr;
-		u_i2c_addr.dirty_addr_buf[1] = I2C_CLIENT_END;
-		printk("%s: after: gsensor_twi_addr is 0x%x, dirty_addr_buf: 0x%hx. dirty_addr_buf[1]: 0x%hx \n", \
-			__func__, twi_addr, u_i2c_addr.dirty_addr_buf[0], u_i2c_addr.dirty_addr_buf[1]);
-
 		if(SCRIPT_PARSER_OK != script_parser_fetch("gsensor_para", "gsensor_twi_id", &twi_id, 1)){
-			pr_err("%s: script_parser_fetch err. \n", name);
+			pr_err("%s: script_parser_fetch err. \n", __func__);
 			goto script_parser_fetch_err;
 		}
 		printk("%s: twi_id is %d. \n", __func__, twi_id);
@@ -215,18 +194,52 @@ script_parser_fetch_err:
 int gsensor_detect(struct i2c_client *client, struct i2c_board_info *info)
 {
 	struct i2c_adapter *adapter = client->adapter;
-	
-	if(twi_id == adapter->nr){
-		pr_info("%s: Detected chip %s at adapter %d, address 0x%02x\n",
-			 __func__, SENSOR_NAME, i2c_adapter_id(adapter), client->addr);
-
-		strlcpy(info->type, SENSOR_NAME, I2C_NAME_SIZE);
-		return 0;
-	}else{
-		return -ENODEV;
-	}
+	int ret ;
+    if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE_DATA))
+        return -ENODEV;
+    
+    if(twi_id == adapter->nr){
+        while(i2c_num < 2) {
+             client->addr = i2c_address[i2c_num++];
+             pr_info("%s: addr= %x\n",__func__,client->addr);
+             ret = i2c_smbus_read_byte_data(client, MMA8452_WHO_AM_I);
+             if ((ret&0x00FF) == MMA8452_ID) {
+            		printk( "%s: mma8452 equipment is detected!\n",__func__);
+            		strlcpy(info->type, SENSOR_NAME, I2C_NAME_SIZE);
+                    return 0;
+             }
+          }
+          pr_info("%s: mma8452  equipment is not found!\n",__func__);
+          return  -ENODEV;
+          
+    }else{
+          return -ENODEV;
+    }
 }
+/***************************************************************
+ *
+ * Initialization function
+ */
+static int mma8452_init_client(struct i2c_client *client)
+{
+	int result;
 
+		mma_status.ctl_reg1 = 0x20;
+		result = i2c_smbus_write_byte_data(client, MMA8452_CTRL_REG1, mma_status.ctl_reg1);
+		assert(result==0);
+		
+		mma_status.mode	= MODE_2G;
+		result = i2c_smbus_write_byte_data(client, MMA8452_XYZ_DATA_CFG, mma_status.mode);
+		assert(result==0);
+		
+		mma_status.ctl_reg1 |= 0x01;
+		result = i2c_smbus_write_byte_data(client, MMA8452_CTRL_REG1, mma_status.ctl_reg1);
+		assert(result==0);
+	
+	mdelay(MODE_CHANGE_DELAY_MS);
+
+	return result;
+}
 
 //static ssize_t mma8452_value_show(struct device *dev,
 //		struct device_attribute *attr, char *buf)
@@ -264,6 +277,8 @@ static ssize_t mma8452_enable_store(struct device *dev,
 	if(data) {
 		error = i2c_smbus_write_byte_data(mma8452_i2c_client, MMA8452_CTRL_REG1, mma_status.ctl_reg1);
 		assert(error==0);
+		error = mma8452_init_client(mma8452_i2c_client);
+	    assert(error==0);
 	} else {
 		mma_status.ctl_reg1 = i2c_smbus_read_byte_data(mma8452_i2c_client, MMA8452_CTRL_REG1);
 	    error = i2c_smbus_write_byte_data(mma8452_i2c_client, MMA8452_CTRL_REG1,mma_status.ctl_reg1 & 0xFE);
@@ -292,13 +307,13 @@ static ssize_t mma8452_delay_store(struct device *dev,struct device_attribute *a
 	return count;
 		}
 
-static DEVICE_ATTR(enable, S_IRUGO|S_IWUSR|S_IWGRP,
+static DEVICE_ATTR(enable, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
 		NULL, mma8452_enable_store);
 
-//static DEVICE_ATTR(value, S_IRUGO|S_IWUSR|S_IWGRP,
+//static DEVICE_ATTR(value, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
 //		mma8452_value_show, NULL);
 		
-static DEVICE_ATTR(delay, S_IRUGO|S_IWUSR|S_IWGRP,
+static DEVICE_ATTR(delay, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
 		NULL, mma8452_delay_store);
 
 static struct attribute *mma8452_attributes[] = {
@@ -311,30 +326,7 @@ static struct attribute *mma8452_attributes[] = {
 static struct attribute_group mma8452_attribute_group = {
 	.attrs = mma8452_attributes
 };
-/***************************************************************
- *
- * Initialization function
- */
-static int mma8452_init_client(struct i2c_client *client)
-{
-	int result;
 
-		mma_status.ctl_reg1 = 0x20;
-		result = i2c_smbus_write_byte_data(client, MMA8452_CTRL_REG1, mma_status.ctl_reg1);
-		assert(result==0);
-		
-		mma_status.mode	= MODE_2G;
-		result = i2c_smbus_write_byte_data(client, MMA8452_XYZ_DATA_CFG, mma_status.mode);
-		assert(result==0);
-		
-		mma_status.ctl_reg1 |= 0x01;
-		result = i2c_smbus_write_byte_data(client, MMA8452_CTRL_REG1, mma_status.ctl_reg1);
-		assert(result==0);
-	
-	mdelay(MODE_CHANGE_DELAY_MS);
-
-	return result;
-}
 
 /***************************************************************
 *
@@ -384,10 +376,10 @@ static void report_abs(void)
 	} while (!(result & 0x08));		/* wait for new data */
 
 	if (mma8452_read_data(&x,&y,&z) != 0) {
-		//DBG("mma8452 data read failed\n");
+		printk("mma8452 data read failed\n");
 		return;
 	}
-	
+	//pr_info("x= 0x%hx, y = 0x%hx, z = 0x%hx. \n", x, y, z);
 	input_report_abs(mma8452_idev->input, ABS_X, x);
 	input_report_abs(mma8452_idev->input, ABS_Y, y);
 	input_report_abs(mma8452_idev->input, ABS_Z, z);
@@ -421,6 +413,9 @@ static void mma8452_resume(struct early_suspend *h) //(struct i2c_client *client
 
 	result = i2c_smbus_write_byte_data(mma8452_i2c_client, MMA8452_CTRL_REG1, mma_status.ctl_reg1);
 	assert(result==0);
+	result = mma8452_init_client(mma8452_i2c_client);
+	assert(result==0);
+	
 	return ;
 }
 #endif
@@ -432,22 +427,15 @@ static int __devinit mma8452_probe(struct i2c_client *client,
 	struct input_dev *idev;
 	struct i2c_adapter *adapter;
  
+	client->addr = i2c_address[i2c_num - 1];
 	mma8452_i2c_client = client;
+	
 	adapter = to_i2c_adapter(client->dev.parent);
 	result = i2c_check_functionality(adapter,
 					 I2C_FUNC_SMBUS_BYTE |
 					 I2C_FUNC_SMBUS_BYTE_DATA);
 	assert(result);
-	
-	printk(KERN_INFO "check mma8452 chip ID\n");
-	result = i2c_smbus_read_byte_data(client, MMA8452_WHO_AM_I);
 
-	if (MMA8452_ID != (result)) {	//compare the address value 
-		dev_err(&client->dev,"read chip ID 0x%x is not equal to 0x%x!\n", result,MMA8452_ID);
-		printk(KERN_INFO "read chip ID failed\n");
-		result = -EINVAL;
-		goto err_detach_client;
-	}
 
 	/* Initialize the MMA8452 chip */
 	result = mma8452_init_client(client);
@@ -499,7 +487,6 @@ static int __devinit mma8452_probe(struct i2c_client *client,
 
 	return result;
 err_alloc_data_failed:	
-err_detach_client:
 	return result;
 }
 
@@ -509,11 +496,13 @@ static int __devexit mma8452_remove(struct i2c_client *client)
 	mma_status.ctl_reg1 = i2c_smbus_read_byte_data(client, MMA8452_CTRL_REG1);
 	result = i2c_smbus_write_byte_data(client, MMA8452_CTRL_REG1,mma_status.ctl_reg1 & 0xFE);
 	assert(result==0);
-
 	hwmon_device_unregister(hwmon_dev);
 #ifdef CONFIG_HAS_EARLYSUSPEND	
 	 unregister_early_suspend(&mma8452_data->early_suspend);	
 #endif
+    input_unregister_polled_device(mma8452_idev);
+	input_free_polled_device(mma8452_idev);
+	i2c_set_clientdata(mma8452_i2c_client, NULL);
 	return result;
 }
 
@@ -530,12 +519,10 @@ static struct i2c_driver mma8452_driver = {
 		.name	= MMA8452_DRV_NAME,
 		.owner	= THIS_MODULE,
 	},
-//	.suspend = mma8452_suspend,
-//	.resume	= mma8452_resume,
 	.probe	= mma8452_probe,
 	.remove	= __devexit_p(mma8452_remove),
 	.id_table = mma8452_id,
-	.address_list	= u_i2c_addr.normal_i2c,
+	.address_list	= normal_i2c,
 };
 
 static int __init mma8452_init(void)
@@ -549,14 +536,16 @@ static int __init mma8452_init(void)
 	}
 
 	printk("%s: after fetch_sysconfig_para:  normal_i2c: 0x%hx. normal_i2c[1]: 0x%hx \n", \
-	__func__, u_i2c_addr.normal_i2c[0], u_i2c_addr.normal_i2c[1]);
+	__func__, normal_i2c[0], normal_i2c[1]);
+	
 	mma8452_driver.detect = gsensor_detect;
+	
 	res = i2c_add_driver(&mma8452_driver);
 	if (res < 0){
-		printk(KERN_INFO "add mma8452 i2c driver failed\n");
+		printk("add mma8452 i2c driver failed\n");
 		return -ENODEV;
 	}
-	printk(KERN_INFO "add mma8452 i2c driver\n");
+	printk("add mma8452 i2c driver\n");
 
 	return (res);
 }
@@ -567,11 +556,12 @@ static void __exit mma8452_exit(void)
 	i2c_del_driver(&mma8452_driver);
 }
 
+module_init(mma8452_init);
+module_exit(mma8452_exit);
+
+
 MODULE_AUTHOR("Chen Gang <gang.chen@freescale.com>");
 MODULE_DESCRIPTION("MMA8452 3-Axis Orientation/Motion Detection Sensor driver");
 MODULE_LICENSE("GPL");
 MODULE_VERSION("1.1");
-
-module_init(mma8452_init);
-module_exit(mma8452_exit);
 
