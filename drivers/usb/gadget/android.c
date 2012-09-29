@@ -549,7 +549,7 @@ static int mass_storage_function_init(struct android_usb_function *f,
         config->fsg.luns[i].removable   = 1;
         config->fsg.luns[i].ro          = 0;
         config->fsg.luns[i].cdrom       = 0;
-        config->fsg.luns[i].nofua       = 0;
+        config->fsg.luns[i].nofua       = 1;
     }
 
 	common = fsg_common_init(NULL, cdev, &config->fsg);

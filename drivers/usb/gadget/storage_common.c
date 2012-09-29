@@ -524,6 +524,9 @@ static struct usb_gadget_strings	fsg_stringtab = {
 
  /*-------------------------------------------------------------------------*/
 
+static int fsg_lun_fsync_sub(struct fsg_lun *curlun);
+
+
 /*
  * If the next two routines are called while the gadget is registered,
  * the caller must own fsg->filesem for writing.
@@ -621,6 +624,8 @@ static void fsg_lun_close(struct fsg_lun *curlun)
 		LDBG(curlun, "close backing file\n");
 
         printk("usb close backing file: 0x%p\n", curlun);
+
+        fsg_lun_fsync_sub(curlun);
 
 		fput(curlun->filp);
 		curlun->filp = NULL;

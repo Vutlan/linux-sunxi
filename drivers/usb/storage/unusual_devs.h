@@ -2235,6 +2235,21 @@ UNUSUAL_DEV(0x05c6,0x2001,0x0,0x0,
 		"Qualcomm CDMA Technologies MSM",
 		USB_SC_DEVICE,USB_PR_DEVICE,NULL,
 		0),
+
+//alcatel--don't report disk device
+UNUSUAL_DEV(0x1614,0x0800,0x0,0x0,
+		"HSUPA",
+		"USB MODEM ",
+		USB_SC_DEVICE,USB_PR_DEVICE,usb_modem_init,
+		0),
+
+//alcatel--don't report disk device
+UNUSUAL_DEV(0x1c9e,0x6061,0x0,0x0,
+		"HSUPA",
+		"HSUPA USB MODEM ",
+		USB_SC_DEVICE,USB_PR_DEVICE,usb_stor_people_init,
+		0),
+
 /* Control/Bulk transport for all SubClass values */
 USUAL_DEV(USB_SC_RBC, USB_PR_CB, USB_US_TYPE_STOR),
 USUAL_DEV(USB_SC_8020, USB_PR_CB, USB_US_TYPE_STOR),
