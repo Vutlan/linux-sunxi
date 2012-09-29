@@ -775,4 +775,38 @@ int sw_usb_enable_ohci(__u32 usbc_no)
 }
 EXPORT_SYMBOL(sw_usb_enable_ohci);
 
+int get_ohci_connect_status(int usbc_no)
+{
+    struct usb_hcd 	*hcd 	= NULL;
+	struct ohci_hcd *ohci	= NULL;
+	struct sw_hci_hcd *sw_ohci = NULL;
+	int	port;
+	int connect = 0;
 
+    if(usbc_no < 0 || usbc_no > 2){
+        printk("usbc_no : %d invalid\n", usbc_no);
+        return -1;
+    }
+	sw_ohci = g_sw_ohci[usbc_no];
+    if(!sw_ohci){
+        printk("ohci %d not exist\n", usbc_no);
+        return -1;
+    }
+	hcd = sw_ohci->hcd;
+    if(!hcd){
+        printk("hcd of ohci %d is NULL\n", usbc_no);
+        return -1;
+    }
+	ohci = hcd_to_ohci(hcd);
+	if(!ohci){
+        printk("ohci of ohci %d is NULL\n", usbc_no);
+        return -1;
+    }
+    
+    port = ohci_readl(ohci, &ohci->regs->roothub.a) & 0xff;
+    while(port--)
+        connect |= ohci_readl(ohci, &ohci->regs->roothub.portstatus[port]) & 0x1;
+
+    return connect;
+}
+EXPORT_SYMBOL(get_ohci_connect_status);

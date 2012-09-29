@@ -174,4 +174,5 @@ source "drivers/usb/otg/Kconfig"
 
 source "drivers/usb/sun5i_usb/Kconfig"
 
+source "drivers/usb/portpm/Kconfig"
 endif # USB_SUPPORT

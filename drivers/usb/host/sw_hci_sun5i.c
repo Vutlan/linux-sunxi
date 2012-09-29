@@ -69,8 +69,8 @@ static u32 usbc_base[USB_CONTROLLER_NUM] 			= {SW_VA_USB0_IO_BASE, SW_VA_USB1_IO
 static u32 ehci_irq_no[USB_CONTROLLER_NUM] 			= {0, SW_INT_SRC_EHCI0};
 static u32 ohci_irq_no[USB_CONTROLLER_NUM] 			= {0, SW_INT_SRC_OHCI0};
 
-static u32 usb1_set_vbus_cnt = 0;
-static u32 usb2_set_vbus_cnt = 0;
+static int usb1_set_vbus_cnt = 0;
+static int usb2_set_vbus_cnt = 0;
 static u32 usb_enable_passly_cnt = 0;
 static u32 usb_enable_configure_cnt = 0;
 
@@ -1088,39 +1088,49 @@ static void __sw_set_vbus(struct sw_hci_hcd *sw_hci, int is_on)
 */
 static void sw_set_vbus(struct sw_hci_hcd *sw_hci, int is_on)
 {
-    DMSG_DEBUG("[%s]: sw_set_vbus cnt %d\n",
-              sw_hci->hci_name,
-              (sw_hci->usbc_no == 1) ? usb1_set_vbus_cnt : usb2_set_vbus_cnt);
-
     if(sw_hci->usbc_no == 1){
-        if(is_on && usb1_set_vbus_cnt == 0){
-            __sw_set_vbus(sw_hci, is_on);  /* power on */
-        }else if(!is_on && usb1_set_vbus_cnt == 1){
-            __sw_set_vbus(sw_hci, is_on);  /* power off */
-        }
-
-        if(is_on){
+        if(is_on)
             usb1_set_vbus_cnt++;
-        }else{
+        else
             usb1_set_vbus_cnt--;
+        
+        printk("[%s]: sw_set_vbus cnt %d\n",
+              sw_hci->hci_name, usb1_set_vbus_cnt);
+        if(is_on && usb1_set_vbus_cnt == 1){
+            __sw_set_vbus(sw_hci, 1);  /* power on */
+        }else if(!is_on && usb1_set_vbus_cnt == 0){
+            __sw_set_vbus(sw_hci, 0);  /* power off */
         }
     }else{
-        if(is_on && usb2_set_vbus_cnt == 0){
-            __sw_set_vbus(sw_hci, is_on);  /* power on */
-        }else if(!is_on && usb2_set_vbus_cnt == 1){
-            __sw_set_vbus(sw_hci, is_on);  /* power off */
-        }
-
-        if(is_on){
+        if(is_on)
             usb2_set_vbus_cnt++;
-        }else{
+        else
             usb2_set_vbus_cnt--;
+            
+        printk("[%s]: sw_set_vbus cnt %d\n",
+              sw_hci->hci_name, usb2_set_vbus_cnt);
+        if(is_on && usb2_set_vbus_cnt == 1){
+            __sw_set_vbus(sw_hci, 1);  /* power on */
+        }else if(!is_on && usb2_set_vbus_cnt == 0){
+            __sw_set_vbus(sw_hci, 0);  /* power off */
         }
     }
 
 	return;
 }
 
+int hci_get_vbus_status(int usbc_no)
+{
+    if(usbc_no == 1)
+        return !!usb1_set_vbus_cnt;
+    else if(usbc_no == 2)
+        return !!usb2_set_vbus_cnt;
+    else
+        printk("invalid usbc_no : %d\n", usbc_no);
+
+    return 0;
+}
+EXPORT_SYMBOL(hci_get_vbus_status);
 //---------------------------------------------------------------
 //  EHCI
 //---------------------------------------------------------------

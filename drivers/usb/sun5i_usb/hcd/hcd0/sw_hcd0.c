@@ -50,6 +50,8 @@
 #define SW_HCD_DRIVER_NAME    "sw_hcd_host0"
 static const char sw_hcd_driver_name[] = SW_HCD_DRIVER_NAME;
 
+int hcd0_enable = 1;
+EXPORT_SYMBOL(hcd0_enable);
 MODULE_DESCRIPTION(DRIVER_INFO);
 MODULE_AUTHOR(DRIVER_AUTHOR);
 MODULE_LICENSE("GPL");
@@ -501,16 +503,24 @@ static __s32 pin_exit(sw_hcd_io_t *sw_hcd_io)
 *
 *******************************************************************************
 */
+extern void set_hcd0_connect_status(int status);
+static int hcd0_set_vbus_cnt = 1;
 static void sw_hcd_board_set_vbus(struct sw_hcd *sw_hcd, int is_on)
 {
     u32 on_off = 0;
-
+    if(is_on)
+        hcd0_set_vbus_cnt++;
+    else
+        hcd0_set_vbus_cnt--;  
+    printk("is_on = %d, hcd0_set_vbus_cnt = %d\n", is_on, hcd0_set_vbus_cnt); 
+    if(!sw_hcd){        
+        return;
+    }
+    
     if(sw_hcd->sw_hcd_io->Drv_vbus_Handle == 0){
         printk("wrn: sw_hcd_io->drv_vbus_Handle is null\n");
         return;
     }
-
-	DMSG_INFO("[%s]: Set USB Power %s\n", sw_hcd->driver_name, (is_on ? "ON" : "OFF"));
 
     /* set power */
     if(sw_hcd->sw_hcd_io->drv_vbus_gpio_set.data == 0){
@@ -519,17 +529,23 @@ static void sw_hcd_board_set_vbus(struct sw_hcd *sw_hcd, int is_on)
         on_off = is_on ? 0 : 1;
     }
 
-	/* set gpio data */
-    if(sw_hcd->sw_hcd_io->drv_vbus_gpio_set.port == 0xffff){ //axp
-        axp_gpio_set_value(sw_hcd->sw_hcd_io->drv_vbus_gpio_set.port_num, on_off);
-    }else{  //gpio
-        gpio_write_one_pin_value(sw_hcd->sw_hcd_io->Drv_vbus_Handle, on_off, NULL);
-	}
-
-	if(is_on){
+	if(is_on && hcd0_set_vbus_cnt == 1){
+	    DMSG_INFO("[%s]: Set USB Power On\n", sw_hcd->driver_name);
+	    if(sw_hcd->sw_hcd_io->drv_vbus_gpio_set.port == 0xffff){ //axp
+            axp_gpio_set_value(sw_hcd->sw_hcd_io->drv_vbus_gpio_set.port_num, on_off);
+        }else{  //gpio
+            gpio_write_one_pin_value(sw_hcd->sw_hcd_io->Drv_vbus_Handle, on_off, NULL);
+    	}
 		USBC_Host_StartSession(sw_hcd->sw_hcd_io->usb_bsp_hdle);
 		USBC_ForceVbusValid(sw_hcd->sw_hcd_io->usb_bsp_hdle, USBC_VBUS_TYPE_HIGH);
-	}else{
+	}else if(!is_on && hcd0_set_vbus_cnt == 0){
+	    DMSG_INFO("[%s]: Set USB Power Off\n", sw_hcd->driver_name);
+	    if(sw_hcd->sw_hcd_io->drv_vbus_gpio_set.port == 0xffff){ //axp
+            axp_gpio_set_value(sw_hcd->sw_hcd_io->drv_vbus_gpio_set.port_num, on_off);
+        }else{  //gpio
+            gpio_write_one_pin_value(sw_hcd->sw_hcd_io->Drv_vbus_Handle, on_off, NULL);
+    	}
+	    set_hcd0_connect_status(0);
 		USBC_Host_EndSession(sw_hcd->sw_hcd_io->usb_bsp_hdle);
 		USBC_ForceVbusValid(sw_hcd->sw_hcd_io->usb_bsp_hdle, USBC_VBUS_TYPE_DISABLE);
 	}
@@ -2424,4 +2440,30 @@ static void __exit sw_hcd_cleanup(void)
 
 module_exit(sw_hcd_cleanup);
 
+int hcd0_set_vbus(int is_on)
+{
+    struct sw_hcd *sw_hcd = g_sw_hcd0;        
 
+    if(is_on)
+        hcd0_enable = 1;
+    else
+        hcd0_enable = 0;
+    printk("%s:hcd0_enable = %d\n", __func__, hcd0_enable);    
+    
+	sw_hcd_board_set_vbus(sw_hcd, is_on);
+
+	return 0;
+}
+EXPORT_SYMBOL(hcd0_set_vbus);
+
+int hcd0_get_vbus_status()
+{
+    struct sw_hcd *sw_hcd = g_sw_hcd0;    
+
+    if(!sw_hcd){        
+        return 0;
+    }
+
+	return !!hcd0_set_vbus_cnt;//gpio_read_one_pin_value(sw_hcd->sw_hcd_io->Drv_vbus_Handle, NULL);
+}
+EXPORT_SYMBOL(hcd0_get_vbus_status);
