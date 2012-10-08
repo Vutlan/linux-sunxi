@@ -167,3 +167,19 @@ int usb_stor_wangxun_init(struct us_data *us)
 	return -ENODEV;
 	
 }
+int usb_stor_people_init(struct us_data *us)
+{
+	printk("====people_init===>\n");
+    usb_stor_control_msg(us, us->send_ctrl_pipe, USB_REQ_CLEAR_FEATURE,
+		USB_TYPE_STANDARD | USB_RECIP_ENDPOINT,0x0, 0x83, NULL, 0x0, 1000);
+    return -ENODEV;
+}
+
+int usb_modem_init(struct us_data *us)
+{
+	printk("====modem_init===>\n");
+    usb_stor_control_msg(us, us->send_ctrl_pipe, USB_REQ_CLEAR_FEATURE,
+		USB_TYPE_STANDARD | USB_RECIP_ENDPOINT,0x0, 0x85, NULL, 0x0, 1000);
+    return -ENODEV;
+}
+
