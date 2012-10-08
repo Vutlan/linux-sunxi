@@ -49,7 +49,7 @@ int ar100_standby_super(struct super_standby_para *para)
 	}
 	//initialize message
 	pmessage->type     = AR100_SSTANDBY_ENTER_REQ;
-	pmessage->attr     = 0;
+	pmessage->attr     = AR100_MESSAGE_ATTR_HARDSYN;
 	memcpy(pmessage->paras, para, sizeof(struct super_standby_para));
 	pmessage->state    = AR100_MESSAGE_INITIALIZED;
 	//before creating mapping, build the coherent between cache and memory

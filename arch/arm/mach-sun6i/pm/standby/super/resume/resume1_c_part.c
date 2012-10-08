@@ -2,23 +2,6 @@
  * function: open the mmu, and jump to dram, for continuing resume*/
 #include "./../super_i.h"
 
-extern unsigned int save_sp(void);
-extern int jump_to_resume(void* pointer, __u32 *addr);
-extern void restore_mmu_state(struct mmu_state *saved_mmu_state);
-extern void mem_flush_tlb(void);
-extern void flush_icache(void);
-extern void flush_dcache(void);
-extern void invalidate_dcache(void);
-extern void mem_preload_tlb_nommu(void);
-extern void clear_reg_context(void);
-
-extern void disable_cache(void);
-extern void disable_program_flow_prediction(void);
-extern void invalidate_branch_predictor(void);
-extern void enable_cache(void);
-extern void enable_program_flow_prediction(void);
-extern void disable_dcache(void);
-extern void disable_l2cache(void);
 
 static struct aw_mem_para mem_para_info;
 
@@ -56,9 +39,8 @@ static __u32 status = 0;
 
 int resume1_c_part(void)
 {
-	serial_init_nommu();
+	//
 	//busy_waiting();
-	serial_puts_nommu("resume1: 0. \n");
 	/* clear bss segment */
 	do{*tmpPtr ++ = 0;}while(tmpPtr <= (char *)&__bss_end);
 	
@@ -73,12 +55,15 @@ int resume1_c_part(void)
 	//move other storage to sram: saved_resume_pointer(virtual addr), saved_mmu_state
 	mem_memcpy((void *)&mem_para_info, (void *)(DRAM_BACKUP_BASE_ADDR1), sizeof(mem_para_info));
 #else
-	mem_preload_tlb_nommu();
 	/*switch stack*/
 	save_mem_status_nommu(RESUME1_START |0x02);
 
 	//move other storage to sram: saved_resume_pointer(virtual addr), saved_mmu_state
 	mem_memcpy((void *)&mem_para_info, (void *)(DRAM_BACKUP_BASE_ADDR1_PA), sizeof(mem_para_info));
+	if(unlikely(mem_para_info.debug_mask&PM_STANDBY_PRINT_RESUME)){
+		serial_init_nommu();
+		serial_puts_nommu("resume1: 0. \n");
+	}
 	/*restore mmu configuration*/
 	save_mem_status_nommu(RESUME1_START |0x03);
 	//save_mem_status(RESUME1_START |0x03);

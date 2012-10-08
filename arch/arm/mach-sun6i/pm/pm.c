@@ -73,6 +73,9 @@
 /* define major number for power manager */
 #define AW_PMU_MAJOR    267
 
+static int debug_mask = PM_STANDBY_PRINT_STANDBY | PM_STANDBY_PRINT_RESUME;
+module_param_named(debug_mask, debug_mask, int, S_IRUGO | S_IWUSR | S_IWGRP);
+
 extern char *standby_bin_start;
 extern char *standby_bin_end;
 extern char *suspend_bin_start;
@@ -422,13 +425,16 @@ static int aw_early_suspend(void)
 #endif
 
 	super_standby_para_info.timeout = 0;
-	pr_info("resume1_bin_start = 0x%x, resume1_bin_end = 0x%x. \n", (int)&resume1_bin_start, (int)&resume1_bin_end);
-	pr_info("resume_code_src = 0x%lx, resume_code_length = %ld. resume_code_length = %lx \n", super_standby_para_info.resume_code_src, super_standby_para_info.resume_code_length, super_standby_para_info.resume_code_length);
-
+	if(unlikely(debug_mask&PM_STANDBY_PRINT_STANDBY)){
+		pr_info("resume1_bin_start = 0x%x, resume1_bin_end = 0x%x. \n", (int)&resume1_bin_start, (int)&resume1_bin_end);
+		pr_info("resume_code_src = 0x%lx, resume_code_length = %ld. resume_code_length = %lx \n", super_standby_para_info.resume_code_src, super_standby_para_info.resume_code_length, super_standby_para_info.resume_code_length);
+	}
 	
 	ar100_standby_super((struct super_standby_para *)(&super_standby_para_info));
+	if(unlikely(debug_mask&PM_STANDBY_PRINT_STANDBY)){
+		pr_info("warning: cpus not sync to enter super standby. \n");
+	}
 	asm("WFI");
-	printk("gic iar == 0x%x. \n", *(volatile __u32   *)(IO_ADDRESS(AW_GIC_CPU_BASE)+0x0c));
 	busy_waiting();
 
 #elif defined(RETURN_FROM_RESUME0_WITH_MMU)
@@ -534,7 +540,9 @@ mem_enter:
 		save_mem_status(BEFORE_LATE_RESUME |0x5);
 		mem_arch_resume();
 		save_mem_status(BEFORE_LATE_RESUME |0x6);
-		print_call_info();
+		if(unlikely(debug_mask&PM_STANDBY_PRINT_RESUME)){
+			print_call_info();
+		}
 		goto resume;
 	}
 	
@@ -542,9 +550,11 @@ mem_enter:
 	mem_para_info.mem_flag = 1;
 	standby_level = STANDBY_WITH_POWER_OFF;
 	mem_para_info.resume_pointer = (void *)&&mem_enter;
-
+	mem_para_info.debug_mask = debug_mask;
 	//busy_waiting();
-	pr_info("resume_pointer = 0x%x. \n", (unsigned int)(mem_para_info.resume_pointer));
+	if(unlikely(debug_mask&PM_STANDBY_PRINT_STANDBY)){
+		pr_info("resume_pointer = 0x%x. \n", (unsigned int)(mem_para_info.resume_pointer));
+	}
 	
 
 	/* config cpus wakeup evetn type */
@@ -566,17 +576,20 @@ mem_enter:
 	}
 	
 resume:
-	print_call_info();
+	if(unlikely(debug_mask&PM_STANDBY_PRINT_RESUME)){
+		print_call_info();
+	}
 	aw_late_resume();
 
 	//have been disable dcache in resume1
 	//enable_cache();
-	print_call_info();
+	if(unlikely(debug_mask&PM_STANDBY_PRINT_RESUME)){
+		print_call_info();
+	}
 	save_mem_status(LATE_RESUME_START |0x4);
 		
 	//before creating mapping, build the coherent between cache and memory
 	//clean and flush
-	print_call_info();
 	__cpuc_flush_kern_all();
 	__cpuc_flush_user_all();
 
@@ -584,9 +597,10 @@ resume:
 	__cpuc_coherent_kern_range(0xc0000000, 0xffffffff-1);
 
 suspend_err:
-	pr_info("suspend_status_flag = %d. \n", suspend_status_flag);
+	if(unlikely(debug_mask&PM_STANDBY_PRINT_RESUME)){
+		pr_info("suspend_status_flag = %d. \n", suspend_status_flag);
+	}
 	save_mem_status(LATE_RESUME_START |0x5);
-	save_mem_status(LATE_RESUME_START |0x6);
 	
 	return 0;
 
@@ -609,8 +623,18 @@ static int aw_pm_enter(suspend_state_t state)
 {
 	asm volatile ("stmfd sp!, {r1-r12, lr}" );
 	int (*standby)(struct aw_pm_info *arg) = 0;
+	int i = 0;
 
-	PM_DBG("enter state %d\n", state);     
+	PM_DBG("enter state %d\n", state);
+	
+	if(unlikely(debug_mask&PM_STANDBY_PRINT_IO_STATUS)){
+		printk(KERN_INFO "IO status as follow:");
+		for(i=0; i<(GPIO_REG_LENGTH); i++){
+			printk(KERN_INFO "ADDR = %x, value = %x .\n", \
+				IO_ADDRESS(AW_PIO_BASE) + i*0x04, *(volatile __u32 *)(IO_ADDRESS(AW_PIO_BASE) + i*0x04));
+		}
+	}
+	
 	if(NORMAL_STANDBY== standby_type){
 		standby = (int (*)(struct aw_pm_info *arg))SRAM_FUNC_START;
 		//move standby code to sram
@@ -625,6 +649,7 @@ static int aw_pm_enter(suspend_state_t state)
 		}
 
 		standby_info.standby_para.timeout = 0;
+		standby_info.standby_para.debug_mask = debug_mask;
 		
 		// build the coherent between cache and memory
 		//clean and flush
@@ -664,10 +689,9 @@ static void aw_pm_wake(void)
 			standby_info.standby_para.event, standby_info.standby_para.axp_event);
 	}else if(SUPER_STANDBY == standby_type){
 #if 1
-			//busy_waiting();
-			ar100_cpux_ready_notify();
-			ar100_query_wakeup_source((unsigned long *)(&(mem_para_info.axp_event)));			
-
+		//busy_waiting();
+		ar100_cpux_ready_notify();
+		ar100_query_wakeup_source((unsigned long *)(&(mem_para_info.axp_event)));			
 		PM_DBG("platform wakeup, super standby wakesource is:0x%x\n", mem_para_info.axp_event);
 #endif
 
@@ -782,8 +806,8 @@ static int __init aw_pm_init(void)
 	if(SCRIPT_PARSER_OK != script_parser_fetch("pm_para", "standby_mode", &standby_mode, 1)){
 		pr_err("%s: script_parser_fetch err. \n", __func__);
 		//standby_mode = 0;
-		//just for debug at fpga
 		standby_mode = 1;
+		pr_err("just for debug at fpga. standby_mode = %d.\n", standby_mode);
 	}else{
 		pr_info("standby_mode = %d. \n", standby_mode);
 		if(1 != standby_mode){

@@ -6,7 +6,6 @@ INCLUDE   = -I. \
 	
 STANDBY_OBJ = 	common.o         	\
 		standby.o        	\
-		stack.o          	\
 		standby_clock.o  	\
 		standby_int.o    	\
 		standby_ir.o     	\
@@ -21,6 +20,8 @@ STANDBY_OBJ = 	common.o         	\
 		./ar100/ar100_hwspinlock.o 	\
 		./ar100/ar100_message_manager.o	\
 		./../pm_debug.o       		\
+		./../mem_mmu_pc.o               \
+		./../mem_mmu_pc_asm.o           \
 		./../mem_serial.o		\
 		./../mem_printk.o  		\
 		./../mem_divlib.o		\
@@ -28,7 +29,6 @@ STANDBY_OBJ = 	common.o         	\
 
 
 RESUME1_OBJ =	./super/common.o             	\
-		./super/stack.o              	\
 		./super/super_twi.o        	\
 		./super/super_delay.o      	\
 		./super/super_clock.o      	\
@@ -65,7 +65,6 @@ all: standby resume1
 standby:
 	$(CC) $(INCLUDE) $(CFLAGS) common.c           			-o common.o
 	$(CC) $(INCLUDE) $(CFLAGS) standby.c          			-o standby.o
-	$(CC) $(INCLUDE) $(CFLAGS) stack.S            			-o stack.o
 	$(CC) $(INCLUDE) $(CFLAGS) standby_clock.c    			-o standby_clock.o
 	$(CC) $(INCLUDE) $(CFLAGS) standby_int.c      			-o standby_int.o
 	$(CC) $(INCLUDE) $(CFLAGS) standby_ir.c       			-o standby_ir.o
@@ -80,6 +79,8 @@ standby:
 	$(CC) $(INCLUDE) $(CFLAGS) ./ar100/ar100_hwspinlock.c 		-o ./ar100/ar100_hwspinlock.o
 	$(CC) $(INCLUDE) $(CFLAGS) ./ar100/ar100_message_manager.c	-o ./ar100/ar100_message_manager.o
 	$(CC) $(INCLUDE) $(CFLAGS) ./../pm_debug.c    -o 		./../pm_debug.o 
+	$(CC) $(INCLUDE) $(CFLAGS) ./../mem_mmu_pc.c                   -o ./../mem_mmu_pc.o
+	$(CC) $(INCLUDE) $(CFLAGS) ./../mem_mmu_pc_asm.S               -o ./../mem_mmu_pc_asm.o
 	$(CC) $(INCLUDE) $(CFLAGS) ./../mem_serial.c    -o 		./../mem_serial.o 
 	$(CC) $(INCLUDE) $(CFLAGS) ./../mem_printk.c    -o 		./../mem_printk.o 
 	$(CC) $(INCLUDE) $(CFLAGS) ./../mem_divlib.S    -o 		./../mem_divlib.o 
@@ -99,7 +100,6 @@ standby:
 	
 resume1:
 	$(CC) $(INCLUDE) $(CFLAGS) ./super/common.c                    -o ./super/common.o
-	$(CC) $(INCLUDE) $(CFLAGS) ./super/stack.S                     -o ./super/stack.o
 	$(CC) $(INCLUDE) $(CFLAGS) ./super/super_twi.c               -o ./super/super_twi.o
 	$(CC) $(INCLUDE) $(CFLAGS) ./super/super_delay.S             -o ./super/super_delay.o
 	$(CC) $(INCLUDE) $(CFLAGS) ./super/super_clock.c             -o ./super/super_clock.o

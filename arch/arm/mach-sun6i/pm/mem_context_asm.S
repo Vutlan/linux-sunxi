@@ -306,18 +306,33 @@ ENTRY(mem_clear_runtime_context)
         mov     pc, lr  
 ENDPROC(mem_clear_runtime_context)                                                          
 	.align	4 
-	           
-	.text 
-	.globl jump_to_suspend  
-jump_to_suspend:
-	/*enable 0x0000 <-->  0x0000 mapping */
-	/*write ttbr0*/  
-	mcr p15, 0, r0, c2, c0, 0
-	dsb
-	isb
-	
-	mov pc, r1
 
+	.align	4  
+	.globl save_runtime_context
+save_runtime_context:
+	/*save r0-r13 register*/   
+	stmia   r0, {r0 - r13}
+	mov	pc, lr
+                                                
+
+	.align	4  
+	.globl clear_reg_context
+clear_reg_context:
+	/*clear r0-r11 register*/   
+	mov	r0, #0  
+	mov	r1, #0 
+	mov	r2, #0  
+	mov	r3, #0
+	mov	r4, #0  
+	mov	r5, #0
+	mov	r6, #0  
+	mov	r7, #0
+	mov	r8, #0  
+	mov	r9, #0
+	mov	r10,#0
+	mov	r11,#0
+	mov	r12,#0
+	mov	pc, lr
                                
 .Lsaved_context_r13_sys:	.long	saved_context_r13_sys                                  
 .Lsaved_cpsr_svc:		.long	saved_cpsr_svc                                            

@@ -17,18 +17,6 @@
 */
 #include "standby_i.h"
 
-extern unsigned int save_sp(void);
-extern unsigned int get_sp(void);
-
-extern void restore_sp(unsigned int sp);
-extern void flush_dcache(void);
-extern void invalidate_icache(void);
-extern void flush_icache(void);
-extern void disable_cache(void);
-extern void enable_cache(void);
-
-extern void standby_flush_tlb(void);
-extern void standby_preload_tlb(void);
 static void restore_ccu(void);
 static void backup_ccu(void);
 static void destory_mmu(void);
@@ -92,7 +80,7 @@ int main(struct aw_pm_info *arg)
 
 	/* flush data and instruction tlb, there is 32 items of data tlb and 32 items of instruction tlb,
 	The TLB is normally allocated on a rotating basis. The oldest entry is always the next allocated */
-	standby_flush_tlb();
+	mem_flush_tlb();
 	
 	/* clear bss segment */
 	do{*tmpPtr ++ = 0;}while(tmpPtr <= (char *)&__bss_end);
@@ -100,7 +88,7 @@ int main(struct aw_pm_info *arg)
 	/* save stack pointer registger, switch stack to sram */
 	sp_backup = save_sp();
 	
-	serial_init();
+	//serial_init();
 	if(!arg){
 		/* standby parameter is invalid */
 		return -1;
@@ -111,12 +99,12 @@ int main(struct aw_pm_info *arg)
 
 	/* flush data and instruction tlb, there is 32 items of data tlb and 32 items of instruction tlb,
 	The TLB is normally allocated on a rotating basis. The oldest entry is always the next allocated */
-	standby_flush_tlb();
+	mem_flush_tlb();
 	
 	/* copy standby code & data to load tlb */
 	//standby_memcpy((char *)&__standby_end, (char *)&__standby_start, (char *)&__bss_end - (char *)&__bss_start);
 	/* preload tlb for standby */
-	standby_preload_tlb();
+	mem_preload_tlb();
 	
 #if 1
 	//destory_mmu();
@@ -143,9 +131,11 @@ int main(struct aw_pm_info *arg)
 
 
 	/* process standby */
-#ifdef CHECK_CACHE_TLB_MISS
-	cache_count_init();
-#endif
+	if(unlikely(pm_info.standby_para.debug_mask&PM_STANDBY_PRINT_CACHE_TLB_MISS)){
+		cache_count_init();
+	}
+	
+
 	//busy_waiting();
 	standby();
 	/* check system wakeup event */
@@ -164,20 +154,17 @@ int main(struct aw_pm_info *arg)
 	/*check completion status: only after restore completion, access dram is allowed. */
 	while(standby_ar100_check_restore_status())
 		;
-#ifdef CHECK_CACHE_TLB_MISS
-	cache_count_get();
-#endif
-
-#ifdef CHECK_CACHE_TLB_MISS
-	if(d_cache_miss_end || d_tlb_miss_end || i_tlb_miss_end || i_cache_miss_end){
+	if(unlikely(pm_info.standby_para.debug_mask&PM_STANDBY_PRINT_CACHE_TLB_MISS)){
+		cache_count_get();
+		if(d_cache_miss_end || d_tlb_miss_end || i_tlb_miss_end || i_cache_miss_end){
 		printk("=============================NOTICE====================================. \n");
 		cache_count_output();
-	}else{
-		printk("no miss. \n");
-		//cache_count_output();
+		}else{
+			printk("no miss. \n");
+			//cache_count_output();
+		}
 	}
-	
-#endif
+
 
 #if 0
 	flush_dcache();

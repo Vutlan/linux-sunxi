@@ -93,6 +93,7 @@ struct aw_pmu_arg{
 struct aw_standby_para{
 	unsigned int event;     /**<event type for system wakeup    */
 	unsigned int axp_event;     /**<axp event type for system wakeup    */
+	unsigned int debug_mask;     /* debug mask */
 	signed int   timeout;  /**<time to power off from now, based on second */
 };
 

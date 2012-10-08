@@ -29,7 +29,7 @@
 #define STANDBY_DCDC2_VOL           (700)   //DCDC2 voltage value
 #define STANDBY_DCDC3_VOL           (1000)  //DCDC3 voltage value
 
-//#define CHECK_CACHE_TLB_MISS
+#define CHECK_CACHE_TLB_MISS
 //#undef CHECK_CACHE_TLB_MISS
 
 #endif  /* __STANDBY_CFG_H__ */

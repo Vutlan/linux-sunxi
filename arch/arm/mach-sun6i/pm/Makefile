@@ -15,7 +15,6 @@ pm_tmp-y += ./mem_sram.o
 pm_tmp-y += ./mem_ccu.o
 pm_tmp-y += ./pm_debug.o
 pm_tmp-y += ./pm.o
-pm_tmp-y += ./standby/super/stack.o
 pm_tmp-y += ./standby/super/super_power.o
 pm_tmp-y += ./standby/super/super_twi.o
 pm_tmp-y += ./standby/super/super_clock.o
