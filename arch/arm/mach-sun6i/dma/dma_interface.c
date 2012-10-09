@@ -753,7 +753,7 @@ u32 sw_dma_config(dm_hdl_t dma_hdl, struct dma_config_t *pcfg, enum dma_enque_ph
 		return dma_config_single(dma_hdl, pcfg, phase);
 	}
 
-	DMA_ERR_FUN_LINE;
+	DMA_DBG_FUN_LINE_TOCHECK;
 
 	/* get dma config val */
 	uConfig |= xfer_arr[pcfg->xfer_type]; /* src/dst burst length and data width */
@@ -840,7 +840,7 @@ u32 sw_dma_enqueue(dm_hdl_t dma_hdl, u32 src_addr, u32 dst_addr, u32 byte_cnt,
 	if(DMA_WORK_MODE_SINGLE == pchan->work_mode)
 		return dma_enqueue_single(dma_hdl, src_addr, dst_addr, byte_cnt, phase);
 
-	DMA_ERR_FUN_LINE;
+	DMA_DBG_FUN_LINE_TOCHECK;
 	memset(&des, 0, sizeof(des));
 	des.saddr 	= src_addr;
 	des.daddr 	= dst_addr;

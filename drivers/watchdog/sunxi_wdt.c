@@ -291,7 +291,7 @@ static int wdt_enable(bool ben)
 	else
 		temp |= (0 << 0);
 	writel(temp, &wdt_reg->mode);
-	WD_DBG("%s, write reg 0x%08x\n", __func__, (u32)&wdt_reg->mode);
+	WD_DBG("%s, write reg 0x%08x val 0x%08x\n", __func__, (u32)&wdt_reg->mode, temp);
 	return 0;
 }
 

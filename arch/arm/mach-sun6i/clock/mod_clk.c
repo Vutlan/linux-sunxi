@@ -151,7 +151,7 @@ static inline __s32 _set_module0_clk_rate(volatile __ccmu_module0_clk_t *reg, __
     }
     else
     {
-        CCU_ERR("clock(reg:%d) rate invlid!\n", (__u32)reg);
+        CCU_ERR("clock(reg:%d) rate %d invlid!\n", (__u32)reg, (__u32)rate);
         return -1;
     }
 
