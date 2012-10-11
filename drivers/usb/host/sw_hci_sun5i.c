@@ -1122,9 +1122,9 @@ static void sw_set_vbus(struct sw_hci_hcd *sw_hci, int is_on)
 int hci_get_vbus_status(int usbc_no)
 {
     if(usbc_no == 1)
-        return !!usb1_set_vbus_cnt;
+        return usb1_set_vbus_cnt > 0? 1:0;
     else if(usbc_no == 2)
-        return !!usb2_set_vbus_cnt;
+        return usb2_set_vbus_cnt > 0? 1:0;
     else
         printk("invalid usbc_no : %d\n", usbc_no);
 

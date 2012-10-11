@@ -508,14 +508,15 @@ static int hcd0_set_vbus_cnt = 1;
 static void sw_hcd_board_set_vbus(struct sw_hcd *sw_hcd, int is_on)
 {
     u32 on_off = 0;
+    if(!(sw_hcd && hcd0_enable)){        
+        return;
+    }
+    
     if(is_on)
         hcd0_set_vbus_cnt++;
     else
         hcd0_set_vbus_cnt--;  
     printk("is_on = %d, hcd0_set_vbus_cnt = %d\n", is_on, hcd0_set_vbus_cnt); 
-    if(!sw_hcd){        
-        return;
-    }
     
     if(sw_hcd->sw_hcd_io->Drv_vbus_Handle == 0){
         printk("wrn: sw_hcd_io->drv_vbus_Handle is null\n");
@@ -2444,13 +2445,13 @@ int hcd0_set_vbus(int is_on)
 {
     struct sw_hcd *sw_hcd = g_sw_hcd0;        
 
+    sw_hcd_board_set_vbus(sw_hcd, is_on);
+
     if(is_on)
         hcd0_enable = 1;
     else
         hcd0_enable = 0;
-    printk("%s:hcd0_enable = %d\n", __func__, hcd0_enable);    
-    
-	sw_hcd_board_set_vbus(sw_hcd, is_on);
+    printk("%s:hcd0_enable = %d\n", __func__, hcd0_enable);    	
 
 	return 0;
 }
@@ -2464,6 +2465,6 @@ int hcd0_get_vbus_status()
         return 0;
     }
 
-	return !!hcd0_set_vbus_cnt;//gpio_read_one_pin_value(sw_hcd->sw_hcd_io->Drv_vbus_Handle, NULL);
+	return hcd0_set_vbus_cnt > 0? 1:0;//gpio_read_one_pin_value(sw_hcd->sw_hcd_io->Drv_vbus_Handle, NULL);
 }
 EXPORT_SYMBOL(hcd0_get_vbus_status);

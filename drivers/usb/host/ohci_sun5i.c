@@ -785,22 +785,19 @@ int get_ohci_connect_status(int usbc_no)
 
     if(usbc_no < 0 || usbc_no > 2){
         printk("usbc_no : %d invalid\n", usbc_no);
-        return -1;
+        return 0;
     }
 	sw_ohci = g_sw_ohci[usbc_no];
-    if(!sw_ohci){
-        printk("ohci %d not exist\n", usbc_no);
-        return -1;
+    if(!sw_ohci){        
+        return 0;
     }
 	hcd = sw_ohci->hcd;
-    if(!hcd){
-        printk("hcd of ohci %d is NULL\n", usbc_no);
-        return -1;
+    if(!hcd){        
+        return 0;
     }
 	ohci = hcd_to_ohci(hcd);
-	if(!ohci){
-        printk("ohci of ohci %d is NULL\n", usbc_no);
-        return -1;
+	if(!ohci){        
+        return 0;
     }
     
     port = ohci_readl(ohci, &ohci->regs->roothub.a) & 0xff;
@@ -810,3 +807,21 @@ int get_ohci_connect_status(int usbc_no)
     return connect;
 }
 EXPORT_SYMBOL(get_ohci_connect_status);
+int ohci_set_vbus(int usbc_no, int is_on)
+{
+    struct sw_hci_hcd *sw_ohci = NULL;	
+
+    if(usbc_no < 0 || usbc_no > 2){
+        printk("invalid usbc_no : %d\n", usbc_no);
+        return -1;
+    }
+	sw_ohci = g_sw_ohci[usbc_no];
+	if(!sw_ohci){
+        printk("ohci %d not exist\n", usbc_no);
+        return -1;
+    }
+	sw_ohci->set_power(sw_ohci, is_on);
+
+	return 0;
+}
+EXPORT_SYMBOL(ohci_set_vbus);

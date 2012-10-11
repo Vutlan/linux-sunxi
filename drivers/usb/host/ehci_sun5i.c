@@ -898,22 +898,19 @@ int get_ehci_connect_status(int usbc_no)
 
     if(usbc_no < 0 || usbc_no > 2){
         printk("usbc_no : %d invalid\n", usbc_no);
-        return -1;
+        return 0;
     }
 	sw_ehci = g_sw_ehci[usbc_no];
-    if(!sw_ehci){
-        printk("ehci %d not exist\n", usbc_no);
-        return -1;
+    if(!sw_ehci){        
+        return 0;
     }
 	hcd = sw_ehci->hcd;
-    if(!hcd){
-        printk("hcd of ehci %d is NULL\n", usbc_no);
-        return -1;
+    if(!hcd){        
+        return 0;
     }
 	ehci = hcd_to_ehci(hcd);
-	if(!ehci){
-        printk("ehci of ehci %d is NULL\n", usbc_no);
-        return -1;
+	if(!ehci){        
+        return 0;
     }
     
     port = HCS_N_PORTS(ehci->hcs_params);
@@ -924,7 +921,7 @@ int get_ehci_connect_status(int usbc_no)
 }
 EXPORT_SYMBOL(get_ehci_connect_status);
 
-int hci_set_vbus(int usbc_no, int is_on)
+int ehci_set_vbus(int usbc_no, int is_on)
 {
     struct sw_hci_hcd *sw_ehci = NULL;	
 
@@ -941,4 +938,4 @@ int hci_set_vbus(int usbc_no, int is_on)
 
 	return 0;
 }
-EXPORT_SYMBOL(hci_set_vbus);
+EXPORT_SYMBOL(ehci_set_vbus);

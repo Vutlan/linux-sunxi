@@ -66,7 +66,8 @@ extern int get_ehci_connect_status(int usbc_no);
 extern int get_ohci_connect_status(int usbc_no);
 
 extern int hcd0_set_vbus(int is_on);
-extern int hci_set_vbus(int usbc_no, int is_on);
+extern int ehci_set_vbus(int usbc_no, int is_on);
+extern int ohci_set_vbus(int usbc_no, int is_on);
 extern int hci_get_vbus_status(int usbc_no);
 extern int hcd0_get_vbus_status(void);
 
@@ -206,7 +207,7 @@ static int set_ctrl_gpio(int is_on)
     if(pm_cfg.ctrl_gpio.hdle){
         int on_off;
     	printk("set ctrl gpio %s\n", is_on ? "on" : "off");        
-	    ret = gpio_write_one_pin_value(pm_cfg.ctrl_gpio.hdle, 1, NULL);		    
+	    ret = gpio_write_one_pin_value(pm_cfg.ctrl_gpio.hdle, is_on, NULL);		    
     }
 
     ctrlio_status = is_on;
@@ -260,19 +261,19 @@ static int set_vbus(int on_off)
     #endif
 
     #if defined(CONFIG_USB_SW_SUN5I_EHCI0)
-    hci_set_vbus(1, on_off);
+    ehci_set_vbus(1, on_off);
     #endif
 
     #if defined(CONFIG_USB_SW_SUN5I_OHCI0)
-    hci_set_vbus(1, on_off);
+    ohci_set_vbus(1, on_off);
     #endif
 
     #if defined(CONFIG_USB_SW_SUN5I_EHCI1)
-    hci_set_vbus(2, on_off);
+    ehci_set_vbus(2, on_off);
     #endif
 
     #if defined(CONFIG_USB_SW_SUN5I_OHCI1)
-    hci_set_vbus(2, on_off);
+    ohci_set_vbus(2, on_off);
     #endif
 
     vbus_status = on_off;
