@@ -7,6 +7,16 @@ config CSI0_SUN5I
 	depends on CSI_DEV_SEL_SUN5I&&I2C && VIDEO_DEV && VIDEO_V4L2
 	select VIDEOBUF_DMA_CONTIG
 
+config SUPPORT_CAMERA_DET
+    tristate "Support camera modules detection"
+    default y
+    
+config CSI_CAMERA_DETECTOR
+	tristate "camera detect driver"
+	default y
+	depends on I2C
+	---help---
+	  This is a camera detect driver.
 
 config CSI_OV7670
 	tristate "OmniVision OV7670 sensor support"

@@ -65,6 +65,10 @@
 #define MAX_HEIGHT (4096)
 #define CAPTURE_FRAME 1
 
+#ifdef CONFIG_SUPPORT_CAMERA_DET
+extern void camera_export_info(char *module_name, int *i2c_addr, int index);
+#endif
+
 static unsigned video_nr = 0;
 static unsigned first_flag = 0;
 
@@ -2160,7 +2164,9 @@ static int csi_probe(struct platform_device *pdev)
 			ret = -ENOMEM;
 			goto free_dev;//linux-3.0
 		}
-
+#if CONFIG_SUPPORT_CAMERA_DET
+        camera_export_info(dev->ccm_cfg[input_num]->ccm, &dev->ccm_cfg[input_num]->i2c_addr,input_num);
+#endif
 		dev_sensor[input_num].addr = (unsigned short)(dev->ccm_cfg[input_num]->i2c_addr>>1);
 		strcpy(dev_sensor[input_num].type,dev->ccm_cfg[input_num]->ccm);
 
