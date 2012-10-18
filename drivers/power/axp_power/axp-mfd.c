@@ -254,7 +254,8 @@ static void axp_power_off(void)
     printk("[axp] send power-off command!\n");
     mdelay(20);
     if(power_start != 1){
-		axp_read(&axp->dev, POWER20_STATUS, &val);
+	    axp_write(&axp->dev, POWER20_INTSTS3, 0x03);
+        axp_read(&axp->dev, POWER20_STATUS, &val);
 		if(val & 0xF0){
 	    	axp_read(&axp->dev, POWER20_MODE_CHGSTATUS, &val);
 	    	if(val & 0x20){
