@@ -34,7 +34,7 @@
 /* port number for each pio */
 #define PA_NR			28
 #define PB_NR			8
-#define PC_NR			27
+#define PC_NR			28
 #define PD_NR			28
 #define PE_NR			17
 #define PF_NR			6

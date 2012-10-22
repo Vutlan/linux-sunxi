@@ -74,3 +74,5 @@ js-rtc-y = rtc.o
 
 obj-$(CONFIG_TILE_SROM)		+= tile-srom.o
 obj-$(CONFIG_SUNXI_TIMER_TEST)	+= timer_test/
+obj-$(CONFIG_SUNXI_PHYS_MEM_ALLOCATOR)	+= sunxi_mem/
+obj-$(CONFIG_SUNXI_MEM_TEST)		+= sunxi_mem_test/

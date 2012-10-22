@@ -26,5 +26,7 @@
 #define SUPER_STANDBY_MEM_SIZE	(SZ_1K)
 #define FB_MEM_BASE             (PLAT_PHYS_OFFSET + SZ_1G - SZ_32M)
 #define FB_MEM_SIZE             (SZ_32M)
+#define VE_MEM_BASE             (FB_MEM_BASE - SZ_64M - SZ_16M)
+#define VE_MEM_SIZE             (SZ_64M + SZ_16M)
 
 #endif
