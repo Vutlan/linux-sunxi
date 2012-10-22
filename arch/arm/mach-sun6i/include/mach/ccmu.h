@@ -127,7 +127,7 @@ typedef struct __CCMU_MIPI_PLL_REG0040
     __u32   Ldo2En:1;           //bit22, LDO2 enable
     __u32   Ldo1En:1;           //bit23, LDO1 enable
     __u32   reserved3:1;        //bit24, reserved
-    __u32   Sel625Or750;        //bit25, select pll out is input*6.25 or 7.50
+    __u32   Sel625Or750:1;      //bit25, select pll out is input*6.25 or 7.50
     __u32   SDiv2:1;            //bit26, PLL output seclect, 0:pll output, 1:pll output x2
     __u32   FracMode:1;         //bit27, PLL output mode, 0:integer mode, 1:fraction mode
     __u32   Lock:1;             //bit28, lock flag
@@ -192,7 +192,7 @@ typedef struct __CCMU_AHB1_GATE0_REG0060
     __u32   reserved0:3;        //bit2,  reserved
     __u32   Ss:1;               //bit5,  gating AHB clock for SS, 0-mask, 1-pass
     __u32   Dma:1;              //bit6,  gating AHB clock for DMA, 0-mask, 1-pass
-    __u32   reserved1:3;        //bit7,  reserved
+    __u32   reserved1:1;        //bit7,  reserved
     __u32   Sd0:1;              //bit8,  gating AHB clock for SD/MMC0, 0-mask, 1-pass
     __u32   Sd1:1;              //bit9,  gating AHB clock for SD/MMC1, 0-mask, 1-pass
     __u32   Sd2:1;              //bit10, gating AHB clock for SD/MMC2, 0-mask, 1-pass
@@ -329,7 +329,7 @@ typedef struct __CCMU_USB_CLK_REG00CC
     __u32   Ohci0Gate:1;        //bit16, gating special clock for OHCI0, 0-CLOCK OFF, 1-CLOCK ON
     __u32   Ohci1Gate:1;        //bit17, gating special clock for OHCI1, 0-CLOCK OFF, 1-CLOCK ON
     __u32   Ohci2Gate:1;        //bit18, gating special clock for OHCI2, 0-CLOCK OFF, 1-CLOCK ON
-    __u32   reserved2:23;       //bit19,  reserved
+    __u32   reserved2:13;       //bit19,  reserved
 } __ccmu_usb_clk_reg00cc_t;
 
 
@@ -610,7 +610,7 @@ typedef struct __CCMU_REG_LIST
     volatile __ccmu_module1_clk_t               Spdif;      //0x00c0, SPDIF clock
     volatile __u32                              reserved11[2];  //0x00c4, reserved
     volatile __ccmu_usb_clk_reg00cc_t           Usb;        //0x00cc, usb clock
-    volatile __u32                              reserved12[4];  //0x00d0, reserved
+    volatile __u32                              reserved12[8];  //0x00d0, reserved
     volatile __ccmu_module0_clk_t               Mdfs;       //0x00f0, mdfs clock
     volatile __ccmu_dram_cfg_reg00f4_t          DramCfg;    //0x00f4, dram configuration clock
     volatile __u32                              reserved13[2];  //0x00f8, reserved
