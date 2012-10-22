@@ -590,7 +590,7 @@ static void sunximmc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 		|| smc_host->gpio_suspend_ok)
 	{
 		SMC_DBG("no medium present, ferr %d, pwd %d, suspend %d\n",
-				smc_host->ferror, smc_host->power_on, || smc_host->gpio_suspend_ok);
+				smc_host->ferror, smc_host->power_on, smc_host->gpio_suspend_ok);
 		smc_host->mrq->cmd->error = -ENOMEDIUM;
 		mmc_request_done(mmc, mrq);
 	}
