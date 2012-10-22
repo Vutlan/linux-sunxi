@@ -137,7 +137,8 @@ static __s32 camera_get_para(__camera_detector_t *camera_detector,
 {
     __u32 para_index;
     __u32 pin_struct_size;
-    char csi_drv_node[2][MAX_NODE_NAME_LEN] = {"/dev/video0", "/dev/video1"};   
+    //char csi_drv_node[2][MAX_NODE_NAME_LEN] = {"/dev/video0", "/dev/video1"};  
+    char csi_drv_node[2][MAX_NODE_NAME_LEN] = {"sun5i_csi0", "sun5i_csi1"};      
     
     pin_struct_size = sizeof(user_gpio_set_t)/sizeof(__s32);
     
