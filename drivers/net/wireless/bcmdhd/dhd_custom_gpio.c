@@ -130,65 +130,98 @@ int dhd_customer_oob_irq_map(unsigned long *irq_flags_ptr)
 void
 dhd_customer_gpio_wlan_ctrl(int onoff)
 {
+	int select_type = 0;
+
 	WL_ERROR(("[broadcom].....enter dhd_customer_gpio_wlan_ctrl ...\n"));
-	switch (onoff) {
-		case WLAN_RESET_OFF:
-		{
-			WL_TRACE(("%s: call customer specific GPIO to insert WLAN RESET\n", __FUNCTION__));
- 
-#if defined BCM40181 
-                       mmc_pm_gpio_ctrl("bcm40181_vcc_en", 0);
-                       printk("[bcm40181]: bcm40181_shdn=>0 !!\n");
-#endif /*BCM40181*/
 
-			WL_ERROR(("=========== WLAN placed in RESET ========\n"));
+	/*check which wifi had select, bcm40181 or bcm40183*/
+	select_type = mmc_pm_get_mod_type();
+
+	/*if select_type == 7, select bcm40181*/
+	if (select_type == 7) {
+		switch (onoff) {
+			case WLAN_RESET_OFF:
+			{
+				mmc_pm_gpio_ctrl("bcm40181_shdn", 0);
+				mmc_pm_gpio_ctrl("bcm40181_vdd_en", 0);
+				mmc_pm_gpio_ctrl("bcm40181_vcc_en", 0);
+				WL_ERROR(("=========== WLAN bcm40181 placed in RESET ========\n"));
+			}
+			break;
+		
+			case WLAN_RESET_ON:
+			{
+				mmc_pm_gpio_ctrl("bcm40181_vcc_en", 1);
+				mmc_pm_gpio_ctrl("bcm40181_vdd_en", 1);
+				mdelay(10);
+				mmc_pm_gpio_ctrl("bcm40181_shdn", 1);
+				mdelay(10);
+				WL_ERROR(("=========== WLAN bcm40181 going back to live	========\n"));
+			}
+			break;
+		
+			case WLAN_POWER_OFF:
+			{
+				mmc_pm_gpio_ctrl("bcm40181_shdn", 0);
+				mmc_pm_gpio_ctrl("bcm40181_vdd_en", 0);
+				mmc_pm_gpio_ctrl("bcm40181_vcc_en", 0);
+				sunximmc_rescan_card(3, 0);
+			}
+			break;
+		
+			case WLAN_POWER_ON:
+			{		
+				mmc_pm_gpio_ctrl("bcm40181_vcc_en", 1);
+				mmc_pm_gpio_ctrl("bcm40181_vdd_en", 1);
+				udelay(1000);
+				mmc_pm_gpio_ctrl("bcm40181_shdn", 1);
+				udelay(100);
+
+				/* Lets customer power to get stable */
+				OSL_DELAY(200);
+				sunximmc_rescan_card(3, 1);
+			}
+			break;
 		}
-		break;
+	}
 
-		case WLAN_RESET_ON:
-		{
-			WL_TRACE(("%s: callc customer specific GPIO to remove WLAN RESET\n", __FUNCTION__));
-			mdelay(300);
-#if defined BCM40181 			
-			mmc_pm_gpio_ctrl("bcm40181_vcc_en", 1);
-			printk("[bcm40181]: bcm40181_shdn=>1 !!\n");
-#endif /*BCM40181*/			
-			mdelay(300);
+	/*if select_type == 8, select bcm40183*/
+	if (select_type == 8) {
+		switch (onoff) {
+			case WLAN_RESET_OFF:
+			{
+				mmc_pm_gpio_ctrl("bcm40183_wl_regon", 0);
+				WL_ERROR(("=========== WLAN bcm40183 placed in RESET ========\n"));
+			}
+			break;
+			
+			case WLAN_RESET_ON:
+			{
+				mdelay(100);
+				mmc_pm_gpio_ctrl("bcm40183_wl_regon", 1);
+				mdelay(100);
+				WL_ERROR(("=========== WLAN bcm40183 going back to live	========\n"));
+			}
+			break;
+			
+			case WLAN_POWER_OFF:
+			{
+				mmc_pm_gpio_ctrl("bcm40183_wl_regon", 0);
+				sunximmc_rescan_card(3, 0);
+			}
+			break;
+			
+			case WLAN_POWER_ON:
+			{	
+				mmc_pm_gpio_ctrl("bcm40183_wl_regon", 1);
+				udelay(100);
 
-			WL_ERROR(("=========== WLAN going back to live  ========\n"));
+				/* Lets customer power to get stable */
+				OSL_DELAY(200);
+				sunximmc_rescan_card(3, 1);
+			}
+			break;
 		}
-		break;
-
-		case WLAN_POWER_OFF:
-		{
-			WL_TRACE(("%s: call customer specific GPIO to turn off WL_REG_ON\n", __FUNCTION__));
-#if defined BCM40181 			
-			mmc_pm_gpio_ctrl("bcm40181_vcc_en", 0);
-#endif /*BCM40181*/			
-			sunximmc_rescan_card(3, 0);
-
-#ifdef CUSTOMER_HW
-			bcm_wlan_power_off(1);
-#endif /* CUSTOMER_HW */
-		}
-		break;
-
-		case WLAN_POWER_ON:
-		{
-			WL_TRACE(("%s: call customer specific GPIO to turn on WL_REG_ON\n", __FUNCTION__));
-#if defined BCM40181			
-			mmc_pm_gpio_ctrl("bcm40181_vcc_en", 1);
-			udelay(100);
-#endif /*BCM40181*/
-
-#ifdef CUSTOMER_HW
-			bcm_wlan_power_on(1);
-#endif /* CUSTOMER_HW */
-			/* Lets customer power to get stable */
-			OSL_DELAY(200);
-            sunximmc_rescan_card(3, 1);
-		}
-		break;
 	}
 }
 

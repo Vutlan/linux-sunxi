@@ -125,7 +125,8 @@ gpio_state_change:
     
 power_change:
     #if CONFIG_CHIP_ID==1123
-    ret = gpio_write_one_pin_value(ops->pio_hdle, level, "bcm40183_pwr");
+    ret = gpio_write_one_pin_value(ops->pio_hdle, level, "bcm40183_vcc_en");
+    ret = gpio_write_one_pin_value(ops->pio_hdle, level, "bcm40183_vdd_en");
     #elif CONFIG_CHIP_ID==1125
     ret = bcm40183_power_onoff(level);
     #else

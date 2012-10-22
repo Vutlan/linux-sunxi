@@ -14,16 +14,20 @@ config BCMDHD
 config BCMDHD_FW_PATH
 	depends on BCMDHD
 	string "Firmware path"
-	default "/system/vendor/modules/fw_bcm40181a2.bin"
+	default "/system/vendor/modules/fw_bcm.bin"
 	---help---
-	  bcm40181 Path to the firmware file.
+	  bcm40181 bcm40183 Path to the firmware file.
+	  /system/vendor/modules/fw_bcm40181a2.bin
+	  /system/vendor/modules/fw_bcm40183b2.bin
 
 config BCMDHD_NVRAM_PATH
 	depends on BCMDHD
-	string "NVRAM path"
-	default "/system/vendor/modules/bcm40181_nvram.txt"
+	string "NVRAM path"	
+	default "/system/vendor/modules/bcm_nvram.txt"
 	---help---
-	   bcm40181 Path to the calibration file.
+	   bcm40181 bcm40183 Path to the calibration file.
+	   /system/vendor/modules/bcm40181_nvram.txt
+	   /system/vendor/modules/bcm40183_nvram.txt
 
 config BCMDHD_WEXT
 	bool "Enable WEXT support"
