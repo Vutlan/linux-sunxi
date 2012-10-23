@@ -28,6 +28,7 @@ CONFIG_RTL8188E = y
 CONFIG_USB_HCI = y
 CONFIG_PCI_HCI = n
 CONFIG_SDIO_HCI = n
+CONFIG_GSPI_HCI = n
 
 CONFIG_MP_INCLUDED = n
 CONFIG_POWER_SAVING = y
@@ -37,6 +38,11 @@ CONFIG_WIFI_TEST = n
 CONFIG_BT_COEXIST = n
 CONFIG_RTL8192CU_REDEFINE_1X1 = n
 CONFIG_INTEL_WIDI = n
+CONFIG_WAPI_SUPPORT = n
+CONFIG_EFUSE_CONFIG_FILE = n
+CONFIG_EXT_CLK = n
+CONFIG_FTP_PROTECT = n
+CONFIG_WOWLAN = n
 
 CONFIG_PLATFORM_I386_PC = n
 CONFIG_PLATFORM_ANDROID_X86 = n
@@ -130,6 +136,11 @@ RTL871X = rtl8723a
 
 HAL_COMM_FILES := hal/$(RTL871X)/$(RTL871X)_sreset.o
 
+ifeq ($(CONFIG_GSPI_HCI), y)
+MODULE_NAME = 8723as
+OUTSRC_FILES += hal/OUTSRC/$(RTL871X)/Hal8723SHWImg_CE.o
+endif
+
 ifeq ($(CONFIG_SDIO_HCI), y)
 MODULE_NAME = 8723as
 OUTSRC_FILES += hal/OUTSRC/$(RTL871X)/Hal8723SHWImg_CE.o
@@ -194,6 +205,10 @@ OUTSRC_FILES += hal/OUTSRC/$(RTL871X)/HalHWImg8188E_MAC.o\
 		hal/OUTSRC/$(RTL871X)/Hal8188ERateAdaptive.o\
 		hal/OUTSRC/$(RTL871X)/odm_RTL8188E.o
 
+ifeq ($(CONFIG_WOWLAN), y)
+OUTSRC_FILES += hal/OUTSRC/$(RTL871X)/HalHWImg8188E_FW.o
+endif
+
 PWRSEQ_FILES := hal/HalPwrSeqCmd.o \
 				hal/$(RTL871X)/Hal8188EPwrSeq.o
 
@@ -201,6 +216,10 @@ CHIP_FILES += $(HAL_COMM_FILES) $(OUTSRC_FILES) $(PWRSEQ_FILES)
 
 endif
 
+
+ifeq ($(CONFIG_GSPI_HCI), y)
+HCI_NAME = gspi
+endif
 
 ifeq ($(CONFIG_SDIO_HCI), y)
 HCI_NAME = sdio
@@ -218,6 +237,7 @@ endif
 _OS_INTFS_FILES :=	os_dep/osdep_service.o \
 			os_dep/linux/os_intfs.o \
 			os_dep/linux/$(HCI_NAME)_intf.o \
+			os_dep/linux/$(HCI_NAME)_ops_linux.o \
 			os_dep/linux/ioctl_linux.o \
 			os_dep/linux/xmit_linux.o \
 			os_dep/linux/mlme_linux.o \
@@ -226,10 +246,16 @@ _OS_INTFS_FILES :=	os_dep/osdep_service.o \
 			os_dep/linux/rtw_android.o
 
 ifeq ($(CONFIG_SDIO_HCI), y)
+_OS_INTFS_FILES += os_dep/linux/custom_gpio_linux.o
 _OS_INTFS_FILES += os_dep/linux/$(HCI_NAME)_ops_linux.o
 endif
 
-_HAL_INTFS_FILES :=	hal/hal_init.o \
+ifeq ($(CONFIG_GSPI_HCI), y)
+_OS_INTFS_FILES += os_dep/linux/custom_gpio_linux.o
+_OS_INTFS_FILES += os_dep/linux/$(HCI_NAME)_ops_linux.o
+endif
+
+_HAL_INTFS_FILES :=	hal/hal_intf.o \
 			hal/hal_com.o \
 			hal/$(RTL871X)/$(RTL871X)_hal_init.o \
 			hal/$(RTL871X)/$(RTL871X)_phycfg.o \
@@ -245,7 +271,11 @@ _HAL_INTFS_FILES :=	hal/hal_init.o \
 ifeq ($(CONFIG_SDIO_HCI), y)
 _HAL_INTFS_FILES += hal/$(RTL871X)/$(HCI_NAME)/$(HCI_NAME)_ops.o
 else
+ifeq ($(CONFIG_GSPI_HCI), y)
+_HAL_INTFS_FILES += hal/$(RTL871X)/$(HCI_NAME)/$(HCI_NAME)_ops.o
+else
 _HAL_INTFS_FILES += hal/$(RTL871X)/$(HCI_NAME)/$(HCI_NAME)_ops_linux.o
+endif
 endif
 
 ifeq ($(CONFIG_MP_INCLUDED), y)
@@ -272,9 +302,8 @@ endif
 endif
 
 ifeq ($(CONFIG_MP_INCLUDED), y)
-MODULE_NAME := $(MODULE_NAME)_mp
+#MODULE_NAME := $(MODULE_NAME)_mp
 EXTRA_CFLAGS += -DCONFIG_MP_INCLUDED
-CONFIG_POWER_SAVING = y
 endif
 
 ifeq ($(CONFIG_POWER_SAVING), y)
@@ -301,6 +330,25 @@ ifeq ($(CONFIG_INTEL_WIDI), y)
 EXTRA_CFLAGS += -DCONFIG_INTEL_WIDI
 endif
 
+ifeq ($(CONFIG_WAPI_SUPPORT), y)
+EXTRA_CFLAGS += -DCONFIG_WAPI_SUPPORT
+endif
+
+ifeq ($(CONFIG_EFUSE_CONFIG_FILE), y)
+EXTRA_CFLAGS += -DCONFIG_EFUSE_CONFIG_FILE
+endif
+
+ifeq ($(CONFIG_EXT_CLK), y)
+EXTRA_CFLAGS += -DCONFIG_EXT_CLK
+endif
+
+ifeq ($(CONFIG_FTP_PROTECT), y)
+EXTRA_CFLAGS += -DCONFIG_FTP_PROTECT
+endif
+
+ifeq ($(CONFIG_WOWLAN), y)
+EXTRA_CFLAGS += -DCONFIG_WOWLAN
+endif
 
 ifeq ($(CONFIG_PLATFORM_I386_PC), y)
 EXTRA_CFLAGS += -DCONFIG_LITTLE_ENDIAN
@@ -525,12 +573,13 @@ endif
 
 
 ifeq ($(CONFIG_PLATFORM_ARM_SUN4I), y)
-EXTRA_CFLAGS += -DCONFIG_LITTLE_ENDIAN
+EXTRA_CFLAGS += -DCONFIG_LITTLE_ENDIAN -DCONFIG_PLATFORM_ARM_SUN4I
 ARCH := arm
 CROSS_COMPILE := arm-none-linux-gnueabi-
 KVER  := 3.0.8
-KSRC ?= $(src) 
+#KSRC:= ../lichee/linux-3.0/
 endif
+
 
 ifneq ($(KERNELRELEASE),)
 
@@ -548,14 +597,21 @@ rtk_core :=	core/rtw_cmd.o \
 		core/rtw_rf.o \
 		core/rtw_recv.o \
 		core/rtw_sta_mgt.o \
+		core/rtw_ap.o \
 		core/rtw_xmit.o	\
 		core/rtw_p2p.o \
+		core/rtw_tdls.o \
 		core/rtw_br_ext.o \
-		core/rtw_iol.o
+		core/rtw_iol.o \
+		core/rtw_led.o \
+		core/rtw_sreset.o
 
 $(MODULE_NAME)-y += $(rtk_core)
 
 $(MODULE_NAME)-$(CONFIG_INTEL_WIDI) += core/rtw_intel_widi.o
+
+$(MODULE_NAME)-$(CONFIG_WAPI_SUPPORT) += core/rtw_wapi.o	\
+					core/rtw_wapi_sms4.o
 
 $(MODULE_NAME)-y += core/efuse/rtw_efuse.o
 
@@ -565,6 +621,10 @@ $(MODULE_NAME)-y += $(_OS_INTFS_FILES)
 
 $(MODULE_NAME)-$(CONFIG_MP_INCLUDED) += core/rtw_mp.o \
 					core/rtw_mp_ioctl.o
+ifeq ($(CONFIG_RTL8723A), y)
+
+$(MODULE_NAME)-$(CONFIG_MP_INCLUDED)+= core/rtw_bt_mp.o
+endif
 
 obj-$(CONFIG_RTL8188EU) := $(MODULE_NAME).o
 

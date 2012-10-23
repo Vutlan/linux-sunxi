@@ -23,7 +23,7 @@
 #include <rtl8192c_recv.h>
 
 
-#ifdef CONFIG_SDIO_HCI
+#if defined(CONFIG_SDIO_HCI) || defined(CONFIG_GSPI_HCI)
 s32 rtl8723as_init_recv_priv(PADAPTER padapter);
 void rtl8723as_free_recv_priv(PADAPTER padapter);
 #endif
