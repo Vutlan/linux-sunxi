@@ -6,14 +6,14 @@ config CSI0_SUN5I
 	default m
 	depends on CSI_DEV_SEL_SUN5I&&I2C && VIDEO_DEV && VIDEO_V4L2
 	select VIDEOBUF_DMA_CONTIG
-
+    
 config SUPPORT_CAMERA_DET
     tristate "Support camera modules detection"
-    default y
+    default n
     
 config CSI_CAMERA_DETECTOR
 	tristate "camera detect driver"
-	default y
+	default m
 	depends on I2C
 	---help---
 	  This is a camera detect driver.
