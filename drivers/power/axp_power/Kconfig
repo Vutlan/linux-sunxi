@@ -1,0 +1,34 @@
+menuconfig AW_AXP
+	bool "AXP Power drivers"
+	depends on REGULATOR
+	default n
+	---help---
+	  This option allows you to select AXP power driver
+
+if AW_AXP
+
+choice
+	prompt "AXP PMU type"
+	default AW1636
+
+config AW1636
+	bool "AW1636 driver"
+	---help---
+	  AW1636 driver
+
+endchoice
+config AXP_CHARGEINIT
+	bool "AXP initial charging environment set"
+	default n
+
+config AXP_CHGCHANGE
+	bool "AXP charging current set when suspend\resume\shutdown"
+	default y
+	
+config AW1636_COU
+	bool "COULOMB"
+	default y
+	---help---
+			AXP driver for coulomb
+
+endif # !AW_AXP
