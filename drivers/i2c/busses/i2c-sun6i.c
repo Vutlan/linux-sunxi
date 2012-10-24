@@ -1376,6 +1376,7 @@ static int sun6i_i2c_suspend(struct device *dev)
 	struct sun6i_i2c *i2c = platform_get_drvdata(pdev);
 	int count = 10;
 
+#ifndef SUN6I_I2C_FPGA
 	i2c->suspended = 1;
 
 	/*
@@ -1400,6 +1401,7 @@ static int sun6i_i2c_suspend(struct device *dev)
 	}
 
 	I2C_DBG("[i2c%d] suspend okay.. \n", i2c->bus_num);
+#endif
 	return 0;
 }
 
@@ -1408,6 +1410,7 @@ static int sun6i_i2c_resume(struct device *dev)
 	struct platform_device *pdev = to_platform_device(dev);
 	struct sun6i_i2c *i2c = platform_get_drvdata(pdev);
 
+#ifndef SUN6I_I2C_FPGA
 	i2c->suspended = 0;
 
 	if(4 == i2c->bus_num) {
@@ -1422,6 +1425,7 @@ static int sun6i_i2c_resume(struct device *dev)
 	twi_soft_reset(i2c->base_addr);
 
 	I2C_DBG("[i2c%d] resume okay.. \n", i2c->bus_num);
+#endif
 	return 0;
 }
 
