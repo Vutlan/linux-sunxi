@@ -728,7 +728,7 @@ static int aw_pm_enter(suspend_state_t state)
         standby_output.event = standby_info.standby_para.event;
         standby_output.ir_data_cnt = standby_info.standby_para.ir_data_cnt;
 		memcpy(standby_output.ir_buffer, standby_info.standby_para.ir_buffer, STANDBY_IR_BUF_SIZE);
-
+        standby_info.standby_para.ir_data_cnt = 0;
 #ifdef CHECK_INT_SRC
 		check_int_src();
 #endif
