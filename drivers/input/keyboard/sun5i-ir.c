@@ -547,6 +547,8 @@ static irqreturn_t ir_irq_service(int irqno, void *dev_id)
             
             input_report_key(ir_dev, ir_keycodes[(ir_code>>16)&0xff], 0);
             input_sync(ir_dev); 
+            suspend_falg = 0;
+            standby_output.ir_data_cnt = 0;
         }
         
 		/*flush raw buffer*/

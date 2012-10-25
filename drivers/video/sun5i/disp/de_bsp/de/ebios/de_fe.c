@@ -476,7 +476,7 @@ __s32 DE_SCAL_Set_Scaling_Factor(__u8 sel, __scal_scan_mod_t *in_scan, __scal_sr
 	
     //step factor
     ch0_hstep = (in_w0<<16)/out_w0;
-    ch0_vstep = ((in_h0>>in_scan->field)<<16)/( out_h0 );
+    ch0_vstep = (out_scan->field)? ((in_h0<<16)/(out_h0)) : (((in_h0>>in_scan->field)<<16)/( out_h0 ));
     
 	scal_dev[sel]->ch0_horzfact.dwval = ch0_hstep;
     scal_dev[sel]->ch0_vertfact.dwval = ch0_vstep<<(out_scan->field);
