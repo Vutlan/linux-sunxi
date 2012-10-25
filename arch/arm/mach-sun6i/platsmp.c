@@ -55,7 +55,9 @@ void enable_aw_cpu(int cpu)
         writel(paddr, IO_ADDRESS(AW_R_CPUCFG_BASE) + AW_CPUCFG_P_REG0);
 	if(cpu)
 		writel(3, IO_ADDRESS(AW_R_CPUCFG_BASE) + (0x40 + cpu * 0x40));
-	/* let cpus go */
+	/*the code only to debugging with direct download bimage 
+	 * you can open it to debugging but please don`t open it to commit*/
+	/*
 	writel(1, IO_ADDRESS(AW_R_CPUCFG_BASE) + 0x80);
 
 	reg1 = readl(IO_ADDRESS(AW_R_CPUCFG_BASE) + AW_CPUCFG_P_REG1);
@@ -69,6 +71,7 @@ void enable_aw_cpu(int cpu)
 	}
 
 	writel(reg1, IO_ADDRESS(AW_R_CPUCFG_BASE) + AW_CPUCFG_P_REG1);
+	*/
 }
 
 void __init smp_init_cpus(void)
