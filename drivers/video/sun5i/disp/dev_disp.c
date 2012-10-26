@@ -24,6 +24,12 @@ static struct cdev *my_cdev;
 static dev_t devid ;
 static struct class *disp_class;
 
+struct my_kobj {
+    int val;
+    struct kobject kobj;
+};
+static struct my_kobj *vsync_obj;
+
 static struct resource disp_resource[DISP_IO_NUM] =
 {
 	[DISP_IO_SCALER0] = {
@@ -188,8 +194,6 @@ __s32 DRV_lcd_open(__u32 sel)
     return 0;
 }
 
-
-
 __s32 DRV_lcd_close(__u32 sel)
 {
     __u32 i = 0;
@@ -317,6 +321,13 @@ __s32 disp_set_hdmi_func(__disp_hdmi_func * func)
     return 0;
 }
 
+__s32 DRV_disp_vsync_event(__u32 sel)
+{    	
+    kobject_uevent(&(vsync_obj->kobj), KOBJ_CHANGE);
+
+    return 0;
+}
+
 __s32 DRV_DISP_Init(void)
 {
     __disp_bsp_init_para para;
@@ -341,6 +352,7 @@ __s32 DRV_DISP_Init(void)
     para.base_pioc      = (__u32)g_fbi.base_pioc;
     para.base_pwm       = (__u32)g_fbi.base_pwm;
 	para.disp_int_process       = DRV_disp_int_process;
+	para.vsync_event    = DRV_disp_vsync_event;
 
 	memset(&g_disp_drv, 0, sizeof(__disp_drv_t));
 //    init_timer(&g_disp_drv.disp_timer[0]);
@@ -786,7 +798,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     {
         if(ubuffer[0] != 0)
         {
-            __wrn("para err in disp_ioctl, screen id = %d\n", (int)ubuffer[0]);
+            __wrn("para err in disp_ioctl, cmd = 0x%x,screen id = %d\n", cmd, (int)ubuffer[0]);
             return -1;
         }
     }
@@ -814,6 +826,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
     		if(copy_from_user(&para, (void __user *)ubuffer[1],sizeof(__disp_color_t)))
     		{
+    		    __wrn("copy_from_user fail\n");
     			return  -EFAULT;
     		}
 		    ret = BSP_disp_set_bk_color(ubuffer[0], &para);
@@ -826,6 +839,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
     		if(copy_from_user(&para, (void __user *)ubuffer[1],sizeof(__disp_colorkey_t)))
     		{
+    		    __wrn("copy_from_user fail\n");
     			return  -EFAULT;
     		}
     		ret = BSP_disp_set_color_key(ubuffer[0], &para);
@@ -840,6 +854,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     	    }
     		if(copy_from_user(gbuffer, (void __user *)ubuffer[1],ubuffer[3]))
     		{
+    		    __wrn("copy_from_user fail\n");
     			return  -EFAULT;
     		}
     		ret = BSP_disp_set_palette_table(ubuffer[0], (__u32 *)gbuffer, ubuffer[2], ubuffer[3]);
@@ -854,6 +869,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     		ret = BSP_disp_get_palette_table(ubuffer[0], (__u32 *)gbuffer, ubuffer[2], ubuffer[3]);
     		if(copy_to_user((void __user *)ubuffer[1], gbuffer,ubuffer[3]))
     		{
+    		    __wrn("copy_to_user fail\n");
     			return  -EFAULT;
     		}
     		break;
@@ -992,6 +1008,11 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			ret = BSP_disp_iep_set_demo_win(ubuffer[0], 2, &para);
 			break;
 		}
+
+        case DISP_CMD_VSYNC_EVENT_EN:
+            ret = BSP_disp_vsync_event_enable(ubuffer[0], ubuffer[1]);
+            break;
+
     //----layer----
     	case DISP_CMD_LAYER_REQUEST:
     		ret = BSP_disp_layer_request(ubuffer[0], (__disp_layer_work_mode_t)ubuffer[1]);
@@ -1030,7 +1051,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     		ret = BSP_disp_layer_get_framebuffer(ubuffer[0], ubuffer[1], &para);
     		if(copy_to_user((void __user *)ubuffer[2], &para,sizeof(__disp_fb_t)))
     		{
-    		    __wrn("copy_from_user fail\n");
+    		    __wrn("copy_to_user fail\n");
     			return  -EFAULT;
     		}
     		break;
@@ -1057,7 +1078,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     		ret = BSP_disp_layer_get_src_window(ubuffer[0],ubuffer[1], &para);
     		if(copy_to_user((void __user *)ubuffer[2], &para, sizeof(__disp_rect_t)))
     		{
-    		    __wrn("copy_from_user fail\n");
+    		    __wrn("copy_to_user fail\n");
     			return  -EFAULT;
     		}
     		break;
@@ -1084,7 +1105,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     		ret = BSP_disp_layer_get_screen_window(ubuffer[0],ubuffer[1], &para);
     		if(copy_to_user((void __user *)ubuffer[2], &para, sizeof(__disp_rect_t)))
     		{
-    		    __wrn("copy_from_user fail\n");
+    		    __wrn("copy_to_user fail\n");
     			return  -EFAULT;
     		}
     		break;
@@ -1111,7 +1132,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     		ret = BSP_disp_layer_get_para(ubuffer[0], ubuffer[1], &para);
     		if(copy_to_user((void __user *)ubuffer[2],&para, sizeof(__disp_layer_info_t)))
     		{
-    		    __wrn("copy_from_user fail\n");
+    		    __wrn("copy_to_user fail\n");
     			return  -EFAULT;
     		}
     		break;
@@ -1317,7 +1338,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     		ret = BSP_disp_hwc_get_pos(ubuffer[0], &para);
     		if(copy_to_user((void __user *)ubuffer[1],&para, sizeof(__disp_pos_t)))
     		{
-    		    __wrn("copy_from_user fail\n");
+    		    __wrn("copy_to_user fail\n");
     			return  -EFAULT;
     		}
     		break;
@@ -1384,7 +1405,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
             ret = BSP_disp_video_get_dit_info(ubuffer[0], ubuffer[1],&para);
     		if(copy_to_user((void __user *)ubuffer[2],&para, sizeof(__disp_dit_info_t)))
     		{
-    		    __wrn("copy_from_user fail\n");
+    		    __wrn("copy_to_user fail\n");
     			return  -EFAULT;
     		}
     		break;
@@ -1677,7 +1698,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     		ret = BSP_disp_sprite_block_get_srceen_win(ubuffer[0], ubuffer[1],&para);
     		if(copy_to_user((void __user *)ubuffer[2],&para, sizeof(__disp_rect_t)))
     		{
-    		    __wrn("copy_from_user fail\n");
+    		    __wrn("copy_to_user fail\n");
     			return  -EFAULT;
     		}
     		break;
@@ -1703,7 +1724,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     		ret = BSP_disp_sprite_block_get_src_win(ubuffer[0], ubuffer[1],&para);
     		if(copy_to_user((void __user *)ubuffer[2],&para, sizeof(__disp_rect_t)))
     		{
-    		    __wrn("copy_from_user fail\n");
+    		    __wrn("copy_to_user fail\n");
     			return  -EFAULT;
     		}
     		break;
@@ -1729,7 +1750,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     		ret = BSP_disp_sprite_block_get_framebufer(ubuffer[0], ubuffer[1],&para);
     		if(copy_to_user((void __user *)ubuffer[2],&para, sizeof(__disp_fb_t)))
     		{
-    		    __wrn("copy_from_user fail\n");
+    		    __wrn("copy_to_user fail\n");
     			return  -EFAULT;
     		}
     		break;
@@ -1783,7 +1804,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     		ret = BSP_disp_sprite_block_get_para(ubuffer[0], ubuffer[1],&para);
     		if(copy_to_user((void __user *)ubuffer[2],&para, sizeof(__disp_sprite_block_para_t)))
     		{
-    		    __wrn("copy_from_user fail\n");
+    		    __wrn("copy_to_user fail\n");
     			return  -EFAULT;
     		}
     		break;
@@ -1814,7 +1835,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			ret = Display_Fb_get_para(ubuffer[0], &para);
     		if(copy_to_user((void __user *)ubuffer[1],&para, sizeof(__disp_fb_create_para_t)))
     		{
-    		    __wrn("copy_from_user fail\n");
+    		    __wrn("copy_to_user fail\n");
     			return  -EFAULT;
     		}
 			break;
@@ -1827,7 +1848,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			ret = Display_get_disp_init_para(&para);
     		if(copy_to_user((void __user *)ubuffer[0],&para, sizeof(__disp_init_t)))
     		{
-    		    __wrn("copy_from_user fail\n");
+    		    __wrn("copy_to_user fail\n");
     			return  -EFAULT;
     		}
 			break;
@@ -1908,6 +1929,43 @@ struct platform_device disp_device =
 	.dev            = {}
 };
 
+
+ssize_t vsync_show(struct kobject *kobj, struct attribute *attr, char *buffer)
+{
+    return 0;
+}
+ 
+ssize_t vsync_store(struct kobject *kobj, struct attribute *attr, const char *buffer, size_t size)
+{
+    return 0;
+}
+ 
+struct sysfs_ops vsync_sysfsops = {
+    .show = vsync_show,
+    .store = vsync_store,
+};
+
+static void vsync_release(struct kobject *kobj)
+{
+}
+
+struct attribute vsync_name_attr = {
+    .name = "name",
+    .mode = 0444,
+};
+ 
+static struct attribute *vsync_default_attrs[] = {
+	&vsync_name_attr,
+	NULL,	/* need to NULL terminate the list of attributes */
+};
+
+
+static struct kobj_type vsync_ktype = {
+	.sysfs_ops = &vsync_sysfsops,
+	.release = vsync_release,
+	.default_attrs = vsync_default_attrs,
+};
+
 int __init disp_module_init(void)
 {
     int ret, err;
@@ -1931,8 +1989,20 @@ int __init disp_module_init(void)
         __wrn("class_create fail\n");
         return -1;
     }
-
     device_create(disp_class, NULL, devid, NULL, "disp");
+
+    vsync_obj = kzalloc(sizeof(struct my_kobj), GFP_KERNEL);
+    if (!vsync_obj) {
+        return -ENOMEM;
+    }
+    vsync_obj->val = 1;
+    vsync_obj->kobj.kset = kset_create_and_add("disp", NULL, NULL);
+    ret = kobject_init_and_add(&vsync_obj->kobj, &vsync_ktype, NULL, "vsync");
+	if (ret) {
+		kobject_put(&vsync_obj->kobj);
+		__wrn("kobject_init_and_add fail\n");
+		return -1;
+	}
 
 	ret = platform_device_register(&disp_device);
 

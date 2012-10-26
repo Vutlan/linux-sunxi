@@ -32,6 +32,14 @@ __s32 BSP_disp_cfg_finish(__u32 sel)
 	return DIS_SUCCESS;
 }
 
+__s32 BSP_disp_vsync_event_enable(__u32 sel, __bool enable)
+{
+    gdisp.screen[sel].vsync_event_en = enable;
+    
+    return DIS_SUCCESS;
+}
+
+
 void LCD_vbi_event_proc(__u32 sel, __u32 tcon_index)
 {    
     __u32 cur_line = 0, start_delay = 0;
@@ -39,6 +47,10 @@ void LCD_vbi_event_proc(__u32 sel, __u32 tcon_index)
 
 //	if(BSP_disp_get_output_type(sel) == DISP_OUTPUT_TYPE_NONE)
 //		return;
+    if(gdisp.screen[sel].vsync_event_en && gdisp.init_para.vsync_event)
+    {
+        gdisp.init_para.vsync_event(sel);
+    }
 	
 	Video_Operation_In_Vblanking(sel, tcon_index);
 
