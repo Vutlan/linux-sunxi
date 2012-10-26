@@ -335,6 +335,7 @@ static void option_instat_callback(struct urb *urb);
 #define ZTE_PRODUCT_AC8710			0xfff1
 #define ZTE_PRODUCT_AC2726			0xfff5
 #define ZTE_PRODUCT_AC8710T			0xffff
+#define ZTE_PRODUCT_MF190B			0x1217
 
 /* ZTE PRODUCTS -- alternate vendor ID */
 #define ZTE_VENDOR_ID2				0x1d6b
@@ -428,6 +429,7 @@ static void option_instat_callback(struct urb *urb);
 /* Olivetti products */
 #define OLIVETTI_VENDOR_ID			0x0b3c
 #define OLIVETTI_PRODUCT_OLICARD100		0xc000
+#define OLIVETTI_PRODUCT_OLICARD160		0xc00a	
 
 /* Celot products */
 #define CELOT_VENDOR_ID				0x211f
@@ -591,8 +593,11 @@ static const struct option_blacklist_info zte_k3765_z_blacklist = {
 };
 
 static const struct usb_device_id option_ids[] = {
+    { USB_DEVICE(0x05c6, 0x0016) }, //by Cesc. iball 3.5G, India . 0x05c60016_0x05c60016, 
+    { USB_DEVICE(0x19d2, 0x0088) }, //by Cesc. iball 3.5G, India . 0x05c60018_0x19d20088, 
+	{ USB_DEVICE(0x12d1, 0x151d) }, //by Cesc. E3131, orange. 12d114fe_12d1151d
+	{ USB_DEVICE(0x0b3c, 0xc00a) }, //by Cesc. dongle for Brazil
     { USB_DEVICE(0x19f5, 0x9013) }, //by Cesc. Xinke
-    { USB_DEVICE(0x0b3c, 0xc00a) }, //by Cesc. dongle for Brazil
     { USB_DEVICE(0x19d2, 0x1177) }, //by Cesc. K3770-Z,ZTE. India
 	{ USB_DEVICE(OPTION_VENDOR_ID, OPTION_PRODUCT_COLT) },
 	{ USB_DEVICE(OPTION_VENDOR_ID, OPTION_PRODUCT_RICOLA) },
@@ -1099,7 +1104,7 @@ static const struct usb_device_id option_ids[] = {
 	{ USB_DEVICE_AND_INTERFACE_INFO(ZTE_VENDOR_ID, 0x0070, 0xff, 0xff, 0xff) },
 	{ USB_DEVICE_AND_INTERFACE_INFO(ZTE_VENDOR_ID, 0x0073, 0xff, 0xff, 0xff) },
 	{ USB_DEVICE_AND_INTERFACE_INFO(ZTE_VENDOR_ID, 0x0130, 0xff, 0xff, 0xff) },
-	{ USB_DEVICE_AND_INTERFACE_INFO(ZTE_VENDOR_ID, 0x0141, 0xff, 0xff, 0xff) },
+	{ USB_DEVICE_AND_INTERFACE_INFO(ZTE_VENDOR_ID, 0x0141, 0xff, 0xff, 0xff) },	
 	{ USB_DEVICE_AND_INTERFACE_INFO(ZTE_VENDOR_ID, 0x2002, 0xff,
 	  0xff, 0xff), .driver_info = (kernel_ulong_t)&zte_k3765_z_blacklist },
 	{ USB_DEVICE_AND_INTERFACE_INFO(ZTE_VENDOR_ID, 0x2003, 0xff, 0xff, 0xff) },
@@ -1130,6 +1135,7 @@ static const struct usb_device_id option_ids[] = {
 #endif
 
 	{ USB_DEVICE(ZTE_VENDOR_ID2, ZTE_PRODUCT_MF_330) },
+	{ USB_DEVICE(ZTE_VENDOR_ID, ZTE_PRODUCT_MF190B) },
 	{ USB_DEVICE(BENQ_VENDOR_ID, BENQ_PRODUCT_H10) },
 	{ USB_DEVICE(DLINK_VENDOR_ID, DLINK_PRODUCT_DWM_652) },
 	{ USB_DEVICE(ALINK_VENDOR_ID, DLINK_PRODUCT_DWM_652_U5) }, /* Yes, ALINK_VENDOR_ID */
@@ -1185,6 +1191,7 @@ static const struct usb_device_id option_ids[] = {
 	{ USB_DEVICE(SIEMENS_VENDOR_ID, CINTERION_PRODUCT_HC28_MDMNET) },
 
 	{ USB_DEVICE(OLIVETTI_VENDOR_ID, OLIVETTI_PRODUCT_OLICARD100) },
+	{ USB_DEVICE(OLIVETTI_VENDOR_ID, OLIVETTI_PRODUCT_OLICARD160) },
 	{ USB_DEVICE(CELOT_VENDOR_ID, CELOT_PRODUCT_CT680M) }, /* CT-650 CDMA 450 1xEVDO modem */
 	{ USB_DEVICE(ONDA_VENDOR_ID, ONDA_MT825UP) }, /* ONDA MT825UP modem */
 	{ USB_DEVICE_AND_INTERFACE_INFO(SAMSUNG_VENDOR_ID, SAMSUNG_PRODUCT_GT_B3730, USB_CLASS_CDC_DATA, 0x00, 0x00) }, /* Samsung GT-B3730 LTE USB modem.*/
