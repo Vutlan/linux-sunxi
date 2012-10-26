@@ -4,9 +4,10 @@
 
 # Each configuration option enables a list of files.
 
+obj-y  += virtualmouse.o
 obj-$(CONFIG_MOUSE_AMIGA)		+= amimouse.o
 obj-$(CONFIG_MOUSE_APPLETOUCH)		+= appletouch.o
-obj-$(CONFIG_MOUSE_ATARI)		+= atarimouse.o
+obj-$(CONFIG_MOUSE_ATARI)  += atarimouse.o
 obj-$(CONFIG_MOUSE_BCM5974)		+= bcm5974.o
 obj-$(CONFIG_MOUSE_GPIO)		+= gpio_mouse.o
 obj-$(CONFIG_MOUSE_INPORT)		+= inport.o
