@@ -24,7 +24,7 @@
 //
 //
 //============================================================
-#define _RTL8723A_DM_C_
+#define _RTL8188E_DM_C_
 
 //============================================================
 // include files
@@ -78,14 +78,14 @@ dm_CheckStatistics(
 		return;
 
 	//2008.12.10 tynli Add for getting Current_Tx_Rate_Reg flexibly.
-	Adapter->HalFunc.GetHwRegHandler( Adapter, HW_VAR_INIT_TX_RATE, (pu1Byte)(&Adapter->TxStats.CurrentInitTxRate) );
+	rtw_hal_get_hwreg( Adapter, HW_VAR_INIT_TX_RATE, (pu1Byte)(&Adapter->TxStats.CurrentInitTxRate) );
 
 	// Calculate current Tx Rate(Successful transmited!!)
 
 	// Calculate current Rx Rate(Successful received!!)
 
 	//for tx tx retry count
-	Adapter->HalFunc.GetHwRegHandler( Adapter, HW_VAR_RETRY_COUNT, (pu1Byte)(&Adapter->TxStats.NumTxRetryCount) );
+	rtw_hal_get_hwreg( Adapter, HW_VAR_RETRY_COUNT, (pu1Byte)(&Adapter->TxStats.NumTxRetryCount) );
 #endif
 }
 
@@ -285,8 +285,11 @@ static void Init_ODM_ComInfo_88E(PADAPTER	Adapter)
 	//
 	_rtw_memset(pDM_Odm,0,sizeof(pDM_Odm));
 	
-	pDM_Odm->Adapter = Adapter;
+	pDM_Odm->Adapter = Adapter;	
+	
 	ODM_CmnInfoInit(pDM_Odm,ODM_CMNINFO_PLATFORM,ODM_CE);
+
+	
 	ODM_CmnInfoInit(pDM_Odm,ODM_CMNINFO_INTERFACE,Adapter->interface_type);//RTL871X_HCI_TYPE
 	
 	ODM_CmnInfoInit(pDM_Odm,ODM_CMNINFO_IC_TYPE,ODM_RTL8188E);
@@ -322,6 +325,9 @@ static void Init_ODM_ComInfo_88E(PADAPTER	Adapter)
 	else if(pHalData->rf_type == RF_1T2R){		
 		ODM_CmnInfoUpdate(pDM_Odm,ODM_CMNINFO_RF_TYPE,ODM_1T2R);		
 	}	
+
+ 	ODM_CmnInfoInit(pDM_Odm, ODM_CMNINFO_RF_ANTENNA_TYPE, pHalData->TRxAntDivType);
+	
 	#ifdef CONFIG_DISABLE_ODM
 	pdmpriv->InitODMFlag = 0;
 	#else
@@ -346,9 +352,12 @@ static void Update_ODM_ComInfo_88E(PADAPTER	Adapter)
 	int i;	
 	#ifdef CONFIG_DISABLE_ODM
 	pdmpriv->InitODMFlag = 0;
-	#else
+	#else //CONFIG_DISABLE_ODM
+	
 	pdmpriv->InitODMFlag =	ODM_BB_DIG				|
-							ODM_BB_RA_MASK			|
+#ifdef	CONFIG_ODM_REFRESH_RAMASK
+							ODM_BB_RA_MASK		|
+#endif							
 							ODM_BB_DYNAMIC_TXPWR	|
 							ODM_BB_FA_CNT			|
 							ODM_BB_RSSI_MONITOR	|
@@ -356,11 +365,20 @@ static void Update_ODM_ComInfo_88E(PADAPTER	Adapter)
 							ODM_BB_PWR_SAVE		|							
 							ODM_MAC_EDCA_TURBO	|
 							ODM_RF_CALIBRATION		|
-							ODM_RF_TX_PWR_TRACK	//|
+							ODM_RF_TX_PWR_TRACK	
 							;	
-	//if(pHalData->AntDivCfg)
-	//	pdmpriv->InitODMFlag |= ODM_BB_ANT_DIV;
-	#endif	
+	if(pHalData->AntDivCfg)
+		pdmpriv->InitODMFlag |= ODM_BB_ANT_DIV;
+
+	#if (MP_DRIVER==1)
+		if (Adapter->registrypriv.mp_mode == 1)
+		{
+		pdmpriv->InitODMFlag = 	ODM_RF_CALIBRATION	|
+								ODM_RF_TX_PWR_TRACK;	
+		}
+	#endif//(MP_DRIVER==1)
+	
+	#endif//CONFIG_DISABLE_ODM	
 	ODM_CmnInfoUpdate(pDM_Odm,ODM_CMNINFO_ABILITY,pdmpriv->InitODMFlag);
 	
 	ODM_CmnInfoHook(pDM_Odm,ODM_CMNINFO_TX_UNI,&(Adapter->xmitpriv.tx_bytes));
@@ -371,7 +389,7 @@ static void Update_ODM_ComInfo_88E(PADAPTER	Adapter)
 	ODM_CmnInfoHook(pDM_Odm,ODM_CMNINFO_BW,&(pHalData->CurrentChannelBW ));
 	ODM_CmnInfoHook(pDM_Odm,ODM_CMNINFO_CHNL,&( pHalData->CurrentChannel));	
 	ODM_CmnInfoHook(pDM_Odm,ODM_CMNINFO_NET_CLOSED,&( Adapter->net_closed));
-
+	ODM_CmnInfoHook(pDM_Odm,ODM_CMNINFO_MP_MODE,&(Adapter->registrypriv.mp_mode));
 	//================= only for 8192D   =================
 	/*
 	//pHalData->CurrentBandType92D
@@ -412,7 +430,7 @@ rtl8188e_InitHalDm(
 
 	pdmpriv->DM_Type = DM_Type_ByDriver;
 	pdmpriv->DMFlag = DYNAMIC_FUNC_DISABLE;
-
+	
 	Update_ODM_ComInfo_88E(Adapter);
 	ODM_DMInit(pDM_Odm);
 
@@ -513,6 +531,7 @@ rtl8188e_HalDmWatchDog(
 {
 	BOOLEAN		bFwCurrentInPSMode = _FALSE;
 	BOOLEAN		bFwPSAwake = _TRUE;
+	u8 hw_init_completed = _FALSE;
 	PHAL_DATA_TYPE	pHalData = GET_HAL_DATA(Adapter);
 	struct dm_priv	*pdmpriv = &pHalData->dmpriv;
 	PDM_ODM_T		pDM_Odm = &(pHalData->odmpriv);
@@ -521,9 +540,30 @@ rtl8188e_HalDmWatchDog(
 #endif //CONFIG_CONCURRENT_MODE
 
 	_func_enter_;
+
+	#if defined(CONFIG_CONCURRENT_MODE) || defined(CONFIG_DUALMAC_CONCURRENT)
+	if (Adapter->isprimary == _FALSE && pbuddy_adapter) {
+		hw_init_completed = pbuddy_adapter->hw_init_completed;
+	} else
+	#endif
+	{
+		hw_init_completed = Adapter->hw_init_completed;
+	}
+
+	if (hw_init_completed == _FALSE)
+		goto skip_dm;
+
 #ifdef CONFIG_LPS
-	bFwCurrentInPSMode = Adapter->pwrctrlpriv.bFwCurrentInPSMode;
-	Adapter->HalFunc.GetHwRegHandler(Adapter, HW_VAR_FWLPS_RF_ON, (u8 *)(&bFwPSAwake));
+	#if defined(CONFIG_CONCURRENT_MODE) || defined(CONFIG_DUALMAC_CONCURRENT)
+	if (Adapter->iface_type != IFACE_PORT0 && pbuddy_adapter) {
+		bFwCurrentInPSMode = pbuddy_adapter->pwrctrlpriv.bFwCurrentInPSMode;
+		rtw_hal_get_hwreg(pbuddy_adapter, HW_VAR_FWLPS_RF_ON, (u8 *)(&bFwPSAwake));
+	} else
+	#endif
+	{
+		bFwCurrentInPSMode = Adapter->pwrctrlpriv.bFwCurrentInPSMode;
+		rtw_hal_get_hwreg(Adapter, HW_VAR_FWLPS_RF_ON, (u8 *)(&bFwPSAwake));
+	}
 #endif
 
 #ifdef CONFIG_P2P
@@ -533,22 +573,12 @@ rtl8188e_HalDmWatchDog(
 		bFwPSAwake = _FALSE;
 #endif //CONFIG_P2P
 
-	// Stop dynamic mechanism when:
-	// 1. RF is OFF. (No need to do DM.)
-	// 2. Fw is under power saving mode for FwLPS. (Prevent from SW/FW I/O racing.)
-	// 3. IPS workitem is scheduled. (Prevent from IPS sequence to be swapped with DM.
-	//     Sometimes DM execution time is longer than 100ms such that the assertion
-	//     in MgntActSet_RF_State() called by InactivePsWorkItem will be triggered by
-	//     wating to long for RFChangeInProgress.)
-	// 4. RFChangeInProgress is TRUE. (Prevent from broken by IPS/HW/SW Rf off.)
-	// Noted by tynli. 2010.06.01.
-	//if(rfState == eRfOn)
-	if( (Adapter->hw_init_completed == _TRUE)
+	if( (hw_init_completed == _TRUE)
 		&& ((!bFwCurrentInPSMode) && bFwPSAwake))
 	{
 #ifdef CONFIG_CONCURRENT_MODE
 		if(check_fwstate(&Adapter->mlmepriv, WIFI_AP_STATE) &&
-				check_fwstate(&pbuddy_adapter->mlmepriv, _FW_LINKED))
+				check_buddy_fwstate(Adapter, _FW_LINKED))
 		{
 			if(Adapter->iface_type == IFACE_PORT1)
 			{
@@ -592,39 +622,44 @@ rtl8188e_HalDmWatchDog(
 		//if(Adapter->HalFunc.TxCheckStuckHandler(Adapter))
 		//	PlatformScheduleWorkItem(&(GET_HAL_DATA(Adapter)->HalResetWorkItem));
 #endif
+		_record_initrate:
+	_func_exit_;	
+	}
 
-		{//ODM
-			struct mlme_priv	*pmlmepriv = &Adapter->mlmepriv;
-			u8	bLinked=_FALSE;
-			#ifdef CONFIG_DISABLE_ODM
-			pHalData->odmpriv.SupportAbility = 0;
-			#endif
-			
-			if(	(check_fwstate(pmlmepriv, WIFI_AP_STATE) == _TRUE) ||
-				(check_fwstate(pmlmepriv, WIFI_ADHOC_STATE|WIFI_ADHOC_MASTER_STATE) == _TRUE))
-			{				
-				if(Adapter->stapriv.asoc_sta_count > 2)
-					bLinked = _TRUE;
-			}
-			else{//Station mode
-				if(check_fwstate(pmlmepriv, _FW_LINKED)== _TRUE)
-					bLinked = _TRUE;
-			}
 
-			ODM_CmnInfoUpdate(&pHalData->odmpriv ,ODM_CMNINFO_LINK, bLinked);
-
-			FindMinimumRSSI_88e(Adapter);
-			ODM_CmnInfoUpdate(&pHalData->odmpriv ,ODM_CMNINFO_RSSI_MIN, pdmpriv->MinUndecoratedPWDBForDM);
-				
+	//ODM
+	if (hw_init_completed == _TRUE)
+	{
+		struct mlme_priv	*pmlmepriv = &Adapter->mlmepriv;
+		u8	bLinked=_FALSE;
+		#ifdef CONFIG_DISABLE_ODM
+		pHalData->odmpriv.SupportAbility = 0;
+		#endif
 			
-			ODM_DMWatchdog(&pHalData->odmpriv);
-			
+		if(	(check_fwstate(pmlmepriv, WIFI_AP_STATE) == _TRUE) ||
+			(check_fwstate(pmlmepriv, WIFI_ADHOC_STATE|WIFI_ADHOC_MASTER_STATE) == _TRUE))
+		{				
+			if(Adapter->stapriv.asoc_sta_count > 2)
+				bLinked = _TRUE;
+		}
+		else{//Station mode
+			if(check_fwstate(pmlmepriv, _FW_LINKED)== _TRUE)
+				bLinked = _TRUE;
 		}
 
-_record_initrate:
-	_func_exit_;		
+		ODM_CmnInfoUpdate(&pHalData->odmpriv ,ODM_CMNINFO_LINK, bLinked);
 
+#ifdef CONFIG_CONCURRENT_MODE		//Aries Add, Avoid to run FindMinimumRSSI_88e() at driver removing procedure.
+		if(rtw_buddy_adapter_up(Adapter))
+#endif
+			FindMinimumRSSI_88e(Adapter);
+
+		ODM_CmnInfoUpdate(&pHalData->odmpriv ,ODM_CMNINFO_RSSI_MIN, pdmpriv->MinUndecoratedPWDBForDM);
+		ODM_DMWatchdog(&pHalData->odmpriv);
+			
 	}
+
+skip_dm:
 
 	// Check GPIO to determine current RF on/off and Pbc status.
 	// Check Hardware Radio ON/OFF or not
@@ -633,7 +668,7 @@ _record_initrate:
 #endif
 	{
 		//temp removed
-		//dm_CheckPbcGPIO(Adapter);				// Add by hpfan 2008-03-11
+		//dm_CheckPbcGPIO(Adapter);				
 	}
 	return;
 }
@@ -670,7 +705,7 @@ void rtl8188e_deinit_dm_priv(IN PADAPTER Adapter)
 // Add new function to reset the state of antenna diversity before link.
 //
 // Compare RSSI for deciding antenna
-void	SwAntDivCompare8188E(PADAPTER Adapter, WLAN_BSSID_EX *dst, WLAN_BSSID_EX *src)
+void	AntDivCompare8188E(PADAPTER Adapter, WLAN_BSSID_EX *dst, WLAN_BSSID_EX *src)
 {
 	//PADAPTER Adapter = pDM_Odm->Adapter ;
 	
@@ -689,7 +724,7 @@ void	SwAntDivCompare8188E(PADAPTER Adapter, WLAN_BSSID_EX *dst, WLAN_BSSID_EX *s
 }
 
 // Add new function to reset the state of antenna diversity before link.
-u8 SwAntDivBeforeLink8188E(PADAPTER Adapter )
+u8 AntDivBeforeLink8188E(PADAPTER Adapter )
 {
 	
 	HAL_DATA_TYPE	*pHalData = GET_HAL_DATA(Adapter);	
@@ -700,7 +735,7 @@ u8 SwAntDivBeforeLink8188E(PADAPTER Adapter )
 	// Condition that does not need to use antenna diversity.
 	if(pHalData->AntDivCfg==0)
 	{
-		//DBG_8192C("odm_SwAntDivBeforeLink8192C(): No AntDiv Mechanism.\n");
+		//DBG_8192C("odm_AntDivBeforeLink8192C(): No AntDiv Mechanism.\n");
 		return _FALSE;
 	}
 

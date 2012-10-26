@@ -100,7 +100,7 @@
 		u8	*evt_buf;	//shall be non-paged, and 4 bytes aligned		
 		u8	*evt_allocated_buf;
 		u32	evt_done_cnt;
-#ifdef CONFIG_SDIO_HCI
+#if defined(CONFIG_SDIO_HCI) || defined(CONFIG_GSPI_HCI)
 		u8	*c2h_mem;
 		u8	*allocated_c2h_mem;
 #ifdef PLATFORM_OS_XP
@@ -172,6 +172,7 @@ enum LPS_CTRL_TYPE
 	LPS_CTRL_CONNECT=2,
 	LPS_CTRL_DISCONNECT=3,
 	LPS_CTRL_SPECIAL_PACKET=4,
+	LPS_CTRL_LEAVE=5,
 };
 
 enum RFINTFS {

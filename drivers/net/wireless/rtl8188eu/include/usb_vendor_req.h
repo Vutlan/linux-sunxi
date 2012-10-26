@@ -57,3 +57,4 @@ typedef enum _RT_USB_WVALUE {
 //BOOLEAN CEusbGetDescriptorRequest(PCE_USB_DEVICE CEdevice, IN short urbLength, IN UCHAR DescriptorType, IN UCHAR Index, IN USHORT LanguageId, IN PVOID  TransferBuffer, IN ULONG TransferBufferLength);
 
 #endif
+

@@ -154,3 +154,4 @@ __inline static__ void __swahb32s(__u32 *addr)
 #endif
 
 #endif /* _LINUX_BYTEORDER_SWABB_H */
+

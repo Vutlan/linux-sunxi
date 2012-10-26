@@ -110,3 +110,4 @@ struct _vlan {
 
 
 #endif	/* _LINUX_IF_ETHER_H */
+
