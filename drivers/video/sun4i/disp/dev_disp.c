@@ -25,6 +25,13 @@ static struct class *disp_class;
 static unsigned long jiffies_resume;
 static unsigned long jiffies_late_resume;
 
+
+struct my_kobj {
+    int val;
+    struct kobject kobj;
+};
+static struct my_kobj *vsync_obj;
+
 static struct resource disp_resource[DISP_IO_NUM] =
 {
 	[DISP_IO_SCALER0] = {
@@ -307,6 +314,13 @@ __s32 disp_set_hdmi_func(__disp_hdmi_func * func)
     return 0;
 }
 
+__s32 DRV_disp_vsync_event(__u32 sel)
+{    	
+    kobject_uevent(&(vsync_obj->kobj), KOBJ_CHANGE);
+
+    return 0;
+}
+
 __s32 DRV_DISP_Init(void)
 {
     __disp_bsp_init_para para;
@@ -330,6 +344,7 @@ __s32 DRV_DISP_Init(void)
     para.base_pioc      = (__u32)g_fbi.base_pioc;
     para.base_pwm       = (__u32)g_fbi.base_pwm;
 	para.disp_int_process       = DRV_disp_int_process;
+	para.vsync_event    = DRV_disp_vsync_event;
 
 	memset(&g_disp_drv, 0, sizeof(__disp_drv_t));
     init_timer(&g_disp_drv.disp_timer[0]);
@@ -909,6 +924,10 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
         case DISP_CMD_DE_FLICKER_OFF:
             ret = BSP_disp_de_flicker_enable(ubuffer[0], 0);
+            break;
+
+        case DISP_CMD_VSYNC_EVENT_EN:
+            ret = BSP_disp_vsync_event_enable(ubuffer[0], ubuffer[1]);
             break;
 
     //----layer----
@@ -1840,6 +1859,43 @@ struct platform_device disp_device =
 	.dev            = {}
 };
 
+
+ssize_t vsync_show(struct kobject *kobj, struct attribute *attr, char *buffer)
+{
+    return 0;
+}
+ 
+ssize_t vsync_store(struct kobject *kobj, struct attribute *attr, const char *buffer, size_t size)
+{
+    return 0;
+}
+ 
+struct sysfs_ops vsync_sysfsops = {
+    .show = vsync_show,
+    .store = vsync_store,
+};
+
+static void vsync_release(struct kobject *kobj)
+{
+}
+
+struct attribute vsync_name_attr = {
+    .name = "name",
+    .mode = 0444,
+};
+ 
+static struct attribute *vsync_default_attrs[] = {
+	&vsync_name_attr,
+	NULL,	/* need to NULL terminate the list of attributes */
+};
+
+
+static struct kobj_type vsync_ktype = {
+	.sysfs_ops = &vsync_sysfsops,
+	.release = vsync_release,
+	.default_attrs = vsync_default_attrs,
+};
+
 int __init disp_module_init(void)
 {
     int ret, err;
@@ -1863,8 +1919,20 @@ int __init disp_module_init(void)
         __wrn("class_create fail\n");
         return -1;
     }
-
     device_create(disp_class, NULL, devid, NULL, "disp");
+
+    vsync_obj = kzalloc(sizeof(struct my_kobj), GFP_KERNEL);
+    if (!vsync_obj) {
+        return -ENOMEM;
+    }
+    vsync_obj->val = 1;
+    vsync_obj->kobj.kset = kset_create_and_add("disp", NULL, NULL);
+    ret = kobject_init_and_add(&vsync_obj->kobj, &vsync_ktype, NULL, "vsync");
+	if (ret) {
+		kobject_put(&vsync_obj->kobj);
+		__wrn("kobject_init_and_add fail\n");
+		return -1;
+	}
 
 	ret = platform_device_register(&disp_device);
 
