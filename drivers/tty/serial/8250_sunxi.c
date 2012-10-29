@@ -236,8 +236,9 @@ static int sw_serial_suspend(struct platform_device *dev, pm_message_t state)
 		UART_MSG("port.dev is 0x%x  &dev->dev is 0x%x\n",port->dev,&dev->dev);
 		}
 
-		if ((port->type != PORT_UNKNOWN)&& (port->dev == &dev->dev))
-			serial8250_suspend_port(i);
+		if ((port->type != PORT_UNKNOWN)&& (port->dev == &dev->dev)){
+			//serial8250_suspend_port(i);
+		}
 	}
 
 	return 0;
@@ -256,8 +257,9 @@ static int sw_serial_resume(struct platform_device *dev)
 		UART_MSG("type is 0x%x  PORT_UNKNOWN is 0x%x\n",port->type,PORT_UNKNOWN);
 		UART_MSG("port.dev is 0x%x  &dev->dev is 0x%x\n",port->dev,&dev->dev);
 		}
-		if ((port->type != PORT_UNKNOWN) && (port->dev == &dev->dev))
-			serial8250_resume_port(i);
+		if ((port->type != PORT_UNKNOWN) && (port->dev == &dev->dev)){
+			//serial8250_resume_port(i);
+		}	
 
 	}
 
