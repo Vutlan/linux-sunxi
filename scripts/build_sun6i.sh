@@ -12,6 +12,7 @@ export NM=${CROSS_COMPILE}nm
 export STRIP=${CROSS_COMPILE}strip
 export OBJCOPY=${CROSS_COMPILE}objcopy
 export OBJDUMP=${CROSS_COMPILE}objdump
+export LOCALVERSION=""
 
 KERNEL_VERSION="3.3"
 LICHEE_KDIR=`pwd`
