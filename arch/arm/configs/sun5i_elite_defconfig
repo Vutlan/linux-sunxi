@@ -746,7 +746,7 @@ CONFIG_CFG80211_DEFAULT_PS=y
 CONFIG_CFG80211_WEXT=y
 CONFIG_WIRELESS_EXT_SYSFS=y
 # CONFIG_LIB80211 is not set
-# CONFIG_CFG80211_ALLOW_RECONNECT is not set
+CONFIG_CFG80211_ALLOW_RECONNECT=y
 # CONFIG_MAC80211 is not set
 # CONFIG_WIMAX is not set
 # CONFIG_RFKILL is not set
@@ -956,8 +956,8 @@ CONFIG_WLAN=y
 # CONFIG_BCM4329 is not set
 CONFIG_BCM4330=m
 CONFIG_BCMDHD=m
-CONFIG_BCMDHD_FW_PATH="/system/etc/firmware/fw_bcmdhd.bin"
-CONFIG_BCMDHD_NVRAM_PATH="/system/etc/wifi/bcmdhd.cal"
+CONFIG_BCMDHD_FW_PATH="/system/vendor/modules/fw_bcm40181a2.bin"
+CONFIG_BCMDHD_NVRAM_PATH="/system/vendor/modules/bcm40181_nvram.txt"
 # CONFIG_HOSTAP is not set
 # CONFIG_IWM is not set
 # CONFIG_LIBERTAS is not set
