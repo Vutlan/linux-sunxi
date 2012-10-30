@@ -265,94 +265,117 @@ static void standby(void)
 	standby_clk_set_pll_factor(&local_pll);
 	change_runtime_env(1);
 	delay_ms(10);
-    
+
+    //standby_ctrl_flag = (standby_ctrl_flag&~CPU_SRC_MASK)|CPU_SRC_PLL1;
+//    standby_ctrl_flag = (standby_ctrl_flag&~PLL1_ENABLE_MASK);
+
+
+    standby_put_hex(standby_ctrl_flag);
     if (((standby_ctrl_flag&CPU_SRC_MASK)==CPU_SRC_LOSC)
         || ((standby_ctrl_flag&CPU_SRC_MASK)==CPU_SRC_HOSC))
     {
+        __here__
         /* switch cpu clock to HOSC*/
         standby_clk_core2hosc();
         change_runtime_env(1);
         delay_us(1);
-        
-        /*disable pll. cpu src clock may be dll1, so pll disable should later than switch cpu to hosc*/
-        standby_clk_plldisable();
-        
-        /* backup voltages */
-        dcdc2 = standby_get_voltage(POWER_VOL_DCDC2);
-        dcdc3 = standby_get_voltage(POWER_VOL_DCDC3);
-        
-        /* adjust voltage */
-        standby_set_voltage(POWER_VOL_DCDC3, STANDBY_DCDC3_VOL);
-        standby_set_voltage(POWER_VOL_DCDC2, STANDBY_DCDC2_VOL);
-        
-        /* set clock division cpu:axi:ahb:apb = 2:2:2:1 */
-        standby_clk_getdiv(&clk_div);
-        tmp_clk_div.axi_div = 0;
-        tmp_clk_div.ahb_div = 0;
-        tmp_clk_div.apb_div = 0;
-        standby_clk_setdiv(&tmp_clk_div);
-        /* swtich apb1 to losc */
-        if ((standby_ctrl_flag&CPU_SRC_MASK)==CPU_SRC_LOSC)
-        {
-            standby_clk_apb2losc();
-            change_runtime_env(1);
-            //delay_ms(1);
-            
-            /* switch cpu to 32k */
-            standby_clk_core2losc();
-            if ((standby_ctrl_flag&HOSC_ENABLE_MASK) == 0)
-            {
-                // disable HOSC, and disable LDO
-                standby_clk_hoscdisable();
-                standby_clk_ldodisable();
-            }
-        }
     }
     else
     {
-        /*disable pll */
-        standby_clk_plldisable();
+        __here__
+        //lower freq from 384M to 204M
+        local_pll.FactorN = 17;
+        local_pll.FactorK = 0;
+        local_pll.FactorM = 0;
+        local_pll.FactorP = 1;
+        standby_clk_set_pll_factor(&local_pll);
+        change_runtime_env(1);
+        delay_ms(10);
+        
+        //lower freq from 204M to 36M
+        local_pll.FactorN = 12;
+        local_pll.FactorK = 0;
+        local_pll.FactorM = 0;
+        local_pll.FactorP = 3;
+        standby_clk_set_pll_factor(&local_pll);
+        change_runtime_env(1);
+        delay_ms(10);
+    }
+    /*disable pll. cpu src clock may be dll1, so pll disable should later than switch cpu to hosc*/
+    standby_clk_plldisable();
+    
+    /* backup voltages */
+    dcdc2 = standby_get_voltage(POWER_VOL_DCDC2);
+    dcdc3 = standby_get_voltage(POWER_VOL_DCDC3);
+    
+    /* adjust voltage */
+    standby_set_voltage(POWER_VOL_DCDC3, STANDBY_DCDC3_VOL);
+    standby_set_voltage(POWER_VOL_DCDC2, STANDBY_DCDC2_VOL);
+    
+    /* set clock division cpu:axi:ahb:apb = 2:2:2:1 */
+    standby_clk_getdiv(&clk_div);
+    tmp_clk_div.axi_div = 0;
+    tmp_clk_div.ahb_div = 0;
+    tmp_clk_div.apb_div = 0;
+    standby_clk_setdiv(&tmp_clk_div);
+
+    /* swtich apb1 to losc */
+    if ((standby_ctrl_flag&CPU_SRC_MASK)==CPU_SRC_LOSC)
+    {
+        standby_clk_apb2losc();
+        change_runtime_env(1);
+        //delay_ms(1);
+        
+        /* switch cpu to 32k */
+        standby_clk_core2losc();
+        if ((standby_ctrl_flag&HOSC_ENABLE_MASK) == 0)
+        {
+            // disable HOSC, and disable LDO
+            standby_clk_hoscdisable();
+            standby_clk_ldodisable();
+        }
     }
 
     /* cpu enter sleep, wait wakeup by interrupt */
     asm("WFI");
 
+    if ((standby_ctrl_flag&CPU_SRC_MASK)==CPU_SRC_LOSC)
+    {
+        if ((standby_ctrl_flag&HOSC_ENABLE_MASK) == 0)
+        {
+            /* enable LDO, enable HOSC */
+            standby_clk_ldoenable();
+            /* delay 1ms for power be stable */
+            //3ms
+            standby_delay_cycle(1);
+            standby_clk_hoscenable();
+            //3ms
+            standby_delay_cycle(1);
+        }
+        
+        /* switch clock to hosc */
+        standby_clk_core2hosc();
+        
+        /* swtich apb1 to hosc */
+        standby_clk_apb2hosc();
+    }
+    
+    /* restore clock division */
+    standby_clk_setdiv(&clk_div);
+    
+    /* restore voltage for exit standby */
+    standby_set_voltage(POWER_VOL_DCDC2, dcdc2);
+    standby_set_voltage(POWER_VOL_DCDC3, dcdc3);
+    
+    change_runtime_env(1);
+    delay_ms(10);
+    /* enable pll */
+    standby_clk_pllenable();
+
     if (((standby_ctrl_flag&CPU_SRC_MASK)==CPU_SRC_LOSC)
         || ((standby_ctrl_flag&CPU_SRC_MASK)==CPU_SRC_HOSC))
     {
-        if ((standby_ctrl_flag&CPU_SRC_MASK)==CPU_SRC_LOSC)
-        {
-            if ((standby_ctrl_flag&HOSC_ENABLE_MASK) == 0)
-            {
-                /* enable LDO, enable HOSC */
-                standby_clk_ldoenable();
-                /* delay 1ms for power be stable */
-                //3ms
-                standby_delay_cycle(1);
-                standby_clk_hoscenable();
-                //3ms
-                standby_delay_cycle(1);
-            }
-            
-            /* switch clock to hosc */
-            standby_clk_core2hosc();
-            
-            /* swtich apb1 to hosc */
-            standby_clk_apb2hosc();
-        }
-        
-        /* restore clock division */
-        standby_clk_setdiv(&clk_div);
-        
-        /* restore voltage for exit standby */
-        standby_set_voltage(POWER_VOL_DCDC2, dcdc2);
-        standby_set_voltage(POWER_VOL_DCDC3, dcdc3);
-        
-        change_runtime_env(1);
-        delay_ms(10);
-        /* enable pll */
-        standby_clk_pllenable();
-        
+        __here__
         /* switch cpu clock to core pll */
         standby_clk_core2pll();
         change_runtime_env(1);
@@ -360,11 +383,26 @@ static void standby(void)
     }
     else
     {
-        /* enable pll */
-        standby_clk_pllenable();
+        /*lower freq from 36M to 204M*/
+        local_pll.FactorN = 17;
+        local_pll.FactorK = 0;
+        local_pll.FactorM = 0;
+        local_pll.FactorP = 1;
+        standby_clk_set_pll_factor(&local_pll);
+        change_runtime_env(1);
+        delay_ms(10);
+
+    	/*lower freq from 204M to 384M*/
+    	local_pll.FactorN = 16;
+    	local_pll.FactorK = 0;
+    	local_pll.FactorM = 0;
+    	local_pll.FactorP = 0;
+    	standby_clk_set_pll_factor(&local_pll);
+    	change_runtime_env(1);
+    	delay_ms(10);
     }
 
-	/*restore freq from 384 to 1008M*/
+    /*restore freq from 384 to 1008M*/
 	standby_clk_set_pll_factor(&orig_pll);
 	change_runtime_env(1);
 	delay_ms(5);

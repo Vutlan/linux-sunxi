@@ -46,6 +46,8 @@ static const char ohci_name[]       = SW_OHCI_NAME;
 
 static struct sw_hci_hcd *g_sw_ohci[3];
 static u32 ohci_first_probe[3] = {1, 1, 1};
+int ohci_keep_alive[3] = {1, 1, 1};
+EXPORT_SYMBOL(ohci_keep_alive);
 
 /*.......................................................................................*/
 //                                      º¯ÊýÇø
@@ -278,11 +280,9 @@ static const struct hc_driver sw_ohci_hc_driver ={
 	.hub_status_data    = ohci_hub_status_data,
 	.hub_control        = ohci_hub_control,
 
-#ifndef  CONFIG_USB_SW_PERIPHERAL_REMOTE
 #ifdef	CONFIG_PM
 	.bus_suspend        = ohci_bus_suspend,
 	.bus_resume         = ohci_bus_resume,
-#endif
 #endif
 	.start_port_reset   = ohci_start_port_reset,
 };
@@ -566,6 +566,8 @@ static int sw_ohci_hcd_suspend(struct device *dev)
 		DMSG_PANIC("ERR: ohci is null\n");
 		return 0;
 	}
+	if(ohci_keep_alive[sw_ohci->usbc_no])
+			return 0;
 
  	DMSG_INFO("[%s]: sw_ohci_hcd_suspend\n", sw_ohci->hci_name);
 
@@ -636,6 +638,8 @@ static int sw_ohci_hcd_resume(struct device *dev)
 		DMSG_PANIC("ERR: sw_ohci is disable, can not resume\n");
 		return 0;
 	}
+	if(ohci_keep_alive[sw_ohci->usbc_no])
+				return 0;
 
  	DMSG_INFO("[%s]: sw_ohci_hcd_resume\n", sw_ohci->hci_name);
 
@@ -667,9 +671,7 @@ static struct platform_driver sw_ohci_hcd_driver = {
 	.driver		= {
 		.name	= ohci_name,
 		.owner	= THIS_MODULE,
-#ifndef  CONFIG_USB_SW_PERIPHERAL_REMOTE
 		.pm	    = SW_OHCI_PMOPS,
-#endif
 	},
 };
 
@@ -779,4 +781,14 @@ int sw_usb_enable_ohci(__u32 usbc_no)
 }
 EXPORT_SYMBOL(sw_usb_enable_ohci);
 
+int sw_usb_ohci_keep_alive(int usbc_no, int alive)
+{
+	if(usbc_no != 1 && usbc_no != 2){
+		printk("usbc_no %d invalid\n", usbc_no);
+		return -1;
+	}
+	ohci_keep_alive[usbc_no] = alive;
+	return 0;
+}
+EXPORT_SYMBOL(sw_usb_ohci_keep_alive);
 

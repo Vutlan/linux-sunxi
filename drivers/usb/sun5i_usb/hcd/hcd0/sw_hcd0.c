@@ -1228,10 +1228,8 @@ static const struct hc_driver sw_hcd_hc_driver = {
 
 	.hub_status_data	= sw_hcd_hub_status_data,
 	.hub_control		= sw_hcd_hub_control,
-#ifndef  CONFIG_USB_SW_PERIPHERAL_REMOTE
 	.bus_suspend		= sw_hcd_bus_suspend,
 	.bus_resume		    = sw_hcd_bus_resume,
-#endif
 };
 
 /*
@@ -2258,11 +2256,15 @@ EXPORT_SYMBOL(sw_usb_enable_hcd0);
 *
 *******************************************************************************
 */
+int hcd0_keep_alive = 1;
+EXPORT_SYMBOL(hcd0_keep_alive);
 static int sw_hcd_suspend(struct device *dev)
 {
 	struct platform_device *pdev = to_platform_device(dev);
 	unsigned long	flags = 0;
 	struct sw_hcd	*sw_hcd = dev_to_sw_hcd(&pdev->dev);
+	if(hcd0_keep_alive)
+				return 0;
 
 	DMSG_INFO_HCD0("sw_hcd_suspend start\n");
 
@@ -2313,6 +2315,8 @@ static int sw_hcd_resume(struct device *dev)
 {	struct platform_device *pdev = to_platform_device(dev);
 	unsigned long	flags = 0;
 	struct sw_hcd	*sw_hcd = dev_to_sw_hcd(&pdev->dev);
+	if(hcd0_keep_alive)
+				return 0;
 
 	DMSG_INFO_HCD0("sw_hcd_resume start\n");
 
@@ -2350,9 +2354,7 @@ static struct platform_driver sw_hcd_driver = {
 		.name		= (char *)sw_hcd_driver_name,
 		.bus		= &platform_bus_type,
 		.owner		= THIS_MODULE,
-#ifndef  CONFIG_USB_SW_PERIPHERAL_REMOTE
 		.pm			= &sw_hcd_dev_pm_ops,
-#endif
 	},
 
 	.remove		    = __devexit_p(sw_hcd_remove),
@@ -2422,4 +2424,10 @@ static void __exit sw_hcd_cleanup(void)
 
 module_exit(sw_hcd_cleanup);
 
+int sw_usb_hcd0_keep_alive(int alive)
+{	
+	hcd0_keep_alive = alive;
+	return 0;
+}
+EXPORT_SYMBOL(sw_usb_hcd0_keep_alive);
 

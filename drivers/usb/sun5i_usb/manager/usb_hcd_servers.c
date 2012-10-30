@@ -162,6 +162,37 @@ int sw_usb_enable_hcd(__u32 usbc_no)
 EXPORT_SYMBOL(sw_usb_enable_hcd);
 
 
+extern int sw_usb_ehci_keep_alive(int usbc_no, int alive);
+extern int sw_usb_ohci_keep_alive(int usbc_no, int alive);
+extern int sw_usb_hcd0_keep_alive(int alive);
 
 
+int sw_usb_keep_alive(int usbc_no, int alive)
+{
+	if(usbc_no == 0){
+#if defined(CONFIG_USB_SW_SUN5I_USB0_OTG) || defined(USB_SW_SUN5I_USB0_HOST_ONLY)
+		sw_usb_hcd0_keep_alive(alive);
+#endif
+	}else if(usbc_no == 1){
+#if defined(CONFIG_USB_SW_SUN5I_EHCI0)
+        sw_usb_ehci_keep_alive(1, alive);
+#endif
+#if defined(CONFIG_USB_SW_SUN5I_OHCI0)
+		sw_usb_ohci_keep_alive(1, alive);
+#endif
+	}else if(usbc_no == 2){
+#if defined(CONFIG_USB_SW_SUN5I_EHCI1)
+		sw_usb_ehci_keep_alive(2, alive);
+#endif
 
+#if defined(CONFIG_USB_SW_SUN5I_OHCI1)
+		sw_usb_ohci_keep_alive(2, alive);
+#endif
+	}else{
+		DMSG_PANIC("ERR: unkown usbc_no(%d)\n", usbc_no);
+		return -1;
+	}
+
+	return 0;
+}
+EXPORT_SYMBOL(sw_usb_keep_alive);

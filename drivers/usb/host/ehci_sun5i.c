@@ -44,6 +44,8 @@ static const char ehci_name[] 		= SW_EHCI_NAME;
 
 static struct sw_hci_hcd *g_sw_ehci[3];
 static u32 ehci_first_probe[3] = {1, 1, 1};
+int ehci_keep_alive[3] = {1, 1, 1};
+EXPORT_SYMBOL(ehci_keep_alive);
 
 /*.......................................................................................*/
 //                                      º¯ÊýÇø
@@ -343,10 +345,8 @@ static const struct hc_driver sw_ehci_hc_driver = {
 	 */
 	.hub_status_data		= ehci_hub_status_data,
 	.hub_control			= ehci_hub_control,
-#ifndef  CONFIG_USB_SW_PERIPHERAL_REMOTE
 	.bus_suspend			= ehci_bus_suspend,
 	.bus_resume				= ehci_bus_resume,
-#endif
 	.relinquish_port		= ehci_relinquish_port,
 	.port_handed_over		= ehci_port_handed_over,
 
@@ -640,6 +640,8 @@ static int sw_ehci_hcd_suspend(struct device *dev)
 		return 0;
 	}
 
+	if(ehci_keep_alive[sw_ehci->usbc_no])
+		return 0;
  	DMSG_INFO("[%s]: sw_ehci_hcd_suspend\n", sw_ehci->hci_name);
 
 	spin_lock_irqsave(&ehci->lock, flags);
@@ -707,6 +709,8 @@ static int sw_ehci_hcd_resume(struct device *dev)
 		DMSG_PANIC("ERR: ehci is null\n");
 		return 0;
 	}
+	if(ehci_keep_alive[sw_ehci->usbc_no])
+			return 0;
 
  	DMSG_INFO("[%s]: sw_ehci_hcd_resume\n", sw_ehci->hci_name);
 
@@ -780,9 +784,7 @@ static struct platform_driver sw_ehci_hcd_driver ={
   .driver = {
 		.name	= ehci_name,
 		.owner	= THIS_MODULE,
-#ifndef  CONFIG_USB_SW_PERIPHERAL_REMOTE
 		.pm		= SW_EHCI_PMOPS,
-#endif
   	}
 };
 
@@ -892,4 +894,14 @@ int sw_usb_enable_ehci(__u32 usbc_no)
 }
 EXPORT_SYMBOL(sw_usb_enable_ehci);
 
+int sw_usb_ehci_keep_alive(int usbc_no, int alive)
+{
+	if(usbc_no != 1 && usbc_no != 2){
+		printk("usbc_no %d invalid\n", usbc_no);
+		return -1;
+	}
+	ehci_keep_alive[usbc_no] = alive;
+	return 0;
+}
+EXPORT_SYMBOL(sw_usb_ehci_keep_alive);
 

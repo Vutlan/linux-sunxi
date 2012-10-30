@@ -1118,7 +1118,7 @@ static void __sw_set_vbus(struct sw_hci_hcd *sw_hci, int is_on)
 */
 static void sw_set_vbus(struct sw_hci_hcd *sw_hci, int is_on)
 {
-    DMSG_DEBUG("[%s]: sw_set_vbus cnt %d\n",
+    DMSG_INFO("[%s]: sw_set_vbus cnt %d\n",
               sw_hci->hci_name,
               (sw_hci->usbc_no == 1) ? usb1_set_vbus_cnt : usb2_set_vbus_cnt);
 
@@ -1370,8 +1370,12 @@ static int exit_sw_hci(struct sw_hci_hcd *sw_hci, u32 ohci)
 *
 *******************************************************************************
 */
+static int usb_wifi_usbc_num;
+extern int sw_usb_keep_alive(int usbc_no, int alive);
+
 static int __init sw_hci_sun5i_init(void)
 {
+		int ret;
     /* USB1 */
     init_sw_hci(&sw_ehci0, 1, 0, ehci_name);
     init_sw_hci(&sw_ohci0, 1, 1, ohci_name);
@@ -1443,7 +1447,16 @@ static int __init sw_hci_sun5i_init(void)
     }
 #endif
 
-    return 0;
+	/* ----------get usb_wifi_usbc_num------------- */
+	ret = script_parser_fetch("usb_wifi_para", "usb_wifi_usbc_num", (int *)&usb_wifi_usbc_num, 64);
+	if(ret != 0){
+		printk("ERR: script_parser_fetch usb_wifi_usbc_num failed\n");
+		ret = -ENOMEM;
+		return ret;
+	}
+	sw_usb_keep_alive(usb_wifi_usbc_num, 0);
+	
+  return 0;
 
 failed0:
     return -1;

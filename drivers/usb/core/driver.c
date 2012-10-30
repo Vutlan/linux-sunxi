@@ -1305,11 +1305,24 @@ static void choose_wakeup(struct usb_device *udev, pm_message_t msg)
 	udev->do_remote_wakeup = w;
 }
 
+extern int hcd0_keep_alive;
+extern int ehci_keep_alive[3];
+extern int ohci_keep_alive[3];
 /* The device lock is held by the PM core */
 int usb_suspend(struct device *dev, pm_message_t msg)
 {
 	struct usb_device	*udev = to_usb_device(dev);
 
+	if(udev->bus->busnum == 1 && hcd0_keep_alive)
+		return 0;
+	else if(udev->bus->busnum == 2 && ehci_keep_alive[1])
+		return 0;
+	else if(udev->bus->busnum == 3 && ohci_keep_alive[1])
+		return 0;
+	if(udev->bus->busnum == 4 && ehci_keep_alive[2])
+		return 0;
+	else if(udev->bus->busnum == 5 && ohci_keep_alive[2])
+		return 0;
 	do_unbind_rebind(udev, DO_UNBIND);
 	choose_wakeup(udev, msg);
 	return usb_suspend_both(udev, msg);
@@ -1320,6 +1333,16 @@ int usb_resume(struct device *dev, pm_message_t msg)
 {
 	struct usb_device	*udev = to_usb_device(dev);
 	int			status;
+	if(udev->bus->busnum == 1 && hcd0_keep_alive)
+		return 0;
+	else if(udev->bus->busnum == 2 && ehci_keep_alive[1])
+		return 0;
+	else if(udev->bus->busnum == 3 && ohci_keep_alive[1])
+		return 0;
+	if(udev->bus->busnum == 4 && ehci_keep_alive[2])
+		return 0;
+	else if(udev->bus->busnum == 5 && ohci_keep_alive[2])
+		return 0;
 
 	/* For PM complete calls, all we do is rebind interfaces */
 	if (msg.event == PM_EVENT_ON) {
