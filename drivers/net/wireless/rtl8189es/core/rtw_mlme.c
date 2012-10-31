@@ -25,7 +25,7 @@
 #include <drv_types.h>
 #include <recv_osdep.h>
 #include <xmit_osdep.h>
-#include <hal_init.h>
+#include <hal_intf.h>
 #include <mlme_osdep.h>
 #include <sta_info.h>
 #include <wifi.h>
@@ -34,6 +34,14 @@
 
 extern void indicate_wx_scan_complete_event(_adapter *padapter);
 extern u8 rtw_do_join(_adapter * padapter);
+
+#ifdef CONFIG_DISABLE_MCS13TO15
+extern unsigned char	MCS_rate_2R_MCS13TO15_OFF[16];
+extern unsigned char	MCS_rate_2R[16];
+#else //CONFIG_DISABLE_MCS13TO15
+extern unsigned char	MCS_rate_2R[16];
+#endif //CONFIG_DISABLE_MCS13TO15
+extern unsigned char	MCS_rate_1R[16];
 
 sint	_rtw_init_mlme_priv (_adapter* padapter)
 {
@@ -607,7 +615,7 @@ inline int is_same_ess(WLAN_BSSID_EX *a, WLAN_BSSID_EX *b)
 		&&  _rtw_memcmp(a->Ssid.Ssid, b->Ssid.Ssid, a->Ssid.SsidLength)==_TRUE;
 }
 
-static int is_same_network(WLAN_BSSID_EX *src, WLAN_BSSID_EX *dst)
+int is_same_network(WLAN_BSSID_EX *src, WLAN_BSSID_EX *dst)
 {
 	 u16 s_cap, d_cap;
 	 
@@ -681,9 +689,9 @@ _func_exit_;
 	
 }
 
-static void update_network(WLAN_BSSID_EX *dst, WLAN_BSSID_EX *src,_adapter * padapter)
+static void update_network(WLAN_BSSID_EX *dst, WLAN_BSSID_EX *src,
+	_adapter * padapter, bool update_ie)
 {
-	//u32 last_evm = 0, tmpVal;
 	u8 ss_ori = dst->PhyInfo.SignalStrength;
 	u8 sq_ori = dst->PhyInfo.SignalQuality;
 	long rssi_ori = dst->Rssi;
@@ -692,10 +700,14 @@ static void update_network(WLAN_BSSID_EX *dst, WLAN_BSSID_EX *src,_adapter * pad
 	u8 sq_smp = src->PhyInfo.SignalQuality;
 	long rssi_smp = src->Rssi;
 
+	u8 ss_final;
+	u8 sq_final;
+	long rssi_final;
+
 _func_enter_;		
 
 #ifdef CONFIG_ANTENNA_DIVERSITY
-	padapter->HalFunc.SwAntDivCompareHandler(padapter, dst, src);
+	rtw_hal_antdiv_rssi_compared(padapter, dst, src); //this will update src.Rssi, need consider again
 #endif
 
 	#if defined(DBG_RX_SIGNAL_DISPLAY_PROCESSING) && 1	
@@ -709,49 +721,45 @@ _func_enter_;
 	}
 	#endif
 
-	
-	//Update signal strength first. Alwlays using the newest value will cause large vibration of scan result's signal strength 
-	//The rule below is 1/5 for sample value, 4/5 for history value
+	/* The rule below is 1/5 for sample value, 4/5 for history value */
 	if (check_fwstate(&padapter->mlmepriv, _FW_LINKED) && is_same_network(&(padapter->mlmepriv.cur_network.network), src)) {
-		//Because we've process the rx phy info in rtl8192c_process_phy_info/rtl8192d_process_phy_info,
-		//we can just take the recvpriv's value
-		src->PhyInfo.SignalStrength = padapter->recvpriv.signal_strength;
-		src->PhyInfo.SignalQuality = padapter->recvpriv.signal_qual;
-		// the rssi value here is undecorated, and will be used for antenna diversity
-		if(src->PhyInfo.SignalQuality != 101)
-			src->Rssi = (src->Rssi+dst->Rssi*4)/5;
+		/* Take the recvpriv's value for the connected AP*/
+		ss_final = padapter->recvpriv.signal_strength;
+		sq_final = padapter->recvpriv.signal_qual;
+		/* the rssi value here is undecorated, and will be used for antenna diversity */
+		if(sq_smp != 101) /* from the right channel */
+			rssi_final = (src->Rssi+dst->Rssi*4)/5;
 		else
-			src->Rssi = dst->Rssi;
+			rssi_final = rssi_ori;
 	}
 	else {
-		if(src->PhyInfo.SignalQuality != 101) {
-			// handle bss info receving from the right channel
-			src->PhyInfo.SignalStrength = ((u32)(src->PhyInfo.SignalStrength)+(u32)(dst->PhyInfo.SignalStrength)*4)/5;
-			src->PhyInfo.SignalQuality = ((u32)(src->PhyInfo.SignalQuality)+(u32)(dst->PhyInfo.SignalQuality)*4)/5;
-			src->Rssi = (src->Rssi+dst->Rssi*4)/5; // the rssi value here is undecorated, and will be used for antenna diversity
+		if(sq_smp != 101) { /* from the right channel */
+			ss_final = ((u32)(src->PhyInfo.SignalStrength)+(u32)(dst->PhyInfo.SignalStrength)*4)/5;
+			sq_final = ((u32)(src->PhyInfo.SignalQuality)+(u32)(dst->PhyInfo.SignalQuality)*4)/5;
+			rssi_final = (src->Rssi+dst->Rssi*4)/5;
 		} else {
-			// bss info not receving from the right channel, use the original RX signal infos
-			src->PhyInfo.SignalStrength = dst->PhyInfo.SignalStrength;
-			src->PhyInfo.SignalQuality = dst->PhyInfo.SignalQuality;
-			src->Rssi = dst->Rssi;
+			/* bss info not receving from the right channel, use the original RX signal infos */
+			ss_final = dst->PhyInfo.SignalStrength;
+			sq_final = dst->PhyInfo.SignalQuality;
+			rssi_final = dst->Rssi;
 		}
 		
 	}
 
+	if (update_ie)
+		_rtw_memcpy((u8 *)dst, (u8 *)src, get_WLAN_BSSID_EX_sz(src));
 
-	_rtw_memcpy((u8 *)dst, (u8 *)src, get_WLAN_BSSID_EX_sz(src));
+	dst->PhyInfo.SignalStrength = ss_final;
+	dst->PhyInfo.SignalQuality = sq_final;
+	dst->Rssi = rssi_final;
 
-	src->PhyInfo.SignalStrength = ss_smp;
-	src->PhyInfo.SignalQuality = sq_smp;
-	src->Rssi = rssi_smp;
-
-	 #if defined(DBG_RX_SIGNAL_DISPLAY_PROCESSING) && 1
-	 if(strcmp(dst->Ssid.Ssid, DBG_RX_SIGNAL_DISPLAY_SSID_MONITORED) == 0) {
+	#if defined(DBG_RX_SIGNAL_DISPLAY_PROCESSING) && 1
+	if(strcmp(dst->Ssid.Ssid, DBG_RX_SIGNAL_DISPLAY_SSID_MONITORED) == 0) {
 		DBG_871X("%s %s("MAC_FMT"), SignalStrength:%u, SignalQuality:%u, RawRSSI:%ld\n"
 			, __FUNCTION__
 			, dst->Ssid.Ssid, MAC_ARG(dst->MacAddress), dst->PhyInfo.SignalStrength, dst->PhyInfo.SignalQuality, dst->Rssi);
-	 }
-	 #endif
+	}
+	#endif
 
 #if 0 // old codes, may be useful one day...
 //	DBG_871X("update_network: rssi=0x%lx dst->Rssi=%d ,dst->Rssi=0x%lx , src->Rssi=0x%lx",(dst->Rssi+src->Rssi)/2,dst->Rssi,dst->Rssi,src->Rssi);
@@ -810,7 +818,7 @@ _func_enter_;
 
 		//if(pmlmepriv->cur_network.network.IELength<= pnetwork->IELength)
 		{
-			update_network(&(pmlmepriv->cur_network.network), pnetwork,adapter);
+			update_network(&(pmlmepriv->cur_network.network), pnetwork,adapter, _TRUE);
 			rtw_update_protection(adapter, (pmlmepriv->cur_network.network.IEs) + sizeof (NDIS_802_11_FIXED_IEs), 
 									pmlmepriv->cur_network.network.IELength);
 		}
@@ -880,7 +888,7 @@ _func_enter_;
 
 #ifdef CONFIG_ANTENNA_DIVERSITY
 			//target->PhyInfo.Optimum_antenna = pHalData->CurAntenna;//optimum_antenna=>For antenna diversity
-			adapter->HalFunc.GetHalDefVarHandler(adapter, HAL_DEF_CURRENT_ANTENNA, &(target->PhyInfo.Optimum_antenna));
+			rtw_hal_get_def_var(adapter, HAL_DEF_CURRENT_ANTENNA, &(target->PhyInfo.Optimum_antenna));
 #endif
 			_rtw_memcpy(&(pnetwork->network), target,  get_WLAN_BSSID_EX_sz(target));
 			//pnetwork->last_scanned = rtw_get_current_time();
@@ -891,6 +899,10 @@ _func_enter_;
 			pnetwork->network_type = 0;	
 			pnetwork->aid=0;		
 			pnetwork->join_res=0;
+
+			/* bss info not receving from the right channel */
+			if (pnetwork->network.PhyInfo.SignalQuality == 101)
+				pnetwork->network.PhyInfo.SignalQuality = 0;
 		}
 		else {
 			/* Otherwise just pull from the free list */
@@ -906,11 +918,15 @@ _func_enter_;
 			target->Length = bssid_ex_sz;
 #ifdef CONFIG_ANTENNA_DIVERSITY
 			//target->PhyInfo.Optimum_antenna = pHalData->CurAntenna;
-			adapter->HalFunc.GetHalDefVarHandler(adapter, HAL_DEF_CURRENT_ANTENNA, &(target->PhyInfo.Optimum_antenna));
+			rtw_hal_get_def_var(adapter, HAL_DEF_CURRENT_ANTENNA, &(target->PhyInfo.Optimum_antenna));
 #endif
 			_rtw_memcpy(&(pnetwork->network), target, bssid_ex_sz );
 
 			pnetwork->last_scanned = rtw_get_current_time();
+
+			/* bss info not receving from the right channel */
+			if (pnetwork->network.PhyInfo.SignalQuality == 101)
+				pnetwork->network.PhyInfo.SignalQuality = 0;
 
 			rtw_list_insert_tail(&(pnetwork->list),&(queue->queue)); 
 
@@ -921,15 +937,15 @@ _func_enter_;
 		 * be already expired. In this case we do the same as we found a new 
 		 * net and call the new_net handler
 		 */
+		bool update_ie = _TRUE;
 
 		pnetwork->last_scanned = rtw_get_current_time();
 
 		//target.Reserved[0]==1, means that scaned network is a bcn frame.
 		if((pnetwork->network.IELength>target->IELength) && (target->Reserved[0]==1))
-			goto exit;
+			update_ie = _FALSE;
 
-		update_network(&(pnetwork->network),target,adapter);
-
+		update_network(&(pnetwork->network), target,adapter, update_ie);
 	}
 
 exit:
@@ -1128,7 +1144,13 @@ _func_enter_;
 
 	_enter_critical_bh(&pmlmepriv->lock, &irqL);
 
-	pmlmepriv->probereq_wpsie_len = 0 ;//reset to zero	
+	if(pmlmepriv->wps_probe_req_ie)
+	{
+		u32 free_len = pmlmepriv->wps_probe_req_ie_len;
+		pmlmepriv->wps_probe_req_ie_len = 0;
+		rtw_mfree(pmlmepriv->wps_probe_req_ie, free_len);
+		pmlmepriv->wps_probe_req_ie = NULL;			
+	}
 	
 	RT_TRACE(_module_rtl871x_mlme_c_,_drv_info_,("rtw_surveydone_event_callback: fw_state:%x\n\n", get_fwstate(pmlmepriv)));
 	
@@ -1253,8 +1275,7 @@ _func_enter_;
 	{
 		struct mlme_ext_priv *pmlmeext = &adapter->mlmeextpriv;		
 		if(pmlmeext->sitesurvey_res.bss_cnt == 0){
-			if(adapter->HalFunc.silentreset)
-				adapter->HalFunc.silentreset(adapter);			
+			rtw_hal_sreset_reset(adapter);			
 		}
 	}
 #endif
@@ -1413,7 +1434,7 @@ _func_enter_;
  
 	pmlmepriv->to_join = _FALSE;
 #ifdef CONFIG_SW_ANTENNA_DIVERSITY
-	padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_ANTENNA_DIVERSITY_LINK, 0);
+	rtw_hal_set_hwreg(padapter, HW_VAR_ANTENNA_DIVERSITY_LINK, 0);
 #endif
 	set_fwstate(pmlmepriv, _FW_LINKED);
 
@@ -1507,8 +1528,8 @@ static struct sta_info *rtw_joinbss_update_stainfo(_adapter *padapter, struct wl
 #else
 			psta->mac_id=0;
 #endif		
-		if(padapter->HalFunc.SetHalODMVarHandler)//sta mode
-			padapter->HalFunc.SetHalODMVarHandler(padapter,HAL_ODM_STA_INFO,psta,_TRUE);
+		//sta mode
+		rtw_hal_set_odm_var(padapter,HAL_ODM_STA_INFO,psta,_TRUE);
 
 		//security related
 		if(padapter->securitypriv.dot11AuthAlgrthm== dot11AuthAlgrthm_8021X)
@@ -1933,12 +1954,11 @@ void rtw_stassoc_hw_rpt(_adapter *adapter,struct sta_info *psta)
 	#if (RATE_ADAPTIVE_SUPPORT==1)	//for 88E RA	
 	{
 		u8 macid = search_max_mac_id(adapter);				
-		if(adapter->HalFunc.SetHwRegHandler)
-			adapter->HalFunc.SetHwRegHandler(adapter,HW_VAR_TX_RPT_MAX_MACID, (u8*)&macid);
+		rtw_hal_set_hwreg(adapter,HW_VAR_TX_RPT_MAX_MACID, (u8*)&macid);
 	}
 	#endif
 	media_status = (psta->mac_id<<8)|1; //  MACID|OPMODE:1 connect				
-	adapter->HalFunc.SetHwRegHandler(adapter,HW_VAR_H2C_MEDIA_STATUS_RPT,(u8 *)&media_status);			
+	rtw_hal_set_hwreg(adapter,HW_VAR_H2C_MEDIA_STATUS_RPT,(u8 *)&media_status);			
 }
 
 void rtw_stassoc_event_callback(_adapter *adapter, u8 *pbuf)
@@ -2023,13 +2043,12 @@ _func_enter_;
 	}	
 	
 	//to do : init sta_info variable
-	psta->qos_option = 0;	
-	psta->mac_id = le32_to_cpu((uint)pstassoc->cam_id);
+	psta->qos_option = 0;
+	psta->mac_id = (uint)pstassoc->cam_id;
 	//psta->aid = (uint)pstassoc->cam_id;
 	DBG_871X("%s\n",__FUNCTION__);
-	
-	if(adapter->HalFunc.SetHalODMVarHandler)//for ad-hoc mode
-		adapter->HalFunc.SetHalODMVarHandler(adapter,HAL_ODM_STA_INFO,psta,_TRUE);
+	//for ad-hoc mode
+	rtw_hal_set_odm_var(adapter,HAL_ODM_STA_INFO,psta,_TRUE);
 
 	rtw_stassoc_hw_rpt(adapter,psta);	
 	
@@ -2090,7 +2109,7 @@ _func_enter_;
 		u16 media_status;
 		media_status = (psta->mac_id<<8)|0; //  MACID|OPMODE:0 means disconnect
 		//for STA,AP,ADHOC mode ,report disconnect stauts to FW
-		adapter->HalFunc.SetHwRegHandler(adapter,HW_VAR_H2C_MEDIA_STATUS_RPT,(u8 *)&media_status);
+		rtw_hal_set_hwreg(adapter,HW_VAR_H2C_MEDIA_STATUS_RPT,(u8 *)&media_status);
 	}		
 
         if(check_fwstate(pmlmepriv, WIFI_AP_STATE))
@@ -2122,6 +2141,7 @@ _func_enter_;
 			pmlmepriv->to_roaming=0; // don't roam
 		#endif //CONFIG_LAYER2_ROAMING		
 
+		rtw_free_uc_swdec_pending_queue(adapter);
 
 		rtw_free_assoc_resources(adapter, 1);
 		rtw_indicate_disconnect(adapter);
@@ -2354,7 +2374,7 @@ static void rtw_auto_scan_handler(_adapter *padapter)
 
 			DBG_871X("%s\n", __FUNCTION__);
 
-			rtw_set_802_11_bssid_list_scan(padapter);			
+			rtw_set_802_11_bssid_list_scan(padapter, NULL, 0);			
 			
 			pmlmepriv->scan_interval = SCAN_INTERVAL;// 30*2 sec = 60sec
 			
@@ -2668,11 +2688,11 @@ _func_enter_;
 	}
 	
 	#ifdef CONFIG_ANTENNA_DIVERSITY
-	adapter->HalFunc.GetHalDefVarHandler(adapter, HAL_DEF_IS_SUPPORT_ANT_DIV, &(bSupportAntDiv));
+	rtw_hal_get_def_var(adapter, HAL_DEF_IS_SUPPORT_ANT_DIV, &(bSupportAntDiv));
 	if(_TRUE == bSupportAntDiv)	
 	{
 		u8 CurrentAntenna;
-		adapter->HalFunc.GetHalDefVarHandler(adapter, HAL_DEF_CURRENT_ANTENNA, &(CurrentAntenna));			
+		rtw_hal_get_def_var(adapter, HAL_DEF_CURRENT_ANTENNA, &(CurrentAntenna));			
 		DBG_871X("#### Opt_Ant_(%s) , cur_Ant(%s)\n",
 			(2==candidate->network.PhyInfo.Optimum_antenna)?"A":"B",
 			(2==CurrentAntenna)?"A":"B"
@@ -2797,7 +2817,7 @@ _func_enter_;
 		{
 			RT_TRACE(_module_rtl871x_mlme_c_,_drv_err_,("dst_ssid=%s, src_ssid=%s \n", dst_ssid, src_ssid));
 #ifdef CONFIG_ANTENNA_DIVERSITY
-			adapter->HalFunc.GetHalDefVarHandler(adapter, HAL_DEF_CURRENT_ANTENNA, &(CurrentAntenna));			
+			rtw_hal_get_def_var(adapter, HAL_DEF_CURRENT_ANTENNA, &(CurrentAntenna));			
 			DBG_871X("#### dst_ssid=(%s) Opt_Ant_(%s) , cur_Ant(%s)\n", dst_ssid,
 				(2==pnetwork->network.PhyInfo.Optimum_antenna)?"A":"B",
 				(2==CurrentAntenna)?"A":"B");
@@ -3350,12 +3370,12 @@ void rtw_joinbss_reset(_adapter *padapter)
 			threshold = 1;
 		else
 			threshold = 0;
-		padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_RXDMA_AGG_PG_TH, (u8 *)(&threshold));
+		rtw_hal_set_hwreg(padapter, HW_VAR_RXDMA_AGG_PG_TH, (u8 *)(&threshold));
 	}
 	else
 	{
 		threshold = 1;
-		padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_RXDMA_AGG_PG_TH, (u8 *)(&threshold));
+		rtw_hal_set_hwreg(padapter, HW_VAR_RXDMA_AGG_PG_TH, (u8 *)(&threshold));
 	}
 #endif
 
@@ -3405,8 +3425,8 @@ unsigned int rtw_restructure_ht_ie(_adapter *padapter, u8 *in_ie, u8 *out_ie, ui
 
 		{
 			u32 rx_packet_offset, max_recvbuf_sz;
-			padapter->HalFunc.GetHalDefVarHandler(padapter, HAL_DEF_RX_PACKET_OFFSET, &rx_packet_offset);
-			padapter->HalFunc.GetHalDefVarHandler(padapter, HAL_DEF_MAX_RECVBUF_SZ, &max_recvbuf_sz);
+			rtw_hal_get_def_var(padapter, HAL_DEF_RX_PACKET_OFFSET, &rx_packet_offset);
+			rtw_hal_get_def_var(padapter, HAL_DEF_MAX_RECVBUF_SZ, &max_recvbuf_sz);
 			//if(max_recvbuf_sz-rx_packet_offset>(8191-256)) {
 			//	DBG_871X("%s IEEE80211_HT_CAP_MAX_AMSDU is set\n", __FUNCTION__);
 			//	ht_capie.cap_info = ht_capie.cap_info |IEEE80211_HT_CAP_MAX_AMSDU;
@@ -3425,7 +3445,7 @@ unsigned int rtw_restructure_ht_ie(_adapter *padapter, u8 *in_ie, u8 *out_ie, ui
 		#endif
 		*/
 		
-		padapter->HalFunc.GetHalDefVarHandler(padapter, HW_VAR_MAX_RX_AMPDU_FACTOR, &max_rx_ampdu_factor);
+		rtw_hal_get_def_var(padapter, HW_VAR_MAX_RX_AMPDU_FACTOR, &max_rx_ampdu_factor);
 		ht_capie.ampdu_params_info = (max_rx_ampdu_factor&0x03);
 		
 		if(padapter->securitypriv.dot11PrivacyAlgrthm == _AES_ )
@@ -3530,6 +3550,37 @@ void rtw_update_ht_cap(_adapter *padapter, u8 *pie, uint ie_len)
 		(pmlmeinfo->HT_caps.u.HT_cap_element.HT_caps_info & BIT(1)) && 
 		(pmlmeinfo->HT_info.infos[0] & BIT(2)))
 	{
+		int i;
+		u8	rf_type;
+
+		padapter->HalFunc.GetHwRegHandler(padapter, HW_VAR_RF_TYPE, (u8 *)(&rf_type));
+
+		//update the MCS rates
+		for (i = 0; i < 16; i++)
+		{
+			if((rf_type == RF_1T1R) || (rf_type == RF_1T2R))
+			{
+				pmlmeinfo->HT_caps.u.HT_cap_element.MCS_rate[i] &= MCS_rate_1R[i];
+			}
+			else
+			{
+				#ifdef CONFIG_DISABLE_MCS13TO15
+				if(pmlmeext->cur_bwmode == HT_CHANNEL_WIDTH_40)
+				{
+					pmlmeinfo->HT_caps.u.HT_cap_element.MCS_rate[i] &= MCS_rate_2R_MCS13TO15_OFF[i];
+				}
+				else
+					pmlmeinfo->HT_caps.u.HT_cap_element.MCS_rate[i] &= MCS_rate_2R[i];
+				#else
+				pmlmeinfo->HT_caps.u.HT_cap_element.MCS_rate[i] &= MCS_rate_2R[i];
+				#endif //CONFIG_DISABLE_MCS13TO15
+			}
+			#ifdef RTL8192C_RECONFIG_TO_1T1R
+			{
+				pmlmeinfo->HT_caps.HT_cap_element.MCS_rate[i] &= MCS_rate_1R[i];
+			}
+			#endif
+		}
 		//switch to the 40M Hz mode accoring to the AP
 		pmlmeext->cur_bwmode = HT_CHANNEL_WIDTH_40;
 		switch ((pmlmeinfo->HT_info.infos[0] & 0x3))

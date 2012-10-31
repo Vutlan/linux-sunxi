@@ -275,7 +275,7 @@ _func_enter_;
 #endif
 
 		rtw_list_insert_tail(&pxmitbuf->list, &(pxmitpriv->free_xmit_extbuf_queue.queue));
-		#ifdef DBG_XMIT_BUF
+		#ifdef DBG_XMIT_BUF_EXT
 		pxmitbuf->no=i;
 		#endif
 		pxmitbuf++;
@@ -299,8 +299,7 @@ _func_enter_;
 	pxmitpriv->voq_cnt = 0;
 #endif
 
-	if(padapter->HalFunc.init_xmit_priv != NULL)
-		padapter->HalFunc.init_xmit_priv(padapter);
+	rtw_hal_init_xmit_priv(padapter);
 
 exit:
 
@@ -340,7 +339,7 @@ void _rtw_free_xmit_priv (struct xmit_priv *pxmitpriv)
 
  _func_enter_;   
 
-	padapter->HalFunc.free_xmit_priv(padapter);
+	rtw_hal_free_xmit_priv(padapter);
  
 	rtw_mfree_xmit_priv_lock(pxmitpriv);
  
@@ -544,14 +543,16 @@ static void update_attrib_phy_info(struct pkt_attrib *pattrib, struct sta_info *
 
 }
 
-static void qos_acm(u8 acm_mask, struct pkt_attrib *pattrib)
+u8	qos_acm(u8 acm_mask, u8 priority)
 {
-	switch (pattrib->priority)
+	u8	change_priority = priority;
+
+	switch (priority)
 	{
 		case 0:
 		case 3:
 			if(acm_mask & BIT(1))
-				pattrib->priority = 2;
+				change_priority = 1;
 			break;
 		case 1:
 		case 2:
@@ -559,17 +560,19 @@ static void qos_acm(u8 acm_mask, struct pkt_attrib *pattrib)
 		case 4:
 		case 5:
 			if(acm_mask & BIT(2))
-				pattrib->priority = 3;
+				change_priority = 0;
 			break;
 		case 6:
 		case 7:
 			if(acm_mask & BIT(3))
-				pattrib->priority = 5;
+				change_priority = 5;
 			break;
 		default:
-			DBG_871X("qos_acm(): invalid pattrib->priority: %d!!!\n", pattrib->priority);
+			DBG_871X("qos_acm(): invalid pattrib->priority: %d!!!\n", priority);
 			break;
 	}
+
+	return change_priority;
 }
 
 static void set_qos(struct pkt_file *ppktfile, struct pkt_attrib *pattrib)
@@ -742,9 +745,10 @@ static s32 update_attrib(_adapter *padapter, _pkt *pkt, struct pkt_attrib *pattr
 		if(pqospriv->qos_option)
 		{
 			set_qos(&pktfile, pattrib);
+
 			if(pmlmepriv->acm_mask != 0)
 			{
-				qos_acm(pmlmepriv->acm_mask, pattrib);
+				pattrib->priority = qos_acm(pmlmepriv->acm_mask, pattrib->priority);
 			}
 		}
 	}
@@ -761,7 +765,7 @@ static s32 update_attrib(_adapter *padapter, _pkt *pkt, struct pkt_attrib *pattr
 		{
 			RT_TRACE(_module_rtl871x_xmit_c_,_drv_err_,("\npsta->ieee8021x_blocked == _TRUE,  pattrib->ether_type(%.4x) != 0x888e\n",pattrib->ether_type));
 			#ifdef DBG_TX_DROP_FRAME
-			DBG_871X("DBG_TX_DROP_FRAME %s psta->ieee8021x_blocked == _TRUE,  pattrib->ether_type(%.4x) != 0x888e\n", __FUNCTION__,pattrib->ether_type);
+			DBG_871X("DBG_TX_DROP_FRAME %s psta->ieee8021x_blocked == _TRUE,  pattrib->ether_type(%04x) != 0x888e\n", __FUNCTION__,pattrib->ether_type);
 			#endif
 			res = _FAIL;
 			goto exit;
@@ -1405,8 +1409,8 @@ void rtw_tdls_setup_req_fr(_adapter * padapter, struct xmit_frame * pxmitframe, 
 
 	{
 		u32 rx_packet_offset, max_recvbuf_sz;
-		padapter->HalFunc.GetHalDefVarHandler(padapter, HAL_DEF_RX_PACKET_OFFSET, &rx_packet_offset);
-		padapter->HalFunc.GetHalDefVarHandler(padapter, HAL_DEF_MAX_RECVBUF_SZ, &max_recvbuf_sz);
+		rtw_hal_get_def_var(padapter, HAL_DEF_RX_PACKET_OFFSET, &rx_packet_offset);
+		rtw_hal_get_def_var(padapter, HAL_DEF_MAX_RECVBUF_SZ, &max_recvbuf_sz);
 		if(max_recvbuf_sz-rx_packet_offset>(8191-256))
 			ht_capie.cap_info = ht_capie.cap_info |IEEE80211_HT_CAP_MAX_AMSDU;
 	}
@@ -1598,8 +1602,8 @@ void rtw_tdls_setup_rsp_fr(_adapter * padapter, struct xmit_frame * pxmitframe, 
 
 	{
 		u32 rx_packet_offset, max_recvbuf_sz;
-		padapter->HalFunc.GetHalDefVarHandler(padapter, HAL_DEF_RX_PACKET_OFFSET, &rx_packet_offset);
-		padapter->HalFunc.GetHalDefVarHandler(padapter, HAL_DEF_MAX_RECVBUF_SZ, &max_recvbuf_sz);
+		rtw_hal_get_def_var(padapter, HAL_DEF_RX_PACKET_OFFSET, &rx_packet_offset);
+		rtw_hal_get_def_var(padapter, HAL_DEF_MAX_RECVBUF_SZ, &max_recvbuf_sz);
 		if(max_recvbuf_sz-rx_packet_offset>(8191-256))
 			ht_capie.cap_info = ht_capie.cap_info |IEEE80211_HT_CAP_MAX_AMSDU;
 	}
@@ -1884,8 +1888,8 @@ void rtw_tdls_dis_rsp_fr(_adapter * padapter, struct xmit_frame * pxmitframe, u8
 
 	{
 		u32 rx_packet_offset, max_recvbuf_sz;
-		padapter->HalFunc.GetHalDefVarHandler(padapter, HAL_DEF_RX_PACKET_OFFSET, &rx_packet_offset);
-		padapter->HalFunc.GetHalDefVarHandler(padapter, HAL_DEF_MAX_RECVBUF_SZ, &max_recvbuf_sz);
+		rtw_hal_get_def_var(padapter, HAL_DEF_RX_PACKET_OFFSET, &rx_packet_offset);
+		rtw_hal_get_def_var(padapter, HAL_DEF_MAX_RECVBUF_SZ, &max_recvbuf_sz);
 		if(max_recvbuf_sz-rx_packet_offset>(8191-256))
 			ht_capie.cap_info = ht_capie.cap_info |IEEE80211_HT_CAP_MAX_AMSDU;
 	}
@@ -2299,7 +2303,7 @@ u32 rtw_calculate_wlan_pkt_size_by_attribue(struct pkt_attrib *pattrib)
 	len += SNAP_SIZE + sizeof(u16); // LLC
 	len += pattrib->pktlen;
 	if (pattrib->encrypt == _TKIP_) len += 8; // MIC
-	len += pattrib->icv_len; // ICV
+	len += ((pattrib->bswenc) ? pattrib->icv_len : 0); // ICV
 
 	return len;
 }
@@ -2649,12 +2653,13 @@ _func_enter_;
 	if (pxmitbuf !=  NULL)
 	{
 		pxmitpriv->free_xmit_extbuf_cnt--;
-		#ifdef DBG_XMIT_BUF
-		DBG_871X("DBG_XMIT_BUF ALLOC no=%d,  free_xmit_extbuf_cnt=%d\n",pxmitbuf->no, pxmitpriv->free_xmit_extbuf_cnt);
+		#ifdef DBG_XMIT_BUF_EXT
+		DBG_871X("DBG_XMIT_BUF_EXT ALLOC no=%d,  free_xmit_extbuf_cnt=%d\n",pxmitbuf->no, pxmitpriv->free_xmit_extbuf_cnt);
 		#endif
 		
 	
 		pxmitbuf->priv_data = NULL;
+		//pxmitbuf->ext_tag = _TRUE;
 
 #ifdef CONFIG_SDIO_HCI
 		pxmitbuf->len = 0;
@@ -2690,8 +2695,8 @@ _func_enter_;
 
 	rtw_list_insert_tail(&(pxmitbuf->list), get_list_head(pfree_queue));
 	pxmitpriv->free_xmit_extbuf_cnt++;
-	#ifdef DBG_XMIT_BUF
-	DBG_871X("DBG_XMIT_BUF FREE no=%d, free_xmit_extbuf_cnt=%d\n",pxmitbuf->no ,pxmitpriv->free_xmit_extbuf_cnt);
+	#ifdef DBG_XMIT_BUF_EXT
+	DBG_871X("DBG_XMIT_BUF_EXT FREE no=%d, free_xmit_extbuf_cnt=%d\n",pxmitbuf->no ,pxmitpriv->free_xmit_extbuf_cnt);
 	#endif
 
 	_exit_critical(&pfree_queue->lock, &irqL);
@@ -2736,10 +2741,12 @@ _func_enter_;
 		//DBG_871X("alloc, free_xmitbuf_cnt=%d\n", pxmitpriv->free_xmitbuf_cnt);
 
 		pxmitbuf->priv_data = NULL;
-
+		//pxmitbuf->ext_tag = _FALSE;
 #ifdef CONFIG_SDIO_HCI
 		pxmitbuf->len = 0;
 		pxmitbuf->pdata = pxmitbuf->ptail = pxmitbuf->phead;
+		pxmitbuf->agg_num = 0;
+		pxmitbuf->pg_num = 0;
 #endif
 #ifdef CONFIG_PCI_HCI
 		pxmitbuf->len = 0;
@@ -2873,11 +2880,13 @@ _func_enter_;
 #endif
 
 #ifdef PLATFORM_LINUX
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,35))
 		if(pxmitpriv->free_xmitframe_cnt==1)
 		{
-			if (!netif_queue_stopped(padapter->pnetdev))
-				netif_stop_queue(padapter->pnetdev);
+			if (!rtw_netif_queue_stopped(padapter->pnetdev))
+				rtw_netif_stop_queue(padapter->pnetdev);
 		}
+#endif
 #endif
 
 	}
@@ -3610,7 +3619,6 @@ s32 rtw_xmit(_adapter *padapter, _pkt **ppkt)
 
 	s32 res;
 
-
 	pxmitframe = rtw_alloc_xmitframe(pxmitpriv);
 	if (pxmitframe == NULL) {
 		RT_TRACE(_module_xmit_osdep_c_, _drv_err_, ("rtw_xmit: no more pxmitframe\n"));
@@ -3645,9 +3653,9 @@ s32 rtw_xmit(_adapter *padapter, _pkt **ppkt)
 	res = update_attrib(padapter, *ppkt, &pxmitframe->attrib);
 	if (res == _FAIL) {
 		RT_TRACE(_module_xmit_osdep_c_, _drv_err_, ("rtw_xmit: update attrib fail\n"));
-		//#ifdef DBG_TX_DROP_FRAME
+		#ifdef DBG_TX_DROP_FRAME
 		DBG_871X("DBG_TX_DROP_FRAME %s update attrib fail\n", __FUNCTION__);
-		//#endif
+		#endif
 		rtw_free_xmitframe(pxmitpriv, pxmitframe);
 		return -1;
 	}
@@ -3667,7 +3675,7 @@ s32 rtw_xmit(_adapter *padapter, _pkt **ppkt)
 	_exit_critical_bh(&pxmitpriv->lock, &irqL0);
 #endif
 
-	if (padapter->HalFunc.hal_xmit(padapter, pxmitframe) == _FALSE)
+	if (rtw_hal_xmit(padapter, pxmitframe) == _FALSE)
 		return 1;
 
 	return 0;
@@ -4111,7 +4119,7 @@ void wakeup_sta_to_xmit(_adapter *padapter, struct sta_info *psta)
 		pxmitframe->attrib.triggered = 1;
 
 		_exit_critical_bh(&psta->sleep_q.lock, &irqL);	
-		if(padapter->HalFunc.hal_xmit(padapter, pxmitframe) == _TRUE)
+		if(rtw_hal_xmit(padapter, pxmitframe) == _TRUE)
 		{		
 			rtw_os_xmit_complete(padapter, pxmitframe);
 		}		
@@ -4178,7 +4186,7 @@ void wakeup_sta_to_xmit(_adapter *padapter, struct sta_info *psta)
 			pxmitframe->attrib.triggered = 1;
 
 			_exit_critical_bh(&psta_bmc->sleep_q.lock, &irqL);	
-			if(padapter->HalFunc.hal_xmit(padapter, pxmitframe) == _TRUE)
+			if(rtw_hal_xmit(padapter, pxmitframe) == _TRUE)
 			{		
 				rtw_os_xmit_complete(padapter, pxmitframe);
 			}
@@ -4272,7 +4280,7 @@ void xmit_delivery_enabled_frames(_adapter *padapter, struct sta_info *psta)
 
 		pxmitframe->attrib.triggered = 1;
 
-		if(padapter->HalFunc.hal_xmit(padapter, pxmitframe) == _TRUE)
+		if(rtw_hal_xmit(padapter, pxmitframe) == _TRUE)
 		{		
 			rtw_os_xmit_complete(padapter, pxmitframe);
 		}
@@ -4302,4 +4310,146 @@ void xmit_delivery_enabled_frames(_adapter *padapter, struct sta_info *psta)
 }
 
 #endif
+
+#ifdef CONFIG_XMIT_THREAD_MODE
+void enqueue_pending_xmitbuf(
+	struct xmit_priv *pxmitpriv,
+	struct xmit_buf *pxmitbuf)
+{
+	_irqL irql;
+	_queue *pqueue;
+
+
+	pqueue = &pxmitpriv->pending_xmitbuf_queue;
+
+	_enter_critical_bh(&pqueue->lock, &irql);
+	rtw_list_delete(&pxmitbuf->list);
+	rtw_list_insert_tail(&pxmitbuf->list, get_list_head(pqueue));
+	_exit_critical_bh(&pqueue->lock, &irql);
+
+	_rtw_up_sema(&pxmitpriv->xmit_sema);
+}
+
+struct xmit_buf* dequeue_pending_xmitbuf(
+	struct xmit_priv *pxmitpriv)
+{
+	_irqL irql;
+	struct xmit_buf *pxmitbuf;
+	_queue *pqueue;
+
+
+	pxmitbuf = NULL;
+	pqueue = &pxmitpriv->pending_xmitbuf_queue;
+
+	_enter_critical_bh(&pqueue->lock, &irql);
+
+	if (_rtw_queue_empty(pqueue) == _FALSE)
+	{
+		_list *plist, *phead;
+
+		phead = get_list_head(pqueue);
+		plist = get_next(phead);
+		pxmitbuf = LIST_CONTAINOR(plist, struct xmit_buf, list);
+		rtw_list_delete(&pxmitbuf->list);
+	}
+
+	_exit_critical_bh(&pqueue->lock, &irql);
+
+	return pxmitbuf;
+}
+
+struct xmit_buf* dequeue_pending_xmitbuf_under_survey(
+	struct xmit_priv *pxmitpriv)
+{
+	_irqL irql;
+	struct xmit_buf *pxmitbuf;
+#ifdef CONFIG_USB_HCI	
+	struct xmit_frame *pxmitframe;
+#endif 
+	_queue *pqueue;
+
+
+	pxmitbuf = NULL;
+	pqueue = &pxmitpriv->pending_xmitbuf_queue;
+
+	_enter_critical_bh(&pqueue->lock, &irql);
+
+	if (_rtw_queue_empty(pqueue) == _FALSE)
+	{
+		_list *plist, *phead;
+		u8 type;
+
+		phead = get_list_head(pqueue);
+		plist = phead;
+		do {
+			plist = get_next(plist);
+				if (plist == phead) break;
+			
+			pxmitbuf = LIST_CONTAINOR(plist, struct xmit_buf, list);
+
+#ifdef CONFIG_USB_HCI
+			pxmitframe = (struct xmit_frame*)pxmitbuf->priv_data;			
+			if(pxmitframe)
+			{				
+				type = GetFrameSubType(pxmitbuf->pbuf + TXDESC_SIZE + pxmitframe->pkt_offset * PACKET_OFFSET_SZ);
+			}
+			else
+			{
+				DBG_871X("%s, !!!ERROR!!! For USB, TODO ITEM \n", __FUNCTION__);
+			}					
+#else
+			type = GetFrameSubType(pxmitbuf->pbuf + TXDESC_OFFSET);
+#endif
+			
+			if ((type == WIFI_PROBEREQ) ||
+				(type == WIFI_DATA_NULL) ||
+				(type == WIFI_QOS_DATA_NULL))
+			{
+				rtw_list_delete(&pxmitbuf->list);
+				break;
+			}
+			pxmitbuf = NULL;
+		} while (1);
+	}
+
+	_exit_critical_bh(&pqueue->lock, &irql);
+
+	return pxmitbuf;
+}
+
+sint check_pending_xmitbuf(
+	struct xmit_priv *pxmitpriv)
+{
+	_queue *pqueue;
+
+	pqueue = &pxmitpriv->pending_xmitbuf_queue;
+
+	if(_rtw_queue_empty(pqueue) == _FALSE)
+		return _TRUE;
+	else
+		return _FALSE;
+}
+
+thread_return rtw_xmit_thread(thread_context context)
+{
+	s32 err;
+	PADAPTER padapter;
+
+
+	err = _SUCCESS;
+	padapter = (PADAPTER)context;
+
+	thread_enter("RTW_XMIT_THREAD");
+
+	do {
+		err = rtw_hal_xmit_thread_handler(padapter);
+		flush_signals_thread();
+	} while (_SUCCESS == err);
+
+	_rtw_up_sema(&padapter->xmitpriv.terminate_xmitthread_sema);
+
+	thread_exit();
+}
+#endif
+
 

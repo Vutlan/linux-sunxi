@@ -24,7 +24,7 @@
 #include <osdep_service.h>
 #include <drv_types.h>
 #include <rtw_ioctl_set.h>
-#include <hal_init.h>
+#include <hal_intf.h>
 
 #ifdef CONFIG_USB_HCI
 #include <usb_osintf.h>
@@ -691,7 +691,7 @@ _func_exit_;
 	return _TRUE;	
 }
 
-u8 rtw_set_802_11_bssid_list_scan(_adapter* padapter)
+u8 rtw_set_802_11_bssid_list_scan(_adapter* padapter, NDIS_802_11_SSID *pssid, int ssid_max_num)
 {	
 	_irqL	irqL;
 	struct	mlme_priv		*pmlmepriv= &padapter->mlmepriv;
@@ -734,7 +734,7 @@ _func_enter_;
 		
 		_enter_critical_bh(&pmlmepriv->lock, &irqL);		
 		
-		res = rtw_sitesurvey_cmd(padapter, NULL, 0);
+		res = rtw_sitesurvey_cmd(padapter, pssid, ssid_max_num);
 		
 		_exit_critical_bh(&pmlmepriv->lock, &irqL);
 	}
@@ -1300,21 +1300,24 @@ _func_exit_;
 }
 
 /*
-* rtw_get_network_max_rate - 
+* rtw_get_cur_max_rate - 
 * @adapter: pointer to _adapter structure
-* @bss: 
 * 
-* Return 0 or Mbps
+* Return 0 or 100Kbps
 */
-u16 rtw_get_network_max_rate(_adapter *adapter, WLAN_BSSID_EX *bss)
+u16 rtw_get_cur_max_rate(_adapter *adapter)
 {
-	int i =0;
+	int i = 0;
 	u8 *p;
 	u16 rate = 0, max_rate = 0, ht_cap=_FALSE;
 	u32 ht_ielen = 0;	
+	struct mlme_ext_priv	*pmlmeext = &adapter->mlmeextpriv;
+	struct mlme_ext_info	*pmlmeinfo = &(pmlmeext->mlmext_info);
+	struct registry_priv *pregistrypriv = &adapter->registrypriv;
 	struct mlme_priv	*pmlmepriv = &adapter->mlmepriv;
+	WLAN_BSSID_EX  *pcur_bss = &pmlmepriv->cur_network.network;
 	struct rtw_ieee80211_ht_cap *pht_capie;
-	u8	bw_40MHz=0, short_GI=0;
+	u8	bw_40MHz=0, short_GI_20=0, short_GI_40=0;
 	u16	mcs_rate=0;
 	u8	rf_type = 0;
 	struct registry_priv *pregpriv = &adapter->registrypriv;
@@ -1327,9 +1330,8 @@ u16 rtw_get_network_max_rate(_adapter *adapter, WLAN_BSSID_EX *bss)
 	if((check_fwstate(pmlmepriv, _FW_LINKED) != _TRUE) 
 		&& (check_fwstate(pmlmepriv, WIFI_ADHOC_MASTER_STATE) != _TRUE))
 		return 0;
-	
 
-	p = rtw_get_ie(&bss->IEs[12], _HT_CAPABILITY_IE_, &ht_ielen, bss->IELength-12);
+	p = rtw_get_ie(&pcur_bss->IEs[12], _HT_CAPABILITY_IE_, &ht_ielen, pcur_bss->IELength-12);
 	if(p && ht_ielen>0)
 	{
 		ht_cap = _TRUE;	
@@ -1337,30 +1339,37 @@ u16 rtw_get_network_max_rate(_adapter *adapter, WLAN_BSSID_EX *bss)
 	
 		_rtw_memcpy(&mcs_rate , pht_capie->supp_mcs_set, 2);
 
-		bw_40MHz = (pht_capie->cap_info&IEEE80211_HT_CAP_SUP_WIDTH) ? 1:0;
-		short_GI = (pht_capie->cap_info&(IEEE80211_HT_CAP_SGI_20|IEEE80211_HT_CAP_SGI_40)) ? 1:0;
+		//bw_40MHz = (pht_capie->cap_info&IEEE80211_HT_CAP_SUP_WIDTH) ? 1:0;
+		//cur_bwmod is updated by beacon, pmlmeinfo is updated by association response
+		bw_40MHz = (pmlmeext->cur_bwmode && (HT_INFO_HT_PARAM_REC_TRANS_CHNL_WIDTH & pmlmeinfo->HT_info.infos[0])) ? 1:0;
+		
+		//short_GI = (pht_capie->cap_info&(IEEE80211_HT_CAP_SGI_20|IEEE80211_HT_CAP_SGI_40)) ? 1:0;
+		short_GI_20 = (pmlmeinfo->HT_caps.u.HT_cap_element.HT_caps_info&IEEE80211_HT_CAP_SGI_20) ? 1:0;
+		short_GI_40 = (pmlmeinfo->HT_caps.u.HT_cap_element.HT_caps_info&IEEE80211_HT_CAP_SGI_40) ? 1:0;
 	}
 
-	while( (bss->SupportedRates[i]!=0) && (bss->SupportedRates[i]!=0xFF))
+	while( (pcur_bss->SupportedRates[i]!=0) && (pcur_bss->SupportedRates[i]!=0xFF))
 	{
-		rate = bss->SupportedRates[i]&0x7F;
+		rate = pcur_bss->SupportedRates[i]&0x7F;
 		if(rate>max_rate)
 			max_rate = rate;
 		i++;
 	}
 
-	//TODO: should consider case of WEP and TKIP
 	if(ht_cap == _TRUE)
 	{
-		adapter->HalFunc.GetHwRegHandler(adapter, HW_VAR_RF_TYPE, (u8 *)(&rf_type));
-		if(rf_type == RF_1T1R)
-			max_rate = (bw_40MHz) ? ((short_GI)?150:135):((short_GI)?72:65);				
-		else
-			max_rate = (bw_40MHz) ? ((short_GI)?300:270):((short_GI)?144:130);
+		rtw_hal_get_hwreg(adapter, HW_VAR_RF_TYPE, (u8 *)(&rf_type));
+		max_rate = rtw_mcs_rate(
+			rf_type,
+			bw_40MHz & pregistrypriv->cbw40_enable, 
+			short_GI_20,
+			short_GI_40,
+			pmlmeinfo->HT_caps.u.HT_cap_element.MCS_rate
+		);
 	}
 	else
 	{
-		max_rate/=2;
+		max_rate = max_rate*10/2;
 	}
 
 	return max_rate;

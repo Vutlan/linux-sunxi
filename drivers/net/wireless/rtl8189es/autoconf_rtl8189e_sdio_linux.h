@@ -22,9 +22,8 @@
  */
 
 //***** temporarily flag *******
-#define CONFIG_CHIP_VER_INTEGRATION
+#define CONFIG_ODM_REFRESH_RAMASK
 #define CONFIG_PHY_SETTING_WITH_ODM
-#define FOR_BRAZIL_PRETEST 0
 //***** temporarily flag *******
 
 
@@ -38,7 +37,14 @@
 #define CONFIG_SDIO_HCI 1
 #define PLATFORM_LINUX 1
 
-#define CONFIG_IOCTL_CFG80211 1
+//#define CONFIG_IOCTL_CFG80211 1
+
+#ifdef CONFIG_PLATFORM_ARM_SUNxI
+	#ifndef CONFIG_IOCTL_CFG80211 
+		#define CONFIG_IOCTL_CFG80211 1
+	#endif
+#endif
+
 #ifdef CONFIG_IOCTL_CFG80211
 	#define CONFIG_CFG80211_FORCE_COMPATIBLE_2_6_37_UNDER
 	//#define CONFIG_DEBUG_CFG80211 1
@@ -51,6 +57,14 @@
 
 #define CONFIG_AP_MODE	1
 #ifdef CONFIG_AP_MODE
+
+	#define CONFIG_INTERRUPT_BASED_TXBCN // Tx Beacon when driver early interrupt occurs	
+
+	#ifdef CONFIG_INTERRUPT_BASED_TXBCN
+		//#define CONFIG_INTERRUPT_BASED_TXBCN_EARLY_INT
+		#define CONFIG_INTERRUPT_BASED_TXBCN_BCN_OK_ERR		
+	#endif
+	
 	#define CONFIG_NATIVEAP_MLME	1
 	#ifndef CONFIG_NATIVEAP_MLME
 		#define CONFIG_HOSTAPD_MLME	1
@@ -63,9 +77,6 @@
 #ifdef CONFIG_P2P
 	//The CONFIG_WFD is for supporting the Wi-Fi display
 	//#define CONFIG_WFD	1
-
-	//Unmarked if there is low p2p scanned ratio; Kurt
-	//#define CONFIG_P2P_AGAINST_NOISE	1
 	
 	#define CONFIG_P2P_REMOVE_GROUP_INFO
 	//#define CONFIG_DBG_P2P
@@ -80,7 +91,8 @@
 #define CONFIG_LAYER2_ROAMING_RESUME
 
 #define CONFIG_LONG_DELAY_ISSUE
-
+#define CONFIG_NEW_SIGNAL_STAT_PROCESS
+#define RTW_NOTCH_FILTER 0 /* 0:Disable, 1:Enable, 2:Enable only for P2P */
 
 /*
  * Hardware Related Config
@@ -94,7 +106,8 @@
 /*
  * Interface Related Config
  */
-
+//#define CONFIG_SDIO_TX_TASKLET
+//#define CONFIG_SDIO_RX_COPY
 
 /*
  * Others
@@ -132,6 +145,7 @@
 // disable unnecessary functions for MP
 #undef CONFIG_IPS
 #undef CONFIG_LPS
+#undef CONFIG_LPS_LCLK
 #undef SUPPORT_HW_RFOFF_DETECTED
 
 #else // #ifdef CONFIG_MP_INCLUDED
@@ -172,19 +186,19 @@
 #define RATE_ADAPTIVE_SUPPORT 			1
 #define POWER_TRAINING_ACTIVE			1
 //#define 	CONFIG_TX_EARLY_MODE
-//#define CONFIG_RECFG_AGC_TAB	
 
 #ifdef CONFIG_TX_EARLY_MODE
 #define	RTL8188E_EARLY_MODE_PKT_NUM_10	0
 #endif
-
 //#endif
+
+
 
 #define DBG 1
 #ifdef CONFIG_DEBUG
 //#define CONFIG_DEBUG_RTL871X 1
 #define CONFIG_DEBUG_RTL819X 1
-//#define CONFIG_PROC_DEBUG 1
+#define CONFIG_PROC_DEBUG 1
 #endif
 
 
@@ -207,8 +221,25 @@
 	#define HAL_RF_ENABLE		1
 #endif
 
+#define DBG_CONFIG_ERROR_DETECT
+//#define DBG_CONFIG_ERROR_RESET
 
-//#define RATE_ADAPTIVE_SUPPORT 1
+
+//#define DBG_IO
+//#define DBG_DELAY_OS
+//#define DBG_MEM_ALLOC
+//#define DBG_IOCTL
+
+//#define DBG_TX
+//#define DBG_XMIT_BUF
+//#define DBG_XMIT_BUF_EXT
+//#define DBG_TX_DROP_FRAME
+
+//#define DBG_RX_DROP_FRAME
+//#define DBG_RX_SEQ
+//#define DBG_RX_SIGNAL_DISPLAY_PROCESSING
+//#define DBG_RX_SIGNAL_DISPLAY_SSID_MONITORED "jeff-ap"
+
 
 //#define HAL_8195A_USB 0
 

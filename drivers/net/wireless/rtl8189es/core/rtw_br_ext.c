@@ -1692,3 +1692,4 @@ void *scdb_findEntry(_adapter *priv, unsigned char *macAddr,
 }
 
 #endif	// CONFIG_BR_EXT
+

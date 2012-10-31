@@ -51,3 +51,4 @@ extern void rtl8192c_sreset_linked_status_check(_adapter *padapter);
 extern u8 rtl8192c_sreset_get_wifi_status(_adapter *padapter);
 #endif
 #endif
+

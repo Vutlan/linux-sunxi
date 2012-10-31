@@ -70,6 +70,7 @@ enum {
 	RTL871X_HOSTAPD_SET_WPS_BEACON = 17,
 	RTL871X_HOSTAPD_SET_WPS_PROBE_RESP = 18,
 	RTL871X_HOSTAPD_SET_WPS_ASSOC_RESP = 19,
+	RTL871X_HOSTAPD_SET_HIDDEN_SSID = 20,
 };
 
 /* STA flags */
@@ -156,6 +157,17 @@ extern u8 RSN_CIPHER_SUITE_WRAP[];
 extern u8 RSN_CIPHER_SUITE_CCMP[];
 extern u8 RSN_CIPHER_SUITE_WEP104[];
 
+typedef enum _RATR_TABLE_MODE{
+	RATR_INX_WIRELESS_NGB = 0,	// BGN 40 Mhz 2SS 1SS
+	RATR_INX_WIRELESS_NG = 1,		// GN or N
+	RATR_INX_WIRELESS_NB = 2,		// BGN 20 Mhz 2SS 1SS  or BN
+	RATR_INX_WIRELESS_N = 3,
+	RATR_INX_WIRELESS_GB = 4,
+	RATR_INX_WIRELESS_G = 5,
+	RATR_INX_WIRELESS_B = 6,
+	RATR_INX_WIRELESS_MC = 7,
+	RATR_INX_WIRELESS_AC_N = 8,
+}RATR_TABLE_MODE, *PRATR_TABLE_MODE;
 
 enum NETWORK_TYPE
 {
@@ -1327,7 +1339,7 @@ enum rtw_ieee80211_back_parties {
 #define VENDOR_HT_CAPAB_OUI_TYPE 0x33 /* 00-90-4c:0x33 */
 
 /* Parsed Information Elements */
-struct ieee802_11_elems {
+struct rtw_ieee802_11_elems {
 	u8 *ssid;
 	u8 ssid_len;
 	u8 *supp_rates;
@@ -1379,7 +1391,7 @@ struct ieee802_11_elems {
 typedef enum { ParseOK = 0, ParseUnknown = 1, ParseFailed = -1 } ParseRes;
 
 ParseRes rtw_ieee802_11_parse_elems(u8 *start, uint len,
-				struct ieee802_11_elems *elems,
+				struct rtw_ieee802_11_elems *elems,
 				int show_errors);
 
 u8 *rtw_set_fixed_ie(unsigned char *pbuf, unsigned int len, unsigned char *source, unsigned int *frlen);
@@ -1433,5 +1445,7 @@ uint	rtw_is_cckratesonly_included(u8 *rate);
 int rtw_check_network_type(unsigned char *rate, int ratelen, int channel);
 
 void rtw_macaddr_cfg(u8 *mac_addr);
+
+u16 rtw_mcs_rate(u8 rf_type, u8 bw_40MHz, u8 short_GI_20, u8 short_GI_40, unsigned char * MCS_rate);
 #endif /* IEEE80211_H */
 

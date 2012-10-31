@@ -32,8 +32,13 @@
 #include "rtl8723a_recv.h"
 #include "rtl8723a_xmit.h"
 #include "rtl8723a_cmd.h"
+#ifdef DBG_CONFIG_ERROR_DETECT
+#include "rtl8723a_sreset.h"
+#endif
+#include "rtw_efuse.h"
 
 #include "../hal/OUTSRC/odm_precomp.h"
+
 #ifdef CONFIG_SDIO_HCI	
 
 	//2TODO: We should define 8192S firmware related macro settings here!!
@@ -82,23 +87,18 @@
 	#define Rtl8723_RadioA_1TArray				Rtl8723SRadioA_1TArray
 	//#define Rtl8723_RadioB_2TArray				Rtl8723SRadioB_2TArray
 	#define Rtl8723_RadioB_1TArray				Rtl8723SRadioB_1TArray
-	
-	
 
 	// Array length
-
 	#define Rtl8723_MAC_ArrayLength				Rtl8723SMAC_2T_ArrayLength
 	#define Rtl8723_AGCTAB_1TArrayLength		Rtl8723SAGCTAB_1TArrayLength
 	#define Rtl8723_PHY_REG_1TArrayLength 		Rtl8723SPHY_REG_1TArrayLength
-	
-	
+
 	#define Rtl8723_RadioA_1TArrayLength			Rtl8723SRadioA_1TArrayLength
 	#define Rtl8723_RadioB_1TArrayLength			Rtl8723SRadioB_1TArrayLength
-#endif
-#endif
+#endif // CONFIG_PHY_SETTING_WITH_ODM
+#endif // CONFIG_SDIO_HCI
 
 #ifdef CONFIG_USB_HCI
-
 
 	//2TODO: We should define 8192S firmware related macro settings here!!
 	#define RTL819X_DEFAULT_RF_TYPE			RF_1T2R
@@ -185,6 +185,13 @@ typedef struct _RT_FIRMWARE {
 	u8			szFwBuffer[FW_8723A_SIZE];
 #endif
 	u32			ulFwLength;
+
+#ifdef CONFIG_EMBEDDED_FWIMG
+	u8*			szBTFwBuffer;
+#else
+	u8			szBTFwBuffer[FW_8723A_SIZE];
+#endif
+	u32			ulBTFwLength;
 } RT_FIRMWARE, *PRT_FIRMWARE, RT_FIRMWARE_8723A, *PRT_FIRMWARE_8723A;
 
 //
@@ -285,106 +292,9 @@ typedef enum _USB_RX_AGG_MODE{
 #define CHIP_BONDING_92C_1T2R			0x1
 #define CHIP_BONDING_88C_USB_MCARD		0x2
 #define CHIP_BONDING_88C_USB_HP			0x1
-#ifdef CONFIG_CHIP_VER_INTEGRATION
+
 #include "HalVerDef.h"
 #include "hal_com.h"
-#else
-//
-// 2011.01.06. Define new structure of chip version for RTL8723 and so on. Added by tynli.
-//
-/*
-     | BIT15:12           |  BIT11:8        | BIT 7              |  BIT6:4  |      BIT3          | BIT2:0  |
-     |-------------+-----------+-----------+-------+-----------+-------|
-     | IC version(CUT)  | ROM version  | Manufacturer  | RF type  |  Chip type       | IC Type |
-     |                           |                      | TSMC/UMC    |              | TEST/NORMAL|             |
-*/
-// [15:12] IC version(CUT): A-cut=0, B-cut=1, C-cut=2, D-cut=3
-// [7] Manufacturer: TSMC=0, UMC=1
-// [6:4] RF type: 1T1R=0, 1T2R=1, 2T2R=2
-// [3] Chip type: TEST=0, NORMAL=1
-// [2:0] IC type: 81xxC=0, 8723=1, 92D=2
-
-#define CHIP_8723						BIT(0)
-#define CHIP_92D						BIT(1)
-#define NORMAL_CHIP  					BIT(3)
-#define RF_TYPE_1T1R					(~(BIT(4)|BIT(5)|BIT(6)))
-#define RF_TYPE_1T2R					BIT(4)
-#define RF_TYPE_2T2R					BIT(5)
-#define CHIP_VENDOR_UMC					BIT(7)
-#define B_CUT_VERSION					BIT(12)
-#define C_CUT_VERSION					BIT(13)
-#define D_CUT_VERSION					((BIT(12)|BIT(13)))
-#define E_CUT_VERSION					BIT(14)
-
-// MASK
-#define IC_TYPE_MASK					(BIT(0)|BIT(1)|BIT(2))
-#define CHIP_TYPE_MASK 					BIT(3)
-#define RF_TYPE_MASK					(BIT(4)|BIT(5)|BIT(6))
-#define MANUFACTUER_MASK				BIT(7)	
-#define ROM_VERSION_MASK				(BIT(11)|BIT(10)|BIT(9)|BIT(8))
-#define CUT_VERSION_MASK				(BIT(15)|BIT(14)|BIT(13)|BIT(12))
-
-// Get element
-#define GET_CVID_IC_TYPE(version)			((version) & IC_TYPE_MASK)
-#define GET_CVID_CHIP_TYPE(version)			((version) & CHIP_TYPE_MASK)
-#define GET_CVID_RF_TYPE(version)			((version) & RF_TYPE_MASK)
-#define GET_CVID_MANUFACTUER(version)		((version) & MANUFACTUER_MASK)
-#define GET_CVID_ROM_VERSION(version)		((version) & ROM_VERSION_MASK)
-#define GET_CVID_CUT_VERSION(version)		((version) & CUT_VERSION_MASK)
-
-#define IS_81XXC(version)					((GET_CVID_IC_TYPE(version) == 0)? _TRUE : _FALSE)
-#define IS_8723_SERIES(version)				((GET_CVID_IC_TYPE(version) == CHIP_8723)? _TRUE : _FALSE)
-#define IS_92D(version)						((GET_CVID_IC_TYPE(version) == CHIP_92D)? _TRUE : _FALSE)
-#define IS_1T1R(version)					((GET_CVID_RF_TYPE(version))? _FALSE : _TRUE)
-#define IS_1T2R(version)					((GET_CVID_RF_TYPE(version) == RF_TYPE_1T2R)? _TRUE : _FALSE)
-#define IS_2T2R(version)					((GET_CVID_RF_TYPE(version) == RF_TYPE_2T2R)? _TRUE : _FALSE)
-#define IS_NORMAL_CHIP(version)				((GET_CVID_CHIP_TYPE(version))? _TRUE: _FALSE)
-#define IS_CHIP_VENDOR_UMC(version)			((GET_CVID_MANUFACTUER(version))? _TRUE: _FALSE)
-
-#define IS_81XXC_TEST_CHIP(version)			((IS_81XXC(version) && (!IS_NORMAL_CHIP(version)))? _TRUE: _FALSE)
-#define IS_92D_TEST_CHIP(version)			((IS_92D(version) && (!IS_NORMAL_CHIP(version)))? _TRUE: _FALSE)
-
-#define IS_92C_SERIAL(version)   			((IS_81XXC(version) && IS_2T2R(version)) ? _TRUE : _FALSE)
-#define IS_81xxC_VENDOR_UMC_A_CUT(version)	(IS_81XXC(version)?((IS_CHIP_VENDOR_UMC(version)) ? ((GET_CVID_CUT_VERSION(version)) ? _FALSE : _TRUE) : _FALSE):_FALSE)
-#define IS_81xxC_VENDOR_UMC_B_CUT(version)	(IS_81XXC(version)?(IS_CHIP_VENDOR_UMC(version) ? ((GET_CVID_CUT_VERSION(version) == B_CUT_VERSION) ? _TRUE : _FALSE):_FALSE): _FALSE)
-#define IS_92D_SINGLEPHY(version)     		((IS_92D(version)) ? (IS_2T2R(version) ? _TRUE: _FALSE) : _FALSE)
-
-#define IS_92D_C_CUT(version)    			((IS_92D(version)) ? ((GET_CVID_CUT_VERSION(version) == C_CUT_VERSION) ? _TRUE : _FALSE) : _FALSE)
-#define IS_92D_D_CUT(version)    			((IS_92D(version)) ? ((GET_CVID_CUT_VERSION(version) == D_CUT_VERSION) ? _TRUE : _FALSE) : _FALSE)
-#define IS_92D_E_CUT(version)    			((IS_92D(version)) ? ((GET_CVID_CUT_VERSION(version) == E_CUT_VERSION) ? _TRUE : _FALSE) : _FALSE)
-
-#define IS_8723A_A_CUT(version)				((IS_8723_SERIES(version)) ? ((GET_CVID_CUT_VERSION(version)) ? _FALSE : _TRUE) : _FALSE)
-#define IS_8723A_B_CUT(version)				((IS_8723_SERIES(version)) ? ((GET_CVID_CUT_VERSION(version) == B_CUT_VERSION) ? _TRUE : _FALSE) : _FALSE)
-
-
-typedef enum _VERSION_8192C
-{
-	VERSION_TEST_CHIP_88C = 0x0000,
-	VERSION_TEST_CHIP_92C = 0x0020,
-	VERSION_TEST_UMC_CHIP_8723 = 0x0081,
-	VERSION_NORMAL_TSMC_CHIP_88C = 0x0008, 
-	VERSION_NORMAL_TSMC_CHIP_92C = 0x0028,
-	VERSION_NORMAL_TSMC_CHIP_92C_1T2R = 0x0018,
-	VERSION_NORMAL_UMC_CHIP_88C_A_CUT = 0x0088,
-	VERSION_NORMAL_UMC_CHIP_92C_A_CUT = 0x00a8,
-	VERSION_NORMAL_UMC_CHIP_92C_1T2R_A_CUT = 0x0098,		
-	VERSION_NORMAL_UMC_CHIP_8723_1T1R_A_CUT = 0x0089,
-	VERSION_NORMAL_UMC_CHIP_8723_1T1R_B_CUT = 0x1089,	
-	VERSION_NORMAL_UMC_CHIP_88C_B_CUT = 0x1088, 
-	VERSION_NORMAL_UMC_CHIP_92C_B_CUT = 0x10a8, 
-	VERSION_NORMAL_UMC_CHIP_92C_1T2R_B_CUT = 0x1090, 
-	VERSION_TEST_CHIP_92D_SINGLEPHY= 0x0022,
-	VERSION_TEST_CHIP_92D_DUALPHY = 0x0002,
-	VERSION_NORMAL_CHIP_92D_SINGLEPHY= 0x002a,
-	VERSION_NORMAL_CHIP_92D_DUALPHY = 0x000a,
-	VERSION_NORMAL_CHIP_92D_C_CUT_SINGLEPHY = 0x202a,
-	VERSION_NORMAL_CHIP_92D_C_CUT_DUALPHY = 0x200a,
-	VERSION_NORMAL_CHIP_92D_D_CUT_SINGLEPHY = 0x302a,
-	VERSION_NORMAL_CHIP_92D_D_CUT_DUALPHY = 0x300a,
-	VERSION_NORMAL_CHIP_92D_E_CUT_SINGLEPHY = 0x402a,
-	VERSION_NORMAL_CHIP_92D_E_CUT_DUALPHY = 0x400a,
-}VERSION_8192C, *PVERSION_8192C;
-#endif //#ifdef CONFIG_CHIP_VER_INTEGRATION
 
 //-------------------------------------------------------------------------
 //	Channel Plan
@@ -404,6 +314,8 @@ enum ChannelPlan
 	CHPL_WORLD	= 10,
 };
 
+#define HAL_EFUSE_MEMORY
+
 #define EFUSE_REAL_CONTENT_LEN		512
 #define EFUSE_MAP_LEN				128
 #define EFUSE_MAX_SECTION			16
@@ -418,7 +330,9 @@ enum ChannelPlan
 // | 1byte|----8bytes----|1byte|--5bytes--| 
 // |         |            Reserved(14bytes)	      |
 //
-#define EFUSE_OOB_PROTECT_BYTES 		15	// PG data exclude header, dummy 6 bytes frome CP test and reserved 1byte.
+
+// PG data exclude header, dummy 6 bytes frome CP test and reserved 1byte.
+#define EFUSE_OOB_PROTECT_BYTES 		15
 
 #define EFUSE_REAL_CONTENT_LEN_8723A	512
 #define EFUSE_MAP_LEN_8723A				256
@@ -427,6 +341,7 @@ enum ChannelPlan
 //========================================================
 //			EFUSE for BT definition
 //========================================================
+#define EFUSE_BT_REAL_BANK_CONTENT_LEN	512
 #define EFUSE_BT_REAL_CONTENT_LEN		1536	// 512*3
 #define EFUSE_BT_MAP_LEN				1024	// 1k bytes
 #define EFUSE_BT_MAX_SECTION			128		// 1024/8
@@ -471,6 +386,7 @@ typedef enum _RTL8192C_C2H_EVT
 	C2H_HW_INFO_EXCH = 10,
 	C2H_C2H_H2C_TEST = 11,
 	C2H_BT_INFO = 12,
+	C2H_BT_MP_INFO = 15,
 	MAX_C2HEVENT
 } RTL8192C_C2H_EVT;
 
@@ -483,11 +399,7 @@ typedef struct _C2H_EVT_HDR
 
 typedef struct hal_data_8723a
 {
-#ifdef CONFIG_CHIP_VER_INTEGRATION
 	HAL_VERSION			VersionID;
-#else
-	VERSION_8192C		VersionID;
-#endif
 	RT_CUSTOMER_ID	CustomerID;
 
 	u16	FirmwareVersion;
@@ -582,8 +494,11 @@ typedef struct hal_data_8723a
 
 	BB_REGISTER_DEFINITION_T	PHYRegDef[4];	//Radio A/B/C/D
 
+	BOOLEAN		bRFPathRxEnable[4];	// We support 4 RF path now.
 
 	u32	RfRegChnlVal[2];
+
+	u8	bCckHighPower;
 
 	//RDG enable
 	BOOLEAN	 bRDGEnable;
@@ -646,7 +561,20 @@ typedef struct hal_data_8723a
 	// This is used for fix the drawback of CU TSMC-A/UMC-A cut. HW auto suspend ability. Close BT clock.
 	BOOLEAN		SlimComboDbg;
 
-	u16	EfuseUsedBytes;
+	//
+	// Add For EEPROM Efuse switch and  Efuse Shadow map Setting
+	//
+	u8 			EepromOrEfuse;
+//	u8			EfuseMap[2][HWSET_MAX_SIZE_512]; //92C:256bytes, 88E:512bytes, we use union set (512bytes)
+	u16			EfuseUsedBytes;
+	u8			EfuseUsedPercentage;
+#ifdef HAL_EFUSE_MEMORY
+	EFUSE_HAL	EfuseHal;
+#endif
+
+	// Interrupt relatd register information.
+	u32			SysIntrStatus;
+	u32			SysIntrMask;
 
 	//
 	// 2011/02/23 MH Add for 8723 mylti function definition. The define should be moved to an
@@ -958,6 +886,7 @@ void rtl8723a_FirmwareSelfReset(PADAPTER padapter);
 void rtl8723a_InitializeFirmwareVars(PADAPTER padapter);
 
 void rtl8723a_InitAntenna_Selection(PADAPTER padapter);
+void rtl8723a_init_default_value(PADAPTER padapter);
 
 s32 InitLLTTable(PADAPTER padapter, u32 boundary);
 
@@ -971,7 +900,7 @@ void Hal_EfuseParseIDCode(PADAPTER padapter, u8 *hwinfo);
 void Hal_EfuseParseTxPowerInfo_8723A(PADAPTER padapter, u8 *PROMContent, BOOLEAN AutoLoadFail);
 void Hal_EfuseParseBTCoexistInfo_8723A(PADAPTER padapter, u8 *hwinfo, BOOLEAN AutoLoadFail);
 void Hal_EfuseParseEEPROMVer(PADAPTER padapter, u8 *hwinfo, BOOLEAN AutoLoadFail);
-void Hal_EfuseParseChnlPlan(PADAPTER padapter, u8 *hwinfo, BOOLEAN AutoLoadFail);
+void rtl8723a_EfuseParseChnlPlan(PADAPTER padapter, u8 *hwinfo, BOOLEAN AutoLoadFail);
 void Hal_EfuseParseCustomerID(PADAPTER padapter, u8 *hwinfo, BOOLEAN AutoLoadFail);
 void Hal_EfuseParseAntennaDiversity(PADAPTER padapter, u8 *hwinfo, BOOLEAN AutoLoadFail);
 void Hal_EfuseParseRateIndicationOption(PADAPTER padapter, u8 *hwinfo, BOOLEAN AutoLoadFail);

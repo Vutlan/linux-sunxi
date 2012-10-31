@@ -234,6 +234,9 @@ s32 rtl8188es_hal_xmit(PADAPTER padapter, struct xmit_frame *pxmitframe);
 void rtl8188es_mgnt_xmit(PADAPTER padapter, struct xmit_frame *pmgntframe);
 s32 rtl8188es_xmit_buf_handler(PADAPTER padapter);
 #define hal_xmit_handler rtl8188es_xmit_buf_handler
+#ifdef CONFIG_SDIO_TX_TASKLET
+void rtl8188es_xmit_tasklet(void *priv);
+#endif
 #endif
 
 #ifdef CONFIG_USB_HCI
@@ -246,6 +249,18 @@ s32 rtl8188eu_xmit_buf_handler(PADAPTER padapter);
 void rtl8188eu_xmit_tasklet(void *priv);
 s32 rtl8188eu_xmitframe_complete(_adapter *padapter, struct xmit_priv *pxmitpriv, struct xmit_buf *pxmitbuf);
 #endif
+
+#ifdef CONFIG_PCI_HCI
+s32 rtl8188ee_init_xmit_priv(PADAPTER padapter);
+void rtl8188ee_free_xmit_priv(PADAPTER padapter);
+struct xmit_buf *rtl8188ee_dequeue_xmitbuf(struct rtw_tx_ring *ring);
+void	rtl8188ee_xmitframe_resume(_adapter *padapter);
+s32 rtl8188ee_hal_xmit(PADAPTER padapter, struct xmit_frame *pxmitframe);
+void rtl8188ee_mgnt_xmit(PADAPTER padapter, struct xmit_frame *pmgntframe);
+void rtl8188ee_xmit_tasklet(void *priv);
+#endif
+
+
 
 #ifdef CONFIG_TX_EARLY_MODE
 void UpdateEarlyModeInfo8188E(struct xmit_priv *pxmitpriv,struct xmit_buf *pxmitbuf );

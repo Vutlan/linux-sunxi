@@ -58,15 +58,21 @@ extern s32 _sdio_local_write(PADAPTER padapter, u32 addr, u32 cnt, u8 *pbuf);
 extern s32 sdio_local_write(PADAPTER padapter, u32 addr, u32 cnt, u8 *pbuf);
 
 extern void InitInterrupt8723ASdio(PADAPTER padapter);
+extern void InitSysInterrupt8723ASdio(PADAPTER padapter);
 extern void EnableInterrupt8723ASdio(PADAPTER padapter);
 extern void DisableInterrupt8723ASdio(PADAPTER padapter);
 extern void sd_int_hdl(PADAPTER padapter);
 
+#ifdef CONFIG_RTL8723A
 extern u8 HalQueryTxBufferStatus8723ASdio(PADAPTER padapter);
+#else
+extern u8 HalQueryTxBufferStatus8189ESdio(PADAPTER padapter);
+#endif
 
 extern void InitInterrupt8188ESdio(PADAPTER padapter);
 extern void EnableInterrupt8188ESdio(PADAPTER padapter);
 extern void DisableInterrupt8188ESdio(PADAPTER padapter);
+extern void UpdateInterruptMask8188ESdio(PADAPTER padapter, u32 AddMSR, u32 RemoveMSR);
 
 
 #endif

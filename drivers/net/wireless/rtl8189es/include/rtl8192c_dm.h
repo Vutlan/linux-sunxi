@@ -260,3 +260,4 @@ void rtl8192c_InitHalDm(	IN	PADAPTER	Adapter);
 void rtl8192c_HalDmWatchDog(IN PADAPTER Adapter);
 
 #endif	//__HAL8190PCIDM_H__
+

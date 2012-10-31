@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright(c) 2007 - 2011 Realtek Corporation. All rights reserved.
+ * Copyright(c) 2007 - 2012 Realtek Corporation. All rights reserved.
  *                                        
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of version 2 of the GNU General Public License as
@@ -639,13 +639,6 @@ __inline static int IsFrameTypeCtrl(unsigned char *pframe)
 				Below is the definition for 802.11n 
 ------------------------------------------------------------------------------*/
 
-/* block-ack parameters */
-#define IEEE80211_ADDBA_PARAM_POLICY_MASK 0x0002
-#define IEEE80211_ADDBA_PARAM_TID_MASK 0x003C
-#define RTW_IEEE80211_ADDBA_PARAM_BUF_SIZE_MASK 0xFFA0
-#define IEEE80211_DELBA_PARAM_TID_MASK 0xF000
-#define IEEE80211_DELBA_PARAM_INITIATOR_MASK 0x0800
-
 //#ifdef CONFIG_80211N_HT
 
 #define SetOrderBit(pbuf)	\
@@ -880,7 +873,7 @@ typedef enum _HT_CAP_AMPDU_FACTOR {
 /* block-ack parameters */
 #define IEEE80211_ADDBA_PARAM_POLICY_MASK 0x0002
 #define IEEE80211_ADDBA_PARAM_TID_MASK 0x003C
-#define RTW_IEEE80211_ADDBA_PARAM_BUF_SIZE_MASK 0xFFA0
+#define RTW_IEEE80211_ADDBA_PARAM_BUF_SIZE_MASK 0xFFC0
 #define IEEE80211_DELBA_PARAM_TID_MASK 0xF000
 #define IEEE80211_DELBA_PARAM_INITIATOR_MASK 0x0800
 
@@ -1103,7 +1096,12 @@ typedef enum _HT_CAP_AMPDU_FACTOR {
 #define	P2P_PROVISIONING_SCAN_CNT			3
 
 #define	P2P_WILDCARD_SSID_LEN				7
-#define	P2P_FINDPHASE_EX_CNT					3
+
+#define	P2P_FINDPHASE_EX_NONE				0	// default value, used when: (1)p2p disabed or (2)p2p enabled but only do 1 scan phase
+#define	P2P_FINDPHASE_EX_FULL				1	// used when p2p enabled and want to do 1 scan phase and P2P_FINDPHASE_EX_MAX-1 find phase
+#define	P2P_FINDPHASE_EX_SOCIAL_FIRST		(P2P_FINDPHASE_EX_FULL+1) 
+#define	P2P_FINDPHASE_EX_MAX					4
+#define	P2P_FINDPHASE_EX_SOCIAL_LAST		P2P_FINDPHASE_EX_MAX
 
 #define	P2P_PROVISION_TIMEOUT				5000	//	5 seconds timeout for sending the provision discovery request
 #define	P2P_GO_NEGO_TIMEOUT					5000	//	5 seconds timeout for receiving the group negotation response
@@ -1150,6 +1148,8 @@ enum P2P_STATE {
 	P2P_STATE_RECV_INVITE_REQ = 12,		//	receiving the P2P Inviation request
 	P2P_STATE_PROVISIONING_ING = 13,		//	Doing the P2P WPS
 	P2P_STATE_PROVISIONING_DONE = 14,	//	Finish the P2P WPS
+	P2P_STATE_TX_INVITE_REQ = 15,			//	Transmit the P2P Invitation request
+	P2P_STATE_RX_INVITE_RESP = 16,		//	Receiving the P2P Invitation response
 };
 
 enum P2P_WPSINFO {

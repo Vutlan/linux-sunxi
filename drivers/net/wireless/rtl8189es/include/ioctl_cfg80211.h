@@ -39,6 +39,12 @@ struct rtw_wdev_priv
 
 	u8 bandroid_scan;
 	bool block;
+
+#ifdef CONFIG_CONCURRENT_MODE
+	ATOMIC_T ro_ch_to;
+	ATOMIC_T switch_ch_to;	
+#endif	
+	
 };
 
 #define wdev_to_priv(w) ((struct rtw_wdev_priv *)(wdev_priv(w)))
@@ -59,6 +65,7 @@ void rtw_cfg80211_surveydone_event_callback(_adapter *padapter);
 void rtw_cfg80211_indicate_connect(_adapter *padapter);
 void rtw_cfg80211_indicate_disconnect(_adapter *padapter);
 void rtw_cfg80211_indicate_scan_done(struct rtw_wdev_priv *pwdev_priv, bool aborted);
+void rtw_cfg80211_scan_abort(_adapter *padapter);
 
 #ifdef CONFIG_AP_MODE
 void rtw_cfg80211_indicate_sta_assoc(_adapter *padapter, u8 *pmgmt_frame, uint frame_len);
@@ -70,6 +77,14 @@ void rtw_cfg80211_rx_p2p_action_public(_adapter *padapter, u8 *pmgmt_frame, uint
 void rtw_cfg80211_rx_action_p2p(_adapter *padapter, u8 *pmgmt_frame, uint frame_len);
 
 int rtw_cfg80211_set_mgnt_wpsp2pie(struct net_device *net, char *buf, int len, int type);
+
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,4,0))
+#define rtw_cfg80211_rx_mgmt(dev, freq, sig_dbm, buf, len, gfp) cfg80211_rx_mgmt(dev, freq, buf, len, gfp)
+#define rtw_cfg80211_send_rx_assoc(dev, bss, buf, len) cfg80211_send_rx_assoc(dev, buf, len)
+#else
+#define rtw_cfg80211_rx_mgmt(dev, freq, sig_dbm, buf, len, gfp) cfg80211_rx_mgmt(dev, freq, sig_dbm, buf, len, gfp)
+#define rtw_cfg80211_send_rx_assoc(dev, bss, buf, len) cfg80211_send_rx_assoc(dev, bss, buf, len)
+#endif
 
 #endif //__IOCTL_CFG80211_H__
 

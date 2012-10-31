@@ -89,28 +89,28 @@ unsigned char networktype_to_raid(unsigned char network_type)
 	switch(network_type)
 	{
 		case WIRELESS_11B:
-			raid = 6;
+			raid = RATR_INX_WIRELESS_B;
 			break;
 		case WIRELESS_11A:
 		case WIRELESS_11G:
-			raid = 5;
+			raid = RATR_INX_WIRELESS_G;
 			break;
 		case WIRELESS_11BG:
-			raid = 4;
+			raid = RATR_INX_WIRELESS_GB;
 			break;
 		case WIRELESS_11_24N:
 		case WIRELESS_11_5N:
-			raid = 3;
+			raid = RATR_INX_WIRELESS_N;
 			break;
 		case WIRELESS_11A_5N:
 		case WIRELESS_11G_24N:
-			raid = 1;
+			raid = RATR_INX_WIRELESS_NG;
 			break;
 		case WIRELESS_11BG_24N:
-			raid = 0;
+			raid = RATR_INX_WIRELESS_NGB;
 			break;
 		default:
-			raid = 4;
+			raid = RATR_INX_WIRELESS_GB;
 			break;	
 
 	}
@@ -119,9 +119,9 @@ unsigned char networktype_to_raid(unsigned char network_type)
 	
 }
 
-int judge_network_type(_adapter *padapter, unsigned char *rate, int ratelen)
+u8 judge_network_type(_adapter *padapter, unsigned char *rate, int ratelen)
 {
-	int network_type = 0;
+	u8 network_type = 0;
 	struct mlme_ext_priv	*pmlmeext = &padapter->mlmeextpriv;
 	struct mlme_ext_info	*pmlmeinfo = &(pmlmeext->mlmext_info);
 	
@@ -296,10 +296,10 @@ void Save_DM_Func_Flag(_adapter *padapter)
 #ifdef CONFIG_CONCURRENT_MODE	
 	_adapter *pbuddy_adapter = padapter->pbuddy_adapter;
 	if(pbuddy_adapter)
-	pbuddy_adapter->HalFunc.SetHwRegHandler(pbuddy_adapter, HW_VAR_DM_FUNC_OP, (u8 *)(&bSaveFlag));
+	rtw_hal_set_hwreg(pbuddy_adapter, HW_VAR_DM_FUNC_OP, (u8 *)(&bSaveFlag));
 #endif
 
-	padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_DM_FUNC_OP, (u8 *)(&bSaveFlag));
+	rtw_hal_set_hwreg(padapter, HW_VAR_DM_FUNC_OP, (u8 *)(&bSaveFlag));
 
 }
 
@@ -309,9 +309,9 @@ void Restore_DM_Func_Flag(_adapter *padapter)
 #ifdef CONFIG_CONCURRENT_MODE	
 	_adapter *pbuddy_adapter = padapter->pbuddy_adapter;
 	if(pbuddy_adapter)
-	pbuddy_adapter->HalFunc.SetHwRegHandler(pbuddy_adapter, HW_VAR_DM_FUNC_OP, (u8 *)(&bSaveFlag));
+	rtw_hal_set_hwreg(pbuddy_adapter, HW_VAR_DM_FUNC_OP, (u8 *)(&bSaveFlag));
 #endif
-	padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_DM_FUNC_OP, (u8 *)(&bSaveFlag));
+	rtw_hal_set_hwreg(padapter, HW_VAR_DM_FUNC_OP, (u8 *)(&bSaveFlag));
 }
 
 void Switch_DM_Func(_adapter *padapter, u32 mode, u8 enable)
@@ -324,17 +324,17 @@ void Switch_DM_Func(_adapter *padapter, u32 mode, u8 enable)
 	{
 #ifdef CONFIG_CONCURRENT_MODE
 		if(pbuddy_adapter)
-		pbuddy_adapter->HalFunc.SetHwRegHandler(pbuddy_adapter, HW_VAR_DM_FUNC_SET, (u8 *)(&mode));
+		rtw_hal_set_hwreg(pbuddy_adapter, HW_VAR_DM_FUNC_SET, (u8 *)(&mode));
 #endif
-		padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_DM_FUNC_SET, (u8 *)(&mode));
+		rtw_hal_set_hwreg(padapter, HW_VAR_DM_FUNC_SET, (u8 *)(&mode));
 	}
 	else
 	{
 #ifdef CONFIG_CONCURRENT_MODE
 		if(pbuddy_adapter)
-		pbuddy_adapter->HalFunc.SetHwRegHandler(pbuddy_adapter, HW_VAR_DM_FUNC_CLR, (u8 *)(&mode));
+		rtw_hal_set_hwreg(pbuddy_adapter, HW_VAR_DM_FUNC_CLR, (u8 *)(&mode));
 #endif
-		padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_DM_FUNC_CLR, (u8 *)(&mode));
+		rtw_hal_set_hwreg(padapter, HW_VAR_DM_FUNC_CLR, (u8 *)(&mode));
 	}
 
 #if 0
@@ -356,12 +356,12 @@ void Switch_DM_Func(_adapter *padapter, u32 mode, u8 enable)
 
 static void Set_NETYPE1_MSR(_adapter *padapter, u8 type)
 {
-	padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_MEDIA_STATUS1, (u8 *)(&type));
+	rtw_hal_set_hwreg(padapter, HW_VAR_MEDIA_STATUS1, (u8 *)(&type));
 }
 
 static void Set_NETYPE0_MSR(_adapter *padapter, u8 type)
 {
-	padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_MEDIA_STATUS, (u8 *)(&type));
+	rtw_hal_set_hwreg(padapter, HW_VAR_MEDIA_STATUS, (u8 *)(&type));
 }
 
 void Set_MSR(_adapter *padapter, u8 type)
@@ -382,7 +382,7 @@ void SelectChannel(_adapter *padapter, unsigned char channel)
 {
 #ifdef CONFIG_DUALMAC_CONCURRENT
 	dc_SelectChannel(padapter, channel);
-#else
+#else //CONFIG_DUALMAC_CONCURRENT
 
 	unsigned int scanMode;
 	struct mlme_ext_priv *pmlmeext = &padapter->mlmeextpriv;
@@ -393,8 +393,15 @@ void SelectChannel(_adapter *padapter, unsigned char channel)
 	
 	scanMode = (pmlmeext->sitesurvey_res.scan_mode == SCAN_ACTIVE)? 1: 0;//todo:
 
-	if(padapter->HalFunc.set_channel_handler)
-		padapter->HalFunc.set_channel_handler(padapter, channel);
+	{
+#ifdef CONFIG_CONCURRENT_MODE
+		if(padapter->pcodatapriv)
+		{
+			padapter->pcodatapriv->co_ch = channel;
+		}
+#endif //CONFIG_CONCURRENT_MODE	
+		rtw_hal_set_chan(padapter, channel);
+	}	
 	
 
 #ifdef CONFIG_CONCURRENT_MODE
@@ -408,14 +415,22 @@ void SetBWMode(_adapter *padapter, unsigned short bwmode, unsigned char channel_
 {
 #ifdef CONFIG_DUALMAC_CONCURRENT
 	dc_SetBWMode(padapter, bwmode, channel_offset);
-#else
+#else //CONFIG_DUALMAC_CONCURRENT
 
 #ifdef CONFIG_CONCURRENT_MODE
 	_enter_critical_mutex(padapter->psetbw_mutex, NULL);
 #endif
 
-	if(padapter->HalFunc.set_bwmode_handler)
-		padapter->HalFunc.set_bwmode_handler(padapter, (HT_CHANNEL_WIDTH)bwmode, channel_offset);
+	{	
+#ifdef CONFIG_CONCURRENT_MODE
+		if(padapter->pcodatapriv)
+		{
+			padapter->pcodatapriv->co_bw = bwmode;
+			padapter->pcodatapriv->co_ch_offset = channel_offset;
+		}
+#endif //CONFIG_CONCURRENT_MODE
+		rtw_hal_set_bwmode(padapter, (HT_CHANNEL_WIDTH)bwmode, channel_offset);
+	}	
 
 #ifdef CONFIG_CONCURRENT_MODE
 	_exit_critical_mutex(padapter->psetbw_mutex, NULL);
@@ -426,22 +441,59 @@ void SetBWMode(_adapter *padapter, unsigned short bwmode, unsigned char channel_
 
 void set_channel_bwmode(_adapter *padapter, unsigned char channel, unsigned char channel_offset, unsigned short bwmode)
 {
+	u8 center_ch;
+	unsigned int scanMode;
+	struct mlme_ext_priv *pmlmeext = &padapter->mlmeextpriv;
+	
+
 	if((bwmode == HT_CHANNEL_WIDTH_20)||(channel_offset == HAL_PRIME_CHNL_OFFSET_DONT_CARE))
 	{
-		SelectChannel(padapter, channel);
+		//SelectChannel(padapter, channel);
+		center_ch = channel;
 	}
 	else		
 	{
 		//switch to the proper channel
 		if (channel_offset == HAL_PRIME_CHNL_OFFSET_LOWER)
 		{
-			SelectChannel(padapter, channel + 2);
+			//SelectChannel(padapter, channel + 2);
+			center_ch = channel + 2;
 		}
 		else
 		{
-			SelectChannel(padapter, channel - 2);
+			//SelectChannel(padapter, channel - 2);
+			center_ch = channel - 2;
 		}
 	}	
+
+	//set Channel
+#ifdef CONFIG_DUALMAC_Ccenter_chONCURRENT
+	dc_SelectChannel(padapter, center_ch);// set center channel
+#else //CONFIG_DUALMAC_CONCURRENT
+
+	
+#ifdef CONFIG_CONCURRENT_MODE
+	_enter_critical_mutex(padapter->psetch_mutex, NULL);
+#endif
+	
+	scanMode = (pmlmeext->sitesurvey_res.scan_mode == SCAN_ACTIVE)? 1: 0;//todo:
+
+	{
+#ifdef CONFIG_CONCURRENT_MODE
+		if(padapter->pcodatapriv)
+		{
+			padapter->pcodatapriv->co_ch = channel;//save primary channel
+		}
+#endif //CONFIG_CONCURRENT_MODE	
+		rtw_hal_set_chan(padapter, center_ch); // set center channel
+	}	
+	
+
+#ifdef CONFIG_CONCURRENT_MODE
+	_exit_critical_mutex(padapter->psetch_mutex, NULL);
+#endif
+
+#endif // CONFIG_DUALMAC_CONCURRENT
 
 	
 	SetBWMode(padapter, bwmode, channel_offset);
@@ -553,12 +605,12 @@ void CAM_empty_entry(
 	u8 			ucIndex
 )
 {
-	Adapter->HalFunc.SetHwRegHandler(Adapter, HW_VAR_CAM_EMPTY_ENTRY, (u8 *)(&ucIndex));
+	rtw_hal_set_hwreg(Adapter, HW_VAR_CAM_EMPTY_ENTRY, (u8 *)(&ucIndex));
 }
 
 void invalidate_cam_all(_adapter *padapter)
 {
-	padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_CAM_INVALID_ALL, 0);
+	rtw_hal_set_hwreg(padapter, HW_VAR_CAM_INVALID_ALL, 0);
 }
 #if 0
 static u32 _ReadCAM(_adapter *padapter ,u32 addr)
@@ -621,7 +673,7 @@ void write_cam(_adapter *padapter, u8 entry, u16 ctrl, u8 *mac, u8 *key)
 		cam_val[0] = val;
 		cam_val[1] = addr + (unsigned int)j;
 
-		padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_CAM_WRITE, (u8 *)cam_val);
+		rtw_hal_set_hwreg(padapter, HW_VAR_CAM_WRITE, (u8 *)cam_val);
 		
 		//rtw_write32(padapter, WCAMI, val);
 		
@@ -646,14 +698,14 @@ void clear_cam_entry(_adapter *padapter, u8 entry)
 	cam_val[0] = val;
 	cam_val[1] = addr + (unsigned int)0;
 
-	padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_CAM_WRITE, (u8 *)cam_val);
+	rtw_hal_set_hwreg(padapter, HW_VAR_CAM_WRITE, (u8 *)cam_val);
 
 
 
 	cam_val[0] = val;
 	cam_val[1] = addr + (unsigned int)1;
 
-	padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_CAM_WRITE, (u8 *)cam_val);
+	rtw_hal_set_hwreg(padapter, HW_VAR_CAM_WRITE, (u8 *)cam_val);
 #else
 
 	unsigned char null_sta[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
@@ -696,7 +748,7 @@ void flush_all_cam_entry(_adapter *padapter)
 	//if(check_buddy_mlmeinfo_state(padapter, _HW_STATE_NOLINK_))	
 	if(check_buddy_fwstate(padapter, _FW_LINKED) == _FALSE)
 	{
-		padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_CAM_INVALID_ALL, 0);		
+		rtw_hal_set_hwreg(padapter, HW_VAR_CAM_INVALID_ALL, 0);		
 	}
 	else
 	{
@@ -728,7 +780,7 @@ void flush_all_cam_entry(_adapter *padapter)
 	}
 #else //CONFIG_CONCURRENT_MODE
 
-	padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_CAM_INVALID_ALL, 0);	
+	rtw_hal_set_hwreg(padapter, HW_VAR_CAM_INVALID_ALL, 0);	
 
 #endif //CONFIG_CONCURRENT_MODE
 
@@ -850,22 +902,22 @@ void WMMOnAssocRsp(_adapter *padapter)
 		switch (ACI)
 		{
 			case 0x0:
-				padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_AC_PARAM_BE, (u8 *)(&acParm));
+				rtw_hal_set_hwreg(padapter, HW_VAR_AC_PARAM_BE, (u8 *)(&acParm));
 				acm_mask |= (ACM? BIT(1):0);
 				break;
 
 			case 0x1:
-				padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_AC_PARAM_BK, (u8 *)(&acParm));
+				rtw_hal_set_hwreg(padapter, HW_VAR_AC_PARAM_BK, (u8 *)(&acParm));
 				//acm_mask |= (ACM? BIT(0):0);
 				break;
 
 			case 0x2:
-				padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_AC_PARAM_VI, (u8 *)(&acParm));
+				rtw_hal_set_hwreg(padapter, HW_VAR_AC_PARAM_VI, (u8 *)(&acParm));
 				acm_mask |= (ACM? BIT(2):0);
 				break;
 
 			case 0x3:
-				padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_AC_PARAM_VO, (u8 *)(&acParm));
+				rtw_hal_set_hwreg(padapter, HW_VAR_AC_PARAM_VO, (u8 *)(&acParm));
 				acm_mask |= (ACM? BIT(3):0);
 				break;							
 		}
@@ -874,7 +926,7 @@ void WMMOnAssocRsp(_adapter *padapter)
 	}
 
 	if(padapter->registrypriv.acm_method == 1)
-		padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_ACM_CTRL, (u8 *)(&acm_mask));
+		rtw_hal_set_hwreg(padapter, HW_VAR_ACM_CTRL, (u8 *)(&acm_mask));
 	else
 		padapter->mlmepriv.acm_mask = acm_mask;
 
@@ -886,18 +938,26 @@ static void bwmode_update_check(_adapter *padapter, PNDIS_802_11_VARIABLE_IEs pI
 	unsigned char	 new_bwmode;
 	unsigned char  new_ch_offset;
 	struct HT_info_element	 *pHT_info;
+	struct mlme_priv	*pmlmepriv = &(padapter->mlmepriv);
 	struct mlme_ext_priv	*pmlmeext = &padapter->mlmeextpriv;
 	struct mlme_ext_info	*pmlmeinfo = &(pmlmeext->mlmext_info);
-	
+	struct registry_priv *pregistrypriv = &padapter->registrypriv;
+	struct ht_priv			*phtpriv = &pmlmepriv->htpriv;
 
 	if(!pIE)
 		return;
 
+	if(phtpriv->ht_option == _FALSE)	return;
+
+	if(pIE->Length > sizeof(struct HT_info_element))
+		return;
+	
 	pHT_info = (struct HT_info_element *)pIE->data;
 
-	if(pHT_info->infos[0] & BIT(2))
+	if((pHT_info->infos[0] & BIT(2)) && pregistrypriv->cbw40_enable )
 	{
 		new_bwmode = HT_CHANNEL_WIDTH_40;
+
 		switch (pHT_info->infos[0] & 0x3)
 		{
 			case 1:
@@ -1023,7 +1083,7 @@ void HT_caps_handler(_adapter *padapter, PNDIS_802_11_VARIABLE_IEs pIE)
 	pmlmeinfo->HT_caps.u.HT_cap_element.HT_caps_info = le16_to_cpu( pmlmeinfo->HT_caps.u.HT_cap_element.HT_caps_info );
 	pmlmeinfo->HT_caps.u.HT_cap_element.HT_ext_caps = le16_to_cpu( pmlmeinfo->HT_caps.u.HT_cap_element.HT_ext_caps );
 
-	padapter->HalFunc.GetHwRegHandler(padapter, HW_VAR_RF_TYPE, (u8 *)(&rf_type));
+	rtw_hal_get_hwreg(padapter, HW_VAR_RF_TYPE, (u8 *)(&rf_type));
 
 	//update the MCS rates
 	for (i = 0; i < 16; i++)
@@ -1097,9 +1157,9 @@ void HTOnAssocRsp(_adapter *padapter)
 	
 	min_MPDU_spacing = (pmlmeinfo->HT_caps.u.HT_cap_element.AMPDU_para & 0x1c) >> 2;	
 
-	padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_AMPDU_MIN_SPACE, (u8 *)(&min_MPDU_spacing));
+	rtw_hal_set_hwreg(padapter, HW_VAR_AMPDU_MIN_SPACE, (u8 *)(&min_MPDU_spacing));
 
-	padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_AMPDU_FACTOR, (u8 *)(&max_AMPDU_len));
+	rtw_hal_set_hwreg(padapter, HW_VAR_AMPDU_FACTOR, (u8 *)(&max_AMPDU_len));
 
 #if 0 //move to rtw_update_ht_cap()
 	if ((pregpriv->cbw40_enable) &&
@@ -1504,7 +1564,7 @@ unsigned char get_highest_mcs_rate(struct HT_caps_element *pHT_caps)
 
 void Update_RA_Entry(_adapter *padapter, u32 mac_id)
 {
-	padapter->HalFunc.UpdateRAMaskHandler(padapter, mac_id);
+	rtw_hal_update_ra_mask(padapter, mac_id,0);
 }
 
 void enable_rate_adaptive(_adapter *padapter, u32 mac_id);
@@ -1633,7 +1693,7 @@ void update_capinfo(PADAPTER Adapter, u16 updateCap)
 			{
 				ShortPreamble = _TRUE;
 				pmlmeinfo->preamble_mode = PREAMBLE_SHORT;
-				Adapter->HalFunc.SetHwRegHandler( Adapter, HW_VAR_ACK_PREAMBLE, (u8 *)&ShortPreamble );
+				rtw_hal_set_hwreg( Adapter, HW_VAR_ACK_PREAMBLE, (u8 *)&ShortPreamble );
 			}
 		}
 		else
@@ -1642,7 +1702,7 @@ void update_capinfo(PADAPTER Adapter, u16 updateCap)
 			{
 				ShortPreamble = _FALSE;
 				pmlmeinfo->preamble_mode = PREAMBLE_LONG;
-				Adapter->HalFunc.SetHwRegHandler( Adapter, HW_VAR_ACK_PREAMBLE, (u8 *)&ShortPreamble );
+				rtw_hal_set_hwreg( Adapter, HW_VAR_ACK_PREAMBLE, (u8 *)&ShortPreamble );
 			}
 		}
 	}
@@ -1682,7 +1742,7 @@ void update_capinfo(PADAPTER Adapter, u16 updateCap)
 		}
  	}
  
-	Adapter->HalFunc.SetHwRegHandler( Adapter, HW_VAR_SLOT_TIME, &pmlmeinfo->slotTime );
+	rtw_hal_set_hwreg( Adapter, HW_VAR_SLOT_TIME, &pmlmeinfo->slotTime );
 
 }
 
@@ -1738,7 +1798,7 @@ void update_wireless_mode(_adapter *padapter)
 		SIFS_Timer = 0x0a0a;
 	else
 		SIFS_Timer = 0x0e0e;//pHalData->SifsTime;
-	padapter->HalFunc.SetHwRegHandler( padapter, HW_VAR_SIFS,  (u8 *)&SIFS_Timer);
+	rtw_hal_set_hwreg( padapter, HW_VAR_SIFS,  (u8 *)&SIFS_Timer);
 	
 }
 
@@ -1873,12 +1933,12 @@ void update_TSF(struct mlme_ext_priv *pmlmeext, u8 *pframe, uint len)
 
 void correct_TSF(_adapter *padapter, struct mlme_ext_priv *pmlmeext)
 {
-	padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_CORRECT_TSF, 0);
+	rtw_hal_set_hwreg(padapter, HW_VAR_CORRECT_TSF, 0);
 }
 
 void beacon_timing_control(_adapter *padapter)
 {
-	padapter->HalFunc.SetBeaconRelatedRegistersHandler(padapter);
+	rtw_hal_bcn_related_reg_setting(padapter);
 }
 
 #if 0

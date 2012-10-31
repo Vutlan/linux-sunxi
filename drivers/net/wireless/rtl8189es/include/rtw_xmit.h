@@ -63,9 +63,13 @@
 #endif
 
 // xmit extension buff defination
+#if defined(CONFIG_MP_INCLUDED) && defined(CONFIG_RTL8723A)
+#define MAX_XMIT_EXTBUF_SZ	(20000)		// For Download BT FW array image.
+#define NR_XMIT_EXTBUFF (1)
+#else 
 #define MAX_XMIT_EXTBUF_SZ	(1536)
-
 #define NR_XMIT_EXTBUFF	(32)
+#endif		//#if  defined(CONFIG_MP_INCLUDED) && defined(CONFIG_RTL8723A)
 
 #define MAX_NUMBLKS		(1)
 
@@ -363,9 +367,12 @@ struct xmit_buf
 	u16 flags;
 	u32 alloc_sz;
 
+	u32  len;
+
 #ifdef CONFIG_USB_HCI
 
-	u32 sz[8];
+	//u32 sz[8];
+	u32	ff_hwaddr;
 
 #if defined(PLATFORM_OS_XP)||defined(PLATFORM_LINUX) || defined(PLATFORM_FREEBSD)
 	PURB	pxmit_urb[8];
@@ -393,12 +400,13 @@ struct xmit_buf
 #endif
 
 #ifdef CONFIG_SDIO_HCI
-	u32  len;
 	u8 *phead;
 	u8 *pdata;
 	u8 *ptail;
 	u8 *pend;
 	u32 ff_hwaddr;
+	u8	pg_num;	
+	u8	agg_num;
 #ifdef PLATFORM_OS_XP
 	PMDL pxmitbuf_mdl;
 	PIRP  pxmitbuf_irp;
@@ -406,11 +414,7 @@ struct xmit_buf
 #endif
 #endif
 
-#ifdef CONFIG_PCI_HCI
-	u32  len;
-#endif
-
-#ifdef DBG_XMIT_BUF
+#if defined(DBG_XMIT_BUF )|| defined(DBG_XMIT_BUF_EXT)
 	u8 no;
 #endif
 
@@ -575,8 +579,17 @@ struct	xmit_priv	{
 	// Tx
 	struct rtw_tx_ring	tx_ring[PCI_MAX_TX_QUEUE_COUNT];
 	int	txringcount[PCI_MAX_TX_QUEUE_COUNT];
+	u8 	beaconDMAing;		//flag of indicating beacon is transmiting to HW by DMA
 #ifdef PLATFORM_LINUX
 	struct tasklet_struct xmit_tasklet;
+#endif
+#endif
+
+#ifdef CONFIG_SDIO_HCI
+#ifdef CONFIG_SDIO_TX_TASKLET
+#ifdef PLATFORM_LINUX
+	struct tasklet_struct xmit_tasklet;
+#endif
 #endif
 #endif
 
@@ -623,7 +636,6 @@ extern s32 rtw_xmitframe_enqueue(_adapter *padapter, struct xmit_frame *pxmitfra
 extern struct xmit_frame* rtw_dequeue_xframe(struct xmit_priv *pxmitpriv, struct hw_xmit *phwxmit_i, sint entry);
 
 extern s32 rtw_xmit_classifier(_adapter *padapter, struct xmit_frame *pxmitframe);
-extern thread_return rtw_xmit_thread(thread_context context);
 extern u32 rtw_calculate_wlan_pkt_size_by_attribue(struct pkt_attrib *pattrib);
 #define rtw_wlan_pkt_size(f) rtw_calculate_wlan_pkt_size_by_attribue(&f->attrib)
 extern s32 rtw_xmitframe_coalesce(_adapter *padapter, _pkt *pkt, struct xmit_frame *pxmitframe);
@@ -665,6 +677,17 @@ void stop_sta_xmit(_adapter *padapter, struct sta_info *psta);
 void wakeup_sta_to_xmit(_adapter *padapter, struct sta_info *psta);
 void xmit_delivery_enabled_frames(_adapter *padapter, struct sta_info *psta);
 #endif
+
+u8	qos_acm(u8 acm_mask, u8 priority);
+
+#ifdef CONFIG_XMIT_THREAD_MODE
+void	enqueue_pending_xmitbuf(struct xmit_priv *pxmitpriv, struct xmit_buf *pxmitbuf);
+struct xmit_buf*	dequeue_pending_xmitbuf(struct xmit_priv *pxmitpriv);
+struct xmit_buf*	dequeue_pending_xmitbuf_under_survey(struct xmit_priv *pxmitpriv);
+sint	check_pending_xmitbuf(struct xmit_priv *pxmitpriv);
+thread_return	rtw_xmit_thread(thread_context context);
+#endif
+
 
 //include after declaring struct xmit_buf, in order to avoid warning
 #include <xmit_osdep.h>
