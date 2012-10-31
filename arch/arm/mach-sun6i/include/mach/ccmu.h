@@ -290,8 +290,8 @@ typedef struct __CCMU_MODULE0_CLK
     __u32   reserved2:2;        //bit18, reserved
     __u32   SampClkCtrl:3;      //bit20, sample clock phase control, 0~7
     __u32   reserved3:1;        //bit23, reserved
-    __u32   ClkSrc:2;           //bit24, clock source select, 00-HOSC, 01-PLL6, 10/11-reserved
-    __u32   reserved4:5;        //bit26, reserved
+    __u32   ClkSrc:3;           //bit24, clock source select, defined with different modules
+    __u32   reserved4:4;        //bit26, reserved
     __u32   ClkGate:1;          //bit31, Gating special clock, 0-CLOCK OFF, 1-CLOCK ON
 } __ccmu_module0_clk_t;
 

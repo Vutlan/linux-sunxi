@@ -208,7 +208,17 @@ static __aw_ccu_clk_id_e mod_clk_get_parent(__aw_ccu_clk_id_e id)
         case AW_MOD_CLK_SPDIF:
             return _get_module1_clk_src(&aw_ccu_reg->Spdif);
         case AW_MOD_CLK_MDFS:
-            return _get_module0_clk_src(&aw_ccu_reg->Mdfs);
+        {
+            if(aw_ccu_reg->Mdfs.ClkSrc == 0)
+                return AW_SYS_CLK_PLL5;
+            else if(aw_ccu_reg->Mdfs.ClkSrc == 1)
+                return AW_SYS_CLK_PLL6;
+            else
+            {
+                aw_ccu_reg->Mdfs.ClkSrc = 0;
+                return AW_SYS_CLK_PLL5;
+            }
+        }
         case AW_MOD_CLK_DEBE0:
             return _get_disp_clk_src(&aw_ccu_reg->Be0);
         case AW_MOD_CLK_DEBE1:
@@ -238,24 +248,166 @@ static __aw_ccu_clk_id_e mod_clk_get_parent(__aw_ccu_clk_id_e id)
         case AW_MOD_CLK_MTCACC:
             return _get_module0_clk_src(&aw_ccu_reg->MtcAcc);
         case AW_MOD_CLK_MBUS0:
-            return _get_module0_clk_src(&aw_ccu_reg->MBus0);
+        {
+            if(aw_ccu_reg->MBus0.ClkSrc == 0)
+                return AW_SYS_CLK_HOSC;
+            else if(aw_ccu_reg->MBus0.ClkSrc == 1)
+                return AW_SYS_CLK_PLL6;
+            else if(aw_ccu_reg->MBus0.ClkSrc == 2)
+                return AW_SYS_CLK_PLL5;
+            else
+            {
+                aw_ccu_reg->MBus0.ClkSrc = 2;
+                return AW_SYS_CLK_PLL5;
+            }
+        }
         case AW_MOD_CLK_MBUS1:
-            return _get_module0_clk_src(&aw_ccu_reg->MBus1);
+        {
+            if(aw_ccu_reg->MBus1.ClkSrc == 0)
+                return AW_SYS_CLK_HOSC;
+            else if(aw_ccu_reg->MBus1.ClkSrc == 1)
+                return AW_SYS_CLK_PLL6;
+            else if(aw_ccu_reg->MBus1.ClkSrc == 2)
+                return AW_SYS_CLK_PLL5;
+            else
+            {
+                aw_ccu_reg->MBus1.ClkSrc = 2;
+                return AW_SYS_CLK_PLL5;
+            }
+        }
         case AW_MOD_CLK_IEPDRC0:
-            return _get_module0_clk_src(&aw_ccu_reg->IepDrc0);
-        case AW_MOD_CLK_IEPDRC1:
-            return _get_module0_clk_src(&aw_ccu_reg->IepDrc1);
-        case AW_MOD_CLK_IEPDEU0:
-            return _get_module0_clk_src(&aw_ccu_reg->IepDeu0);
-        case AW_MOD_CLK_IEPDEU1:
-            return _get_module0_clk_src(&aw_ccu_reg->IepDeu1);
-        case AW_MOD_CLK_GPUCORE:
-            return _get_module0_clk_src(&aw_ccu_reg->GpuCore);
-        case AW_MOD_CLK_GPUMEM:
-            return _get_module0_clk_src(&aw_ccu_reg->GpuMem);
-        case AW_MOD_CLK_GPUHYD:
-            return _get_module0_clk_src(&aw_ccu_reg->GpuHyd);
+        {
+            if(aw_ccu_reg->IepDrc0.ClkSrc == 0)
+                return AW_SYS_CLK_PLL3;
+            else if(aw_ccu_reg->IepDrc0.ClkSrc == 1)
+                return AW_SYS_CLK_PLL7;
+            else if(aw_ccu_reg->IepDrc0.ClkSrc == 3)
+                return AW_SYS_CLK_PLL8;
+            else if(aw_ccu_reg->IepDrc0.ClkSrc == 4)
+                return AW_SYS_CLK_PLL9;
+            else if(aw_ccu_reg->IepDrc0.ClkSrc == 5)
+                return AW_SYS_CLK_PLL10;
+            else
 
+            {
+                aw_ccu_reg->IepDrc0.ClkSrc = 0;
+                return AW_SYS_CLK_PLL3;
+            }
+        }
+        case AW_MOD_CLK_IEPDRC1:
+        {
+            if(aw_ccu_reg->IepDrc1.ClkSrc == 0)
+                return AW_SYS_CLK_PLL3;
+            else if(aw_ccu_reg->IepDrc1.ClkSrc == 1)
+                return AW_SYS_CLK_PLL7;
+            else if(aw_ccu_reg->IepDrc1.ClkSrc == 3)
+                return AW_SYS_CLK_PLL8;
+            else if(aw_ccu_reg->IepDrc1.ClkSrc == 4)
+                return AW_SYS_CLK_PLL9;
+            else if(aw_ccu_reg->IepDrc1.ClkSrc == 5)
+                return AW_SYS_CLK_PLL10;
+            else
+
+            {
+                aw_ccu_reg->IepDrc1.ClkSrc = 0;
+                return AW_SYS_CLK_PLL3;
+            }
+        }
+        case AW_MOD_CLK_IEPDEU0:
+        {
+            if(aw_ccu_reg->IepDeu0.ClkSrc == 0)
+                return AW_SYS_CLK_PLL3;
+            else if(aw_ccu_reg->IepDeu0.ClkSrc == 1)
+                return AW_SYS_CLK_PLL7;
+            else if(aw_ccu_reg->IepDeu0.ClkSrc == 3)
+                return AW_SYS_CLK_PLL8;
+            else if(aw_ccu_reg->IepDeu0.ClkSrc == 4)
+                return AW_SYS_CLK_PLL9;
+            else if(aw_ccu_reg->IepDeu0.ClkSrc == 5)
+                return AW_SYS_CLK_PLL10;
+            else
+
+            {
+                aw_ccu_reg->IepDeu0.ClkSrc = 0;
+                return AW_SYS_CLK_PLL3;
+            }
+        }
+        case AW_MOD_CLK_IEPDEU1:
+        {
+            if(aw_ccu_reg->IepDeu1.ClkSrc == 0)
+                return AW_SYS_CLK_PLL3;
+            else if(aw_ccu_reg->IepDeu1.ClkSrc == 1)
+                return AW_SYS_CLK_PLL7;
+            else if(aw_ccu_reg->IepDeu1.ClkSrc == 3)
+                return AW_SYS_CLK_PLL8;
+            else if(aw_ccu_reg->IepDeu1.ClkSrc == 4)
+                return AW_SYS_CLK_PLL9;
+            else if(aw_ccu_reg->IepDeu1.ClkSrc == 5)
+                return AW_SYS_CLK_PLL10;
+            else
+
+            {
+                aw_ccu_reg->IepDeu1.ClkSrc = 0;
+                return AW_SYS_CLK_PLL3;
+            }
+        }
+        case AW_MOD_CLK_GPUCORE:
+        {
+            if(aw_ccu_reg->GpuCore.ClkSrc == 0)
+                return AW_SYS_CLK_PLL8;
+            else if(aw_ccu_reg->GpuCore.ClkSrc == 2)
+                return AW_SYS_CLK_PLL3;
+            else if(aw_ccu_reg->GpuCore.ClkSrc == 3)
+                return AW_SYS_CLK_PLL7;
+            else if(aw_ccu_reg->GpuCore.ClkSrc == 4)
+                return AW_SYS_CLK_PLL9;
+            else if(aw_ccu_reg->GpuCore.ClkSrc == 5)
+                return AW_SYS_CLK_PLL10;
+            else
+
+            {
+                aw_ccu_reg->GpuCore.ClkSrc = 0;
+                return AW_SYS_CLK_PLL8;
+            }
+        }
+        case AW_MOD_CLK_GPUMEM:
+        {
+            if(aw_ccu_reg->GpuMem.ClkSrc == 0)
+                return AW_SYS_CLK_PLL8;
+            else if(aw_ccu_reg->GpuMem.ClkSrc == 2)
+                return AW_SYS_CLK_PLL3;
+            else if(aw_ccu_reg->GpuMem.ClkSrc == 3)
+                return AW_SYS_CLK_PLL7;
+            else if(aw_ccu_reg->GpuMem.ClkSrc == 4)
+                return AW_SYS_CLK_PLL9;
+            else if(aw_ccu_reg->GpuMem.ClkSrc == 5)
+                return AW_SYS_CLK_PLL10;
+            else
+
+            {
+                aw_ccu_reg->GpuMem.ClkSrc = 0;
+                return AW_SYS_CLK_PLL8;
+            }
+        }
+        case AW_MOD_CLK_GPUHYD:
+        {
+            if(aw_ccu_reg->GpuHyd.ClkSrc == 0)
+                return AW_SYS_CLK_PLL8;
+            else if(aw_ccu_reg->GpuHyd.ClkSrc == 2)
+                return AW_SYS_CLK_PLL3;
+            else if(aw_ccu_reg->GpuHyd.ClkSrc == 3)
+                return AW_SYS_CLK_PLL7;
+            else if(aw_ccu_reg->GpuHyd.ClkSrc == 4)
+                return AW_SYS_CLK_PLL9;
+            else if(aw_ccu_reg->GpuHyd.ClkSrc == 5)
+                return AW_SYS_CLK_PLL10;
+            else
+
+            {
+                aw_ccu_reg->GpuHyd.ClkSrc = 0;
+                return AW_SYS_CLK_PLL8;
+            }
+        }
         case AW_MOD_CLK_HDMI:
             if(aw_ccu_reg->Hdmi.ClkSrc == 0)
                 return AW_SYS_CLK_PLL3;
@@ -811,7 +963,18 @@ static __s32 mod_clk_set_parent(__aw_ccu_clk_id_e id, __aw_ccu_clk_id_e parent)
         case AW_MOD_CLK_SPDIF:
             return _set_module1_clk_src(&aw_ccu_reg->Spdif, parent);
         case AW_MOD_CLK_MDFS:
-            return _set_module0_clk_src(&aw_ccu_reg->Mdfs, parent);
+        {
+            if(parent == AW_SYS_CLK_PLL5)
+                aw_ccu_reg->Mdfs.ClkSrc = 0;
+            else if(parent == AW_SYS_CLK_PLL6)
+                aw_ccu_reg->Mdfs.ClkSrc = 1;
+            else
+            {
+                CCU_ERR("set clock source failed! set AW_MOD_CLK_MDFS to %d!\n", parent);
+                return -1;
+            }
+            return 0;
+        }
         case AW_MOD_CLK_DEBE0:
             return _set_disp_clk_src(&aw_ccu_reg->Be0, parent);
         case AW_MOD_CLK_DEBE1:
@@ -839,23 +1002,168 @@ static __s32 mod_clk_set_parent(__aw_ccu_clk_id_e id, __aw_ccu_clk_id_e parent)
         case AW_MOD_CLK_MTCACC:
             return _set_module0_clk_src(&aw_ccu_reg->MtcAcc, parent);
         case AW_MOD_CLK_MBUS0:
-            return _set_module0_clk_src(&aw_ccu_reg->MBus0, parent);
+        {
+            if(parent == AW_SYS_CLK_HOSC)
+                aw_ccu_reg->MBus0.ClkSrc = 0;
+            else if(parent == AW_SYS_CLK_PLL6)
+                aw_ccu_reg->MBus0.ClkSrc = 1;
+            else if(parent == AW_SYS_CLK_PLL5)
+                aw_ccu_reg->MBus0.ClkSrc = 2;
+            else
+            {
+                CCU_ERR("set clock source failed! set AW_MOD_CLK_MBUS0 to %d!\n", parent);
+                return -1;
+            }
+            return 0;
+        }
         case AW_MOD_CLK_MBUS1:
-            return _set_module0_clk_src(&aw_ccu_reg->MBus1, parent);
+        {
+            if(parent == AW_SYS_CLK_HOSC)
+                aw_ccu_reg->MBus1.ClkSrc = 0;
+            else if(parent == AW_SYS_CLK_PLL6)
+                aw_ccu_reg->MBus1.ClkSrc = 1;
+            else if(parent == AW_SYS_CLK_PLL5)
+                aw_ccu_reg->MBus1.ClkSrc = 2;
+            else
+            {
+                CCU_ERR("set clock source failed! set AW_MOD_CLK_MBUS1 to %d!\n", parent);
+                return -1;
+            }
+            return 0;
+        }
         case AW_MOD_CLK_IEPDRC0:
-            return _set_module0_clk_src(&aw_ccu_reg->IepDrc0, parent);
+        {
+            if(parent == AW_SYS_CLK_PLL3)
+                aw_ccu_reg->IepDrc0.ClkSrc = 0;
+            else if(parent == AW_SYS_CLK_PLL7)
+                aw_ccu_reg->IepDrc0.ClkSrc = 1;
+            else if(parent == AW_SYS_CLK_PLL8)
+                aw_ccu_reg->IepDrc0.ClkSrc = 3;
+            else if(parent == AW_SYS_CLK_PLL9)
+                aw_ccu_reg->IepDrc0.ClkSrc = 4;
+            else if(parent == AW_SYS_CLK_PLL10)
+                aw_ccu_reg->IepDrc0.ClkSrc = 5;
+            else
+            {
+                CCU_ERR("set clock source failed! set AW_MOD_CLK_IEPDRC0 to %d!\n", parent);
+                return -1;
+            }
+            return 0;
+        }
         case AW_MOD_CLK_IEPDRC1:
-            return _set_module0_clk_src(&aw_ccu_reg->IepDrc1, parent);
+        {
+            if(parent == AW_SYS_CLK_PLL3)
+                aw_ccu_reg->IepDrc1.ClkSrc = 0;
+            else if(parent == AW_SYS_CLK_PLL7)
+                aw_ccu_reg->IepDrc1.ClkSrc = 1;
+            else if(parent == AW_SYS_CLK_PLL8)
+                aw_ccu_reg->IepDrc1.ClkSrc = 3;
+            else if(parent == AW_SYS_CLK_PLL9)
+                aw_ccu_reg->IepDrc1.ClkSrc = 4;
+            else if(parent == AW_SYS_CLK_PLL10)
+                aw_ccu_reg->IepDrc1.ClkSrc = 5;
+            else
+            {
+                CCU_ERR("set clock source failed! set AW_MOD_CLK_IEPDRC1 to %d!\n", parent);
+                return -1;
+            }
+            return 0;
+        }
         case AW_MOD_CLK_IEPDEU0:
-            return _set_module0_clk_src(&aw_ccu_reg->IepDeu0, parent);
+        {
+            if(parent == AW_SYS_CLK_PLL3)
+                aw_ccu_reg->IepDeu0.ClkSrc = 0;
+            else if(parent == AW_SYS_CLK_PLL7)
+                aw_ccu_reg->IepDeu0.ClkSrc = 1;
+            else if(parent == AW_SYS_CLK_PLL8)
+                aw_ccu_reg->IepDeu0.ClkSrc = 3;
+            else if(parent == AW_SYS_CLK_PLL9)
+                aw_ccu_reg->IepDeu0.ClkSrc = 4;
+            else if(parent == AW_SYS_CLK_PLL10)
+                aw_ccu_reg->IepDeu0.ClkSrc = 5;
+            else
+            {
+                CCU_ERR("set clock source failed! set AW_MOD_CLK_IEPDEU0 to %d!\n", parent);
+                return -1;
+            }
+            return 0;
+        }
         case AW_MOD_CLK_IEPDEU1:
-            return _set_module0_clk_src(&aw_ccu_reg->IepDeu1, parent);
+        {
+            if(parent == AW_SYS_CLK_PLL3)
+                aw_ccu_reg->IepDeu1.ClkSrc = 0;
+            else if(parent == AW_SYS_CLK_PLL7)
+                aw_ccu_reg->IepDeu1.ClkSrc = 1;
+            else if(parent == AW_SYS_CLK_PLL8)
+                aw_ccu_reg->IepDeu1.ClkSrc = 3;
+            else if(parent == AW_SYS_CLK_PLL9)
+                aw_ccu_reg->IepDeu1.ClkSrc = 4;
+            else if(parent == AW_SYS_CLK_PLL10)
+                aw_ccu_reg->IepDeu1.ClkSrc = 5;
+            else
+            {
+                CCU_ERR("set clock source failed! set AW_MOD_CLK_IEPDEU1 to %d!\n", parent);
+                return -1;
+            }
+            return 0;
+        }
         case AW_MOD_CLK_GPUCORE:
-            return _set_module0_clk_src(&aw_ccu_reg->GpuCore, parent);
+        {
+            if(parent == AW_SYS_CLK_PLL8)
+                aw_ccu_reg->GpuCore.ClkSrc = 0;
+            else if(parent == AW_SYS_CLK_PLL3)
+                aw_ccu_reg->GpuCore.ClkSrc = 2;
+            else if(parent == AW_SYS_CLK_PLL7)
+                aw_ccu_reg->GpuCore.ClkSrc = 3;
+            else if(parent == AW_SYS_CLK_PLL9)
+                aw_ccu_reg->GpuCore.ClkSrc = 4;
+            else if(parent == AW_SYS_CLK_PLL10)
+                aw_ccu_reg->GpuCore.ClkSrc = 5;
+            else
+            {
+                CCU_ERR("set clock source failed! set AW_MOD_CLK_GPUCORE to %d!\n", parent);
+                return -1;
+            }
+            return 0;
+        }
         case AW_MOD_CLK_GPUMEM:
-            return _set_module0_clk_src(&aw_ccu_reg->GpuMem, parent);
+        {
+            if(parent == AW_SYS_CLK_PLL8)
+                aw_ccu_reg->GpuMem.ClkSrc = 0;
+            else if(parent == AW_SYS_CLK_PLL3)
+                aw_ccu_reg->GpuMem.ClkSrc = 2;
+            else if(parent == AW_SYS_CLK_PLL7)
+                aw_ccu_reg->GpuMem.ClkSrc = 3;
+            else if(parent == AW_SYS_CLK_PLL9)
+                aw_ccu_reg->GpuMem.ClkSrc = 4;
+            else if(parent == AW_SYS_CLK_PLL10)
+                aw_ccu_reg->GpuMem.ClkSrc = 5;
+            else
+            {
+                CCU_ERR("set clock source failed! set AW_MOD_CLK_GPUMEM to %d!\n", parent);
+                return -1;
+            }
+            return 0;
+        }
         case AW_MOD_CLK_GPUHYD:
-            return _set_module0_clk_src(&aw_ccu_reg->GpuHyd, parent);
+        {
+            if(parent == AW_SYS_CLK_PLL8)
+                aw_ccu_reg->GpuHyd.ClkSrc = 0;
+            else if(parent == AW_SYS_CLK_PLL3)
+                aw_ccu_reg->GpuHyd.ClkSrc = 2;
+            else if(parent == AW_SYS_CLK_PLL7)
+                aw_ccu_reg->GpuHyd.ClkSrc = 3;
+            else if(parent == AW_SYS_CLK_PLL9)
+                aw_ccu_reg->GpuHyd.ClkSrc = 4;
+            else if(parent == AW_SYS_CLK_PLL10)
+                aw_ccu_reg->GpuHyd.ClkSrc = 5;
+            else
+            {
+                CCU_ERR("set clock source failed! set AW_MOD_CLK_GPUHYD to %d!\n", parent);
+                return -1;
+            }
+            return 0;
+        }
         case AW_MOD_CLK_HDMI:
             if(parent == AW_SYS_CLK_PLL3)
                 aw_ccu_reg->Hdmi.ClkSrc = 0;
