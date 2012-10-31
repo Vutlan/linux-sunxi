@@ -68,8 +68,13 @@ ssize_t vmouse_write(struct file* filp, const char __user * buf, size_t count, l
 		}else if (event.flag == 0) {
 			input_report_key(vmouse_idev, BTN_RIGHT, event.x);
 			input_sync(vmouse_idev);
+		} else if(event.flag == 3)
+		{
+			input_report_rel(vmouse_idev, REL_WHEEL, event.x);
+			input_report_rel(vmouse_idev, REL_HWHEEL, event.y);
+			input_sync(vmouse_idev);
 		}
-        printk(KERN_INFO"%s p=%d x=%d y=%d\n", __func__, event.flag, event.x, event.y);
+        //printk(KERN_INFO"%s p=%d x=%d y=%d\n", __func__, event.flag, event.x, event.y);
     }
  
     return ret;
@@ -120,7 +125,7 @@ static int vmouse_input_dev_setup(void)
 	vmouse_idev->evbit[0] = BIT_MASK(EV_KEY) | BIT_MASK(EV_REL);
 	vmouse_idev->keybit[BIT_WORD(BTN_LEFT)] = BIT_MASK(BTN_LEFT) |
 		BIT_MASK(BTN_MIDDLE) | BIT_MASK(BTN_RIGHT) | BIT_MASK(BTN_TOUCH);
-	vmouse_idev->relbit[0] = BIT_MASK(REL_X) | BIT_MASK(REL_Y);
+	vmouse_idev->relbit[0] = BIT_MASK(REL_X) | BIT_MASK(REL_Y) | BIT_MASK(REL_WHEEL) | BIT_MASK(REL_HWHEEL);
  
     ret = input_register_device(vmouse_idev);
  
