@@ -101,7 +101,7 @@ void axp20_correct_restcap(struct axp_mfd_chip *chip)
 				bat_cap	= ABS(Cur_CoulombCounter) / (100 - val[0]) * 100;
 				Buffer_Cou_Set_mfd(chip,bat_cap);
 				Cou_Correction_Flag	= 0;
-				axp_clr_bits(chip->client,POWER20_DATA_BUFFER1,0x20);
+				axp_clr_bits(chip->dev,POWER20_DATA_BUFFER1,0x20);
 				saved_cap =	100;
 				Set_Rest_Cap_mfd(chip,saved_cap);
 				Cou_Count_Clear_mfd(chip);
