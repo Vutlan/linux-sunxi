@@ -433,7 +433,13 @@ static int aw_early_suspend(void)
 	ar100_standby_super((struct super_standby_para *)(&super_standby_para_info));
 	if(unlikely(debug_mask&PM_STANDBY_PRINT_STANDBY)){
 		pr_info("warning: cpus not sync to enter super standby. \n");
+		while(1){
+			printk("afer assert, reset reg val: = 0x%x. \n", readl(0xf1f01c40));
+		}
 	}
+	
+
+	
 	asm("WFI");
 	busy_waiting();
 
@@ -652,8 +658,10 @@ static int aw_pm_enter(suspend_state_t state)
 		standby_info.standby_para.debug_mask = debug_mask;
 		
 		// build the coherent between cache and memory
-		//clean and flush
-		__cpuc_flush_kern_all();
+		//clean and flush: the data is already in cache, so can clean the data into sram;
+		//while, in dma transfer condition, the data is not in cache, so can not use this api in dma ops.
+		//at current situation, no need to clean & invalidate cache;
+		//__cpuc_flush_kern_all();
 
 		/* goto sram and run */
 		standby(&standby_info);

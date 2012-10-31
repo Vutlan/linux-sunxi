@@ -64,19 +64,19 @@ struct normal_standby_para normal_standby_para_info;
 *
 * Returns    : none
 *
-* Note       :
+* Note       : the code&data may resident in cache.
 *********************************************************************************************************
 */
 int main(struct aw_pm_info *arg)
 {
 	char    *tmpPtr = (char *)&__bss_start;
-	//int i = 0;
-#if 0
-		/*to disable non-0xf000,0000 range*/
-		flush_dcache();
-		flush_icache();
-#endif
-	//disable_cache();
+
+	//don't need init serial ,depend kernel?
+	//serial_init();
+	if(!arg){
+		/* standby parameter is invalid */
+		return -1;
+	}
 
 	/* flush data and instruction tlb, there is 32 items of data tlb and 32 items of instruction tlb,
 	The TLB is normally allocated on a rotating basis. The oldest entry is always the next allocated */
@@ -87,30 +87,13 @@ int main(struct aw_pm_info *arg)
 
 	/* save stack pointer registger, switch stack to sram */
 	sp_backup = save_sp();
-	
-	//serial_init();
-	if(!arg){
-		/* standby parameter is invalid */
-		return -1;
-	}
 
 	/* copy standby parameter from dram */
 	standby_memcpy(&pm_info, arg, sizeof(pm_info));
-
-	/* flush data and instruction tlb, there is 32 items of data tlb and 32 items of instruction tlb,
-	The TLB is normally allocated on a rotating basis. The oldest entry is always the next allocated */
-	mem_flush_tlb();
 	
-	/* copy standby code & data to load tlb */
-	//standby_memcpy((char *)&__standby_end, (char *)&__standby_start, (char *)&__bss_end - (char *)&__bss_start);
 	/* preload tlb for standby */
 	mem_preload_tlb();
 	
-#if 1
-	//destory_mmu();
-	//invalidate_icache();
-#endif
-
 	/* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 	/* init module before dram enter selfrefresh */
 	/* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
@@ -120,6 +103,7 @@ int main(struct aw_pm_info *arg)
 	standby_clk_init();
 	standby_int_init();
 	standby_tmr_init();
+	
 	/* init some system wake source */
 	if(pm_info.standby_para.event & CPU0_WAKEUP_MSGBOX){
 		standby_enable_int(INT_SOURCE_MSG_BOX);
@@ -129,12 +113,10 @@ int main(struct aw_pm_info *arg)
 		standby_enable_int(INT_SOURCE_LRADC);
 	}
 
-
 	/* process standby */
 	if(unlikely(pm_info.standby_para.debug_mask&PM_STANDBY_PRINT_CACHE_TLB_MISS)){
 		cache_count_init();
 	}
-	
 
 	//busy_waiting();
 	standby();
@@ -143,13 +125,10 @@ int main(struct aw_pm_info *arg)
 	//actually, msg_box int will be clear by ar100-driver.
 	pm_info.standby_para.event |= standby_query_int(INT_SOURCE_MSG_BOX)? 0:CPU0_WAKEUP_MSGBOX;
 	pm_info.standby_para.event |= standby_query_int(INT_SOURCE_LRADC)? 0:CPU0_WAKEUP_KEY;
-
-	/* exit standby module */
+	
 	if(pm_info.standby_para.event & CPU0_WAKEUP_KEY){
 		standby_key_exit();
 	}
-
-	standby_int_exit();
 	
 	/*check completion status: only after restore completion, access dram is allowed. */
 	while(standby_ar100_check_restore_status())
@@ -165,20 +144,17 @@ int main(struct aw_pm_info *arg)
 		}
 	}
 
-
-#if 0
-	flush_dcache();
-	flush_icache();
-	//restore_mmu();
-	invalidate_icache();
-#endif
-
-	/* restore stack pointer register, switch stack back to dram */
-	restore_sp(sp_backup);
-
 	/* disable watch-dog    */
 	standby_tmr_disable_watchdog();
+
+	/* exit standby module */
+	standby_int_exit();
 	standby_tmr_exit();
+	standby_clk_exit();
+	standby_ar100_exit();
+	
+	/* restore stack pointer register, switch stack back to dram */
+	restore_sp(sp_backup);
 
 	/* report which wake source wakeup system */
 	arg->standby_para.event = pm_info.standby_para.event;
@@ -188,7 +164,6 @@ int main(struct aw_pm_info *arg)
 	
 	return 0;
 }
-
 
 /*
 *********************************************************************************************************
@@ -249,9 +224,19 @@ static void restore_ccu(void)
 #endif
 	
 		return;
-
 }
 
+/*
+*********************************************************************************************************
+*                                    destory_mmu
+*
+* Description: to destory the mmu mapping, so, the tlb miss will result in an data/cache abort 
+*              while not accessing dram.
+* Arguments  : none
+*
+* Returns    : none;
+*********************************************************************************************************
+*/
 static void destory_mmu(void)
 {
 	__u32 ttb_1r = 0;

@@ -21,6 +21,7 @@
 #include "standby_cfg.h"
 #include "../pm_config.h"
 
+#define GIC_400_ENABLE_LEN (0x40) //unit is byte. so in 32bit unit, the reg offset is 0-0x3c
 
 /* define interrupt source */
 enum interrupt_source_e{

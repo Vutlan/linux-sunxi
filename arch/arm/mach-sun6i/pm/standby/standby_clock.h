@@ -33,6 +33,7 @@ struct sun4i_clk_div_t {
 #define PLL_CTRL_REG1_OFFSET	(0x44)
 
 __s32 standby_clk_init(void);
+__s32 standby_clk_exit(void);
 __s32 standby_clk_hoscenable(void);
 __s32 standby_clk_ldoenable(void);
 extern __u32   cpu_ms_loopcnt;

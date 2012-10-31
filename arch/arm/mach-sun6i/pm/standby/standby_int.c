@@ -48,7 +48,7 @@ __s32 standby_int_init(void)
 	 * Disable all interrupts.  Leave the PPI and SGIs alone
 	 * as these enables are banked registers.
 	 */
-	for (i = 4; i < (0x40); i += 4)
+	for (i = 4; i < (GIC_400_ENABLE_LEN); i += 4)
 		*(volatile __u32 *)(GicDDisc + GIC_DIST_ENABLE_CLEAR + i) = 0xffffffff;
 
 	/*config cpu interface*/
@@ -59,7 +59,7 @@ __s32 standby_int_init(void)
 
 #if 1
 	/* clear external irq pending: needed */
-	for (i = 4; i < (0x40); i += 4)
+	for (i = 4; i < (GIC_400_ENABLE_LEN); i += 4)
 		*(volatile __u32 *)(GicDDisc + GIC_DIST_PENDING_CLEAR + i) = 0xffffffff;
 #endif
 	//the print info just to check the pending state, actually, after u read iar, u need to access end of interrupt reg;
@@ -93,7 +93,7 @@ __s32 standby_int_exit(void)
 	volatile __u32 enable_bit = 0;
 	
 	//all the disable-int-src pending, need to be clear
-	for(i = 0; i < 0x40; i += 4){
+	for(i = 0; i < GIC_400_ENABLE_LEN; i += 4){
 		enable_bit = *(volatile __u32 *)(GicDDisc + GIC_DIST_ENABLE_SET + i);
 		*(volatile __u32 *)(GicDDisc + GIC_DIST_PENDING_CLEAR + i) &= (~enable_bit);
 	}

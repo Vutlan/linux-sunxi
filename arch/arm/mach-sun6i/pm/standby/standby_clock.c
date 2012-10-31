@@ -59,6 +59,25 @@ __s32 standby_clk_init(void)
 }
 
 
+/*
+*********************************************************************************************************
+*                           standby_clk_exit
+*
+*Description: ccu exit for platform standby
+*
+*Arguments  : none
+*
+*Return     : result,
+*
+*Notes      :
+*
+*********************************************************************************************************
+*/
+__s32 standby_clk_exit(void)
+{
+
+    return 0;
+}
 
 
 /*
