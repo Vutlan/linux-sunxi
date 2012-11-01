@@ -151,7 +151,7 @@
 #define AW_IRQ_DEU01		(AW_IRQ_GIC_START + 30)/*	DEU01		*/
 #define AW_IRQ_R_1WIRE		(AW_IRQ_GIC_START + 31)/*	R_1WIRE		*/
 
-#elif AW_ASIC_PLATFORM
+#elif defined (AW_ASIC_PLATFORM)
 
 #define AW_IRQ_UART0		(AW_IRQ_GIC_START + 0)		/*	UART0		*/
 #define AW_IRQ_UART1		(AW_IRQ_GIC_START + 1)		/*	UART1		*/
@@ -286,15 +286,21 @@
 /*
  * GIC
  */
-#define NR_IRQS           (AW_IRQ_GIC_START + 128)
-#define MAX_GIC_NR        1
-
 #else
 
 #error "please select a platform"
 
 #endif
 
+#define NR_IRQS           (AW_IRQ_GIC_START + 128)
+#define MAX_GIC_NR        1
+
+#define AW_IRQ_EINT_PA	(AW_IRQ_GIC_START + 11)
+#define AW_IRQ_EINT_PB	(AW_IRQ_GIC_START + 15)
+#define AW_IRQ_EINT_PE	(AW_IRQ_GIC_START + 16)
+#define AW_IRQ_EINT_PG	(AW_IRQ_GIC_START + 17)
+#define AW_IRQ_EINT_R_PL	(AW_IRQ_GIC_START + 45)
+#define AW_IRQ_EINT_R_PM	(AW_IRQ_GIC_START + 46)
 
 
 
