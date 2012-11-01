@@ -586,8 +586,12 @@ static int usb_port_pm_thread(void * pArg)
             else
                 set_ctrl_gpio(0);
             continue;
-        }          
+        }      
+            
         voltage = get_voltage();
+        if(voltage < 2000000)
+            continue;
+        
         capacity = get_capacity();
         connect = get_connect_status();
         if(voltage != old_voltage || capacity != old_capacity){  
