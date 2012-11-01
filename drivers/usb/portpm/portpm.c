@@ -367,7 +367,7 @@ static int do_1a_500ma(int connect, int voltage, int capacity)
         cnt_on = 0;        
         if(voltage > pm_cfg.v_1a && capacity > pm_cfg.c_1a){
             cnt_1a++;
-            cnt_500ma = 0;            
+            cnt_500ma = 0;
             if(cnt_1a > BOUNCE_THRESHOLD){
                 set_vbus(1);
                 set_ctrl_gpio(1);
@@ -441,7 +441,7 @@ static int do_500ma(int connect, int voltage, int capacity)
         cnt_on = 0;        
         if(voltage > pm_cfg.v_500ma && capacity > pm_cfg.c_500ma){
             cnt_500ma++;            
-            if(cnt_1a > BOUNCE_THRESHOLD){
+            if(cnt_500ma > BOUNCE_THRESHOLD){
                 set_vbus(1);
                 set_ctrl_gpio(0);
             }
