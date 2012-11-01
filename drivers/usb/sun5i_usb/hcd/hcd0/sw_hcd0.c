@@ -512,16 +512,16 @@ static void sw_hcd_board_set_vbus(struct sw_hcd *sw_hcd, int is_on)
     sw_hcd : host driver insmod(device connected to otg & otg perform as host hcd0)
     hcd0_enable : battery capacity allow power supply on hcd0
     */
-    if(!(sw_hcd && hcd0_enable)){        
-        return;
-    }
     
     if(is_on)
         hcd0_set_vbus_cnt++;
     else
         hcd0_set_vbus_cnt--;  
     printk("is_on = %d, hcd0_set_vbus_cnt = %d\n", is_on, hcd0_set_vbus_cnt); 
-    
+
+    if(!sw_hcd){        
+        return;
+    }
     if(sw_hcd->sw_hcd_io->Drv_vbus_Handle == 0){
         printk("wrn: sw_hcd_io->drv_vbus_Handle is null\n");
         return;
@@ -2448,13 +2448,13 @@ module_exit(sw_hcd_cleanup);
 int hcd0_set_vbus(int is_on)
 {
     struct sw_hcd *sw_hcd = g_sw_hcd0;      
-    
-    sw_hcd_board_set_vbus(sw_hcd, is_on);
 
     if(is_on)
         hcd0_enable = 1;
     else
-        hcd0_enable = 0;    
+        hcd0_enable = 0; 
+        
+    sw_hcd_board_set_vbus(sw_hcd, is_on);       
 
 	return 0;
 }
@@ -2462,13 +2462,7 @@ EXPORT_SYMBOL(hcd0_set_vbus);
 
 int hcd0_get_vbus_status(void)
 {
-    struct sw_hcd *sw_hcd = g_sw_hcd0;    
-
-    if(!sw_hcd){        
-        return hcd0_enable;
-    }
-
-	return hcd0_set_vbus_cnt > 0 ? 1 : 0;//gpio_read_one_pin_value(sw_hcd->sw_hcd_io->Drv_vbus_Handle, NULL);
+	return hcd0_enable;
 }
 EXPORT_SYMBOL(hcd0_get_vbus_status);
 
