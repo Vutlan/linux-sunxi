@@ -67,7 +67,6 @@
 #define AW_IRQ_SPI0			(AW_IRQ_GIC_START + 13)/*	SPI0		*/
 #define AW_IRQ_NAND0		(AW_IRQ_GIC_START + 14)/*	NAND0		*/
 #define AW_IRQ_NAND1		(AW_IRQ_GIC_START + 15)/*	NAND1		*/
-#define AW_IRQ_GPU			(AW_IRQ_GIC_START + 15)/*	GPU			*/
 #define AW_IRQ_MMC2			(AW_IRQ_GIC_START + 15)/*	MMC2		*/
 #define AW_IRQ_MMC3			(AW_IRQ_GIC_START + 15)/*	MMC3		*/
 #define AW_IRQ_RCIR			(AW_IRQ_GIC_START + 16)/*	RCIR		*/
@@ -125,7 +124,6 @@
 #define AW_IRQ_SPI0			(AW_IRQ_GIC_START + 13)/*	SPI0		*/
 #define AW_IRQ_NAND0		(AW_IRQ_GIC_START + 14)/*	NAND0		*/
 #define AW_IRQ_NAND1		(AW_IRQ_GIC_START + 15)/*	NAND1		*/
-#define AW_IRQ_GPU			(AW_IRQ_GIC_START + 15)/*	GPU			*/
 #define AW_IRQ_RCIR			(AW_IRQ_GIC_START + 16)/*	RCIR		*/
 #define AW_IRQ_RUART		(AW_IRQ_GIC_START + 16)/*	RUART		*/
 #define AW_IRQ_RGPIOL		(AW_IRQ_GIC_START + 17)/*	RGPIOL		*/
@@ -145,6 +143,7 @@
 #define AW_IRQ_TP			(AW_IRQ_GIC_START + 24)/*	TP			*/
 #define AW_IRQ_LCD0			(AW_IRQ_GIC_START + 25)/*	LCD0		*/
 #define AW_IRQ_TZASC		(AW_IRQ_GIC_START + 26)/*	TZASC		*/
+#define AW_IRQ_GPU			(AW_IRQ_GIC_START + 26)/*	GPU			*/
 #define AW_IRQ_DEFE0		(AW_IRQ_GIC_START + 27)/*	DEFE0		*/
 #define AW_IRQ_DEBE0		(AW_IRQ_GIC_START + 28)/*	DEFB0		*/
 #define AW_IRQ_DRC01		(AW_IRQ_GIC_START + 29)/*	DRC01		*/
