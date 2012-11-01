@@ -29,7 +29,7 @@
 #include <asm/irq.h>
 
 // #include <mach/sys_config.h>
-// #include <mach/irqs.h>
+#include <mach/irqs-sun6i.h>
 #include <mach/i2c.h>
 
 #define SUN6I_I2C_DEBUG
@@ -1372,11 +1372,11 @@ static int __exit sun6i_i2c_remove(struct platform_device *pdev)
 #ifdef CONFIG_PM
 static int sun6i_i2c_suspend(struct device *dev)
 {
+#ifndef SUN6I_I2C_FPGA
 	struct platform_device *pdev = to_platform_device(dev);
 	struct sun6i_i2c *i2c = platform_get_drvdata(pdev);
 	int count = 10;
 
-#ifndef SUN6I_I2C_FPGA
 	i2c->suspended = 1;
 
 	/*
@@ -1407,10 +1407,10 @@ static int sun6i_i2c_suspend(struct device *dev)
 
 static int sun6i_i2c_resume(struct device *dev)
 {
+#ifndef SUN6I_I2C_FPGA
 	struct platform_device *pdev = to_platform_device(dev);
 	struct sun6i_i2c *i2c = platform_get_drvdata(pdev);
 
-#ifndef SUN6I_I2C_FPGA
 	i2c->suspended = 0;
 
 	if(4 == i2c->bus_num) {
@@ -1457,11 +1457,11 @@ static struct resource sun6i_twi0_resources[] = {
 		.end	= TWI0_BASE_ADDR_END,
 		.flags	= IORESOURCE_MEM,
 	},
-	// {
-		// .start	= SW_INT_IRQNO_TWI0,
-		// .end	= SW_INT_IRQNO_TWI0,
-		// .flags	= IORESOURCE_IRQ,
-	// },
+	{
+		.start	= AW_IRQ_TWI0,
+		.end	= AW_IRQ_TWI0,
+		.flags	= IORESOURCE_IRQ,
+	},
 };
 
 static struct sun6i_i2c_platform_data sun6i_twi0_pdata[] = {
@@ -1488,8 +1488,8 @@ static struct resource sun6i_twi1_resources[] = {
 		.end	= TWI1_BASE_ADDR_END,
 		.flags	= IORESOURCE_MEM,
 	}, {
-		.start	= SUN6I_IRQ_TWI1,
-		.end	= SUN6I_IRQ_TWI1,
+		.start	= AW_IRQ_TWI1,
+		.end	= AW_IRQ_TWI1,
 		.flags	= IORESOURCE_IRQ,
 	},
 };
@@ -1511,6 +1511,7 @@ struct platform_device sun6i_twi1_device = {
 	},
 };
 
+#ifndef SUN6I_I2C_FPGA
 /* twi2 */
 static struct resource sun6i_twi2_resources[] = {
 	{
@@ -1518,11 +1519,11 @@ static struct resource sun6i_twi2_resources[] = {
 		.end	= TWI2_BASE_ADDR_END,
 		.flags	= IORESOURCE_MEM,
 	},
-	// {
-		// .start	= SW_INT_IRQNO_TWI2,
-		// .end	= SW_INT_IRQNO_TWI2,
-		// .flags	= IORESOURCE_IRQ,
-	// },
+	{
+		.start	= AW_IRQ_TWI2,
+		.end	= AW_IRQ_TWI2,
+		.flags	= IORESOURCE_IRQ,
+	},
 };
 
 static struct sun6i_i2c_platform_data sun6i_twi2_pdata[] = {
@@ -1549,11 +1550,11 @@ static struct resource sun6i_twi3_resources[] = {
 		.end	= TWI3_BASE_ADDR_END,
 		.flags	= IORESOURCE_MEM,
 	},
-	// {
-		// .start	= SW_INT_IRQNO_TWI3,
-		// .end	= SW_INT_IRQNO_TWI3,
-		// .flags	= IORESOURCE_IRQ,
-	// },
+	{
+		.start	= AW_IRQ_TWI3,
+		.end	= AW_IRQ_TWI3,
+		.flags	= IORESOURCE_IRQ,
+	},
 };
 
 static struct sun6i_i2c_platform_data sun6i_twi3_pdata[] = {
@@ -1572,6 +1573,7 @@ struct platform_device sun6i_twi3_device = {
 		.platform_data = sun6i_twi3_pdata,
 	},
 };
+#endif
 
 /* r_twi */
 static struct resource sun6i_rtwi_resources[] = {
@@ -1580,8 +1582,8 @@ static struct resource sun6i_rtwi_resources[] = {
 		.end	= RTWI_BASE_ADDR_END,
 		.flags	= IORESOURCE_MEM,
 	}, {
-		.start	= SUN6I_IRQ_RTWI,
-		.end	= SUN6I_IRQ_RTWI,
+		.start	= AW_IRQ_RP2TWI,
+		.end	= AW_IRQ_RP2TWI,
 		.flags	= IORESOURCE_IRQ,
 	},
 };

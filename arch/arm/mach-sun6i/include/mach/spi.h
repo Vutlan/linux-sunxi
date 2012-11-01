@@ -167,8 +167,6 @@
 #define SPI3_BASE_ADDR_START	(0x01C6B000)
 #define SPI3_BASE_ADDR_END		(SPI3_BASE_ADDR_START + SUN6I_SPI_ADDR_SIZE)
 
-#define SUN6I_IRQ_SPI0	45
-
 struct sun6i_spi_platform_data {
     int cs_bitmap; // cs0-0x1,cs1-0x2,cs0&cs1-0x3
     int num_cs;   // number of cs

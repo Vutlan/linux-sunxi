@@ -29,7 +29,7 @@
 #include <asm/io.h>
 #include <mach/dma.h>
 #include <mach/hardware.h>
-#include <mach/irqs.h>
+#include <mach/irqs-sun6i.h>
 #include <mach/sys_config.h>
 #include <mach/spi.h>
 
@@ -1650,8 +1650,8 @@ static struct resource sun6i_spi0_resources[] = {
 		.flags	= IORESOURCE_MEM,
 	},
 	[1] = {
-		.start	= SUN6I_IRQ_SPI0,
-		.end	= SUN6I_IRQ_SPI0,
+		.start	= AW_IRQ_SPI0,
+		.end	= AW_IRQ_SPI0,
 		.flags	= IORESOURCE_IRQ,
 	}
 };
@@ -1680,8 +1680,8 @@ static struct resource sun6i_spi1_resources[] = {
 		.flags	= IORESOURCE_MEM,
 	},
 	[1] = {
-		.start	= SW_INT_IRQNO_SPI01,
-		.end	= SW_INT_IRQNO_SPI01,
+		.start	= AW_IRQ_SPI1,
+		.end	= AW_IRQ_SPI1,
 		.flags	= IORESOURCE_IRQ,
 	}
 };
@@ -1703,8 +1703,8 @@ static struct resource sun6i_spi2_resources[] = {
 		.flags	= IORESOURCE_MEM,
 	},
 	[1] = {
-		.start	= SW_INT_IRQNO_SPI02,
-		.end	= SW_INT_IRQNO_SPI02,
+		.start	= AW_IRQ_SPI2,
+		.end	= AW_IRQ_SPI2,
 		.flags	= IORESOURCE_IRQ,
 	}
 };
@@ -1732,8 +1732,8 @@ static struct resource sun6i_spi3_resources[] = {
 		.flags	= IORESOURCE_MEM,
 	},
 	[1] = {
-		.start	= SW_INT_IRQNO_SPI3,
-		.end	= SW_INT_IRQNO_SPI3,
+		.start	= AW_IRQ_SPI3,
+		.end	= AW_IRQ_SPI3,
 		.flags	= IORESOURCE_IRQ,
 	}
 };

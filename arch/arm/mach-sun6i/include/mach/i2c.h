@@ -185,11 +185,6 @@ Foscl is clock SCL;standard mode:100KHz or fast mode:400KHz
 #define TWI3_TRANSFER_SPEED     (200000)
 #define RTWI_TRANSFER_SPEED     (100000)
 
-
-#define SUN6I_IRQ_TWI1	34
-#define SUN6I_IRQ_RTWI	51
-
-
 struct sun6i_i2c_platform_data {
 	int 		 bus_num;
 	unsigned int frequency;
