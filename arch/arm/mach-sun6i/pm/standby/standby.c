@@ -101,16 +101,16 @@ int main(struct aw_pm_info *arg)
 	/* initialise standby modules */
 	standby_ar100_init();
 	standby_clk_init();
-	standby_int_init();
-	standby_tmr_init();
+	mem_int_init();
+	mem_tmr_init();
 	
 	/* init some system wake source */
 	if(pm_info.standby_para.event & CPU0_WAKEUP_MSGBOX){
-		standby_enable_int(INT_SOURCE_MSG_BOX);
+		mem_enable_int(INT_SOURCE_MSG_BOX);
 	}
 	if(pm_info.standby_para.event & CPU0_WAKEUP_KEY){
 		standby_key_init();
-		standby_enable_int(INT_SOURCE_LRADC);
+		mem_enable_int(INT_SOURCE_LRADC);
 	}
 
 	/* process standby */
@@ -123,8 +123,8 @@ int main(struct aw_pm_info *arg)
 	/* check system wakeup event */
 	pm_info.standby_para.event = 0;
 	//actually, msg_box int will be clear by ar100-driver.
-	pm_info.standby_para.event |= standby_query_int(INT_SOURCE_MSG_BOX)? 0:CPU0_WAKEUP_MSGBOX;
-	pm_info.standby_para.event |= standby_query_int(INT_SOURCE_LRADC)? 0:CPU0_WAKEUP_KEY;
+	pm_info.standby_para.event |= mem_query_int(INT_SOURCE_MSG_BOX)? 0:CPU0_WAKEUP_MSGBOX;
+	pm_info.standby_para.event |= mem_query_int(INT_SOURCE_LRADC)? 0:CPU0_WAKEUP_KEY;
 	
 	if(pm_info.standby_para.event & CPU0_WAKEUP_KEY){
 		standby_key_exit();
@@ -145,11 +145,11 @@ int main(struct aw_pm_info *arg)
 	}
 
 	/* disable watch-dog    */
-	standby_tmr_disable_watchdog();
+	mem_tmr_disable_watchdog();
 
 	/* exit standby module */
-	standby_int_exit();
-	standby_tmr_exit();
+	mem_int_exit();
+	mem_tmr_exit();
 	standby_clk_exit();
 	standby_ar100_exit();
 	
@@ -196,7 +196,7 @@ static void standby(void)
 	/*query wakeup src*/
 	standby_ar100_query_wakeup_src((unsigned long *)&(pm_info.standby_para.axp_event));
 	/* enable watch-dog to prevent in case dram training failed */
-	standby_tmr_enable_watchdog();
+	mem_tmr_enable_watchdog();
 	/* notify for cpus to: restore cpus freq and volt, restore dram */
 	standby_ar100_notify_restore(STANDBY_AR100_ASYNC);	
 

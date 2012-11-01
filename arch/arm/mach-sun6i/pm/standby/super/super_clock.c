@@ -19,8 +19,6 @@
 #include "super_i.h"
 
 
-static __ccmu_reg_list_t   *CmuReg;;
-__u32   cpu_ms_loopcnt;
 
 
 

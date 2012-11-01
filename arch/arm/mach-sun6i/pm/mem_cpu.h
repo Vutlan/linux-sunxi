@@ -142,6 +142,11 @@ struct saved_context {
 
 void __save_processor_state(struct saved_context *ctxt);
 void __restore_processor_state(struct saved_context *ctxt);
+void disable_cache_invalidate(void);
 void set_copro_default(void);
+
+void save_processor_state(void);
+void restore_processor_state(void);
+void restore_processor_ttbr0(void);
 
 #endif /*_MEM_CONTEXT_H*/

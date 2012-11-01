@@ -20,7 +20,6 @@
 #include <linux/suspend.h>
 #include <linux/cdev.h>
 #include <linux/fs.h>
-#include <linux/module.h>
 #include <linux/syscalls.h>
 #include <linux/slab.h>
 #include <linux/major.h>
@@ -132,7 +131,7 @@ static struct aw_pm_info standby_info = {
 };
 
 static struct clk_state saved_clk_state;
-static struct tmr_state saved_tmr_state;
+static __mem_tmr_reg_t saved_tmr_state;
 static struct twi_state saved_twi_state;
 static struct gpio_state saved_gpio_state;
 static struct sram_state saved_sram_state;
@@ -381,8 +380,6 @@ static int aw_early_suspend(void)
 	//backup mmu
 	save_mmu_state(&(mem_para_info.saved_mmu_state));
 
-	//backup cpu state
-	__save_processor_state(&(mem_para_info.saved_cpu_context));
 	//backup 0x0000,0000 page entry, size?
 	save_mapping(MEM_SW_VA_SRAM_BASE);
 
@@ -409,10 +406,7 @@ static int aw_early_suspend(void)
 
 	__cpuc_coherent_user_range(0x00000000, 0xc0000000-1);
 	__cpuc_coherent_kern_range(0xc0000000, 0xffffffff-1);
-
 	
-#ifdef PRE_DISABLE_MMU
-#else
 
 #ifdef ENTER_SUPER_STANDBY
 	//print_call_info();
@@ -431,6 +425,8 @@ static int aw_early_suspend(void)
 	}
 	
 	ar100_standby_super((struct super_standby_para *)(&super_standby_para_info));
+	//disable int to make sure the cpu0 into wfi state.
+	mem_int_init();
 	if(unlikely(debug_mask&PM_STANDBY_PRINT_STANDBY)){
 		pr_info("warning: cpus not sync to enter super standby. \n");
 		while(1){
@@ -438,17 +434,8 @@ static int aw_early_suspend(void)
 		}
 	}
 	
-
-	
 	asm("WFI");
 	busy_waiting();
-
-#elif defined(RETURN_FROM_RESUME0_WITH_MMU)
-	//print_call_info();
-	jump_to_suspend(mem_para_info.saved_cpu_context.ttb_1r, (int (*)(void))DRAM_BACKUP_BASE_ADDR);
-	busy_waiting();
-#endif
-
 #endif
 
 	return -2;

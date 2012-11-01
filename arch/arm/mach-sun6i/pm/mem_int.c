@@ -1,85 +1,79 @@
-#include "pm_types.h"
+/*
+*********************************************************************************************************
+*                                                    LINUX-KERNEL
+*                                        AllWinner Linux Platform Develop Kits
+*                                                   Kernel Module
+*
+*                                    (c) Copyright 2006-2011, kevin.z China
+*                                             All Rights Reserved
+*
+* File    : mem_int.c
+* By      : gq.yang
+* Version : v1.0
+* Date    : 2012-11-3 20:13
+* Descript: interrupt for platform mem
+* Update  : date                auther      ver     notes
+*********************************************************************************************************
+*/
+#ifdef __STANDBY_MODULE__
+#include "pm_types.h" 
+#include "pm.h"
+#elif defined(__KERNEL__)
+#include <linux/module.h>
 #include "pm_i.h"
+#endif
+
+static void *GicDDisc;
+static void *GicCDisc;
 
 /*
 *********************************************************************************************************
-*                                       mem gic save
+*                                       STANDBY INTERRUPT INITIALISE
 *
-* Description: mem gic save.
+* Description: mem interrupt initialise.
 *
-* Arguments  : struct gic_state *pgic_state.
+* Arguments  : none.
 *
 * Returns    : 0/-1;
 *********************************************************************************************************
 */
-__s32 mem_int_save(struct gic_state *pgic_state)
+__s32 mem_int_init(void)
 {
-	int i=0;
-	//distributor
-	struct gic_distributor_disc *GICD_REG = (struct gic_distributor_disc *)IO_ADDRESS(AW_GIC_DIST_BASE);
-	struct gic_distributor_state *l_distributor = (struct gic_distributor_state *)(&(pgic_state->m_distributor));
-	//interface
-	struct gic_cpu_interface_disc *GICC_REG = (struct gic_cpu_interface_disc *)IO_ADDRESS(AW_GIC_CPU_BASE);
-	struct gic_cpu_interface_state *l_interface = (struct gic_cpu_interface_state *)(&(pgic_state->m_interface));
+	__u32 i = 0; 
+	GicDDisc = (void *)IO_ADDRESS(AW_GIC_DIST_BASE);
+	GicCDisc = (void *)IO_ADDRESS(AW_GIC_CPU_BASE);
 	
-	/* save GIC dispatch registers */	
-	l_distributor->GICD_CTLR						=	GICD_REG->GICD_CTLR;
-	l_distributor->GICD_IGROUPRn					=	GICD_REG->GICD_IGROUPRn;
-	
-	for(i = 0; i < (0x180/4); i++){ 
-		l_distributor->GICD_ISENABLERn[i]		=	GICD_REG->GICD_ISENABLERn[i];			 
-	}
-	for(i = 0; i < (0x180/4); i++){ 
-		l_distributor->GICD_ICENABLERn[i]		=	GICD_REG->GICD_ICENABLERn[i];
-	}
-	for(i = 0; i < (0x180/4); i++){ 			 
-		l_distributor->GICD_ISPENDRn[i]			=	GICD_REG->GICD_ISPENDRn[i]; 	 
-	}
-	for(i = 0; i < (0x180/4); i++){ 			 
-		l_distributor->GICD_ICPENDRn[i]			=	GICD_REG->GICD_ICPENDRn[i]; 	 
-	}
-	for(i = 0; i < (0x180/4); i++){ 
-		l_distributor->GICD_ISACTIVERn[i]		=	GICD_REG->GICD_ISACTIVERn[i];			 
-	}
-	for(i = 0; i < (0x180/4); i++){ 
-		l_distributor->GICD_ICACTIVERn[i]		=	GICD_REG->GICD_ICACTIVERn[i];			 
-	}
-	for(i = 0; i < (0x180/4); i++){ 
-		l_distributor->GICD_IPRIORITYRn[i] 		=	GICD_REG->GICD_IPRIORITYRn[i];			 
-	}
-	
-	for(i = 0; i < ((0x400-0x20)/4); i++){	
-		l_distributor->GICD_ITARGETSRn[i]		=	GICD_REG->GICD_ITARGETSRn[i];	 
-	}		  
-	
-	for(i = 0; i < (0x100/4); i++){ 
-		l_distributor->GICD_ICFGRn[i]			=	GICD_REG->GICD_ICFGRn[i]; 			 
-	}
-	for(i = 0; i < (0x100/4); i++){ 
-		l_distributor->GICD_NSACRn[i]			=	GICD_REG->GICD_NSACRn[i]; 			 
-	}
-	
-	for(i = 0; i < (0x10/4); i++){	
-		l_distributor->GICD_CPENDSGIRn[i] 		=	GICD_REG->GICD_CPENDSGIRn[i];		 
-	}
-	for(i = 0; i < (0x10/4); i++){	
-		l_distributor->GICD_SPENDSGIRn[i] 		=	GICD_REG->GICD_SPENDSGIRn[i];		 
-	}
+	//printk("gic iar == 0x%x. \n", *(volatile __u32	 *)(IO_ADDRESS(AW_GIC_CPU_BASE)+0x0c));
 
-	/* save CPU interface registers */
-	for(i = 0; i < (0xc/4); i++){	
-		l_interface->GICC_CTLR_PMR_BPR[i]		=       GICC_REG->GICC_CTLR_PMR_BPR[i]; 
-	}   
+	/* initialise interrupt enable and mask for mem */
 	
-	l_interface->GICC_ABPR			       		=       GICC_REG->GICC_ABPR; 
+	/*
+	 * Disable all interrupts.  Leave the PPI and SGIs alone
+	 * as these enables are banked registers.
+	 */
+	for (i = 4; i < (GIC_400_ENABLE_LEN); i += 4)
+		*(volatile __u32 *)(GicDDisc + GIC_DIST_ENABLE_CLEAR + i) = 0xffffffff;
+
+	/*config cpu interface*/
+#if 0
+	*(volatile __u32 *)(GicCDisc + GIC_CPU_PRIMASK) = 0xf0;
+	*(volatile __u32 *)(GicCDisc + GIC_CPU_CTRL) = 0x1;
+#endif
+
+#if 1
+	/* clear external irq pending: needed */
+	for (i = 4; i < (GIC_400_ENABLE_LEN); i += 4)
+		*(volatile __u32 *)(GicDDisc + GIC_DIST_PENDING_CLEAR + i) = 0xffffffff;
+#endif
+	//the print info just to check the pending state, actually, after u read iar, u need to access end of interrupt reg;
+	i = *(volatile __u32   *)(GicCDisc + 0x0c);
+
+	if(i != 0x3ff){
+		//u need to 
+		*(volatile __u32 *)(GicCDisc + 0x10) = i;
+		printk("notice: gic iar == 0x%x. \n", i);
+	}
 	
-	for(i = 0; i < (0x10/4); i++){	
-		l_interface->GICC_APRn[i]			    =       GICC_REG->GICC_APRn[i]; 
-	} 
-	 
-	for(i = 0; i < (0x10/4); i++){	
-		l_interface->GICC_NSAPRn[i]			    =       GICC_REG->GICC_NSAPRn[i]; 
-	} 
 	
 	return 0;
 }
@@ -87,83 +81,79 @@ __s32 mem_int_save(struct gic_state *pgic_state)
 
 /*
 *********************************************************************************************************
-*                                       mem_int_restore
+*                                       STANDBY INTERRUPT INITIALISE
 *
-* Description: mem gic restore.
+* Description: mem interrupt exit.
 *
-* Arguments  : struct gic_state *pgic_state.
+* Arguments  : none.
 *
 * Returns    : 0/-1;
 *********************************************************************************************************
 */
-__s32 mem_int_restore(struct gic_state *pgic_state)
+__s32 mem_int_exit(void)
 {
-	int i=0;
-	//distributor
-	struct gic_distributor_disc *GICD_REG = (struct gic_distributor_disc *)IO_ADDRESS(AW_GIC_DIST_BASE);
-	struct gic_distributor_state *l_distributor = (struct gic_distributor_state *)(&(pgic_state->m_distributor));
-	//interface
-	struct gic_cpu_interface_disc *GICC_REG = (struct gic_cpu_interface_disc *)IO_ADDRESS(AW_GIC_CPU_BASE);
-	struct gic_cpu_interface_state *l_interface = (struct gic_cpu_interface_state *)(&(pgic_state->m_interface));
+	int i = 0;
+	volatile __u32 enable_bit = 0;
 	
-	/* restore GIC dispatch registers */
-	GICD_REG->GICD_CTLR						=	l_distributor->GICD_CTLR;
-	GICD_REG->GICD_IGROUPRn					=	l_distributor->GICD_IGROUPRn;
-	                                                        
-	for(i = 0; i < (0x180/4); i++){                         
-		GICD_REG->GICD_ISENABLERn[i]		=	l_distributor->GICD_ISENABLERn[i];			 
-	}                                                       
-	for(i = 0; i < (0x180/4); i++){                         
-		GICD_REG->GICD_ICENABLERn[i]		=	l_distributor->GICD_ICENABLERn[i];
-	}                                                       
-	for(i = 0; i < (0x180/4); i++){ 			
-		GICD_REG->GICD_ISPENDRn[i]			=	l_distributor->GICD_ISPENDRn[i]; 	 
-	}                                                       
-	for(i = 0; i < (0x180/4); i++){ 			
-		GICD_REG->GICD_ICPENDRn[i]			=	l_distributor->GICD_ICPENDRn[i]; 	 
-	}                                                      
-	for(i = 0; i < (0x180/4); i++){                         
-		GICD_REG->GICD_ISACTIVERn[i]		=	l_distributor->GICD_ISACTIVERn[i];			 
-	}                                                       
-	for(i = 0; i < (0x180/4); i++){                         
-		GICD_REG->GICD_ICACTIVERn[i]		=	l_distributor->GICD_ICACTIVERn[i];			 
-	}                                                      
-	for(i = 0; i < (0x180/4); i++){                         
-		GICD_REG->GICD_IPRIORITYRn[i] 		=	l_distributor->GICD_IPRIORITYRn[i];			 
-	}                                                      
-	                                                        
-	for(i = 0; i < ((0x400-0x20)/4); i++){	               
-		GICD_REG->GICD_ITARGETSRn[i]		=	l_distributor->GICD_ITARGETSRn[i];	 
-	}		                                        
-	                                                        
-	for(i = 0; i < (0x100/4); i++){                        
-		GICD_REG->GICD_ICFGRn[i]			=	l_distributor->GICD_ICFGRn[i]; 			 
-	}                                                       
-	for(i = 0; i < (0x100/4); i++){                         
-		GICD_REG->GICD_NSACRn[i]			=	l_distributor->GICD_NSACRn[i]; 			 
-	}                                                       
-	                                                       
-	for(i = 0; i < (0x10/4); i++){	                        
-		GICD_REG->GICD_CPENDSGIRn[i] 		=	l_distributor->GICD_CPENDSGIRn[i];		 
-	}                                                       
-	for(i = 0; i < (0x10/4); i++){	                        
-		GICD_REG->GICD_SPENDSGIRn[i] 		=	l_distributor->GICD_SPENDSGIRn[i];		 
-	}                                                       
-
-	/* restore CPU interface registers */
-	for(i = 0; i < (0xc/4); i++){	
-		GICC_REG->GICC_CTLR_PMR_BPR[i]			=       l_interface->GICC_CTLR_PMR_BPR[i]; 
-	}   
-	
-	GICC_REG->GICC_ABPR							=       l_interface->GICC_ABPR; 
-	
-	for(i = 0; i < (0x10/4); i++){	
-		GICC_REG->GICC_APRn[i]					=       l_interface->GICC_APRn[i]; 
-	} 
-	 
-	for(i = 0; i < (0x10/4); i++){	
-		GICC_REG->GICC_NSAPRn[i]				=       l_interface->GICC_NSAPRn[i]; 
-	} 
+	//all the disable-int-src pending, need to be clear
+	for(i = 0; i < GIC_400_ENABLE_LEN; i += 4){
+		enable_bit = *(volatile __u32 *)(GicDDisc + GIC_DIST_ENABLE_SET + i);
+		*(volatile __u32 *)(GicDDisc + GIC_DIST_PENDING_CLEAR + i) &= (~enable_bit);
+	}
 
 	return 0;
 }
+
+
+/*
+*********************************************************************************************************
+*                                       QUERY INTERRUPT
+*
+* Description: enable interrupt.
+*
+* Arguments  : src  interrupt source number.
+*
+* Returns    : 0/-1;
+*********************************************************************************************************
+*/
+__s32 mem_enable_int(enum interrupt_source_e src)
+{
+    __u32   tmpGrp = (__u32)src >> 5;
+    __u32   tmpSrc = (__u32)src & 0x1f;
+
+    //enable interrupt source
+    *(volatile __u32 *)(GicDDisc + GIC_DIST_ENABLE_SET + tmpGrp*4) |= (1<<tmpSrc);
+    //printk("GicDDisc + GIC_DIST_ENABLE_SET + tmpGrp*4 = 0x%x. tmpGrp = 0x%x.\n", GicDDisc + GIC_DIST_ENABLE_SET + tmpGrp*4, tmpGrp);
+    //printk("tmpSrc = 0x%x. \n", tmpSrc);
+    
+    //need to care mask or priority?
+
+    return 0;
+}
+
+
+/*
+*********************************************************************************************************
+*                                       QUERY INTERRUPT
+*
+* Description: query interrupt.
+*
+* Arguments  : src  interrupt source number.
+*
+* Returns    : 0/-1;
+*********************************************************************************************************
+*/
+__s32 mem_query_int(enum interrupt_source_e src)
+{
+    __s32   result = 0;
+    __u32   tmpGrp = (__u32)src >> 5;
+    __u32   tmpSrc = (__u32)src & 0x1f;
+
+    result = *(volatile __u32 *)(GicDDisc + GIC_DIST_PENDING_SET + tmpGrp*4) & (1<<tmpSrc);
+    
+    //printk("GicDDisc + GIC_DIST_PENDING_SET + tmpGrp*4 = 0x%x. tmpGrp = 0x%x.\n", GicDDisc + GIC_DIST_PENDING_SET + tmpGrp*4, tmpGrp);
+    //printk("tmpSrc = 0x%x. result = 0x%x. \n", tmpSrc, result);
+
+    return result? 0:-1;
+}
+

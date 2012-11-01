@@ -2,7 +2,7 @@
 #define _PM_I_H
 
 /*
- * Copyright (c) 2011-2015 yanggq.young@allwinnertech.com
+ * Copyright (c) 2011-2015 njubie@allwinnertech.com
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 as published by
@@ -13,6 +13,7 @@
 #include <mach/hardware.h>
 #include "pm.h"
 #include <mach/ar100.h>
+#include "mem_mapping.h"
 
 #include "standby/super/super_clock.h"
 #include "standby/super/super_power.h"
@@ -143,11 +144,6 @@ struct clk_state{
 	__u32    ccu_reg_back[15];
 };
 
-struct tmr_state{
-	__mem_tmr_reg_t  *TmrReg;
-	__u32 TmrIntCtl, Tmr0Ctl, Tmr0IntVal, Tmr0CntVal, Tmr1Ctl, Tmr1IntVal, Tmr1CntVal;
-};
-
 struct twi_state{
 	__mem_twic_reg_t *twi_reg;
 	__u32 twi_reg_backup[7];
@@ -162,12 +158,8 @@ struct sram_state{
 };
 
 //save module state
-__s32 mem_int_save(struct gic_state *pint_state);
-__s32 mem_int_restore(struct gic_state *pint_state);
 __s32 mem_clk_save(struct clk_state *pclk_state);
 __s32 mem_clk_restore(struct clk_state *pclk_state);
-__s32 mem_tmr_save(struct tmr_state *ptmr_state);
-__s32 mem_tmr_restore(struct tmr_state *ptmr_state);
 __s32 mem_twi_save(struct twi_state *ptwi_state);
 __s32 mem_twi_restore(struct twi_state *ptwi_state);
 __s32 mem_gpio_save(struct gpio_state *pgpio_state);
@@ -176,7 +168,6 @@ __s32 mem_sram_save(struct sram_state *psram_state);
 __s32 mem_sram_restore(struct sram_state *psram_state);
 __s32 mem_ccu_save(__ccmu_reg_list_t *pReg);
 __s32 mem_ccu_restore(__ccmu_reg_list_t *pReg);
-void mem_serial_init(void);
-__u32 mem_serial_puts(char* buf, __u32 n);
 
 #endif /*_PM_I_H*/
+

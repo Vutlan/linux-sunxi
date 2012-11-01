@@ -12,6 +12,36 @@
 #include "pm_types.h"
 #include "./pm.h"
 
+/* Used in mem_cpu_asm.S */
+#define SYS_CONTEXT_SIZE (2)
+#define SVC_CONTEXT_SIZE (2)	//do not need backup r14? reason?
+#define FIQ_CONTEXT_SIZE (7)
+#define ABT_CONTEXT_SIZE (2 )
+#define IRQ_CONTEXT_SIZE (2)
+#define UND_CONTEXT_SIZE (2)
+#define MON_CONTEXT_SIZE (2)
+
+#define EMPTY_CONTEXT_SIZE (11 * sizeof(__u32))
+
+
+unsigned long saved_context_r13_sys[SYS_CONTEXT_SIZE];
+unsigned long saved_cpsr_svc;
+unsigned long saved_context_r12_svc[SVC_CONTEXT_SIZE];
+unsigned long saved_spsr_svc;   
+unsigned long saved_context_r13_fiq[FIQ_CONTEXT_SIZE];
+unsigned long saved_spsr_fiq;
+unsigned long saved_context_r13_abt[ABT_CONTEXT_SIZE];
+unsigned long saved_spsr_abt;
+unsigned long saved_context_r13_irq[IRQ_CONTEXT_SIZE];
+unsigned long saved_spsr_irq;
+unsigned long saved_context_r13_und[UND_CONTEXT_SIZE];
+unsigned long saved_spsr_und;
+unsigned long saved_context_r13_mon[MON_CONTEXT_SIZE];
+unsigned long saved_spsr_mon;
+unsigned long saved_empty_context_svc[EMPTY_CONTEXT_SIZE];
+
+struct saved_context saved_context;
+
 static struct saved_context default_copro_value = {
 	/* CR0 */
 	.cssr = 0x00000002,		 /* Cache Size Selection */
@@ -346,11 +376,6 @@ void __restore_processor_state(struct saved_context *ctxt)
 	asm volatile ("isb");
 }
 
-void mem_restore_processor_state(struct saved_context *ctxt)
-{
-	return;
-}
-
 void disable_cache_invalidate(void)
 {
 	#define CPU_CONFIG_REG (0XF1C20D3C)
@@ -452,3 +477,18 @@ void set_copro_default(void)
 	return;
 }
 
+void save_processor_state(void)
+{
+	__save_processor_state(&saved_context);
+}
+
+void restore_processor_state(void)
+{
+	__restore_processor_state(&saved_context);
+}
+
+void restore_processor_ttbr0(void)
+{
+	asm volatile ("mcr p15, 0, %0, c2, c0, 0" : : "r"(saved_context.ttb_0r));
+	return;
+}

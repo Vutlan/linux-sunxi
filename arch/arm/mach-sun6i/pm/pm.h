@@ -17,7 +17,9 @@
 #include "mem_serial.h"
 #include "mem_printk.h"
 #include "mach/platform.h"
-#include "mem_misc.h"
+#include "mem_divlibc.h"
+#include "mem_int.h"
+#include "mem_tmr.h"
 
 #define PM_STANDBY_PRINT_STANDBY (1U << 0)
 #define PM_STANDBY_PRINT_RESUME (1U << 1)
@@ -42,57 +44,6 @@
 
 #define likely(x)	__builtin_expect(!!(x), 1)
 #define unlikely(x)	__builtin_expect(!!(x), 0)
-
-typedef struct __MEM_TMR_REG
-{
-    // offset:0x00
-    volatile __u32   IntCtl;
-    volatile __u32   IntSta;
-    volatile __u32   reserved0[2];
-    // offset:0x10
-    volatile __u32   Tmr0Ctl;
-    volatile __u32   Tmr0IntVal;
-    volatile __u32   Tmr0CntVal;
-    volatile __u32   reserved1;
-    // offset:0x20
-    volatile __u32   Tmr1Ctl;
-    volatile __u32   Tmr1IntVal;
-    volatile __u32   Tmr1CntVal;
-    volatile __u32   reserved2;
-    // offset:0x30
-    volatile __u32   Tmr2Ctl;
-    volatile __u32   Tmr2IntVal;
-    volatile __u32   Tmr2CntVal;
-    volatile __u32   reserved3;
-    // offset:0x40
-    volatile __u32   Tmr3Ctl;
-    volatile __u32   Tmr3IntVal;
-    volatile __u32   reserved4[2];
-    // offset:0x50
-    volatile __u32   Tmr4Ctl;
-    volatile __u32   Tmr4IntVal;
-    volatile __u32   Tmr4CntVal;
-    volatile __u32   reserved5;
-    // offset:0x60
-    volatile __u32   Tmr5Ctl;
-    volatile __u32   Tmr5IntVal;
-    volatile __u32   Tmr5CntVal;
-    volatile __u32   reserved6[5];
-    // offset:0x80
-    volatile __u32   AvsCtl;
-    volatile __u32   Avs0Cnt;
-    volatile __u32   Avs1Cnt;
-    volatile __u32   AvsDiv;
-	// offset:0xa0
-    volatile __u32   WDog1_Irq_En;
-    volatile __u32   WDog1_Irq_Sta;
-    volatile __u32   WDog1_Ctrl_Reg;
-    volatile __u32   WDog1_Cfg_Reg;
-    volatile __u32   WDog1_Mode_Reg;	
-    volatile __u32   WDog1_Reset_Pwh_Reg;
-
-} __mem_tmr_reg_t;
-
 
 struct clk_div_t {
     __u32   cpu_div:4;      /* division of cpu clock, divide core_pll */
@@ -142,48 +93,6 @@ struct aw_mem_para{
 	struct saved_context saved_cpu_context;
 };
 
-
-static inline __u32 raw_lib_udiv(__u32 dividend, __u32 divisior)
-{
-    __u32   tmpDiv = (__u32)divisior;
-    __u32   tmpQuot = 0;
-    __s32   shift = 0;
-
-    if(!divisior)
-    {
-        /* divide 0 error abort */
-        return 0;
-    }
-
-    while(!(tmpDiv & ((__u32)1<<31)))
-    {
-        tmpDiv <<= 1;
-        shift ++;
-    }
-
-    do
-    {
-        if(dividend >= tmpDiv)
-        {
-            dividend -= tmpDiv;
-            tmpQuot = (tmpQuot << 1) | 1;
-        }
-        else
-        {
-            tmpQuot = (tmpQuot << 1) | 0;
-        }
-        tmpDiv >>= 1;
-        shift --;
-    } while(shift >= 0);
-
-    return tmpQuot;
-}
-
-extern void __aeabi_idiv(void);
-extern void __aeabi_idivmod(void);
-extern void __aeabi_uidiv(void);
-extern void __aeabi_uidivmod(void);
-
 extern unsigned int save_sp_nommu(void);
 extern unsigned int save_sp(void);
 extern void clear_reg_context(void);
@@ -213,5 +122,5 @@ extern void enable_program_flow_prediction(void);
 extern int jump_to_resume(void* pointer, __u32 *addr);
 extern int jump_to_resume0(void* pointer);
 
-
 #endif /*_PM_H*/
+

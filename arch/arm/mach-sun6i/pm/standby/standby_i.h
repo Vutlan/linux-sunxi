@@ -32,8 +32,6 @@
 #include "standby_usb.h"
 #include "standby_twi.h"
 #include "standby_ir.h"
-#include "standby_tmr.h"
-#include "standby_int.h"
 #include "standby_ar100.h"
 
 

@@ -1,8 +1,9 @@
 
 obj-y	 += pm_tmp.o standby.o mem.o
-pm_tmp-y += ./mem_context.o
+pm_tmp-y += ./mem_mapping.o
+pm_tmp-y += ./mem_divlibc.o
 pm_tmp-y += ./mem_cpu.o
-pm_tmp-y += ./mem_context_asm.o
+pm_tmp-y += ./mem_cpu_asm.o
 pm_tmp-y += ./mem_mmu_pc_asm.o
 pm_tmp-y += ./mem_mmu_pc.o
 pm_tmp-y += ./mem_int.o
@@ -14,6 +15,7 @@ pm_tmp-y += ./mem_serial.o
 pm_tmp-y += ./mem_sram.o
 pm_tmp-y += ./mem_ccu.o
 pm_tmp-y += ./pm_debug.o
+pm_tmp-y += ./mem_timing.o
 pm_tmp-y += ./pm.o
 pm_tmp-y += ./standby/super/super_power.o
 pm_tmp-y += ./standby/super/super_twi.o

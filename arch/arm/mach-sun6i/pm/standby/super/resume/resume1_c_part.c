@@ -32,8 +32,8 @@ static __u32 status = 0;
 #undef MMU_OPENED
 #define POWER_OFF
 #define FLUSH_TLB
-#define SET_COPRO_REG
-#define FLUSH_ICACHE
+//#define SET_COPRO_REG
+//#define FLUSH_ICACHE
 #define INVALIDATE_DCACHE
 #endif
 

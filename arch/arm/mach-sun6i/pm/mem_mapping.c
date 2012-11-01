@@ -50,34 +50,6 @@ struct saved_mmu_level_one {
 	u32 entry_val;
 };
 
-/* Used in mem_context_asm.S */
-#define SYS_CONTEXT_SIZE (2)
-#define SVC_CONTEXT_SIZE (2)	//do not need backup r14? reason?
-#define FIQ_CONTEXT_SIZE (7)
-#define ABT_CONTEXT_SIZE (2 )
-#define IRQ_CONTEXT_SIZE (2)
-#define UND_CONTEXT_SIZE (2)
-#define MON_CONTEXT_SIZE (2)
-
-#define EMPTY_CONTEXT_SIZE (11 * sizeof(u32))
-
-
-unsigned long saved_context_r13_sys[SYS_CONTEXT_SIZE];
-unsigned long saved_cpsr_svc;
-unsigned long saved_context_r12_svc[SVC_CONTEXT_SIZE];
-unsigned long saved_spsr_svc;   
-unsigned long saved_context_r13_fiq[FIQ_CONTEXT_SIZE];
-unsigned long saved_spsr_fiq;
-unsigned long saved_context_r13_abt[ABT_CONTEXT_SIZE];
-unsigned long saved_spsr_abt;
-unsigned long saved_context_r13_irq[IRQ_CONTEXT_SIZE];
-unsigned long saved_spsr_irq;
-unsigned long saved_context_r13_und[UND_CONTEXT_SIZE];
-unsigned long saved_spsr_und;
-unsigned long saved_context_r13_mon[MON_CONTEXT_SIZE];
-unsigned long saved_spsr_mon;
-unsigned long saved_empty_context_svc[EMPTY_CONTEXT_SIZE];
-
 static struct saved_mmu_level_one backup_tbl[1];
 
 /* References to section boundaries */
@@ -179,10 +151,6 @@ static struct mem_type mem_types[] = {
 	},
 };
 
-struct saved_context saved_context;
-
-
-
 /*
  * Create the page directory entries and any necessary
  * page tables for the mapping specified by `md'.  We
@@ -272,25 +240,3 @@ void restore_mapping(unsigned long vaddr)
 
 	return;
 }
-
-
-void save_processor_state(void)
-{
-	preempt_disable();
-	__save_processor_state(&saved_context);
-}
-
-void restore_processor_state(void)
-{
-	__restore_processor_state(&saved_context);
-	preempt_enable();
-}
-
-void restore_processor_ttbr0(void)
-{
-	asm volatile ("mcr p15, 0, %0, c2, c0, 0" : : "r"(saved_context.ttb_0r));
-	return;
-}
-
-
-
