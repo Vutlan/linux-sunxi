@@ -23,6 +23,10 @@
 //============================================================
 
 #include "odm_precomp.h"
+#ifdef CONFIG_RSSI_OPTIMIZATION
+#define RSSI_CCK_OPTIMIZE	3
+#define RSSI_OFDM_OPTIMIZE	0
+#endif
 
 #if (RTL8188E_FOR_TEST_CHIP > 1)
     #define READ_AND_CONFIG(ic, txt) do {\
@@ -556,6 +560,12 @@ odm_RxPhyStatus92CSeries_Parsing(
 		}
 	
 		pPhyInfo->RxPWDBAll = PWDB_ALL;
+#ifdef CONFIG_RSSI_OPTIMIZATION
+		if(pDM_Odm->SupportICType & ODM_RTL8188E){
+			PWDB_ALL += RSSI_CCK_OPTIMIZE;
+		}
+#endif
+
 #if (DM_ODM_SUPPORT_TYPE &  (ODM_MP|ODM_CE))
 		pPhyInfo->BTRxRSSIPercentage = PWDB_ALL;
 		pPhyInfo->RecvSignalPower = rx_pwr_all;
@@ -702,6 +712,12 @@ odm_RxPhyStatus92CSeries_Parsing(
 		}
 
 	}
+#ifdef CONFIG_RSSI_OPTIMIZATION
+	if(pDM_Odm->SupportICType & ODM_RTL8188E){
+		PWDB_ALL += RSSI_OFDM_OPTIMIZE;
+	}
+#endif
+
 #if (DM_ODM_SUPPORT_TYPE &  (ODM_MP|ODM_CE))
 	//UI BSS List signal strength(in percentage), make it good looking, from 0~100.
 	//It is assigned to the BSS List in GetValueFromBeaconOrProbeRsp().
@@ -821,7 +837,7 @@ odm_Process_RSSIForDM(
 		}
 		else if((pDM_Odm->AntDivType == CG_TRX_HW_ANTDIV)||(pDM_Odm->AntDivType == CGCS_RX_HW_ANTDIV))
 		{
-			if(pPktinfo->bPacketToSelf)
+			if(pPktinfo->bPacketToSelf || pPktinfo->bPacketBeacon)
 			{
 				antsel_tr_mux = (pDM_FatTable->antsel_rx_keep_2<<2) |(pDM_FatTable->antsel_rx_keep_1 <<1) |pDM_FatTable->antsel_rx_keep_0;
 				//ODM_RT_TRACE(pDM_Odm,ODM_COMP_ANT_DIV, ODM_DBG_LOUD,("antsel_tr_mux=3'b%d%d%d\n",

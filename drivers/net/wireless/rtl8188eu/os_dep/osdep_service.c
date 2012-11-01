@@ -148,8 +148,8 @@ u8* _rtw_malloc(u32 sz)
 	if(sz > 0x4000)
 		pbuf = (u8 *)dvr_malloc(sz);
 	else
-#endif
-		pbuf = kmalloc(sz, /*GFP_KERNEL*/GFP_ATOMIC);
+#endif		
+		pbuf = kmalloc(sz,in_interrupt() ? GFP_ATOMIC : GFP_KERNEL); 		
 
 #endif	
 #ifdef PLATFORM_FREEBSD
@@ -1678,8 +1678,12 @@ struct net_device *rtw_alloc_etherdev_with_old_priv(int sizeof_priv, void *old_p
 {
 	struct net_device *pnetdev;
 	struct rtw_netdev_priv_indicator *pnpi;
-	
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,35))
+	pnetdev = alloc_etherdev_mq(sizeof(struct rtw_netdev_priv_indicator), 4);
+#else
 	pnetdev = alloc_etherdev(sizeof(struct rtw_netdev_priv_indicator));
+#endif
 	if (!pnetdev)
 		goto RETURN;
 	
@@ -1695,8 +1699,12 @@ struct net_device *rtw_alloc_etherdev(int sizeof_priv)
 {
 	struct net_device *pnetdev;
 	struct rtw_netdev_priv_indicator *pnpi;
-	
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,35))
+	pnetdev = alloc_etherdev_mq(sizeof(struct rtw_netdev_priv_indicator), 4);
+#else
 	pnetdev = alloc_etherdev(sizeof(struct rtw_netdev_priv_indicator));
+#endif
 	if (!pnetdev)
 		goto RETURN;
 	

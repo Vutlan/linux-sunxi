@@ -67,8 +67,12 @@
 #define RX_MPDU_QUEUE				0
 #define RX_CMD_QUEUE				1
 #define RX_MAX_QUEUE				2
-#endif
 
+#elif defined(CONFIG_SDIO_HCI)
+
+#define MAX_RECVBUF_SZ (10240)
+
+#endif
 
 #define RECV_BULK_IN_ADDR		0x80
 #define RECV_INT_IN_ADDR		0x81

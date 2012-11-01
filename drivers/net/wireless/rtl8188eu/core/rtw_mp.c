@@ -36,9 +36,11 @@
 #endif
 #ifdef CONFIG_RTL8723A
 #include <rtl8723a_hal.h>
+#include "rtw_bt_mp.h"
 #endif
 #ifdef CONFIG_RTL8188E
-#include <rtl8188e_hal.h>
+#include "../hal/OUTSRC/odm_precomp.h"		
+#include "rtl8188e_hal.h"  
 #endif
 
 
@@ -89,22 +91,22 @@ void write_macreg(_adapter *padapter, u32 addr, u32 val, u32 sz)
 
 u32 read_bbreg(_adapter *padapter, u32 addr, u32 bitmask)
 {
-	return padapter->HalFunc.read_bbreg(padapter, addr, bitmask);
+	return rtw_hal_read_bbreg(padapter, addr, bitmask);
 }
 
 void write_bbreg(_adapter *padapter, u32 addr, u32 bitmask, u32 val)
 {
-	padapter->HalFunc.write_bbreg(padapter, addr, bitmask, val);
+	rtw_hal_write_bbreg(padapter, addr, bitmask, val);
 }
 
 u32 _read_rfreg(PADAPTER padapter, u8 rfpath, u32 addr, u32 bitmask)
 {
-	return padapter->HalFunc.read_rfreg(padapter, (RF_RADIO_PATH_E)rfpath, addr, bitmask);
+	return rtw_hal_read_rfreg(padapter, (RF_RADIO_PATH_E)rfpath, addr, bitmask);
 }
 
 void _write_rfreg(PADAPTER padapter, u8 rfpath, u32 addr, u32 bitmask, u32 val)
 {
-	padapter->HalFunc.write_rfreg(padapter, (RF_RADIO_PATH_E)rfpath, addr, bitmask, val);
+	rtw_hal_write_rfreg(padapter, (RF_RADIO_PATH_E)rfpath, addr, bitmask, val);
 }
 
 u32 read_rfreg(PADAPTER padapter, u8 rfpath, u32 addr)
@@ -342,12 +344,17 @@ void free_mp_priv(struct mp_priv *pmp_priv)
 #define PHY_SetRFPathSwitch(a,b)	rtl8192c_PHY_SetRFPathSwitch(a,b)
 #endif
 
-
 #ifdef CONFIG_RTL8192D
-#define PHY_IQCalibrate(a)	rtl8192d_PHY_IQCalibrate(a)
+#define PHY_IQCalibrate(a,b)	rtl8192d_PHY_IQCalibrate(a)
 #define PHY_LCCalibrate(a)	rtl8192d_PHY_LCCalibrate(a)
 //#define dm_CheckTXPowerTracking(a)	rtl8192d_odm_CheckTXPowerTracking(a)
 #define PHY_SetRFPathSwitch(a,b)	rtl8192d_PHY_SetRFPathSwitch(a,b)
+#endif
+
+#ifdef CONFIG_RTL8188E
+#define PHY_IQCalibrate(a,b)	PHY_IQCalibrate_8188E(a,b)
+#define PHY_LCCalibrate(a)	PHY_LCCalibrate_8188E(a)
+#define PHY_SetRFPathSwitch(a,b) PHY_SetRFPathSwitch_8188E(a,b)
 #endif
 
 s32
@@ -360,6 +367,7 @@ MPT_InitializeAdapter(
 	s32		rtStatus = _SUCCESS;
 	PMPT_CONTEXT	pMptCtx = &pAdapter->mppriv.MptCtx;
 	u32		ledsetting;
+	struct mlme_priv *pmlmepriv = &pAdapter->mlmepriv;
 
 	//-------------------------------------------------------------------------
 	// HW Initialization for 8190 MPT.
@@ -370,7 +378,7 @@ MPT_InitializeAdapter(
 	pMptCtx->bMptDrvUnload = _FALSE;
 	pMptCtx->bMassProdTest = _FALSE;
 	pMptCtx->bMptIndexEven = _TRUE;	//default gain index is -6.0db
-
+	pMptCtx->h2cReqNum = 0x0;
 	/* Init mpt event. */
 #if 0 // for Windows
 	NdisInitializeEvent( &(pMptCtx->MptWorkItemEvent) );
@@ -383,6 +391,16 @@ MPT_InitializeAdapter(
 		(PVOID)Adapter,
 		"MptWorkItem");
 #endif
+	//init for BT MP
+#ifdef CONFIG_RTL8723A
+	pMptCtx->bMPh2c_timeout = _FALSE;
+	pMptCtx->MptH2cRspEvent = _FALSE;
+	pMptCtx->MptBtC2hEvent = _FALSE;
+	
+	_rtw_init_sema(&pMptCtx->MPh2c_Sema, 0);
+	_init_timer( &pMptCtx->MPh2c_timeout_timer, pAdapter->pnetdev, MPh2c_timeout_handle, pAdapter );
+#endif
+
 	pMptCtx->bMptWorkItemInProgress = _FALSE;
 	pMptCtx->CurrMptAct = NULL;
 	//-------------------------------------------------------------------------
@@ -392,8 +410,9 @@ MPT_InitializeAdapter(
 	rtw_write32(pAdapter, REG_RCR, 0);
 #else
 	// Accept CRC error and destination address
-	pHalData->ReceiveConfig |= (RCR_ACRC32|RCR_AAP);
-	rtw_write32(pAdapter, REG_RCR, pHalData->ReceiveConfig);
+	//pHalData->ReceiveConfig |= (RCR_ACRC32|RCR_AAP);
+	//rtw_write32(pAdapter, REG_RCR, pHalData->ReceiveConfig);
+	rtw_write32(pAdapter, REG_RCR, 0x70000101);
 #endif
 
 #if 0
@@ -413,34 +432,25 @@ MPT_InitializeAdapter(
 	}
 	else
 	{
-		rtw_write32(pAdapter, REG_LEDCFG0, 0x08080);
+		//rtw_write32(pAdapter, REG_LEDCFG0, 0x08080);
+		ledsetting = rtw_read32(pAdapter, REG_LEDCFG0);
+		
+	#if defined (CONFIG_RTL8192C) || defined( CONFIG_RTL8192D )
+			rtw_write32(pAdapter, REG_LEDCFG0, ledsetting & ~LED0DIS);
+	#endif
 	}
 	
-#ifdef CONFIG_RTL8192C
 	PHY_IQCalibrate(pAdapter, _FALSE);
 	dm_CheckTXPowerTracking(&pHalData->odmpriv);	//trigger thermal meter
 	PHY_LCCalibrate(pAdapter);
-#endif
-
-#ifdef CONFIG_RTL8192D
-	PHY_IQCalibrate(pAdapter);
-	dm_CheckTXPowerTracking(&pHalData->odmpriv);	//trigger thermal meter
-	PHY_LCCalibrate(pAdapter);
-#endif
 
 #ifdef CONFIG_PCI_HCI
 	PHY_SetRFPathSwitch(pAdapter, 1/*pHalData->bDefaultAntenna*/);	//Wifi default use Main
 #else
 
 #ifdef CONFIG_RTL8192C
-#if 1
 	if (pHalData->BoardType == BOARD_MINICARD)
 		PHY_SetRFPathSwitch(pAdapter, 1/*pHalData->bDefaultAntenna*/); //default use Main
-#else
-	if(pAdapter->HalFunc.GetInterfaceSelectionHandler(pAdapter) == INTF_SEL2_MINICARD )
-		PHY_SetRFPathSwitch(Adapter, pAdapter->MgntInfo.bDefaultAntenna); //default use Main
-#endif
-
 #endif
 
 #endif
@@ -448,6 +458,12 @@ MPT_InitializeAdapter(
 	pMptCtx->backup0xc50 = (u1Byte)PHY_QueryBBReg(pAdapter, rOFDM0_XAAGCCore1, bMaskByte0);
 	pMptCtx->backup0xc58 = (u1Byte)PHY_QueryBBReg(pAdapter, rOFDM0_XBAGCCore1, bMaskByte0);
 	pMptCtx->backup0xc30 = (u1Byte)PHY_QueryBBReg(pAdapter, rOFDM0_RxDetector1, bMaskByte0);
+
+	//set ant to wifi side in mp mode
+	rtw_write16(pAdapter, 0x870, 0x300);
+	rtw_write16(pAdapter, 0x860, 0x110);
+
+	pmlmepriv->fw_state = WIFI_MP_STATE;
 
 	return	rtStatus;
 }
@@ -477,6 +493,8 @@ MPT_DeInitAdapter(
 	PMPT_CONTEXT		pMptCtx = &pAdapter->mppriv.MptCtx;
 
 	pMptCtx->bMptDrvUnload = _TRUE;
+	_rtw_free_sema(&(pMptCtx->MPh2c_Sema));
+	_cancel_timer_ex( &pMptCtx->MPh2c_timeout_timer);
 #if 0 // for Windows
 	PlatformFreeWorkItem( &(pMptCtx->MptWorkItem) );
 
@@ -547,7 +565,9 @@ static void disable_dm(PADAPTER padapter)
 	Switch_DM_Func(padapter, DYNAMIC_FUNC_DISABLE, _FALSE);
 
 	// enable APK, LCK and IQK but disable power tracking
+#ifndef CONFIG_RTL8188E
 	pdmpriv->TxPowerTrackControl = _FALSE;
+#endif
 	Switch_DM_Func(padapter, DYNAMIC_RF_CALIBRATION, _TRUE);
 }
 
@@ -953,7 +973,7 @@ void SetContinuousTx(PADAPTER pAdapter, u8 bStart)
 //------------------------------------------------------------------------------
 static void dump_mpframe(PADAPTER padapter, struct xmit_frame *pmpframe)
 {
-	padapter->HalFunc.mgnt_xmit(padapter, pmpframe);
+	rtw_hal_mgnt_xmit(padapter, pmpframe);
 }
 
 static struct xmit_frame *alloc_mp_xmitframe(struct xmit_priv *pxmitpriv)
@@ -997,12 +1017,13 @@ static thread_return mp_xmit_packet_thread(thread_context context)
 	padapter = pmp_priv->papdater;
 	pxmitpriv = &(padapter->xmitpriv);
 
-	thread_enter(padapter);
+	thread_enter("RTW_MP_THREAD");
 
 	//DBG_871X("%s:pkTx Start\n", __func__);
 	while (1) {
 		pxmitframe = alloc_mp_xmitframe(pxmitpriv);
 		if (pxmitframe == NULL) {
+			printk("alloc_mp_xmitframe == NULL \n");
 			if (pmptx->stop ||
 			    padapter->bSurpriseRemoved ||
 			    padapter->bDriverStopped) {
@@ -1016,7 +1037,7 @@ static thread_return mp_xmit_packet_thread(thread_context context)
 
 		_rtw_memcpy((u8 *)(pxmitframe->buf_addr+TXDESC_OFFSET), pmptx->buf, pmptx->write_size);
 		_rtw_memcpy(&(pxmitframe->attrib), &(pmptx->attrib), sizeof(struct pkt_attrib));
-
+		
 		dump_mpframe(padapter, pxmitframe);
 
 		pmptx->sended++;
@@ -1051,7 +1072,7 @@ void fill_txdesc_for_mp(PADAPTER padapter, struct tx_desc *ptxdesc)
 void SetPacketTx(PADAPTER padapter)
 {
 	u8 *ptr, *pkt_start, *pkt_end;
-	u32 pkt_size;
+	u32 pkt_size,offset;
 	struct tx_desc *desc;
 	struct rtw_ieee80211_hdr *hdr;
 	u8 payload;
@@ -1104,24 +1125,44 @@ void SetPacketTx(PADAPTER padapter)
 
 	//3 3. init TX descriptor
 	// offset 0
-	//desc->txdw0 |= cpu_to_le32(pkt_size & 0x0000FFFF); // packet size
-	//desc->txdw0 |= cpu_to_le32(OWN | FSG | LSG);
-	//desc->txdw0 |= cpu_to_le32(((TXDESC_SIZE + OFFSET_SZ) << OFFSET_SHT) & 0x00FF0000); //32 bytes for TX Desc
-	//if (bmcast) desc->txdw0 |= cpu_to_le32(BMC); // broadcast packet
+#if  defined(CONFIG_RTL8188E) && !defined(CONFIG_RTL8188E_SDIO)
+	desc->txdw0 |= cpu_to_le32(OWN | FSG | LSG);
+	desc->txdw0 |= cpu_to_le32(pkt_size & 0x0000FFFF); // packet size
+	desc->txdw0 |= cpu_to_le32(((TXDESC_SIZE + OFFSET_SZ) << OFFSET_SHT) & 0x00FF0000); //32 bytes for TX Desc
+	if (bmcast) desc->txdw0 |= cpu_to_le32(BMC); // broadcast packet
 
+	desc->txdw1 |= cpu_to_le32((0x01 << 26) & 0xff000000);
+#endif
 	// offset 4
-	desc->txdw1 |= cpu_to_le32(BK); // don't aggregate(AMPDU)
-	desc->txdw1 |= cpu_to_le32((pattrib->mac_id) & 0x1F); //CAM_ID(MAC_ID)
+	#ifndef CONFIG_RTL8188E 
+		desc->txdw1 |= cpu_to_le32(BK); // don't aggregate(AMPDU)
+		desc->txdw1 |= cpu_to_le32((pattrib->mac_id) & 0x1F); //CAM_ID(MAC_ID)
+	#else
+		desc->txdw1 |= cpu_to_le32((pattrib->mac_id) & 0x3F); //CAM_ID(MAC_ID)
+	#endif
 	desc->txdw1 |= cpu_to_le32((pattrib->qsel << QSEL_SHT) & 0x00001F00); // Queue Select, TID
+	
+	#ifdef CONFIG_RTL8188E
+		desc->txdw1 |= cpu_to_le32((pattrib->raid << RATE_ID_SHT) & 0x000F0000); // Rate Adaptive ID
+	#else
 	desc->txdw1 |= cpu_to_le32((pattrib->raid << Rate_ID_SHT) & 0x000F0000); // Rate Adaptive ID
 
+	#endif
 	// offset 8
+	//	desc->txdw2 |= cpu_to_le32(AGG_BK);//AGG BK
 	// offset 12
+
+	desc->txdw3 |= cpu_to_le32((pattrib->seqnum<<16)&0x0fff0000);
+//	desc->txdw3 |= cpu_to_le32((pattrib->seqnum & 0xFFF) << SEQ_SHT);
 	//desc->txdw3 |= cpu_to_le32((pattrib->seqnum << SEQ_SHT) & 0xffff0000);
 
 	// offset 16
-	//desc->txdw4 |= cpu_to_le32(QoS);
+	//desc->txdw4 |= cpu_to_le32(QoS)
+	#ifdef CONFIG_RTL8188E
+		desc->txdw4 |= cpu_to_le32(HW_SSN);
+	#else
 	desc->txdw4 |= cpu_to_le32(HW_SEQ_EN);
+	#endif
 	desc->txdw4 |= cpu_to_le32(USERATE);
 	desc->txdw4 |= cpu_to_le32(DISDATAFB);
 
@@ -1139,7 +1180,12 @@ void SetPacketTx(PADAPTER padapter)
 		if (pmp_priv->rateidx > MPT_RATE_54M)
 			desc->txdw5 |= cpu_to_le32(SGI); // MCS Short Guard Interval
 	}
+	#ifdef CONFIG_RTL8188E
+		desc->txdw5 |= cpu_to_le32(RTY_LMT_EN); // retry limit enable
+		desc->txdw5 |= cpu_to_le32(0x00180000); // DATA/RTS Rate Fallback Limit	
+	#else
 	desc->txdw5 |= cpu_to_le32(0x0001FF00); // DATA/RTS Rate Fallback Limit
+	#endif
 
 	//3 4. make wlan header, make_wlanhdr()
 	hdr = (struct rtw_ieee80211_hdr *)pkt_start;
@@ -1195,8 +1241,12 @@ void SetPacketRx(PADAPTER pAdapter, u8 bStartRx)
 	if(bStartRx)
 	{
 		// Accept CRC error and destination address
-		pHalData->ReceiveConfig |= (RCR_ACRC32|RCR_AAP);
+#if 0
+		pHalData->ReceiveConfig |= (RCR_ACRC32|AB);
 		rtw_write32(pAdapter, REG_RCR, pHalData->ReceiveConfig);
+#else
+		rtw_write32(pAdapter, REG_RCR, 0x70000101);
+#endif
 	}
 	else
 	{

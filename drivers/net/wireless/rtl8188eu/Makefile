@@ -63,7 +63,7 @@ CONFIG_PLATFORM_DMP_PHILIPS = n
 CONFIG_PLATFORM_TI_DM365 = n
 CONFIG_PLATFORM_MSTAR_TITANIA12 = n
 CONFIG_PLATFORM_SZEBOOK = n
-CONFIG_PLATFORM_ARM_SUN4I = y
+CONFIG_PLATFORM_ARM_SUNxI = y
 
 CONFIG_DRVEXT_MODULE = n
 
@@ -229,7 +229,7 @@ ifeq ($(CONFIG_SDIO_HCI), y)
 _OS_INTFS_FILES += os_dep/linux/$(HCI_NAME)_ops_linux.o
 endif
 
-_HAL_INTFS_FILES :=	hal/hal_init.o \
+_HAL_INTFS_FILES :=	hal/hal_intf.o \
 			hal/hal_com.o \
 			hal/$(RTL871X)/$(RTL871X)_hal_init.o \
 			hal/$(RTL871X)/$(RTL871X)_phycfg.o \
@@ -274,7 +274,6 @@ endif
 ifeq ($(CONFIG_MP_INCLUDED), y)
 MODULE_NAME := $(MODULE_NAME)_mp
 EXTRA_CFLAGS += -DCONFIG_MP_INCLUDED
-CONFIG_POWER_SAVING = y
 endif
 
 ifeq ($(CONFIG_POWER_SAVING), y)
@@ -524,12 +523,12 @@ INSTALL_PREFIX :=
 endif
 
 
-ifeq ($(CONFIG_PLATFORM_ARM_SUN4I), y)
-EXTRA_CFLAGS += -DCONFIG_LITTLE_ENDIAN
+ifeq ($(CONFIG_PLATFORM_ARM_SUNxI), y)
+EXTRA_CFLAGS += -DCONFIG_LITTLE_ENDIAN -DCONFIG_PLATFORM_ARM_SUNxI
 ARCH := arm
 CROSS_COMPILE := arm-none-linux-gnueabi-
 KVER  := 3.0.8
-KSRC ?= $(src) 
+#KSRC:= ../lichee/linux-3.0/
 endif
 
 ifneq ($(KERNELRELEASE),)
@@ -551,7 +550,8 @@ rtk_core :=	core/rtw_cmd.o \
 		core/rtw_xmit.o	\
 		core/rtw_p2p.o \
 		core/rtw_br_ext.o \
-		core/rtw_iol.o
+		core/rtw_iol.o \
+		core/rtw_led.o
 
 $(MODULE_NAME)-y += $(rtk_core)
 
@@ -565,6 +565,10 @@ $(MODULE_NAME)-y += $(_OS_INTFS_FILES)
 
 $(MODULE_NAME)-$(CONFIG_MP_INCLUDED) += core/rtw_mp.o \
 					core/rtw_mp_ioctl.o
+ifeq ($(CONFIG_RTL8723A), y)
+
+$(MODULE_NAME)-$(CONFIG_MP_INCLUDED)+= core/rtw_bt_mp.o
+endif
 
 obj-$(CONFIG_RTL8188EU) := $(MODULE_NAME).o
 

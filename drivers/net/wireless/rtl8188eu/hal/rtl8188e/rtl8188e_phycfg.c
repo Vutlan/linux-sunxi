@@ -926,8 +926,8 @@ s32 PHY_MACConfig8188E(PADAPTER Adapter)
 
 
 	// 2010.07.13 AMPDU aggregation number B
-	//rtw_write16(Adapter, REG_MAX_AGGR_NUM, MAX_AGGR_NUM);
-	rtw_write8(Adapter, REG_MAX_AGGR_NUM, 0x0B); 
+	rtw_write16(Adapter, REG_MAX_AGGR_NUM, MAX_AGGR_NUM);
+	//rtw_write8(Adapter, REG_MAX_AGGR_NUM, 0x0B); 
 
 	return rtStatus;
 
@@ -2346,14 +2346,16 @@ void getTxPowerIndex88E(
 			cckPowerLevel[TxCount]		= pHalData->Index24G_CCK_Base[TxCount][index];
 			//2. OFDM
 			ofdmPowerLevel[TxCount]		= pHalData->Index24G_BW40_Base[RF_PATH_A][index]+
-			((pHalData->OFDM_24G_Diff[TxCount][RF_PATH_A])&0x0f);	
-			//((pHalData->OFDM_24G_Diff[TxCount][index])&0x0f);	
+				pHalData->OFDM_24G_Diff[TxCount][RF_PATH_A];	
 			// 1. BW20
 			BW20PowerLevel[TxCount]	= pHalData->Index24G_BW40_Base[RF_PATH_A][index]+
-			((pHalData->BW20_24G_Diff[TxCount][RF_PATH_A])&0x0f);
-			//(((pHalData->BW20_24G_Diff[TxCount][index])&0xf0)>>4);
+				pHalData->BW20_24G_Diff[TxCount][RF_PATH_A];
 			//2. BW40
 			BW40PowerLevel[TxCount]	= pHalData->Index24G_BW40_Base[TxCount][index];
+			//RTPRINT(FPHY, PHY_TXPWR, ("getTxPowerIndex88E(): 40MBase=0x%x  20Mdiff=%d  20MBase=0x%x!!\n", 
+			//	pHalData->Index24G_BW40_Base[RF_PATH_A][index],
+			//	pHalData->BW20_24G_Diff[TxCount][RF_PATH_A],
+			//	BW20PowerLevel[TxCount]));
 		}
 		else if(TxCount==RF_PATH_B)
 		{
@@ -2361,12 +2363,12 @@ void getTxPowerIndex88E(
 			cckPowerLevel[TxCount]		= pHalData->Index24G_CCK_Base[TxCount][index];
 			//2. OFDM
 			ofdmPowerLevel[TxCount]		= pHalData->Index24G_BW40_Base[RF_PATH_A][index]+
-			((pHalData->BW20_24G_Diff[RF_PATH_A][index])&0x0f)+
-			((pHalData->BW20_24G_Diff[TxCount][index])&0x0f);	
+			pHalData->BW20_24G_Diff[RF_PATH_A][index]+
+			pHalData->BW20_24G_Diff[TxCount][index];	
 			// 1. BW20
 			BW20PowerLevel[TxCount]	= pHalData->Index24G_BW40_Base[RF_PATH_A][index]+
-			(((pHalData->BW20_24G_Diff[TxCount][RF_PATH_A])&0xf0)>>4)+
-			(((pHalData->BW20_24G_Diff[TxCount][index])&0xf0)>>4);
+			pHalData->BW20_24G_Diff[TxCount][RF_PATH_A]+
+			pHalData->BW20_24G_Diff[TxCount][index];
 			//2. BW40
 			BW40PowerLevel[TxCount]	= pHalData->Index24G_BW40_Base[TxCount][index];		
 		}
@@ -2376,14 +2378,14 @@ void getTxPowerIndex88E(
 			cckPowerLevel[TxCount]		= pHalData->Index24G_CCK_Base[TxCount][index];
 			//2. OFDM
 			ofdmPowerLevel[TxCount]		= pHalData->Index24G_BW40_Base[RF_PATH_A][index]+
-			((pHalData->BW20_24G_Diff[RF_PATH_A][index])&0x0f)+
-			((pHalData->BW20_24G_Diff[RF_PATH_B][index])&0x0f)+
-			((pHalData->BW20_24G_Diff[TxCount][index])&0x0f);
+			pHalData->BW20_24G_Diff[RF_PATH_A][index]+
+			pHalData->BW20_24G_Diff[RF_PATH_B][index]+
+			pHalData->BW20_24G_Diff[TxCount][index];
 			// 1. BW20
 			BW20PowerLevel[TxCount]	= pHalData->Index24G_BW40_Base[RF_PATH_A][index]+
-			(((pHalData->BW20_24G_Diff[RF_PATH_A][index])&0xf0)>>4)+
-			(((pHalData->BW20_24G_Diff[RF_PATH_B][index])&0xf0)>>4)+
-			(((pHalData->BW20_24G_Diff[TxCount][index])&0xf0)>>4);
+			pHalData->BW20_24G_Diff[RF_PATH_A][index]+
+			pHalData->BW20_24G_Diff[RF_PATH_B][index]+
+			pHalData->BW20_24G_Diff[TxCount][index];
 			//2. BW40
 			BW40PowerLevel[TxCount]	= pHalData->Index24G_BW40_Base[TxCount][index];		
 		}
@@ -2393,17 +2395,17 @@ void getTxPowerIndex88E(
 			cckPowerLevel[TxCount]		= pHalData->Index24G_CCK_Base[TxCount][index];
 			//2. OFDM
 			ofdmPowerLevel[TxCount]		= pHalData->Index24G_BW40_Base[RF_PATH_A][index]+
-				((pHalData->BW20_24G_Diff[RF_PATH_A][index])&0x0f)+
-				((pHalData->BW20_24G_Diff[RF_PATH_B][index])&0x0f)+
-				((pHalData->BW20_24G_Diff[RF_PATH_C][index])&0x0f)+
-				((pHalData->BW20_24G_Diff[TxCount][index])&0x0f);
+				pHalData->BW20_24G_Diff[RF_PATH_A][index]+
+				pHalData->BW20_24G_Diff[RF_PATH_B][index]+
+				pHalData->BW20_24G_Diff[RF_PATH_C][index]+
+				pHalData->BW20_24G_Diff[TxCount][index];
 
 			// 1. BW20
 			BW20PowerLevel[TxCount]	= pHalData->Index24G_BW40_Base[RF_PATH_A][index]+
-				(((pHalData->BW20_24G_Diff[RF_PATH_A][index])&0xf0)>>4)+
-				(((pHalData->BW20_24G_Diff[RF_PATH_B][index])&0xf0)>>4)+
-				(((pHalData->BW20_24G_Diff[RF_PATH_C][index])&0xf0)>>4)+
-				(((pHalData->BW20_24G_Diff[TxCount][index])&0xf0)>>4);
+				pHalData->BW20_24G_Diff[RF_PATH_A][index]+
+				pHalData->BW20_24G_Diff[RF_PATH_B][index]+
+				pHalData->BW20_24G_Diff[RF_PATH_C][index]+
+				pHalData->BW20_24G_Diff[TxCount][index];
 
 			//2. BW40
 			BW40PowerLevel[TxCount]	= pHalData->Index24G_BW40_Base[TxCount][index];		
@@ -2677,13 +2679,13 @@ PHY_ScanOperationBackup8188E(
 		{
 			case SCAN_OPT_BACKUP:
 				IoType = IO_CMD_PAUSE_DM_BY_SCAN;
-				Adapter->HalFunc.SetHwRegHandler(Adapter,HW_VAR_IO_CMD,  (pu1Byte)&IoType);
+				rtw_hal_set_hwreg(Adapter,HW_VAR_IO_CMD,  (pu1Byte)&IoType);
 
 				break;
 
 			case SCAN_OPT_RESTORE:
 				IoType = IO_CMD_RESUME_DM_BY_SCAN;
-				Adapter->HalFunc.SetHwRegHandler(Adapter,HW_VAR_IO_CMD,  (pu1Byte)&IoType);
+				rtw_hal_set_hwreg(Adapter,HW_VAR_IO_CMD,  (pu1Byte)&IoType);
 				break;
 
 			default:
@@ -2753,7 +2755,7 @@ _PHY_SetBWMode92C(
 
 	regBwOpMode = rtw_read8(Adapter, REG_BWOPMODE);
 	regRRSR_RSC = rtw_read8(Adapter, REG_RRSR+2);
-	//regBwOpMode = Adapter->HalFunc.GetHwRegHandler(Adapter,HW_VAR_BWMODE,(pu1Byte)&regBwOpMode);
+	//regBwOpMode = rtw_hal_get_hwreg(Adapter,HW_VAR_BWMODE,(pu1Byte)&regBwOpMode);
 
 	switch(pHalData->CurrentChannelBW)
 	{
@@ -3343,7 +3345,7 @@ PHY_SetMonitorMode8192C(
 
 		pHalData->bInMonitorMode = TRUE;
 		pAdapter->HalFunc.AllowAllDestAddrHandler(pAdapter, TRUE, TRUE);
-		pAdapter->HalFunc.SetHwRegHandler(pAdapter, HW_VAR_CHECK_BSSID, (pu1Byte)&bFilterOutNonAssociatedBSSID);
+		rtw_hal_set_hwreg(pAdapter, HW_VAR_CHECK_BSSID, (pu1Byte)&bFilterOutNonAssociatedBSSID);
 	}
 	else
 	{
@@ -3352,7 +3354,7 @@ PHY_SetMonitorMode8192C(
 
 		pAdapter->HalFunc.AllowAllDestAddrHandler(pAdapter, FALSE, TRUE);
 		pHalData->bInMonitorMode = FALSE;
-		pAdapter->HalFunc.SetHwRegHandler(pAdapter, HW_VAR_CHECK_BSSID, (pu1Byte)&bFilterOutNonAssociatedBSSID);
+		rtw_hal_set_hwreg(pAdapter, HW_VAR_CHECK_BSSID, (pu1Byte)&bFilterOutNonAssociatedBSSID);
 	}
 #endif
 }
@@ -3479,26 +3481,6 @@ _PHY_DumpRFReg(IN	PADAPTER	pAdapter)
 	//RTPRINT(FINIT, INIT_RF, ("<===== PHY_DumpRFReg()\n"));
 }
 
-
-VOID rtl8192c_PHY_SetRFPathSwitch(
-	IN	PADAPTER	pAdapter,
-	IN	BOOLEAN		bMain
-	)
-{
-	HAL_DATA_TYPE	*pHalData = GET_HAL_DATA(pAdapter);
-
-#if DISABLE_BB_RF
-	return;
-#endif
-
-	if(IS_92C_SERIAL( pHalData->VersionID)){
-		_PHY_SetRFPathSwitch(pAdapter, bMain, _TRUE);
-	}
-	else{
-		// For 88C 1T1R
-		_PHY_SetRFPathSwitch(pAdapter, bMain, _FALSE);
-	}
-}
 
 //
 // Move from phycfg.c to gen.c to be code independent later

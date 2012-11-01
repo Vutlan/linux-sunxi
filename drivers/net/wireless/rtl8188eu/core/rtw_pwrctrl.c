@@ -309,15 +309,24 @@ _func_enter_;
 
 	pslv = PS_STATE(pslv);
 
+#ifdef CONFIG_LPS_RPWM_TIMER
+	if (pwrpriv->brpwmtimeout == _TRUE)
+	{
+		DBG_871X("%s: RPWM timeout, force to set RPWM(0x%02X) again!\n", __FUNCTION__, pslv);
+	}
+	else
+#endif // CONFIG_LPS_RPWM_TIMER
+	{
 	if ( (pwrpriv->rpwm == pslv)
 #ifdef CONFIG_LPS_LCLK
 		|| ((pwrpriv->rpwm >= PS_STATE_S2)&&(pslv >= PS_STATE_S2))
 #endif
-	)
+		)
 	{
 		RT_TRACE(_module_rtl871x_pwrctrl_c_,_drv_err_,
-			("%s: Already set rpwm[0x%02x]!\n", __FUNCTION__, pslv));
+			("%s: Already set rpwm[0x%02X], new=0x%02X!\n", __FUNCTION__, pwrpriv->rpwm, pslv));
 		return;
+	}
 	}
 
 	if ((padapter->bSurpriseRemoved == _TRUE) ||
@@ -355,7 +364,11 @@ _func_enter_;
 
 	pwrpriv->rpwm = pslv;
 
-	padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_SET_RPWM, (u8 *)(&rpwm));
+#ifdef CONFIG_LPS_RPWM_TIMER
+	if (rpwm & PS_ACK)
+		_set_timer(&pwrpriv->pwr_rpwm_timer, LPS_RPWM_WAIT_MS);
+#endif // CONFIG_LPS_RPWM_TIMER
+	rtw_hal_set_hwreg(padapter, HW_VAR_SET_RPWM, (u8 *)(&rpwm));
 
 	pwrpriv->tog += 0x80;
 
@@ -477,7 +490,7 @@ _func_enter_;
 
 			pwrpriv->pwr_mode = ps_mode;
 			rtw_set_rpwm(padapter, PS_STATE_S4);
-			padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_H2C_FW_PWRMODE, (u8 *)(&ps_mode));
+			rtw_hal_set_hwreg(padapter, HW_VAR_H2C_FW_PWRMODE, (u8 *)(&ps_mode));
 			pwrpriv->bFwCurrentInPSMode = _FALSE;
 		}
 	}
@@ -512,7 +525,7 @@ _func_enter_;
 			pwrpriv->pwr_mode = ps_mode;
 			pwrpriv->smart_ps = smart_ps;
 			pwrpriv->bcn_ant_mode = bcn_ant_mode;
-			padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_H2C_FW_PWRMODE, (u8 *)(&ps_mode));
+			rtw_hal_set_hwreg(padapter, HW_VAR_H2C_FW_PWRMODE, (u8 *)(&ps_mode));
 
 #ifdef CONFIG_P2P
 			// Set CTWindow after LPS
@@ -604,12 +617,12 @@ _func_enter_;
 			start_time = rtw_get_current_time();
 			while (1)
 			{
-				padapter->HalFunc.GetHwRegHandler(padapter, HW_VAR_FWLPS_RF_ON, (u8*)(&bAwake));
+				rtw_hal_get_hwreg(padapter, HW_VAR_FWLPS_RF_ON, (u8*)(&bAwake));
 
 				if (bAwake || padapter->bSurpriseRemoved)
 					break;
 
-				if(rtw_get_passing_time_ms(start_time)>LPS_LEAVE_TIMEOUT_MS)
+				if (rtw_get_passing_time_ms(start_time) > LPS_LEAVE_TIMEOUT_MS)
 				{
 					DBG_871X("Wait for FW LPS leave more than %u ms!!!\n", LPS_LEAVE_TIMEOUT_MS);
 					break;
@@ -641,7 +654,7 @@ _func_enter_;
 
 	//DBG_871X("%s.....\n",__FUNCTION__);
 	if (check_fwstate(pmlmepriv, _FW_LINKED) == _TRUE)
-	{ //connect	
+	{ //connect
 #ifdef CONFIG_LPS_LCLK
 		enqueue = 1;
 #endif
@@ -749,7 +762,6 @@ void cpwm_int_hdl(
 	struct reportpwrstate_parm *preportpwrstate)
 {
 	struct pwrctrl_priv *pwrpriv;
-	u32	start_time;
 
 _func_enter_;
 
@@ -763,14 +775,22 @@ _func_enter_;
 	}
 #endif
 
-	start_time = rtw_get_current_time();
-	
 	_enter_pwrlock(&pwrpriv->lock);
+
+#ifdef CONFIG_LPS_RPWM_TIMER
+	if (pwrpriv->rpwm < PS_STATE_S2)
+	{
+		DBG_871X("%s: Redundant CPWM Int. RPWM=0x%02X CPWM=0x%02x\n", __func__, pwrpriv->rpwm, pwrpriv->cpwm);
+		_exit_pwrlock(&pwrpriv->lock);
+		goto exit;
+	}
+#endif // CONFIG_LPS_RPWM_TIMER
 
 	pwrpriv->cpwm = PS_STATE(preportpwrstate->state);
 	pwrpriv->cpwm_tog = preportpwrstate->state & PS_TOGGLE;
 
-	if (pwrpriv->cpwm >= PS_STATE_S2) {
+	if (pwrpriv->cpwm >= PS_STATE_S2)
+	{
 		if (pwrpriv->alives & CMD_ALIVE)
 			_rtw_up_sema(&padapter->cmdpriv.cmd_queue_sema);
 
@@ -798,6 +818,78 @@ static void cpwm_event_callback(struct work_struct *work)
 	report.state = PS_STATE_S2;
 	cpwm_int_hdl(adapter, &report);
 }
+
+#ifdef CONFIG_LPS_RPWM_TIMER
+static void rpwmtimeout_workitem_callback(struct work_struct *work)
+{
+	PADAPTER padapter;
+	struct pwrctrl_priv *pwrpriv;
+
+
+	pwrpriv = container_of(work, struct pwrctrl_priv, rpwmtimeoutwi);
+	padapter = container_of(pwrpriv, _adapter, pwrctrlpriv);
+//	DBG_871X("+%s: rpwm=0x%02X cpwm=0x%02X\n", __func__, pwrpriv->rpwm, pwrpriv->cpwm);
+
+	_enter_pwrlock(&pwrpriv->lock);
+	if ((pwrpriv->rpwm == pwrpriv->cpwm) || (pwrpriv->cpwm >= PS_STATE_S2))
+	{
+		DBG_871X("%s: rpwm=0x%02X cpwm=0x%02X CPWM done!\n", __func__, pwrpriv->rpwm, pwrpriv->cpwm);
+		goto exit;
+	}
+	_exit_pwrlock(&pwrpriv->lock);
+
+	if (rtw_read8(padapter, 0x100) != 0xEA)
+	{
+#if 1
+		struct reportpwrstate_parm report;
+
+		report.state = PS_STATE_S2;
+		DBG_871X("\n%s: FW already leave 32K!\n\n", __func__);
+		cpwm_int_hdl(padapter, &report);
+#else
+		DBG_871X("\n%s: FW already leave 32K!\n\n", __func__);
+		cpwm_event_callback(&pwrpriv->cpwm_event);
+#endif
+		return;
+	}
+
+	_enter_pwrlock(&pwrpriv->lock);
+
+	if ((pwrpriv->rpwm == pwrpriv->cpwm) || (pwrpriv->cpwm >= PS_STATE_S2))
+	{
+		DBG_871X("%s: cpwm=%d, nothing to do!\n", __func__, pwrpriv->cpwm);
+		goto exit;
+	}
+	pwrpriv->brpwmtimeout = _TRUE;
+	rtw_set_rpwm(padapter, pwrpriv->rpwm);
+	pwrpriv->brpwmtimeout = _FALSE;
+
+exit:
+	_exit_pwrlock(&pwrpriv->lock);
+}
+
+/*
+ * This function is a timer handler, can't do any IO in it.
+ */
+static void pwr_rpwm_timeout_handler(void *FunctionContext)
+{
+	PADAPTER padapter;
+	struct pwrctrl_priv *pwrpriv;
+
+
+	padapter = (PADAPTER)FunctionContext;
+	pwrpriv = &padapter->pwrctrlpriv;
+//	DBG_871X("+%s: rpwm=0x%02X cpwm=0x%02X\n", __func__, pwrpriv->rpwm, pwrpriv->cpwm);
+
+	if ((pwrpriv->rpwm == pwrpriv->cpwm) || (pwrpriv->cpwm >= PS_STATE_S2))
+	{
+		DBG_871X("+%s: cpwm=%d, nothing to do!\n", __func__, pwrpriv->cpwm);
+		return;
+	}
+
+	_set_workitem(&pwrpriv->rpwmtimeoutwi);
+}
+#endif // CONFIG_LPS_RPWM_TIMER
 
 __inline static void register_task_alive(struct pwrctrl_priv *pwrctrl, u32 tag)
 {
@@ -1136,10 +1228,16 @@ _func_enter_;
 	pwrctrlpriv->tog = 0x80;
 
 #ifdef CONFIG_LPS_LCLK
-	padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_SET_RPWM, (u8 *)(&pwrctrlpriv->rpwm));
+	rtw_hal_set_hwreg(padapter, HW_VAR_SET_RPWM, (u8 *)(&pwrctrlpriv->rpwm));
 
 	_init_workitem(&pwrctrlpriv->cpwm_event, cpwm_event_callback, NULL);
-#endif
+#endif // CONFIG_LPS_LCLK
+
+#ifdef CONFIG_LPS_RPWM_TIMER
+	pwrctrlpriv->brpwmtimeout = _FALSE;
+	_init_workitem(&pwrctrlpriv->rpwmtimeoutwi, rpwmtimeout_workitem_callback, NULL);
+	_init_timer(&pwrctrlpriv->pwr_rpwm_timer, padapter->pnetdev, pwr_rpwm_timeout_handler, padapter);
+#endif // CONFIG_LPS_RPWM_TIMER
 
 #ifdef PLATFORM_LINUX
 	_init_timer(&(pwrctrlpriv->pwr_state_check_timer), padapter->pnetdev, pwr_state_check_handler, (u8 *)padapter);
@@ -1326,10 +1424,8 @@ void rtw_unregister_early_suspend(struct pwrctrl_priv *pwrpriv)
 u8 rtw_interface_ps_func(_adapter *padapter,HAL_INTF_PS_FUNC efunc_id,u8* val)
 {
 	u8 bResult = _TRUE;
-	if(padapter->HalFunc.interface_ps_func)
-	{
-		bResult = padapter->HalFunc.interface_ps_func(padapter,efunc_id,val);
-	}
+	rtw_hal_intf_ps_func(padapter,efunc_id,val);
+	
 	return bResult;
 }
 

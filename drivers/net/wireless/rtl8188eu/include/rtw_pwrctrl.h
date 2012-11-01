@@ -189,12 +189,18 @@ struct pwrctrl_priv
 	volatile u8 cpwm; // fw current power state. updated when 1. read from HCPWM 2. driver lowers power level
 	volatile u8 tog; // toggling
 	volatile u8 cpwm_tog; // toggling
+
 	u8	pwr_mode;
 	u8	smart_ps;
 	u8	bcn_ant_mode;
 
 	u32	alives;
 	_workitem cpwm_event;
+#ifdef CONFIG_LPS_RPWM_TIMER
+	u8 brpwmtimeout;
+	_workitem rpwmtimeoutwi;
+	_timer pwr_rpwm_timer;
+#endif // CONFIG_LPS_RPWM_TIMER
 	u8	bpower_saving;
 
 	u8	b_hw_radio_off;

@@ -64,7 +64,7 @@ typedef struct _ADAPTER _adapter, ADAPTER,*PADAPTER;
 #include <wlan_bssdef.h>
 #include <rtw_xmit.h>
 #include <rtw_recv.h>
-#include <hal_init.h>
+#include <hal_intf.h>
 #include <rtw_qos.h>
 #include <rtw_security.h>
 #include <rtw_pwrctrl.h>
@@ -206,6 +206,8 @@ struct registry_priv
 #ifdef CONFIG_80211D
 	u8 enable80211d;
 #endif
+	u8 notch_filter;
+
 };
 
 
@@ -347,6 +349,22 @@ enum _ADAPTER_TYPE {
 	SECONDARY_ADAPTER, 
 	MAX_ADAPTER,
 };
+
+#ifdef CONFIG_CONCURRENT_MODE
+struct co_data_priv{
+
+	//george@20120518
+	//current operating channel/bw/ch_offset
+	//save the correct ch/bw/ch_offset whatever the inputted values are
+	//when calling set_channel_bwmode() at concurrent mode 
+	//for debug check or reporting to layer app (such as wpa_supplicant for nl80211) 
+	u8 co_ch;
+	u8 co_bw;
+	u8 co_ch_offset;	
+	u8 rsvd;
+
+};
+#endif //CONFIG_CONCURRENT_MODE
 
 typedef enum _DRIVER_STATE{
 	DRIVER_NORMAL = 0,
@@ -504,6 +522,7 @@ struct _ADAPTER{
 	int net_closed;
 
 	u8 bFWReady;
+	u8 bBTFWReady;
 	u8 bReadPortCancel;
 	u8 bWritePortCancel;
 	u8 bRxRSSIDisplay;
@@ -511,9 +530,11 @@ struct _ADAPTER{
 	u8	bDisableAutosuspend;
 #endif
 
+	_adapter *pbuddy_adapter;
+
+	_mutex *hw_init_mutex;
 #if defined(CONFIG_CONCURRENT_MODE) || defined(CONFIG_DUALMAC_CONCURRENT)
 	u8 isprimary; //is primary adapter or not	
-	_adapter *pbuddy_adapter;	
 	u8 adapter_type;
 	u8 iface_type; //interface port type
 
@@ -521,7 +542,8 @@ struct _ADAPTER{
 	_mutex *ph2c_fwcmd_mutex;
 	_mutex *psetch_mutex;
 	_mutex *psetbw_mutex;
-	_mutex *hw_init_mutex;
+
+	struct co_data_priv *pcodatapriv;//data buffer shared among interfaces	
 #endif
 
 #ifdef CONFIG_DUALMAC_CONCURRENT

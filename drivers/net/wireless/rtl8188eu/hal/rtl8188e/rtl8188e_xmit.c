@@ -29,7 +29,7 @@ void _dbg_dump_tx_info(_adapter	*padapter,int frame_tag,struct tx_desc *ptxdesc)
 {
 	u8 bDumpTxPkt;
 	u8 bDumpTxDesc = _FALSE;
-	padapter->HalFunc.GetHalDefVarHandler(padapter, HAL_DEF_DBG_DUMP_TXPKT, &(bDumpTxPkt));
+	rtw_hal_get_def_var(padapter, HAL_DEF_DBG_DUMP_TXPKT, &(bDumpTxPkt));
 
 	if(bDumpTxPkt ==1){//dump txdesc for data frame
 		DBG_871X("dump tx_desc for data frame\n");

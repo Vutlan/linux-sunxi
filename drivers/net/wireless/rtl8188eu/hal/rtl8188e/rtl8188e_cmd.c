@@ -17,7 +17,7 @@
  *
  *
  ******************************************************************************/
-#define _RTL8723A_CMD_C_
+#define _RTL8188E_CMD_C_
 
 #include <drv_conf.h>
 #include <osdep_service.h>
@@ -353,6 +353,10 @@ void rtl8188e_Add_RateATid(PADAPTER pAdapter, u32 bitmap, u8 arg)
 	raid = (bitmap>>28) & 0x0f;
 
 	bitmap &= 0x0fffffff;
+	
+	DBG_871X("%s=> mac_id:%d , raid:%d , ra_bitmap=0x%x, shortGIrate=0x%02x\n", 
+			__FUNCTION__,macid ,raid ,bitmap, shortGIrate);
+
 
 #if(RATE_ADAPTIVE_SUPPORT == 1)
 	ODM_RA_UpdateRateInfo_8188E(
@@ -834,7 +838,7 @@ static void SetFwRsvdPagePkt(PADAPTER padapter, BOOLEAN bDLFinished)
 	pattrib->pktlen = pattrib->last_txcmdsz = TotalPacketLen - TXDESC_OFFSET;
 	_rtw_memcpy(pmgntframe->buf_addr, ReservedPagePacket, TotalPacketLen);
 
-	padapter->HalFunc.mgnt_xmit(padapter, pmgntframe);
+	rtw_hal_mgnt_xmit(padapter, pmgntframe);
 
 	DBG_871X("%s: Set RSVD page location to Fw\n", __FUNCTION__);
 	FillH2CCmd_88E(padapter, H2C_COM_RSVD_PAGE, sizeof(RsvdPageLoc), (u8*)&RsvdPageLoc);
@@ -890,7 +894,7 @@ _func_enter_;
 		pHalData->RegFwHwTxQCtrl &= (~BIT6);
 
 		// Clear beacon valid check bit.
-		padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_BCN_VALID, NULL);
+		rtw_hal_set_hwreg(padapter, HW_VAR_BCN_VALID, NULL);
 		DLBcnCount = 0;
 		poll = 0;
 		do
@@ -903,7 +907,7 @@ _func_enter_;
 				rtw_yield_os();
 				//rtw_mdelay_os(10);
 				// check rsvd page download OK.
-				padapter->HalFunc.GetHwRegHandler(padapter, HW_VAR_BCN_VALID, (u8*)(&bcn_valid));
+				rtw_hal_get_hwreg(padapter, HW_VAR_BCN_VALID, (u8*)(&bcn_valid));
 				poll++;
 			} while(!bcn_valid && (poll%10)!=0 && !padapter->bSurpriseRemoved && !padapter->bDriverStopped);
 			
@@ -928,7 +932,7 @@ _func_enter_;
 		{
 			if(bSendBeacon)
 			{
-				padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_BCN_VALID, NULL);
+				rtw_hal_set_hwreg(padapter, HW_VAR_BCN_VALID, NULL);
 				DLBcnCount = 0;
 				poll = 0;
 				do
@@ -941,7 +945,7 @@ _func_enter_;
 						rtw_yield_os();
 						//rtw_mdelay_os(10);
 						// check rsvd page download OK.
-						padapter->HalFunc.GetHwRegHandler(padapter, HW_VAR_BCN_VALID, (u8*)(&bcn_valid));
+						rtw_hal_get_hwreg(padapter, HW_VAR_BCN_VALID, (u8*)(&bcn_valid));
 						poll++;
 					} while(!bcn_valid && (poll%10)!=0 && !padapter->bSurpriseRemoved && !padapter->bDriverStopped);
 				}while(!bcn_valid && DLBcnCount<=100 && !padapter->bSurpriseRemoved && !padapter->bDriverStopped);
@@ -977,7 +981,7 @@ _func_enter_;
 		//
 		if(bcn_valid)
 		{
-			padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_BCN_VALID, NULL);
+			rtw_hal_set_hwreg(padapter, HW_VAR_BCN_VALID, NULL);
 			DBG_871X("Set RSVD page location to Fw.\n");
 			//FillH2CCmd88E(Adapter, H2C_88E_RSVDPAGE, H2C_RSVDPAGE_LOC_LENGTH, pMgntInfo->u1RsvdPageLoc);
 		}
@@ -1126,7 +1130,7 @@ int rtl8192c_IOL_exec_cmds_sync(ADAPTER *adapter, struct xmit_frame *xmit_frame,
 	if (rtw_IOL_append_END_cmd(xmit_frame) != _SUCCESS)
 		goto exit;
 	
-	//adapter->HalFunc.mgnt_xmit(adapter, xmit_frame);
+	//rtw_hal_mgnt_xmit(adapter, xmit_frame);
 	rtw_dump_xframe_sync(adapter, xmit_frame);
 
 	IoOffloadLoc.LocCmd = 0;

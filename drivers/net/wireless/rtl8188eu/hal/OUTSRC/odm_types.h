@@ -216,6 +216,12 @@ typedef enum _RT_SPINLOCK_TYPE{
 		#define DEV_BUS_TYPE  	RT_SDIO_INTERFACE
 	#endif	
 
+	#if defined(CONFIG_LITTLE_ENDIAN)	
+		#define	ODM_ENDIAN_TYPE			ODM_ENDIAN_LITTLE
+	#elif defined (CONFIG_BIG_ENDIAN)
+		#define	ODM_ENDIAN_TYPE			ODM_ENDIAN_BIG
+	#endif
+	
 	typedef struct timer_list		RT_TIMER, *PRT_TIMER;
 	typedef  void *				RT_TIMER_CALL_BACK;
 	#define	STA_INFO_T			struct sta_info

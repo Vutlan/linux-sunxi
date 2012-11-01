@@ -41,9 +41,43 @@
 #include <rtl8188e_hal.h>
 #endif
 
-#include <hal_init.h>
+#include <hal_intf.h>
 #include <sdio_hal.h>
 #include <sdio_ops.h>
+
+#ifdef CONFIG_PLATFORM_ARM_SUNxI
+#if defined(CONFIG_MMC_SUNXI_POWER_CONTROL)
+#define SDIOID (CONFIG_CHIP_ID==1123 ? 3 : 1)
+#define SUNXI_SDIO_WIFI_NUM_RTL8189ES  10
+extern void sunximmc_rescan_card(unsigned id, unsigned insert);
+extern int mmc_pm_get_mod_type(void);
+extern int mmc_pm_gpio_ctrl(char* name, int level);
+/*
+*	rtl8189es_shdn	= port:PH09<1><default><default><0>
+*	rtl8189es_wakeup	= port:PH10<1><default><default><1>
+*	rtl8189es_vdd_en  = port:PH11<1><default><default><0>
+*	rtl8189es_vcc_en  = port:PH12<1><default><default><0>
+*/
+
+int rtl8189es_sdio_powerup(void)
+{
+	mmc_pm_gpio_ctrl("rtl8189es_vdd_en", 1);   
+	udelay(100);   
+	mmc_pm_gpio_ctrl("rtl8189es_vcc_en", 1);    
+	udelay(50);    
+	mmc_pm_gpio_ctrl("rtl8189es_shdn", 1);        
+	return 0;
+}
+int rtl8189es_sdio_poweroff(void)
+{    
+	mmc_pm_gpio_ctrl("rtl8189es_shdn", 0);    
+	mmc_pm_gpio_ctrl("rtl8189es_vcc_en", 0);   
+	mmc_pm_gpio_ctrl("rtl8189es_vdd_en", 0);            
+	return 0;
+}
+#endif //defined(CONFIG_MMC_SUNXI_POWER_CONTROL)
+#endif //CONFIG_PLATFORM_ARM_SUNxI
+
 
 #ifndef dev_to_sdio_func
 #define dev_to_sdio_func(d)     container_of(d, struct sdio_func, dev)
@@ -62,19 +96,42 @@ static const struct sdio_device_id sdio_ids[] = {
 //	{ /* end: all zeroes */				},
 };
 
-typedef struct _driver_priv {
-	struct sdio_driver r871xs_drv;
+static int rtw_drv_init(struct sdio_func *func, const struct sdio_device_id *id);
+static void rtw_dev_remove(struct sdio_func *func);
+static int rtw_sdio_resume(struct device *dev);
+static int rtw_sdio_suspend(struct device *dev);
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,29))
+static const struct dev_pm_ops rtw_sdio_pm_ops = {
+        .suspend        = rtw_sdio_suspend,
+        .resume = rtw_sdio_resume,
+};
+#endif
+
+struct sdio_drv_priv {
+	struct sdio_driver r871xs_drv;
 	int drv_registered;
 
+	_mutex hw_init_mutex;
 #if defined(CONFIG_CONCURRENT_MODE) || defined(CONFIG_DUALMAC_CONCURRENT)
 	//global variable
 	_mutex h2c_fwcmd_mutex;
 	_mutex setch_mutex;
 	_mutex setbw_mutex;
-	_mutex hw_init_mutex;
 #endif	
-} drv_priv, *pdrv_priv;
+};
+
+static struct sdio_drv_priv sdio_drvpriv = {
+        .r871xs_drv.probe = rtw_drv_init,
+        .r871xs_drv.remove = rtw_dev_remove,
+        .r871xs_drv.name = (char*)DRV_NAME,
+        .r871xs_drv.id_table = sdio_ids,
+        #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,29))
+        .r871xs_drv.drv = {
+                .pm = &rtw_sdio_pm_ops,
+        }
+        #endif
+};
 
 static void sd_sync_int_hdl(struct sdio_func *func)
 {
@@ -167,35 +224,6 @@ static void sdio_deinit(PADAPTER padapter)
 	}
 }
 
-thread_return rtw_xmit_thread(thread_context context)
-{
-	s32 err;
-	PADAPTER padapter;
-
-
-	err = _SUCCESS;
-	padapter = (PADAPTER)context;
-
-#if 0
-	thread_enter(padapter->pnetdev);
-#else
-//	daemonize("%s", padapter->pnetdev->name);
-	daemonize("%s", "RTW_XMIT_THREAD");
-	allow_signal(SIGTERM);
-#endif
-
-	do {
-		err = hal_xmit_handler(padapter);
-		if (signal_pending(current)) {
-			flush_signals(current);
-		}
-	} while (_SUCCESS == err);
-
-	_rtw_up_sema(&padapter->xmitpriv.terminate_xmitthread_sema);
-
-	thread_exit();
-}
-
 static void decide_chip_type_by_device_id(PADAPTER padapter, u32 id)
 {
 	padapter->chip_type = NULL_CHIP_TYPE;
@@ -203,7 +231,7 @@ static void decide_chip_type_by_device_id(PADAPTER padapter, u32 id)
 	switch (id)
 	{
 		case 0x8723:
-			padapter->chip_type = RTL8188C_8192C;
+			padapter->chip_type = RTL8723A;
 			padapter->HardwareType = HARDWARE_TYPE_RTL8723AS;
 			break;
 		case 0x8179:
@@ -221,11 +249,7 @@ static void sd_intf_start(PADAPTER padapter)
 	}
 
 	//hal dep
-	if (padapter->HalFunc.enable_interrupt)
-		padapter->HalFunc.enable_interrupt(padapter);
-	else {
-		DBG_871X("%s: HalFunc.enable_interrupt is NULL!\n", __FUNCTION__);
-	}
+	rtw_hal_enable_interrupt(padapter);
 }
 
 static void sd_intf_stop(PADAPTER padapter)
@@ -236,11 +260,7 @@ static void sd_intf_stop(PADAPTER padapter)
 	}
 
 	// hal dep
-	if (padapter->HalFunc.disable_interrupt)
-		padapter->HalFunc.disable_interrupt(padapter);
-	else {
-		DBG_871X("%s: HalFunc.disable_interrupt is NULL!\n", __FUNCTION__);
-	}
+	rtw_hal_disable_interrupt(padapter);	
 }
 
 extern char* ifname;
@@ -309,7 +329,7 @@ static int rtw_drv_init(
 	padapter->intf_stop = &sd_intf_stop;
 
 	//3 5. register I/O operations
-	if (rtw_init_io_priv(padapter) == _FAIL)
+	if (rtw_init_io_priv(padapter, sdio_set_intf_ops) == _FAIL)
 	{
 		RT_TRACE(_module_hci_intfs_c_, _drv_err_,
 			("rtw_drv_init: Can't init io_priv\n"));
@@ -317,13 +337,13 @@ static int rtw_drv_init(
 	}
 
 	//3 6.
-	intf_read_chip_version(padapter);
+	rtw_hal_read_chip_version(padapter);
 
 	//3 7.
-	intf_chip_configure(padapter);
+	rtw_hal_chip_configure(padapter);
 
 	//3 8. read efuse/eeprom data
-	intf_read_chip_info(padapter);
+	rtw_hal_read_chip_info(padapter);
 
 	//3 9. init driver common data
 	if (rtw_init_drv_sw(padapter) == _FAIL) {
@@ -350,12 +370,12 @@ static int rtw_drv_init(
 	hostapd_mode_init(padapter);
 #endif
 
+	padapter->hw_init_mutex = &sdio_drvpriv.hw_init_mutex;
 #ifdef CONFIG_CONCURRENT_MODE
 	//set global variable to primary adapter
-	padapter->ph2c_fwcmd_mutex = &drvpriv.h2c_fwcmd_mutex;
-	padapter->psetch_mutex = &drvpriv.setch_mutex;
-	padapter->psetbw_mutex = &drvpriv.setbw_mutex;	
-	padapter->hw_init_mutex = &drvpriv.hw_init_mutex;	
+	padapter->ph2c_fwcmd_mutex = &sdio_drvpriv.h2c_fwcmd_mutex;
+	padapter->psetch_mutex = &sdio_drvpriv.setch_mutex;
+	padapter->psetbw_mutex = &sdio_drvpriv.setbw_mutex;
 #endif
 
 #ifdef CONFIG_PLATFORM_RTD2880B
@@ -435,7 +455,7 @@ static void rtw_dev_unload(PADAPTER padapter)
 	{
 		// stop TX
 //		val8 = 0xFF;
-//		padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_TXPAUSE,&val8);
+//		rtw_hal_set_hwreg(padapter, HW_VAR_TXPAUSE,&val8);
 
 #if 0
 		if (padapter->intf_stop)
@@ -575,7 +595,7 @@ static int rtw_sdio_suspend(struct device *dev)
 	if(pnetdev)
 	{
 		netif_carrier_off(pnetdev);
-		netif_stop_queue(pnetdev);
+		rtw_netif_stop_queue(pnetdev);
 	}
 #ifdef CONFIG_WOWLAN
 	padapter->pwrctrlpriv.bSupportWakeOnWlan=_TRUE;
@@ -677,12 +697,9 @@ int rtw_resume_process(_adapter *padapter)
 	}	
 
 	#ifdef CONFIG_LAYER2_ROAMING_RESUME
-	#if 1 // workaround for Reuuimlla resume issue
-	rtw_msleep_os(50);
-	#endif
 	rtw_roaming(padapter, NULL);
-	#endif	
-	
+	#endif
+
 	#ifdef CONFIG_RESUME_IN_WORKQUEUE
 	rtw_unlock_suspend();
 	#endif //CONFIG_RESUME_IN_WORKQUEUE
@@ -725,33 +742,34 @@ static int rtw_sdio_resume(struct device *dev)
 
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,29)) 
-static const struct dev_pm_ops rtw_sdio_pm_ops = {
-	.suspend	= rtw_sdio_suspend,
-	.resume	= rtw_sdio_resume,
-};
-#endif
-
-static drv_priv drvpriv = {
-	.r871xs_drv.probe = rtw_drv_init,
-	.r871xs_drv.remove = rtw_dev_remove,
-	.r871xs_drv.name = (char*)DRV_NAME,
-	.r871xs_drv.id_table = sdio_ids,
-	#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,29)) 
-	.r871xs_drv.drv = {
-		.pm = &rtw_sdio_pm_ops,
-	}
-	#endif
-};
-
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24)) 
 extern int console_suspend_enabled;
 #endif
 
 static int __init rtw_drv_entry(void)
 {
-	int ret;
-
+	int ret=0;
+	
+#ifdef CONFIG_PLATFORM_ARM_SUNxI
+/*depends on sunxi power control */
+#if defined CONFIG_MMC_SUNXI_POWER_CONTROL    
+	unsigned int mod_sel = mmc_pm_get_mod_type();	
+	if(mod_sel == SUNXI_SDIO_WIFI_NUM_RTL8189ES) 
+	{		
+		rtl8189es_sdio_powerup();  		
+		sunximmc_rescan_card(SDIOID, 1);		
+		printk("[rtl8189es] %s: power up, rescan card.\n", __FUNCTION__);  			
+	} 
+	else 
+	{		
+		ret = -1;		
+		printk("[rtl8189es] %s: mod_sel = %d is incorrect.\n", __FUNCTION__, mod_sel);	
+	}
+#endif	// defined CONFIG_MMC_SUNXI_POWER_CONTROL
+	if(ret != 0)		
+		goto exit;
+	
+#endif //CONFIG_PLATFORM_ARM_SUNxI
 
 //	DBG_871X(KERN_INFO "+%s", __func__);
 	RT_TRACE(_module_hci_intfs_c_, _drv_notice_, ("+rtw_drv_entry\n"));
@@ -765,17 +783,19 @@ static int __init rtw_drv_entry(void)
 	
 	rtw_suspend_lock_init();
 
+	_rtw_mutex_init(&sdio_drvpriv.hw_init_mutex);
 #if defined(CONFIG_CONCURRENT_MODE) || defined(CONFIG_DUALMAC_CONCURRENT)
 	//init global variable
-	_rtw_mutex_init(&drvpriv.h2c_fwcmd_mutex);
-	_rtw_mutex_init(&drvpriv.setch_mutex);
-	_rtw_mutex_init(&drvpriv.setbw_mutex);
-	_rtw_mutex_init(&drvpriv.hw_init_mutex);
+	_rtw_mutex_init(&sdio_drvpriv.h2c_fwcmd_mutex);
+	_rtw_mutex_init(&sdio_drvpriv.setch_mutex);
+	_rtw_mutex_init(&sdio_drvpriv.setbw_mutex);
 #endif
 	
-	drvpriv.drv_registered = _TRUE;
+	sdio_drvpriv.drv_registered = _TRUE;
 
-	ret = sdio_register_driver(&drvpriv.r871xs_drv);
+	ret = sdio_register_driver(&sdio_drvpriv.r871xs_drv);
+
+exit:	
 //	DBG_871X(KERN_INFO "-%s: ret=%d", __func__, ret);
 	RT_TRACE(_module_hci_intfs_c_, _drv_notice_, ("-rtw_drv_entry: ret=%d\n", ret));
 
@@ -788,16 +808,27 @@ static void __exit rtw_drv_halt(void)
 	RT_TRACE(_module_hci_intfs_c_, _drv_notice_, ("+rtw_drv_halt\n"));
 
 	rtw_suspend_lock_uninit();
-	drvpriv.drv_registered = _FALSE;
+	sdio_drvpriv.drv_registered = _FALSE;
 
-	sdio_unregister_driver(&drvpriv.r871xs_drv);
-
+	sdio_unregister_driver(&sdio_drvpriv.r871xs_drv);
+	
+	_rtw_mutex_free(&sdio_drvpriv.hw_init_mutex);
 #if defined(CONFIG_CONCURRENT_MODE) || defined(CONFIG_DUALMAC_CONCURRENT)
-	_rtw_mutex_free(&drvpriv.h2c_fwcmd_mutex);
-	_rtw_mutex_free(&drvpriv.setch_mutex);
-	_rtw_mutex_free(&drvpriv.setbw_mutex);
-	_rtw_mutex_free(&drvpriv.hw_init_mutex);
+	_rtw_mutex_free(&sdio_drvpriv.h2c_fwcmd_mutex);
+	_rtw_mutex_free(&sdio_drvpriv.setch_mutex);
+	_rtw_mutex_free(&sdio_drvpriv.setbw_mutex);
 #endif
+
+#ifdef CONFIG_PLATFORM_ARM_SUNxI
+#if defined(CONFIG_MMC_SUNXI_POWER_CONTROL)	
+	sunximmc_rescan_card(SDIOID, 0);
+#ifdef CONFIG_RTL8188E	
+	rtl8189es_sdio_poweroff();	
+	printk("[rtl8189es] %s: remove card, power off.\n", __FUNCTION__);
+#endif //CONFIG_RTL8188E
+#endif //defined(CONFIG_MMC_SUNXI_POWER_CONTROL)
+#endif //CONFIG_PLATFORM_ARM_SUNxI
+
 //	DBG_871X(KERN_INFO "-%s", __func__);
 	RT_TRACE(_module_hci_intfs_c_, _drv_notice_, ("-rtw_drv_halt\n"));
 }

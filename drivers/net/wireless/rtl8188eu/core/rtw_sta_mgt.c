@@ -504,8 +504,7 @@ _func_enter_;
 		
 	}
 	DBG_871X("%s\n",__FUNCTION__);
-	if(padapter->HalFunc.SetHalODMVarHandler)
-		padapter->HalFunc.SetHalODMVarHandler(padapter,HAL_ODM_STA_INFO,psta,_FALSE);
+	rtw_hal_set_odm_var(padapter,HAL_ODM_STA_INFO,psta,_FALSE);
 			
 #ifdef CONFIG_AP_MODE
 

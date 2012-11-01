@@ -374,6 +374,45 @@ extern void rtl871x_cedbg(const char *fmt, ...);
 			  off_t offset, int count,
 			  int *eof, void *data);
 
+	int proc_get_mac_reg_dump1(char *page, char **start,
+			  off_t offset, int count,
+			  int *eof, void *data);
+
+	int proc_get_mac_reg_dump2(char *page, char **start,
+			  off_t offset, int count,
+			  int *eof, void *data);
+
+	int proc_get_mac_reg_dump3(char *page, char **start,
+			  off_t offset, int count,
+			  int *eof, void *data);
+	
+	int proc_get_bb_reg_dump1(char *page, char **start,
+			  off_t offset, int count,
+			  int *eof, void *data);
+
+	int proc_get_bb_reg_dump2(char *page, char **start,
+			  off_t offset, int count,
+			  int *eof, void *data);
+	
+	int proc_get_bb_reg_dump3(char *page, char **start,
+			  off_t offset, int count,
+			  int *eof, void *data);
+	
+	int proc_get_rf_reg_dump1(char *page, char **start,
+			  off_t offset, int count,
+			  int *eof, void *data);
+
+	int proc_get_rf_reg_dump2(char *page, char **start,
+			  off_t offset, int count,
+			  int *eof, void *data);
+
+	int proc_get_rf_reg_dump3(char *page, char **start,
+			  off_t offset, int count,
+			  int *eof, void *data);
+
+	int proc_get_rf_reg_dump4(char *page, char **start,
+			  off_t offset, int count,
+			  int *eof, void *data);
 
 #ifdef CONFIG_AP_MODE
 

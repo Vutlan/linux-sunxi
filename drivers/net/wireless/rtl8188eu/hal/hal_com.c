@@ -22,13 +22,13 @@
 #include <drv_types.h>
 #include <rtw_byteorder.h>
 
-#include <hal_init.h>
+#include <hal_intf.h>
 
 #include "HalVerDef.h"
 
 
 #define _HAL_INIT_C_
-#ifdef CONFIG_CHIP_VER_INTEGRATION
+
 void dump_chip_info(HAL_VERSION	ChipVersion)
 {
 	if(IS_81XXC(ChipVersion)){
@@ -62,7 +62,6 @@ void dump_chip_info(HAL_VERSION	ChipVersion)
 	DBG_871X("RomVer(%d)\n",ChipVersion.ROMVer);	
 }
 
-#endif
 
 #define	EEPROM_CHANNEL_PLAN_BY_HW_MASK	0x80
 

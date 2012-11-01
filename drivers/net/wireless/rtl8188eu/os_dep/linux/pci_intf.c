@@ -24,7 +24,7 @@
 #include <drv_types.h>
 #include <recv_osdep.h>
 #include <xmit_osdep.h>
-#include <hal_init.h>
+#include <hal_intf.h>
 #include <rtw_version.h>
 
 #ifndef CONFIG_PCI_HCI
@@ -82,23 +82,21 @@ struct pci_device_id rtw_pci_id_tbl[] = {
 	{},
 };
 
-typedef struct _driver_priv{
-
+struct pci_drv_priv {
 	struct pci_driver rtw_pci_drv;
 	int drv_registered;
 
+	_mutex hw_init_mutex;
 #if defined(CONFIG_CONCURRENT_MODE) || defined(CONFIG_DUALMAC_CONCURRENT)
 	//global variable
 	_mutex h2c_fwcmd_mutex;
 	_mutex setch_mutex;
 	_mutex setbw_mutex;
-	_mutex hw_init_mutex;
 #endif
+};
 
-}drv_priv, *pdrv_priv;
 
-
-static drv_priv drvpriv = {
+static struct pci_drv_priv pci_drvpriv = {
 	.rtw_pci_drv.name = (char*)DRV_NAME,
 	.rtw_pci_drv.probe = rtw_drv_init,
 	.rtw_pci_drv.remove = rtw_dev_remove,
@@ -998,7 +996,7 @@ static void rtw_pci_update_default_setting(_adapter *padapter)
 	pwrpriv->b_support_aspm = 0;
 
 	// Dynamic Mechanism, 
-	//pAdapter->HalFunc.SetHalDefVarHandler(pAdapter, HAL_DEF_INIT_GAIN, &(pDevice->InitGainState));
+	//rtw_hal_set_def_var(pAdapter, HAL_DEF_INIT_GAIN, &(pDevice->InitGainState));
 
 	// Update PCI ASPM setting
 	pwrpriv->const_amdpci_aspm = pdvobjpriv->const_amdpci_aspm;
@@ -1117,7 +1115,7 @@ static irqreturn_t rtw_pci_interrupt(int irq, void *priv, struct pt_regs *regs)
 		return IRQ_HANDLED;
 	}
 
-	if(padapter->HalFunc.interrupt_handler(padapter) == _FAIL)
+	if(rtw_hal_interrupt_handler(padapter) == _FAIL)
 		return IRQ_HANDLED;
 		//return IRQ_NONE;
 
@@ -1227,16 +1225,16 @@ _func_enter_;
 		pcipriv->amd_l1_patch);
 
 	//.2
-	if ((rtw_init_io_priv(padapter)) == _FAIL)
+	if ((rtw_init_io_priv(padapter, pci_set_intf_ops)) == _FAIL)
 	{
 		RT_TRACE(_module_hci_intfs_c_,_drv_err_,(" \n Can't init io_reqs\n"));
 		status = _FAIL;
 	}
 
 	//.3
-	intf_read_chip_version(padapter);
+	rtw_hal_read_chip_version(padapter);
 	//.4
-	intf_chip_configure(padapter);
+	rtw_hal_chip_configure(padapter);
 
 _func_exit_;
 
@@ -1375,7 +1373,7 @@ static void pci_intf_start(_adapter *padapter)
 	DBG_871X("+pci_intf_start\n");
 
 	//Enable hw interrupt
-	padapter->HalFunc.enable_interrupt(padapter);
+	rtw_hal_enable_interrupt(padapter);
 
 	RT_TRACE(_module_hci_intfs_c_,_drv_err_,("-pci_intf_start\n"));
 	DBG_871X("-pci_intf_start\n");
@@ -1390,7 +1388,7 @@ static void pci_intf_stop(_adapter *padapter)
 	if(padapter->bSurpriseRemoved == _FALSE)
 	{
 		//device still exists, so driver can do i/o operation
-		padapter->HalFunc.disable_interrupt(padapter);
+		rtw_hal_disable_interrupt(padapter);
 		tasklet_disable(&(padapter->recvpriv.recv_tasklet));
 		tasklet_disable(&(padapter->recvpriv.irq_prepare_beacon_tasklet));
 		tasklet_disable(&(padapter->xmitpriv.xmit_tasklet));
@@ -1431,7 +1429,7 @@ static void rtw_dev_unload(_adapter *padapter)
 /*		if(pnetdev)
 		{
 			netif_carrier_off(pnetdev);
-			netif_stop_queue(pnetdev);
+			rtw_netif_stop_queue(pnetdev);
 		}
 
 		//s2.
@@ -1680,7 +1678,7 @@ static int rtw_drv_init(struct pci_dev *pdev, const struct pci_device_id *pdid)
 	pnetdev->irq = pdev->irq;
 
 	//step 4. read efuse/eeprom data and get mac_addr
-	intf_read_chip_info(padapter);	
+	rtw_hal_read_chip_info(padapter);	
 
 	//step 5. 
 	status = rtw_init_drv_sw(padapter);
@@ -1689,7 +1687,7 @@ static int rtw_drv_init(struct pci_dev *pdev, const struct pci_device_id *pdid)
 		goto error;
 	}
 
-	status = padapter->HalFunc.inirp_init(padapter);
+	status = rtw_hal_inirp_init(padapter);
 	if(status ==_FAIL){
 		RT_TRACE(_module_hci_intfs_c_,_drv_err_,("Initialize PCI desc ring Failed!\n"));
 		goto error;
@@ -1701,7 +1699,7 @@ static int rtw_drv_init(struct pci_dev *pdev, const struct pci_device_id *pdid)
 	DBG_871X("MAC Address from pnetdev->dev_addr= "MAC_FMT"\n", MAC_ARG(pnetdev->dev_addr));	
 
 
-	padapter->HalFunc.disable_interrupt(padapter);
+	rtw_hal_disable_interrupt(padapter);
 
 #if defined(IRQF_SHARED)
 	err = request_irq(pdev->irq, &rtw_pci_interrupt, IRQF_SHARED, DRV_NAME, padapter);
@@ -1740,13 +1738,12 @@ static int rtw_drv_init(struct pci_dev *pdev, const struct pci_device_id *pdid)
 	hostapd_mode_init(padapter);
 #endif
 
+	padapter->hw_init_mutex = &pci_drvpriv.hw_init_mutex;
 #ifdef CONFIG_CONCURRENT_MODE
-
 	//set global variable to primary adapter
-	padapter->ph2c_fwcmd_mutex = &drvpriv.h2c_fwcmd_mutex;
-	padapter->psetch_mutex = &drvpriv.setch_mutex;
-	padapter->psetbw_mutex = &drvpriv.setbw_mutex;	
-	padapter->hw_init_mutex = &drvpriv.hw_init_mutex;
+	padapter->ph2c_fwcmd_mutex = &pci_drvpriv.h2c_fwcmd_mutex;
+	padapter->psetch_mutex = &pci_drvpriv.setch_mutex;
+	padapter->psetbw_mutex = &pci_drvpriv.setbw_mutex;	
 #endif
 
 
@@ -1827,7 +1824,7 @@ _func_exit_;
 	padapter->bSurpriseRemoved = _FALSE;	// always trate as device exists
                                                 // this will let the driver to disable it's interrupt
 #else	
-	if(drvpriv.drv_registered == _TRUE)
+	if(pci_drvpriv.drv_registered == _TRUE)
 	{
 		//DBG_871X("r871xu_dev_remove():padapter->bSurpriseRemoved == _TRUE\n");
 		padapter->bSurpriseRemoved = _TRUE;
@@ -1876,7 +1873,7 @@ _func_exit_;
 	pci_disable_device(pdev);
 	pci_set_drvdata(pdev, NULL);
 
-	padapter->HalFunc.inirp_deinit(padapter);
+	rtw_hal_inirp_deinit(padapter);
 	//s6.
 	if(padapter->dvobj_deinit)
 	{
@@ -1912,18 +1909,17 @@ static int __init rtw_drv_entry(void)
 	RT_TRACE(_module_hci_intfs_c_,_drv_err_,("+rtw_drv_entry\n"));
 	DBG_871X("rtw driver version=%s\n", DRIVERVERSION);
 	DBG_871X("Build at: %s %s\n", __DATE__, __TIME__);
-	drvpriv.drv_registered = _TRUE;
+	pci_drvpriv.drv_registered = _TRUE;
 
 
-
+	_rtw_mutex_init(&pci_drvpriv.hw_init_mutex);
 #if defined(CONFIG_CONCURRENT_MODE) || defined(CONFIG_DUALMAC_CONCURRENT)
 	//init global variable
-	_rtw_mutex_init(&drvpriv.h2c_fwcmd_mutex);
-	_rtw_mutex_init(&drvpriv.setch_mutex);
-	_rtw_mutex_init(&drvpriv.setbw_mutex);
-	_rtw_mutex_init(&drvpriv.hw_init_mutex);
+	_rtw_mutex_init(&pci_drvpriv.h2c_fwcmd_mutex);
+	_rtw_mutex_init(&pci_drvpriv.setch_mutex);
+	_rtw_mutex_init(&pci_drvpriv.setbw_mutex);
 #endif
-	ret = pci_register_driver(&drvpriv.rtw_pci_drv);
+	ret = pci_register_driver(&pci_drvpriv.rtw_pci_drv);
 	if (ret) {
 		RT_TRACE(_module_hci_intfs_c_, _drv_err_, (": No device found\n"));
 	}
@@ -1935,15 +1931,15 @@ static void __exit rtw_drv_halt(void)
 {
 	RT_TRACE(_module_hci_intfs_c_,_drv_err_,("+rtw_drv_halt\n"));
 	DBG_871X("+rtw_drv_halt\n");
-	drvpriv.drv_registered = _FALSE;
-
+	pci_drvpriv.drv_registered = _FALSE;
+	
+	_rtw_mutex_free(&pci_drvpriv.hw_init_mutex);
 #if defined(CONFIG_CONCURRENT_MODE) || defined(CONFIG_DUALMAC_CONCURRENT)
-	_rtw_mutex_free(&drvpriv.h2c_fwcmd_mutex);
-	_rtw_mutex_free(&drvpriv.setch_mutex);
-	_rtw_mutex_free(&drvpriv.setbw_mutex);
-	_rtw_mutex_free(&drvpriv.hw_init_mutex);
+	_rtw_mutex_free(&pci_drvpriv.h2c_fwcmd_mutex);
+	_rtw_mutex_free(&pci_drvpriv.setch_mutex);
+	_rtw_mutex_free(&pci_drvpriv.setbw_mutex);
 #endif
-	pci_unregister_driver(&drvpriv.rtw_pci_drv);
+	pci_unregister_driver(&pci_drvpriv.rtw_pci_drv);
 
 	DBG_871X("-rtw_drv_halt\n");
 }

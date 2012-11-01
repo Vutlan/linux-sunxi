@@ -149,9 +149,14 @@ struct profile_info {
 
 struct tx_invite_req_info{
 	u8					token;
+	u8					benable;
 	u8					ssid[ WLAN_SSID_MAXLEN ];
 	u8					ssidlen;
-	u8					peer_operation_ch;
+	u8					go_bssid[ ETH_ALEN ];
+	u8					peer_macaddr[ ETH_ALEN ];
+	u8					operating_ch;		//	This information will be set by using the p2p_set op_ch=x
+	u8					peer_ch;		//	The listen channel for peer P2P device
+	u8					peer_operation_ch;	
 };
 
 struct tx_invite_resp_info{
@@ -363,8 +368,10 @@ struct mlme_priv {
 	u8	ChannelPlan;
 	RT_SCAN_TYPE 	scan_mode; // active: 1, passive: 0
 
-	u8 probereq_wpsie[MAX_WPS_IE_LEN];//added in probe req	
-	int probereq_wpsie_len;
+	//u8 probereq_wpsie[MAX_WPS_IE_LEN];//added in probe req	
+	//int probereq_wpsie_len;
+	u8 *wps_probe_req_ie;
+	u32 wps_probe_req_ie_len;
 
 #if defined (CONFIG_AP_MODE) && defined (CONFIG_NATIVEAP_MLME)
 	/* Number of associated Non-ERP stations (i.e., stations using 802.11b
@@ -396,12 +403,12 @@ struct mlme_priv {
 #endif /* CONFIG_80211N_HT */	
 
 	u8 *wps_beacon_ie;	
-	u8 *wps_probe_req_ie;
+	//u8 *wps_probe_req_ie;
 	u8 *wps_probe_resp_ie;
 	u8 *wps_assoc_resp_ie; // for CONFIG_IOCTL_CFG80211, this IE could include p2p ie
 
 	u32 wps_beacon_ie_len;
-	u32 wps_probe_req_ie_len;
+	//u32 wps_probe_req_ie_len;
 	u32 wps_probe_resp_ie_len;
 	u32 wps_assoc_resp_ie_len;
 	
@@ -684,6 +691,7 @@ void rtw_issue_addbareq_cmd(_adapter *padapter, struct xmit_frame *pxmitframe);
 #endif
 
 int rtw_is_same_ibss(_adapter *adapter, struct wlan_network *pnetwork);
+int is_same_network(WLAN_BSSID_EX *src, WLAN_BSSID_EX *dst);
 
 #ifdef CONFIG_LAYER2_ROAMING
 void rtw_roaming(_adapter *padapter, struct wlan_network *tgt_network);

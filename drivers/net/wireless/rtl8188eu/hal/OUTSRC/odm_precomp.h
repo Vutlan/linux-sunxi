@@ -76,13 +76,7 @@
 	#include <osdep_service.h>
 	#include <drv_types.h>
 	#include <rtw_byteorder.h>
-	#include <hal_init.h>
-
-	#if defined(CONFIG_LITTLE_ENDIAN)	
-		#define	ODM_ENDIAN_TYPE			ODM_ENDIAN_LITTLE
-	#elif defined (CONFIG_BIG_ENDIAN)
-		#define	ODM_ENDIAN_TYPE			ODM_ENDIAN_BIG
-	#endif
+	#include <hal_intf.h>	
 		
 #elif (DM_ODM_SUPPORT_TYPE == ODM_MP)
 	#include "Mp_Precomp.h"

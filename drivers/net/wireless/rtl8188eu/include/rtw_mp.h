@@ -236,6 +236,38 @@ struct mp_tx
 #define s1Byte s8
 #define u4Byte u32
 #define s4Byte s32
+#define u1Byte		u8
+#define pu1Byte 		u8* 
+
+#define u2Byte		u16
+#define pu2Byte 		u16*		
+
+#define u4Byte		u32
+#define pu4Byte 		u32*	
+
+#define u8Byte		u64
+#define pu8Byte 		u64*
+
+#define s1Byte		s8
+#define ps1Byte 		s8* 
+
+#define s2Byte		s16
+#define ps2Byte 		s16*	
+
+#define s4Byte		s32
+#define ps4Byte 		s32*	
+
+#define s8Byte		s64
+#define ps8Byte 		s64*
+
+#define UCHAR u8
+#define USHORT u16
+#define UINT u32
+#define ULONG u32
+#define PULONG u32*
+
+
+
 typedef VOID (*MPT_WORK_ITEM_HANDLER)(IN PVOID Adapter);
 typedef struct _MPT_CONTEXT
 {
@@ -245,6 +277,14 @@ typedef struct _MPT_CONTEXT
 	// Indicate if the driver is unloading or unloaded.
 	BOOLEAN			bMptDrvUnload;
 
+	_sema			MPh2c_Sema;
+	_timer			MPh2c_timeout_timer;
+// Event used to sync H2c for BT control
+
+	BOOLEAN		MptH2cRspEvent;
+	BOOLEAN		MptBtC2hEvent;
+	BOOLEAN		bMPh2c_timeout;
+	
 	/* 8190 PCI does not support NDIS_WORK_ITEM. */
 	// Work Item for Mass Production Test.
 	//NDIS_WORK_ITEM	MptWorkItem;
@@ -318,6 +358,16 @@ typedef struct _MPT_CONTEXT
 	u8		backup0xc50;
 	u8		backup0xc58;
 	u8		backup0xc30;
+	u8 		backup0x52_RF_A;
+	u8 		backup0x52_RF_B;
+	
+	u1Byte			h2cReqNum;
+	u1Byte			c2hBuf[20];
+
+    u1Byte          btInBuf[100];
+	ULONG			mptOutLen;
+    u1Byte          mptOutBuf[100];
+    
 }MPT_CONTEXT, *PMPT_CONTEXT;
 #endif
 //#endif
@@ -333,9 +383,14 @@ typedef struct _MPT_CONTEXT
 #define EFUSE_MAP_SIZE		256
 #endif
 #ifdef CONFIG_RTL8188E
-#define EFUSE_MAP_SIZE		256
+#define EFUSE_MAP_SIZE		512
 #endif
+
+#ifdef CONFIG_RTL8188E
+#define EFUSE_MAX_SIZE		256
+#else
 #define EFUSE_MAX_SIZE		512
+#endif
 /* end of E-Fuse */
 
 //#define RTPRIV_IOCTL_MP 					( SIOCIWFIRSTPRIV + 0x17)
@@ -366,6 +421,7 @@ enum {
 	MP_PHYPARA,
 	MP_SetRFPathSwh,
 	MP_QueryDrvStats,
+	MP_SetBT,
 	MP_NULL,
 };
 

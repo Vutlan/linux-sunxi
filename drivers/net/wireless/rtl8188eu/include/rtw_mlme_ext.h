@@ -416,6 +416,7 @@ struct mlme_ext_info
 	// Accept ADDBA Request
 	BOOLEAN bAcceptAddbaReq;
 	u8	bwmode_updated;
+	u8	hidden_ssid_mode;
 
 	struct ADDBA_request		ADDBA_req;
 	struct WMM_para_element	WMM_param;

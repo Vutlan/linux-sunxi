@@ -161,7 +161,7 @@ if [ ! -f include/rtw_version.h ]; then
 	# Make Version string
 	if [ -z "$2" ]; then
 		get_svn_revision
-		version="v4.1.1_"$svn_rev
+		version="v4.1.2.1_"$svn_rev
 		datestr=$(date +%Y%m%d)
 		postfix=$version.$datestr
 	else

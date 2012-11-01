@@ -1297,6 +1297,12 @@ typedef struct _BTDM_8723A_1ANT
 	u32		psTdmaMonitorCnt;
 	u32		psTdmaGlobalCnt;
 
+	//DurationAdjust For SCO
+	u32		psTdmaMonitorCntForSCO;
+	u8		psTdmaDuAdjTypeForSCO;
+	u8		RSSI_WiFi_Last;
+	u8		RSSI_BT_Last;
+
 	u8		bWiFiHalt;
 } BTDM_8723A_1ANT, *PBTDM_8723A_1ANT;
 

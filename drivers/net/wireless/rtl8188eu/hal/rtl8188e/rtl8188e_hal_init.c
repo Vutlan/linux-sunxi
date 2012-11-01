@@ -763,8 +763,8 @@ Hal_EfuseReadEFuse88E(
 	//
 	// 5. Calculate Efuse utilization.
 	//
-	efuse_usage = (u1Byte)((efuse_utilized*100)/EFUSE_REAL_CONTENT_LEN_88E);
-	Adapter->HalFunc.SetHwRegHandler(Adapter, HW_VAR_EFUSE_BYTES, (u8 *)&efuse_utilized);
+	efuse_usage = (u1Byte)((eFuse_Addr*100)/EFUSE_REAL_CONTENT_LEN_88E);
+	rtw_hal_set_hwreg(Adapter, HW_VAR_EFUSE_BYTES, (u8 *)&eFuse_Addr);
 
 exit:
 	if(efuseTbl)
@@ -1149,7 +1149,7 @@ hal_EfuseGetCurrentSize_8188e(IN	PADAPTER	pAdapter,
 	}
 	else
 	{
-		pAdapter->HalFunc.GetHwRegHandler(pAdapter, HW_VAR_EFUSE_BYTES, (u8 *)&efuse_addr);
+		rtw_hal_get_hwreg(pAdapter, HW_VAR_EFUSE_BYTES, (u8 *)&efuse_addr);
 	}
 	//RTPRINT(FEEPROM, EFUSE_PG, ("hal_EfuseGetCurrentSize_8723A(), start_efuse_addr = %d\n", efuse_addr));
 
@@ -1197,7 +1197,7 @@ hal_EfuseGetCurrentSize_8188e(IN	PADAPTER	pAdapter,
 	}
 	else
 	{
-		pAdapter->HalFunc.SetHwRegHandler(pAdapter, HW_VAR_EFUSE_BYTES, (u8 *)&efuse_addr);
+		rtw_hal_set_hwreg(pAdapter, HW_VAR_EFUSE_BYTES, (u8 *)&efuse_addr);
 		//RTPRINT(FEEPROM, EFUSE_PG, ("hal_EfuseGetCurrentSize_8723A(), return %d\n", efuse_addr));
 	}
 
@@ -1732,7 +1732,7 @@ hal_EfusePartialWriteCheck(
 		}
 		else
 		{
-			pAdapter->HalFunc.GetHwRegHandler(pAdapter, HW_VAR_EFUSE_BYTES, (u8 *)&startAddr);
+			rtw_hal_get_hwreg(pAdapter, HW_VAR_EFUSE_BYTES, (u8 *)&startAddr);
 			startAddr%=EFUSE_REAL_CONTENT_LEN;
 		}
 	}
@@ -1839,8 +1839,10 @@ hal_EfusePgCheckAvailableAddr(
 	)
 {
 	u16	efuse_max_available_len=0;
-
-	EFUSE_GetEfuseDefinition(pAdapter, efuseType, TYPE_AVAILABLE_EFUSE_BYTES_TOTAL, (PVOID)&efuse_max_available_len, bPseudoTest);
+//Change to check TYPE_EFUSE_MAP_LEN ,beacuse 8188E raw 256,logic map over 256.
+	EFUSE_GetEfuseDefinition(pAdapter, EFUSE_WIFI, TYPE_EFUSE_MAP_LEN, (PVOID)&efuse_max_available_len, _FALSE);
+	
+	//EFUSE_GetEfuseDefinition(pAdapter, efuseType, TYPE_AVAILABLE_EFUSE_BYTES_TOTAL, (PVOID)&efuse_max_available_len, bPseudoTest);
 	//RTPRINT(FEEPROM, EFUSE_PG, ("efuse_max_available_len = %d\n", efuse_max_available_len));
 
 	if(Efuse_GetCurrentSize(pAdapter, efuseType, bPseudoTest) >= efuse_max_available_len)
@@ -1978,9 +1980,7 @@ rtl8188e_Efuse_PgPacketWrite(IN	PADAPTER	pAdapter,
 	return ret;
 }
 
-static
-#ifdef CONFIG_CHIP_VER_INTEGRATION
-HAL_VERSION
+static HAL_VERSION
 ReadChipVersion8188E(
 	IN	PADAPTER	padapter
 	)
@@ -2037,112 +2037,6 @@ ReadChipVersion8188E(
 	return ChipVersion;
 }
 
-#else
-VERSION_8192C
-ReadChipVersion8188E(
-	IN	PADAPTER	padapter
-	)
-{
-	u32				value32;
-	u32				ChipVersion;
-	HAL_DATA_TYPE	*pHalData;
-
-
-	pHalData = GET_HAL_DATA(padapter);
-
-	value32 = rtw_read32(padapter, REG_SYS_CFG);
-	ChipVersion = CHIP_8723;
-	ChipVersion |= ((value32 & RTL_ID) ? 0 : NORMAL_CHIP);
-//	ChipVersion |= ((value32 & TYPE_ID) ? RF_TYPE_2T2R : 0); // 1:92c; 0:88c
-	ChipVersion |= ((value32 & VENDOR_ID) ? CHIP_VENDOR_UMC : 0);
-	ChipVersion |= (value32 & CHIP_VER_RTL_MASK); // IC version (CUT)
-
-	// For regulator mode. by tynli. 2011.01.14
-	pHalData->RegulatorMode = ((value32 & TRP_BT_EN) ? RT_LDO_REGULATOR : RT_SWITCHING_REGULATOR);
-
-	value32 = rtw_read32(padapter, REG_GPIO_OUTSTS);
-	ChipVersion |= ((value32 & RF_RL_ID) >> 20);	// ROM code version.
-
-	// For multi-function consideration. Added by Roger, 2010.10.06.
-	pHalData->MultiFunc = RT_MULTI_FUNC_NONE;
-	value32 = rtw_read32(padapter, REG_MULTI_FUNC_CTRL);
-	pHalData->MultiFunc |= ((value32 & WL_FUNC_EN) ? RT_MULTI_FUNC_WIFI : 0);
-	pHalData->MultiFunc |= ((value32 & BT_FUNC_EN) ? RT_MULTI_FUNC_BT : 0);
-	pHalData->MultiFunc |= ((value32 & GPS_FUNC_EN) ? RT_MULTI_FUNC_GPS : 0);
-	pHalData->PolarityCtl = ((value32 & WL_HWPDN_SL) ? RT_POLARITY_HIGH_ACT : RT_POLARITY_LOW_ACT);
-
-//#if DBG
-#if 1
-	switch(ChipVersion)
-	{
-		case VERSION_NORMAL_TSMC_CHIP_92C_1T2R:
-			MSG_8192C("Chip Version ID: VERSION_NORMAL_TSMC_CHIP_92C_1T2R.\n");
-			break;
-		case VERSION_NORMAL_TSMC_CHIP_92C:
-			MSG_8192C("Chip Version ID: VERSION_NORMAL_TSMC_CHIP_92C.\n");
-			break;
-		case VERSION_NORMAL_TSMC_CHIP_88C:
-			MSG_8192C("Chip Version ID: VERSION_NORMAL_TSMC_CHIP_88C.\n");
-			break;
-		case VERSION_NORMAL_UMC_CHIP_92C_1T2R_A_CUT:
-			MSG_8192C("Chip Version ID: VERSION_NORMAL_UMC_CHIP_92C_1T2R_A_CUT.\n");
-			break;
-		case VERSION_NORMAL_UMC_CHIP_92C_A_CUT:
-			MSG_8192C("Chip Version ID: VERSION_NORMAL_UMC_CHIP_92C_A_CUT.\n");
-			break;
-		case VERSION_NORMAL_UMC_CHIP_88C_A_CUT:
-			MSG_8192C("Chip Version ID: VERSION_NORMAL_UMC_CHIP_88C_A_CUT.\n");
-			break;
-		case VERSION_NORMAL_UMC_CHIP_92C_1T2R_B_CUT:
-			MSG_8192C("Chip Version ID: VERSION_NORMAL_UMC_CHIP_92C_1T2R_B_CUT.\n");
-			break;
-		case VERSION_NORMAL_UMC_CHIP_92C_B_CUT:
-			MSG_8192C("Chip Version ID: VERSION_NORMAL_UMC_CHIP_92C_B_CUT.\n");
-			break;
-		case VERSION_NORMAL_UMC_CHIP_88C_B_CUT:
-			MSG_8192C("Chip Version ID: VERSION_NORMAL_UMC_CHIP_88C_B_CUT.\n");
-			break;
-		case VERSION_TEST_CHIP_92C:
-			MSG_8192C("Chip Version ID: VERSION_TEST_CHIP_92C.\n");
-			break;
-		case VERSION_TEST_CHIP_88C:
-			MSG_8192C("Chip Version ID: VERSION_TEST_CHIP_88C.\n");
-			break;
-		case VERSION_TEST_UMC_CHIP_8723:
-			MSG_8192C("Chip Version ID: VERSION_TEST_UMC_CHIP_8723.\n");
-			break;
-		case VERSION_NORMAL_UMC_CHIP_8723_1T1R_A_CUT:
-			MSG_8192C("Chip Version ID: VERSION_NORMA_UMC_CHIP_8723_1T1R_A_CUT.\n");
-			break;
-		case VERSION_NORMAL_UMC_CHIP_8723_1T1R_B_CUT:
-			MSG_8192C("Chip Version ID: VERSION_NORMA_UMC_CHIP_8723_1T1R_B_CUT.\n");
-			break;
-		default:
-			MSG_8192C("Chip Version ID: unknown(0x%x)\n", ChipVersion);
-			break;
-	}
-#endif
-
-	pHalData->VersionID = ChipVersion;
-
-	if (IS_1T2R(ChipVersion))
-		pHalData->rf_type = RF_1T2R;
-	else if (IS_2T2R(ChipVersion))
-		pHalData->rf_type = RF_2T2R;
-	else
-		pHalData->rf_type = RF_1T1R;
-	
-	if(pHalData->rf_type == RF_1T1R)
-		pHalData->NumTotalRFPath = 1;
-	else
-		pHalData->NumTotalRFPath = 2;
-
-
-	MSG_8192C("RF_Type is %x!!\n", pHalData->rf_type);
-
-	return ChipVersion;
-}
-#endif
 static void rtl8188e_read_chip_version(PADAPTER padapter)
 {
 	ReadChipVersion8188E(padapter);	
@@ -2193,6 +2087,7 @@ void rtl8188e_SetHalODMVar(
 					DBG_8192C("### Clean STA_(%d) info\n",psta->mac_id);
 					//_enter_critical_bh(&pHalData->odm_stainfo_lock, &irqL);
 					ODM_CmnInfoPtrArrayHook(podmpriv, ODM_CMNINFO_STA_STATUS,psta->mac_id,NULL);
+					
 					//_exit_critical_bh(&pHalData->odm_stainfo_lock, &irqL);
 			            }
 			}
@@ -2225,8 +2120,8 @@ void rtl8188e_set_hal_ops(struct hal_ops *pHalFunc)
 	pHalFunc->Add_RateATid = &rtl8188e_Add_RateATid;
 
 #ifdef CONFIG_ANTENNA_DIVERSITY
-	pHalFunc->SwAntDivBeforeLinkHandler = &SwAntDivBeforeLink8188E;
-	pHalFunc->SwAntDivCompareHandler = &SwAntDivCompare8188E;
+	pHalFunc->AntDivBeforeLinkHandler = &AntDivBeforeLink8188E;
+	pHalFunc->AntDivCompareHandler = &AntDivCompare8188E;
 #endif
 
 	pHalFunc->read_bbreg = &rtl8188e_PHY_QueryBBReg;
@@ -2255,6 +2150,10 @@ void rtl8188e_set_hal_ops(struct hal_ops *pHalFunc)
 
 	pHalFunc->GetHalODMVarHandler = &rtl8188e_GetHalODMVar;
 	pHalFunc->SetHalODMVarHandler = &rtl8188e_SetHalODMVar;
+
+#ifdef CONFIG_XMIT_THREAD_MODE
+	pHalFunc->xmit_thread_handler = &hal_xmit_handler;
+#endif
 }
 
 u8 GetEEPROMSize8188E(PADAPTER padapter)
@@ -2760,13 +2659,13 @@ Hal_ReadTxPowerInfo88E(
 				else
 					pHalData->Index24G_BW40_Base[rfPath][ch]=pwrInfo24G.IndexBW40_Base[rfPath][group];
 			}
-
+			
 			if(bIn24G)
 			{
 				DBG_871X("======= Path %d, Channel %d =======\n",rfPath,ch );			
 				DBG_871X("Index24G_CCK_Base[%d][%d] = 0x%x\n",rfPath,ch ,pHalData->Index24G_CCK_Base[rfPath][ch]);
 				DBG_871X("Index24G_BW40_Base[%d][%d] = 0x%x\n",rfPath,ch ,pHalData->Index24G_BW40_Base[rfPath][ch]);			
-			}
+			}			
 		}	
 
 		for(TxCount=0;TxCount<MAX_TX_COUNT;TxCount++)

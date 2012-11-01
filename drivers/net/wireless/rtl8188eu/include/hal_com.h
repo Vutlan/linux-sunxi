@@ -20,9 +20,8 @@
 #ifndef __HAL_COMMON_H__
 #define __HAL_COMMON_H__
 
-#ifdef CONFIG_CHIP_VER_INTEGRATION
 void dump_chip_info(HAL_VERSION	ChipVersion);
-#endif
+
 
 u8	//return the final channel plan decision
 hal_com_get_channel_plan(

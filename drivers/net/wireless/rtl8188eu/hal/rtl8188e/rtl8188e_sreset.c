@@ -140,9 +140,9 @@ static void _restore_network_status(_adapter *padapter)
 	//Switch_DM_Func(padapter, DYNAMIC_FUNC_DISABLE, _FALSE);
 #endif
 
-	padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_BSSID, pmlmeinfo->network.MacAddress);
+	rtw_hal_set_hwreg(padapter, HW_VAR_BSSID, pmlmeinfo->network.MacAddress);
 	join_type = 0;
-	padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_MLME_JOIN, (u8 *)(&join_type));
+	rtw_hal_set_hwreg(padapter, HW_VAR_MLME_JOIN, (u8 *)(&join_type));
 
 	Set_MSR(padapter, (pmlmeinfo->state & 0x3));
 
@@ -213,7 +213,7 @@ void rtl8188e_sreset_xmit_status_check(_adapter *padapter)
 		DBG_871X("%s REG_TXDMA_STATUS:0x%08x\n", __FUNCTION__, txdma_status);
 		rtl8188e_silentreset_for_specific_platform(padapter);
 	}
-
+#ifdef CONFIG_USB_HCI
 	//total xmit irp = 4
 	//DBG_8192C("==>%s free_xmitbuf_cnt(%d),txirp_cnt(%d)\n",__FUNCTION__,pxmitpriv->free_xmitbuf_cnt,pxmitpriv->txirp_cnt);
 	//if(pxmitpriv->txirp_cnt == NR_XMITBUFF+1)
@@ -236,6 +236,7 @@ void rtl8188e_sreset_xmit_status_check(_adapter *padapter)
 			}
 		}
 	}
+#endif //CONFIG_USB_HCI	
 }
 
 void rtl8188e_sreset_linked_status_check(_adapter *padapter)

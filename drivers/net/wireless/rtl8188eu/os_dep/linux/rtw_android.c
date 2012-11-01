@@ -256,7 +256,7 @@ int rtw_android_get_link_speed(struct net_device *net, char *command, int total_
 	int bytes_written = 0;
 	u16 link_speed = 0;
 
-	link_speed = rtw_get_network_max_rate(padapter, &pcur_network->network);	
+	link_speed = rtw_get_cur_max_rate(padapter)/10;
 	bytes_written = snprintf(command, total_len, "LinkSpeed %d", link_speed);
 
 	return bytes_written;
@@ -373,6 +373,11 @@ int rtw_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 		
 	case ANDROID_WIFI_CMD_SCAN_ACTIVE:
 		rtw_set_scan_mode((_adapter *)rtw_netdev_priv(net), SCAN_ACTIVE);
+#ifdef CONFIG_PLATFORM_MSTAR_TITANIA12		
+#ifdef CONFIG_IOCTL_CFG80211
+		(wdev_to_priv(net->ieee80211_ptr))->bandroid_scan = _TRUE;	
+#endif //CONFIG_IOCTL_CFG80211
+#endif //CONFIG_PLATFORM_MSTAR_TITANIA12
 		break;
 	case ANDROID_WIFI_CMD_SCAN_PASSIVE:
 		rtw_set_scan_mode((_adapter *)rtw_netdev_priv(net), SCAN_PASSIVE);
