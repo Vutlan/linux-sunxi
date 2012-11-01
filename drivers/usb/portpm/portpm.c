@@ -59,6 +59,7 @@ static __u32 thread_run_flag = 0;
 static __u32 thread_stopped_flag = 0;
 static __u32 thread_suspend_flag = 0;
 
+static __u32 power_status = 1;
 static __s32 ctrlio_status = -1;
 static __s32 ignore_usbc_num[3] = {0};
 
@@ -327,6 +328,7 @@ static int set_vbus(int on_off)
         
     printk("portpm set vbus %s\n", on_off ? "on" : "off");   
     portpm_notifier(on_off);
+    power_status = on_off;
     
     #if defined(CONFIG_USB_SW_SUN5I_HCD0)
     if(!ignore_usbc_num[0])
@@ -356,26 +358,47 @@ static int set_vbus(int on_off)
     return 0;
 }
 
+static __u32 cnt_1a = 0, cnt_500ma = 0, cnt_on = 0;
+#define BOUNCE_THRESHOLD 5
+
 static int do_1a_500ma(int connect, int voltage, int capacity)
 {
     if(!connect){
+        cnt_on = 0;        
         if(voltage > pm_cfg.v_1a && capacity > pm_cfg.c_1a){
-            set_vbus(1);
-            set_ctrl_gpio(1);
+            cnt_1a++;
+            cnt_500ma = 0;            
+            if(cnt_1a > BOUNCE_THRESHOLD){
+                set_vbus(1);
+                set_ctrl_gpio(1);
+            }
         }
         else if(voltage > pm_cfg.v_500ma && capacity > pm_cfg.c_500ma){
-            set_vbus(1);
-            set_ctrl_gpio(0);
+            cnt_1a = 0;
+            cnt_500ma++;            
+            if(cnt_500ma > BOUNCE_THRESHOLD){
+                set_vbus(1);
+                set_ctrl_gpio(0);
+            }
         }
         else{
+            cnt_1a = 0;
+            cnt_500ma = 0;
             set_vbus(0);            
         }            
     }
     else{        
-        if(voltage > pm_cfg.v_disable && capacity > pm_cfg.c_disable)
-            set_vbus(1);   
-        else
-            set_vbus(0);         
+        cnt_1a = 0;
+        cnt_500ma = 0;        
+        if(voltage > pm_cfg.v_disable && capacity > pm_cfg.c_disable){
+            cnt_on++;            
+            if(cnt_on > BOUNCE_THRESHOLD)
+                set_vbus(1);  
+        }
+        else{
+            cnt_on = 0;
+            set_vbus(0); 
+        }
     }
     return 0;
 }
@@ -383,19 +406,30 @@ static int do_1a_500ma(int connect, int voltage, int capacity)
 static int do_1a(int connect, int voltage, int capacity)
 {        
     if(!connect){
+        cnt_on = 0;        
         if(voltage > pm_cfg.v_1a && capacity > pm_cfg.c_1a){
-            set_vbus(1);
-            set_ctrl_gpio(1);
+            cnt_1a++;        
+            if(cnt_1a > BOUNCE_THRESHOLD){
+                set_vbus(1);
+                set_ctrl_gpio(1);
+            }
         }        
         else{
-            set_vbus(0);            
+            cnt_1a = 0;           
+            set_vbus(0);          
         }            
     }
     else{        
-        if(voltage > pm_cfg.v_disable && capacity > pm_cfg.c_disable)
-            set_vbus(1);   
-        else
-            set_vbus(0);         
+        cnt_1a = 0;        
+        if(voltage > pm_cfg.v_disable && capacity > pm_cfg.c_disable){
+            cnt_on++;            
+            if(cnt_on > BOUNCE_THRESHOLD)
+                set_vbus(1);  
+        }
+        else{
+            cnt_on = 0;
+            set_vbus(0); 
+        }         
     }    
     
     return 0;
@@ -404,19 +438,30 @@ static int do_1a(int connect, int voltage, int capacity)
 static int do_500ma(int connect, int voltage, int capacity)
 {    
     if(!connect){
+        cnt_on = 0;        
         if(voltage > pm_cfg.v_500ma && capacity > pm_cfg.c_500ma){
-            set_vbus(1);
-            set_ctrl_gpio(0);
+            cnt_500ma++;            
+            if(cnt_1a > BOUNCE_THRESHOLD){
+                set_vbus(1);
+                set_ctrl_gpio(0);
+            }
         }
         else{
-            set_vbus(0);            
+            cnt_500ma = 0;
+            set_vbus(0);          
         }            
     }
     else{        
-        if(voltage > pm_cfg.v_disable && capacity > pm_cfg.c_disable)
-            set_vbus(1);   
-        else
-            set_vbus(0);         
+        cnt_500ma = 0;        
+        if(voltage > pm_cfg.v_disable && capacity > pm_cfg.c_disable){
+            cnt_on++;            
+            if(cnt_on > BOUNCE_THRESHOLD)
+                set_vbus(1);  
+        }
+        else{
+            cnt_on = 0;
+            set_vbus(0); 
+        }         
     }            
     
     return 0;
@@ -424,87 +469,126 @@ static int do_500ma(int connect, int voltage, int capacity)
 
 #define BUFLEN 32
 
-static int usb_port_pm_thread(void * pArg)
+static int get_battery_status(void)
 {
-    int connect, old_connect = 0, voltage, old_voltage = 0, capacity, old_capacity = 0;
     struct file *filep;
     loff_t pos;
     char buf[BUFLEN];
-    int ret;
-        
+    
+    filep=filp_open("/sys/class/power_supply/battery/present", O_RDONLY, 0);        
+    if(IS_ERR(filep)){
+        printk("open present fail\n");
+        return 0;
+    }
+   
+    pos = 0;
+    vfs_read(filep, (char __user *)buf, BUFLEN, &pos);
+    filp_close(filep, 0);
+
+    if(!strncmp((const char *)buf, "0", 1))
+        return 0;
+    else
+        return 1;   
+}
+
+static int get_charge_status(void)
+{
+    struct file *filep;
+    loff_t pos;
+    char buf[BUFLEN];
+    
+    filep=filp_open("/sys/class/power_supply/battery/status", O_RDONLY, 0);        
+    if(IS_ERR(filep)){
+        printk("open status fail\n");
+        return 0;
+    }
+   
+    pos = 0;
+    vfs_read(filep, (char __user *)buf, BUFLEN, &pos);
+    filp_close(filep, 0);
+
+    if(!strncmp((const char *)buf, "Charging", 8) ||
+            !strncmp((const char *)buf, "Full", 4))
+        return 1;
+    else 
+        return 0;
+}
+
+static int get_voltage(void)
+{
+    struct file *filep;
+    loff_t pos;
+    char buf[BUFLEN];
+    int ret, voltage;
+    
+    filep=filp_open("/sys/class/power_supply/battery/voltage_now", O_RDONLY, 0);        
+    if(IS_ERR(filep)){
+        printk("open voltage fail\n");
+        return 0;
+    }
+   
+    pos = 0;
+    vfs_read(filep, (char __user *)buf, BUFLEN, &pos);
+    filp_close(filep, 0);
+    
+    ret = sscanf(buf, "%d\n", &voltage);
+    if(ret != 1)
+        return 0;
+    else
+        return voltage;
+}
+
+static int get_capacity(void)
+{
+    struct file *filep;
+    loff_t pos;
+    char buf[BUFLEN];
+    int ret, capacity;
+    
+    filep=filp_open("/sys/class/power_supply/battery/capacity", O_RDONLY, 0);        
+    if(IS_ERR(filep)){
+        printk("open capacity fail\n");
+        return 0;
+    }
+    pos = 0;
+    vfs_read(filep, (char __user *)buf, BUFLEN, &pos);
+    filp_close(filep, 0); 
+    ret = sscanf(buf, "%d\n", &capacity);
+    if(ret != 1)
+        return 0;
+    else
+        return capacity;
+}
+
+static int usb_port_pm_thread(void * pArg)
+{
+    int connect, old_connect = 0, voltage, old_voltage = 0, capacity, old_capacity = 0;
+            
     while(thread_run_flag){
         msleep(1000);
         
         if(thread_suspend_flag)
-            continue;
+            continue;        
 
-        //if there is not any battery
-        filep=filp_open("/sys/class/power_supply/battery/present", O_RDONLY, 0);        
-        if(IS_ERR(filep)){
-            printk("open present fail\n");
-            continue;
-        }
-       
-        pos = 0;
-        vfs_read(filep, (char __user *)buf, BUFLEN, &pos);
-        filp_close(filep, 0);
-
-        if(!strncmp((const char *)buf, "0", 1)){            
+        if(!get_battery_status()){//battery not exist            
             set_vbus(1);
             if(pm_cfg.restrict_1a)
                 set_ctrl_gpio(1);
             else
                 set_ctrl_gpio(0);
             continue;
-        }   
-
-        //if battery charging or full
-        filep=filp_open("/sys/class/power_supply/battery/status", O_RDONLY, 0);        
-        if(IS_ERR(filep)){
-            printk("open status fail\n");
-            continue;
-        }
-       
-        pos = 0;
-        vfs_read(filep, (char __user *)buf, BUFLEN, &pos);
-        filp_close(filep, 0);
+        }          
         
-        if(!strncmp((const char *)buf, "Charging", 8) ||
-            !strncmp((const char *)buf, "Full", 4)){            
+        if(get_charge_status()){//charging or full            
             set_vbus(1);
             if(pm_cfg.restrict_1a)
                 set_ctrl_gpio(1);
             else
                 set_ctrl_gpio(0);
             continue;
-        }            
-        
-        filep=filp_open("/sys/class/power_supply/battery/voltage_now", O_RDONLY, 0);        
-        if(IS_ERR(filep)){
-            printk("open voltage fail\n");
-            continue;
-        }
-       
-        pos = 0;
-        vfs_read(filep, (char __user *)buf, BUFLEN, &pos);
-        filp_close(filep, 0);
-        
-        ret = sscanf(buf, "%d\n", &voltage);
-        if(ret != 1)
-            printk("ret = %d\n", ret);
-            
-        filep=filp_open("/sys/class/power_supply/battery/capacity", O_RDONLY, 0);        
-        if(IS_ERR(filep)){
-            printk("open capacity fail\n");
-            continue;
-        }
-        pos = 0;
-        vfs_read(filep, (char __user *)buf, BUFLEN, &pos);
-        filp_close(filep, 0); 
-        ret = sscanf(buf, "%d\n", &capacity);
-        if(ret != 1)
-            printk("ret = %d\n", ret);  
-
+        }          
+        voltage = get_voltage();
+        capacity = get_capacity();
         connect = get_connect_status();
         if(voltage != old_voltage || capacity != old_capacity){  
             printk("connect = %d, voltage = %d, capacity = %d\n", connect, voltage, capacity);            
@@ -541,7 +625,7 @@ static ssize_t state_show(struct device *pdev, struct device_attribute *attr,
 {	
 	char *state = NULL;
 	
-	if (get_vbus_status())
+	if (power_status)
 		state = "POWER ON";
 	else
 		state = "POWER OFF";
