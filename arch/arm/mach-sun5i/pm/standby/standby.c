@@ -72,6 +72,7 @@ int main(struct aw_pm_info *arg)
     }
 
     standby_ctrl_flag = 0;
+    ir_buffer.dcnt = 0;
     /* flush data and instruction tlb, there is 32 items of data tlb and 32 items of instruction tlb,
        The TLB is normally allocated on a rotating basis. The oldest entry is always the next allocated */
     standby_flush_tlb();
@@ -114,7 +115,6 @@ int main(struct aw_pm_info *arg)
     }
     if(pm_info.standby_para.event & SUSPEND_WAKEUP_SRC_IR){
         standby_ctrl_flag |= HOSC_ENABLE_MASK;
-        ir_buffer.dcnt = 0;
         standby_ir_init();
         standby_enable_int(INT_SOURCE_IR0);
         standby_enable_int(INT_SOURCE_IR1);

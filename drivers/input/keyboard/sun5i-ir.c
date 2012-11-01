@@ -141,7 +141,6 @@ static struct ir_raw_buffer	ir_rawbuf;
 #ifdef CONFIG_HAS_EARLYSUSPEND
 static struct sun4i_ir_data *ir_data;
 #endif
-static int suspend_falg = 0;
 
 
 static inline void ir_reset_rawbuffer(void)
@@ -526,7 +525,7 @@ static irqreturn_t ir_irq_service(int irqno, void *dev_id)
 		}		
 	}
 
-    if (suspend_falg == 1 && standby_output.ir_data_cnt != 0)
+    if (standby_output.ir_data_cnt != 0)
     {
 		unsigned long code;
 		int code_valid;
@@ -547,9 +546,8 @@ static irqreturn_t ir_irq_service(int irqno, void *dev_id)
             
             input_report_key(ir_dev, ir_keycodes[(ir_code>>16)&0xff], 0);
             input_sync(ir_dev); 
-            suspend_falg = 0;
-            standby_output.ir_data_cnt = 0;
         }
+        standby_output.ir_data_cnt = 0;
         
 		/*flush raw buffer*/
 		ir_reset_rawbuffer();
@@ -659,8 +657,6 @@ static void sun4i_ir_suspend(struct early_suspend *h)
 	tmp &= 0xfffffffc;
     writel(tmp, IR_BASE+IR_CTRL_REG);
 */
-    suspend_falg = 1;
-    standby_output.ir_data_cnt = 0;
 
 #if 0
 	clk_disable(ir_clk);
@@ -680,9 +676,6 @@ static void sun4i_ir_resume(struct early_suspend *h)
 #ifdef PRINT_SUSPEND_INFO
 	printk("enter laterresume: sun4i_ir_resume. \n");
 #endif
-
-    suspend_falg = 0;
-    standby_output.ir_data_cnt = 0;
 
 #if 0
 	ir_code = 0;
