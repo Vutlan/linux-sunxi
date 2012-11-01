@@ -17,7 +17,7 @@ sw_usbc-objs := usbc/usbc.o \
                 hcd/core/sw_hcd_dma.o
 
 #ifeq ($(CONFIG_USB_SW_SUN6I_USB0_OTG),y)
-#	sw_usbc-objs += manager/usb_hw_scan.o manager/usb_msg_center.o
+	sw_usbc-objs += manager/usb_hw_scan.o manager/usb_msg_center.o
 #endif
 
 obj-$(CONFIG_USB_SW_SUN6I_USB_MANAGER) += sw_usbc.o

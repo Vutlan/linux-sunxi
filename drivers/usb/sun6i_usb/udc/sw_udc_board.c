@@ -161,30 +161,65 @@ u32 close_usb_clock(sw_udc_io_t *sw_udc_io)
 */
 u32  open_usb_clock(sw_udc_io_t *sw_udc_io)
 {
+	u32 reg_value = 0;
+	u32 ccmu_base = SW_VA_CCM_IO_BASE;
+
+	//AHB1_RST_REG0 USBOTG_RST
+	reg_value = USBC_Readl(ccmu_base + 0x2c0);
+	reg_value |= (1 << 24);				/* usb0 clear reset*/
+	USBC_Writel(reg_value, (ccmu_base + 0x2c0));
+
+	//USBPHY_CFG_REG USBPHY0_RET
+	reg_value = USBC_Readl(ccmu_base + 0xcc);
+	reg_value |= (1 << 0);
+	USBC_Writel(reg_value, (ccmu_base + 0xcc));
+
+	reg_value = 10000;
+	while(reg_value--);
+	sw_udc_io->clk_is_open = 1;
 
 	return 0;
 }
 
 /*
 *******************************************************************************
-*                     close_usb_clock
+*					  close_usb_clock
 *
 * Description:
 *
 *
 * Parameters:
-*    void
+*	 void
 *
 * Return value:
-*    void
+*	 void
 *
 * note:
-*    void
+*	 void
 *
 *******************************************************************************
 */
 u32 close_usb_clock(sw_udc_io_t *sw_udc_io)
 {
+	u32 reg_value = 0;
+	u32 ccmu_base = SW_VA_CCM_IO_BASE;
+
+	//AHB1_RST_REG0 USBOTG_RST
+	reg_value = USBC_Readl(ccmu_base + 0x2c0);
+	reg_value &= ~(1 << 24); 			/* usb0  reset*/
+	USBC_Writel(reg_value, (ccmu_base + 0x2c0));
+
+	//USBPHY_CFG_REG USBPHY0_RET
+	reg_value = USBC_Readl(ccmu_base + 0xcc);
+	reg_value &= ~(1 << 0);
+	USBC_Writel(reg_value, (ccmu_base + 0xcc));
+
+	//等sie的时钟变稳
+	reg_value = 10000;
+	while(reg_value--);
+
+	sw_udc_io->clk_is_open = 0;
+
 	return 0;
 }
 
@@ -390,8 +425,9 @@ __s32 sw_udc_io_init(__u32 usbc_no, struct platform_device *pdev, sw_udc_io_t *s
 		DMSG_PANIC("ERR: get usb phy0 clk failed.\n");
 		goto io_failed;
 	}
-	open_usb_clock(sw_udc_io);
 #endif
+
+	open_usb_clock(sw_udc_io);
 
     /* initialize usb bsp */
 	sw_udc_bsp_init(usbc_no, sw_udc_io);
@@ -448,10 +484,9 @@ io_failed:
 __s32 sw_udc_io_exit(__u32 usbc_no, struct platform_device *pdev, sw_udc_io_t *sw_udc_io)
 {
 	sw_udc_bsp_exit(usbc_no, sw_udc_io);
-#ifndef  SW_USB_FPGA
 
 	close_usb_clock(sw_udc_io);
-
+#ifndef  SW_USB_FPGA
 	if(sw_udc_io->sie_clk){
 		clk_put(sw_udc_io->sie_clk);
 		sw_udc_io->sie_clk = NULL;

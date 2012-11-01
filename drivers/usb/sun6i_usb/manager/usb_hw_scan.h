@@ -54,6 +54,7 @@ typedef struct usb_scan_info{
 }usb_scan_info_t;
 
 void usb_hw_scan(struct usb_cfg *cfg);
+__u32 set_vbus_id_state(u32 state);
 
 __s32 usb_hw_scan_init(struct usb_cfg *cfg);
 __s32 usb_hw_scan_exit(struct usb_cfg *cfg);

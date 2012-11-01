@@ -289,8 +289,26 @@ static s32 usb_clock_exit(sw_hcd_io_t *sw_hcd_io)
 */
 static u32  open_usb_clock(sw_hcd_io_t *sw_hcd_io)
 {
+	u32 reg_value = 0;
+	u32 ccmu_base = SW_VA_CCM_IO_BASE;
 
+	DMSG_INFO_HCD0("[%s]: open_usb_clock\n", sw_hcd_driver_name);
 
+	//AHB1_RST_REG0 USBOTG_RST
+	reg_value = USBC_Readl(ccmu_base + 0x2c0);
+	reg_value |= (1 << 24);				/* usb0 clear reset*/
+	USBC_Writel(reg_value, (ccmu_base + 0x2c0));
+
+	//USBPHY_CFG_REG USBPHY0_RET
+	reg_value = USBC_Readl(ccmu_base + 0xcc);
+	reg_value |= (1 << 0);
+	USBC_Writel(reg_value, (ccmu_base + 0xcc));
+
+	//delay to wati SIE stable
+	reg_value = 10000;
+	while(reg_value--);
+
+	sw_hcd_io->clk_is_open = 1;
 	return 0;
 }
 
@@ -314,6 +332,26 @@ static u32  open_usb_clock(sw_hcd_io_t *sw_hcd_io)
 */
 static u32 close_usb_clock(sw_hcd_io_t *sw_hcd_io)
 {
+	u32 reg_value = 0;
+	u32 ccmu_base = SW_VA_CCM_IO_BASE;
+
+	DMSG_INFO_HCD0("[%s]: close_usb_clock\n", sw_hcd_driver_name);
+
+	//AHB1_RST_REG0 USBOTG_RST
+	reg_value = USBC_Readl(ccmu_base + 0x2c0);
+	reg_value &= ~(1 << 24); 			/* usb0  reset*/
+	USBC_Writel(reg_value, (ccmu_base + 0x2c0));
+
+	//USBPHY_CFG_REG USBPHY0_RET
+	reg_value = USBC_Readl(ccmu_base + 0xcc);
+	reg_value &= ~(1 << 0);
+	USBC_Writel(reg_value, (ccmu_base + 0xcc));
+
+	//等sie的时钟变稳
+	reg_value = 10000;
+	while(reg_value--);
+
+	sw_hcd_io->clk_is_open = 0;
 	return 0;
 }
 
@@ -1477,6 +1515,8 @@ static int sw_hcd_init_controller(struct device *dev, int nIrq, void __iomem *ct
 		goto fail2;
 	}
 
+	printk("request sw_hcd_irq no:%d is ok\n", nIrq);
+
 	sw_hcd->nIrq = nIrq;
 
     /* FIXME this handles wakeup irqs wrong */
@@ -1592,6 +1632,8 @@ int sw_usb_host0_enable(void)
 		DMSG_PANIC("ERR: request_irq %d failed!\n", sw_hcd->nIrq);
 		return -1;
 	}
+
+	printk("request sw_hcd_irq no:%d is ok\n", sw_hcd->nIrq);
 
 	sw_hcd_soft_disconnect(sw_hcd);
 	sw_hcd_io_init(usbc_no, pdev, &g_sw_hcd_io);
@@ -1714,7 +1756,7 @@ EXPORT_SYMBOL(sw_usb_host0_disable);
 static int sw_hcd_probe_otg(struct platform_device *pdev)
 {
 	struct device   *dev    = &pdev->dev;
-	int             irq     = SW_INTC_IRQNO_USB0; //platform_get_irq(pdev, 0);
+	int             irq     = AW_IRQ_USB_OTG; //platform_get_irq(pdev, 0);
 	__s32 			ret 	= 0;
 	__s32 			status	= 0;
 
@@ -1813,7 +1855,7 @@ static int sw_hcd_remove_otg(struct platform_device *pdev)
 static int sw_hcd_probe_host_only(struct platform_device *pdev)
 {
 	struct device   *dev        = &pdev->dev;
-	int             irq         = SW_INTC_IRQNO_USB0; //platform_get_irq(pdev, 0);
+	int             irq         = AW_IRQ_USB_OTG; //platform_get_irq(pdev, 0);
 	__s32 			ret 		= 0;
 
 	if (irq == 0){

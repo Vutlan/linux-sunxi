@@ -53,7 +53,7 @@
 
 static struct usb_cfg g_usb_cfg;
 
-#ifndef  SW_USB_FPGA
+
 
 #ifdef CONFIG_USB_SW_SUN6I_USB0_OTG
 static __u32 thread_run_flag = 1;
@@ -105,7 +105,7 @@ static int usb_hardware_scan_thread(void * pArg)
 
 #endif
 
-
+#ifndef  SW_USB_FPGA
 
 /*
 *******************************************************************************
@@ -412,7 +412,7 @@ static __s32 usb_script_parse(struct usb_cfg *cfg)
 	cfg->port[0].enable = 1;
 
 	/* usbc port type */
-	cfg->port[0].port_type = USB_PORT_TYPE_DEVICE;
+	cfg->port[0].port_type = USB_PORT_TYPE_OTG;
 
 	/* usbc detect type */
 	cfg->port[0].detect_type = USB_DETECT_TYPE_VBUS_ID;
@@ -626,10 +626,9 @@ static int __init usb_manager_init(void)
 	bsp_usbc_t usbc;
 	//u32 i = 0;
 
-#ifndef  SW_USB_FPGA
+
 #ifdef CONFIG_USB_SW_SUN6I_USB0_OTG
 	struct task_struct *th = NULL;
-#endif
 #endif
 
     DMSG_MANAGER_DEBUG("[sw usb]: usb_manager_init\n");
@@ -690,7 +689,6 @@ static int __init usb_manager_init(void)
 
     usbc0_platform_device_init(&g_usb_cfg.port[0]);
 
-#ifndef  SW_USB_FPGA
 #ifdef CONFIG_USB_SW_SUN6I_USB0_OTG
     if(g_usb_cfg.port[0].port_type == USB_PORT_TYPE_OTG
        && g_usb_cfg.port[0].detect_type == USB_DETECT_TYPE_VBUS_ID){
@@ -706,7 +704,6 @@ static int __init usb_manager_init(void)
 
     	wake_up_process(th);
 	}
-#endif
 #endif
 
     DMSG_MANAGER_DEBUG("[sw usb]: usb_manager_init end\n");

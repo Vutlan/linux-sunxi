@@ -49,7 +49,8 @@
 #define  SW_VA_USB2_IO_BASE     0xf1c1b000
 
 #define  SW_VA_SRAM_IO_BASE     0xf1c00000
-#define  SW_INTC_IRQNO_USB0     (21 + 32)
+//#define  SW_INTC_IRQNO_USB0     (21 + 32)
+#define  SW_VA_CCM_IO_BASE      0xf1c20000
 
 #endif
 

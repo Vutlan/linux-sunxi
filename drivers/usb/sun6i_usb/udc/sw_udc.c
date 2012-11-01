@@ -123,23 +123,6 @@ static void enable_irq_udc(struct sw_udc *dev)
 //    enable_irq(dev->irq_no);
 }
 
-static void sw_udc_queue_req(struct sw_udc_ep *ep, struct sw_udc_request *req)
-{
-	req->is_queue = 1;
-	list_add_tail(&req->queue, &ep->queue);
-}
-
-static void sw_udc_dequeue_req(struct sw_udc_ep *ep, struct sw_udc_request *req)
-{
-	list_del_init(&req->queue);
-	req->is_queue = 0;
-}
-
-static __u32 is_req_queue(struct sw_udc_request *req)
-{
-	return req->is_queue;
-}
-
 /*
 *******************************************************************************
 *                     sw_udc_udc_done
@@ -3055,7 +3038,7 @@ int sw_usb_device_enable(void)
 	struct platform_device *pdev = g_udc_pdev;
 	struct sw_udc  	*udc    = &sw_udc;
 	int           	retval  = 0;
-	int            	irq     = SW_INTC_IRQNO_USB0;
+	int            	irq     = AW_IRQ_USB_OTG;
 
 	DMSG_INFO_UDC("sw_usb_device_enable start\n");
 
@@ -3102,10 +3085,12 @@ int sw_usb_device_enable(void)
 		goto err;
 	}
 
-	if(udc->driver && is_udc_enable){
+	printk("request sw_udc_irq no:%d is ok\n", irq);
+
+	//if(udc->driver && is_udc_enable){
 		sw_udc_enable(udc);
-		cfg_udc_command(SW_UDC_P_ENABLE);
-	}
+	//	cfg_udc_command(SW_UDC_P_ENABLE);
+	//}
 
 	DMSG_INFO_UDC("sw_usb_device_enable end\n");
 
@@ -3198,7 +3183,7 @@ EXPORT_SYMBOL(sw_usb_device_disable);
 static int sw_udc_probe_otg(struct platform_device *pdev)
 {
 	struct sw_udc  	*udc = &sw_udc;
-
+	int retval = 0;
 	g_udc_pdev = pdev;
 
 	spin_lock_init (&udc->lock);
@@ -3211,6 +3196,11 @@ static int sw_udc_probe_otg(struct platform_device *pdev)
 
 	the_controller = udc;
 	platform_set_drvdata(pdev, udc);
+
+	retval = usb_add_gadget_udc(&pdev->dev, &udc->gadget);
+	if(retval){
+		return retval;
+	}
 
     return 0;
 }
@@ -3271,7 +3261,7 @@ static int sw_udc_probe_device_only(struct platform_device *pdev)
 	struct sw_udc  	*udc    = &sw_udc;
 //	struct device       *dev    = &pdev->dev;
 	int                 retval  = 0;
-	int                 irq     = SW_INTC_IRQNO_USB0;
+	int                 irq     = AW_IRQ_USB_OTG;
 
     memset(&g_sw_udc_io, 0, sizeof(sw_udc_io_t));
 
@@ -3316,6 +3306,8 @@ static int sw_udc_probe_device_only(struct platform_device *pdev)
 		retval = -EBUSY;
 		goto err;
 	}
+
+	printk("request sw_udc_irq no:%d is ok\n", irq);
 
 	retval = usb_add_gadget_udc(&pdev->dev, &udc->gadget);
 

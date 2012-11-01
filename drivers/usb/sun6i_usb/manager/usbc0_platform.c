@@ -43,6 +43,7 @@
 #include <mach/irqs.h>
 
 #include  "../include/sw_usb_config.h"
+#include  "usb_hw_scan.h"
 
 //---------------------------------------------------------------
 //  device ÐÅÏ¢ÃèÊö
@@ -108,6 +109,37 @@ static struct platform_device sw_hcd_device = {
 	},
 };
 
+#ifdef  SW_USB_FPGA
+static ssize_t device_chose(struct device * dev,struct device_attribute * attr,char * buf)
+{
+	printk("device_chose:id_state=3\n");
+	set_vbus_id_state(3);
+
+	return sprintf(buf, "%s\n", "device_chose finished!");
+}
+
+static ssize_t host_chose(struct device * dev,struct device_attribute * attr,char * buf)
+{
+	set_vbus_id_state(2);
+	printk("device_chose:id_state=2 \n");
+
+	return sprintf(buf, "%s\n", "device_chose finished!");
+}
+
+static ssize_t null_chose(struct device * dev,struct device_attribute * attr,char * buf)
+{
+	set_vbus_id_state(1);
+	printk("device_chose:id_state=1 \n");
+
+	return sprintf(buf, "%s\n", "device_chose finished!");
+}
+
+static struct device_attribute host_attrs[] = {
+	__ATTR(usb_device, 0400, device_chose, NULL),
+	__ATTR(usb_null, 0400, null_chose, NULL),
+	__ATTR(usb_host, 0400, host_chose, NULL),
+};
+#endif
 /*
 *******************************************************************************
 *                     usbc0_platform_device_init
@@ -128,6 +160,9 @@ static struct platform_device sw_hcd_device = {
 */
 __s32 usbc0_platform_device_init(struct usb_port_info *port_info)
 {
+	int i = 0;
+	int ret = 0;
+
     /* device */
     sw_udc_cfg.port_info = port_info;
     sw_udc_cfg.usbc_base = SW_VA_USB0_IO_BASE;
@@ -135,7 +170,7 @@ __s32 usbc0_platform_device_init(struct usb_port_info *port_info)
     /* host */
     sw_hcd_config.port_info = port_info;
 
-
+	printk("-------port_type = %d\n", port_info->port_type);
     switch(port_info->port_type){
         case USB_PORT_TYPE_DEVICE:
             platform_device_register(&sw_udc_device);
@@ -149,6 +184,14 @@ __s32 usbc0_platform_device_init(struct usb_port_info *port_info)
         case USB_PORT_TYPE_OTG:
             platform_device_register(&sw_udc_device);
             platform_device_register(&sw_hcd_device);
+
+#ifdef  SW_USB_FPGA
+			for (i = 0; i < ARRAY_SIZE(host_attrs); i++) {
+				ret = device_create_file(&sw_hcd_device.dev, &host_attrs[i]);
+				if (ret)
+					printk("device_create_file fail\n");
+			}
+#endif
         break;
 
         default:

@@ -52,6 +52,8 @@ static struct usb_scan_info g_usb_scan_info;
 
 void (*__usb_hw_scan) (struct usb_scan_info *);
 
+u32 usb_vbus_id_state = 1;
+#ifndef  SW_USB_FPGA
 /*
 *******************************************************************************
 *                     __get_pin_data
@@ -268,7 +270,7 @@ static u32 get_dp_dm_status(struct usb_scan_info *info)
 
 	return ret;
 }
-
+#endif
 
 /*
 *******************************************************************************
@@ -449,6 +451,7 @@ static void do_vbus1_id1(struct usb_scan_info *info)
 
 	switch(role){
 		case USB_ROLE_NULL:
+#ifndef  SW_USB_FPGA
 			if(get_dp_dm_status(info) == 0x00){
     			/* delay for vbus is stably */
     			if(info->device_insmod_delay < USB_SCAN_INSMOD_DEVICE_DRIVER_DELAY){
@@ -459,6 +462,9 @@ static void do_vbus1_id1(struct usb_scan_info *info)
     			info->device_insmod_delay = 0;
 			    hw_insmod_usb_device();
 			}
+#else
+			hw_insmod_usb_device();
+#endif
 		break;
 
 		case USB_ROLE_HOST:
@@ -475,7 +481,17 @@ static void do_vbus1_id1(struct usb_scan_info *info)
 
 	return;
 }
-
+#ifdef  SW_USB_FPGA
+__u32 set_vbus_id_state(u32 state)
+{
+	usb_vbus_id_state = state;
+	return 0;
+}
+static __u32 get_vbus_id_state(struct usb_scan_info *info)
+{
+	return usb_vbus_id_state;
+}
+#else
 /*
 *******************************************************************************
 *                     get_vbus_id_state
@@ -508,6 +524,9 @@ static __u32 get_vbus_id_state(struct usb_scan_info *info)
 
 	return state;
 }
+
+#endif
+
 
 /*
 *******************************************************************************
@@ -647,6 +666,12 @@ __s32 usb_hw_scan_init(struct usb_cfg *cfg)
 		break;
 
 		case USB_PORT_TYPE_OTG:
+#ifdef  SW_USB_FPGA
+		{
+			__usb_hw_scan = vbus_id_hw_scan;
+
+		}
+#else
 		{
 			switch(port_info->detect_type){
 				case USB_DETECT_TYPE_DP_DM:
@@ -739,6 +764,7 @@ __s32 usb_hw_scan_init(struct usb_cfg *cfg)
 					goto failed;
 			}
 		}
+#endif
 		break;
 
 		default:
@@ -750,6 +776,7 @@ __s32 usb_hw_scan_init(struct usb_cfg *cfg)
 	return 0;
 
 failed:
+#ifndef  SW_USB_FPGA
 	if(scan_info->id_hdle){
 		gpio_release(scan_info->id_hdle, 0);
 		scan_info->id_hdle = 0;
@@ -759,12 +786,13 @@ failed:
 		gpio_release(scan_info->det_vbus_hdle, 0);
 		scan_info->det_vbus_hdle = 0;
 	}
-
+#endif
 	__usb_hw_scan = null_hw_scan;
 
 	return ret;
 }
 
+#ifdef  SW_USB_FPGA
 /*
 *******************************************************************************
 *                     usb_hw_scan_exit
@@ -785,8 +813,13 @@ failed:
 */
 __s32 usb_hw_scan_exit(struct usb_cfg *cfg)
 {
-	struct usb_scan_info *scan_info = &g_usb_scan_info;
+	return 0;
+}
+#else
+__s32 usb_hw_scan_exit(struct usb_cfg *cfg)
+{
 
+	struct usb_scan_info *scan_info = &g_usb_scan_info;
 	if(scan_info->id_hdle){
 		gpio_release(scan_info->id_hdle, 0);
 		scan_info->id_hdle = 0;
@@ -796,8 +829,7 @@ __s32 usb_hw_scan_exit(struct usb_cfg *cfg)
 		gpio_release(scan_info->det_vbus_hdle, 0);
 		scan_info->det_vbus_hdle = 0;
 	}
-
 	return 0;
 }
-
+#endif
 
