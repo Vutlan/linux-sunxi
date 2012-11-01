@@ -43,7 +43,7 @@
 #include <mach/system.h>
 #include <linux/types.h>
 #include <linux/timer.h>
-
+#include <mach/irqs.h>
 
 typedef unsigned int __hdle;
 
