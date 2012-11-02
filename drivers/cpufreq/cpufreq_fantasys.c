@@ -126,6 +126,7 @@ static int hotplug_freq_def[4][2] = {
     {60000000, 0       },
 };
 
+#ifdef CONFIG_CPU_FREQ_USR_EVNT_NOTIFY
 /*
  * define frequency policy table for user event triger
  */
@@ -135,12 +136,15 @@ static int usrevent_freq_def[4] = {
     70 ,        /* switch cpu frequency to policy->max * 70% if dule core currently    */
     60 ,        /* switch cpu frequency to policy->max * 60% if dule core currently    */
 };
+#endif
 
 
 static int hotplug_rq[NR_CPUS][2];
 static int hotplug_freq[NR_CPUS][2];
-static int usrevent_freq[NR_CPUS];
 
+#ifdef CONFIG_CPU_FREQ_USR_EVNT_NOTIFY
+static int usrevent_freq[NR_CPUS];
+#endif
 
 /*
  * define data structure for dbs
@@ -1182,7 +1186,9 @@ static int __init cpufreq_gov_dbs_init(void)
         hotplug_freq[i][0] = hotplug_freq_def[i][0];
         hotplug_freq[i][1] = hotplug_freq_def[i][1];
 
-        usrevent_freq[i] = usrevent_freq[i];
+        #ifdef CONFIG_CPU_FREQ_USR_EVNT_NOTIFY
+        usrevent_freq[i] = usrevent_freq_def[i];
+        #endif
     }
     hotplug_rq[NR_CPUS-1][1] = INT_MAX;
     hotplug_freq[NR_CPUS-1][1] = INT_MAX;

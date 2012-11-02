@@ -45,7 +45,7 @@ static unsigned int cpu_freq_max = SUNXI_CPUFREQ_MAX / 1000;
 static unsigned int cpu_freq_min = SUNXI_CPUFREQ_MIN / 1000;
 
 #ifdef CONFIG_SMP
-static cpumask_var_t sunxi_cpumask;
+static struct cpumask sunxi_cpumask;
 static int cpus_initialized;
 #endif
 
@@ -227,8 +227,8 @@ static int sunxi_cpufreq_init(struct cpufreq_policy *policy)
      * Use cpufreq affected_cpus interface to handle this scenario.
      */
     policy->shared_type = CPUFREQ_SHARED_TYPE_ANY;
-    cpumask_or(sunxi_cpumask, cpumask_of(policy->cpu), sunxi_cpumask);
-    cpumask_copy(policy->cpus, sunxi_cpumask);
+    cpumask_or(&sunxi_cpumask, cpumask_of(policy->cpu), &sunxi_cpumask);
+    cpumask_copy(policy->cpus, &sunxi_cpumask);
     cpus_initialized++;
     #endif
 
