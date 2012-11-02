@@ -121,6 +121,9 @@
 #define AW_IRQ_MBOX			(AW_IRQ_GIC_START + 11)/*	MBOX		*/
 #define	AW_IRQ_HSTIMER0		(AW_IRQ_GIC_START + 12)/*	HSTIMER		*/
 #define	AW_IRQ_MMC0			(AW_IRQ_GIC_START + 13)/*	MMC0		*/
+#define	AW_IRQ_MMC1			(AW_IRQ_GIC_START + 13)/*	MMC1		*/
+#define	AW_IRQ_MMC2			(AW_IRQ_GIC_START + 13)/*	MMC2		*/
+#define	AW_IRQ_MMC3			(AW_IRQ_GIC_START + 13)/*	MMC3		*/
 #define AW_IRQ_SPI0			(AW_IRQ_GIC_START + 13)/*	SPI0		*/
 #define AW_IRQ_NAND0		(AW_IRQ_GIC_START + 14)/*	NAND0		*/
 #define AW_IRQ_NAND1		(AW_IRQ_GIC_START + 15)/*	NAND1		*/
