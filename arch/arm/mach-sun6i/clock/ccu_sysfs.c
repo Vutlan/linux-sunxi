@@ -245,7 +245,7 @@ static ssize_t ccu_parent_store(struct device *dev,
 	CCU_DBG("%s: parent name %s, id %d\n", __func__, buf, (int)clk_id);
 
 	paw_clk = (struct __aw_ccu_clk_t *)&aw_ccu_clk_tbl[clk_id];
-	parent = (struct clk *)container_of(&paw_clk, struct clk, aw_clk);
+	parent = container_of(&paw_clk, struct clk, aw_clk);
 	if(0 != clk_set_parent(pclk_handle->clk, parent)) {
 		usign = __LINE__;
 		goto end;
