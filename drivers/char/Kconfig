@@ -635,5 +635,7 @@ config MSM_SMD_PKT
 
 source "drivers/char/sun4i_g2d/Kconfig"
 
+source "drivers/char/sunxi_mem/Kconfig"
+source "drivers/char/sunxi_mem_test/Kconfig"
 endmenu
 
