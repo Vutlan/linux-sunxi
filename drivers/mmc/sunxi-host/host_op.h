@@ -142,6 +142,7 @@ struct sunxi_mmc_host {
 	struct proc_dir_entry	*proc_dbglevel;
 	struct proc_dir_entry	*proc_regs;
 	struct proc_dir_entry	*proc_insert;
+	struct proc_dir_entry	*proc_iodriving;
 #endif
 
 	/* backup register structrue */
