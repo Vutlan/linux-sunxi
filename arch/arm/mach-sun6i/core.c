@@ -225,7 +225,7 @@ void __init sun6i_init_early(void)
 	printk("[%s] enter\n", __FUNCTION__);
 }
 
-MACHINE_START(SUN6I, "Allwinner AW163x")
+MACHINE_START(SUN6I, "sun6i")
 	.atag_offset	= 0x100,
 	.fixup		= sun6i_fixup,
 	.map_io		= sun6i_map_io,
