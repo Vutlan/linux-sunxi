@@ -1390,7 +1390,8 @@ static int __init sw_hci_sun5i_init(void)
     if(sw_ehci0.used){
 		if(sw_ehci0.usb_controller_type != SW_USB_OHCI){
 		#ifdef CONFIG_USB_PORT_POWER_MANAGEMENT
-		    usb1_set_vbus_cnt--;
+		    if(sw_ehci0.host_init_state)
+		        usb1_set_vbus_cnt--;
 		#endif
 			platform_device_register(&sw_usb_ehci_device[0]);
 		}
@@ -1403,7 +1404,8 @@ static int __init sw_hci_sun5i_init(void)
     if(sw_ohci0.used){
 		if(sw_ohci0.usb_controller_type != SW_USB_EHCI){
 		#ifdef CONFIG_USB_PORT_POWER_MANAGEMENT
-		    usb1_set_vbus_cnt--;
+		    if(sw_ohci0.host_init_state)
+		        usb1_set_vbus_cnt--;
 		#endif
   	    	platform_device_register(&sw_usb_ohci_device[0]);
 		}
@@ -1415,7 +1417,8 @@ static int __init sw_hci_sun5i_init(void)
 #ifdef  CONFIG_USB_SW_SUN5I_EHCI1
     if(sw_ehci1.used){
         #ifdef CONFIG_USB_PORT_POWER_MANAGEMENT
-		    usb2_set_vbus_cnt--;
+            if(sw_ehci1.host_init_state)
+		        usb2_set_vbus_cnt--;
 		#endif
      	platform_device_register(&sw_usb_ehci_device[1]);
     }else{
@@ -1426,7 +1429,8 @@ static int __init sw_hci_sun5i_init(void)
 #ifdef  CONFIG_USB_SW_SUN5I_OHCI1
     if(sw_ohci1.used){
         #ifdef CONFIG_USB_PORT_POWER_MANAGEMENT
-		    usb2_set_vbus_cnt--;
+            if(sw_ohci1.host_init_state)
+		        usb2_set_vbus_cnt--;
 		#endif
      	platform_device_register(&sw_usb_ohci_device[1]);
     }else{
