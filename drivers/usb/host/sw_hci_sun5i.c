@@ -1389,6 +1389,9 @@ static int __init sw_hci_sun5i_init(void)
 #ifdef  CONFIG_USB_SW_SUN5I_EHCI0
     if(sw_ehci0.used){
 		if(sw_ehci0.usb_controller_type != SW_USB_OHCI){
+		#ifdef CONFIG_USB_PORT_POWER_MANAGEMENT
+		    usb1_set_vbus_cnt--;
+		#endif
 			platform_device_register(&sw_usb_ehci_device[0]);
 		}
     }else{
@@ -1399,6 +1402,9 @@ static int __init sw_hci_sun5i_init(void)
 #ifdef  CONFIG_USB_SW_SUN5I_OHCI0
     if(sw_ohci0.used){
 		if(sw_ohci0.usb_controller_type != SW_USB_EHCI){
+		#ifdef CONFIG_USB_PORT_POWER_MANAGEMENT
+		    usb1_set_vbus_cnt--;
+		#endif
   	    	platform_device_register(&sw_usb_ohci_device[0]);
 		}
     }else{
@@ -1408,6 +1414,9 @@ static int __init sw_hci_sun5i_init(void)
 
 #ifdef  CONFIG_USB_SW_SUN5I_EHCI1
     if(sw_ehci1.used){
+        #ifdef CONFIG_USB_PORT_POWER_MANAGEMENT
+		    usb2_set_vbus_cnt--;
+		#endif
      	platform_device_register(&sw_usb_ehci_device[1]);
     }else{
 		DMSG_PANIC("ERR: usb%d %s is disable\n", sw_ehci1.usbc_no, sw_ehci1.hci_name);
@@ -1416,6 +1425,9 @@ static int __init sw_hci_sun5i_init(void)
 
 #ifdef  CONFIG_USB_SW_SUN5I_OHCI1
     if(sw_ohci1.used){
+        #ifdef CONFIG_USB_PORT_POWER_MANAGEMENT
+		    usb2_set_vbus_cnt--;
+		#endif
      	platform_device_register(&sw_usb_ohci_device[1]);
     }else{
 		DMSG_PANIC("ERR: usb%d %s is disable\n", sw_ohci1.usbc_no, sw_ohci1.hci_name);

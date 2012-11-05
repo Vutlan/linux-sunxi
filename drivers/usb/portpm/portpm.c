@@ -17,6 +17,7 @@
 #include <linux/kthread.h>
 #include <linux/fs.h>
 #include <asm/uaccess.h>
+#include <linux/platform_device.h>
 
 
 #include "../sun5i_usb/include/sw_usb_config.h"
@@ -59,7 +60,7 @@ static __u32 thread_run_flag = 0;
 static __u32 thread_stopped_flag = 0;
 static __u32 thread_suspend_flag = 0;
 
-static __u32 power_status = 1;
+static __u32 power_status = 0;
 static __s32 ctrlio_status = -1;
 static __s32 ignore_usbc_num[3] = {0};
 
@@ -326,8 +327,11 @@ static int set_vbus(int on_off)
     if(get_vbus_status() == on_off)
         return 0;
         
-    printk("portpm set vbus %s\n", on_off ? "on" : "off");   
-    portpm_notifier(on_off);
+    printk("portpm set vbus %s\n", on_off ? "on" : "off");  
+    
+    if(!thread_suspend_flag)
+        portpm_notifier(on_off);
+        
     power_status = on_off;
     
     #if defined(CONFIG_USB_SW_SUN5I_HCD0)
@@ -358,8 +362,10 @@ static int set_vbus(int on_off)
     return 0;
 }
 
-static __u32 cnt_1a = 0, cnt_500ma = 0, cnt_on = 0;
-#define BOUNCE_THRESHOLD 5
+#define BOUNCE_THRESHOLD 2
+static __u32 cnt_1a = BOUNCE_THRESHOLD - 1;
+static __u32 cnt_500ma = BOUNCE_THRESHOLD - 1;
+static __u32 cnt_on = BOUNCE_THRESHOLD - 1;
 
 static int do_1a_500ma(int connect, int voltage, int capacity)
 {
@@ -607,22 +613,6 @@ static int usb_port_pm_thread(void * pArg)
 
     return 0;
 }
-#ifdef CONFIG_HAS_EARLYSUSPEND
-static int portpm_suspend(struct early_suspend *h)
-{
-    printk("portpm_suspend\n");
-    thread_suspend_flag = 1;
-    return 0;
-}
-
-static int portpm_resume(struct early_suspend *h)
-{
-    printk("portpm_resume\n");
-    thread_suspend_flag = 0;
-    return 0;
-}
-#endif
-
 
 static ssize_t state_show(struct device *pdev, struct device_attribute *attr,
 			   char *buf)
@@ -638,17 +628,43 @@ static ssize_t state_show(struct device *pdev, struct device_attribute *attr,
 }
 static DEVICE_ATTR(state, S_IRUGO, state_show, NULL);
 
-static int __init portpm_init(void)
+
+#ifdef CONFIG_PM
+
+static int portpm_suspend(struct device *dev)
+{
+    printk("portpm_suspend\n");
+    thread_suspend_flag = 1;
+    set_vbus(0);
+    set_ctrl_gpio(0);
+    return 0;
+}
+
+static int portpm_resume(struct device *dev)
+{
+    printk("portpm_resume\n");
+    thread_suspend_flag = 0;
+    return 0;
+}
+
+static const struct dev_pm_ops portpm_pmops = {
+	.suspend	= portpm_suspend,
+	.resume		= portpm_resume,
+};
+
+#define PORTPM_PMOPS  &portpm_pmops
+
+#else
+
+#define PORTPM_PMOPS NULL
+
+#endif
+
+static int portpm_probe(struct platform_device *pdev)
 {
     int ret;
     struct task_struct *pm_task = NULL;
-    printk("%s(L%d):\n", __func__, __LINE__);
-    #ifdef CONFIG_HAS_EARLYSUSPEND        
-    standby.level     = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 5;    
-    standby.suspend   = portpm_suspend;    
-    standby.resume    = portpm_resume;    
-    register_early_suspend(&standby);
-    #endif   
+    printk("portpm probe begin\n");      
     
     get_pm_cfg(&pm_cfg);
     //check_pm_cfg(&pm_cfg);
@@ -657,13 +673,12 @@ static int __init portpm_init(void)
     pm_cfg.ctrl_gpio.hdle = gpio_request(&pm_cfg.ctrl_gpio.gpio_set, 1);
     if(pm_cfg.ctrl_gpio.hdle){
         /* set config, ouput */
-        gpio_set_one_pin_io_status(pm_cfg.ctrl_gpio.hdle, 1, NULL);
-        printk("0xf1c20920 : value = %x\n", readl(0xf1c20920));
-    	/* default is pull down */
-    	gpio_set_one_pin_pull(pm_cfg.ctrl_gpio.hdle, 2, NULL);
+        gpio_set_one_pin_io_status(pm_cfg.ctrl_gpio.hdle, 1, NULL);        
+        /* default is pull down */
+        gpio_set_one_pin_pull(pm_cfg.ctrl_gpio.hdle, 2, NULL);
     }else    
-		printk("request ctrl gpio failed\n");	
-	    
+        printk("request ctrl gpio failed\n");   
+        
     if(pm_cfg.restrict_1a && pm_cfg.restrict_500ma){
         do_pm = do_1a_500ma;
     }
@@ -677,39 +692,41 @@ static int __init portpm_init(void)
         do_pm = do_1a;
     }        
 
-    //create file in sysfs
-	portpm_class = class_create(THIS_MODULE, "usb_port_pm");
-	if (IS_ERR(portpm_class))
-		return PTR_ERR(portpm_class);
-		
-	portpm_dev = device_create(portpm_class, NULL,
-					MKDEV(0, 0), NULL, "port_pm");
-	if (IS_ERR(portpm_dev)){
-	    class_destroy(portpm_class);
-		return PTR_ERR(portpm_dev);
+    //create sysfs file
+    portpm_class = class_create(THIS_MODULE, "usb_port_pm");
+    if (IS_ERR(portpm_class))
+        return PTR_ERR(portpm_class);
+        
+    portpm_dev = device_create(portpm_class, NULL,
+                    MKDEV(0, 0), NULL, "port_pm");
+    if (IS_ERR(portpm_dev)){
+        printk("portpm_dev create failed\n");     
+        class_destroy(portpm_class);
+        return PTR_ERR(portpm_dev);
     }
 
-	ret = device_create_file(portpm_dev, &dev_attr_state);
-	if (ret) {
-		device_destroy(portpm_class, portpm_dev->devt);
-		class_destroy(portpm_class);
-		return ret;
-	}
-	
+    ret = device_create_file(portpm_dev, &dev_attr_state);
+    if (ret) {
+        printk("portpm_dev create file failed\n");   
+        device_destroy(portpm_class, portpm_dev->devt);
+        class_destroy(portpm_class);
+        return ret;
+    }
+    
     thread_run_flag = 1;
     thread_stopped_flag = 0;
     pm_task = kthread_create(usb_port_pm_thread, &pm_cfg, "usb-port-power-management");
     if(IS_ERR(pm_task)){
-		printk("ERR: usb-port-power-management thread create failed\n");
-		return -1;
-	}
+        printk("ERR: usb-port-power-management thread create failed\n");
+        return -1;
+    }
  
-	wake_up_process(pm_task);
-
-	return 0;
+    wake_up_process(pm_task);
+    
+    return 0;
 }
 
-static void __exit portpm_exit(void)
+static int portpm_remove(struct platform_device *pdev)
 {
     thread_run_flag = 0;
 	while(!thread_stopped_flag){
@@ -720,14 +737,45 @@ static void __exit portpm_exit(void)
 	if(pm_cfg.ctrl_gpio.hdle){
 		gpio_release(pm_cfg.ctrl_gpio.hdle, 0);
 		pm_cfg.ctrl_gpio.hdle = 0;
-	}
+	}	
+}
 
-	#ifdef CONFIG_HAS_EARLYSUSPEND    
-	unregister_early_suspend(&standby);
-	#endif
+static struct platform_driver portpm_driver = {
+	.probe		= portpm_probe,
+	.remove		= portpm_remove,	
+	.driver		= {
+		.name	= "port_pm",
+		.bus	= &platform_bus_type,
+		.owner	= THIS_MODULE,
+		.pm	    = PORTPM_PMOPS,
+	},
+};
+
+static struct platform_device portpm_device = {
+	.name	= "port_pm",
+	.id		= -1,
+	.dev = {
+		.platform_data	= &pm_cfg,
+	},
+};
+
+static int __init portpm_init(void)
+{
+    int ret;
+    printk("portpm init---------\n"); 
+    platform_device_register(&portpm_device);
+    platform_driver_register(&portpm_driver);
+	return 0;
+}
+
+static void __exit portpm_exit(void)
+{
+    printk("portpm exit---------\n");
+    platform_device_unregister(&portpm_device);
+    platform_driver_unregister(&portpm_driver);
 }
 
 
-module_init(portpm_init);
+late_initcall(portpm_init);
 module_exit(portpm_exit);
 

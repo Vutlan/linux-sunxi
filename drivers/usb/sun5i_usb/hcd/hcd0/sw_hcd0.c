@@ -50,8 +50,7 @@
 #define SW_HCD_DRIVER_NAME    "sw_hcd_host0"
 static const char sw_hcd_driver_name[] = SW_HCD_DRIVER_NAME;
 
-int hcd0_enable = 1;
-EXPORT_SYMBOL(hcd0_enable);
+
 MODULE_DESCRIPTION(DRIVER_INFO);
 MODULE_AUTHOR(DRIVER_AUTHOR);
 MODULE_LICENSE("GPL");
@@ -504,7 +503,10 @@ static __s32 pin_exit(sw_hcd_io_t *sw_hcd_io)
 *******************************************************************************
 */
 extern void set_hcd0_connect_status(int status);
+
 static int hcd0_set_vbus_cnt = 1;
+static int hcd0_enable = 1;
+
 static void sw_hcd_board_set_vbus(struct sw_hcd *sw_hcd, int is_on)
 {
     u32 on_off = 0;
@@ -2403,7 +2405,10 @@ static struct platform_driver sw_hcd_driver = {
 static int __init sw_hcd_init(void)
 {
 	DMSG_INFO_HCD0("usb host driver initialize........\n");
-
+#ifdef CONFIG_USB_PORT_POWER_MANAGEMENT
+    hcd0_set_vbus_cnt--;
+    hcd0_enable--;
+#endif
     if (usb_disabled()){
         DMSG_PANIC("ERR: usb disabled\n");
 		return 0;
@@ -2445,6 +2450,7 @@ static void __exit sw_hcd_cleanup(void)
 
 module_exit(sw_hcd_cleanup);
 
+
 int hcd0_set_vbus(int is_on)
 {
     struct sw_hcd *sw_hcd = g_sw_hcd0;      
@@ -2462,7 +2468,21 @@ EXPORT_SYMBOL(hcd0_set_vbus);
 
 int hcd0_get_vbus_status(void)
 {
-	return hcd0_enable;
+    return hcd0_enable;
 }
 EXPORT_SYMBOL(hcd0_get_vbus_status);
 
+static int hcd0_connect_status = 0;
+
+void set_hcd0_connect_status(int status)
+{   
+    hcd0_connect_status = status;     
+    return;
+}
+EXPORT_SYMBOL(set_hcd0_connect_status);
+
+int get_hcd0_connect_status(void)
+{    
+    return hcd0_connect_status;
+}
+EXPORT_SYMBOL(get_hcd0_connect_status);

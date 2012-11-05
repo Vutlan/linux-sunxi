@@ -32,7 +32,7 @@
 #include  "../include/sw_hcd_core.h"
 #include  "../include/sw_hcd_dma.h"
 
-static atomic_t connect_status = ATOMIC_INIT(0);
+
 /* for high speed test mode; see USB 2.0 spec 7.1.20 */
 static const u8 sw_hcd_test_packet[53] = {
 	/* implicit SYNC then DATA0 to start */
@@ -52,18 +52,6 @@ static const u8 sw_hcd_test_packet[53] = {
 
 	/* implicit CRC16 then EOP to end */
 };
-void set_hcd0_connect_status(int status)
-{   
-    atomic_set(&connect_status, status);    
-    return;
-}
-EXPORT_SYMBOL(set_hcd0_connect_status);
-
-int get_hcd0_connect_status(void)
-{
-    return atomic_read(&connect_status);
-}
-EXPORT_SYMBOL(get_hcd0_connect_status);
 
 /*
  * Interrupt Service Routine to record USB "global" interrupts.
@@ -84,6 +72,7 @@ EXPORT_SYMBOL(get_hcd0_connect_status);
             		| (1 << USBC_BP_INTUSB_RESET) \
             		| (1 << USBC_BP_INTUSB_SOF))
 
+extern void set_hcd0_connect_status(int status);
 /*
 *******************************************************************************
 *                     sw_hcd_write_fifo
@@ -308,7 +297,7 @@ void sw_hcd_start(struct sw_hcd *sw_hcd)
 	/* assume ID pin is hard-wired to ground */
 	sw_hcd_platform_enable(sw_hcd);
 
-	/* port power on */
+    /* port power on */
 	sw_hcd_set_vbus(sw_hcd, 1);
 
     return;
