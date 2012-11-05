@@ -148,5 +148,6 @@ void set_copro_default(void);
 void save_processor_state(void);
 void restore_processor_state(void);
 void restore_processor_ttbr0(void);
+void set_ttbr0(void);
 
 #endif /*_MEM_CONTEXT_H*/

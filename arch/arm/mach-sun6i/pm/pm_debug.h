@@ -79,26 +79,17 @@ void busy_waiting(void);
  * in case the data in dram be destoryed result in the system is re-resume in cycle.
 */
 void save_mem_flag(void);
+void clear_mem_flag(void);
 void save_mem_status(volatile __u32 val);
 void save_mem_status_nommu(volatile __u32 val);
 __u32 get_mem_status(void);
 __u32 save_sun5i_mem_status_nommu(volatile __u32 val);
 __u32 save_sun5i_mem_status(volatile __u32 val);
 
-
-void backup_perfcounter(void);
-void restore_perfcounter(void);
-__u32 get_cyclecount (void);
-void init_perfcounters (__u32 do_reset, __u32 enable_divider);
-void reset_counter(void);
-void change_runtime_env(__u32 mmu_flag);
-void delay_us(__u32 us);
-void delay_ms(__u32 ms);
 void io_init(void);
 void io_init_high(void);
 void io_init_low(void);
 void io_high(int num);
-
 
 #endif /*_PM_DEBUG_H*/
 

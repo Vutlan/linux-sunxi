@@ -29,7 +29,7 @@
 //level 3 : dump debug information--error+warning+information;
 #define DEBUG_ENABLE
 
-extern void printk(const char *, ...);
+//extern void printk(const char *, ...);
 #if		(AR100_DEBUG_LEVEL == 0)
 #define	AR100_INF(...)
 #define	AR100_WRN(...)

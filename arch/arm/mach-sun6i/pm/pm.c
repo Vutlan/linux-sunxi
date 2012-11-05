@@ -85,25 +85,17 @@ extern char *resume1_bin_start;
 extern char *resume1_bin_end;
 #endif
 
+/*mem_cpu_asm.S*/
 extern int mem_arch_suspend(void);
 extern int mem_arch_resume(void);
 extern asmlinkage int mem_clear_runtime_context(void);
-extern asmlinkage int mem_restore_runtime_context(void);
-extern asmlinkage int mem_save_runtime_context(void);
-
-extern void disable_cache(void);
-extern void disable_program_flow_prediction(void);
-extern void invalidate_branch_predictor(void);
-extern void enable_cache(void);
-extern void enable_program_flow_prediction(void);
-extern void disable_dcache(void);
-extern void disable_l2cache(void);
-extern void set_ttbr0(void);
-typedef  int (*suspend_func)(void);
-void jump_to_suspend(__u32 ttbr1, suspend_func p);
+extern void save_runtime_context(__u32 *addr);
 extern void clear_reg_context(void);
-extern void invalidate_dcache(void);
-extern int jump_to_resume0_nommu(void* pointer);
+
+/*mem_mapping.c*/
+void create_mapping(struct map_desc *md);
+void save_mapping(unsigned long vaddr);
+void restore_mapping(unsigned long vaddr);
 
 int (*mem)(void) = 0;
 
@@ -173,17 +165,6 @@ EXPORT_SYMBOL(standby_level);
 //static volatile int enter_flag = 0;
 static int standby_mode = 0;
 static int suspend_status_flag = 0;
-
-extern void create_mapping(struct map_desc *md);
-extern void save_mapping(unsigned long vaddr);
-extern void restore_mapping(unsigned long vaddr);
-extern void save_mmu_state(struct mmu_state *saved_mmu_state);
-extern void clear_mem_flag(void);
-extern void save_runtime_context(__u32 *addr);
-void restore_processor_ttbr0(void);
-extern void flush_icache(void);
-extern void flush_dcache(void);
-
 
 /*
 *********************************************************************************************************
@@ -614,10 +595,9 @@ suspend_err:
 */
 static int aw_pm_enter(suspend_state_t state)
 {
-	asm volatile ("stmfd sp!, {r1-r12, lr}" );
-	int (*standby)(struct aw_pm_info *arg) = 0;
+	int (*standby)(struct aw_pm_info *arg);
 	int i = 0;
-
+	
 	PM_DBG("enter state %d\n", state);
 	
 	if(unlikely(debug_mask&PM_STANDBY_PRINT_IO_STATUS)){
@@ -656,8 +636,7 @@ static int aw_pm_enter(suspend_state_t state)
 	}else if(SUPER_STANDBY == standby_type){
 			aw_super_standby(state);
 	}
-
-	asm volatile ("ldmfd sp!, {r1-r12, lr}" );
+	
 	return 0;
 }
 

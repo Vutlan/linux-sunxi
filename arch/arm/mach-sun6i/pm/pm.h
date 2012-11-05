@@ -20,6 +20,7 @@
 #include "mem_divlibc.h"
 #include "mem_int.h"
 #include "mem_tmr.h"
+#include "mem_timing.h"
 
 #define PM_STANDBY_PRINT_STANDBY (1U << 0)
 #define PM_STANDBY_PRINT_RESUME (1U << 1)
@@ -93,34 +94,44 @@ struct aw_mem_para{
 	struct saved_context saved_cpu_context;
 };
 
+typedef  int (*suspend_func)(void);
+
+/*mem_mmu_pc_asm.S*/
 extern unsigned int save_sp_nommu(void);
 extern unsigned int save_sp(void);
 extern void clear_reg_context(void);
 extern void restore_sp(unsigned int sp);
 
-extern void enable_cache(void);
-extern void enable_icache(void);
+//cache
+extern void invalidate_dcache(void);
+extern void flush_icache(void);
+extern void flush_dcache(void);
 extern void disable_cache(void);
 extern void disable_dcache(void);
 extern void disable_l2cache(void);
-extern void flush_icache(void);
-extern void flush_dcache(void);
-extern void invalidate_dcache(void);
-
-extern void restore_mmu_state(struct mmu_state *saved_mmu_state);
-extern void mem_flush_tlb(void);
-extern void mem_preload_tlb(void);
-
-void disable_mmu(void);
-void enable_mmu(void);
-void set_ttbr0(void);
+extern void enable_cache(void);
+extern void enable_icache(void);
 
 extern void disable_program_flow_prediction(void);
 extern void invalidate_branch_predictor(void);
 extern void enable_program_flow_prediction(void);
 
+extern void mem_flush_tlb(void);
+extern void mem_preload_tlb(void);
+
+void disable_mmu(void);
+void enable_mmu(void);
+
 extern int jump_to_resume(void* pointer, __u32 *addr);
 extern int jump_to_resume0(void* pointer);
+void jump_to_suspend(__u32 ttbr1, suspend_func p);
+extern int jump_to_resume0_nommu(void* pointer);
+
+/*mmu_pc.c*/
+extern void save_mmu_state(struct mmu_state *saved_mmu_state);
+extern void restore_mmu_state(struct mmu_state *saved_mmu_state);
+void set_ttbr0(void);
+extern void invalidate_dcache(void);
 
 #endif /*_PM_H*/
 

@@ -19,5 +19,8 @@
 #define __MEM_PRINTK_H__
 
 #define DEBUG_BUFFER_SIZE (256)
+//other module may define printk, while its declaration may not be the same with this. 
+//so, it not proper to export this symbols to global.
+__s32 printk(const char *format, ...);
 
 #endif  //__MEM_PRINTK_H__

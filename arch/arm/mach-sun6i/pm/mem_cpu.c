@@ -492,3 +492,15 @@ void restore_processor_ttbr0(void)
 	asm volatile ("mcr p15, 0, %0, c2, c0, 0" : : "r"(saved_context.ttb_0r));
 	return;
 }
+
+void set_ttbr0(void)
+{
+	__u32 ttb = 0;
+	//read ttbr1
+	asm volatile ("mrc p15, 0, %0, c2, c0, 1"  : "=r"(ttb));
+	//write ttbr0
+	asm volatile ("mcr p15, 0, %0, c2, c0, 0" : : "r"(ttb));
+	asm volatile ("isb");
+	return;
+}
+
