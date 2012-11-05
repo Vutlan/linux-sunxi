@@ -108,6 +108,7 @@ int aw_ccu_exit(void);
 int aw_ccu_get_clk(__aw_ccu_clk_id_e id, __ccu_clk_t *clk);
 
 int ccm_get_pll1_para(__ccmu_pll1_reg0000_t *factor, __u64 rate);
+int ccm_get_pllx_para(__ccmu_media_pll_t *factor, __u64 rate);
 
 #endif /* #ifndef __AW_CCMU_I_H__ */
 

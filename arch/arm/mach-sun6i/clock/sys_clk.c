@@ -231,25 +231,42 @@ static __u64 sys_clk_get_rate(__aw_ccu_clk_id_e id)
                 return 24576000;
             }
         case AW_SYS_CLK_PLL3:
+        case AW_SYS_CLK_PLL4:
+        case AW_SYS_CLK_PLL7:
+        case AW_SYS_CLK_PLL8:
+        case AW_SYS_CLK_PLL9:
+        case AW_SYS_CLK_PLL10:
         {
-            if(!aw_ccu_reg->Pll3Ctl.ModeSel)
+            volatile __ccmu_media_pll_t  *tmp_reg;
+
+            if(id == AW_SYS_CLK_PLL3)
+                tmp_reg = &aw_ccu_reg->Pll3Ctl;
+            else if(id == AW_SYS_CLK_PLL4)
+                tmp_reg = &aw_ccu_reg->Pll4Ctl;
+            else if(id == AW_SYS_CLK_PLL7)
+                tmp_reg = &aw_ccu_reg->Pll7Ctl;
+            else if(id == AW_SYS_CLK_PLL8)
+                tmp_reg = &aw_ccu_reg->Pll8Ctl;
+            else if(id == AW_SYS_CLK_PLL9)
+                tmp_reg = &aw_ccu_reg->Pll9Ctl;
+            else
+                tmp_reg = &aw_ccu_reg->Pll10Ctl;
+
+            if(!tmp_reg->ModeSel)
             {
-                if(aw_ccu_reg->Pll3Ctl.FracMod)
+                if(tmp_reg->FracMod)
                     return 297000000;
                 else
                     return 270000000;
             }
             else
             {
-                tmp_rate = (__u64)24000000*PLL3_FACTOR_N;
-                do_div(tmp_rate, PLL3_FACTOR_M);
+                tmp_rate = (__u64)24000000*tmp_reg->FactorN;
+                do_div(tmp_rate, tmp_reg->FactorM);
                 return tmp_rate;
             }
         }
-        case AW_SYS_CLK_PLL4:
-            tmp_rate = (__u64)24000000*PLL4_FACTOR_N;
-            do_div(tmp_rate, PLL4_FACTOR_M);
-            return tmp_rate;
+
         case AW_SYS_CLK_PLL5:
             tmp_rate = (__u64)24000000*PLL5_FACTOR_N*PLL5_FACTOR_K;
             do_div(tmp_rate, (PLL5_FACTOR_M+1));
@@ -257,22 +274,6 @@ static __u64 sys_clk_get_rate(__aw_ccu_clk_id_e id)
         case AW_SYS_CLK_PLL6:
             tmp_rate = (__u64)24000000*PLL6_FACTOR_N*PLL6_FACTOR_K;
             return tmp_rate/2;
-        case AW_SYS_CLK_PLL7:
-            tmp_rate = (__u64)24000000*PLL7_FACTOR_N;
-            do_div(tmp_rate, PLL7_FACTOR_M);
-            return tmp_rate;
-        case AW_SYS_CLK_PLL8:
-            tmp_rate = (__u64)24000000*PLL8_FACTOR_N;
-            do_div(tmp_rate, PLL8_FACTOR_M);
-            return tmp_rate;
-        case AW_SYS_CLK_PLL9:
-            tmp_rate = (__u64)24000000*PLL9_FACTOR_N;
-            do_div(tmp_rate, PLL9_FACTOR_M);
-            return tmp_rate;
-        case AW_SYS_CLK_PLL10:
-            tmp_rate = (__u64)24000000*PLL10_FACTOR_N;
-            do_div(tmp_rate, PLL10_FACTOR_M);
-            return tmp_rate;
         case AW_SYS_CLK_PLL2X8:
             return sys_clk_get_rate(AW_SYS_CLK_PLL2) * 8;
         case AW_SYS_CLK_PLL3X2:
@@ -573,7 +574,11 @@ static __s32 sys_clk_set_rate(__aw_ccu_clk_id_e id, __u64 rate)
             __ccmu_pll1_reg0000_t       tmp_pll;
 
             tmp_pll = aw_ccu_reg->Pll1Ctl;
-            ccm_get_pll1_para(&tmp_pll, rate);
+            if(ccm_get_pll1_para(&tmp_pll, rate))
+            {
+                CCU_ERR("(%s:%d)try to get pll1 rate(%llu) config failed!\n", __FILE__, __LINE__, rate);
+                return -1;
+            }
             aw_ccu_reg->Pll1Ctl = tmp_pll;
             while(aw_ccu_reg->Pll1Ctl.Lock);
             return 0;
@@ -635,43 +640,20 @@ static __s32 sys_clk_set_rate(__aw_ccu_clk_id_e id, __u64 rate)
             }
             else
             {
-                int     factor_n, factor_m;
+                __ccmu_media_pll_t  tmp_cfg;
 
-                if(rate <= 128000000) {
-                    factor_m = 23;
-                    do_div(rate, 1000000);
-                    factor_n = rate;
-                }
-                else if(rate <= 256000000) {
-                    factor_m = 11;
-                    do_div(rate, 2000000);
-                    factor_n = rate;
-                }
-                else if(rate <= 384000000) {
-                    factor_m = 7;
-                    do_div(rate, 3000000);
-                    factor_n = rate;
-                }
-                else if(rate <= 512000000) {
-                    factor_m = 5;
-                    do_div(rate, 4000000);
-                    factor_n = rate;
-                }
-                else if(rate <= 768000000) {
-                    factor_m = 3;
-                    do_div(rate, 6000000);
-                    factor_n = rate;
-                }
-                else {
-                    CCU_ERR("Pll frequency is invalid!\n");
+                if(ccm_get_pllx_para(&tmp_cfg, rate)) {
+                    CCU_ERR("(%s:%d)try to get pll (%d, %llu) configuration failed!\n", __FILE__, __LINE__, id, rate);
                     return -1;
                 }
-                if(tmp_reg->FactorM < factor_m) {
-                    tmp_reg->FactorM = factor_m;
-                    tmp_reg->FactorN = factor_n;
+
+                /* write register */
+                if(tmp_reg->FactorM < tmp_cfg.FactorM) {
+                    tmp_reg->FactorM = tmp_cfg.FactorM;
+                    tmp_reg->FactorN = tmp_cfg.FactorN;
                 } else {
-                    tmp_reg->FactorN = factor_n;
-                    tmp_reg->FactorM = factor_m;
+                    tmp_reg->FactorN = tmp_cfg.FactorN;
+                    tmp_reg->FactorM = tmp_cfg.FactorM;
                 }
                 while(tmp_reg->Lock);
                 return 0;

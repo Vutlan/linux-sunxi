@@ -32,7 +32,6 @@
 #include "ccm_i.h"
 
 // alloc memory for store clock informatioin
-//static __ccu_clk_t          aw_clock[AW_CCU_CLK_CNT];
 __ccu_clk_t          aw_clock[AW_CCU_CLK_CNT]; /* liugang, for ccu test */
 static struct clk_lookup    lookups[AW_CCU_CLK_CNT];
 
@@ -105,6 +104,8 @@ int clk_enable(struct clk *clk)
 
     if((clk == NULL) || IS_ERR(clk))
         return -EINVAL;
+    if(!clk->ops || !clk->ops->set_status)
+        return 0;
 
     CCU_LOCK(&clk->lock, flags);
 
@@ -124,6 +125,8 @@ void clk_disable(struct clk *clk)
     DEFINE_FLAGS(flags);
 
     if(clk == NULL || IS_ERR(clk) || !clk->enable)
+        return;
+    if(!clk->ops || !clk->ops->set_status)
         return;
 
     CCU_DBG("%s:%d:%s: %s !\n", __FILE__, __LINE__, __FUNCTION__, clk->aw_clk->name);
@@ -150,6 +153,8 @@ unsigned long clk_get_rate(struct clk *clk)
 
     if((clk == NULL) || IS_ERR(clk))
         return 0;
+    if(!clk->ops || !clk->ops->get_rate)
+        return 0;
 
     CCU_DBG("%s:%d:%s: %s !\n", __FILE__, __LINE__, __FUNCTION__, clk->aw_clk->name);
 
@@ -170,6 +175,8 @@ int clk_set_rate(struct clk *clk, unsigned long rate)
 
     if(clk == NULL || IS_ERR(clk))
         return -1;
+    if(!clk->ops || !clk->ops->get_rate || !clk->ops->set_rate)
+        return 0;
 
     CCU_DBG("%s:%d:%s: %s !\n", __FILE__, __LINE__, __FUNCTION__, clk->aw_clk->name);
 
@@ -215,6 +222,8 @@ int clk_set_parent(struct clk *clk, struct clk *parent)
     if((clk == NULL) || IS_ERR(clk) || (parent == NULL) || IS_ERR(parent)) {
         return -1;
     }
+    if(!clk->ops || !clk->ops->get_parent || !clk->ops->set_parent || !clk->ops->get_rate)
+        return 0;
 
     CCU_DBG("%s:%d:%s: %s !\n", __FILE__, __LINE__, __FUNCTION__, clk->aw_clk->name);
 
@@ -241,6 +250,8 @@ int clk_reset(struct clk *clk, __aw_ccu_clk_reset_e reset)
     if((clk == NULL) || IS_ERR(clk)) {
         return -EINVAL;
     }
+    if(!clk->ops || !clk->ops->set_reset)
+        return 0;
 
     CCU_DBG("%s:%d:%s: %s !\n", __FILE__, __LINE__, __FUNCTION__, clk->aw_clk->name);
 
