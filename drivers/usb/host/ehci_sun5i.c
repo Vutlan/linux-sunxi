@@ -44,7 +44,11 @@ static const char ehci_name[] 		= SW_EHCI_NAME;
 
 static struct sw_hci_hcd *g_sw_ehci[3];
 static u32 ehci_first_probe[3] = {1, 1, 1};
+#ifdef CONFIG_USB_SW_PERIPHERAL_REMOTE
 int ehci_keep_alive[3] = {1, 1, 1};
+#else
+int ehci_keep_alive[3] = {0, 0, 0};
+#endif
 EXPORT_SYMBOL(ehci_keep_alive);
 
 /*.......................................................................................*/

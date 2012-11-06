@@ -2256,7 +2256,12 @@ EXPORT_SYMBOL(sw_usb_enable_hcd0);
 *
 *******************************************************************************
 */
+#ifdef CONFIG_USB_SW_PERIPHERAL_REMOTE
 int hcd0_keep_alive = 1;
+#else
+int hcd0_keep_alive = 0;
+#endif
+
 EXPORT_SYMBOL(hcd0_keep_alive);
 static int sw_hcd_suspend(struct device *dev)
 {

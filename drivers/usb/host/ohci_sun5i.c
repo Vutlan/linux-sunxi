@@ -46,7 +46,13 @@ static const char ohci_name[]       = SW_OHCI_NAME;
 
 static struct sw_hci_hcd *g_sw_ohci[3];
 static u32 ohci_first_probe[3] = {1, 1, 1};
+
+#ifdef CONFIG_USB_SW_PERIPHERAL_REMOTE
 int ohci_keep_alive[3] = {1, 1, 1};
+#else
+int ohci_keep_alive[3] = {0, 0, 0};
+#endif
+
 EXPORT_SYMBOL(ohci_keep_alive);
 
 /*.......................................................................................*/
