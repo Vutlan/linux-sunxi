@@ -139,7 +139,7 @@ static int sunximmc_proc_write_dbglevel(struct file *file, const char __user *bu
 {
 	smc_debug = simple_strtoul(buffer, NULL, 10);
 
-	return sizeof(smc_debug);
+	return count;
 }
 
 static int sunximmc_proc_read_insert_status(char *page, char **start, off_t off,
@@ -173,8 +173,59 @@ static int sunximmc_proc_card_insert_ctrl(struct file *file, const char __user *
 		mmc_detect_change(smc_host->mmc, msecs_to_jiffies(300));
 	}
 
-	return sizeof(insert);
+	return count;
 }
+
+static int sunximmc_proc_get_iodriving(char *page, char **start, off_t off,
+						int coutn, int *eof, void *data)
+{
+	char *p = page;
+	struct sunxi_mmc_host *smc_host = (struct sunxi_mmc_host *)data;
+	user_gpio_set_t gpio_set[6];
+	u32 i;
+	u32 pin_num = 2 + smc_host->bus_width;
+
+	p += sprintf(p, "current io driving:\n");
+	gpio_get_all_pin_status(smc_host->pio_hdle, gpio_set, 6, 1);
+	for (i=0; i<pin_num; i++) {
+		p += sprintf(p, "%s : %d\n", gpio_set[i].gpio_name, gpio_set[i].drv_level);
+	}
+
+	return p - page;
+}
+
+static int sunximmc_proc_set_iodriving(struct file *file, const char __user *buffer,
+					unsigned long count, void *data)
+{
+	unsigned long driving = simple_strtoul(buffer, NULL, 16);
+	u32 clk_drv, cmd_drv, d0_drv, d1_drv, d2_drv, d3_drv;
+	struct sunxi_mmc_host *smc_host = (struct sunxi_mmc_host *)data;
+	clk_drv = 0xf & (driving >> 0);
+	cmd_drv = 0xf & (driving >> 4);
+	d0_drv = 0xf & (driving >> 8);
+	d1_drv = 0xf & (driving >> 12);
+	d2_drv = 0xf & (driving >> 16);
+	d3_drv = 0xf & (driving >> 20);
+
+	printk("set io driving, clk %x, cmd %x, d0 %x, d1 %x, d2, %x, d3 %x\n",
+		clk_drv, cmd_drv, d0_drv, d1_drv, d2_drv, d3_drv);
+	if (clk_drv > 0 && clk_drv < 4)
+		gpio_set_one_pin_driver_level(smc_host->pio_hdle, clk_drv, "sdc_clk");
+	if (cmd_drv > 0 && cmd_drv < 4)
+		gpio_set_one_pin_driver_level(smc_host->pio_hdle, cmd_drv, "sdc_cmd");
+	if (d0_drv > 0 && d0_drv < 4)
+		gpio_set_one_pin_driver_level(smc_host->pio_hdle, d0_drv, "sdc_d0");
+	if (smc_host->bus_width == 4) {
+		if (d1_drv > 0 && d1_drv < 4)
+			gpio_set_one_pin_driver_level(smc_host->pio_hdle, d1_drv, "sdc_d1");
+		if (d2_drv > 0 && d2_drv < 4)
+			gpio_set_one_pin_driver_level(smc_host->pio_hdle, d2_drv, "sdc_d2");
+		if (d3_drv > 0 && d3_drv < 4)
+			gpio_set_one_pin_driver_level(smc_host->pio_hdle, d3_drv, "sdc_d3");
+	}
+	return count;
+}
+
 
 void sunximmc_procfs_attach(struct sunxi_mmc_host *smc_host)
 {
@@ -228,6 +279,15 @@ void sunximmc_procfs_attach(struct sunxi_mmc_host *smc_host)
 	smc_host->proc_insert->read_proc = sunximmc_proc_read_insert_status;
 	smc_host->proc_insert->write_proc = sunximmc_proc_card_insert_ctrl;
 
+	smc_host->proc_iodriving = create_proc_entry("io-drvlevel", 0644, smc_host->proc_root);
+	if (IS_ERR(smc_host->proc_iodriving))
+	{
+		SMC_MSG("%s: failed to create procfs \"io-drvlevel\".\n", dev_name(dev));
+	}
+	smc_host->proc_iodriving->data = smc_host;
+	smc_host->proc_iodriving->read_proc = sunximmc_proc_get_iodriving;
+	smc_host->proc_iodriving->write_proc = sunximmc_proc_set_iodriving;
+
 }
 
 void sunximmc_procfs_remove(struct sunxi_mmc_host *smc_host)
@@ -236,6 +296,7 @@ void sunximmc_procfs_remove(struct sunxi_mmc_host *smc_host)
 	char sunximmc_proc_rootname[32] = {0};
 
 	snprintf(sunximmc_proc_rootname, sizeof(sunximmc_proc_rootname), "driver/%s", dev_name(dev));
+	remove_proc_entry("io-drvlevel", smc_host->proc_root);
 	remove_proc_entry("insert", smc_host->proc_root);
 	remove_proc_entry("debug-level", smc_host->proc_root);
 	remove_proc_entry("register", smc_host->proc_root);

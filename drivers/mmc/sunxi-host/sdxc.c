@@ -248,9 +248,9 @@ static __inline u32 sdxc_enable_imask(struct sunxi_mmc_host* smc_host, u32 imask
 static __inline u32 sdxc_disable_imask(struct sunxi_mmc_host* smc_host, u32 imask)
 {
 	u32 newmask = readl(SDXC_REG_IMASK) & (~imask);
-	if (!(imask & SDXC_SDIOInt))
-		writew(newmask, SDXC_REG_IMASK);
-	else
+	//if (!(imask & SDXC_SDIOInt))
+	//	writew(newmask, SDXC_REG_IMASK);
+	//else
 		writel(newmask, SDXC_REG_IMASK);
 	return newmask;
 }
@@ -999,8 +999,9 @@ void sdxc_check_status(struct sunxi_mmc_host* smc_host)
 	msk_int = readl(SDXC_REG_MISTA);
 
 	smc_host->int_sum |= raw_int;
-//	SMC_INFO("smc %d int, ri %08x(%08x) mi %08x ie %08x idi %08x\n",
-//		smc_host->pdev->id, raw_int, smc_host->int_sum, msk_int, idma_inte, idma_int);
+	SMC_INFO("smc %d int, ri %08x(%08x) mi %08x ie %08x idi %08x\n",
+		smc_host->pdev->id, raw_int, smc_host->int_sum,
+		msk_int, idma_inte, idma_int);
 
 	if (msk_int & SDXC_SDIOInt)
 	{
@@ -1008,11 +1009,12 @@ void sdxc_check_status(struct sunxi_mmc_host* smc_host)
 		writel(SDXC_SDIOInt, SDXC_REG_RINTR);
 	}
 
-	if (smc_host->cd_gpio == CARD_DETECT_BY_DATA3)
+
+	if (smc_host->cd_mode == CARD_DETECT_BY_DATA3)
 	{
 		if (msk_int&SDXC_CardInsert)
 		{
-			SMC_DBG("card detect insert\n");
+			SMC_INFO("card detect insert\n");
 			smc_host->present = 1;
 			smc_host->change = 1;
 			writel(SDXC_CardInsert, SDXC_REG_RINTR);
@@ -1020,7 +1022,7 @@ void sdxc_check_status(struct sunxi_mmc_host* smc_host)
 		}
 		if (msk_int&SDXC_CardRemove)
 		{
-			SMC_DBG("card detect remove\n");
+			SMC_INFO("card detect remove\n");
 			smc_host->present = 0;
 			smc_host->change = 1;
 			writel(SDXC_CardRemove, SDXC_REG_RINTR);
@@ -1028,9 +1030,9 @@ void sdxc_check_status(struct sunxi_mmc_host* smc_host)
 		}
 	}
 
-	if (smc_host->wait == SDC_WAIT_NONE && !smc_host->sdio_int)
+	if (smc_host->wait == SDC_WAIT_NONE && !smc_host->sdio_int && !smc_host->change)
 	{
-		SMC_ERR("smc %x, nothing to complete, raw_int = %08x, mask_int = %08x\n",
+		SMC_MSG("smc %x, nop irq, ri %08x, mi %08x\n",
 			smc_host->pdev->id, raw_int, msk_int);
 		sdxc_clear_imask(smc_host);
 		goto irq_normal_out;
@@ -1198,11 +1200,10 @@ _out_:
 
 	writel(0xffff, SDXC_REG_RINTR);
 	sdxc_clear_imask(smc_host);
+
 	//re-enable card detect debounce
-	if (smc_host->cd_gpio == CARD_DETECT_BY_DATA3)
-	{
+	if (smc_host->cd_mode == CARD_DETECT_BY_DATA3)
 		sdxc_cd_debounce_on(smc_host);
-	}
 
 	SMC_DBG("smc %d done, resp %08x %08x %08x %08x\n", smc_host->pdev->id,
 		req->cmd->resp[0], req->cmd->resp[1], req->cmd->resp[2], req->cmd->resp[3]);
@@ -1276,7 +1277,9 @@ s32 sdxc_init(struct sunxi_mmc_host* smc_host)
 		return -1;
 	}
 
-	writel(SDXC_PosedgeLatchData, SDXC_REG_GCTRL);
+	if (smc_host->cd_mode == CARD_DETECT_BY_DATA3) {
+		writel(SDXC_DebounceEnb, SDXC_REG_GCTRL);
+	}
 
 	/* config DMA/Interrupt Trigger threshold */
 	writel(0x70008, SDXC_REG_FTRGL);
