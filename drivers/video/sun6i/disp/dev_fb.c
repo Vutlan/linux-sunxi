@@ -310,12 +310,12 @@ static int __init Fb_map_video_memory(struct fb_info *info)
 	}
 
 #else        
-    info->screen_base = (char __iomem *)disp_malloc(info->fix.smem_len, &info->fix.smem_start);
+    info->screen_base = (char __iomem *)disp_malloc(info->fix.smem_len, (__u32 *)(&info->fix.smem_start));
     if(info->screen_base)
     {
-        __inf("Fb_map_video_memory(reserve), pa=0x%x size:0x%x\n",info->fix.smem_start, info->fix.smem_len);
+        __inf("Fb_map_video_memory(reserve), pa=0x%x size:0x%x\n",(unsigned int)info->fix.smem_start, (unsigned int)info->fix.smem_len);
         memset(info->screen_base,0,info->fix.smem_len);
-
+        
         return 0;
     }else
     {
@@ -1340,7 +1340,7 @@ __s32 Fb_Init(__u32 from)
     if(from == 0)//call from lcd driver
     {
 #ifdef FB_RESERVED_MEM
-        __inf("fbmem: fb_start=%lu, fb_size=%lu\n", FB_MEM_BASE, FB_MEM_SIZE);
+        __inf("fbmem: fb_start=0x%x, fb_size=0x%x\n", (unsigned int)FB_MEM_BASE, (unsigned int)FB_MEM_SIZE);
         disp_create_heap((unsigned long)(ioremap_nocache(FB_MEM_BASE, FB_MEM_SIZE)),FB_MEM_BASE, FB_MEM_SIZE);
 #endif
 

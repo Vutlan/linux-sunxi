@@ -470,8 +470,8 @@ __s32 IEP_Drc_Init(__u32 sel)
 	char primary_key[20];
 	int  ret;
 
-	memset(&giep[sel], 0, sizeof(giep));
-	memset(&gpwrsv[sel], 0, sizeof(gpwrsv));
+	memset(&giep[sel], 0, sizeof(__drc_t));
+	memset(&gpwrsv[sel], 0, sizeof(__drc_pwrsv_t));
 
 	drc_clk_init(sel);
 	pttab[sel] = kmalloc(IEP_LGC_TAB_SIZE, GFP_KERNEL | __GFP_ZERO);

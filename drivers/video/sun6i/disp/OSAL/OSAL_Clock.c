@@ -16,7 +16,7 @@
 #include "OSAL.h"
 #include "OSAL_Clock.h"
 
-#ifndef __FPGA_DEBUG__
+#ifndef __OSAL_CLOCK_MASK__
 static char* _sysClkName[AW_CCU_CLK_CNT] =
 {
     "none"            ,
@@ -193,7 +193,6 @@ static char* _sysClkName[AW_CCU_CLK_CNT] =
     "dram_debe0"       ,
     "dram_debe1"       ,
     "dram_mp"          ,
-    "none"             ,
 };
 
 static char* _modClkName[AW_CCU_CLK_CNT] =
@@ -372,7 +371,6 @@ static char* _modClkName[AW_CCU_CLK_CNT] =
     "dram_debe0"       ,
     "dram_debe1"       ,
     "dram_mp"          ,
-    "none"             ,
 };
 __s32 OSAL_CCMU_SetSrcFreq( __u32 nSclkNo, __u32 nFreq )
 {
@@ -431,7 +429,6 @@ __hdle OSAL_CCMU_OpenMclk( __s32 nMclkNo )
 
     __inf("OSAL_CCMU_OpenMclk,  _modClkName[%d]=%s\n", nMclkNo,_modClkName[nMclkNo]);
     hModClk = clk_get(NULL, _modClkName[nMclkNo]);
-    __inf("hModClk=0x%08x\n", hModClk);
 
     return (__hdle)hModClk;
 }
@@ -540,7 +537,7 @@ __s32 OSAL_CCMU_MclkOnOff( __hdle hMclk, __s32 bOnOff )
     struct clk* hModClk = (struct clk*)hMclk;
     __s32 ret = 0;
 
-    __inf("OSAL_CCMU_MclkOnOff<%s,%d>\n",hModClk->aw_clk->name,bOnOff);
+    //__inf("OSAL_CCMU_MclkOnOff<%s,%d>\n",hModClk->aw_clk->name,bOnOff);
 
     if(bOnOff)
     {

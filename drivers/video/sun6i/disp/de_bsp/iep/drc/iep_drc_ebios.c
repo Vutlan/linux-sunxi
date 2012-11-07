@@ -1,6 +1,6 @@
 #include "iep_drc_ebios.h"
 
-static __iep_drc_dev_t *drc_dev[2];
+static volatile __iep_drc_dev_t *drc_dev[2];
 
 #define ____SEPARATOR_GLOABL____
 
@@ -150,7 +150,6 @@ __s32 DRC_EBIOS_Win_Enable(__u32 sel, __u32 en)
 
 __u32 DRC_EBIOS_Set_Win_Para(__u32 sel, __u32 top, __u32 bot, __u32 left, __u32 right)
 {
-
 	drc_dev[sel]->drc_wp0.bits.win_left = left;
 	drc_dev[sel]->drc_wp0.bits.win_top = top;
 	drc_dev[sel]->drc_wp1.bits.win_right = right;

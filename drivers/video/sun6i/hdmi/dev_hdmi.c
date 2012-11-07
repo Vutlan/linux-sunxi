@@ -149,6 +149,8 @@ int __init hdmi_module_init(void)
 	{	
 		ret = platform_driver_register(&hdmi_driver);
 	}
+
+    __inf("hdmi_module_init finish\n");
 	
 	return ret;
 }

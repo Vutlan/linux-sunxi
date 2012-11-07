@@ -8,11 +8,10 @@ __s32 iep_init(__u32 sel)
     __iep_cmu_t *cmu;
     __iep_drc_t *drc;
     __iep_deu_t *deu;
-    
+
     IEP_Deu_Init(sel);
     IEP_Drc_Init(sel);
     //IEP_CMU_Init(sel);
-
 
     cmu = &gdisp.screen[sel].cmu;
     drc = &gdisp.screen[sel].drc;
@@ -50,7 +49,7 @@ __s32 iep_init(__u32 sel)
 
     memset(deu, 0, sizeof(__iep_deu_t));
     deu->luma_sharpe_level = 2;
-    
+
     return DIS_SUCCESS;
 }
       
@@ -71,7 +70,7 @@ __s32 BSP_disp_drc_enable(__u32 sel, __u32 en)
 
         drc = &gdisp.screen[sel].drc;
 
-        if((1 == en) && (drc->enable == 0))
+        if((1 == en) && (0 == drc->enable))
         {
             IEP_Drc_Set_Imgsize(sel, BSP_disp_get_screen_width(sel), BSP_disp_get_screen_height(sel));
             IEP_Drc_Set_Winodw(sel, drc->rect);
@@ -88,7 +87,7 @@ __s32 BSP_disp_drc_enable(__u32 sel, __u32 en)
             IEP_Drc_Enable(sel,TRUE);
             BSP_disp_cfg_finish(sel);
             gdisp.screen[sel].drc.enable = 1;
-        }else//0, 2
+        }else if((0 == en) && (1 == drc->enable))//0, 2
         {
             BSP_disp_cfg_start(sel);
             IEP_Drc_Enable(sel,en);
@@ -392,7 +391,7 @@ __s32 BSP_disp_deu_set_black_exten_level(__u32 sel, __u32 hid, __u32 level)
         gdisp.scaler[layer_man->scaler_index].deu.black_exten_level = level;
         if(gdisp.scaler[layer_man->scaler_index].deu.enable)
         {
-        IEP_Deu_Set_Black_Level_Extension(layer_man->scaler_index,level);
+            IEP_Deu_Set_Black_Level_Extension(layer_man->scaler_index,level);
         }
         return DIS_SUCCESS;
     }
@@ -430,6 +429,8 @@ __s32 BSP_disp_deu_set_window(__u32 sel, __u32 hid, __disp_rect_t *rect)
     if((layer_man->status & LAYER_USED) && (layer_man->para.mode == DISP_LAYER_WORK_MODE_SCALER))
     {
         IEP_Deu_Set_Winodw(layer_man->scaler_index,rect);
+
+        return DIS_SUCCESS;
     }
     return DIS_NOT_SUPPORT;
 }
@@ -531,14 +532,20 @@ __s32 disp_deu_clear(__u32 sel, __u32 hid)
     
 	return DIS_SUCCESS;
 }
-/* 
-__s32 disp_deu_output_select(__u32 sel, __u32 ch)
+
+__s32 disp_deu_output_select(__u32 sel, __u32 hid, __u32 ch)
 {
-    IEP_Deu_Output_Select(sel, ch);
+    __u32 scaler_index;
+
+    hid= HANDTOID(hid);
+    HLID_ASSERT(hid, gdisp.screen[sel].max_layers);
+
+    scaler_index = gdisp.screen[sel].layer_manage[hid].scaler_index;
+    IEP_Deu_Output_Select(scaler_index, ch);
     
     return DIS_SUCCESS;
 }
-*/
+
 #define ____SEPARATOR_CMU____
 
 __s32 BSP_disp_cmu_layer_enable(__u32 sel,__u32 hid, __bool en)

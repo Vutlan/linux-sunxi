@@ -6,6 +6,7 @@
 
 static struct semaphore *run_sem = NULL;
 static struct task_struct * HDMI_task;
+static __bool hdmi_used;
 
 void hdmi_delay_ms(__u32 t)
 {
@@ -256,55 +257,73 @@ __s32 Hdmi_init(void)
 {	    
     __audio_hdmi_func audio_func;
     __disp_hdmi_func disp_func;
-    
-	run_sem = kmalloc(sizeof(struct semaphore),GFP_KERNEL | __GFP_ZERO);
-	sema_init((struct semaphore*)run_sem,0);
-	
-	HDMI_task = kthread_create(Hdmi_run_thread, (void*)0, "hdmi proc");
-	if(IS_ERR(HDMI_task))
-	{
-	    __s32 err = 0;
-	    
-		__wrn("Unable to start kernel thread %s.\n","hdmi proc");
-		err = PTR_ERR(HDMI_task);
-		HDMI_task = NULL;
-		return err;
-	}
-	wake_up_process(HDMI_task);
+    __s32 ret;
+    __u32 value;
 
-    Hdmi_set_reg_base((__u32)ghdmi.base_hdmi);
-	Hdmi_hal_init();
+    hdmi_used = 0;
+    ret = script_parser_fetch("hdmi_para", "hdmi_used", &value, 1);
+    if(ret < 0)
+    {
+        __wrn("fetch script data hdmi_para.hdmi_used fail\n");
+    }
+    else
+    {
+        hdmi_used = value;
+        if(hdmi_used)
+    	{
+        	run_sem = kmalloc(sizeof(struct semaphore),GFP_KERNEL | __GFP_ZERO);
+        	sema_init((struct semaphore*)run_sem,0);
+        	
+        	HDMI_task = kthread_create(Hdmi_run_thread, (void*)0, "hdmi proc");
+        	if(IS_ERR(HDMI_task))
+        	{
+        	    __s32 err = 0;
+        	    
+        		__wrn("Unable to start kernel thread %s.\n","hdmi proc");
+        		err = PTR_ERR(HDMI_task);
+        		HDMI_task = NULL;
+        		return err;
+        	}
+        	wake_up_process(HDMI_task);
 
-    audio_func.hdmi_audio_enable = Hdmi_Audio_Enable;
-    audio_func.hdmi_set_audio_para = Hdmi_Set_Audio_Para;
-	audio_set_hdmi_func(&audio_func);
+            Hdmi_set_reg_base((__u32)ghdmi.base_hdmi);
+        	Hdmi_hal_init();
 
-	disp_func.Hdmi_open = Hdmi_open;
-	disp_func.Hdmi_close = Hdmi_close;
-	disp_func.hdmi_set_mode = Hdmi_set_display_mode;
-	disp_func.hdmi_mode_support = Hdmi_mode_support;
-	disp_func.hdmi_get_HPD_status = Hdmi_get_HPD_status;
-	disp_func.hdmi_set_pll = Hdmi_set_pll;
-	disp_set_hdmi_func(&disp_func);
+            audio_func.hdmi_audio_enable = Hdmi_Audio_Enable;
+            audio_func.hdmi_set_audio_para = Hdmi_Set_Audio_Para;
+        	audio_set_hdmi_func(&audio_func);
 
-	return 0;
+        	disp_func.Hdmi_open = Hdmi_open;
+        	disp_func.Hdmi_close = Hdmi_close;
+        	disp_func.hdmi_set_mode = Hdmi_set_display_mode;
+        	disp_func.hdmi_mode_support = Hdmi_mode_support;
+        	disp_func.hdmi_get_HPD_status = Hdmi_get_HPD_status;
+        	disp_func.hdmi_set_pll = Hdmi_set_pll;
+        	disp_set_hdmi_func(&disp_func);
+        }
+    }
+
+    return 0;
 }
 
 __s32 Hdmi_exit(void)
 {
-	Hdmi_hal_exit();
+    if(hdmi_used)
+	{
+        Hdmi_hal_exit();
 
-	if(run_sem)
-	{
-		kfree(run_sem);
-		run_sem = 0;
-	}
-	
-	if(HDMI_task)
-	{
-		kthread_stop(HDMI_task);
-		HDMI_task = 0;
-	}
+    	if(run_sem)
+        {
+            kfree(run_sem);
+        }    		
+
+        run_sem = 0;
+    	if(HDMI_task)
+    	{
+    		kthread_stop(HDMI_task);
+    		HDMI_task = 0;
+    	}
+    }
 	return 0;
 }
 

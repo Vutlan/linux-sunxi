@@ -17,23 +17,30 @@ __u32 cmu_reg_base[2] = {0,0};//CMU_REGS_BASE
 
 __u32 hsv_range_par[21] = 
 {
-	0x02000e00,0x07550355,0x0caa08aa,0x0a000600,0x0f550b55,0x04aa00aa,0x02380000,//Hmax,Hmin
+	0x01550eaa,0x06aa0400,0x0c000955,0x095506aa,0x0eaa0c00,0x04000155,0x02380000,//Hmax,Hmin
 	0x01000000,0x01000000,0x01000000,0x01000000,0x01000000,0x01000000,0x01000000,//Vmax,Vmin
 	0x0fff0001,0x0fff0000,0x0fff0000,0x0fff0000,0x0fff0000,0x0fff0000,0x0ae101a0 //Smax,Smin
 };
 
 __u32 hsv_adjust_vivid_par[16] = 
 {
-	0x00000000,0x07720003,//Hgain_G,Sgain_G,Vgain_G
-	0xff000000,0x01000000,0xff000000,0x01000000,0x01000000,0xff000000,0x01000000,//Hgain_L
-	0x001a0005,0x00000000,0x00000010,0x00000000,0x00000000,0x001a0000,0x00000000 //Sgain_L,Vgain_L
+	0x00000000,0x068a0080,//Hgain_G,Sgain_G,Vgain_G
+	0xff000000,0xff000000,0xff000000,0xff000000,0xff000000,0xff000000,0xff000000,//Hgain_L
+	0x00000000,0x00000000,0x00000010,0x00000000,0x00000000,0x00000000,0x00000000 //Sgain_L,Vgain_L
 };
 
 __u32 hsv_adjust_flesh_par[16] = 
 {
-	0x00000000,0x03b90009,//Hgain_G,Sgain_G,Vgain_G
-	0x01000000,0x01000000,0x01000000,0x01000000,0x01000000,0x01000000,0xff000000,//Hgain_L
-	0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x011b0004 //Sgain_L,Vgain_L
+	0x00000000,0x00000080,//Hgain_G,Sgain_G,Vgain_G
+	0xff000000,0xff000000,0xff000000,0xff000000,0xff000000,0xff000000,0xff000000,//Hgain_L
+	0x00e80004,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00e80004 //Sgain_L,Vgain_L
+};
+
+__u32 hsv_adjust_scenery_par[16] =
+{
+	0x00000000,0x068a0080,//Hgain_G,Sgain_G,Vgain_G
+	0xff000000,0xff000000,0xff000000,0xff000f8f,0xff000000,0xff0000cc,0xff000000,//Hgain_L
+	0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x0102000a,0x00000000 //Sgain_L,Vgain_L
 };
 
 __u32 IEP_CMU_Set_Reg_Base(__u32 sel, __u32 address)
@@ -205,10 +212,23 @@ __s32 IEP_CMU_Set_Par(__u8 sel, __u32 hue, __u32 saturaion, __u32 brightness, __
 			break;
 
 		case 0x9://flesh mode
+			CMU_WUINT32(sel,IMGEHC_CMU_HRANGE_REG0_OFF, 0x02380fa4);
+			CMU_WUINT32(sel,IMGEHC_CMU_SRANGE_REG0_OFF, 0x0ae001a0);
 			CMU_WUINT32(sel,IMGEHC_CMU_HGGAIN_REG_OFF, hsv_adjust_flesh_par[0]&0xFFF);
 			CMU_WUINT32(sel,IMGEHC_CMU_GLOBAL_SVGAIN_REG_OFF, hsv_adjust_flesh_par[1]&0x1FFF01FF);
 			for(i=2, j=0; i<9; i++,j+=4)CMU_WUINT32(sel,IMGEHC_CMU_VRANGE_HLGAIN_REG0_OFF + j, hsv_adjust_flesh_par[i]&0xFFFF0FFF);
 			for(i=9, j=0; i<16; i++,j+=4)CMU_WUINT32(sel,IMGEHC_CMU_LOCAL_SVGAIN_REG0_OFF + j, hsv_adjust_flesh_par[i]&0x1FFF01FF);
+			break;
+
+		case 0xa://scenery mode
+			CMU_WUINT32(sel,IMGEHC_CMU_HRANGE_REG3_OFF, 0x080006aa);
+			CMU_WUINT32(sel,IMGEHC_CMU_HRANGE_REG5_OFF, 0x040002aa);
+			CMU_WUINT32(sel,IMGEHC_CMU_SRANGE_REG3_OFF, 0x0FFF0180);
+			CMU_WUINT32(sel,IMGEHC_CMU_SRANGE_REG5_OFF, 0x0FFF0180);
+			CMU_WUINT32(sel,IMGEHC_CMU_HGGAIN_REG_OFF, hsv_adjust_scenery_par[0]&0xFFF);
+			CMU_WUINT32(sel,IMGEHC_CMU_GLOBAL_SVGAIN_REG_OFF, hsv_adjust_scenery_par[1]&0x1FFF01FF);
+			for(i=2, j=0; i<9; i++,j+=4)CMU_WUINT32(sel,IMGEHC_CMU_VRANGE_HLGAIN_REG0_OFF + j, hsv_adjust_scenery_par[i]&0xFFFF0FFF);
+			for(i=9, j=0; i<16; i++,j+=4)CMU_WUINT32(sel,IMGEHC_CMU_LOCAL_SVGAIN_REG0_OFF + j, hsv_adjust_scenery_par[i]&0x1FFF01FF);
 			break;
 
 		default:

@@ -278,6 +278,7 @@ typedef enum
     DISP_ENHANCE_MODE_FLESH,// 6
     DISP_ENHANCE_MODE_STANDARD,// 7
     DISP_ENHANCE_MODE_VIVID,// 8
+    DISP_ENHANCE_MODE_SCENERY,//9
 }__disp_enhance_mode_t;
 
 

@@ -346,6 +346,7 @@ __s32 IEP_Deu_Init(__u32 sel)
 	memcpy(g_strtab_addr, deu_str_tab, 512);
 	deu_clk_init(sel);
 
+    sprintf(primary_key, "lcd%d_para", sel);
 	ret = OSAL_Script_FetchParser_Data(primary_key, "deu_mode", &value, 1);
 	if(ret < 0)
 	{

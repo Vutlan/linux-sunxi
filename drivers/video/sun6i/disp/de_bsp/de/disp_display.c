@@ -51,27 +51,27 @@ __s32 BSP_disp_init(__disp_bsp_init_para * para)
     tcon_set_reg_base(0,para->base_lcdc0);
     tcon_set_reg_base(1,para->base_lcdc1);
     IEP_Deu_Set_Reg_base(0, para->base_deu0);
-    //IEP_Deu_Set_Reg_base(1, para->base_deu1);
+    IEP_Deu_Set_Reg_base(1, para->base_deu1);
     IEP_Drc_Set_Reg_Base(0, para->base_drc0);
-    //IEP_Drc_Set_Reg_base(1, para->base_drc1);
-    IEP_CMU_Set_Reg_Base(0,  para->base_cmu0);
-    //IEP_CMU_Set_Reg_base(1, para->base_cmu1);
+    IEP_Drc_Set_Reg_Base(1, para->base_drc1);
+    IEP_CMU_Set_Reg_Base(0, para->base_cmu0);
+    IEP_CMU_Set_Reg_Base(1, para->base_cmu1);
     dsi_set_reg_base(0, para->base_dsi0);
-    //BSP_disp_close_lcd_backlight(0);
-    //BSP_disp_close_lcd_backlight(1);
+    BSP_disp_close_lcd_backlight(0);
+    BSP_disp_close_lcd_backlight(1);
 
 	disp_pll_init();
 
     Scaler_Init(0);
-    //Scaler_Init(1);
+    Scaler_Init(1);
     Image_init(0);
-    //Image_init(1);
+    Image_init(1);
     Disp_lcdc_init(0);
-    //Disp_lcdc_init(1);
-    //Display_Hdmi_Init();
+    Disp_lcdc_init(1);
+    Display_Hdmi_Init();
 
-    iep_init(0);
-    //iep_init(1);
+    iep_init(0);   
+    iep_init(1);
 
     disp_video_init();
     

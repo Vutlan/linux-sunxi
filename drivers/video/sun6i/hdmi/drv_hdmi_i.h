@@ -26,6 +26,8 @@
 #include <linux/clk.h>
 #include <linux/cdev.h>
 #include <linux/types.h>
+#include <linux/module.h>
+#include <mach/sys_config.h>
 
 #include <linux/drv_display.h>
 #include <linux/drv_hdmi.h>

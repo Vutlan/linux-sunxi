@@ -93,6 +93,8 @@ int __init lcd_module_init(void)
 	device_create(lcd_class, NULL, devid, NULL, "lcd");
 
 	lcd_init();
+
+    __inf("lcd_module_init finish\n");
 	
 	return ret;
 }

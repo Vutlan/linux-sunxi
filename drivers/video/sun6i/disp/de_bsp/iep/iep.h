@@ -42,6 +42,7 @@ extern __s32 IEP_Drc_Exit(__u32 sel);
 extern __s32 IEP_Drc_Enable(__u32 sel, __u32 en);
 extern __s32 IEP_Drc_Operation_In_Vblanking(__u32 sel);
 extern __s32 IEP_Drc_Set_Reg_Base(__u32 sel, __u32 base);
+extern __s32 IEP_Drc_Get_Reg_Base(__u32 sel);
 extern __s32 IEP_Drc_Set_Winodw(__u32 sel, __disp_rect_t window);//full screen for default
 extern __s32 IEP_Drc_Set_Mode(__u32 sel, __iep_drc_mode_t mode);
 extern __s32 IEP_Drc_Early_Suspend(__u32 sel);//close clk

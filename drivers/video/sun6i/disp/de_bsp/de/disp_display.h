@@ -135,6 +135,7 @@ typedef struct
 	__disp_tv_mode_t        tv_mode;
 	__disp_tv_mode_t        hdmi_mode;
 	__disp_tv_dac_source    dac_source[4];
+    __bool                  hdmi_used;
 
     __s32                   (*LCD_CPUIF_XY_Swap)(__s32 mode);
     void                    (*LCD_CPUIF_ISR)(void);

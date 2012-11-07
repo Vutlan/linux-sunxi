@@ -156,9 +156,9 @@ __u32 tcon_irq_query(__u32 sel,__lcd_irq_id_t id)
 	__u32 en,fl;
 	en = lcd_dev[sel]->tcon_gint0.bits.tcon_irq_en;
 	fl = lcd_dev[sel]->tcon_gint0.bits.tcon_irq_flag;
-	if(en & fl & (1<<id))
+	if(en & fl & (((__u32)1)<<id))
 	{
-		lcd_dev[sel]->tcon_gint0.bits.tcon_irq_flag &= ~(1<<id);
+		lcd_dev[sel]->tcon_gint0.bits.tcon_irq_flag &= ~(((__u32)1)<<id);
 		return 1;
 	}
 	else
@@ -545,7 +545,7 @@ __s32 tcon0_set_dclk_div(__u32 sel, __u8 div)
 {
 	lcd_dev[sel]->tcon0_dclk.bits.tcon0_dclk_div = div;
 #ifdef __FPGA_DEBUG__
-    lcd_dev[sel]->tcon0_dclk.bits.tcon0_dclk_div = 9;
+    lcd_dev[sel]->tcon0_dclk.bits.tcon0_dclk_div = 0xf;
 #endif
 	return 0;
 }

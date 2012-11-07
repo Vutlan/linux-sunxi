@@ -875,7 +875,7 @@ __s32 BSP_disp_layer_set_para(__u32 sel, __u32 hid,__disp_layer_info_t *player)
             {
                 if(BSP_disp_cmu_layer_get_enable(sel, IDTOHAND(hid)))
                 {
-                    BSP_disp_cmu_layer_enable(sel, hid,FALSE);
+                    BSP_disp_cmu_layer_enable(sel, IDTOHAND(hid), FALSE);
                     disp_cmu_layer_clear(sel);
                 }
                 if(BSP_disp_deu_get_enable(sel,IDTOHAND(hid)))
@@ -972,8 +972,9 @@ __s32 BSP_disp_layer_set_para(__u32 sel, __u32 hid,__disp_layer_info_t *player)
             scaler->b_trd_out = player->b_trd_out;
             scaler->out_trd_mode = player->out_trd_mode;
             DE_SCAL_Output_Select(layer_man->scaler_index, sel);
+            disp_deu_output_select(sel, IDTOHAND(hid), sel);
             Scaler_Set_Para(layer_man->scaler_index, scaler);
-            if(BSP_disp_cmu_layer_get_enable(sel, hid))
+            if(BSP_disp_cmu_layer_get_enable(sel, IDTOHAND(hid)))
             {
                 IEP_CMU_Set_Imgsize(sel, player->scn_win.width, player->scn_win.height);
             }

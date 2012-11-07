@@ -1374,8 +1374,11 @@ __s32 Disp_lcdc_init(__u32 sel)
 #endif
     }
 #ifdef __FPGA_DEBUG__
-    gdisp.screen[sel].lcd_cfg.lcd_used = 1;
-    gdisp.screen[sel].lcd_cfg.backlight_bright = 197;
+    if(sel == 0)
+    {
+        gdisp.screen[sel].lcd_cfg.lcd_used = 1;
+        gdisp.screen[sel].lcd_cfg.backlight_bright = 197;
+    }
 #endif
     if(gdisp.screen[sel].lcd_cfg.lcd_used)
     {
@@ -1799,7 +1802,6 @@ __s32 BSP_disp_lcd_open_before(__u32 sel)
     image_clk_on(sel);
     Image_open(sel);//set image normal channel start bit , because every de_clk_off( )will reset this bit
     Disp_lcdc_pin_cfg(sel, DISP_OUTPUT_TYPE_LCD, 1);
-#if 1
     if(gpanel_info[sel].tcon_index == 0)
     {
         tcon0_cfg(sel,(__panel_para_t*)&gpanel_info[sel]);
@@ -1812,7 +1814,6 @@ __s32 BSP_disp_lcd_open_before(__u32 sel)
     {
         dsi_cfg(sel, (__panel_para_t*)&gpanel_info[sel]);
     }
-#endif
     //BSP_disp_set_output_csc(sel, DISP_OUTPUT_TYPE_LCD);
     DE_BE_set_display_size(sel, gpanel_info[sel].lcd_x, gpanel_info[sel].lcd_y);
     DE_BE_Output_Select(sel, sel);

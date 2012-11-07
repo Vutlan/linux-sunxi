@@ -357,6 +357,7 @@ int disp_mmap(struct file *file, struct vm_area_struct * vma)
 	unsigned long mypfn = physics >> PAGE_SHIFT;
 	unsigned long vmsize = vma->vm_end-vma->vm_start;
 
+    vma->vm_page_prot = pgprot_writecombine(vma->vm_page_prot);
 	if(remap_pfn_range(vma,vma->vm_start,mypfn,vmsize,vma->vm_page_prot))
 		return -EAGAIN;
 
@@ -1909,6 +1910,9 @@ int __init disp_module_init(void)
 #endif
 
     disp_attr_node_init();
+
+    __inf("disp_module_init finish\n");
+
 
 	return ret;
 }
