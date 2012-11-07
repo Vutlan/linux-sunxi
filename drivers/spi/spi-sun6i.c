@@ -42,8 +42,6 @@
     #define SPI_DBG(...)
 #endif
 
-#define SUN6I_SPI_FPGA
-
 #define SUN6I_SPI_OK   0
 #define SUN6I_SPI_FAIL -1
 
@@ -65,11 +63,13 @@ enum spi_dma_dir {
 struct sun6i_spi {
     struct platform_device *pdev;
 	struct spi_master *master;/* kzalloc */
-
 	void __iomem *base_addr; /* register */
+
+#ifdef AW_ASIC_PLATFORM
 	struct clk *hclk;  /* ahb spi gating bit */
 	struct clk *mclk;  /* ahb spi gating bit */
 	unsigned long gpio_hdle;
+#endif
 
 	enum spi_dma_dir dma_dir_wdev;
 	enum spi_dma_dir dma_dir_rdev;
@@ -391,7 +391,7 @@ static void spi_set_dual_read(void *base_addr)
 	writel(reg_val, base_addr + SPI_BCC_REG);
 }
 
-#ifndef SUN6I_SPI_FPGA
+#ifdef AW_ASIC_PLATFORM
 static int sun6i_spi_get_cfg_csbitmap(int bus_num);
 #endif
 
@@ -667,7 +667,7 @@ static int sun6i_spi_xfer_setup(struct spi_device *spi, struct spi_transfer *t)
    	if(config->max_speed_hz > SPI_MAX_FREQUENCY) {
 	    return -EINVAL;
 	}
-#ifndef SUN6I_SPI_FPGA
+#ifdef AW_ASIC_PLATFORM
 	spi_set_clk(config->max_speed_hz, clk_get_rate(sspi->mclk), base_addr);
 #else
 	spi_set_clk(config->max_speed_hz, 24000000, base_addr);
@@ -1172,33 +1172,33 @@ static void sun6i_spi_cleanup(struct spi_device *spi)
 }
 
 
-#ifndef SUN6I_SPI_FPGA
+#ifdef AW_ASIC_PLATFORM
 static int sun6i_spi_set_gpio(struct sun6i_spi *sspi, bool on)
 {
     if(on) {
         if(sspi->master->bus_num == 0) {
-            sspi->gpio_hdle = gpio_request_ex("spi0_para", NULL);
+            sspi->gpio_hdle = sw_gpio_request_ex("spi0_para", NULL);
             if(!sspi->gpio_hdle) {
                 SPI_ERR("spi0 request gpio fail!\n");
                 return -1;
             }
         }
         else if(sspi->master->bus_num == 1) {
-            sspi->gpio_hdle = gpio_request_ex("spi1_para", NULL);
+            sspi->gpio_hdle = sw_gpio_request_ex("spi1_para", NULL);
             if(!sspi->gpio_hdle) {
                 SPI_ERR("spi1 request gpio fail!\n");
                 return -1;
             }
         }
         else if(sspi->master->bus_num == 2) {
-            sspi->gpio_hdle = gpio_request_ex("spi2_para", NULL);
+            sspi->gpio_hdle = sw_gpio_request_ex("spi2_para", NULL);
             if(!sspi->gpio_hdle) {
                 SPI_ERR("spi2 request gpio fail!\n");
                 return -1;
             }
         }
 		else if(sspi->master->bus_num == 3) {
-            sspi->gpio_hdle = gpio_request_ex("spi3_para", NULL);
+            sspi->gpio_hdle = sw_gpio_request_ex("spi3_para", NULL);
             if(!sspi->gpio_hdle) {
                 SPI_ERR("spi3 request gpio fail!\n");
                 return -1;
@@ -1206,18 +1206,7 @@ static int sun6i_spi_set_gpio(struct sun6i_spi *sspi, bool on)
         }
     }
     else {
-        if(sspi->master->bus_num == 0) {
-            gpio_release(sspi->gpio_hdle, 0);
-        }
-        else if(sspi->master->bus_num == 1) {
-		    gpio_release(sspi->gpio_hdle, 0);
-        }
-        else if(sspi->master->bus_num == 2) {
-            gpio_release(sspi->gpio_hdle, 0);
-        }
-        else if(sspi->master->bus_num == 3) {
-            gpio_release(sspi->gpio_hdle, 0);
-        }
+		gpio_release(sspi->gpio_hdle, 0);
     }
 
 	return 0;
@@ -1446,7 +1435,7 @@ static int __init sun6i_spi_probe(struct platform_device *pdev)
 	/* the spi->mode bits understood by this driver: */
 	master->mode_bits       = SPI_CPOL | SPI_CPHA | SPI_CS_HIGH| SPI_LSB_FIRST;
     /* update the cs bitmap */
-#ifndef SUN6I_SPI_FPGA
+#ifdef AW_ASIC_PLATFORM
     cs_bitmap = sun6i_spi_get_cfg_csbitmap(pdev->id);
 #else
 	cs_bitmap = 0x1;
@@ -1476,7 +1465,7 @@ static int __init sun6i_spi_probe(struct platform_device *pdev)
 		goto err2;
 	}
 
-#ifndef SUN6I_SPI_FPGA
+#ifdef AW_ASIC_PLATFORM
 	/* Setup clocks */
 	sspi->hclk = clk_get(&pdev->dev, pdata->clk_name);
 	if (IS_ERR(sspi->hclk)) {
@@ -1504,7 +1493,7 @@ static int __init sun6i_spi_probe(struct platform_device *pdev)
 	/* Setup Deufult Mode */
 	sun6i_spi_hw_init(sspi);
 
-#ifndef SUN6I_SPI_FPGA
+#ifdef AW_ASIC_PLATFORM
 	sun6i_spi_set_gpio(sspi, 1);
 #endif
 
@@ -1577,6 +1566,7 @@ static int sun6i_spi_remove(struct platform_device *pdev)
 #ifdef CONFIG_PM
 static int sun6i_spi_suspend(struct device *dev)
 {
+#ifdef AW_ASIC_PLATFORM
 	struct platform_device *pdev = to_platform_device(dev);
 	struct spi_master *master = spi_master_get(platform_get_drvdata(pdev));
 	struct sun6i_spi *sspi = spi_master_get_devdata(master);
@@ -1592,12 +1582,13 @@ static int sun6i_spi_suspend(struct device *dev)
 	/* Disable the clock */
 	clk_disable(sspi->hclk);
 	SPI_INF("[spi-%d]: suspend okay.. \n", master->bus_num);
-
+#endif
 	return 0;
 }
 
 static int sun6i_spi_resume(struct device *dev)
 {
+#ifdef AW_ASIC_PLATFORM
 	struct platform_device *pdev = to_platform_device(dev);
 	struct spi_master *master = spi_master_get(platform_get_drvdata(pdev));
 	struct sun6i_spi  *sspi = spi_master_get_devdata(master);
@@ -1611,7 +1602,7 @@ static int sun6i_spi_resume(struct device *dev)
 	sspi->busy = SPI_FREE;
 	spin_unlock_irqrestore(&sspi->lock, flags);
 	SPI_INF("[spi-%d]: resume okay.. \n", master->bus_num);
-
+#endif
 	return 0;
 }
 
@@ -1666,7 +1657,7 @@ static struct platform_device sun6i_spi0_device = {
 	},
 };
 
-#ifndef SUN6I_SPI_FPGA
+#ifdef AW_ASIC_PLATFORM
 struct sun6i_spi_platform_data sun6i_spi1_pdata = {
 	.cs_bitmap	= 0x3,
 	.num_cs		= 2,
@@ -1756,7 +1747,7 @@ static struct platform_device sun6i_spi3_device = {
 #endif
 /* ---------------- spi resource and platform data end ----------------------- */
 
-#ifndef SUN6I_SPI_FPGA
+#ifdef AW_ASIC_PLATFORM
 static struct spi_board_info *spi_boards = NULL;
 int sun6i_spi_register_spidev(void)
 {

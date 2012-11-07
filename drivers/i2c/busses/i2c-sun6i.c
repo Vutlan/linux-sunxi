@@ -47,10 +47,7 @@
 #define SUN6I_I2C_SFAIL  -3  /* start fail */
 #define SUN6I_I2C_TFAIL  -4  /* stop  fail */
 
-#define SUN6I_I2C_FPGA
-
 #define SYS_I2C_PIN
-
 #ifndef SYS_I2C_PIN
 #define _PIO_BASE_ADDRESS		(0x01c20800)
 #define _R_PIO_BASE_ADDRESS		(0x01f02c00)
@@ -97,7 +94,7 @@ struct sun6i_i2c {
 	unsigned int		msg_idx;
 	unsigned int		msg_ptr;
 
-#ifndef SUN6I_I2C_FPGA
+#ifdef AW_ASIC_PLATFORM
 	struct clk		 	*clk;
 	struct clk       	*pclk;
 	unsigned int     	gpio_hdle;
@@ -334,7 +331,7 @@ static inline void twi_set_efr(void *base_addr, unsigned int efr)
 static int sun6i_i2c_xfer_complete(struct sun6i_i2c *i2c, int code);
 static int sun6i_i2c_do_xfer(struct sun6i_i2c *i2c, struct i2c_msg *msgs, int num);
 
-#ifndef SUN6I_I2C_FPGA
+#ifdef AW_ASIC_PLATFORM
 static int twi_enable_sys_clk(struct sun6i_i2c *i2c)
 {
 	int     result;
@@ -454,7 +451,7 @@ static int twi_request_gpio(struct sun6i_i2c *i2c)
 #else
 	if(i2c->bus_num == 0) {
 		/* PH14-PH15 TWI0 SCK,SDA */
-		i2c->gpio_hdle = gpio_request_ex("twi0_para", NULL);
+		i2c->gpio_hdle = sw_gpio_request_ex("twi0_para", NULL);
 		if(!i2c->gpio_hdle) {
 			pr_warning("twi0 request gpio fail!\n");
 			return -1;
@@ -462,7 +459,7 @@ static int twi_request_gpio(struct sun6i_i2c *i2c)
 	}
 	else if(i2c->bus_num == 1) {
 		/* PH16-PH17 TWI1 SCK,SDA */
-		i2c->gpio_hdle = gpio_request_ex("twi1_para", NULL);
+		i2c->gpio_hdle = sw_gpio_request_ex("twi1_para", NULL);
 		if(!i2c->gpio_hdle) {
 			pr_warning("twi1 request gpio fail!\n");
 			return -1;
@@ -470,7 +467,7 @@ static int twi_request_gpio(struct sun6i_i2c *i2c)
 	}
 	else if(i2c->bus_num == 2) {
 		/* PH18-PH19 TWI2 SCK,SDA */
-		i2c->gpio_hdle = gpio_request_ex("twi2_para", NULL);
+		i2c->gpio_hdle = sw_gpio_request_ex("twi2_para", NULL);
 		if(!i2c->gpio_hdle) {
 			pr_warning("twi2 request gpio fail!\n");
 			return -1;
@@ -478,7 +475,7 @@ static int twi_request_gpio(struct sun6i_i2c *i2c)
 	}
 	else if(i2c->bus_num == 3) {
 		/* PG10-PG11 TWI3 SCK,SDA */
-		i2c->gpio_hdle = gpio_request_ex("twi3_para", NULL);
+		i2c->gpio_hdle = sw_gpio_request_ex("twi3_para", NULL);
 		if(!i2c->gpio_hdle) {
 			pr_warning("twi3 request gpio fail!\n");
 			return -1;
@@ -486,7 +483,7 @@ static int twi_request_gpio(struct sun6i_i2c *i2c)
 	}
 	else if(i2c->bus_num == 4) {
 		/* PL0-PL1 R_TWI SCK,SDA */
-		i2c->gpio_hdle = gpio_request_ex("r_twi_para", NULL);
+		i2c->gpio_hdle = sw_gpio_request_ex("r_twi_para", NULL);
 		if(!i2c->gpio_hdle) {
 			pr_warning("r_twi request gpio fail!\n");
 			return -1;
@@ -1114,7 +1111,7 @@ static const struct i2c_algorithm sun6i_i2c_algorithm = {
 	.functionality	  = sun6i_i2c_functionality,
 };
 
-#ifndef SUN6I_I2C_FPGA
+#ifdef AW_ASIC_PLATFORM
 static int sun6i_i2c_clk_init(struct sun6i_i2c *i2c)
 {
 	int ret = 0;
@@ -1202,7 +1199,7 @@ static int sun6i_i2c_probe(struct platform_device *pdev)
 	struct sun6i_i2c *i2c = NULL;
 	struct resource *res = NULL;
 	struct sun6i_i2c_platform_data *pdata = NULL;
-#ifndef SUN6I_I2C_FPGA
+#ifdef AW_ASIC_PLATFORM
 	char *i2c_clk[] ={"mod_twi0","mod_twi1","mod_twi2","mod_twi3","r_twi"};
 	char *i2c_pclk[] ={"apb_twi0","apb_twi1","apb_twi2","aph_twi3","apb_r_twi"};
 #endif
@@ -1244,7 +1241,7 @@ static int sun6i_i2c_probe(struct platform_device *pdev)
 	spin_lock_init(&i2c->lock);
 	init_waitqueue_head(&i2c->wait);
 
-#ifndef SUN6I_I2C_FPGA
+#ifdef AW_ASIC_PLATFORM
 	i2c->pclk = clk_get(NULL, i2c_pclk[i2c->adap.nr]);
 	if(NULL == i2c->pclk){
 		I2C_DBG("[i2c%d] request apb_i2c clock failed\n", i2c->bus_num);
@@ -1323,7 +1320,7 @@ static int sun6i_i2c_probe(struct platform_device *pdev)
 
 eadapt:
 	free_irq(irq, i2c);
-#ifndef SUN6I_I2C_FPGA
+#ifdef AW_ASIC_PLATFORM
 	clk_disable(i2c->clk);
 #endif
 
@@ -1334,7 +1331,7 @@ ereqirq:
     }
 #endif
 	iounmap(i2c->base_addr);
-#ifndef SUN6I_I2C_FPGA
+#ifdef AW_ASIC_PLATFORM
 	clk_put(i2c->clk);
 #endif
 
@@ -1357,7 +1354,7 @@ static int __exit sun6i_i2c_remove(struct platform_device *pdev)
 
 	/* disable clock and release gpio */
 	sun6i_i2c_hw_exit(i2c);
-#ifndef SUN6I_I2C_FPGA
+#ifdef AW_ASIC_PLATFORM
 	clk_put(i2c->clk);
 	clk_put(i2c->pclk);
 #endif
@@ -1372,7 +1369,7 @@ static int __exit sun6i_i2c_remove(struct platform_device *pdev)
 #ifdef CONFIG_PM
 static int sun6i_i2c_suspend(struct device *dev)
 {
-#ifndef SUN6I_I2C_FPGA
+#ifdef AW_ASIC_PLATFORM
 	struct platform_device *pdev = to_platform_device(dev);
 	struct sun6i_i2c *i2c = platform_get_drvdata(pdev);
 	int count = 10;
@@ -1407,7 +1404,7 @@ static int sun6i_i2c_suspend(struct device *dev)
 
 static int sun6i_i2c_resume(struct device *dev)
 {
-#ifndef SUN6I_I2C_FPGA
+#ifdef AW_ASIC_PLATFORM
 	struct platform_device *pdev = to_platform_device(dev);
 	struct sun6i_i2c *i2c = platform_get_drvdata(pdev);
 
@@ -1511,7 +1508,7 @@ struct platform_device sun6i_twi1_device = {
 	},
 };
 
-#ifndef SUN6I_I2C_FPGA
+#ifdef AW_ASIC_PLATFORM
 /* twi2 */
 static struct resource sun6i_twi2_resources[] = {
 	{
@@ -1620,23 +1617,23 @@ static int __init sun6i_i2c_adap_init(void) {
 	// else{
 		// printk("eeprom init successed!\n");
 	// }
-	// platform_device_register(&sun6i_twi0_device);
+	platform_device_register(&sun6i_twi0_device);
 	platform_device_register(&sun6i_twi1_device);
-	// platform_device_register(&sun6i_twi2_device);
-	// platform_device_register(&sun6i_twi3_device);
+#ifdef AW_ASIC_PLATFORM
+	platform_device_register(&sun6i_twi2_device);
+	platform_device_register(&sun6i_twi3_device);
+#endif
 	platform_device_register(&sun6i_rtwi_device);
 
 	return platform_driver_register(&sun6i_i2c_driver);
 }
-
-fs_initcall(sun6i_i2c_adap_init);
-//module_init(sun6i_i2c_adap_init);
 
 static void __exit sun6i_i2c_adap_exit(void)
 {
 	platform_driver_unregister(&sun6i_i2c_driver);
 }
 
+module_init(sun6i_i2c_adap_init);
 module_exit(sun6i_i2c_adap_exit);
 
 MODULE_LICENSE("GPL");
