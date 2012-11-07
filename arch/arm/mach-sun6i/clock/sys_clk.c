@@ -261,8 +261,8 @@ static __u64 sys_clk_get_rate(__aw_ccu_clk_id_e id)
             }
             else
             {
-                tmp_rate = (__u64)24000000*tmp_reg->FactorN;
-                do_div(tmp_rate, tmp_reg->FactorM);
+                tmp_rate = (__u64)24000000*(tmp_reg->FactorN+1);
+                do_div(tmp_rate, tmp_reg->FactorM+1);
                 return tmp_rate;
             }
         }
@@ -285,16 +285,16 @@ static __u64 sys_clk_get_rate(__aw_ccu_clk_id_e id)
         case AW_SYS_CLK_MIPIPLL:
             tmp_rate = sys_clk_get_rate(sys_clk_get_parent(id));
             if(aw_ccu_reg->MipiPllCtl.VfbSel == 0) {
-                tmp_rate *= aw_ccu_reg->MipiPllCtl.FactorN * aw_ccu_reg->MipiPllCtl.FactorK;
-                do_div(tmp_rate, aw_ccu_reg->MipiPllCtl.FactorM);
+                tmp_rate *= (aw_ccu_reg->MipiPllCtl.FactorN+1) * (aw_ccu_reg->MipiPllCtl.FactorK+1);
+                do_div(tmp_rate, aw_ccu_reg->MipiPllCtl.FactorM+1);
             } else {
                 tmp_rate *= aw_ccu_reg->MipiPllCtl.SDiv2+1;
                 if(aw_ccu_reg->MipiPllCtl.FracMode == 0) {
                     tmp_rate *= aw_ccu_reg->MipiPllCtl.FeedBackDiv? 7:5;
-                    do_div(tmp_rate, aw_ccu_reg->MipiPllCtl.FactorM);
+                    do_div(tmp_rate, aw_ccu_reg->MipiPllCtl.FactorM + 1);
                 } else {
                     tmp_rate *= aw_ccu_reg->MipiPllCtl.Sel625Or750? 750:625;
-                    do_div(tmp_rate, (aw_ccu_reg->MipiPllCtl.FactorM*100));
+                    do_div(tmp_rate, ((aw_ccu_reg->MipiPllCtl.FactorM+1)*100));
                 }
             }
             return tmp_rate;
@@ -775,7 +775,7 @@ static __u64 sys_clk_round_rate(__aw_ccu_clk_id_e id, __u64 rate)
                 return rate;
             }
 
-            return (24000000 * (tmp_pll.FactorN+1) * (tmp_pll.FactorK+1)) / tmp_pll.FactorM;
+            return (24000000 * (tmp_pll.FactorN+1) * (tmp_pll.FactorK+1)) / (tmp_pll.FactorM+1);
         }
 
         case AW_SYS_CLK_PLL2:
