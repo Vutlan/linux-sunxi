@@ -44,6 +44,7 @@
 #include <asm/signal.h>
 #include <mach/system.h>
 #include <mach/clock.h>
+#include <mach/irqs-sun6i.h>
 #include "sun6i_cedar.h"
 
 #define DRV_VERSION "0.01alpha"
@@ -68,9 +69,6 @@ int g_dev_major = CEDARDEV_MAJOR;
 int g_dev_minor = CEDARDEV_MINOR;
 module_param(g_dev_major, int, S_IRUGO);//S_IRUGO represent that g_dev_major can be read,but canot be write
 module_param(g_dev_minor, int, S_IRUGO);
-
-
-#define VE_IRQ_NO (52)//the ve irq number is 52 in fpga?
 
 struct clk *ve_moduleclk = NULL;
 struct clk *ve_pll4clk = NULL;
@@ -754,7 +752,7 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
         	cedar_devp->ref_count = (int)arg;
         break;
         default:
-        break;
+			return -1;
     } 
     return ret;
 }
@@ -929,14 +927,14 @@ static int __init cedardev_init(void)
 		return -ENOMEM;
 	}		
 	memset(cedar_devp, 0, sizeof(struct cedar_dev));
-	cedar_devp->irq = VE_IRQ_NO;
+	cedar_devp->irq = AW_IRQ_VE;
 		
 	sema_init(&cedar_devp->sem, 1);
 	init_waitqueue_head(&cedar_devp->wq);	
 
 	memset(&cedar_devp->iomap_addrs, 0, sizeof(struct iomap_para));
 
-    ret = request_irq(VE_IRQ_NO, VideoEngineInterupt, 0, "cedar_dev", NULL);
+    ret = request_irq(AW_IRQ_VE, VideoEngineInterupt, 0, "cedar_dev", NULL);
     if (ret < 0) {
         printk("request irq err\n");
         return -EINVAL;
@@ -1004,7 +1002,7 @@ static void __exit cedardev_exit(void)
 	dev_t dev;
 	dev = MKDEV(g_dev_major, g_dev_minor);
 
-    free_irq(VE_IRQ_NO, NULL);
+    free_irq(AW_IRQ_VE, NULL);
 	iounmap(cedar_devp->iomap_addrs.regs_macc);
 	iounmap(cedar_devp->iomap_addrs.regs_avs);
 	/* Destroy char device */

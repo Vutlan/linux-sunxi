@@ -154,9 +154,9 @@ static struct irqaction sun6i_timer_irq = {
     .flags = IRQF_DISABLED | IRQF_TIMER | IRQF_IRQPOLL,
     .handler = sun6i_timer_interrupt,
     .dev_id = &sun6i_timer0_clockevent,
-    .irq = 36,
+    .irq = AW_IRQ_TIMER0,
 };
-extern int aw_clksrc_init(void);
+
 static void __init sun6i_timer_init(void)
 {
 	int ret;
@@ -172,9 +172,9 @@ static void __init sun6i_timer_init(void)
     writel(TIMER0_VALUE, timer_cpu_base + AW_TMR0_INTV_VALUE_REG);
     writel(0x66, timer_cpu_base + AW_TMR0_CTRL_REG);
 
-    ret = setup_irq(36, &sun6i_timer_irq);
+    ret = setup_irq(AW_IRQ_TIMER0, &sun6i_timer_irq);
     if (ret) {
-            early_printk("failed to setup irq %d\n", 36);
+            early_printk("failed to setup irq %d\n", AW_IRQ_TIMER0);
     }
 
     /* Enable timer0 */
@@ -186,7 +186,6 @@ static void __init sun6i_timer_init(void)
     sun6i_timer0_clockevent.cpumask = cpu_all_mask;
     sun6i_timer0_clockevent.irq = sun6i_timer_irq.irq;
     clockevents_register_device(&sun6i_timer0_clockevent);
-//    aw_clksrc_init();
 }
 
 static struct sys_timer sun6i_timer = {

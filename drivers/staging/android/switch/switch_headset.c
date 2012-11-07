@@ -26,6 +26,7 @@
 #include <linux/delay.h>
 #include <asm/irq.h>
 #include <asm/io.h>
+#include <mach/irqs-sun6i.h>
 
 #undef SWITCH_DBG
 #if (0)
@@ -33,8 +34,6 @@
 #else
     #define SWITCH_DBG(...)    
 #endif
-
-#define AUDIO_IRQ_NO 			   61
 
 #define VIR_CODEC_BASSADDRESS      (0xf1c22c00)
 #define SUN6I_PA_CTRL			   (0x24)		//new func
@@ -247,7 +246,7 @@ static int gpio_switch_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	}
 		
-	ret = request_irq(AUDIO_IRQ_NO, audio_hmic_irq, 0, "audio_hmic_irq", NULL);
+	ret = request_irq(AW_IRQ_CODEC, audio_hmic_irq, 0, "audio_hmic_irq", NULL);
     if (ret < 0) {
         printk("request irq err\n");
         return -EINVAL;

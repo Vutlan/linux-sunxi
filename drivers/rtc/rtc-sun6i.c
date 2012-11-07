@@ -26,6 +26,7 @@
 
 #include <mach/hardware.h>
 #include <mach/irqs.h>
+#include <mach/irqs-sun6i.h>
 #include <asm/uaccess.h>
 #include <asm/io.h>
 #include <asm/irq.h>
@@ -40,9 +41,6 @@
     #define RTC_DBG(...)
     #define RTC_ERR(...)
 #endif
-
-/*Alarm 0 is a general alarm, its counter is based on second*/
-#define SW_INT_IRQNO_ALARM0					(50)//the irq is 50 for fpga.(72)
 
 #define SW_VA_TIMERC_IO_BASE				(0xf1f00000)
 
@@ -525,7 +523,7 @@ static int __devinit sun6i_rtc_probe(struct platform_device *pdev)
 	unsigned int tmp_data;
 	
 	sun6i_rtc_base = (void __iomem *)(SW_VA_TIMERC_IO_BASE);
-	sun6i_rtc_alarmno = SW_INT_IRQNO_ALARM0;
+	sun6i_rtc_alarmno = AW_IRQ_RALARM0;
 
 	/*
 	 *	step1: select RTC clock source
@@ -587,8 +585,8 @@ static int __devinit sun6i_rtc_probe(struct platform_device *pdev)
 /*share the irq no. with timer2*/
 static struct resource sun6i_rtc_resource[] = {
 	[0] = {
-		.start = SW_INT_IRQNO_ALARM0,
-		.end   = SW_INT_IRQNO_ALARM0,
+		.start = AW_IRQ_RALARM0,
+		.end   = AW_IRQ_RALARM0,
 		.flags = IORESOURCE_IRQ,
 	},
 };
