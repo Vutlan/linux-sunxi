@@ -27,8 +27,93 @@
 #include <mach/clock.h>
 #include "ccm_i.h"
 
+struct module0_div_tbl{
+    __u8    FactorM;
+    __u8    FactorN;
+    __u16   Div;
+};
+static struct module0_div_tbl module0_clk_div_tbl[] = {
+    {0 , 0, 1  },
+    {1 , 0, 2  },
+    {2 , 0, 3  },
+    {3 , 0, 4  },
+    {4 , 0, 5  },
+    {5 , 0, 6  },
+    {6 , 0, 7  },
+    {7 , 0, 8  },
+    {8 , 0, 9  },
+    {9 , 0, 10 },
+    {10, 0, 11 },
+    {11, 0, 12 },
+    {12, 0, 13 },
+    {13, 0, 14 },
+    {14, 0, 15 },
+    {15, 0, 16 },
+    {16, 0, 17 },
+    {17, 0, 18 },
+    {18, 0, 19 },
+    {19, 0, 20 },
+    {20, 0, 21 },
+    {21, 0, 22 },
+    {22, 0, 23 },
+    {23, 0, 24 },
+    {24, 0, 25 },
+    {25, 0, 26 },
+    {26, 0, 27 },
+    {27, 0, 28 },
+    {28, 0, 29 },
+    {29, 0, 30 },
+    {30, 0, 31 },
+    {31, 0, 32 },
+    {10, 2, 33 },
+    {16, 1, 34 },
+    {17, 1, 36 },
+    {18, 1, 38 },
+    {12, 2, 39 },
+    {19, 1, 40 },
+    {20, 1, 42 },
+    {21, 1, 44 },
+    {14, 2, 45 },
+    {22, 1, 46 },
+    {23, 1, 48 },
+    {24, 1, 50 },
+    {16, 2, 51 },
+    {25, 1, 52 },
+    {26, 1, 54 },
+    {27, 1, 56 },
+    {18, 2, 57 },
+    {28, 1, 58 },
+    {29, 1, 60 },
+    {30, 1, 62 },
+    {20, 2, 63 },
+    {31, 1, 64 },
+    {21, 2, 66 },
+    {16, 3, 68 },
+    {22, 2, 69 },
+    {23, 2, 72 },
+    {24, 2, 75 },
+    {18, 3, 76 },
+    {25, 2, 78 },
+    {19, 3, 80 },
+    {26, 2, 81 },
+    {27, 2, 84 },
+    {28, 2, 87 },
+    {21, 3, 88 },
+    {29, 2, 90 },
+    {22, 3, 92 },
+    {30, 2, 93 },
+    {31, 2, 96 },
+    {24, 3, 100},
+    {25, 3, 104},
+    {26, 3, 108},
+    {27, 3, 112},
+    {28, 3, 116},
+    {29, 3, 120},
+    {30, 3, 124},
+    {31, 3, 128},
+};
 
-
+
 static inline __aw_ccu_clk_id_e _get_module0_clk_src(volatile __ccmu_module0_clk_t *reg)
 {
     if(reg->ClkSrc == 0)
@@ -125,37 +210,27 @@ static inline __u32 _get_module0_clk_rate(volatile __ccmu_module0_clk_t *reg)
 }
 static inline __s32 _set_module0_clk_rate(volatile __ccmu_module0_clk_t *reg, __s64 rate)
 {
-    if(rate < 17)
-    {
-        reg->DivN = 0;
-        //reg->DivM = rate;
-        reg->DivM = rate - 1; /* liugang, 2012-9-14 */
-    }
-    else if(rate < 33)
-    {
-        reg->DivN = 1;
-        //reg->DivM = (rate+1)/2;
-        reg->DivM = (rate+1)/2 - 1; /* liugang, 2012-9-14 */
-    }
-    else if(rate < 65)
-    {
-        reg->DivN = 2;
-        //reg->DivM = (rate+3)/4;
-	reg->DivM = (rate+3)/4 - 1; /* liugang, 2012-9-14 */
-    }
-    else if(rate < 129)
-    {
-        reg->DivN = 3;
-        //reg->DivM = (rate+7)/8;
-        reg->DivM = (rate+7)/8 - 1; /* liugang, 2012-9-14 */
-    }
-    else
-    {
-        CCU_ERR("clock(reg:%d) rate %d invlid!\n", (__u32)reg, (__u32)rate);
-        return -1;
+    int     low, high;
+
+    low = 0;
+    high = sizeof(module0_clk_div_tbl)/sizeof(struct module0_div_tbl) - 1;
+
+    while(low<high){
+        if(module0_clk_div_tbl[(low+high)/2].Div < rate) {
+            low = (low+high)/2+1;
+        } else if(module0_clk_div_tbl[(low+high)/2].Div > rate) {
+            high = (low+high)/2-1;
+        }
+        else {
+            low = (low+high)/2;
+            reg->DivM = module0_clk_div_tbl[(low+high)/2].FactorM;
+            reg->DivN = module0_clk_div_tbl[(low+high)/2].FactorN;
+            return 0;
+        }
     }
 
-    return 0;
+    CCU_ERR("%s:%d, set rate of (%x) to %llu failed", __FILE__, __LINE__, (int)reg, rate);
+    return -1;
 }
 
 
@@ -2050,6 +2125,120 @@ static __s32 mod_clk_set_reset(__aw_ccu_clk_id_e id, __aw_ccu_clk_reset_e reset)
 }
 
 
+
+/*
+*********************************************************************************************************
+*                           mod_clk_round_rate
+*
+*Description: round a rate of the given clock to a valid value;
+*
+*Arguments  : id    system clock id;
+*             rate  clock rate for system clock;
+*
+*Return     : result
+*
+*Notes      :
+*
+*********************************************************************************************************
+*/
+static __u64 mod_clk_round_rate(__aw_ccu_clk_id_e id, __u64 rate)
+{
+    switch(id)
+    {
+        case AW_MOD_CLK_NAND0:
+        case AW_MOD_CLK_NAND1:
+        case AW_MOD_CLK_SDC0:
+        case AW_MOD_CLK_SDC1:
+        case AW_MOD_CLK_SDC2:
+        case AW_MOD_CLK_SDC3:
+        case AW_MOD_CLK_TS:
+        case AW_MOD_CLK_SS:
+        case AW_MOD_CLK_SPI0:
+        case AW_MOD_CLK_SPI1:
+        case AW_MOD_CLK_SPI2:
+        case AW_MOD_CLK_SPI3:
+        case AW_MOD_CLK_MDFS:
+        case AW_MOD_CLK_MTCACC:
+        case AW_MOD_CLK_MBUS0:
+        case AW_MOD_CLK_MBUS1:
+        case AW_MOD_CLK_IEPDRC0:
+        case AW_MOD_CLK_IEPDRC1:
+        case AW_MOD_CLK_IEPDEU0:
+        case AW_MOD_CLK_IEPDEU1:
+        case AW_MOD_CLK_GPUCORE:
+        case AW_MOD_CLK_GPUMEM:
+        case AW_MOD_CLK_GPUHYD:
+        {
+            int     low, high;
+            __u64   parent_rate = sys_clk_ops.get_rate(mod_clk_get_parent(id));
+            __u64   tmp_rate;
+
+            tmp_rate = parent_rate + rate-1;
+            do_div(tmp_rate, rate);
+
+            low = 0;
+            high = sizeof(module0_clk_div_tbl)/sizeof(struct module0_div_tbl) - 1;
+
+            while(low<high){
+                if(module0_clk_div_tbl[(low+high)/2].Div < tmp_rate)
+                {
+                    low = (low+high)/2+1;
+                } else if(module0_clk_div_tbl[(low+high)/2].Div > tmp_rate){
+                    high = (low+high)/2-1;
+                }
+                else
+                    break;
+            }
+
+            tmp_rate = (1<<module0_clk_div_tbl[(low+high)/2].FactorN) * (module0_clk_div_tbl[(low+high)/2].FactorM + 1);
+            do_div(parent_rate, tmp_rate);
+            return parent_rate;
+        }
+
+        case AW_MOD_CLK_DEBE0:
+        case AW_MOD_CLK_DEBE1:
+        case AW_MOD_CLK_DEFE0:
+        case AW_MOD_CLK_DEFE1:
+        case AW_MOD_CLK_DEMIX:
+        case AW_MOD_CLK_LCD0CH0:
+        case AW_MOD_CLK_LCD0CH1:
+        case AW_MOD_CLK_LCD1CH0:
+        case AW_MOD_CLK_LCD1CH1:
+        case AW_MOD_CLK_CSI0S:
+        case AW_MOD_CLK_CSI0M:
+        case AW_MOD_CLK_CSI1S:
+        case AW_MOD_CLK_CSI1M:
+        case AW_MOD_CLK_VE:
+        case AW_MOD_CLK_MIPIDSIS:
+        case AW_MOD_CLK_MIPIDSIP:
+        case AW_MOD_CLK_MIPICSIS:
+        case AW_MOD_CLK_MIPICSIP:
+        {
+            __u64   parent_rate = sys_clk_ops.get_rate(mod_clk_get_parent(id));
+            __u64   tmp_rate = parent_rate+rate-1;
+
+            do_div(tmp_rate, rate);
+
+            if( tmp_rate > 16) {
+                do_div(parent_rate, 16);
+                return parent_rate;
+            }
+            else {
+                tmp_rate = parent_rate+rate-1;
+                do_div(tmp_rate, rate);
+                do_div(parent_rate, tmp_rate);
+                return parent_rate;
+            }
+        }
+
+        default:
+            return rate;
+    }
+
+    return rate;
+}
+
+
 __clk_ops_t mod_clk_ops = {
     .set_status = mod_clk_set_status,
     .get_status = mod_clk_get_status,
@@ -2057,7 +2246,7 @@ __clk_ops_t mod_clk_ops = {
     .get_parent = mod_clk_get_parent,
     .get_rate = mod_clk_get_rate_hz,
     .set_rate = mod_clk_set_rate_hz,
-    .round_rate = 0,
+    .round_rate = mod_clk_round_rate,
     .get_reset = mod_clk_get_reset,
     .set_reset = mod_clk_set_reset,
 };

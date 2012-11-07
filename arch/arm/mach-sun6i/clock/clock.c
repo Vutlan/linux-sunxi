@@ -169,6 +169,28 @@ unsigned long clk_get_rate(struct clk *clk)
 EXPORT_SYMBOL(clk_get_rate);
 
 
+long clk_round_rate(struct clk *clk, unsigned long rate)
+{
+    unsigned long ret;
+
+    DEFINE_FLAGS(flags);
+
+    if(clk == NULL || IS_ERR(clk))
+        return -1;
+    if(!clk->ops || !clk->ops->round_rate)
+        return rate;
+
+    CCU_DBG("%s:%d:%s: %s !\n", __FILE__, __LINE__, __FUNCTION__, clk->aw_clk->name);
+
+    CCU_LOCK(&clk->lock, flags);
+    ret = clk->ops->round_rate(clk->aw_clk->id, rate);
+    CCU_UNLOCK(&clk->lock, flags);
+
+    return ret;
+}
+EXPORT_SYMBOL(clk_round_rate);
+
+
 int clk_set_rate(struct clk *clk, unsigned long rate)
 {
     DEFINE_FLAGS(flags);

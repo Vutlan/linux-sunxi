@@ -664,9 +664,11 @@ static __s32 sys_clk_set_rate(__aw_ccu_clk_id_e id, __u64 rate)
             __ccmu_pll5_reg0020_t       tmp_pll;
 
             tmp_pll = aw_ccu_reg->Pll5Ctl;
-            tmp_pll.FactorN = 16;
-            tmp_pll.FactorK = 0;
-            tmp_pll.FactorM = 0;
+            if(ccm_get_pll1_para((__ccmu_pll1_reg0000_t *)&tmp_pll, rate))
+            {
+                CCU_ERR("(%s:%d)try to get pll5 rate(%llu) config failed!\n", __FILE__, __LINE__, rate);
+                return -1;
+            }
             aw_ccu_reg->Pll5Ctl = tmp_pll;
             while(aw_ccu_reg->Pll5Ctl.Lock);
             return 0;
@@ -741,6 +743,128 @@ static __s32 sys_clk_set_rate(__aw_ccu_clk_id_e id, __u64 rate)
     }
 }
 
+/*
+*********************************************************************************************************
+*                           sys_clk_round_rate
+*
+*Description: round a rate of the given clock to a valid value;
+*
+*Arguments  : id    system clock id;
+*             rate  clock rate for system clock;
+*
+*Return     : result
+*
+*Notes      :
+*
+*********************************************************************************************************
+*/
+static __u64 sys_clk_round_rate(__aw_ccu_clk_id_e id, __u64 rate)
+{
+    switch(id)
+    {
+        case AW_SYS_CLK_LOSC:
+            return 32768;
+        case AW_SYS_CLK_HOSC:
+            return 24000000;
+        case AW_SYS_CLK_PLL1:
+        {
+            __ccmu_pll1_reg0000_t       tmp_pll;
+
+            if(ccm_get_pll1_para(&tmp_pll, rate))
+            {
+                return rate;
+            }
+
+            return (24000000 * (tmp_pll.FactorN+1) * (tmp_pll.FactorK+1)) / tmp_pll.FactorM;
+        }
+
+        case AW_SYS_CLK_PLL2:
+        {
+            if(rate < 23000000)
+            {
+                return 22579200;
+            }
+            else
+            {
+                return 24576000;
+            }
+        }
+        case AW_SYS_CLK_PLL3:
+        case AW_SYS_CLK_PLL4:
+        case AW_SYS_CLK_PLL7:
+        case AW_SYS_CLK_PLL8:
+        case AW_SYS_CLK_PLL9:
+        case AW_SYS_CLK_PLL10:
+        {
+            __ccmu_media_pll_t  tmp_pll;
+
+            if((rate == 270000000) || (rate == 297000000))
+            {
+                return rate;
+            }
+
+            if(ccm_get_pllx_para(&tmp_pll, rate)) {
+                return rate;
+            }
+
+            return 24000000 * (tmp_pll.FactorN + 1) / (tmp_pll.FactorM + 1);
+        }
+
+        case AW_SYS_CLK_PLL5:
+        {
+            __ccmu_pll5_reg0020_t       tmp_pll;
+
+            if(ccm_get_pll1_para((__ccmu_pll1_reg0000_t *)&tmp_pll, rate))
+            {
+                return rate;
+            }
+            return (24000000 * (tmp_pll.FactorN+1) * (tmp_pll.FactorK+1));
+        }
+        case AW_SYS_CLK_PLL6:
+        {
+            if(rate > 32*4*12000000) {
+                return 32*4*12000000;
+            }
+            else if(rate > 32*3*12000000) {
+                do_div(rate, 12000000*3);
+                return 12000000*3*rate;
+            }
+            else if(rate > 32*2*12000000) {
+                do_div(rate, 12000000*2);
+                return 12000000*2*rate;
+            }
+            else if(rate > 32*1*12000000) {
+                do_div(rate, 12000000*1);
+                return 12000000*1*rate;
+            }
+            else {
+                do_div(rate, 12000000*1);
+                return rate*12000000;
+            }
+        }
+        case AW_SYS_CLK_PLL2X8:
+            return sys_clk_get_rate(AW_SYS_CLK_PLL2) * 8;
+        case AW_SYS_CLK_PLL3X2:
+            return sys_clk_get_rate(AW_SYS_CLK_PLL3) * 2;
+        case AW_SYS_CLK_PLL6x2:
+            return sys_clk_get_rate(AW_SYS_CLK_PLL6) * 2;
+        case AW_SYS_CLK_PLL7X2:
+            return sys_clk_get_rate(AW_SYS_CLK_PLL7) * 2;
+        case AW_SYS_CLK_MIPIPLL:
+            return rate;
+        case AW_SYS_CLK_AC327:
+        case AW_SYS_CLK_AR100:
+        case AW_SYS_CLK_AXI:
+        case AW_SYS_CLK_AHB0:
+        case AW_SYS_CLK_AHB1:
+        case AW_SYS_CLK_APB0:
+        case AW_SYS_CLK_APB1:
+        case AW_SYS_CLK_APB2:
+        default:
+            return rate;
+    }
+}
+
 
 __clk_ops_t sys_clk_ops = {
     .set_status = sys_clk_set_status,
@@ -749,7 +873,7 @@ __clk_ops_t sys_clk_ops = {
     .get_parent = sys_clk_get_parent,
     .get_rate = sys_clk_get_rate,
     .set_rate = sys_clk_set_rate,
-    .round_rate = 0,
+    .round_rate = sys_clk_round_rate,
     .set_reset  = 0,
     .get_reset  = 0,
 };
