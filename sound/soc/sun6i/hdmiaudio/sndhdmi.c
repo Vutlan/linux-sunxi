@@ -21,10 +21,10 @@
 #include <sound/soc-dapm.h>
 #include <sound/initval.h>
 #include <linux/io.h>
-
+#include <linux/drv_hdmi.h>
 #include "sndhdmi.h"
 
-//#define HDMI
+#define HDMI
 
 struct sndhdmi_priv {
 	int sysclk;

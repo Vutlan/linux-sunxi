@@ -108,11 +108,14 @@ typedef struct
 
 	void (*tve_interrup) (__u32 sel);
 	__s32 (*hdmi_set_mode)(__disp_tv_mode_t mode);
-	__s32 (*Hdmi_open)(void);
-	__s32 (*Hdmi_close)(void);
+	__s32 (*hdmi_open)(void);
+	__s32 (*hdmi_close)(void);
 	__s32 (*hdmi_mode_support)(__disp_tv_mode_t mode);
 	__s32 (*hdmi_get_HPD_status)(void);
 	__s32 (*hdmi_set_pll)(__u32 pll, __u32 clk);
+    __s32 (*hdmi_suspend)(void);
+    __s32 (*hdmi_resume)(void);
+    __s32 (*hdmi_get_disp_func)(__disp_hdmi_func *disp_func);
 	__s32 (*disp_int_process)(__u32 sel);
 }__disp_bsp_init_para;
 
@@ -155,6 +158,8 @@ extern __s32 BSP_disp_capture_screen(__u32 sel, __disp_capture_screen_para_t * p
 extern __s32 BSP_disp_set_screen_size(__u32 sel, __disp_rectsz_t * size);
 extern __s32 BSP_disp_set_output_csc(__u32 sel, __disp_output_type_t type);
 extern __s32 BSP_disp_de_flicker_enable(__u32 sel, __bool b_en);
+extern __s32 BSP_disp_store_image_reg(__u32 sel, __u32 addr);
+extern __s32 BSP_disp_restore_image_reg(__u32 sel, __u32 addr);
 
 extern __s32 BSP_disp_layer_request(__u32 sel, __disp_layer_work_mode_t mode);
 extern __s32 BSP_disp_layer_release(__u32 sel, __u32 hid);
@@ -209,6 +214,8 @@ extern __s32 BSP_disp_scaler_request(void);
 extern __s32 BSP_disp_scaler_release(__u32 handle);
 extern __s32 BSP_disp_scaler_start(__u32 handle,__disp_scaler_para_t *scl);
 extern __s32 BSP_disp_scaler_start_ex(__u32 handle,__disp_scaler_para_t *scl);
+extern __s32 BSP_disp_store_scaler_reg(__u32 sel, __u32 addr);
+extern __s32 BSP_disp_restore_scaler_reg(__u32 sel, __u32 addr);
 
 extern __s32 BSP_disp_hwc_enable(__u32 sel, __bool enable);
 extern __s32 BSP_disp_hwc_set_pos(__u32 sel, __disp_pos_t *pos);
@@ -242,7 +249,8 @@ extern __s32 BSP_disp_get_timming(__u32 sel, __disp_tcon_timing_t * tt);
 extern __u32 BSP_disp_get_cur_line(__u32 sel);
 extern __s32 BSP_disp_close_lcd_backlight(__u32 sel);
 extern __s32 BSP_disp_lcd_set_bright_dimming(__u32 sel, __u32 bright_dimming);  //for drc 
-extern  __s32 BSP_disp_lcd_used(__u32 sel);
+extern __s32 BSP_disp_lcd_used(__u32 sel);
+extern __s32 BSP_disp_restore_lcdc_reg(__u32 sel);
 
 extern __s32 BSP_disp_tv_open(__u32 sel);
 extern __s32 BSP_disp_tv_close(__u32 sel);
@@ -255,6 +263,7 @@ extern __s32 BSP_disp_tv_set_src(__u32 sel, __disp_lcdc_src_t src);
 extern __s32 BSP_disp_tv_get_dac_status(__u32 sel, __u32 index);
 extern __s32 BSP_disp_tv_set_dac_source(__u32 sel, __u32 index, __disp_tv_dac_source source);
 extern __s32 BSP_disp_tv_get_dac_source(__u32 sel, __u32 index);
+extern __s32 BSP_disp_restore_tvec_reg(__u32 sel);
 
 extern __s32 BSP_disp_hdmi_open(__u32 sel);
 extern __s32 BSP_disp_hdmi_close(__u32 sel);
@@ -264,6 +273,8 @@ extern __s32 BSP_disp_hdmi_check_support_mode(__u32 sel, __u8  mode);
 extern __s32 BSP_disp_hdmi_get_hpd_status(__u32 sel);
 extern __s32 BSP_disp_hdmi_set_src(__u32 sel, __disp_lcdc_src_t src);
 extern __s32 BSP_disp_set_hdmi_func(__disp_hdmi_func * func);
+extern __s32 BSP_disp_hdmi_suspend(void);
+extern __s32 BSP_disp_hdmi_resume(void);
 
 extern __s32 BSP_disp_vga_open(__u32 sel);
 extern __s32 BSP_disp_vga_close(__u32 sel);

@@ -1331,95 +1331,64 @@ __s32 Display_set_fb_timming(__u32 sel)
     return 0;
 }
 
-__s32 Fb_Init(__u32 from)
+__s32 Fb_Init()
 {    
     __disp_fb_create_para_t fb_para;
     __s32 i;
-    __bool need_open_hdmi = 0;
 
-    if(from == 0)//call from lcd driver
-    {
 #ifdef FB_RESERVED_MEM
-        __inf("fbmem: fb_start=0x%x, fb_size=0x%x\n", (unsigned int)FB_MEM_BASE, (unsigned int)FB_MEM_SIZE);
-        disp_create_heap((unsigned long)(ioremap_nocache(FB_MEM_BASE, FB_MEM_SIZE)),FB_MEM_BASE, FB_MEM_SIZE);
+    __inf("fbmem: fb_start=0x%x, fb_size=0x%x\n", (unsigned int)FB_MEM_BASE, (unsigned int)FB_MEM_SIZE);
+    disp_create_heap((unsigned long)(ioremap_nocache(FB_MEM_BASE, FB_MEM_SIZE)),FB_MEM_BASE, FB_MEM_SIZE);
 #endif
 
-        for(i=0; i<8; i++)
-        {
-        	g_fbi.fbinfo[i] = framebuffer_alloc(0, g_fbi.dev);
-        	g_fbi.fbinfo[i]->fbops   = &dispfb_ops;
-        	g_fbi.fbinfo[i]->flags   = 0; 
-        	g_fbi.fbinfo[i]->device  = g_fbi.dev;
-        	g_fbi.fbinfo[i]->par     = &g_fbi;
-        	g_fbi.fbinfo[i]->var.xoffset         = 0;
-        	g_fbi.fbinfo[i]->var.yoffset         = 0;
-        	g_fbi.fbinfo[i]->var.xres            = 800;
-        	g_fbi.fbinfo[i]->var.yres            = 480;
-        	g_fbi.fbinfo[i]->var.xres_virtual    = 800;
-        	g_fbi.fbinfo[i]->var.yres_virtual    = 480*2;
-        	g_fbi.fbinfo[i]->var.nonstd = 0;
-            g_fbi.fbinfo[i]->var.bits_per_pixel = 32;
-            g_fbi.fbinfo[i]->var.transp.length = 8;
-            g_fbi.fbinfo[i]->var.red.length = 8;
-            g_fbi.fbinfo[i]->var.green.length = 8;
-            g_fbi.fbinfo[i]->var.blue.length = 8;
-            g_fbi.fbinfo[i]->var.transp.offset = 24;
-            g_fbi.fbinfo[i]->var.red.offset = 16;
-            g_fbi.fbinfo[i]->var.green.offset = 8;
-            g_fbi.fbinfo[i]->var.blue.offset = 0;
-            g_fbi.fbinfo[i]->var.activate = FB_ACTIVATE_FORCE;
-        	g_fbi.fbinfo[i]->fix.type	    = FB_TYPE_PACKED_PIXELS;
-        	g_fbi.fbinfo[i]->fix.type_aux	= 0;
-        	g_fbi.fbinfo[i]->fix.visual 	= FB_VISUAL_TRUECOLOR;
-        	g_fbi.fbinfo[i]->fix.xpanstep	= 1;
-        	g_fbi.fbinfo[i]->fix.ypanstep	= 1;
-        	g_fbi.fbinfo[i]->fix.ywrapstep	= 0;
-        	g_fbi.fbinfo[i]->fix.accel	    = FB_ACCEL_NONE;
-            g_fbi.fbinfo[i]->fix.line_length = g_fbi.fbinfo[i]->var.xres_virtual * 4;
-            g_fbi.fbinfo[i]->fix.smem_len = g_fbi.fbinfo[i]->fix.line_length * g_fbi.fbinfo[i]->var.yres_virtual * 2;
-            g_fbi.fbinfo[i]->screen_base = 0x0;
-            g_fbi.fbinfo[i]->fix.smem_start = 0x0;
+    for(i=0; i<8; i++)
+    {
+        g_fbi.fbinfo[i] = framebuffer_alloc(0, g_fbi.dev);
+        g_fbi.fbinfo[i]->fbops   = &dispfb_ops;
+        g_fbi.fbinfo[i]->flags   = 0;
+        g_fbi.fbinfo[i]->device  = g_fbi.dev;
+        g_fbi.fbinfo[i]->par     = &g_fbi;
+        g_fbi.fbinfo[i]->var.xoffset         = 0;
+        g_fbi.fbinfo[i]->var.yoffset         = 0;
+        g_fbi.fbinfo[i]->var.xres            = 800;
+        g_fbi.fbinfo[i]->var.yres            = 480;
+        g_fbi.fbinfo[i]->var.xres_virtual    = 800;
+        g_fbi.fbinfo[i]->var.yres_virtual    = 480*2;
+        g_fbi.fbinfo[i]->var.nonstd = 0;
+        g_fbi.fbinfo[i]->var.bits_per_pixel = 32;
+        g_fbi.fbinfo[i]->var.transp.length = 8;
+        g_fbi.fbinfo[i]->var.red.length = 8;
+        g_fbi.fbinfo[i]->var.green.length = 8;
+        g_fbi.fbinfo[i]->var.blue.length = 8;
+        g_fbi.fbinfo[i]->var.transp.offset = 24;
+        g_fbi.fbinfo[i]->var.red.offset = 16;
+        g_fbi.fbinfo[i]->var.green.offset = 8;
+        g_fbi.fbinfo[i]->var.blue.offset = 0;
+        g_fbi.fbinfo[i]->var.activate = FB_ACTIVATE_FORCE;
+        g_fbi.fbinfo[i]->fix.type	    = FB_TYPE_PACKED_PIXELS;
+        g_fbi.fbinfo[i]->fix.type_aux	= 0;
+        g_fbi.fbinfo[i]->fix.visual 	= FB_VISUAL_TRUECOLOR;
+        g_fbi.fbinfo[i]->fix.xpanstep	= 1;
+        g_fbi.fbinfo[i]->fix.ypanstep	= 1;
+        g_fbi.fbinfo[i]->fix.ywrapstep	= 0;
+        g_fbi.fbinfo[i]->fix.accel	    = FB_ACCEL_NONE;
+        g_fbi.fbinfo[i]->fix.line_length = g_fbi.fbinfo[i]->var.xres_virtual * 4;
+        g_fbi.fbinfo[i]->fix.smem_len = g_fbi.fbinfo[i]->fix.line_length * g_fbi.fbinfo[i]->var.yres_virtual * 2;
+        g_fbi.fbinfo[i]->screen_base = 0x0;
+        g_fbi.fbinfo[i]->fix.smem_start = 0x0;
 
-        	register_framebuffer(g_fbi.fbinfo[i]);
-        }
-        parser_disp_init_para(&(g_fbi.disp_init));
+        register_framebuffer(g_fbi.fbinfo[i]);
+    }
+    parser_disp_init_para(&(g_fbi.disp_init));
 #ifdef __FPGA_DEBUG__
-        g_fbi.disp_init.b_init = 1;
-        g_fbi.disp_init.disp_mode = 0;
-        g_fbi.disp_init.output_type[0] = 1;
-        g_fbi.disp_init.scaler_mode[0] = 0;
-        g_fbi.disp_init.buffer_num[0] =3;
-        g_fbi.disp_init.format[0] = 0xa;
-        g_fbi.disp_init.seq[0] = 0;
+    g_fbi.disp_init.b_init = 1;
+    g_fbi.disp_init.disp_mode = 0;
+    g_fbi.disp_init.output_type[0] = 1;
+    g_fbi.disp_init.scaler_mode[0] = 0;
+    g_fbi.disp_init.buffer_num[0] =3;
+    g_fbi.disp_init.format[0] = 0xa;
+    g_fbi.disp_init.seq[0] = 0;
 #endif
-    }
-
-    
-    if(g_fbi.disp_init.b_init)
-    {
-        __u32 sel = 0;
-
-        for(sel = 0; sel<2; sel++)
-        {
-            if(((sel==0) && (g_fbi.disp_init.disp_mode!=DISP_INIT_MODE_SCREEN1)) || 
-                ((sel==1) && (g_fbi.disp_init.disp_mode!=DISP_INIT_MODE_SCREEN0)))
-            {
-                if(g_fbi.disp_init.output_type[sel] == DISP_OUTPUT_TYPE_HDMI)
-                {
-                    need_open_hdmi = 1;
-                }
-            }
-        }
-    }
-
-    if(need_open_hdmi == 1 && from == 0)//it is called from lcd driver, but hdmi need to be opened
-    {
-        return 0;
-    }
-    else if(need_open_hdmi == 0 && from == 1)//it is called from hdmi driver, but hdmi need not be opened
-    {
-        return 0;
-    }
     
     if(g_fbi.disp_init.b_init)
     {

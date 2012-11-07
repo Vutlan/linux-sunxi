@@ -29,6 +29,14 @@ __s32 Display_Hdmi_Init(void)
         }
         gdisp.screen[0].hdmi_mode = DISP_TV_MOD_720P_50HZ;
         gdisp.screen[1].hdmi_mode = DISP_TV_MOD_720P_50HZ;
+
+        if(gdisp.init_para.hdmi_get_disp_func)
+        {
+            __disp_hdmi_func disp_func;
+
+            gdisp.init_para.hdmi_get_disp_func(&disp_func);
+            BSP_disp_set_hdmi_func(&disp_func);
+        }
     }
 
     return DIS_SUCCESS;
@@ -69,9 +77,9 @@ __s32 BSP_disp_hdmi_open(__u32 sel)
         
     	tcon1_set_hdmi_mode(sel,tv_mod);		 	 
     	tcon1_open(sel);
-    	if(gdisp.init_para.Hdmi_open)
+        if(gdisp.init_para.hdmi_open)
     	{
-    	    gdisp.init_para.Hdmi_open();
+            gdisp.init_para.hdmi_open();
     	}
     	else
     	{
@@ -99,10 +107,10 @@ __s32 BSP_disp_hdmi_open(__u32 sel)
 __s32 BSP_disp_hdmi_close(__u32 sel)
 {
     if((gdisp.screen[sel].hdmi_used) && (gdisp.screen[sel].status & HDMI_ON))
-    {            
-    	if(gdisp.init_para.Hdmi_close)
+    {
+        if(gdisp.init_para.hdmi_close)
     	{
-    	    gdisp.init_para.Hdmi_close();
+            gdisp.init_para.hdmi_close();
     	}
     	else
     	{
@@ -218,14 +226,37 @@ __s32 BSP_disp_hdmi_set_src(__u32 sel, __disp_lcdc_src_t src)
     return DIS_NOT_SUPPORT;
 }
 
+__s32 BSP_disp_hdmi_suspend()
+{
+    if(gdisp.init_para.hdmi_suspend)
+    {
+        return gdisp.init_para.hdmi_suspend();
+    }
+
+    return -1;
+}
+
+__s32 BSP_disp_hdmi_resume()
+{
+    if(gdisp.init_para.hdmi_resume)
+    {
+        return gdisp.init_para.hdmi_resume();
+    }
+
+    return -1;
+}
+
 __s32 BSP_disp_set_hdmi_func(__disp_hdmi_func * func)
 {
-    gdisp.init_para.Hdmi_open = func->Hdmi_open;
-    gdisp.init_para.Hdmi_close = func->Hdmi_close;
+    gdisp.init_para.hdmi_open = func->hdmi_open;
+    gdisp.init_para.hdmi_close = func->hdmi_close;
     gdisp.init_para.hdmi_set_mode = func->hdmi_set_mode;
     gdisp.init_para.hdmi_mode_support = func->hdmi_mode_support;
     gdisp.init_para.hdmi_get_HPD_status = func->hdmi_get_HPD_status;
     gdisp.init_para.hdmi_set_pll = func->hdmi_set_pll;
+    gdisp.init_para.hdmi_suspend= func->hdmi_suspend;
+    gdisp.init_para.hdmi_resume= func->hdmi_resume;
     
     return DIS_SUCCESS;
 }
+

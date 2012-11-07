@@ -37,7 +37,6 @@ static int __init hdmi_probe(struct platform_device *pdev)
 	ghdmi.base_hdmi = 0xf1c16000;
 
 	Hdmi_init();
-    Fb_Init(1);
 
 	return 0;
 }
@@ -171,7 +170,8 @@ static void __exit hdmi_module_exit(void)
 
 
 
-late_initcall(hdmi_module_init);
+//late_initcall(hdmi_module_init);
+module_init(hdmi_module_init);
 module_exit(hdmi_module_exit);
 
 MODULE_AUTHOR("danling_xiao");

@@ -51,6 +51,7 @@ typedef struct
     __disp_fb_create_para_t fb_para[FB_MAX];
 	wait_queue_head_t       wait[2];
 	unsigned long           wait_count[2];
+    struct timer_list      disp_timer[2];
 }fb_info_t;
 
 typedef struct
@@ -100,7 +101,7 @@ extern __disp_drv_t    g_disp_drv;
 
 extern __s32 DRV_lcd_open(__u32 sel);
 extern __s32 DRV_lcd_close(__u32 sel);
-extern __s32 Fb_Init(__u32 from);
+extern __s32 Fb_Init(void);
 extern __s32 Fb_Exit(void);
 
 #endif

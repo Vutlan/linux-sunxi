@@ -1359,18 +1359,18 @@ __s32 Disp_lcdc_init(__u32 sel)
     {        
         OSAL_RegISR(INTC_IRQNO_LCDC0,0,Disp_lcdc_event_proc,(void*)sel,0,0);
 		OSAL_RegISR(INTC_IRQNO_DSI,0,Disp_lcdc_event_proc,(void*)sel,0,0);
+        LCD_get_panel_funs_0(&lcd_panel_fun[sel]);
 #ifndef __LINUX_OSAL__
         OSAL_InterruptEnable(INTC_IRQNO_LCDC0);
 		OSAL_InterruptEnable(INTC_IRQNO_DSI);
-        LCD_get_panel_funs_0(&lcd_panel_fun[sel]);
 #endif
     }
     else
     {        
         OSAL_RegISR(INTC_IRQNO_LCDC1,0,Disp_lcdc_event_proc,(void*)sel,0,0);
+        LCD_get_panel_funs_1(&lcd_panel_fun[sel]);
 #ifndef __LINUX_OSAL__
         OSAL_InterruptEnable(INTC_IRQNO_LCDC1);
-        LCD_get_panel_funs_1(&lcd_panel_fun[sel]);
 #endif
     }
 #ifdef __FPGA_DEBUG__
@@ -2136,6 +2136,22 @@ __s32 LCD_CPU_WR_DATA(__u32 sel,__u32 data)
     return 0;
 }
 
+__s32 BSP_disp_restore_lcdc_reg(__u32 sel)
+{
+    tcon_init(sel);
+
+    if(BSP_disp_lcd_used(sel))
+    {
+        __pwm_info_t pwm_info;
+
+        pwm_get_para(gpanel_info[sel].lcd_pwm_ch, &pwm_info);
+
+        pwm_info.enable = 0;
+        pwm_set_para(gpanel_info[sel].lcd_pwm_ch, &pwm_info);
+    }
+
+    return 0;
+}
 
 #ifdef __LINUX_OSAL__
 EXPORT_SYMBOL(LCD_OPEN_FUNC);

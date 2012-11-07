@@ -503,12 +503,14 @@ typedef struct
 
 typedef struct
 {
-    __s32 (*Hdmi_open)(void);
-    __s32 (*Hdmi_close)(void);
+    __s32 (*hdmi_open)(void);
+    __s32 (*hdmi_close)(void);
     __s32 (*hdmi_set_mode)(__disp_tv_mode_t mode);
     __s32 (*hdmi_mode_support)(__disp_tv_mode_t mode);
     __s32 (*hdmi_get_HPD_status)(void);
     __s32 (*hdmi_set_pll)(__u32 pll, __u32 clk);
+    __s32 (*hdmi_suspend)(void);
+    __s32 (*hdmi_resume)(void);
 }__disp_hdmi_func;
 
 typedef struct
@@ -629,6 +631,7 @@ typedef struct lcd_flow
 {
     __lcd_function_t func[5];
     __u32 func_num;
+    __u32 cur_step;
 }__lcd_flow_t;
 
 typedef struct
