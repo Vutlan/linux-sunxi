@@ -1,7 +1,17 @@
 PWD=$(shell pwd)
 
-MALI_DRV_ROOT=DX910-SW-99002-r3p1-01rel0/driver/src/devicedrv/mali
-MALI_UMP_ROOT=DX910-SW-99002-r3p1-01rel0/driver/src/devicedrv/ump
+MALI_DRV_ROOT=DX910-SW-99002-r3p1-01rel1/driver/src/devicedrv/mali
+MALI_UMP_ROOT=DX910-SW-99002-r3p1-01rel1/driver/src/devicedrv/ump
+
+#MALI_DRV_ROOT=DX910-BU-00000-r2p4-02rel1/devicedrv/mali
+#MALI_UMP_ROOT=DX910-BU-00000-r2p4-02rel1/devicedrv/ump
+
+#MALI_DRV_ROOT=DX910-SW-99002-r3p0-04rel0/driver/src/devicedrv/mali
+#MALI_UMP_ROOT=DX910-SW-99002-r3p0-04rel0/driver/src/devicedrv/ump
+
+#MALI_DRV_ROOT=DX910-SW-99002-r3p1-00dev0/driver/src/devicedrv/mali
+#MALI_UMP_ROOT=DX910-SW-99002-r3p1-00dev0/driver/src/devicedrv/ump
+
 
 install: build
 	cp $(MALI_DRV_ROOT)/mali.ko $(LICHEE_MOD_DIR)/
