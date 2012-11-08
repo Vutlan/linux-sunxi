@@ -27,8 +27,15 @@
 #include <linux/device.h>
 #include <asm/uaccess.h>
 #include <asm/delay.h>
+#include <linux/delay.h>
 #include <asm/io.h>
+#include <asm/tlbflush.h>
 #include <linux/power/aw_pm.h>
+#include <asm/mach/map.h>
+#include <asm/cacheflush.h>
+#include <mach/sys_config.h>
+#include <mach/system.h>
+#include "pm_debug.h"
 
 #define AW_PM_DBG   1
 #undef PM_DBG
@@ -54,6 +61,10 @@ static struct aw_pm_info standby_info = {
         .dev_addr = 10,
     },
 };
+struct standby_output_t standby_output;
+EXPORT_SYMBOL(standby_output);
+unsigned int wakeup_src_ctrl = 0;
+EXPORT_SYMBOL(wakeup_src_ctrl);
 
 
 /*
@@ -70,10 +81,13 @@ static struct aw_pm_info standby_info = {
 *
 *********************************************************************************************************
 */
+extern bool console_suspend_enabled;
+
 static int aw_pm_valid(suspend_state_t state)
 {
     PM_DBG("valid\n");
 
+    console_suspend_enabled = 0;
     if(!((state > PM_SUSPEND_ON) && (state < PM_SUSPEND_MAX))){
         PM_DBG("state (%d) invalid!\n", state);
         return 0;
@@ -100,8 +114,13 @@ static int aw_pm_valid(suspend_state_t state)
 int aw_pm_begin(suspend_state_t state)
 {
     PM_DBG("%d state begin\n", state);
+/*must init perfcounter, because delay_us and delay_ms is depandant perf counter*/
+#ifndef GET_CYCLE_CNT
+		backup_perfcounter();
+		init_perfcounters (1, 0);
+#endif
 
-    return 0;
+	return 0;
 }
 
 
@@ -175,10 +194,21 @@ static int aw_pm_enter(suspend_state_t state)
 
     /* config system wakeup evetn type */
     standby_info.standby_para.event = SUSPEND_WAKEUP_SRC_EXINT | SUSPEND_WAKEUP_SRC_ALARM;
+    standby_info.standby_para.event |= wakeup_src_ctrl;
+    wakeup_src_ctrl = 0;
 
     /*FIXME: cannot wakeup */
     /* goto sram and run */
     standby(&standby_info);
+    standby_output.event = standby_info.standby_para.event;
+    standby_output.ir_data_cnt = standby_info.standby_para.ir_data_cnt;
+    if (standby_output.ir_data_cnt != 0)
+    {
+        memcpy(standby_output.ir_buffer, standby_info.standby_para.ir_buffer, STANDBY_IR_BUF_SIZE);
+    }
+    standby_info.standby_para.ir_data_cnt = 0;
+    PM_DBG("wakeup event %x\n", standby_output.event);
+    PM_DBG("standby_output.ir_data_cnt %x\n", standby_output.ir_data_cnt);
 
     return 0;
 }
@@ -243,6 +273,11 @@ void aw_pm_finish(void)
 */
 void aw_pm_end(void)
 {
+#ifndef GET_CYCLE_CNT
+	#ifndef IO_MEASURE
+			restore_perfcounter();
+	#endif
+#endif
     PM_DBG("aw_pm_end!\n");
 }
 

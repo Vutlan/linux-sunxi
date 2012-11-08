@@ -1,7 +1,7 @@
 /*
 *********************************************************************************************************
 *                                                    LINUX-KERNEL
-*                                        AllWinner Linux Platform Develop Kits
+*                                        newbie Linux Platform Develop Kits
 *                                                   Kernel Module
 *
 *                                    (c) Copyright 2006-2011, kevin.z China
@@ -21,7 +21,7 @@
 
 static __ccmu_reg_list_t   *CmuReg;;
 static __u32    ccu_reg_back[7];
-__u32   cpu_ms_loopcnt;
+__u32   cpu_ms_loopcnt = 3000;
 
 //==============================================================================
 // CLOCK SET FOR SYSTEM STANDBY
@@ -169,13 +169,34 @@ __s32 standby_clk_core2pll(void)
 */
 __s32 standby_clk_plldisable(void)
 {
-    CmuReg->Pll1Ctl.PLLEn = 0;
-    CmuReg->Pll2Ctl.PLLEn = 0;
-    CmuReg->Pll3Ctl.PLLEn = 0;
-    CmuReg->Pll4Ctl.PLLEn = 0;
-    CmuReg->Pll5Ctl.PLLEn = 0;
-    CmuReg->Pll6Ctl.PLLEn = 0;
-    CmuReg->Pll7Ctl.PLLEn = 0;
+    if ((standby_ctrl_flag & PLL1_ENABLE_MASK) == 0)
+    {
+        CmuReg->Pll1Ctl.PLLEn = 0;
+    }
+    if ((standby_ctrl_flag & PLL2_ENABLE_MASK) == 0)
+    {
+        CmuReg->Pll2Ctl.PLLEn = 0;
+    }
+    if ((standby_ctrl_flag & PLL3_ENABLE_MASK) == 0)
+    {
+        CmuReg->Pll3Ctl.PLLEn = 0;
+    }
+    if ((standby_ctrl_flag & PLL4_ENABLE_MASK) == 0)
+    {
+        CmuReg->Pll4Ctl.PLLEn = 0;
+    }
+    if ((standby_ctrl_flag & PLL5_ENABLE_MASK) == 0)
+    {
+        CmuReg->Pll5Ctl.PLLEn = 0;
+    }
+    if ((standby_ctrl_flag & PLL6_ENABLE_MASK) == 0)
+    {
+        CmuReg->Pll6Ctl.PLLEn = 0;
+    }
+    if ((standby_ctrl_flag & PLL7_ENABLE_MASK) == 0)
+    {
+        CmuReg->Pll7Ctl.PLLEn = 0;
+    }
 
     return 0;
 }
@@ -335,6 +356,63 @@ __s32 standby_clk_getdiv(struct sun4i_clk_div_t  *clk_div)
     return 0;
 }
 
+/*
+*********************************************************************************************************
+*                                     standby_clk_set_pll_factor
+*
+* Description: set pll factor, target cpu freq is 384M hz
+*
+* Arguments  : none
+*
+* Returns    : 0;
+*********************************************************************************************************
+*/
+
+__s32 standby_clk_set_pll_factor(struct pll_factor_t *pll_factor)
+{
+    if(!pll_factor)
+    {
+        return -1;
+    }
+
+	CmuReg->Pll1Ctl.FactorN = pll_factor->FactorN;
+	CmuReg->Pll1Ctl.FactorK = pll_factor->FactorK;
+	CmuReg->Pll1Ctl.FactorM = pll_factor->FactorM;
+	CmuReg->Pll1Ctl.PLLDivP = pll_factor->FactorP;
+	
+	//busy_waiting();
+	
+	return 0;
+}
+
+/*
+*********************************************************************************************************
+*                                     standby_clk_get_pll_factor
+*
+* Description: 
+*
+* Arguments  : none
+*
+* Returns    : 0;
+*********************************************************************************************************
+*/
+
+__s32 standby_clk_get_pll_factor(struct pll_factor_t *pll_factor)
+{
+    if(!pll_factor)
+    {
+        return -1;
+    }
+
+	pll_factor->FactorN = CmuReg->Pll1Ctl.FactorN;
+	pll_factor->FactorK = CmuReg->Pll1Ctl.FactorK;
+	pll_factor->FactorM = CmuReg->Pll1Ctl.FactorM;
+	pll_factor->FactorP = CmuReg->Pll1Ctl.PLLDivP;
+	
+	//busy_waiting();
+	
+	return 0;
+}
 
 /*
 *********************************************************************************************************

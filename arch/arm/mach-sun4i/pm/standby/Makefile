@@ -6,7 +6,7 @@ INCLUDE   = -I. \
 
 OBJ = common.o standby.o stack.o standby_clock.o dram/dram.o dram/dram_init.o   \
       standby_int.o standby_ir.o standby_key.o standby_power.o  \
-      standby_tmr.o standby_twi.o standby_usb.o standby_delay.o
+      standby_tmr.o standby_twi.o standby_usb.o standby_delay.o standby_uart.o pm_debug.o 
 
 
 OUPUTFILE = standby
@@ -22,12 +22,14 @@ all:
 	$(CC) $(INCLUDE) $(CFLAGS) standby_clock.c    -o standby_clock.o
 	$(CC) $(INCLUDE) $(CFLAGS) standby_int.c      -o standby_int.o
 	$(CC) $(INCLUDE) $(CFLAGS) standby_ir.c       -o standby_ir.o
+	$(CC) $(INCLUDE) $(CFLAGS) standby_uart.c       -o standby_uart.o
 	$(CC) $(INCLUDE) $(CFLAGS) standby_key.c      -o standby_key.o
 	$(CC) $(INCLUDE) $(CFLAGS) standby_power.c    -o standby_power.o
 	$(CC) $(INCLUDE) $(CFLAGS) standby_tmr.c      -o standby_tmr.o
 	$(CC) $(INCLUDE) $(CFLAGS) standby_twi.c      -o standby_twi.o
 	$(CC) $(INCLUDE) $(CFLAGS) standby_usb.c      -o standby_usb.o
 	$(CC) $(INCLUDE) $(CFLAGS) standby_delay.S    -o standby_delay.o
+	$(CC) $(INCLUDE) $(CFLAGS) ./../pm_debug.c    -o pm_debug.o 
 	$(CC) $(INCLUDE) $(CFLAGS) dram/dram.c        -o dram/dram.o
 	$(CC) $(INCLUDE) $(CFLAGS) dram/dram_init.c   -o dram/dram_init.o
 	$(CC) $(INCLUDE) $(CFLAGS) stack.S            -o stack.o

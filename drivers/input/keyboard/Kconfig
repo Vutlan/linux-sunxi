@@ -589,6 +589,12 @@ config IR_SUN4I
         tristate "sun4i IR  support"
 	depends on ARCH_SUN4I
 
+config IR_WAKEUP
+        bool "sun4i IR support wake up standby sys"
+	depends on IR_SUN4I
+	default n
+
+
 config IR_SUN5I
        tristate "sun5i IR  support"
        depends on ARCH_SUN5I

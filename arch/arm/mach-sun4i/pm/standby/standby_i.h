@@ -31,46 +31,31 @@
 #include "standby_ir.h"
 #include "standby_tmr.h"
 #include "standby_int.h"
-
+#include "standby_uart.h"
+#include "../pm.h"
 extern struct aw_pm_info  pm_info;
 
+#define HOSC_ENABLE_MASK 0x1
+#define DRAM_ENABLE_MASK 0x2
+#define PLL1_ENABLE_MASK 0x4
+#define PLL2_ENABLE_MASK 0x8
+#define PLL3_ENABLE_MASK 0x10
+#define PLL4_ENABLE_MASK 0x20
+#define PLL5_ENABLE_MASK 0x40
+#define PLL6_ENABLE_MASK 0x80
+#define PLL7_ENABLE_MASK 0x100
+#define CPU_SRC_MASK 0x30000
 
-static inline __u32 raw_lib_udiv(__u32 dividend, __u32 divisior)
-{
-    __u32   tmpDiv = (__u32)divisior;
-    __u32   tmpQuot = 0;
-    __s32   shift = 0;
 
-    if(!divisior)
-    {
-        /* divide 0 error abort */
-        return 0;
-    }
 
-    while(!(tmpDiv & ((__u32)1<<31)))
-    {
-        tmpDiv <<= 1;
-        shift ++;
-    }
+#define CPU_SRC_LOSC 0x00000
+#define CPU_SRC_HOSC 0x10000
+#define CPU_SRC_PLL1 0x20000
+#define CPU_SRC_PLL6 0x30000
 
-    do
-    {
-        if(dividend >= tmpDiv)
-        {
-            dividend -= tmpDiv;
-            tmpQuot = (tmpQuot << 1) | 1;
-        }
-        else
-        {
-            tmpQuot = (tmpQuot << 1) | 0;
-        }
-        tmpDiv >>= 1;
-        shift --;
-    } while(shift >= 0);
 
-    return tmpQuot;
-}
-
+extern struct aw_pm_info  pm_info;
+extern __u32 standby_ctrl_flag;
 
 
 #endif  //__STANDBY_I_H__
