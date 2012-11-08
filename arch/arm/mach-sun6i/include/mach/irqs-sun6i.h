@@ -176,9 +176,9 @@
 #define AW_IRQ_TIMER0		(AW_IRQ_GIC_START + 18)		/*	Timer0		*/
 #define AW_IRQ_TIMER1		(AW_IRQ_GIC_START + 19)		/*	Timer1		*/
 #define AW_IRQ_TIMER2		(AW_IRQ_GIC_START + 20)		/*	Timer2		*/
-#define AW_IRQ_TIMER2       (AW_IRQ_GIC_START + 21)     /*  Timer3      */
-#define AW_IRQ_TIMER2       (AW_IRQ_GIC_START + 22)     /*  Timer4      */
-#define AW_IRQ_TIMER2       (AW_IRQ_GIC_START + 23)     /*  Timer5      */
+#define AW_IRQ_TIMER3       (AW_IRQ_GIC_START + 21)     /*  Timer3      */
+#define AW_IRQ_TIMER4       (AW_IRQ_GIC_START + 22)     /*  Timer4      */
+#define AW_IRQ_TIMER5       (AW_IRQ_GIC_START + 23)     /*  Timer5      */
 #define	AW_IRQ_WATCHDOG4	(AW_IRQ_GIC_START + 24)		/*	WATCHDOG4	*/
 #define	AW_IRQ_WATCHDOG1	(AW_IRQ_GIC_START + 25)		/*	WATCHDOG1	*/
 #define	AW_IRQ_WATCHDOG2	(AW_IRQ_GIC_START + 26)		/*	WATCHDOG2	*/
