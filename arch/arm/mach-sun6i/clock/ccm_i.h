@@ -33,13 +33,24 @@ extern __ccmu_reg_cpu0_list_t  *aw_cpu0_reg;
 extern __clk_ops_t sys_clk_ops;
 extern __clk_ops_t mod_clk_ops;
 
+#define CCMU_DBG_LEVEL  (1)
 
-#if (1)
-    #define CCU_DBG(format,args...)   printk("[ccmu] "format,##args)
-    #define CCU_ERR(format,args...)   printk("[ccmu] "format,##args)
-#else
+#if (CCMU_DBG_LEVEL == 0 )
     #define CCU_DBG(...)
+    #define CCU_INF(...)
     #define CCU_ERR(...)
+#else if(CCMU_DBG_LEVEL == 1)
+    #define CCU_DBG(...)
+    #define CCU_INF(...)
+    #define CCU_ERR(format,args...)   printk("[ccmu] "format,##args)
+#else if(CCMU_DBG_LEVEL == 2)
+    #define CCU_DBG(...)
+    #define CCU_INF(format,args...)   printk("[ccmu] "format,##args)
+    #define CCU_ERR(format,args...)   printk("[ccmu] "format,##args)
+#else if(CCMU_DBG_LEVEL == 3)
+    #define CCU_DBG(format,args...)   printk("[ccmu] "format,##args)
+    #define CCU_INF(format,args...)   printk("[ccmu] "format,##args)
+    #define CCU_ERR(format,args...)   printk("[ccmu] "format,##args)
 #endif
 
 
