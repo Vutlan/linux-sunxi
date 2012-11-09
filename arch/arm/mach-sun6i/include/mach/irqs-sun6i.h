@@ -97,6 +97,7 @@
 #define AW_IRQ_DEU01		(AW_IRQ_GIC_START + 30)/*	DEU01		*/
 #define AW_IRQ_R_1WIRE		(AW_IRQ_GIC_START + 31)/*	R_1WIRE		*/
 
+#define AW_IRQ_GPU			(AW_IRQ_GIC_START + 32)/*	GPU			*/
 #elif defined (AW_FPGA_V7_PLATFORM)
 
 #define AW_IRQ_NMI			(AW_IRQ_GIC_START + 0) /*	NMI			*/
