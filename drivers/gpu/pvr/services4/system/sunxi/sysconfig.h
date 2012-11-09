@@ -43,7 +43,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #if !defined(__SOCCONFIG_H__)
 #define __SOCCONFIG_H__
-
+#include <mach/irqs-sun6i.h>
 #define VS_PRODUCT_NAME	"sunxi"
 
 #if defined(SGX544) && (SGX_CORE_REV == 115)
@@ -66,7 +66,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define SYS_SUNXI_SGX_REGS_SYS_PHYS_BASE  0x01C40000
 #define SYS_SUNXI_SGX_REGS_SIZE           0xFFFF
 
-#define SYS_SUNXI_SGX_IRQ				 58  /* IC 129, FPGA 58 SUNXI IRQ's aren't offset by 32 */
+#define SYS_SUNXI_SGX_IRQ				 AW_IRQ_GPU  /* IC 129, FPGA 58 SUNXI IRQ's aren't offset by 32 */
 
 /* Interrupt bits */
 #define DEVICE_SGX_INTERRUPT		(1<<0)

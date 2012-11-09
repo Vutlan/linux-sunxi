@@ -1,4 +1,4 @@
-ccflags-y = -DLINUX -D__linux__ -DANDROID -DPVR_BUILD_DIR="\"sunxi\""
+ccflags-y = -DLINUX -D__linux__ -DANDROID -DPVR_BUILD_DIR="\"sunxi_android\""
 ccflags-y += -Idrivers/gpu/pvr \
              -Idrivers/gpu/pvr/include4  \
              -Idrivers/gpu/pvr/services4/include \
@@ -14,7 +14,6 @@ ccflags-y += -Idrivers/gpu/pvr \
 
 ccflags-y += \
             -DSGX_FEATURE_MP_CORE_COUNT=1 \
-            -DPVR_BUILD_DIR="\"sunxi\"" \
             -DPVR_BUILD_TYPE="\"release\"" \
             -DPVRSRV_MODNAME="\"pvrsrvkm\"" \
             -DSGXCORE=544   \
@@ -39,17 +38,19 @@ ccflags-y += \
             -DSGX_FEATURE_SYSTEM_CACHE  \
             -DSGX_FEATURE_MP \
             -DSYS_USING_INTERRUPTS \
-            -DSUPPORT_PVRSRV_GET_DC_SYSTEM_BUFFER \
             -DSUPPORT_LINUX_X86_WRITECOMBINE \
             -DSUPPORT_LINUX_X86_PAT \
-            -DSGX_DYNAMIC_TIMING_INFO \
             -DSYS_SGX_ACTIVE_POWER_LATENCY_MS=50 \
             -DSYS_CUSTOM_POWERLOCK_WRAP  \
             -DPVR_LINUX_USING_WORKQUEUES \
             -DPVR_LINUX_MISR_USING_PRIVATE_WORKQUEUE  \
             -DPVR_LINUX_TIMERS_USING_WORKQUEUES  \
             -DLDM_PLATFORM  \
-            -DPVR_LDM_DRIVER_REGISTRATION_NAME="\"pvrsrvkm\"" 
+            -DPVR_LDM_DRIVER_REGISTRATION_NAME="\"pvrsrvkm\"" \
+            -DSUPPORT_DC_CMDCOMPLETE_WHEN_NO_LONGER_DISPLAYED \
+			-DSUPPORT_LARGE_GENERAL_HEAP \
+			-DSUPPORT_MEMINFO_IDS
+
 
 pvrsrvkm-y := \
 	services4/srvkm/env/linux/osfunc.o \
