@@ -30,8 +30,6 @@ static void __iomem *timer_cpu_base = 0;
 static spinlock_t timer0_spin_lock;
 static int timer_set_next_clkevt(unsigned long delta, struct clock_event_device *dev);
 
-#define TIMER0_VALUE (AW_CLOCK_SRC / (AW_CLOCK_DIV*100))
-
 static void timer_set_mode(enum clock_event_mode mode, struct clock_event_device *clk)
 {
     volatile u32 ctrl = 0;
@@ -150,7 +148,7 @@ void __init sun6i_timer_init(void)
     ctrl = readl(timer_cpu_base + AW_TMR0_CTRL_REG);
 #ifdef AW_ASIC_PLATFORM
 	/*OSC24m*/
-	printk("fpga,%s,line:%d\n", __func__, __LINE__);
+	printk("asic,%s,line:%d\n", __func__, __LINE__);
     ctrl |= (1<<2);
 #else 
 	/*internalOSC/N*/
