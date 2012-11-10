@@ -16,6 +16,7 @@
  * along with this program.
  ********************************************************************************/
 
+#include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/interrupt.h>
 #include <linux/io.h>
@@ -32,13 +33,19 @@
 #include <linux/slab.h>
 #include <linux/prefetch.h>
 #include <linux/platform_device.h>
+#include <linux/clk.h>
+#include <linux/ctype.h>
+
+#include <mach/sys_config.h>
+#include <mach/gpio.h>
+#include <mach/clock.h>
 
 #ifdef CONFIG_GMAC_DEBUG_FS
 #include <linux/debugfs.h>
 #include <linux/seq_file.h>
 #endif
 
-#include "sun6i_gmac.h"
+#include "sunxi_gmac.h"
 #include "gmac_desc.h"
 #include "gmac_ethtool.h"
 
@@ -161,6 +168,33 @@ static inline u32 gmac_tx_avail(struct gmac_priv *priv)
 }
 
 /**
+ * gmac_clk_ctl
+ * @flag: 0--disable, 1--enable.
+ * Description: enable and disable gmac clk.
+ */
+static void gmac_clk_ctl(struct gmac_priv *priv, unsigned int flag)
+{
+#ifndef CONFIG_GMAC_CLK_SYS
+	int reg_value;
+	reg_value = readl(priv->clkbase + AHB1_GATING);
+	flag ? (reg_value |= GMAC_AHB_BIT) : (reg_value &= ~GMAC_AHB_BIT);
+	writel(reg_value, priv->clkbase + AHB1_GATING);
+
+	reg_value = readl(priv->clkbase + AHB1_MOD_RESET);
+	flag ? (reg_value &= ~GMAC_RESET_BIT) : (reg_value |= GMAC_RESET_BIT);
+	writel(reg_value, priv->clkbase + AHB1_MOD_RESET);
+#else
+	if (flag) {
+		clk_enable(priv->gmac_ahb_clk);
+		clk_reset(priv->gmac_mod_clk, 0);
+	} else {
+		clk_disable(priv->gmac_ahb_clk);
+		clk_reset(priv->gmac_mod_clk, 1);
+	}
+#endif
+}
+
+/**
  * gmac_adjust_link
  * @dev: net device structure
  * Description: it adjusts the link parameters.
@@ -262,7 +296,7 @@ static int gmac_init_phy(struct net_device *ndev)
 	priv->speed = 0;
 	priv->oldduplex = -1;
 
-	snprintf(bus_id, MII_BUS_ID_SIZE, "sun6i_gmac-%x", priv->plat->bus_id);
+	snprintf(bus_id, MII_BUS_ID_SIZE, "sunxi_gmac-%x", priv->plat->bus_id);
 	snprintf(phy_id, MII_BUS_ID_SIZE + 3, PHY_ID_FMT, bus_id,
 		 priv->plat->phy_addr);
 	pr_debug("gmac_init_phy:  trying to attach to %s\n", phy_id);
@@ -711,12 +745,19 @@ static void gmac_dma_interrupt(struct gmac_priv *priv)
 
 static void gmac_check_ether_addr(struct gmac_priv *priv)
 {
+	int i;
+	char *p = mac_str;
 	/* verify if the MAC address is valid, in case of failures it
 	 * generates a random MAC address */
 	if (!is_valid_ether_addr(priv->ndev->dev_addr)) {
 		gmac_get_umac_addr((void __iomem *)
 					     priv->ndev->base_addr,
 					     priv->ndev->dev_addr, 0);
+		if  (!is_valid_ether_addr(priv->ndev->dev_addr)) {
+			for (i=0; i<6; i++,p++)
+				priv->ndev->dev_addr[i] = simple_strtoul(p, &p, 16);
+		}
+
 		if  (!is_valid_ether_addr(priv->ndev->dev_addr))
 			random_ether_addr(priv->ndev->dev_addr);
 	}
@@ -738,6 +779,7 @@ static int gmac_open(struct net_device *ndev)
 	struct gmac_priv *priv = netdev_priv(ndev);
 	int ret;
 
+	gmac_clk_ctl(priv, 1);
 	gmac_check_ether_addr(priv);
 
 	/* MDIO bus Registration */
@@ -872,6 +914,7 @@ static int gmac_release(struct net_device *ndev)
 	gmac_exit_fs();
 #endif
 	gmac_mdio_unregister(ndev);
+	gmac_clk_ctl(priv, 0);
 
 	return 0;
 }
@@ -1566,7 +1609,7 @@ int gmac_suspend(struct net_device *ndev)
 				     dis_ic);
 	desc_init_tx(priv->dma_tx, priv->dma_tx_size);
 
-	gmac_set_mac(priv->ioaddr, false);
+	gmac_set_tx_rx(priv->ioaddr, false);
 
 	spin_unlock(&priv->lock);
 	return 0;
@@ -1584,7 +1627,7 @@ int gmac_resume(struct net_device *ndev)
 	netif_device_attach(ndev);
 
 	/* Enable the MAC and DMA */
-	gmac_set_mac(priv->ioaddr, true);
+	gmac_set_tx_rx(priv->ioaddr, true);
 	dma_start_tx(priv->ioaddr);
 	dma_start_rx(priv->ioaddr);
 
@@ -1617,14 +1660,46 @@ int gmac_restore(struct net_device *ndev)
 }
 #endif /* CONFIG_PM */
 
+#ifdef MODULE
+static int __init set_mac_addr(char *str)
+{
+	char *p = str;
+
+	memcpy(mac_str, p, 18);
+
+	return 0;
+}
+__setup("mac_addr=", set_mac_addr);
+#endif
+
 static int __init gmac_init(void)
 {
+	int gmac_used = 0;
+
+	if (SCRIPT_PARSER_OK != script_parser_fetch("gmac_para", "gmac_used", &gmac_used, 1))
+		printk(KERN_WARNING "[sunxi_gmac]: Script is failed!\n");
+
+	if (!gmac_used) {
+		printk(KERN_WARNING "[sunxi_gmac]: The script config GMAC is not used!\n");
+		return 0;
+	}
+
 	platform_device_register(&gmac_device);
 	return platform_driver_register(&gmac_driver);
 }
 
 static void __exit gmac_remove(void)
 {
+	int gmac_used = 0;
+
+	if (SCRIPT_PARSER_OK != script_parser_fetch("gmac_para", "gmac_used", &gmac_used, 1))
+		printk(KERN_WARNING "[sunxi_gmac]: Script is failed!\n");
+
+	if (!gmac_used) {
+		printk(KERN_WARNING "[sunxi_gmac]: The script config GMAC is not used!\n");
+		return;
+	}
+
 	platform_driver_unregister(&gmac_driver);
 	platform_device_unregister(&gmac_device);
 }
@@ -1632,7 +1707,7 @@ static void __exit gmac_remove(void)
 module_init(gmac_init);
 module_exit(gmac_remove);
 
-MODULE_DESCRIPTION("SUN6I 1000 Ethernet device driver");
+MODULE_DESCRIPTION("SUN6I 10/100/1000Mbps Ethernet device driver");
 MODULE_AUTHOR("Shuge <shugeLinux@gmail.com>");
 MODULE_LICENSE("GPL v2");
 

@@ -21,7 +21,7 @@
 #include <linux/crc32.h>
 
 #include "gmac_ethtool.h"
-#include "sun6i_gmac.h"
+#include "sunxi_gmac.h"
 #include "gmac_desc.h"
 
 #undef GMAC_BASE_DEBUG

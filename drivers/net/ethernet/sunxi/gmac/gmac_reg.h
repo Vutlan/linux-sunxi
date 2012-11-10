@@ -19,8 +19,6 @@
 #ifndef __GMAC_REG_H__
 #define __GMAC_REG_H__
 
-#define GMAC_IRQ			(24 + 32) /* in fpga is 24 */
-//#define GMAC_IRQ			114	
 #define GMAC_BASE			0x01c30000
 
 /******************************************************************************
@@ -284,6 +282,8 @@ enum rtc_control {
 
 #define AHB1_GATING			(0x60)
 #define GMAC_AHB_BIT		0x00000200
+#define AHB1_MOD_RESET		(0x2c0)
+#define GMAC_RESET_BIT		0x00020000
 
 #define GMAC_CLK_REG		0x00D0
 #define GMAC_CLK_GPIT		0x00000004

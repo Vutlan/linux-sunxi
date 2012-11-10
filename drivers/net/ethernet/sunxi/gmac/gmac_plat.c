@@ -29,19 +29,17 @@
 #include <linux/io.h>
 #include <linux/mii.h>
 #include <linux/phy.h>
+#include <linux/clk.h>
 
-#include "sun6i_gmac.h"
+#include <mach/gpio.h>
+#include <mach/irqs.h>
+
+#include "sunxi_gmac.h"
 
 static int gmac_system_init(struct gmac_priv *priv)
 {
+#ifndef CONFIG_GMAC_SCRIPT_SYS
 	int reg_value;
-
-	if(priv->clkbase){
-		reg_value = readl(priv->clkbase + AHB1_GATING);
-		writel((reg_value | GMAC_AHB_BIT), priv->clkbase + AHB1_GATING);
-		reg_value = readl(priv->clkbase + AHB1_GATING);
-	}
-
 	/* configure system io */
 	if(priv->gpiobase){
 		writel(0x22222222, priv->gpiobase + PA_CFG0);
@@ -53,6 +51,12 @@ static int gmac_system_init(struct gmac_priv *priv)
 		writel(0x22222222, priv->gpiobase + PA_CFG2);
 		reg_value = readl(priv->gpiobase + PA_CFG2);
 	}
+#else
+	priv->gpio_hd = sw_gpio_request_ex("gmac_para", NULL);
+	if (!priv->gpio_hd) {
+		printk(KERN_ERR "ERROR: Request gpio resources is failed!\n");
+	}
+#endif
 
 	return 0;
 }
@@ -60,26 +64,67 @@ static int gmac_system_init(struct gmac_priv *priv)
 static int gmac_sys_request(struct platform_device *pdev, struct gmac_priv *priv)
 {
 	int ret = 0;
-	struct resource *io_clk, *io_gpio;
+#ifndef CONFIG_GMAC_CLK_SYS
+	struct resource *io_clk; 
+#endif
+#ifndef CONFIG_GMAC_SCRIPT_SYS
+	struct resource *io_gpio;
+#endif
+	struct resource *clk_reg;
 
+	clk_reg = platform_get_resource(pdev, IORESOURCE_MEM, 3);
+	if (!clk_reg){
+		ret = -ENODEV;
+		printk(KERN_ERR "ERROR: Get gmac clk reg is failed!\n");
+		goto out;
+	}
+
+	priv->gmac_clk_reg = ioremap(clk_reg->start, resource_size(clk_reg));
+	if (!priv->gmac_clk_reg) {
+		printk(KERN_ERR "%s: ERROR: memory mapping failed\n", __func__);
+		ret = -ENOMEM;
+		goto out;
+	}
+
+#ifndef CONFIG_GMAC_CLK_SYS
 	io_clk = platform_get_resource(pdev, IORESOURCE_MEM, 1);
-	if (!io_clk)
-		return -ENODEV;
+	if (!io_clk){
+		ret = -ENODEV;
+		goto out_clk_reg;
+	}
 
+#if 0
 	if (!request_mem_region(io_clk->start, resource_size(io_clk), pdev->name)) {
-		printk(KERN_ERR "%s: ERROR: memory allocation failed"
+		printk(KERN_ERR "%s: ERROR: memory allocation failed\n"
 		       "cannot get the I/O addr 0x%x\n",
 		       __func__, (unsigned int)io_clk->start);
-		return -EBUSY;
+		ret = -EBUSY;
+		goto out_clk_reg;
 	}
+#endif
 
 	priv->clkbase = ioremap(io_clk->start, resource_size(io_clk));
 	if (!priv->clkbase) {
-		printk(KERN_ERR "%s: ERROR: memory mapping failed", __func__);
+		printk(KERN_ERR "%s: ERROR: memory mapping failed\n", __func__);
 		ret = -ENOMEM;
 		goto out_release_clk;
 	}
+#else
+	priv->gmac_ahb_clk = clk_get(&pdev->dev, "ahb_gmac");
+	if (!priv->gmac_ahb_clk) {
+		printk(KERN_ERR "ERROR: Get clock is failed!\n");
+		ret = -1;
+		goto out;
+	}
+	priv->gmac_mod_clk = clk_get(&pdev->dev, "mod_gmac");
+	if (!priv->gmac_mod_clk) {
+		printk(KERN_ERR "ERROR: Get mod gmac is failed!\n");
+		ret = -1;
+		goto out;
+	}
+#endif
 
+#ifndef CONFIG_GMAC_SCRIPT_SYS
 	io_gpio = platform_get_resource(pdev, IORESOURCE_MEM, 2);
 	if (!io_gpio){
 		ret = -ENODEV;
@@ -95,21 +140,28 @@ static int gmac_sys_request(struct platform_device *pdev, struct gmac_priv *priv
 	}
 
 	priv->gpiobase = ioremap(io_gpio->start, resource_size(io_gpio));
-	if (!priv->clkbase) {
+	if (!priv->gpiobase) {
 		printk(KERN_ERR "%s: ERROR: memory mapping failed", __func__);
 		ret = -ENOMEM;
 		goto out_release_gpio;
 	}
+#endif
 
 	return 0;
 
+#ifndef CONFIG_GMAC_SCRIPT_SYS
 out_release_gpio:
 	release_mem_region(io_gpio->start, resource_size(io_gpio));
 out_unmap_clk:
 	iounmap(priv->clkbase);
+#endif
+#ifndef CONFIG_GMAC_CLK_SYS
 out_release_clk:
 	release_mem_region(io_clk->start, resource_size(io_clk));
-
+out_clk_reg:
+	iounmap(priv->gmac_clk_reg);
+#endif
+out:
 	return ret;
 }
 
@@ -117,15 +169,28 @@ static void gmac_sys_release(struct platform_device *pdev)
 {
 	struct net_device *ndev = platform_get_drvdata(pdev);
 	struct gmac_priv *priv = netdev_priv(ndev);
+#if !defined(CONFIG_GMAC_SCRIPT_SYS) || !defined(CONFIG_GMAC_CLK_SYS)
 	struct resource *res;
+#endif
 
+#ifndef CONFIG_GMAC_SCRIPT_SYS
 	iounmap((void *)priv->gpiobase);
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 1);
 	release_mem_region(res->start, resource_size(res));
+#else
+	if (priv->gpio_hd) 
+		sw_gpio_release(priv->gpio_hd, 0);
+#endif
 
+	iounmap(priv->gmac_clk_reg);
+#ifndef CONFIG_GMAC_CLK_SYS
 	iounmap((void *)priv->clkbase);
-	res = platform_get_resource(pdev, IORESOURCE_MEM, 2);
-	release_mem_region(res->start, resource_size(res));
+#else
+	if (priv->gmac_ahb_clk)
+		clk_put(priv->gmac_ahb_clk);
+	if (priv->gmac_mod_clk)
+		clk_put(priv->gmac_mod_clk);
+#endif
 }
 
 static int gmac_pltfr_probe(struct platform_device *pdev)
@@ -198,13 +263,13 @@ static int gmac_pltfr_remove(struct platform_device *pdev)
 	int ret = gmac_dvr_remove(ndev);
 
 
-	platform_set_drvdata(pdev, NULL);
-
 	iounmap((void *)priv->ioaddr);
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	release_mem_region(res->start, resource_size(res));
+	if (res)
+		release_mem_region(res->start, resource_size(res));
 
 	gmac_sys_release(pdev);
+	platform_set_drvdata(pdev, NULL);
 
 	return ret;
 }
@@ -269,19 +334,25 @@ static struct resource gmac_resources[] = {
 	[1] = {
 		.name	= "clkbus",
 		.start	= CCMU_BASE,
-		.end		= CCMU_BASE + AHB1_GATING,
+		.end	= CCMU_BASE + AHB1_MOD_RESET,
 		.flags	= IORESOURCE_MEM,
 	},
 	[2] = {
 		.name	= "gpio",
 		.start	= GPIO_BASE,
-		.end	= GPIO_BASE + 0x0c,
+		.end	= GPIO_BASE + 0x2c0,
 		.flags	= IORESOURCE_MEM,
 	},
 	[3] = {
+		.name	= "gmac_clk_reg",
+		.start	= CCMU_BASE + GMAC_CLK_REG,
+		.end	= CCMU_BASE + GMAC_CLK_REG,
+		.flags	= IORESOURCE_MEM,
+	},
+	[4] = {
 		.name	= "gmacirq",
-		.start	= GMAC_IRQ,
-		.end	= GMAC_IRQ,
+		.start	= AW_IRQ_GMAC,
+		.end	= AW_IRQ_GMAC,
 		.flags	= IORESOURCE_IRQ,
 	}
 };
@@ -307,12 +378,17 @@ static struct gmac_plat_data gmac_platdata ={
 	.mdio_bus_data = &gmac_mdio_data,
 };
 
+static void gmac_device_release(struct device *dev)
+{
+}
+
 struct platform_device gmac_device = {
 	.name = GMAC_RESOURCE_NAME,
 	.id = -1,
 	.resource = gmac_resources,
 	.num_resources = ARRAY_SIZE(gmac_resources),
 	.dev = {
+		.release = gmac_device_release,
 		.platform_data = &gmac_platdata,
 	},
 };
