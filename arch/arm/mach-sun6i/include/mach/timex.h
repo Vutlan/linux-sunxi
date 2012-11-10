@@ -21,12 +21,6 @@
  */
 #ifndef __ASM_ARCH_TIMERX_H
 #define __ASM_ARCH_TIMERX_H
-
-
-#define AW_CLOCK_SRC (32000)
-#define AW_CLOCK_DIV (1)
-
-#define CLOCK_TICK_RATE     (AW_CLOCK_SRC/AW_CLOCK_DIV)
-
+#include <mach/timer.h>
 #endif
 
