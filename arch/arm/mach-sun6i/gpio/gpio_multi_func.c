@@ -29,7 +29,7 @@ u32 gpio_set_cfg(struct aw_gpio_chip *pchip, u32 offset, u32 val)
 
 #ifdef DBG_GPIO
 	if(val & ~((1 << PIO_BITS_WIDTH_CFG) - 1)) {
-		PIO_ERR_FUN_LINE;
+		PIO_DBG("%s maybe err: val 0x%08x\n", __FUNCTION__, val);
 	}
 #endif /* DBG_GPIO */
 
@@ -78,7 +78,7 @@ u32 gpio_set_pull(struct aw_gpio_chip *pchip, u32 offset, u32 val)
 
 #ifdef DBG_GPIO
 	if(val & ~((1 << PIO_BITS_WIDTH_PULL) - 1)) {
-		PIO_ERR_FUN_LINE;
+		PIO_DBG("%s maybe err: val 0x%08x\n", __FUNCTION__, val);
 	}
 #endif /* DBG_GPIO */
 
@@ -127,7 +127,7 @@ u32 gpio_set_drvlevel(struct aw_gpio_chip *pchip, u32 offset, u32 val)
 
 #ifdef DBG_GPIO
 	if(val & ~((1 << PIO_BITS_WIDTH_DRVLVL) - 1)) {
-		PIO_ERR_FUN_LINE;
+		PIO_DBG("%s maybe err: val 0x%08x\n", __FUNCTION__, val);
 	}
 #endif /* DBG_GPIO */
 
@@ -175,7 +175,7 @@ bool is_gpio_requested(u32 gpio)
 
 	pchip = to_gpiochip(gpio);
 	if(NULL == pchip) {
-		PIO_ERR_FUN_LINE;
+		PIO_ERR("%s err: gpio 0x%08x not bound to gpio_chip\n", __FUNCTION__, gpio);
 		return false;
 	}
 
@@ -202,7 +202,7 @@ u32 sw_gpio_setcfg(u32 gpio, u32 val)
 
 #ifdef DBG_GPIO
 	if(false == is_gpio_requested(gpio)) {
-		PIO_ERR("%s to check: gpio %d not requested, line %d\n", __FUNCTION__, gpio, __LINE__);
+		PIO_INF("%s to check: gpio %d not requested, line %d\n", __FUNCTION__, gpio, __LINE__);
 	}
 #endif /* DBG_GPIO */
 
@@ -250,7 +250,7 @@ u32 sw_gpio_getcfg(u32 gpio)
 
 #ifdef DBG_GPIO
 	if(false == is_gpio_requested(gpio)) {
-		PIO_ERR("%s to check: gpio %d not requested, line %d\n", __FUNCTION__, gpio, __LINE__);
+		PIO_INF("%s to check: gpio %d not requested, line %d\n", __FUNCTION__, gpio, __LINE__);
 	}
 #endif /* DBG_GPIO */
 
@@ -297,7 +297,7 @@ u32 sw_gpio_setpull(u32 gpio, u32 val)
 
 #ifdef DBG_GPIO
 	if(false == is_gpio_requested(gpio)) {
-		PIO_ERR("%s to check: gpio %d not requested, line %d\n", __FUNCTION__, gpio, __LINE__);
+		PIO_INF("%s to check: gpio %d not requested, line %d\n", __FUNCTION__, gpio, __LINE__);
 	}
 #endif /* DBG_GPIO */
 
@@ -345,7 +345,7 @@ u32 sw_gpio_getpull(u32 gpio)
 
 #ifdef DBG_GPIO
 	if(false == is_gpio_requested(gpio)) {
-		PIO_ERR("%s to check: gpio %d not requested, line %d\n", __FUNCTION__, gpio, __LINE__);
+		PIO_INF("%s to check: gpio %d not requested, line %d\n", __FUNCTION__, gpio, __LINE__);
 	}
 #endif /* DBG_GPIO */
 
@@ -392,7 +392,7 @@ u32 sw_gpio_setdrvlevel(u32 gpio, u32 val)
 
 #ifdef DBG_GPIO
 	if(false == is_gpio_requested(gpio)) {
-		PIO_ERR("%s to check: gpio %d not requested, line %d\n", __FUNCTION__, gpio, __LINE__);
+		PIO_INF("%s to check: gpio %d not requested, line %d\n", __FUNCTION__, gpio, __LINE__);
 	}
 #endif /* DBG_GPIO */
 
@@ -440,7 +440,7 @@ u32 sw_gpio_getdrvlevel(u32 gpio)
 
 #ifdef DBG_GPIO
 	if(false == is_gpio_requested(gpio)) {
-		PIO_ERR("%s to check: gpio %d not requested, line %d\n", __FUNCTION__, gpio, __LINE__);
+		PIO_INF("%s to check: gpio %d not requested, line %d\n", __FUNCTION__, gpio, __LINE__);
 	}
 #endif /* DBG_GPIO */
 
@@ -488,7 +488,7 @@ u32 sw_gpio_setall_range(struct gpio_config *pcfg, u32 cfg_num)
 	for(i = 0; i < cfg_num; i++, pcfg++) {
 #ifdef DBG_GPIO
 		if(false == is_gpio_requested(pcfg->gpio)) {
-			PIO_ERR("%s to check: gpio %d not requested, line %d\n", __FUNCTION__, pcfg->gpio, __LINE__);
+			PIO_INF("%s to check: gpio %d not requested, line %d\n", __FUNCTION__, pcfg->gpio, __LINE__);
 		}
 #endif /* DBG_GPIO */
 		pchip = gpio_to_aw_gpiochip(pcfg->gpio);
@@ -530,7 +530,7 @@ u32 sw_gpio_getall_range(struct gpio_config *pcfg, u32 cfg_num)
 	for(i = 0; i < cfg_num; i++, pcfg++) {
 #ifdef DBG_GPIO
 		if(false == is_gpio_requested(pcfg->gpio)) {
-			PIO_ERR("%s to check: gpio %d not requested, line %d\n", __FUNCTION__, pcfg->gpio, __LINE__);
+			PIO_INF("%s to check: gpio %d not requested, line %d\n", __FUNCTION__, pcfg->gpio, __LINE__);
 		}
 #endif /* DBG_GPIO */
 		pchip = gpio_to_aw_gpiochip(pcfg->gpio);
