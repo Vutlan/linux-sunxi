@@ -25,13 +25,6 @@ static struct class *disp_class;
 static unsigned long jiffies_resume;
 static unsigned long jiffies_late_resume;
 
-
-struct my_kobj {
-    int val;
-    struct kobject kobj;
-};
-static struct my_kobj *vsync_obj;
-
 static struct resource disp_resource[DISP_IO_NUM] =
 {
 	[DISP_IO_SCALER0] = {
@@ -75,7 +68,6 @@ static struct resource disp_resource[DISP_IO_NUM] =
 		.flags = IORESOURCE_MEM,
 	},
 };
-
 
 __s32 disp_create_heap(__u32 pHeapHead, __u32 nHeapSize)
 {
@@ -310,13 +302,6 @@ void disp_lcd_open_timer(unsigned long sel)
 __s32 disp_set_hdmi_func(__disp_hdmi_func * func)
 {
     BSP_disp_set_hdmi_func(func);
-
-    return 0;
-}
-
-__s32 DRV_disp_vsync_event(__u32 sel)
-{    	
-    kobject_uevent(&(vsync_obj->kobj), KOBJ_CHANGE);
 
     return 0;
 }
@@ -1860,42 +1845,6 @@ struct platform_device disp_device =
 };
 
 
-ssize_t vsync_show(struct kobject *kobj, struct attribute *attr, char *buffer)
-{
-    return 0;
-}
- 
-ssize_t vsync_store(struct kobject *kobj, struct attribute *attr, const char *buffer, size_t size)
-{
-    return 0;
-}
- 
-struct sysfs_ops vsync_sysfsops = {
-    .show = vsync_show,
-    .store = vsync_store,
-};
-
-static void vsync_release(struct kobject *kobj)
-{
-}
-
-struct attribute vsync_name_attr = {
-    .name = "name",
-    .mode = 0444,
-};
- 
-static struct attribute *vsync_default_attrs[] = {
-	&vsync_name_attr,
-	NULL,	/* need to NULL terminate the list of attributes */
-};
-
-
-static struct kobj_type vsync_ktype = {
-	.sysfs_ops = &vsync_sysfsops,
-	.release = vsync_release,
-	.default_attrs = vsync_default_attrs,
-};
-
 int __init disp_module_init(void)
 {
     int ret, err;
@@ -1921,21 +1870,7 @@ int __init disp_module_init(void)
     }
     device_create(disp_class, NULL, devid, NULL, "disp");
 
-    vsync_obj = kzalloc(sizeof(struct my_kobj), GFP_KERNEL);
-    if (!vsync_obj) {
-        return -ENOMEM;
-    }
-    vsync_obj->val = 1;
-    vsync_obj->kobj.kset = kset_create_and_add("disp", NULL, NULL);
-    ret = kobject_init_and_add(&vsync_obj->kobj, &vsync_ktype, NULL, "vsync");
-	if (ret) {
-		kobject_put(&vsync_obj->kobj);
-		__wrn("kobject_init_and_add fail\n");
-		return -1;
-	}
-
 	ret = platform_device_register(&disp_device);
-
 	if (ret == 0)
 	{
 		ret = platform_driver_register(&disp_driver);

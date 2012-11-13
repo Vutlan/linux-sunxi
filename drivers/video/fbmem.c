@@ -1114,9 +1114,9 @@ static long do_fb_ioctl(struct fb_info *info, unsigned int cmd,
 			return -EFAULT;
 		if (!lock_fb_info(info))
 			return -ENODEV;
-		console_lock();
+		//console_lock();
 		ret = fb_pan_display(info, &var);
-		console_unlock();
+		//console_unlock();
 		unlock_fb_info(info);
 		if (ret == 0 && copy_to_user(argp, &var, sizeof(var)))
 			return -EFAULT;
