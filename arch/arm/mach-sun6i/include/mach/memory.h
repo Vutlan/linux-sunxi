@@ -31,6 +31,6 @@
 
 /* g2d memory reserve, same as a1x */
 #define G2D_MEM_BASE            (PLAT_PHYS_OFFSET + SZ_512M - SZ_64M - SZ_32M)
-#define G2D_MEM_SIZE            (SZ_32M)
+#define G2D_MEM_SIZE            (SZ_16M)
 
 #endif
