@@ -99,6 +99,9 @@ struct sunxi_i2c {
 
 };
 
+#ifndef CONFIG_SUNXI_IIC_PRINT_TRANSFER_INFO
+int bus_comm_debug_enable = -1;
+#endif
 
 #define SYS_I2C_PIN
 
@@ -580,28 +583,43 @@ static int aw_twi_send_clk_9pulse(void *base_addr)
 */
 static void i2c_sunxi_addr_byte(struct sunxi_i2c *i2c)
 {
-	unsigned char addr = 0;//address
+	unsigned char addr = 0;
 	unsigned char tmp  = 0;
 
 	if(i2c->msg[i2c->msg_idx].flags & I2C_M_TEN) {
-		tmp = 0x78 | ( ( (i2c->msg[i2c->msg_idx].addr)>>8 ) & 0x03);//0111_10xx,ten bits address--9:8bits
+		/* 0111_10xx,ten bits address--9:8bits */
+		tmp = 0x78 | ( ( (i2c->msg[i2c->msg_idx].addr)>>8 ) & 0x03);
 		addr = tmp << 1;//1111_0xx0
-		//how about the second part of ten bits addr???
-		//Answer: deal at twi_core_process()
+		/* how about the second part of ten bits addr? Answer: deal at twi_core_process() */
 	}
 	else {
-		addr = (i2c->msg[i2c->msg_idx].addr & 0x7f) << 1;// 7-1bits addr,xxxx_xxx0
-#ifdef CONFIG_SUNXI_IIC_PRINT_TRANSFER_INFO
-		if(i2c->bus_num == CONFIG_SUNXI_IIC_PRINT_TRANSFER_INFO_WITH_BUS_NUM){
-			i2c_dbg("i2c->msg->addr = 0x%x. \n", addr);
-		}
-#endif
+		/* 7-1bits addr, xxxx_xxx0 */
+		addr = (i2c->msg[i2c->msg_idx].addr & 0x7f) << 1;
 	}
-	//read,default value is write
+
+	/* read, default value is write */
 	if (i2c->msg[i2c->msg_idx].flags & I2C_M_RD) {
 		addr |= 1;
 	}
-	//send 7bits+r/w or the first part of 10bits
+
+#ifdef CONFIG_SUNXI_IIC_PRINT_TRANSFER_INFO
+	if(i2c->bus_num == CONFIG_SUNXI_IIC_PRINT_TRANSFER_INFO_WITH_BUS_NUM){
+		if(i2c->msg[i2c->msg_idx].flags & I2C_M_TEN) {
+			i2c_dbg("[i2c-%d] first part of 10bits = 0x%x\n", i2c->bus_num, addr);
+		}
+		i2c_dbg("[i2c-%d] 7bits+r/w = 0x%x\n", i2c->bus_num, addr);
+	}
+#else
+	if(unlikely(bus_comm_debug_enable != -1)){
+		if(i2c->bus_num == bus_comm_debug_enable){
+			if(i2c->msg[i2c->msg_idx].flags & I2C_M_TEN) {
+				i2c_dbg("[i2c-%d] first part of 10bits = 0x%x\n", i2c->bus_num, addr);
+			}
+			i2c_dbg("[i2c-%d] 7bits+r/w = 0x%x\n", i2c->bus_num, addr);
+		}
+	}
+#endif
+	/* send 7bits+r/w or the first part of 10bits */
 	aw_twi_put_byte(i2c->base_addr, &addr);
 }
 
@@ -620,6 +638,13 @@ static int i2c_sunxi_core_process(struct sunxi_i2c *i2c)
 	if(i2c->bus_num == CONFIG_SUNXI_IIC_PRINT_TRANSFER_INFO_WITH_BUS_NUM){
 		i2c_dbg("sunxi_i2c->bus_num = %d, sunxi_i2c->msg->addr = (0x%x) state = (0x%x)\n", \
 			i2c->bus_num, i2c->msg->addr, state);
+	}
+#else
+	if(unlikely(bus_comm_debug_enable != -1)){
+		if(i2c->bus_num == bus_comm_debug_enable){
+			i2c_dbg("sunxi_i2c->bus_num = %d, sunxi_i2c->msg->addr = (0x%x) state = (0x%x)\n", \
+				i2c->bus_num, i2c->msg->addr, state);
+		}
 	}
 #endif
 
@@ -990,6 +1015,38 @@ static void i2c_sunxi_hw_exit(struct sunxi_i2c *i2c)
 	aw_twi_release_gpio(i2c);
 }
 
+#ifndef CONFIG_SUNXI_IIC_PRINT_TRANSFER_INFO
+static ssize_t comm_dbg_enable_store(struct device *dev, struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+	struct platform_device *pdev = to_platform_device(dev);
+	struct sunxi_i2c *i2c = platform_get_drvdata(pdev);
+	char value;
+
+    if(strlen(buf) != 2)
+        return -EINVAL;
+    if(buf[0] < '0' || buf[0] > '1')
+		return -EINVAL;
+    value = buf[0];
+    switch(value)
+    {
+        case '1':
+            bus_comm_debug_enable = i2c->bus_num;
+            break;
+        case '0':
+            bus_comm_debug_enable = -1;
+            break;
+        default:
+            return -EINVAL;
+    }
+	return count;
+}
+
+static struct device_attribute comm_dbg_enable_attrs[] = {
+	__ATTR(comm_dbg_enable, 0200, NULL, comm_dbg_enable_store),
+};
+#endif
+
 static int i2c_sunxi_probe(struct platform_device *dev)
 {
 	struct sunxi_i2c *i2c = NULL;
@@ -1001,6 +1058,9 @@ static int i2c_sunxi_probe(struct platform_device *dev)
 	char *i2c_pclk[] ={"apb_twi0","apb_twi1","apb_twi2"};
 	int ret;
 	int irq;
+#ifndef CONFIG_SUNXI_IIC_PRINT_TRANSFER_INFO
+	int i;
+#endif
 
 	pdata = dev->dev.platform_data;
 	if(pdata == NULL) {
@@ -1098,6 +1158,14 @@ static int i2c_sunxi_probe(struct platform_device *dev)
 	}
 
 	platform_set_drvdata(dev, i2c);
+
+#ifndef CONFIG_SUNXI_IIC_PRINT_TRANSFER_INFO
+	for (i = 0; i < ARRAY_SIZE(comm_dbg_enable_attrs); i++) {
+		ret = device_create_file(&dev->dev, &comm_dbg_enable_attrs[i]);
+		if (ret)
+			goto eadapt;
+	}
+#endif
 
 	i2c_dbg(KERN_INFO "I2C: %s: AW16XX I2C adapter\n",
 	       dev_name(&i2c->adap.dev));
