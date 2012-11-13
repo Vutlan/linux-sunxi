@@ -993,6 +993,17 @@ __s32 DRV_disp_int_process(__u32 sel)
     return 0;
 }
 
+__s32 DRV_disp_vsync_event(__u32 sel)
+{    	
+    char *envp[2];
+
+    envp[0] = "vsync";
+    envp[1] = NULL;
+    kobject_uevent_env(&g_fbi.dev->kobj, KOBJ_CHANGE, envp);
+
+    return 0;
+}
+
 static int Fb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 {
 	long ret = 0;
