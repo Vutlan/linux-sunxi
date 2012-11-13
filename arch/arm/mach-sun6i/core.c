@@ -87,7 +87,10 @@ static void sun6i_fixup(struct tag *tags, char **from,
 	memblock_reserve(0x40000000 + 0x4000000, SZ_32M);
 	//for standby: 0x4600,0000-0x4600,0000+1k;
 	memblock_reserve(SUPER_STANDBY_MEM_BASE, SUPER_STANDBY_MEM_SIZE);
-	
+
+	/* g2d memory reserve, same as a1x */
+	memblock_reserve(G2D_MEM_BASE, G2D_MEM_SIZE);
+
 	meminfo->nr_banks = 1;
 }
 
