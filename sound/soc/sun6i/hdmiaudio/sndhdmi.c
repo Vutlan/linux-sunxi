@@ -22,10 +22,15 @@
 #include <sound/initval.h>
 #include <linux/io.h>
 #include <linux/drv_hdmi.h>
-#include "sndhdmi.h"
 
-#define HDMI
+__audio_hdmi_func 	g_hdmi_func;
+hdmi_audio_t 		hdmi_para;
 
+#define SNDHDMI_RATES  (SNDRV_PCM_RATE_8000_192000|SNDRV_PCM_RATE_KNOT)
+#define SNDHDMI_FORMATS (SNDRV_PCM_FMTBIT_S8 | SNDRV_PCM_FMTBIT_S16_LE | \
+		                     SNDRV_PCM_FMTBIT_S18_3LE | SNDRV_PCM_FMTBIT_S20_3LE)
+
+/*the struct just for register the hdmiaudio codec node*/
 struct sndhdmi_priv {
 	int sysclk;
 	int dai_fmt;
@@ -34,21 +39,17 @@ struct sndhdmi_priv {
 	struct snd_pcm_substream *slave_substream;
 };
 
-#ifdef HDMI
-__audio_hdmi_func g_hdmi_func;
 
-void audio_set_hdmi_func(__audio_hdmi_func * hdmi_func)
+void audio_set_hdmi_func(__audio_hdmi_func *hdmi_func)
 {
-	g_hdmi_func.hdmi_audio_enable = hdmi_func->hdmi_audio_enable;
-	g_hdmi_func.hdmi_set_audio_para = hdmi_func->hdmi_set_audio_para;
+	if (hdmi_func) {
+		g_hdmi_func.hdmi_audio_enable = hdmi_func->hdmi_audio_enable;
+		g_hdmi_func.hdmi_set_audio_para = hdmi_func->hdmi_set_audio_para;
+	} else {
+		printk("error:%s,line:%d\n", __func__, __LINE__);
+	}
 }
-
 EXPORT_SYMBOL(audio_set_hdmi_func);
-#endif
-
-#define SNDHDMI_RATES  (SNDRV_PCM_RATE_8000_192000|SNDRV_PCM_RATE_KNOT)
-#define SNDHDMI_FORMATS (SNDRV_PCM_FMTBIT_S8 | SNDRV_PCM_FMTBIT_S16_LE | \
-		                     SNDRV_PCM_FMTBIT_S18_3LE | SNDRV_PCM_FMTBIT_S20_3LE)
 
 static int sndhdmi_mute(struct snd_soc_dai *dai, int mute)
 {
@@ -64,30 +65,22 @@ static int sndhdmi_startup(struct snd_pcm_substream *substream,
 static void sndhdmi_shutdown(struct snd_pcm_substream *substream,
 	struct snd_soc_dai *dai)
 {
-	
 }
 
 static int sndhdmi_hw_params(struct snd_pcm_substream *substream,
 	struct snd_pcm_hw_params *params,
 	struct snd_soc_dai *dai)
 {
-	
-	#ifdef HDMI
-		g_hdmi_func.hdmi_audio_enable(1, 1);
+	if((!substream)||(!params)) {
+		printk("error:%s,line:%d\n", __func__, __LINE__);
+		return -EAGAIN;
+	}
 
-	#endif
+	hdmi_para.sample_rate = params_rate(params);
+	hdmi_para.channel_num = substream->runtime->channels;
+	g_hdmi_func.hdmi_audio_enable(1, 1);
+	g_hdmi_func.hdmi_set_audio_para(&hdmi_para);
 
-	return 0;
-}
-
-static int sndhdmi_set_dai_sysclk(struct snd_soc_dai *codec_dai,
-				  int clk_id, unsigned int freq, int dir)
-{
-	return 0;
-}
-
-static int sndhdmi_set_dai_clkdiv(struct snd_soc_dai *codec_dai, int div_id, int div)
-{
 	return 0;
 }
 
@@ -97,18 +90,16 @@ static int sndhdmi_set_dai_fmt(struct snd_soc_dai *codec_dai,
 	return 0;
 }
 
-//codec dai operation
+/*codec dai operation*/
 struct snd_soc_dai_ops sndhdmi_dai_ops = {
 	.startup = sndhdmi_startup,
 	.shutdown = sndhdmi_shutdown,
 	.hw_params = sndhdmi_hw_params,
 	.digital_mute = sndhdmi_mute,
-	.set_sysclk = sndhdmi_set_dai_sysclk,
-	.set_clkdiv = sndhdmi_set_dai_clkdiv,
 	.set_fmt = sndhdmi_set_dai_fmt,
 };
 
-//codec dai
+/*codec dai*/
 struct snd_soc_dai_driver sndhdmi_dai = {
 	.name = "sndhdmi",
 	/* playback capabilities */
@@ -126,13 +117,18 @@ EXPORT_SYMBOL(sndhdmi_dai);
 
 static int sndhdmi_soc_probe(struct snd_soc_codec *codec)
 {
-	struct sndhdmi_priv *sndhdmi;
+	struct sndhdmi_priv *sndhdmi = NULL;
+	
+	if (!codec) {
+		printk("error:%s,line:%d\n", __func__, __LINE__);
+		return -EAGAIN;
+	}
 	
 	sndhdmi = kzalloc(sizeof(struct sndhdmi_priv), GFP_KERNEL);
 	if(sndhdmi == NULL){
 		printk("error at:%s,%d\n",__func__,__LINE__);
 		return -ENOMEM;
-	}		
+	}
 	snd_soc_codec_set_drvdata(codec, sndhdmi);
 
 	return 0;
@@ -140,7 +136,12 @@ static int sndhdmi_soc_probe(struct snd_soc_codec *codec)
 
 static int sndhdmi_soc_remove(struct snd_soc_codec *codec)
 {
-	struct sndhdmi_priv *sndhdmi = snd_soc_codec_get_drvdata(codec);
+	struct sndhdmi_priv *sndhdmi = NULL;
+	if (!codec) {
+		printk("error:%s,line:%d\n", __func__, __LINE__);
+		return -EAGAIN;
+	}
+	sndhdmi = snd_soc_codec_get_drvdata(codec);
 
 	kfree(sndhdmi);
 
@@ -148,17 +149,25 @@ static int sndhdmi_soc_remove(struct snd_soc_codec *codec)
 }
 
 static struct snd_soc_codec_driver soc_codec_dev_sndhdmi = {
-	.probe =        sndhdmi_soc_probe,
-	.remove =       sndhdmi_soc_remove,
+	.probe 	=	sndhdmi_soc_probe,
+	.remove =   sndhdmi_soc_remove,
 };
 
 static int __devinit sndhdmi_codec_probe(struct platform_device *pdev)
 {	
+	if (!pdev) {
+		printk("error:%s,line:%d\n", __func__, __LINE__);
+		return -EAGAIN;
+	}
 	return snd_soc_register_codec(&pdev->dev, &soc_codec_dev_sndhdmi, &sndhdmi_dai, 1);	
 }
 
 static int __devexit sndhdmi_codec_remove(struct platform_device *pdev)
 {
+	if (!pdev) {
+		printk("error:%s,line:%d\n", __func__, __LINE__);
+		return -EAGAIN;
+	}
 	snd_soc_unregister_codec(&pdev->dev);
 	return 0;
 }
@@ -198,4 +207,3 @@ module_exit(sndhdmi_codec_exit);
 MODULE_DESCRIPTION("SNDHDMI ALSA soc codec driver");
 MODULE_AUTHOR("Zoltan Devai, Christian Pellegrin <chripell@evolware.org>");
 MODULE_LICENSE("GPL");
-

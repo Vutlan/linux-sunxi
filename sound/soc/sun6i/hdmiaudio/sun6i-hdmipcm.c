@@ -19,17 +19,13 @@
 #include <linux/platform_device.h>
 #include <linux/slab.h>
 #include <linux/dma-mapping.h>
-
 #include <sound/core.h>
 #include <sound/pcm.h>
 #include <sound/pcm_params.h>
 #include <sound/soc.h>
-
 #include <asm/dma.h>
 #include <mach/hardware.h>
 #include <mach/dma.h>
-
-#include "sun6i-hdmiaudio.h"
 #include "sun6i-hdmipcm.h"
 
 static bool buffdone_flag = false;
@@ -47,11 +43,11 @@ static const struct snd_pcm_hardware sun6i_pcm_hardware = {
 	.channels_min		= 1,
 	.channels_max		= 2,
 	.buffer_bytes_max	= 128*1024,    /* value must be (2^n)Kbyte size */
-	.period_bytes_min	= 1024*4,//1024*4,
-	.period_bytes_max	= 1024*32,//1024*32,
-	.periods_min		= 4,//4,
-	.periods_max		= 8,//8,
-	.fifo_size		= 128,//32,
+	.period_bytes_min	= 1024*4,
+	.period_bytes_max	= 1024*32,
+	.periods_min		= 4,
+	.periods_max		= 8,
+	.fifo_size		= 128,
 };
 
 struct sun6i_runtime_data {
@@ -80,7 +76,7 @@ static void sun6i_pcm_enqueue(struct snd_pcm_substream *substream)
   	while(prtd->dma_loaded < limit){
 		if((pos + len) > prtd->dma_end){
 			len  = prtd->dma_end - pos;			
-		}		
+		}
 	if (buffdone_flag) {
 		ret = sw_dma_enqueue(prtd->dma_hdl, pos, 
 							prtd->params->dma_addr, len, ENQUE_PHASE_QD);	
@@ -303,7 +299,7 @@ static snd_pcm_uframes_t sun6i_pcm_pointer(struct snd_pcm_substream *substream)
 		res = dmadst - prtd->dma_start;
 	else
 	{
-		offset = bytes_to_frames(runtime, dmasrc - runtime->dma_addr); // liugang, 2012-6-25
+		offset = bytes_to_frames(runtime, dmasrc - runtime->dma_addr);
 	}
 	spin_unlock(&prtd->lock);
 
@@ -432,9 +428,9 @@ static int sun6i_pcm_new(struct snd_soc_pcm_runtime *rtd)
 }
 
 static struct snd_soc_platform_driver sun6i_soc_platform_hdmiaudio = {
-		.ops        =        &sun6i_pcm_ops,
-		.pcm_new	=		 sun6i_pcm_new,
-		.pcm_free	=		 sun6i_pcm_free_dma_buffers,
+		.ops        =	&sun6i_pcm_ops,
+		.pcm_new	=	sun6i_pcm_new,
+		.pcm_free	=	sun6i_pcm_free_dma_buffers,
 };
 
 static int __devinit sun6i_hdmiaudio_pcm_probe(struct platform_device *pdev)

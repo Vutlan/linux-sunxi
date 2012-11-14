@@ -23,11 +23,4 @@ struct sun6i_dma_params {
 	int dma_size;
 	char *name;				
 };
-
-enum sun6i_dma_buffresult {
-	SUN6I_RES_OK,
-	SUN6I_RES_ERR,
-	SUN6I_RES_ABORT
-};
-
 #endif //SUN6I_HDMIPCM_H_
