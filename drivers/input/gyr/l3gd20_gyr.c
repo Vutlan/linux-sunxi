@@ -162,7 +162,8 @@ enum {
 	DEBUG_INT = 1U << 1,
 	DEBUG_INT_BOTTOM_HALF = 1U << 2,
 	DEBUG_SET = 1U << 3,
-	DEBUG_SUSPEND = 1U << 4,
+	DEBUG_REPORT_DATA = 1U << 4,
+	DEBUG_SUSPEND = 1U << 5,
 };
 
 static u32 debug_mask = 0;
@@ -766,6 +767,9 @@ static void l3gd20_report_values(struct l3gd20_data *gyr,
 	input_report_abs(input, ABS_X, data->x);
 	input_report_abs(input, ABS_Y, data->y);
 	input_report_abs(input, ABS_Z, data->z);
+	dprintk(DEBUG_REPORT_DATA, "gyr->input_poll_dev->input x = %d, y = %d, z = %d. \n", \
+		data->x, data->y, data->z);
+	
 	input_sync(input);
 }
 
@@ -1195,14 +1199,14 @@ static ssize_t attr_addr_set(struct device *dev, struct device_attribute *attr,
 #endif /* DEBUG */
 
 static struct device_attribute attributes[] = {
-	__ATTR(pollrate_ms, 0777, attr_polling_rate_show,
+	__ATTR(pollrate_ms, 0666, attr_polling_rate_show,
 						attr_polling_rate_store),
-	__ATTR(range, 0777, attr_range_show, attr_range_store),
-	__ATTR(enable_device, 0777, attr_enable_show, attr_enable_store),
-	__ATTR(enable_polling, 0777, attr_polling_mode_show,
+	__ATTR(range, 0666, attr_range_show, attr_range_store),
+	__ATTR(enable_device, 0666, attr_enable_show, attr_enable_store),
+	__ATTR(enable_polling, 0666, attr_polling_mode_show,
 						attr_polling_mode_store),
-	__ATTR(fifo_samples, 0777, attr_watermark_show, attr_watermark_store),
-	__ATTR(fifo_mode, 0777, attr_fifomode_show, attr_fifomode_store),
+	__ATTR(fifo_samples, 0666, attr_watermark_show, attr_watermark_store),
+	__ATTR(fifo_mode, 0666, attr_fifomode_show, attr_fifomode_store),
 #ifdef DEBUG
 	__ATTR(reg_value, 0600, attr_reg_get, attr_reg_set),
 	__ATTR(reg_addr, 0200, NULL, attr_addr_set),

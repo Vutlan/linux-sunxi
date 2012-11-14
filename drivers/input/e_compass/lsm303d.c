@@ -139,7 +139,10 @@ enum {
 	DEBUG_I2C_DETECT = 1U << 0,
 	DEBUG_INT = 1U << 1,
 	DEBUG_INT_BOTTOM_HALF = 1U << 2,
-	DEBUG_SUSPEND = 1U << 3,
+	DEBUG_REPORT_ACC_DATA = 1U << 3,
+	DEBUG_REPORT_MAG_DATA = 1U << 3,
+	DEBUG_SUSPEND = 1U << 4,
+	
 };
 
 static u32 debug_mask = 0;
@@ -1380,26 +1383,26 @@ static ssize_t attr_set_aa_filter(struct kobject *kobj,
 }
 
 static struct kobj_attribute poll_attr_acc =
-	__ATTR(pollrate_us, 0664, attr_get_polling_rate_acc, 
+	__ATTR(pollrate_us, 0666, attr_get_polling_rate_acc, 
 						attr_set_polling_rate_acc);
 static struct kobj_attribute enable_attr_acc =
-	__ATTR(enable_device, 0664, attr_get_enable_acc, 
+	__ATTR(enable_device, 0666, attr_get_enable_acc, 
 						attr_set_enable_acc);
 static struct kobj_attribute fs_attr_acc =
-	__ATTR(full_scale, 0664, attr_get_range_acc, attr_set_range_acc);
+	__ATTR(full_scale, 0666, attr_get_range_acc, attr_set_range_acc);
 
 static struct kobj_attribute aa_filter_attr  =
-	__ATTR(anti_aliasing_frequency, 0664, attr_get_aa_filter, 
+	__ATTR(anti_aliasing_frequency, 0666, attr_get_aa_filter, 
 							attr_set_aa_filter);
 
 static struct kobj_attribute poll_attr_mag =
-	__ATTR(pollrate_us, 0664, attr_get_polling_rate_mag, 
+	__ATTR(pollrate_us, 0666, attr_get_polling_rate_mag, 
 						attr_set_polling_rate_mag);
 static struct kobj_attribute enable_attr_mag =
-	__ATTR(enable_device, 0664, attr_get_enable_mag, 
+	__ATTR(enable_device, 0666, attr_get_enable_mag, 
 						attr_set_enable_mag);
 static struct kobj_attribute fs_attr_mag =
-	__ATTR(full_scale, 0664, attr_get_range_mag, attr_set_range_mag);
+	__ATTR(full_scale, 0666, attr_get_range_mag, attr_set_range_mag);
 
 static struct attribute *attributes_acc[] = {
 	&poll_attr_acc.attr,
@@ -1568,6 +1571,8 @@ static void lsm303d_acc_report_values(struct lsm303d_status *stat, int *xyz)
 	input_report_abs(stat->input_dev_acc, ABS_X, xyz[0]);
 	input_report_abs(stat->input_dev_acc, ABS_Y, xyz[1]);
 	input_report_abs(stat->input_dev_acc, ABS_Z, xyz[2]);
+	dprintk(DEBUG_REPORT_ACC_DATA, "stat->input_dev_acc x = %d, y = %d, z = %d. \n", \
+		xyz[0], xyz[1], xyz[2]);
 	input_sync(stat->input_dev_acc);
 }
 
@@ -1576,6 +1581,8 @@ static void lsm303d_mag_report_values(struct lsm303d_status *stat, int *xyz)
 	input_report_abs(stat->input_dev_mag, ABS_X, xyz[0]);
 	input_report_abs(stat->input_dev_mag, ABS_Y, xyz[1]);
 	input_report_abs(stat->input_dev_mag, ABS_Z, xyz[2]);
+	dprintk(DEBUG_REPORT_MAG_DATA, "stat->input_dev_mag x = %d, y = %d, z = %d. \n", \
+		xyz[0], xyz[1], xyz[2]);
 	input_sync(stat->input_dev_mag);
 }
 
