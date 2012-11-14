@@ -21,8 +21,11 @@
 #include <sound/soc-dapm.h>
 #include <sound/initval.h>
 #include <linux/io.h>
+#include <mach/sys_config.h>
 
-#include "sndspdif.h"
+static int spdif_used = 0;
+#define SNDSPDIF_RATES  (SNDRV_PCM_RATE_8000_192000|SNDRV_PCM_RATE_KNOT)
+#define SNDSPDIF_FORMATS (SNDRV_PCM_FMTBIT_S16_LE)
 
 struct sndspdif_priv {
 	int sysclk;
@@ -31,10 +34,6 @@ struct sndspdif_priv {
 	struct snd_pcm_substream *master_substream;
 	struct snd_pcm_substream *slave_substream;
 };
-
-static int spdif_used = 1;
-#define SNDSPDIF_RATES  (SNDRV_PCM_RATE_8000_192000|SNDRV_PCM_RATE_KNOT)
-#define SNDSPDIF_FORMATS (SNDRV_PCM_FMTBIT_S16_LE)
 
 static int sndspdif_mute(struct snd_soc_dai *dai, int mute)
 {
@@ -75,6 +74,7 @@ static int sndspdif_set_dai_fmt(struct snd_soc_dai *codec_dai,
 {
 	return 0;
 }
+
 struct snd_soc_dai_ops sndspdif_dai_ops = {
 	.startup = sndspdif_startup,
 	.shutdown = sndspdif_shutdown,
@@ -165,6 +165,13 @@ static struct platform_driver sndspdif_codec_driver = {
 static int __init sndspdif_codec_init(void)
 {	
 	int err = 0;
+	int ret = 0;
+
+	ret = script_parser_fetch("spdif_para","spdif_used", &spdif_used, sizeof(int));
+	if (ret) {
+		return -1;
+        printk("[SPDIF]sndspdif_init fetch spdif using configuration failed\n"); 
+    }
 
 	if (spdif_used) {
 		if((err = platform_device_register(&sndspdif_codec_device)) < 0)

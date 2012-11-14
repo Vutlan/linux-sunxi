@@ -27,17 +27,21 @@
 #include <sound/initval.h>
 #include <sound/soc.h>
 
-#include <mach/clock.h>
-
-#include <mach/hardware.h>
 #include <asm/dma.h>
+#include <mach/clock.h>
+#include <mach/hardware.h>
 #include <mach/dma.h>
+#include <mach/sys_config.h>
+#include <mach/gpio.h>
 
 #include "sun6i_spdma.h"
 #include "sun6i_spdif.h"
 
 static int regsave[9];
-static int spdif_used = 1;
+static int spdif_used = 0;
+static u32 spdif_handle = 0;
+struct sun6i_spdif_info sun6i_spdif;
+static struct clk *spdif_apbclk, *spdif_pll2clk, *spdif_pllx8, *spdif_moduleclk;
 
 static struct sun6i_dma_params sun6i_spdif_stereo_out = {	
 	.name		= "spdif_out",	
@@ -50,9 +54,6 @@ static struct sun6i_dma_params sun6i_spdif_stereo_in = {
 	
 };
 
-struct sun6i_spdif_info sun6i_spdif;
-static struct clk *spdif_apbclk, *spdif_pll2clk, *spdif_pllx8, *spdif_moduleclk;
-
 void sun6i_snd_txctrl(struct snd_pcm_substream *substream, int on)
 {
 	u32 reg_val;
@@ -62,49 +63,49 @@ void sun6i_snd_txctrl(struct snd_pcm_substream *substream, int on)
 		reg_val |= SUN6I_SPDIF_TXCFG_SINGLEMOD;
 		writel(reg_val, sun6i_spdif.regs + SUN6I_SPDIF_TXCFG);
 	}
-	
-	//soft reset SPDIF
+	 
+	/*soft reset SPDIF*/
 	writel(0x1, sun6i_spdif.regs + SUN6I_SPDIF_CTL);
 	
-	//flush TX FIFO
+	/*flush TX FIFO*/
 	reg_val = readl(sun6i_spdif.regs + SUN6I_SPDIF_FCTL);
 	reg_val |= SUN6I_SPDIF_FCTL_FTX;	
 	writel(reg_val, sun6i_spdif.regs + SUN6I_SPDIF_FCTL);
 	
-	//clear interrupt status
+	/*clear interrupt status*/
 	reg_val = readl(sun6i_spdif.regs + SUN6I_SPDIF_ISTA);
 	writel(reg_val, sun6i_spdif.regs + SUN6I_SPDIF_ISTA);
 	
-	//clear TX counter
+	/*clear TX counter*/
 	writel(0, sun6i_spdif.regs + SUN6I_SPDIF_TXCNT);
 
 	if (on) {
-		//SPDIF TX ENBALE
+		/*SPDIF TX ENBALE*/
 		reg_val = readl(sun6i_spdif.regs + SUN6I_SPDIF_TXCFG);
 		reg_val |= SUN6I_SPDIF_TXCFG_TXEN;	
 		writel(reg_val, sun6i_spdif.regs + SUN6I_SPDIF_TXCFG);
 		
-		//DRQ ENABLE
+		/*DRQ ENABLE*/
 		reg_val = readl(sun6i_spdif.regs + SUN6I_SPDIF_INT);
 		reg_val |= SUN6I_SPDIF_INT_TXDRQEN;	
 		writel(reg_val, sun6i_spdif.regs + SUN6I_SPDIF_INT);
 		
-		//global enable
+		/*global enable*/
 		reg_val = readl(sun6i_spdif.regs + SUN6I_SPDIF_CTL);
 		reg_val |= SUN6I_SPDIF_CTL_GEN;	
 		writel(reg_val, sun6i_spdif.regs + SUN6I_SPDIF_CTL);		
 	} else {
-		//SPDIF TX DISABALE
+		/*SPDIF TX DISABALE*/
 		reg_val = readl(sun6i_spdif.regs + SUN6I_SPDIF_TXCFG);
 		reg_val &= ~SUN6I_SPDIF_TXCFG_TXEN;	
 		writel(reg_val, sun6i_spdif.regs + SUN6I_SPDIF_TXCFG);
 		
-		//DRQ DISABLE
+		/*DRQ DISABLE*/
 		reg_val = readl(sun6i_spdif.regs + SUN6I_SPDIF_INT);
 		reg_val &= ~SUN6I_SPDIF_INT_TXDRQEN;	
 		writel(reg_val, sun6i_spdif.regs + SUN6I_SPDIF_INT);
 		
-		//global disable
+		/*global disable*/
 		reg_val = readl(sun6i_spdif.regs + SUN6I_SPDIF_CTL);
 		reg_val &= ~SUN6I_SPDIF_CTL_GEN;	
 		writel(reg_val, sun6i_spdif.regs + SUN6I_SPDIF_CTL);
@@ -115,45 +116,45 @@ void sun6i_snd_rxctrl(struct snd_pcm_substream *substream, int on)
 {
 	u32 reg_val;
 
-	//flush RX FIFO
+	/*flush RX FIFO*/
 	reg_val = readl(sun6i_spdif.regs + SUN6I_SPDIF_FCTL);
 	reg_val |= SUN6I_SPDIF_FCTL_FRX;	
 	writel(reg_val, sun6i_spdif.regs + SUN6I_SPDIF_FCTL);
 	
-	//clear interrupt status
+	/*clear interrupt status*/
 	reg_val = readl(sun6i_spdif.regs + SUN6I_SPDIF_ISTA);
 	writel(reg_val, sun6i_spdif.regs + SUN6I_SPDIF_ISTA);
 	
-	//clear RX counter
+	/*clear RX counter*/
 	writel(0, sun6i_spdif.regs + SUN6I_SPDIF_RXCNT);
 
 	if (on) {
-		//SPDIF RX ENBALE
+		/*SPDIF RX ENBALE*/
 		reg_val = readl(sun6i_spdif.regs + SUN6I_SPDIF_RXCFG);
 		reg_val |= SUN6I_SPDIF_RXCFG_RXEN;	
 		writel(reg_val, sun6i_spdif.regs + SUN6I_SPDIF_RXCFG);
 		
-		//DRQ ENABLE
+		/*DRQ ENABLE*/
 		reg_val = readl(sun6i_spdif.regs + SUN6I_SPDIF_INT);
 		reg_val |= SUN6I_SPDIF_INT_RXDRQEN;	
 		writel(reg_val, sun6i_spdif.regs + SUN6I_SPDIF_INT);
 		
-		//global enable
+		/*global enable*/
 		reg_val = readl(sun6i_spdif.regs + SUN6I_SPDIF_CTL);
 		reg_val |= SUN6I_SPDIF_CTL_GEN;	
 		writel(reg_val, sun6i_spdif.regs + SUN6I_SPDIF_CTL);		
 	} else {
-		//SPDIF TX DISABALE
+		/*SPDIF TX DISABALE*/
 		reg_val = readl(sun6i_spdif.regs + SUN6I_SPDIF_RXCFG);
 		reg_val &= ~SUN6I_SPDIF_RXCFG_RXEN;	
 		writel(reg_val, sun6i_spdif.regs + SUN6I_SPDIF_RXCFG);
 		
-		//DRQ DISABLE
+		/*DRQ DISABLE*/
 		reg_val = readl(sun6i_spdif.regs + SUN6I_SPDIF_INT);
 		reg_val &= ~SUN6I_SPDIF_INT_RXDRQEN;	
 		writel(reg_val, sun6i_spdif.regs + SUN6I_SPDIF_INT);
 		
-		//global disable
+		/*global disable*/
 		reg_val = readl(sun6i_spdif.regs + SUN6I_SPDIF_CTL);
 		reg_val &= ~SUN6I_SPDIF_CTL_GEN;	
 		writel(reg_val, sun6i_spdif.regs + SUN6I_SPDIF_CTL);
@@ -185,7 +186,7 @@ static int sun6i_spdif_set_fmt(struct snd_soc_dai *cpu_dai, unsigned int fmt)
 	reg_val |= SUN6I_SPDIF_FCTL_RXOM(3);
 	writel(reg_val, sun6i_spdif.regs + SUN6I_SPDIF_FCTL);
 	
-	if (!fmt) {//PCM
+	if (!fmt) {/*PCM*/
 		reg_val = 0;
 		reg_val |= (SUN6I_SPDIF_TXCHSTA0_CHNUM(2));
 		writel(reg_val, sun6i_spdif.regs + SUN6I_SPDIF_TXCHSTA0);
@@ -193,7 +194,7 @@ static int sun6i_spdif_set_fmt(struct snd_soc_dai *cpu_dai, unsigned int fmt)
 		reg_val = 0;
 		reg_val |= (SUN6I_SPDIF_TXCHSTA1_SAMWORDLEN(1));
 		writel(reg_val, sun6i_spdif.regs + SUN6I_SPDIF_TXCHSTA1);
-	} else {  //non PCM	
+	} else {  /*non PCM*/
 		reg_val = readl(sun6i_spdif.regs + SUN6I_SPDIF_TXCFG);
 		reg_val |= SUN6I_SPDIF_TXCFG_NONAUDIO;
 		writel(reg_val, sun6i_spdif.regs + SUN6I_SPDIF_TXCFG);
@@ -261,7 +262,7 @@ static int sun6i_spdif_trigger(struct snd_pcm_substream *substream,
 		return ret;
 }					
 
-//freq:   1: 22.5792MHz   0: 24.576MHz  
+/*freq:   1: 22.5792MHz   0: 24.576MHz  */
 static int sun6i_spdif_set_sysclk(struct snd_soc_dai *cpu_dai, int clk_id, 
                                  unsigned int freq, int dir)
 {
@@ -307,7 +308,7 @@ static int sun6i_spdif_set_clkdiv(struct snd_soc_dai *cpu_dai, int div_id, int d
 			{
 				switch(div)
 				{
-					//24KHZ
+					/*24KHZ*/
 					case 8:
 						reg_val = readl(sun6i_spdif.regs + SUN6I_SPDIF_TXCHSTA0);
 						reg_val |= (SUN6I_SPDIF_TXCHSTA0_SAMFREQ(0x6));
@@ -327,7 +328,7 @@ static int sun6i_spdif_set_clkdiv(struct snd_soc_dai *cpu_dai, int div_id, int d
 
 						break;
 						
-					//32KHZ
+					/*32KHZ*/
 					case 6:
 						reg_val = readl(sun6i_spdif.regs + SUN6I_SPDIF_TXCHSTA0);
 						reg_val |= (SUN6I_SPDIF_TXCHSTA0_SAMFREQ(0x3));
@@ -346,7 +347,7 @@ static int sun6i_spdif_set_clkdiv(struct snd_soc_dai *cpu_dai, int div_id, int d
 						writel(reg_val, sun6i_spdif.regs + SUN6I_SPDIF_RXCHSTA1);						
 						break;
 						
-					//48KHZ
+					/*48KHZ*/
 					case 4:
 						reg_val = readl(sun6i_spdif.regs + SUN6I_SPDIF_TXCHSTA0);
 						reg_val |= (SUN6I_SPDIF_TXCHSTA0_SAMFREQ(0x2));
@@ -365,7 +366,7 @@ static int sun6i_spdif_set_clkdiv(struct snd_soc_dai *cpu_dai, int div_id, int d
 						writel(reg_val, sun6i_spdif.regs + SUN6I_SPDIF_RXCHSTA1);							
 						break;
 						
-					//96KHZ
+					/*96KHZ*/
 					case 2:
 						reg_val = readl(sun6i_spdif.regs + SUN6I_SPDIF_TXCHSTA0);
 						reg_val |= (SUN6I_SPDIF_TXCHSTA0_SAMFREQ(0xA));
@@ -384,7 +385,7 @@ static int sun6i_spdif_set_clkdiv(struct snd_soc_dai *cpu_dai, int div_id, int d
 						writel(reg_val, sun6i_spdif.regs + SUN6I_SPDIF_RXCHSTA1);						
 						break;
 						
-					//192KHZ
+					/*192KHZ*/
 					case 1:
 						reg_val = readl(sun6i_spdif.regs + SUN6I_SPDIF_TXCHSTA0);
 						reg_val |= (SUN6I_SPDIF_TXCHSTA0_SAMFREQ(0xE));
@@ -421,10 +422,10 @@ static int sun6i_spdif_set_clkdiv(struct snd_soc_dai *cpu_dai, int div_id, int d
 						writel(reg_val, sun6i_spdif.regs + SUN6I_SPDIF_RXCHSTA1);						
 						break;
 				}
-			}else{  //22.5792MHz		
+			}else{  /*22.5792MHz*/		
 				switch(div)
 				{
-					//22.05khz
+					/*22.05khz*/
 					case 8:
 						reg_val = readl(sun6i_spdif.regs + SUN6I_SPDIF_TXCHSTA0);
 						reg_val |= (SUN6I_SPDIF_TXCHSTA0_SAMFREQ(0x4));
@@ -443,7 +444,7 @@ static int sun6i_spdif_set_clkdiv(struct snd_soc_dai *cpu_dai, int div_id, int d
 						writel(reg_val, sun6i_spdif.regs + SUN6I_SPDIF_RXCHSTA1);							
 						break;
 						
-					//44.1KHZ
+					/*44.1KHZ*/
 					case 4:
 						reg_val = readl(sun6i_spdif.regs + SUN6I_SPDIF_TXCHSTA0);
 						reg_val |= (SUN6I_SPDIF_TXCHSTA0_SAMFREQ(0x0));
@@ -462,7 +463,7 @@ static int sun6i_spdif_set_clkdiv(struct snd_soc_dai *cpu_dai, int div_id, int d
 						writel(reg_val, sun6i_spdif.regs + SUN6I_SPDIF_RXCHSTA1);							
 						break;
 						
-					//88.2khz
+					/*88.2khz*/
 					case 2:
 						reg_val = readl(sun6i_spdif.regs + SUN6I_SPDIF_TXCHSTA0);
 						reg_val |= (SUN6I_SPDIF_TXCHSTA0_SAMFREQ(0x8));
@@ -481,7 +482,7 @@ static int sun6i_spdif_set_clkdiv(struct snd_soc_dai *cpu_dai, int div_id, int d
 						writel(reg_val, sun6i_spdif.regs + SUN6I_SPDIF_RXCHSTA1);						
 						break;
 			
-					//176.4KHZ
+					/*176.4KHZ*/
 					case 1:
 						reg_val = readl(sun6i_spdif.regs + SUN6I_SPDIF_TXCHSTA0);
 						reg_val |= (SUN6I_SPDIF_TXCHSTA0_SAMFREQ(0xC));
@@ -572,7 +573,6 @@ static void spdifregrestore(void)
 	writel(regsave[8], sun6i_spdif.regs + SUN6I_SPDIF_RXCHSTA1);
 }
 
-//#ifdef CONFIG_PM
 static int sun6i_spdif_suspend(struct snd_soc_dai *cpu_dai)
 {
 	u32 reg_val;
@@ -584,7 +584,7 @@ static int sun6i_spdif_suspend(struct snd_soc_dai *cpu_dai)
 
 	spdifregsave();
 	
-	//disable the module clock
+	/*disable the module clock*/
 	clk_disable(spdif_moduleclk);
 	
 	clk_disable(spdif_apbclk);	
@@ -597,10 +597,10 @@ static int sun6i_spdif_resume(struct snd_soc_dai *cpu_dai)
 	u32 reg_val;
 	printk("[SPDIF]Enter %s\n", __func__);
 
-	//disable the module clock
+	/*disable the module clock*/
 	clk_enable(spdif_apbclk);		
 
-	//enable the module clock
+	/*enable the module clock*/
 	clk_enable(spdif_moduleclk);
 	
 	spdifregrestore();
@@ -647,7 +647,7 @@ static int __devinit sun6i_spdif_dev_probe(struct platform_device *pdev)
 	if(sun6i_spdif.regs == NULL)
 		return -ENXIO;
 	
-		//spdif apbclk
+		/*spdif apbclk*/
 		spdif_apbclk = clk_get(NULL, "apb_spdif");
 		if(-1 == clk_enable(spdif_apbclk)){
 			printk("spdif_apbclk failed! line = %d\n", __LINE__);
@@ -655,10 +655,10 @@ static int __devinit sun6i_spdif_dev_probe(struct platform_device *pdev)
 
 		spdif_pllx8 = clk_get(NULL, "sys_pll2X8");
 
-		//spdif pll2clk
+		/*spdif pll2clk*/
 		spdif_pll2clk = clk_get(NULL, "sys_pll2");
 
-		//spdif module clk
+		/*spdif module clk*/
 		spdif_moduleclk = clk_get(NULL, "mod_spdif");
 
 		if(clk_set_parent(spdif_moduleclk, spdif_pll2clk)){
@@ -673,35 +673,32 @@ static int __devinit sun6i_spdif_dev_probe(struct platform_device *pdev)
 			printk("open spdif_moduleclk failed! line = %d\n", __LINE__);
 		}
 	
-		//global enbale
+		/*global enbale*/
 		reg_val = readl(sun6i_spdif.regs + SUN6I_SPDIF_CTL);
 		reg_val |= SUN6I_SPDIF_CTL_GEN;
 		writel(reg_val, sun6i_spdif.regs + SUN6I_SPDIF_CTL);
 		
 		ret = snd_soc_register_dai(&pdev->dev, &sun6i_spdif_dai);
-			
-		iounmap(sun6i_spdif.ioregs);
-			
-	return 0;
+		return 0;
 }
 
 static int __devexit sun6i_spdif_dev_remove(struct platform_device *pdev)
 {
 	if (spdif_used) {
 		spdif_used = 0;
-		//release the module clock
+		/*release the module clock*/
 		clk_disable(spdif_moduleclk);
 	
-		//release pllx8clk
+		/*release pllx8clk*/
 		clk_put(spdif_pllx8);
 		
-		//release pll2clk
+		/*release pll2clk*/
 		clk_put(spdif_pll2clk);
 	
-		//release apbclk
+		/*release apbclk*/
 		clk_put(spdif_apbclk);
 		
-		//gpio_release(spdif_handle, 2);
+		sw_gpio_release(spdif_handle, 2);
 		snd_soc_unregister_dai(&pdev->dev);
 		platform_set_drvdata(pdev, NULL);
 	}
@@ -725,8 +722,16 @@ static struct platform_driver sun6i_spdif_driver = {
 static int __init sun6i_spdif_init(void)
 {
 	int err = 0;
-
+ 	int ret = 0;
+ 	ret = script_parser_fetch("spdif_para","spdif_used", &spdif_used, sizeof(int));
+	if (ret) {
+		return -1;
+        printk("[SPDIF]sndspdif_init fetch spdif using configuration failed\n");
+    } 
+    
  	if (spdif_used) {
+ 		spdif_handle = sw_gpio_request_ex("spdif_para", NULL);
+		
 		if((platform_device_register(&sun6i_spdif_device))<0)
 			return err;
 

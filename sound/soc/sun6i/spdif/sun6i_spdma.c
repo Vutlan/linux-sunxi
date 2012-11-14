@@ -47,12 +47,12 @@ static const struct snd_pcm_hardware sun6i_pcm_play_hardware = {
 	.rate_max		= 192000,
 	.channels_min		= 1,
 	.channels_max		= 4,
-	.buffer_bytes_max	= 128*1024,  //1024*1024  /* value must be (2^n)Kbyte size */
-	.period_bytes_min	= 1024*4,//1024*4,
-	.period_bytes_max	= 1024*32,//1024*128,
-	.periods_min		= 4,//8,
-	.periods_max		= 8,//8,
-	.fifo_size		= 32,//32,
+	.buffer_bytes_max	= 128*1024,  /* value must be (2^n)Kbyte size */
+	.period_bytes_min	= 1024*4,
+	.period_bytes_max	= 1024*32,
+	.periods_min		= 4,
+	.periods_max		= 8,
+	.fifo_size		= 32,
 };
 
 
@@ -66,12 +66,12 @@ static const struct snd_pcm_hardware sun6i_pcm_capture_hardware = {
 	.rate_max		= 192000,
 	.channels_min		= 1,
 	.channels_max		= 4,
-	.buffer_bytes_max	= 128*1024,  //1024*1024  /* value must be (2^n)Kbyte size */
-	.period_bytes_min	= 1024*4,//1024*4,
-	.period_bytes_max	= 1024*32,//1024*128,
-	.periods_min		= 4,//8,
-	.periods_max		= 8,//8,
-	.fifo_size		= 32,//32,
+	.buffer_bytes_max	= 128*1024,  /* value must be (2^n)Kbyte size */
+	.period_bytes_min	= 1024*4,
+	.period_bytes_max	= 1024*32,
+	.periods_min		= 4,
+	.periods_max		= 8,
+	.fifo_size		= 32,
 };
 
 struct sun6i_playback_runtime_data {
@@ -724,7 +724,7 @@ static void sun6i_pcm_free_dma_buffers(struct snd_pcm *pcm)
 	struct snd_pcm_substream *substream;
 	struct snd_dma_buffer *buf;
 	int stream;
-	
+	 
 	for (stream = 0; stream < 2; stream++) {
 		substream = pcm->streams[stream].substream;
 		if (!substream)

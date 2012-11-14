@@ -22,122 +22,94 @@
 #include <sound/pcm_params.h>
 #include <sound/soc-dapm.h>
 #include <linux/io.h>
+#include <mach/irqs-sun6i.h>
+#include <mach/sys_config.h>
 
 #include "sun6i_spdif.h"
 #include "sun6i_spdma.h"
 
-#include "sndspdif.h"
-
-static int spdif_used = 1;
-static struct clk *xtal;
-static int clk_users;
-static DEFINE_MUTEX(clk_lock);
-
-#ifdef ENFORCE_RATES
-static struct snd_pcm_hw_constraint_list hw_constraints_rates = {
-	.count	= ARRAY_SIZE(rates),
-	.list	= rates,
-	.mask	= 0,
-};
-#endif
+static int spdif_used = 0;
 
 static int sun6i_sndspdif_startup(struct snd_pcm_substream *substream)
 {
-	int ret = 0;
-	#ifdef ENFORCE_RATES
-		struct snd_pcm_runtime *runtime = substream->runtime;;
-	#endif
-	if (!ret) {
-	#ifdef ENFORCE_RATES
-		ret = snd_pcm_hw_constraint_list(runtime, 0, SNDRV_PCM_HW_PARAM_RATE, &hw_constraints_rates);
-		if (ret < 0)
-			return ret;
-	#endif
-	}
-	return ret;
+	return 0;
 }
 
 static void sun6i_sndspdif_shutdown(struct snd_pcm_substream *substream)
 {
-	mutex_lock(&clk_lock);
-	clk_users -= 1;
-	if (clk_users == 0) {
-		clk_put(xtal);
-		xtal = NULL;
-	}
-	mutex_unlock(&clk_lock);
 }
 
 typedef struct __MCLK_SET_INF
 {
-    __u32   samp_rate;      // sample rate
-	__u16 	mult_fs;        // multiply of smaple rate
+    __u32   samp_rate;      /*sample rate*/
+	__u16 	mult_fs;        /*multiply of smaple rate*/
 
-    __u8    clk_div;        // mpll division
-    __u8    mpll;           // select mpll, 0 - 24.576 Mhz, 1 - 22.5792 Mhz
+    __u8    clk_div;        /*mpll division*/
+    __u8    mpll;           /*select mpll, 0 - 24.576 Mhz, 1 - 22.5792 Mhz*/
 
 } __mclk_set_inf;
 
-
+/*spdif hasn't used the bit clock div factor*/
 typedef struct __BCLK_SET_INF
 {
-    __u8    bitpersamp;     // bits per sample
-    __u8    clk_div;        // clock division
-    __u16   mult_fs;        // multiplay of sample rate
+    __u8    bitpersamp;     /*bits per sample*/
+    __u8    clk_div;        /*clock division*/
+    __u16   mult_fs;        /*multiplay of sample rate*/
 
 } __bclk_set_inf;
 
-
 static __bclk_set_inf BCLK_INF[] =
 {
-    // 16bits per sample
+    /*16bits per sample*/
     {16,  4, 128}, {16,  6, 192}, {16,  8, 256},
     {16, 12, 384}, {16, 16, 512},
 
-    //24 bits per sample
+    /*24 bits per sample*/
     {24,  4, 192}, {24,  8, 384}, {24, 16, 768},
 
-    //32 bits per sample
+    /*32 bits per sample*/
     {32,  2, 128}, {32,  4, 256}, {32,  6, 384},
     {32,  8, 512}, {32, 12, 768},
 
-    //end flag
+    /*end flag*/
     {0xff, 0, 0},
 };
 
-//TX RATIO value
+/*TX RATIO value*/
 static __mclk_set_inf  MCLK_INF[] =
 {
-	//88.2k bitrate    //2
     { 88200, 128,  2, 1}, { 88200, 256,  2, 1},
 	
-	 //22.05k bitrate   //8
-    { 22050, 128,  8, 1}, { 22050, 256,  8, 1},
+	{ 22050, 128,  8, 1}, { 22050, 256,  8, 1},
     { 22050, 512,  8, 1}, 
 	
-	// 24k bitrate   //8
     { 24000, 128,  8, 0}, { 24000, 256, 8, 0}, { 24000, 512, 8, 0},
  
-    // 32k bitrate   //2.048MHz   24/4 = 6
+    /* 32k bitrate   2.048MHz   24/4 = 6*/
     { 32000, 128,  6, 0}, { 32000, 192,  6, 0}, { 32000, 384,  6, 0},
     { 32000, 768,  6, 0},
 
-     // 48K bitrate   3.072  Mbit/s   16/4 = 4
-    { 48000, 128,  4, 0}, { 48000, 256,  16, 0}, { 48000, 512, 4, 0},   
-
-    // 96k bitrate  6.144MHZ   8/4 = 2
+#ifdef AW_ASIC_PLATFORM
+     /* 48K bitrate   3.072 Mbit/s   16/4 = 4*/
+    { 48000, 128,  4, 0}, { 48000, 256,  4, 0}, { 48000, 512, 4, 0},   
+#else 
+	{ 48000, 128,  4, 0}, { 48000, 256,  16, 0}, { 48000, 512, 4, 0},
+#endif
+    /* 96k bitrate  6.144  Mbit/s   8/4 = 2*/
     { 96000, 128 , 2, 0}, { 96000, 256,  2, 0},
 
-    //192k bitrate   12.288MHZ  4/4 = 1
+    /*192k bitrate   12.288  Mbit/s  4/4 = 1*/
     {192000, 128,  1, 0},
-
-    //44.1k bitrate  2.8224MHz   16/4 = 4
-    { 44100, 128,  4, 1}, { 44100, 256,  16, 1}, { 44100, 512,  4, 1},
-
-     //176.4k bitrate  11.2896MHZ 4/4 = 1
+#ifdef AW_ASIC_PLATFORM
+    /*44.1k bitrate  2.8224  Mbit/s   16/4 = 4*/
+    { 44100, 128,  4, 1}, { 44100, 256,  4, 1}, { 44100, 512,  4, 1},
+#else
+	{ 44100, 128,  4, 1}, { 44100, 256,  16, 1}, { 44100, 512,  4, 1},
+#endif
+     /*176.4k bitrate  11.2896  Mbit/s 4/4 = 1*/
     {176400, 128, 1, 1},
 
-    //end flag 0xffffffff
+    /*end flag 0xffffffff*/
     {0xffffffff, 0, 0, 0},
 };
 
@@ -239,8 +211,14 @@ static struct platform_device *sun6i_sndspdif_device;
 
 static int __init sun6i_sndspdif_init(void)
 {
-	int ret;
- 
+	int ret = 0;
+
+ 	ret = script_parser_fetch("spdif_para","spdif_used", &spdif_used, sizeof(int));
+	if (ret) {
+		return -1;
+        printk("[SPDIF]sndspdif_init fetch spdif using configuration failed\n");
+    }
+     
     if (spdif_used) {
 		sun6i_sndspdif_device = platform_device_alloc("soc-audio", 1);
 		
@@ -267,7 +245,6 @@ static void __exit sun6i_sndspdif_exit(void)
 		spdif_used = 0;
 		platform_device_unregister(sun6i_sndspdif_device);
 	}
-	
 }
 
 module_init(sun6i_sndspdif_init);
