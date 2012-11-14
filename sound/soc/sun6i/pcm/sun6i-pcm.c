@@ -27,42 +27,43 @@
 #include <sound/initval.h>
 #include <sound/soc.h>
 
-#include <mach/clock.h>
-
-#include <mach/hardware.h>
 #include <asm/dma.h>
+#include <mach/clock.h>
+#include <mach/hardware.h>
 #include <mach/dma.h>
+#include <mach/sys_config.h>
+#include <mach/gpio.h>
 
 #include "sun6i-pcmdma.h"
 #include "sun6i-pcm.h"
 
-//=============mode selection====================
-//#define I2S_COMMUNICATION
+/*=============mode selection====================*/
+/*#define I2S_COMMUNICATION*/
 #define PCM_COMMUNICATION
-//-----------------------------------------------
-static unsigned long over_sample_rate = 256;		//128fs/192fs/256fs/384fs/512fs/768fs
-static unsigned long sample_resolution = 16;		//16bits/20bits/24bits
-static unsigned long word_select_size = 32;		//16bits/20bits/24bits/32bits
-static unsigned long pcm_sync_period = 256;		//16/32/64/128/256
-static unsigned long msb_lsb_first = 0;			//0: msb first; 1: lsb first
-static unsigned long slot_index = 0;				//slot index: 0: the 1st slot - 3: the 4th slot
-static unsigned long slot_width = 16;				//8 bit width / 16 bit width
-static unsigned long frame_width = 1;				//0: long frame = 2 clock width;  1: short frame
-static unsigned long tx_data_mode = 0;				//0: 16bit linear PCM; 1: 8bit linear PCM; 2: 8bit u-law; 3: 8bit a-law
-static unsigned long rx_data_mode = 0;				//0: 16bit linear PCM; 1: 8bit linear PCM; 2: 8bit u-law; 3: 8bit a-law
-//===============================================
+/*-----------------------------------------------*/
+static unsigned long over_sample_rate = 256;		/*128fs/192fs/256fs/384fs/512fs/768fs*/
+static unsigned long sample_resolution = 16;		/*16bits/20bits/24bits*/
+static unsigned long word_select_size = 32;			/*16bits/20bits/24bits/32bits*/
+static unsigned long pcm_sync_period = 256;			/*16/32/64/128/256*/
+static unsigned long msb_lsb_first = 0;				/*0: msb first; 1: lsb first*/
+static unsigned long slot_index = 0;				/*slot index: 0: the 1st slot - 3: the 4th slot*/
+static unsigned long slot_width = 16;				/*8 bit width / 16 bit width*/
+static unsigned long frame_width = 1;				/*0: long frame = 2 clock width;  1: short frame*/
+static unsigned long tx_data_mode = 0;				/*0: 16bit linear PCM; 1: 8bit linear PCM; 2: 8bit u-law; 3: 8bit a-law*/
+static unsigned long rx_data_mode = 0;				/*0: 16bit linear PCM; 1: 8bit linear PCM; 2: 8bit u-law; 3: 8bit a-law*/
+/*===============================================*/
 
 static int regsave[8];
-static int pcm_used = 1;//0;
-
+static int pcm_used = 0;
+static u32 pcm_handle = 0;
 static struct sun6i_dma_params sun6i_pcm_pcm_stereo_out = {
 	.name		= "pcm_play",	
-	.dma_addr	= SUN6I_PCMBASE + SUN6I_PCMTXFIFO,//send data address	
+	.dma_addr	= SUN6I_PCMBASE + SUN6I_PCMTXFIFO,/*send data address	*/
 };
 
 static struct sun6i_dma_params sun6i_pcm_pcm_stereo_in = {
 	.name   	= "pcm_capture",
-	.dma_addr	=SUN6I_PCMBASE + SUN6I_PCMRXFIFO,//accept data address	
+	.dma_addr	=SUN6I_PCMBASE + SUN6I_PCMRXFIFO,/*accept data address	*/
 };
 
 struct sun6i_pcm_info sun6i_pcm;
@@ -90,12 +91,12 @@ static void sun6i_snd_txctrl_pcm(struct snd_pcm_substream *substream, int on)
 	reg_val |= SUN6I_PCMCTL_SDO0EN;
 	writel(reg_val, sun6i_pcm.regs + SUN6I_PCMCTL);
 	
-	//flush TX FIFO
+	/*flush TX FIFO*/
 	reg_val = readl(sun6i_pcm.regs + SUN6I_PCMFCTL);
 	reg_val |= SUN6I_PCMFCTL_FTX;	
 	writel(reg_val, sun6i_pcm.regs + SUN6I_PCMFCTL);
 	
-	//clear TX counter
+	/*clear TX counter*/
 	writel(0, sun6i_pcm.regs + SUN6I_PCMTXCNT);
 
 	if (on) {
@@ -149,12 +150,12 @@ static void sun6i_snd_rxctrl_pcm(struct snd_pcm_substream *substream, int on)
 	}
 	writel(reg_val, sun6i_pcm.regs + SUN6I_PCMRXCHMAP);
 	
-	//flush RX FIFO
+	/*flush RX FIFO*/
 	reg_val = readl(sun6i_pcm.regs + SUN6I_PCMFCTL);
 	reg_val |= SUN6I_PCMFCTL_FRX;	
 	writel(reg_val, sun6i_pcm.regs + SUN6I_PCMFCTL);
 
-	//clear RX counter
+	/*clear RX counter*/
 	writel(0, sun6i_pcm.regs + SUN6I_PCMRXCNT);
 	
 	if (on) {
@@ -201,7 +202,7 @@ static int sun6i_pcm_set_fmt(struct snd_soc_dai *cpu_dai, unsigned int fmt)
 	u32 reg_val;
 	u32 reg_val1;
 
-	//SDO ON
+	/*SDO ON*/
 	reg_val = readl(sun6i_pcm.regs + SUN6I_PCMCTL);
 	reg_val |= (SUN6I_PCMCTL_SDO0EN); 
 #ifdef PCM_COMMUNICATION
@@ -279,8 +280,8 @@ static int sun6i_pcm_set_fmt(struct snd_soc_dai *cpu_dai, unsigned int fmt)
 	/* set FIFO control register */
 	reg_val = 1 & 0x3;
 	reg_val |= (1 & 0x1)<<2;
-	reg_val |= SUN6I_PCMFCTL_RXTL(0x1f);				//RX FIFO trigger level
-	reg_val |= SUN6I_PCMFCTL_TXTL(0x40);				//TX FIFO empty trigger level
+	reg_val |= SUN6I_PCMFCTL_RXTL(0x1f);				/*RX FIFO trigger level*/
+	reg_val |= SUN6I_PCMFCTL_TXTL(0x40);				/*TX FIFO empty trigger level*/
 	writel(reg_val, sun6i_pcm.regs + SUN6I_PCMFCTL);
 	return 0;
 }
@@ -358,7 +359,7 @@ static int sun6i_pcm_set_clkdiv(struct snd_soc_dai *cpu_dai, int div_id, int div
 #endif
 
 #ifdef PCM_COMMUNICATION
-	//mclk div caculate
+	/*mclk div caculate*/
 	switch(fs)
 	{
 		case 8000:
@@ -504,14 +505,14 @@ static int sun6i_pcm_set_clkdiv(struct snd_soc_dai *cpu_dai, int div_id, int div
 	
 	}
 	
-	//bclk div caculate
+	/*bclk div caculate*/
 	bclk_div = mclk/(2*wss);
 #else
 	mclk_div = 2;
 	bclk_div = 6;
 #endif
 
-	//calculate MCLK Divide Ratio
+	/*calculate MCLK Divide Ratio*/
 	switch(mclk_div)
 	{
 		case 1: mclk_div = 0;
@@ -539,7 +540,7 @@ static int sun6i_pcm_set_clkdiv(struct snd_soc_dai *cpu_dai, int div_id, int div
 	}
 	mclk_div &= 0xf;
 
-	//calculate BCLK Divide Ratio
+	/*calculate BCLK Divide Ratio*/
 	switch(bclk_div)
 	{
 		case 2: bclk_div = 0;
@@ -561,7 +562,7 @@ static int sun6i_pcm_set_clkdiv(struct snd_soc_dai *cpu_dai, int div_id, int div
 	}
 	bclk_div &= 0x7;
 	
-	//set mclk and bclk dividor register
+	/*set mclk and bclk dividor register*/
 	reg_val = mclk_div;
 	reg_val |= (bclk_div<<4);
 	reg_val |= (0x1<<7);
@@ -662,14 +663,14 @@ static int sun6i_pcm_suspend(struct snd_soc_dai *cpu_dai)
 	u32 reg_val;
 	printk("[PCM]Entered %s\n", __func__);
 
-	//Global Enable Digital Audio Interface
+	/*Global Enable Digital Audio Interface*/
 	reg_val = readl(sun6i_pcm.regs + SUN6I_PCMCTL);
 	reg_val &= ~SUN6I_PCMCTL_GEN;
 	writel(reg_val, sun6i_pcm.regs + SUN6I_PCMCTL);
 
 	pcmregsave();
 	
-	//release the module clock
+	/*release the module clock*/
 	clk_disable(pcm_moduleclk);
 
 	clk_disable(pcm_apbclk);
@@ -681,15 +682,15 @@ static int sun6i_pcm_resume(struct snd_soc_dai *cpu_dai)
 	u32 reg_val;
 	printk("[PCM]Entered %s\n", __func__);
 
-	//release the module clock
+	/*release the module clock*/
 	clk_enable(pcm_apbclk);
 
-	//release the module clock
+	/*release the module clock*/
 	clk_enable(pcm_moduleclk);
 	
 	pcmregrestore();
 	
-	//Global Enable Digital Audio Interface
+	/*Global Enable Digital Audio Interface*/
 	reg_val = readl(sun6i_pcm.regs + SUN6I_PCMCTL);
 	reg_val |= SUN6I_PCMCTL_GEN;
 	writel(reg_val, sun6i_pcm.regs + SUN6I_PCMCTL);
@@ -735,7 +736,7 @@ static int __devinit sun6i_pcm_dev_probe(struct platform_device *pdev)
 	if (sun6i_pcm.regs == NULL)
 		return -ENXIO;
 
-	//pcm apbclk
+	/*pcm apbclk*/
 	pcm_apbclk = clk_get(NULL, "apb_i2s1");
 	if(-1 == clk_enable(pcm_apbclk)){
 		printk("pcm_apbclk failed! line = %d\n", __LINE__);
@@ -743,10 +744,10 @@ static int __devinit sun6i_pcm_dev_probe(struct platform_device *pdev)
 	
 	pcm_pllx8 = clk_get(NULL, "sys_pll2X8");
 	
-	//pcm pll2clk
+	/*pcm pll2clk*/
 	pcm_pll2clk = clk_get(NULL, "sys_pll2");
 	
-	//pcm module clk
+	/*pcm module clk*/
 	pcm_moduleclk = clk_get(NULL, "mod_i2s1");
 	
 	if(clk_set_parent(pcm_moduleclk, pcm_pll2clk)){
@@ -765,7 +766,6 @@ static int __devinit sun6i_pcm_dev_probe(struct platform_device *pdev)
 	reg_val |= SUN6I_PCMCTL_GEN;
 	writel(reg_val, sun6i_pcm.regs + SUN6I_PCMCTL);
 	
-	iounmap(sun6i_pcm.ioregs);
 	ret = snd_soc_register_dai(&pdev->dev, &sun6i_pcm_dai);	
 	if (ret) {
 		dev_err(&pdev->dev, "Failed to register DAI\n");
@@ -778,18 +778,19 @@ static int __devexit sun6i_pcm_dev_remove(struct platform_device *pdev)
 {
 	if(pcm_used) {
 		pcm_used = 0;
-		//release the module clock
+		/*release the module clock*/
 		clk_disable(pcm_moduleclk);
 		
-		//release pllx8clk
+		/*release pllx8clk*/
 		clk_put(pcm_pllx8);
 		
-		//release pll2clk
+		/*release pll2clk*/
 		clk_put(pcm_pll2clk);
 		
-		//release apbclk
+		/*release apbclk*/
 		clk_put(pcm_apbclk);
 			
+		sw_gpio_release(pcm_handle, 2);		
 		snd_soc_unregister_dai(&pdev->dev);
 		platform_set_drvdata(pdev, NULL);
 	}
@@ -814,7 +815,12 @@ static struct platform_driver sun6i_pcm_driver = {
 static int __init sun6i_pcm_init(void)
 {	
 	int err = 0;	
+	int ret = 0;
 
+	ret = script_parser_fetch("pcm_para","pcm_used", &pcm_used, sizeof(int));
+	if (ret) {
+        printk("[PCM]sndpcm_init fetch pcm using configuration failed\n");
+    }
  	if (pcm_used) {		
 		if((err = platform_device_register(&sun6i_pcm_device)) < 0)
 			return err;

@@ -23,7 +23,7 @@
 #include <sound/initval.h>
 #include <linux/io.h>
 
-#include "sndpcm.h"
+#include <mach/sys_config.h>
 
 struct sndpcm_priv {
 	int sysclk;
@@ -33,7 +33,7 @@ struct sndpcm_priv {
 	struct snd_pcm_substream *slave_substream;
 };
 
-static int pcm_used = 1;
+static int pcm_used = 0;
 #define sndpcm_RATES  (SNDRV_PCM_RATE_8000_192000|SNDRV_PCM_RATE_KNOT)
 #define sndpcm_FORMATS (SNDRV_PCM_FMTBIT_S8 | SNDRV_PCM_FMTBIT_S16_LE | \
 		                     SNDRV_PCM_FMTBIT_S18_3LE | SNDRV_PCM_FMTBIT_S20_3LE)
@@ -167,7 +167,13 @@ static struct platform_driver sndpcm_codec_driver = {
 static int __init sndpcm_codec_init(void)
 {	
 	int err = 0;	
-	
+	int ret = 0;
+
+	ret = script_parser_fetch("pcm_para","pcm_used", &pcm_used, sizeof(int));
+	if (ret) {
+        printk("[PCM]sndpcm_init fetch pcm using configuration failed\n");
+    }
+
 	if (pcm_used) {
 		if((err = platform_device_register(&sndpcm_codec_device)) < 0)
 			return err;
