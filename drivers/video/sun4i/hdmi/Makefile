@@ -4,5 +4,5 @@ obj-$(CONFIG_LYCHEE_HDMI_SUN4I) += hdmi.o
 #            dev_hdmi.o drv_hdmi.o 
             
 hdmi-objs := aw/hdmi_core.o aw/hdmi_hal.o aw/hdmi_interface.o aw/hdmi_edid.o\
-            dev_hdmi.o drv_hdmi.o 
+            dev_hdmi.o drv_hdmi.o aw/hdmi_cec.o
 

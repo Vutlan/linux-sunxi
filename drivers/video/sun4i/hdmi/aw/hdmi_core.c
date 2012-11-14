@@ -1,5 +1,5 @@
 #include "hdmi_core.h"
-
+#include "hdmi_cec.h"
 __s32 			hdmi_state	=	HDMI_State_Idle;
 __bool          video_enable = 0;
 __s32 			video_mode  = 	HDMI720P_50;
@@ -49,7 +49,7 @@ __s32 main_Hpd_Check(void)
 
 	for(i=0;i<3;i++)
 	{
-		hdmi_delay_ms(1);
+		hdmi_delay_ms(10);
 		if( HDMI_RUINT32(0x00c)&0x01)
 			times++;
 	}
@@ -81,6 +81,7 @@ __s32 hdmi_main_task_loop(void)
 			__inf("plugout\n");
 		}
 	}
+    hdmi_cec_task_loop();
 	switch(hdmi_state)
     {
     	case HDMI_State_Idle:
@@ -112,7 +113,8 @@ __s32 hdmi_main_task_loop(void)
             
     		 ParseEDID();
     		 HDMI_RUINT32(0x5f0);
-
+                if(!cec_standby)
+                 cec_count=100;
     		 hdmi_state = HDMI_State_Wait_Video_config;
 
     	case HDMI_State_Wait_Video_config:

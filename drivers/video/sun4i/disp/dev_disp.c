@@ -1,5 +1,5 @@
 #include "dev_disp.h"
-
+#include "../hdmi/aw/hdmi_cec.h"
 #ifdef CONFIG_HAS_EARLYSUSPEND
 #include <linux/earlysuspend.h>
 #endif
@@ -514,7 +514,8 @@ void backlight_early_suspend(struct early_suspend *h)
     int i = 0;
 
     printk("==display early suspend enter\n");
-
+    cec_standby=1;
+    cec_count=30;
     for(i=0; i<2; i++)
     {
         suspend_output_type[i] = BSP_disp_get_output_type(i);
@@ -545,7 +546,8 @@ void backlight_early_suspend(struct early_suspend *h)
 void backlight_late_resume(struct early_suspend *h)
 {
     int i = 0;
-
+    cec_standby=0;
+    cec_count=30;
     printk("==display late resume enter\n");
 
     BSP_disp_clk_on(2);
