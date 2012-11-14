@@ -643,6 +643,7 @@ static void axp_keyup(struct axp_charger *charger)
 	DBG_PSY_MSG("power key up\n");
 	input_report_key(powerkeydev, KEY_POWER, 0);
 	input_sync(powerkeydev);
+	axp_write(charger->master, AXP20_DATA_BUFFERC,0xe);
 }
 
 static void axp_keydown(struct axp_charger *charger)
@@ -650,6 +651,7 @@ static void axp_keydown(struct axp_charger *charger)
 	DBG_PSY_MSG("power key down\n");
 	input_report_key(powerkeydev, KEY_POWER, 1);
 	input_sync(powerkeydev);
+	axp_write(charger->master, AXP20_DATA_BUFFERC,0xf);
 }
 static void axp_capchange(struct axp_charger *charger)
 {
