@@ -364,20 +364,6 @@ u32 __dtc_single_mode(void)
 	pr_info("%s: sw_dma_config success\n", __FUNCTION__);
 
 	/*
-	 * enqueue to full
-	 */
-	/*usrcp_temp = uSrcP;
-	udstp_temp = uDstP;
-	for(i = 0; i < DTC_1T_TOTAL_LEN / DTC_1T_ONE_LEN - 1; i++) {
-		pr_info("%s: sw_dma_enqueue i %d\n", __FUNCTION__, i);
-		usrcp_temp += DTC_1T_ONE_LEN;
-		udstp_temp += DTC_1T_ONE_LEN;
-		if(0 != sw_dma_enqueue(dma_hdl, usrcp_temp, udstp_temp, \
-				DTC_1T_ONE_LEN, ENQUE_PHASE_NORMAL))
-			ERR_FUN_LINE;
-	}*/
-
-	/*
 	 * dump chain
 	 */
 	sw_dma_dump_chan(dma_hdl);
@@ -422,12 +408,14 @@ u32 __dtc_single_mode(void)
 	/*
 	 * wait dma done
 	 */
-	//msleep(5000);
 	if(0 != __Waitdone_single_mode()) {
 		uRet = __LINE__;
 		goto End;
 	}
 	pr_info("%s: __Waitdone_single_mode sucess\n", __FUNCTION__);
+
+	/* NOTE: must sleep here, see the analysis in __CB_qd_single_mode, 2012-11-14 */
+	msleep(2000);
 
 	/*
 	 * check if data ok

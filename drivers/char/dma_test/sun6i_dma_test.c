@@ -24,7 +24,7 @@
 /*
  * cur test case
  */
-static enum dma_test_case_e g_cur_test_case = DTC_SINGLE_CONT_MODE;
+static enum dma_test_case_e g_cur_test_case = DTC_SINGLE_MODE;
 //static enum dma_test_case_e g_cur_test_case = DTC_MAX;
 
 /*

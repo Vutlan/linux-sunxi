@@ -20,7 +20,6 @@
  * src/dst addr for loop dma transfer
  */
 #define DTC_1T_TOTAL_LEN	SIZE_512K
-//#define DTC_1T_TOTAL_LEN	SIZE_16K
 #define DTC_1T_ONE_LEN		SIZE_4K
 static u32 g_src_addr = 0, g_dst_addr = 0;
 static atomic_t g_acur_cnt = ATOMIC_INIT(0);
@@ -50,6 +49,7 @@ u32 __CB_qd_1t_mem_2_mem(dm_hdl_t dma_hdl, void *parg, enum dma_cb_cause_e cause
 			uCurDst = g_dst_addr + atomic_read(&g_acur_cnt) * DTC_1T_ONE_LEN;
 			if(0 != sw_dma_enqueue(dma_hdl, uCurSrc, uCurDst, DTC_1T_ONE_LEN, ENQUE_PHASE_QD))
 				ERR_FUN_LINE;
+#if 0
 		/*
 		 * we have complete enqueueing, but not means it's the last qd irq,
 		 * in test, we found sometimes never meet if(ucur_cnt == uloop_cnt...
@@ -58,7 +58,6 @@ u32 __CB_qd_1t_mem_2_mem(dm_hdl_t dma_hdl, void *parg, enum dma_cb_cause_e cause
 		} else if(ucur_cnt == uloop_cnt){
 			DBG_FUN_LINE;
 
-#if 0
 			sw_dma_dump_chan(dma_hdl); /* for debug */
 
 			/* maybe it's the last irq; or next will be the last irq, need think about */
@@ -142,31 +141,12 @@ End:
 u32 __CB_hd_1t_mem_2_mem(dm_hdl_t dma_hdl, void *parg, enum dma_cb_cause_e cause)
 {
 	u32 	uRet = 0;
-#if 0
-	u32	uCurSrc = 0, uCurDst = 0;
-	u32	uloop_cnt = DTC_1T_TOTAL_LEN / DTC_1T_ONE_LEN;
-	u32 	ucur_cnt = 0;
-#endif
 
 	pr_info("%s: called!\n", __FUNCTION__);
 
 	switch(cause) {
 	case DMA_CB_OK:
 		pr_info("%s: DMA_CB_OK!\n", __FUNCTION__);
-#if 0
-		/* enqueue if not done */
-		ucur_cnt = atomic_add_return(1, &g_acur_cnt);
-		if(ucur_cnt < uloop_cnt){
-			DBG_FUN_LINE;
-			uCurSrc = g_src_addr + atomic_read(&g_acur_cnt) * DTC_1T_ONE_LEN;
-			uCurDst = g_dst_addr + atomic_read(&g_acur_cnt) * DTC_1T_ONE_LEN;
-			if(0 != sw_dma_enqueue(dma_hdl, uCurSrc, uCurDst, DTC_1T_ONE_LEN, ENQUE_PHASE_HD))
-				ERR_FUN_LINE;
-		} else {
-			/* do nothing */
-			DBG_FUN_LINE;
-		}
-#endif
 		break;
 	case DMA_CB_ABORT:
 		pr_info("%s: DMA_CB_ABORT!\n", __FUNCTION__);
@@ -368,20 +348,6 @@ u32 __dtc_1t_mem_2_mem(void)
 	pr_info("%s: sw_dma_config success\n", __FUNCTION__);
 
 	/*
-	 * enqueue to full
-	 */
-	/*usrcp_temp = uSrcP;
-	udstp_temp = uDstP;
-	for(i = 0; i < DTC_1T_TOTAL_LEN / DTC_1T_ONE_LEN - 1; i++) {
-		pr_info("%s: sw_dma_enqueue i %d\n", __FUNCTION__, i);
-		usrcp_temp += DTC_1T_ONE_LEN;
-		udstp_temp += DTC_1T_ONE_LEN;
-		if(0 != sw_dma_enqueue(dma_hdl, usrcp_temp, udstp_temp, \
-				DTC_1T_ONE_LEN, ENQUE_PHASE_NORMAL))
-			ERR_FUN_LINE;
-	}*/
-
-	/*
 	 * dump chain
 	 */
 	sw_dma_dump_chan(dma_hdl);
@@ -425,12 +391,16 @@ u32 __dtc_1t_mem_2_mem(void)
 	/*
 	 * wait dma done
 	 */
-	//msleep(5000);
 	if(0 != __Waitdone_1t_mem_2_mem()) {
 		uRet = __LINE__;
 		goto End;
 	}
 	pr_info("%s: __Waitdone_1t_mem_2_mem sucess\n", __FUNCTION__);
+
+	/* NOTE: must sleep here, becase when __Waitdone_1t_mem_2_mem return, buffer enqueue complete, but
+	 * data might not transfer complete, 2012-11-14
+	 */
+	msleep(2000);
 
 	/*
 	 * check if data ok

@@ -29,10 +29,12 @@
 #include <linux/dma-mapping.h>
 #include <linux/dmapool.h>
 #include <linux/types.h>
+#include <linux/clk.h>
 
 #define USE_UNCACHED_FOR_DESMGR /* use uncached for des manager, 2012-6-20 */
 
 #include <mach/dma.h>
+#include <mach/clock.h>
 #include "dma_regs.h"
 #include "dma_common.h"
 #include "dma_csp.h"
@@ -42,6 +44,7 @@
 #include "dma_interface.h"
 #include "dma_irq_hd.h"
 #include "dma_single.h"
+
 
 #ifdef DBG_DMA
 #include <linux/delay.h>

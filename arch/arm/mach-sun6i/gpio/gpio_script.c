@@ -48,7 +48,7 @@ typedef struct
  */
 int gpio_script_init(void)
 {
-	PIO_DBG("%s, line %d, init pin", __FUNCTION__, __LINE__);
+	PIO_DBG("%s, line %d, init pin\n", __func__, __LINE__);
 
 	//gpio_g_pioMemBase = (u32)CSP_OSAL_PHY_2_VIRT(CSP_PIN_PHY_ADDR_BASE , CSP_PIN_PHY_ADDR_SIZE);
 #ifdef FPGA_RUNTIME_ENV
@@ -89,7 +89,7 @@ static inline u32 port_to_gpio_index(u32 port, u32 port_num)
 		{PM_NR_BASE,         PM_NR}
 	};
 
-	PIO_DBG("%s: port %d, port_num %d\n", __FUNCTION__, port, port_num);
+	PIO_DBG("%s: port %d, port_num %d\n", __func__, port, port_num);
 
 	/* para check */
 	if(port - 1 >= ARRAY_SIZE(pio_buf)
@@ -106,10 +106,10 @@ static inline u32 port_to_gpio_index(u32 port, u32 port_num)
 
 End:
 	if(0 != usign) {
-		PIO_ERR("%s err, line %d\n", __FUNCTION__, usign);
+		PIO_ERR("%s err, line %d\n", __func__, usign);
 		return GPIO_INDEX_INVALID;
 	} else {
-		PIO_DBG("%s success\n", __FUNCTION__);
+		PIO_DBG("%s success\n", __func__);
 		return (pio_buf[port - 1].base + port_num);
 	}
 }
@@ -210,6 +210,11 @@ u32 sw_gpio_request(user_gpio_set_t *gpio_list, u32 group_count_max)
 #if 1
 		/* get the gpio index */
 		pio_index = port_to_gpio_index(port, port_num);
+		if(GPIO_INDEX_INVALID == pio_index) {
+			PIO_ERR("%s err, line %d: cannot find index for (port %d, port_num %d),\
+				please check your sys_config1.fex\n", __func__, __LINE__, port, port_num);
+			continue;
+		}
 
 		/* backup the last config(read from hw) to hardware_gpio_status */
 		tmp_sys_gpio_data->hardware_gpio_status.mul_sel = sw_gpio_getcfg(pio_index);
@@ -337,7 +342,7 @@ u32 sw_gpio_request(user_gpio_set_t *gpio_list, u32 group_count_max)
 
 End:
 	if(0 != usign) {
-		PIO_ERR("%s err, line %d", __FUNCTION__, usign);
+		PIO_ERR("%s err, line %d", __func__, usign);
 
 		/* free buf if err */
 		if(NULL != user_gpio_buf) {
@@ -461,6 +466,11 @@ s32 sw_gpio_release(u32 p_handler, s32 if_release_to_default_status)
 #if 1
 		/* get the gpio index */
 		pio_index = port_to_gpio_index(port, port_num);
+		if(GPIO_INDEX_INVALID == pio_index) {
+			PIO_ERR("%s err, line %d: cannot find index for (port %d, port_num %d),\
+				please check your sys_config1.fex\n", __func__, __LINE__, port, port_num);
+			continue;
+		}
 
 		config_stru.gpio = pio_index;
 		config_stru.mul_sel = 0; /* input */
@@ -525,7 +535,7 @@ End:
 	CSP_OSAL_FREE((char *)p_handler);
 
 	if(0 != usign) {
-		PIO_ERR("%s err, line %d", __FUNCTION__, usign);
+		PIO_ERR("%s err, line %d", __func__, usign);
 		return EGPIO_FAIL;
 	} else {
 		return EGPIO_SUCCESS;
@@ -618,6 +628,11 @@ s32  sw_gpio_get_all_pin_status(u32 p_handler, user_gpio_set_t *gpio_status, u32
 #if 1
 			/* get the gpio index */
 			pio_index = port_to_gpio_index(port, port_num);
+			if(GPIO_INDEX_INVALID == pio_index) {
+				PIO_ERR("%s err, line %d: cannot find index for (port %d, port_num %d),\
+					please check your sys_config1.fex\n", __func__, __LINE__, port, port_num);
+				continue;
+			}
 
 			config_stru.gpio = pio_index;
 			if(0 != sw_gpio_getall_range(&config_stru, 1)) {
@@ -664,7 +679,7 @@ s32  sw_gpio_get_all_pin_status(u32 p_handler, user_gpio_set_t *gpio_status, u32
 
 End:
 	if(0 != usign) {
-		PIO_ERR("%s err, line %d", __FUNCTION__, usign);
+		PIO_ERR("%s err, line %d", __func__, usign);
 		return EGPIO_FAIL;
 	} else {
 		return EGPIO_SUCCESS;
@@ -725,6 +740,11 @@ s32  sw_gpio_get_one_pin_status(u32 p_handler, user_gpio_set_t *gpio_status, con
 #if 1
 			/* get the gpio index */
 			pio_index = port_to_gpio_index(port, port_num);
+			if(GPIO_INDEX_INVALID == pio_index) {
+				PIO_ERR("%s err, line %d: cannot find index for (port %d, port_num %d),\
+					please check your sys_config1.fex\n", __func__, __LINE__, port, port_num);
+				continue;
+			}
 
 			config_stru.gpio = pio_index;
 			if(0 != sw_gpio_getall_range(&config_stru, 1)) {
@@ -763,7 +783,7 @@ s32  sw_gpio_get_one_pin_status(u32 p_handler, user_gpio_set_t *gpio_status, con
 
 End:
 	if(0 != usign) {
-		PIO_ERR("%s err, line %d", __FUNCTION__, usign);
+		PIO_ERR("%s err, line %d", __func__, usign);
 		return EGPIO_FAIL;
 	} else {
 		return EGPIO_SUCCESS;
@@ -829,6 +849,11 @@ s32  sw_gpio_set_one_pin_status(u32 p_handler, user_gpio_set_t *gpio_status, con
 #if 1
 		/* get the gpio index */
 		pio_index = port_to_gpio_index(port, port_num);
+		if(GPIO_INDEX_INVALID == pio_index) {
+			PIO_ERR("%s err, line %d: cannot find index for (port %d, port_num %d),\
+				please check your sys_config1.fex\n", __func__, __LINE__, port, port_num);
+			continue;
+		}
 #endif
 
 		if(script_gpio.mul_sel >= 0) {
@@ -901,7 +926,7 @@ break;
 
 End:
 	if(0 != usign) {
-		PIO_ERR("%s err, line %d", __FUNCTION__, usign);
+		PIO_ERR("%s err, line %d", __func__, usign);
 		return EGPIO_FAIL;
 	} else {
 		return EGPIO_SUCCESS;
@@ -959,6 +984,11 @@ s32  sw_gpio_set_one_pin_io_status(u32 p_handler, u32 if_set_to_output_status, c
 #if 1
 	/* get the gpio index */
 	pio_index = port_to_gpio_index(port, port_num);
+	if(GPIO_INDEX_INVALID == pio_index) {
+		PIO_ERR("%s err, line %d: cannot find index for (port %d, port_num %d),\
+			please check your sys_config1.fex\n", __func__, __LINE__, port, port_num);
+		return EGPIO_FAIL;
+	}
 
 	/* set cfg */
 	ucfg = (if_set_to_output_status ? 1 : 0);
@@ -1029,6 +1059,11 @@ s32  sw_gpio_set_one_pin_pull(u32 p_handler, u32 set_pull_status, const char *gp
 #if 1
 	/* get the gpio index */
 	pio_index = port_to_gpio_index(port, port_num);
+	if(GPIO_INDEX_INVALID == pio_index) {
+		PIO_ERR("%s err, line %d: cannot find index for (port %d, port_num %d),\
+			please check your sys_config1.fex\n", __func__, __LINE__, port, port_num);
+		return EGPIO_FAIL;
+	}
 
 	if(0 != sw_gpio_setpull(pio_index, set_pull_status)) {
 		PIO_ERR_FUN_LINE;
@@ -1098,6 +1133,11 @@ s32  sw_gpio_set_one_pin_driver_level(u32 p_handler, u32 set_driver_level, const
 #if 1
 	/* get the gpio index */
 	pio_index = port_to_gpio_index(port, port_num);
+	if(GPIO_INDEX_INVALID == pio_index) {
+		PIO_ERR("%s err, line %d: cannot find index for (port %d, port_num %d),\
+			please check your sys_config1.fex\n", __func__, __LINE__, port, port_num);
+		return EGPIO_FAIL;
+	}
 
 	if(0 != sw_gpio_setdrvlevel(pio_index, set_driver_level)) {
 		PIO_ERR_FUN_LINE;
@@ -1165,6 +1205,11 @@ s32  sw_gpio_read_one_pin_value(u32 p_handler, const char *gpio_name)
 #if 1
 	/* get the gpio index */
 	pio_index = port_to_gpio_index(port, port_num);
+	if(GPIO_INDEX_INVALID == pio_index) {
+		PIO_ERR("%s err, line %d: cannot find index for (port %d, port_num %d),\
+			please check your sys_config1.fex\n", __func__, __LINE__, port, port_num);
+		return EGPIO_FAIL;
+	}
 
 	ucfg = sw_gpio_getcfg(pio_index);
 	if(0 == ucfg)
@@ -1239,6 +1284,11 @@ s32  sw_gpio_write_one_pin_value(u32 p_handler, u32 value_to_gpio, const char *g
 #if 1
 	/* get the gpio index */
 	pio_index = port_to_gpio_index(port, port_num);
+	if(GPIO_INDEX_INVALID == pio_index) {
+		PIO_ERR("%s err, line %d: cannot find index for (port %d, port_num %d),\
+			please check your sys_config1.fex\n", __func__, __LINE__, port, port_num);
+		return EGPIO_FAIL;
+	}
 
 	ucfg = sw_gpio_getcfg(pio_index);
 	if(1 == ucfg) {
@@ -1316,9 +1366,14 @@ u32 sw_gpio_get_index(u32 p_handler, const char *gpio_name)
 
 	/* get the gpio index */
 	pio_index = port_to_gpio_index(port, port_num);
+	if(GPIO_INDEX_INVALID == pio_index) {
+		usign = __LINE__;
+		goto End;
+	}
+
 End:
 	if(0 != usign) {
-		PIO_ERR("%s err, line %d", __FUNCTION__, usign);
+		PIO_ERR("%s err, line %d", __func__, usign);
 		return GPIO_INDEX_INVALID;
 	} else
 		return pio_index;

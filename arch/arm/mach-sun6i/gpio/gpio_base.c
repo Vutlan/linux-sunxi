@@ -98,7 +98,7 @@ static int __gpio_direction_input(struct gpio_chip *chip, unsigned offset)
 
 #if 0
 //#ifdef DBG_GPIO
-	PIO_DBG("%s: chip 0x%08x, offset %d, aw chip 0x%08x\n", __FUNCTION__,
+	PIO_DBG("%s: chip 0x%08x, offset %d, aw chip 0x%08x\n", __func__,
 		(u32)chip, offset, (u32)pchip);
 #endif /* DBG_GPIO */
 
@@ -107,7 +107,7 @@ static int __gpio_direction_input(struct gpio_chip *chip, unsigned offset)
 
 	PIO_CHIP_LOCK(&pchip->lock, flags);
 
-	PIO_DBG("%s: write cfg reg 0x%08x, bits_off %d, width %d, cfg_val %d\n", __FUNCTION__,
+	PIO_DBG("%s: write cfg reg 0x%08x, bits_off %d, width %d, cfg_val %d\n", __func__,
 		(u32)(ureg_off + pchip->vbase), ubits_off, PIO_BITS_WIDTH_CFG, PIO_CFG_INPUT);
 
 	PIO_WRITE_REG_BITS(ureg_off + pchip->vbase, ubits_off, PIO_BITS_WIDTH_CFG, PIO_CFG_INPUT);
@@ -132,7 +132,7 @@ static int __gpio_direction_output(struct gpio_chip *chip, unsigned offset, int 
 
 #if 0
 //#ifdef DBG_GPIO
-	PIO_DBG("%s: chip 0x%08x, offset %d, val %d, aw chip 0x%08x\n", __FUNCTION__,
+	PIO_DBG("%s: chip 0x%08x, offset %d, val %d, aw chip 0x%08x\n", __func__,
 		(u32)chip, offset, value, (u32)pchip);
 #endif /* DBG_GPIO */
 
@@ -141,12 +141,12 @@ static int __gpio_direction_output(struct gpio_chip *chip, unsigned offset, int 
 
 	PIO_CHIP_LOCK(&pchip->lock, flags);
 
-	PIO_DBG("%s: write cfg reg 0x%08x, bits_off %d, width %d, cfg_val %d\n", __FUNCTION__,
+	PIO_DBG("%s: write cfg reg 0x%08x, bits_off %d, width %d, cfg_val %d\n", __func__,
 		(u32)(ureg_off + pchip->vbase), ubits_off, PIO_BITS_WIDTH_CFG, PIO_CFG_OUTPUT);
 
 	PIO_WRITE_REG_BITS(ureg_off + pchip->vbase, ubits_off, PIO_BITS_WIDTH_CFG, PIO_CFG_OUTPUT);
 
-	PIO_DBG("%s: write data reg 0x%08x, offset %d, val %d\n", __FUNCTION__, \
+	PIO_DBG("%s: write data reg 0x%08x, offset %d, val %d\n", __func__, \
 		(u32)(PIO_OFF_REG_DATA + pchip->vbase), offset, (0 != value ? 1 : 0));
 
 	PIO_WRITE_REG_BITS(PIO_OFF_REG_DATA + pchip->vbase, offset, 1, (0 != value ? 1 : 0));
@@ -170,7 +170,7 @@ static int __gpio_get(struct gpio_chip *chip, unsigned offset)
 
 #if 0
 //#ifdef DBG_GPIO
-	PIO_DBG("%s: chip 0x%08x, offset %d, aw chip 0x%08x\n", __FUNCTION__,
+	PIO_DBG("%s: chip 0x%08x, offset %d, aw chip 0x%08x\n", __func__,
 		(u32)chip, offset, (u32)pchip);
 #endif /* DBG_GPIO */
 
@@ -178,7 +178,7 @@ static int __gpio_get(struct gpio_chip *chip, unsigned offset)
 
 	iret = PIO_READ_REG_BITS(PIO_OFF_REG_DATA + pchip->vbase, offset, 1);
 
-	PIO_DBG("%s: read data reg 0x%08x - 0x%08x, offset %d, ret %d\n", __FUNCTION__,
+	PIO_DBG("%s: read data reg 0x%08x - 0x%08x, offset %d, ret %d\n", __func__,
 		(u32)(PIO_OFF_REG_DATA + pchip->vbase),	PIO_READ_REG(PIO_OFF_REG_DATA + pchip->vbase), offset, iret);
 
 	PIO_CHIP_UNLOCK(&pchip->lock, flags);
@@ -198,13 +198,13 @@ static void __gpio_set(struct gpio_chip *chip, unsigned offset, int value)
 
 #if 0
 //#ifdef DBG_GPIO
-	PIO_DBG("%s: chip 0x%08x, offset %d, value %d, aw chip 0x%08x\n", __FUNCTION__,
+	PIO_DBG("%s: chip 0x%08x, offset %d, value %d, aw chip 0x%08x\n", __func__,
 		(u32)chip, offset, value, (u32)pchip);
 #endif /* DBG_GPIO */
 
 	PIO_CHIP_LOCK(&pchip->lock, flags);
 
-	PIO_DBG("%s: write data reg 0x%08x, offset %d, val %d\n", __FUNCTION__,
+	PIO_DBG("%s: write data reg 0x%08x, offset %d, val %d\n", __func__,
 		(u32)(PIO_OFF_REG_DATA + pchip->vbase), offset, (0 != value ? 1 : 0));
 
 	PIO_WRITE_REG_BITS(PIO_OFF_REG_DATA + pchip->vbase, offset, 1, (0 != value ? 1 : 0));
@@ -261,7 +261,7 @@ int __pio_to_irq(struct gpio_chip *chip, unsigned offset)
 
 #if 0
 //#ifdef DBG_GPIO
-	PIO_DBG("%s: chip 0x%08x, offset %d, aw chip 0x%08x\n", __FUNCTION__,
+	PIO_DBG("%s: chip 0x%08x, offset %d, aw chip 0x%08x\n", __func__,
 		(u32)chip, offset, (u32)pchip);
 #endif /* DBG_GPIO */
 
@@ -297,7 +297,7 @@ u32 __gpio_index_to_irq(u32 gpio)
 
 #ifdef DBG_GPIO
 	if(0xFFFFFFFF == uret) {
-		PIO_INF("%s: gpio %d, cannot find irq, to check\n", __FUNCTION__, gpio);
+		PIO_INF("%s: gpio %d, cannot find irq, to check\n", __func__, gpio);
 	}
 #endif /* DBG_GPIO */
 

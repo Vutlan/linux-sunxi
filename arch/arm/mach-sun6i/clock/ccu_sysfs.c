@@ -289,6 +289,7 @@ static ssize_t ccu_get_store(struct device *dev,
 				CCU_ERR("%s err: get clock %s failed\n", __func__, pclk_handle->name);
 				return -EINVAL;
 			}
+			CCU_DBG("%s: clk_get %s success, ret 0x%08x\n", __func__, pclk_handle->name, (u32)pclk_handle->clk);
 		}
 	} else {
 		CCU_ERR("%s err: para %s invalid\n", __func__, buf);

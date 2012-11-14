@@ -26,11 +26,13 @@
 #include <linux/slab.h>
 #include <linux/spinlock.h>
 #include <linux/types.h>
+#include <linux/clk.h>
 #include <asm-generic/gpio.h>
 
 #include <mach/memory.h>
 #include <mach/platform.h>
 #include <mach/gpio.h>
+#include <mach/clock.h>
 
 #include "gpio_common.h"
 #include "gpio_eint.h"
@@ -38,8 +40,6 @@
 #include "gpio_init.h"
 #include "gpio_multi_func.h"
 #include "gpio_base.h"
-
-#define PIO_FROM_SD_TESTCODE /* init gpio clock from sd test code */
 
 #endif  /* __GPIO_INCLUDES_H */
 

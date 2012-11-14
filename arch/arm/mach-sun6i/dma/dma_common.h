@@ -20,8 +20,6 @@
 
 //#define DBG_DMA /* debug dma driver */
 
-#define FROM_SD_TESTCODE	/* refrence the 1633 dma test code from sd */
-
 /*
  * dma print macro
  */

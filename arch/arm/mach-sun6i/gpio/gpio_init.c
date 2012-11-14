@@ -15,6 +15,10 @@
 
 #include "gpio_include.h"
 
+#define PIO_CLK_NAME		"apb_pio"
+
+static struct clk *g_apb_pio_clk = NULL;
+
 /**
  * gpio_save - save somethig for the chip before enter sleep
  * @chip:	aw_gpio_chip which will be saved
@@ -204,11 +208,57 @@ struct aw_gpio_chip gpio_chips[] = {
 	}
 };
 
-#ifdef PIO_FROM_SD_TESTCODE
-static void __iomem *g_ccm_reg_vbase = 0;
-static void __iomem *g_r_prcm_reg_vbase = 0;
-#include "pio_clkinit_from_sdtest.c"
-#endif /* PIO_FROM_SD_TESTCODE */
+u32 gpio_clk_init(void)
+{
+	PIO_INF("%s todo: cpus pio clock init, line %d\n", __func__, __LINE__);
+	//r_gpio_clk_init();
+
+	if(NULL != g_apb_pio_clk) {
+		PIO_INF("%s maybe err: g_apb_pio_clk not NULL, line %d\n", __func__, __LINE__);
+	}
+
+	g_apb_pio_clk = clk_get(NULL, PIO_CLK_NAME);
+	PIO_DBG("%s: get g_apb_pio_clk 0x%08x\n", __func__, (u32)g_apb_pio_clk);
+	if(NULL == g_apb_pio_clk || IS_ERR(g_apb_pio_clk)) {
+		PIO_ERR("%s err: clk_get %s failed\n", __func__, PIO_CLK_NAME);
+		return -EPERM;
+	} else {
+		if(0 != clk_enable(g_apb_pio_clk)) {
+			PIO_ERR("%s err: clk_enable failed\n", __func__);
+			return -EPERM;
+		}
+		PIO_DBG("%s: clk_enable g_apb_pio_clk success\n", __func__);
+		if(0 != clk_reset(g_apb_pio_clk, AW_CCU_CLK_NRESET)) {
+			PIO_ERR("%s err: clk_reset failed\n", __func__);
+			return -EPERM;
+		}
+		PIO_DBG("%s: clk_reset g_apb_pio_clk-AW_CCU_CLK_NRESET success\n", __func__);
+	}
+
+	PIO_DBG("%s success\n", __func__);
+	return 0;
+}
+
+u32 gpio_clk_deinit(void)
+{
+	PIO_INF("%s todo: cpus pio clock deinit, line %d\n", __func__, __LINE__);
+	//r_gpio_clk_deinit();
+
+	if(NULL == g_apb_pio_clk || IS_ERR(g_apb_pio_clk)) {
+		PIO_INF("%s: g_apb_pio_clk 0x%08x invalid, just return\n", __func__, (u32)g_apb_pio_clk);
+		return 0;
+	}
+
+	if(0 != clk_reset(g_apb_pio_clk, AW_CCU_CLK_RESET)) {
+		PIO_ERR("%s err: clk_reset failed\n", __func__);
+	}
+	clk_disable(g_apb_pio_clk);
+	clk_put(g_apb_pio_clk);
+	g_apb_pio_clk = NULL;
+
+	PIO_DBG("%s success\n", __func__);
+	return 0;
+}
 
 /**
  * aw_gpio_init - gpio driver init function
@@ -220,15 +270,9 @@ static __init int aw_gpio_init(void)
 	u32	uret = 0;
 	u32 	i = 0;
 
-#ifdef PIO_FROM_SD_TESTCODE
-	g_ccm_reg_vbase = ioremap_nocache(AW_CCM_BASE, 0x1000);
-	g_r_prcm_reg_vbase = ioremap_nocache(AW_R_PRCM_BASE, 0x1000);
-	PIO_DBG("%s: g_ccm_reg_vbase 0x%08x, g_r_prcm_reg_vbase 0x%08x\n", __FUNCTION__,
-		(u32)g_ccm_reg_vbase, (u32)g_r_prcm_reg_vbase);
-	PIO_DBG("%s: NOTE - r_gpio currently NOT pass tested############################\n", __FUNCTION__);
-	gpio_clk_init();
-	r_gpio_clk_init();
-#endif /* PIO_FROM_SD_TESTCODE */
+	if(0 != gpio_clk_init()) {
+		PIO_ERR("%s err: line %d\n", __func__, __LINE__);
+	}
 
 	for(i = 0; i < ARRAY_SIZE(gpio_chips); i++) {
 		/* lock init */
@@ -243,11 +287,11 @@ static __init int aw_gpio_init(void)
 
 End:
 	if(0 != uret) {
-		PIO_ERR("%s err, line %d\n", __FUNCTION__, uret);
+		PIO_ERR("%s err, line %d\n", __func__, uret);
 	}
 
 	return uret;
 }
 
-core_initcall(aw_gpio_init);
+subsys_initcall(aw_gpio_init);
 

@@ -94,6 +94,9 @@ void __dump_buf_list_sgmd(struct dma_channel_t *pchan)
 {
 	struct list_head *p, *n;
 	struct des_item_t *pitem = NULL;
+#if (DMA_DBG_LEVEL != 3)
+	int i = 0;
+#endif /* (DMA_DBG_LEVEL != 3) */
 
 	DMA_INF("+++++++++++%s+++++++++++\n", __FUNCTION__);
 	list_for_each_safe(p, n, &pchan->buf_list_head) {
