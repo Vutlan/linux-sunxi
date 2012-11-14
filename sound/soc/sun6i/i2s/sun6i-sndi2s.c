@@ -22,13 +22,12 @@
 #include <sound/pcm_params.h>
 #include <sound/soc-dapm.h>
 #include <linux/io.h>
+#include <mach/sys_config.h>
 
 #include "sun6i-i2s.h"
 #include "sun6i-i2sdma.h"
 
-#include "sndi2s.h"
-
-static int i2s_used = 1;
+static int i2s_used = 0;
 static struct clk *xtal;
 static int clk_users;
 static DEFINE_MUTEX(clk_lock);
@@ -146,6 +145,11 @@ static struct platform_device *sun6i_sndi2s_device;
 static int __init sun6i_sndi2s_init(void)
 {
 	int ret;
+	ret = script_parser_fetch("i2s_para","i2s_used", &i2s_used, sizeof(int));
+	if (ret) {
+        printk("[I2S]sndi2s_init fetch i2s using configuration failed\n");
+    }
+
     if (i2s_used) {
 		sun6i_sndi2s_device = platform_device_alloc("soc-audio", 2);
 		if(!sun6i_sndi2s_device)

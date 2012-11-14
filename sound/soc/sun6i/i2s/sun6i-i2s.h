@@ -182,28 +182,25 @@ extern void sun6i_snd_txctrl_i2s(struct snd_pcm_substream *substream, int on);
 extern void sun6i_snd_rxctrl_i2s(struct snd_pcm_substream *substream, int on);
 
 struct sun6i_i2s_info {
-	void __iomem   *regs;    /* IIS BASE */
-	void __iomem   *ccmregs;  //CCM BASE
-	void __iomem   *ioregs;   //IO BASE
+	void __iomem   *regs;
 
-	u32 slave;					//0: master, 1: slave					
-	u32 mono;					//0: stereo, 1: mono
-	u32 samp_fs;				//audio sample rate (unit in kHz)
-	u32 samp_res;			//16 bits, 20 bits , 24 bits, 32 bits)
-	u32 samp_format;		//audio sample format (0: standard I2S, 1: left-justified, 2: right-justified, 3: pcm)
-	u32 ws_size;				//16 BCLK, 20 BCLK, 24 BCLK, 32 BCLK)
-	u32 mclk_rate;			//mclk frequency divide by fs (128fs, 192fs, 256fs, 384fs, 512fs, 768fs)
-	u32 lrc_pol;				//LRC clock polarity (0: normal ,1: inverted)
-	u32 bclk_pol;			//BCLK polarity (0: normal, 1: inverted)
-	u32 pcm_txtype;		//PCM transmitter type (0: 16-bits linear mode, 1: 8-bits linear mode, 2: u-law, 3: A-law)
-	u32 pcm_rxtype;		//PCM receiver type  (0: 16-bits linear mode, 1: 8-bits linear mode, 2: u-law, 3: A-law)
-	u32 pcm_sw;				//PCM slot width (8: 8 bits, 16: 16 bits)
-	u32 pcm_sync_period;//PCM sync period (16/32/64/128/256)
-	u32 pcm_sync_type;	//PCM sync symbol size (0: short sync, 1: long sync)
-	u32 pcm_start_slot;//PCM start slot index (1--4)
-	u32 pcm_lsb_first;	//0: MSB first, 1: LSB first
-	u32 pcm_ch_num;		//PCM channel number (1: one channel, 2: two channel)
-
+	u32 slave;
+	u32 mono;
+	u32 samp_fs;
+	u32 samp_res;
+	u32 samp_format;
+	u32 ws_size;
+	u32 mclk_rate;
+	u32 lrc_pol;
+	u32 bclk_pol;
+	u32 pcm_txtype;
+	u32 pcm_rxtype;	
+	u32 pcm_sw;
+	u32 pcm_sync_period;
+	u32 pcm_sync_type;
+	u32 pcm_start_slot;
+	u32 pcm_lsb_first;
+	u32 pcm_ch_num;
 };
 
 extern struct sun6i_i2s_info sun6i_i2s;

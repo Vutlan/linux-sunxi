@@ -17,15 +17,9 @@
 #ifndef SUN6I_I2SDMA_H_
 #define SUN6I_I2SDMA_H_
 
-#define ST_RUNNING    (1<<0)
-#define ST_OPENED     (1<<1)
-
 struct sun6i_dma_params {
 	char *name;		
 	dma_addr_t dma_addr;	
 };
-#define SUN6I_DAI_I2S			1
 
-extern struct sun6i_i2s_info sun6i_iis;
-
-#endif //SUN6I_I2SDMA_H_
+#endif

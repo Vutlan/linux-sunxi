@@ -22,8 +22,7 @@
 #include <sound/soc-dapm.h>
 #include <sound/initval.h>
 #include <linux/io.h>
-
-#include "sndi2s.h"
+#include <mach/sys_config.h>
 
 struct sndi2s_priv {
 	int sysclk;
@@ -33,7 +32,7 @@ struct sndi2s_priv {
 	struct snd_pcm_substream *slave_substream;
 };
 
-static int i2s_used = 1;
+static int i2s_used = 0;
 #define sndi2s_RATES  (SNDRV_PCM_RATE_8000_192000|SNDRV_PCM_RATE_KNOT)
 #define sndi2s_FORMATS (SNDRV_PCM_FMTBIT_S8 | SNDRV_PCM_FMTBIT_S16_LE | \
 		                     SNDRV_PCM_FMTBIT_S18_3LE | SNDRV_PCM_FMTBIT_S20_3LE)
@@ -167,6 +166,12 @@ static struct platform_driver sndi2s_codec_driver = {
 static int __init sndi2s_codec_init(void)
 {	
 	int err = 0;
+	int ret = 0;
+
+	ret = script_parser_fetch("i2s_para","i2s_used", &i2s_used, sizeof(int));
+	if (ret) {
+        printk("[I2S]sndi2s_init fetch i2s using configuration failed\n");
+    }
 
 	if (i2s_used) {
 		if((err = platform_device_register(&sndi2s_codec_device)) < 0)

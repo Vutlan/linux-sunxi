@@ -48,11 +48,11 @@ static const struct snd_pcm_hardware sun6i_pcm_play_hardware = {
 	.channels_min		= 1,
 	.channels_max		= 2,
 	.buffer_bytes_max	= 128*1024,    /* value must be (2^n)Kbyte size */
-	.period_bytes_min	= 1024*4,//1024*4,
-	.period_bytes_max	= 1024*16,//1024*32,
-	.periods_min		= 4,//4,
-	.periods_max		= 8,//8,
-	.fifo_size		= 128,//32,
+	.period_bytes_min	= 1024*4,
+	.period_bytes_max	= 1024*16,
+	.periods_min		= 4,
+	.periods_max		= 8,
+	.fifo_size		= 128,
 };
 
 static const struct snd_pcm_hardware sun6i_pcm_capture_hardware = {
@@ -66,11 +66,11 @@ static const struct snd_pcm_hardware sun6i_pcm_capture_hardware = {
 	.channels_min		= 1,
 	.channels_max		= 2,
 	.buffer_bytes_max	= 128*1024,    /* value must be (2^n)Kbyte size */
-	.period_bytes_min	= 1024*4,//1024*4,
-	.period_bytes_max	= 1024*16,//1024*32,
-	.periods_min		= 4,//4,
-	.periods_max		= 8,//8,
-	.fifo_size		= 128,//32,
+	.period_bytes_min	= 1024*4,
+	.period_bytes_max	= 1024*16,
+	.periods_min		= 4,
+	.periods_max		= 8,
+	.fifo_size		= 128,
 };
 
 struct sun6i_playback_runtime_data {
