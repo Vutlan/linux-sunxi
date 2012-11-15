@@ -24,6 +24,28 @@
 
 #ifdef DBG_CONFIG_ERROR_DETECT
 extern void rtw_cancel_all_timer(_adapter *padapter);
+
+void rtl8188e_sreset_init_value(_adapter *padapter)
+{
+	HAL_DATA_TYPE	*pHalData = GET_HAL_DATA(padapter);
+	struct sreset_priv *psrtpriv = &pHalData->srestpriv;
+
+	_rtw_mutex_init(&psrtpriv->silentreset_mutex );
+	psrtpriv->silent_reset_inprogress = _FALSE;
+	psrtpriv->Wifi_Error_Status = WIFI_STATUS_SUCCESS;
+	psrtpriv->last_tx_time =0;
+	psrtpriv->last_tx_complete_time =0;
+}
+void rtl8188e_sreset_reset_value(_adapter *padapter)
+{
+	HAL_DATA_TYPE	*pHalData = GET_HAL_DATA(padapter);
+	struct sreset_priv *psrtpriv = &pHalData->srestpriv;
+	psrtpriv->silent_reset_inprogress = _FALSE;
+	psrtpriv->Wifi_Error_Status = WIFI_STATUS_SUCCESS;
+	psrtpriv->last_tx_time =0;
+	psrtpriv->last_tx_complete_time =0;
+}
+
 static void _restore_security_setting(_adapter *padapter)
 {
 	u8 EntryId = 0;
@@ -214,7 +236,7 @@ void rtl8188e_sreset_xmit_status_check(_adapter *padapter)
 			}
 		}
 	}
-#endif //CONFIG_USB_HCI		
+#endif //CONFIG_USB_HCI	
 }
 
 void rtl8188e_sreset_linked_status_check(_adapter *padapter)
@@ -241,5 +263,42 @@ void rtl8188e_sreset_linked_status_check(_adapter *padapter)
 	}
 #endif
 }
+
+#ifdef DBG_CONFIG_ERROR_DETECT
+u8 rtl8188e_sreset_get_wifi_status(_adapter *padapter)
+{
+	HAL_DATA_TYPE	*pHalData = GET_HAL_DATA(padapter);
+	struct sreset_priv *psrtpriv = &pHalData->srestpriv;
+
+	u8 status = WIFI_STATUS_SUCCESS;
+	u32 val32 = 0;
+	_irqL irqL;
+	if(psrtpriv->silent_reset_inprogress == _TRUE)
+        {
+		return status;
+	}
+	val32 =rtw_read32(padapter,REG_TXDMA_STATUS);
+	if(val32==0xeaeaeaea){
+		psrtpriv->Wifi_Error_Status = WIFI_IF_NOT_EXIST;
+	}
+	else if(val32!=0){
+		DBG_8192C("txdmastatu(%x)\n",val32);
+		psrtpriv->Wifi_Error_Status = WIFI_MAC_TXDMA_ERROR;
+	}
+
+	if(WIFI_STATUS_SUCCESS !=psrtpriv->Wifi_Error_Status)
+	{
+		DBG_8192C("==>%s error_status(0x%x) \n",__FUNCTION__,psrtpriv->Wifi_Error_Status);
+		status = (psrtpriv->Wifi_Error_Status &( ~(USB_READ_PORT_FAIL|USB_WRITE_PORT_FAIL)));
+	}
+	DBG_8192C("==> %s wifi_status(0x%x)\n",__FUNCTION__,status);
+
+	//status restore
+	psrtpriv->Wifi_Error_Status = WIFI_STATUS_SUCCESS;
+
+	return status;
+}
+#endif
+
 #endif
 

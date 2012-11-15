@@ -668,7 +668,7 @@ struct hal_data_8192cu
 	u8	TxPwrLevelCck[RF_PATH_MAX][CHANNEL_MAX_NUMBER];
 	u8	TxPwrLevelHT40_1S[RF_PATH_MAX][CHANNEL_MAX_NUMBER];	// For HT 40MHZ pwr
 	u8	TxPwrLevelHT40_2S[RF_PATH_MAX][CHANNEL_MAX_NUMBER];	// For HT 40MHZ pwr	
-	s8	TxPwrHt20Diff[RF_PATH_MAX][CHANNEL_MAX_NUMBER];// HT 20<->40 Pwr diff
+	u8	TxPwrHt20Diff[RF_PATH_MAX][CHANNEL_MAX_NUMBER];// HT 20<->40 Pwr diff
 	u8	TxPwrLegacyHtDiff[RF_PATH_MAX][CHANNEL_MAX_NUMBER];// For HT<->legacy pwr diff
 	// For power group
 	u8	PwrGroupHT20[RF_PATH_MAX][CHANNEL_MAX_NUMBER];
@@ -767,11 +767,16 @@ struct hal_data_8192cu
 
 	u32	UsbBulkOutSize;
 
+	int	RtBulkOutPipe[3];
+	int	RtBulkInPipe;
+	int	RtIntInPipe;
 	// Add for dual MAC  0--Mac0 1--Mac1
 	u32	interfaceIndex;
 
 	u8	OutEpQueueSel;
 	u8	OutEpNumber;
+
+	u8	Queue2EPNum[8];//for out endpoint number mapping
 
 #ifdef CONFIG_USB_TX_AGGREGATION
 	u8	UsbTxAggMode;
@@ -825,10 +830,10 @@ void rtl8192c_EfuseParseChnlPlan(PADAPTER padapter, u8 *hwinfo, BOOLEAN AutoLoad
 
 HAL_VERSION rtl8192c_ReadChipVersion(IN PADAPTER Adapter);
 void rtl8192c_ReadBluetoothCoexistInfo(PADAPTER Adapter, u8 *PROMContent, BOOLEAN AutoloadFail);
+void rtl8192c_HalSetBrateCfg(PADAPTER Adapter, u8 *mBratesOS, u16 *pBrateCfg);
 //void rtl8192c_free_hal_data(_adapter * padapter);
 VOID rtl8192c_EfuseParseIDCode(PADAPTER pAdapter, u8 *hwinfo);
 void rtl8192c_set_hal_ops(struct hal_ops *pHalFunc);
-void	rtl8192c_clone_haldata(_adapter* dst_adapter, _adapter* src_adapter);
 
 #endif
 

@@ -99,12 +99,6 @@
 #define  		DM_DIG_Gmode_HIGH_PWR_IGI_LOWER_BOUND 0x28
 #define		DM_DIG_HIGH_PWR_THRESHOLD	0x3a
 
-// LPS define
-#define DM_DIG_FA_TH0_LPS				4 //-> 4 in lps
-#define DM_DIG_FA_TH1_LPS				15 //-> 15 lps
-#define DM_DIG_FA_TH2_LPS				30 //-> 30 lps
-#define RSSI_OFFSET_DIG					0x05;
-
 //ANT Test
 #define 		ANTTESTALL		0x00		//Ant A or B will be Testing   
 #define		ANTTESTA		0x01		//Ant A will be Testing	
@@ -616,7 +610,6 @@ typedef enum _ODM_Common_Info_Definition
 	ODM_CMNINFO_INIT_ON,
 	ODM_CMNINFO_ANT_TEST,
 	ODM_CMNINFO_NET_CLOSED,
-	ODM_CMNINFO_MP_MODE,
 //--------- POINTER REFERENCE-----------//
 
 //------------CALL BY VALUE-------------//
@@ -691,8 +684,7 @@ typedef enum tag_ODM_Support_Interface_Definition
 	ODM_ITRF_PCIE 	=	0,
 	ODM_ITRF_USB 	=	1,
 	ODM_ITRF_SDIO 	=	2,
-	ODM_ITRF_GSPI 	=	3,
-	ODM_ITRF_ALL 	=	4,
+	ODM_ITRF_ALL 		=	3,
 }ODM_INTERFACE_E;
 
 // ODM_CMNINFO_IC_TYPE
@@ -1128,7 +1120,7 @@ typedef  struct DM_Out_Source_Dynamic_Mechanism_Structure
 	u1Byte			SupportPlatform;		
 	// ODM Support Ability DIG/RATR/TX_PWR_TRACK/ ¡K¡K = 1/2/3/¡K
 	u4Byte			SupportAbility;
-	// ODM PCIE/USB/SDIO/GSPI = 0/1/2/3
+	// ODM PCIE/USB/SDIO = 1/2/3
 	u1Byte			SupportInterface;			
 	// ODM composite or independent. Bit oriented/ 92C+92D+ .... or any other type = 1/2/3/...
 	u4Byte			SupportICType;	
@@ -1313,7 +1305,7 @@ typedef  struct DM_Out_Source_Dynamic_Mechanism_Structure
 	u1Byte			BbSwingIdxCckCurrent;
 	u1Byte			BbSwingIdxCckBase;
 	BOOLEAN			BbSwingFlagCck;
-	u1Byte			*mp_mode; 
+	
 	//
 	// ODM system resource.
 	//
@@ -1450,9 +1442,6 @@ typedef enum tag_DIG_Connect_Definition
 #define		DM_DIG_THRESH_HIGH			40
 #define		DM_DIG_THRESH_LOW			35
 
-#define		DM_SCAN_RSSI_TH				0x14 //scan return issue for LC
-
-
 #define		DM_FALSEALARM_THRESH_LOW	400
 #define		DM_FALSEALARM_THRESH_HIGH	1000
 
@@ -1470,7 +1459,11 @@ typedef enum tag_DIG_Connect_Definition
 
 //vivi 92c&92d has different definition, 20110504
 //this is for 92c
+#ifdef CONFIG_SPECIAL_SETTING_FOR_FUNAI_TV
+#define		DM_DIG_FA_TH0				0x80//0x20
+#else
 #define		DM_DIG_FA_TH0				0x200//0x20
+#endif
 #define		DM_DIG_FA_TH1				0x300//0x100
 #define		DM_DIG_FA_TH2				0x400//0x200
 //this is for 92d
@@ -1560,8 +1553,8 @@ typedef enum tag_RF_Type_Definition
 //3===========================================================
 typedef enum tag_SW_Antenna_Switch_Definition
 {
-	Antenna_A = 1,
-	Antenna_B = 2,
+	Antenna_B = 1,
+	Antenna_A = 2,
 	Antenna_MAX = 3,
 }DM_SWAS_E;
 
@@ -1572,7 +1565,7 @@ typedef enum tag_SW_Antenna_Switch_Definition
 //
 // Extern Global Variables.
 //
-#define	OFDM_TABLE_SIZE_92C 	37
+#define	OFDM_TABLE_SIZE 	37
 #define	OFDM_TABLE_SIZE_92D 	43
 #define	CCK_TABLE_SIZE		33
 
@@ -1720,12 +1713,6 @@ GetPSDData(
 #endif
 
 #if (DM_ODM_SUPPORT_TYPE == ODM_CE)
-
-VOID
-odm_DIGbyRSSI_LPS(
-	IN		PDM_ODM_T		pDM_Odm
-	);
-
 u4Byte ODM_Get_Rate_Bitmap(
 	IN	PDM_ODM_T	pDM_Odm,	
 	IN	u4Byte 		ra_mask,	

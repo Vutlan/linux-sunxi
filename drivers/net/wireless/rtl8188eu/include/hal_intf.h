@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright(c) 2007 - 2012 Realtek Corporation. All rights reserved.
+ * Copyright(c) 2007 - 2011 Realtek Corporation. All rights reserved.
  *                                        
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of version 2 of the GNU General Public License as
@@ -17,8 +17,8 @@
  *
  *
  ******************************************************************************/
-#ifndef __HAL_INTF_H__
-#define __HAL_INTF_H__
+#ifndef __HAL_INIT_H__
+#define __HAL_INIT_H__
 
 #include <drv_conf.h>
 #include <osdep_service.h>
@@ -32,8 +32,7 @@
 enum RTL871X_HCI_TYPE {
 	RTW_PCIE,
 	RTW_USB,
-	RTW_SDIO,
-	RTW_SPI
+	RTW_SDIO
 };
 
 enum _CHIP_TYPE {
@@ -65,7 +64,7 @@ typedef enum _HW_VARIABLES{
 	HW_VAR_MLME_JOIN,
 	HW_VAR_BEACON_INTERVAL,
 	HW_VAR_SLOT_TIME,
-	HW_VAR_RESP_SIFS,
+	HW_VAR_SIFS,
 	HW_VAR_ACK_PREAMBLE,
 	HW_VAR_SEC_CFG,
 	HW_VAR_BCN_VALID,
@@ -112,9 +111,6 @@ typedef enum _HW_VARIABLES{
 	HW_VAR_APFM_ON_MAC, //Auto FSM to Turn On, include clock, isolation, power control for MAC only
 	// The valid upper nav range for the HW updating, if the true value is larger than the upper range, the HW won't update it.
 	// Unit in microsecond. 0 means disable this function.
-#ifdef CONFIG_WOWLAN
-	HW_VAR_WOWLAN,
-#endif
 	HW_VAR_NAV_UPPER,
 	HW_VAR_C2H_HANDLE,
 	HW_VAR_RPT_TIMER_SETTING,
@@ -152,7 +148,6 @@ typedef enum _HAL_INTF_PS_FUNC{
 }HAL_INTF_PS_FUNC;
 
 struct hal_ops {
-	u32	(*hal_power_on)(_adapter *padapter);
 	u32	(*hal_init)(_adapter *padapter);
 	u32	(*hal_deinit)(_adapter *padapter);
 
@@ -202,11 +197,6 @@ struct hal_ops {
 	void	(*SetBeaconRelatedRegistersHandler)(_adapter *padapter);
 
 	void	(*Add_RateATid)(_adapter *padapter, u32 bitmap, u8 arg);
-#ifdef CONFIG_CONCURRENT_MODE	
-	void	(*clone_haldata)(_adapter *dst_padapter, _adapter *src_padapter);
-#endif
-	void	(*run_thread)(_adapter *padapter);
-	void	(*cancel_thread)(_adapter *padapter);
 
 #ifdef CONFIG_ANTENNA_DIVERSITY
 	u8	(*AntDivBeforeLinkHandler)(_adapter *padapter);
@@ -215,7 +205,7 @@ struct hal_ops {
 	u8	(*interface_ps_func)(_adapter *padapter,HAL_INTF_PS_FUNC efunc_id, u8* val);
 
 	s32	(*hal_xmit)(_adapter *padapter, struct xmit_frame *pxmitframe);
-	s32 (*mgnt_xmit)(_adapter *padapter, struct xmit_frame *pmgntframe);
+	void	(*mgnt_xmit)(_adapter *padapter, struct xmit_frame *pmgntframe);
 
 	u32	(*read_bbreg)(_adapter *padapter, u32 RegAddr, u32 BitMask);
 	void	(*write_bbreg)(_adapter *padapter, u32 RegAddr, u32 BitMask, u32 Data);
@@ -251,8 +241,6 @@ struct hal_ops {
 #ifdef CONFIG_XMIT_THREAD_MODE
 	s32 (*xmit_thread_handler)(_adapter *padapter);
 #endif
-	void (*hal_notch_filter)(_adapter * adapter, bool enable);
-	void (*hal_reset_security_engine)(_adapter * adapter);
 };
 
 typedef	enum _RT_EEPROM_TYPE{
@@ -329,40 +317,7 @@ typedef enum _HARDWARE_TYPE{
 
 
 typedef struct eeprom_priv EEPROM_EFUSE_PRIV, *PEEPROM_EFUSE_PRIV;
-#define GET_EEPROM_EFUSE_PRIV(adapter) (&adapter->eeprompriv)
-#define is_boot_from_eeprom(adapter) (adapter->eeprompriv.EepromOrEfuse)
-
-#ifdef CONFIG_WOWLAN
-typedef enum _wowlan_subcode{
-	WOWLAN_PATTERN_MATCH	= 1,
-	WOWLAN_MAGIC_PACKET		= 2,
-	WOWLAN_UNICAST			= 3,
-	WOWLAN_SET_PATTERN		= 4,
-	WOWLAN_DUMP_REG			= 5,
-	WOWLAN_ENABLE			= 6,
-	WOWLAN_DISABLE			= 7,
-	WOWLAN_STATUS			= 8,
-	WOWLAN_DEBUG_RELOAD_FW	= 9,
-	WOWLAN_DEBUG_1			=10,
-	WOWLAN_DEBUG_2			=11
-}wowlan_subcode;
-
-struct wowlan_ioctl_param{
-	unsigned int subcode;
-	unsigned int subcode_value;
-	unsigned int wakeup_reason;
-	unsigned int len;
-	unsigned char pattern[0];
-};
-
-#define Rx_Pairwisekey		BIT(0)
-#define Rx_GTK			BIT(1)
-#define Rx_DisAssoc		BIT(2)
-#define Rx_DeAuth		BIT(3)
-#define FWDecisionDisconnect    BIT(4)
-#define Rx_MagicPkt		BIT(5)
-#define FinishBtFwPatch		BIT(7)
-#endif // CONFIG_WOWLAN
+#define GET_EEPROM_EFUSE_PRIV(priv)	(&priv->eeprompriv)
 
 void rtw_hal_def_value_init(_adapter *padapter);
 
@@ -373,7 +328,6 @@ void rtw_hal_dm_deinit(_adapter *padapter);
 void rtw_hal_sw_led_init(_adapter *padapter);
 void rtw_hal_sw_led_deinit(_adapter *padapter);
 
-u32 rtw_hal_power_on(_adapter *padapter);
 uint rtw_hal_init(_adapter *padapter);
 uint rtw_hal_deinit(_adapter *padapter);
 void rtw_hal_stop(_adapter *padapter);
@@ -399,7 +353,7 @@ u32	rtw_hal_inirp_deinit(_adapter *padapter);
 u8	rtw_hal_intf_ps_func(_adapter *padapter,HAL_INTF_PS_FUNC efunc_id, u8* val);
 
 s32	rtw_hal_xmit(_adapter *padapter, struct xmit_frame *pxmitframe);
-s32	rtw_hal_mgnt_xmit(_adapter *padapter, struct xmit_frame *pmgntframe);
+void	rtw_hal_mgnt_xmit(_adapter *padapter, struct xmit_frame *pmgntframe);
 
 s32	rtw_hal_init_xmit_priv(_adapter *padapter);
 void	rtw_hal_free_xmit_priv(_adapter *padapter);
@@ -409,9 +363,6 @@ void	rtw_hal_free_recv_priv(_adapter *padapter);
 
 void rtw_hal_update_ra_mask(_adapter *padapter, u32 mac_id, u8 rssi_level);
 void	rtw_hal_add_ra_tid(_adapter *padapter, u32 bitmap, u8 arg);
-void	rtw_hal_clone_data(_adapter *dst_padapter, _adapter *src_padapter);
-void	rtw_hal_start_thread(_adapter *padapter);
-void	rtw_hal_stop_thread(_adapter *padapter);
 
 void rtw_hal_bcn_related_reg_setting(_adapter *padapter);
 
@@ -438,7 +389,7 @@ s32	rtw_hal_hostap_mgnt_xmit_entry(_adapter *padapter, _pkt *pkt);
 #ifdef DBG_CONFIG_ERROR_DETECT
 void rtw_hal_sreset_init(_adapter *padapter);
 void rtw_hal_sreset_reset(_adapter *padapter);	
-void rtw_hal_sreset_reset_value(_adapter *padapter);
+void rtw_hal_silent_reset(_adapter *padapter);
 void rtw_hal_sreset_xmit_status_check(_adapter *padapter);
 void rtw_hal_sreset_linked_status_check (_adapter *padapter);
 u8   rtw_hal_sreset_get_wifi_status(_adapter *padapter);
@@ -453,7 +404,6 @@ s32 rtw_hal_xmit_thread_handler(_adapter *padapter);
 #endif
 
 void rtw_hal_notch_filter(_adapter * adapter, bool enable);
-void rtw_hal_reset_security_engine(_adapter * adapter);
 
-#endif //__HAL_INTF_H__
+#endif //__HAL_INIT_H__
 

@@ -65,7 +65,7 @@ int rtw_os_recvbuf_resource_alloc(_adapter *padapter, struct recv_buf *precvbuf)
 	int res=_SUCCESS;
 
 #ifdef CONFIG_USB_HCI
-	struct dvobj_priv	*pdvobjpriv = adapter_to_dvobj(padapter);
+	struct dvobj_priv	*pdvobjpriv = &padapter->dvobjpriv;
 	struct usb_device	*pusbd = pdvobjpriv->pusbdev;
 
 	precvbuf->irp_pending = _FALSE;
@@ -107,7 +107,7 @@ int rtw_os_recvbuf_resource_free(_adapter *padapter, struct recv_buf *precvbuf)
 
 #ifdef CONFIG_USE_USB_BUFFER_ALLOC_RX
 
-	struct dvobj_priv	*pdvobjpriv = adapter_to_dvobj(padapter);
+	struct dvobj_priv	*pdvobjpriv = &padapter->dvobjpriv;
 	struct usb_device	*pusbd = pdvobjpriv->pusbdev;
 
 	rtw_usb_buffer_free(pusbd, (size_t)precvbuf->alloc_sz, precvbuf->pallocated_buf, precvbuf->dma_transfer_addr);
@@ -194,9 +194,7 @@ void rtw_handle_tkip_mic_err(_adapter *padapter,u8 bgroup)
 	_rtw_memset( &wrqu, 0x00, sizeof( wrqu ) );
 	wrqu.data.length = sizeof( ev );
 
-#ifndef CONFIG_IOCTL_CFG80211
 	wireless_send_event( padapter->pnetdev, IWEVMICHAELMICFAILURE, &wrqu, (char*) &ev );
-#endif
 }
 
 void rtw_hostapd_mlme_rx(_adapter *padapter, union recv_frame *precv_frame)
@@ -266,14 +264,6 @@ _func_enter_;
 	}
 #endif
 
-#ifdef CONFIG_WAPI_SUPPORT
-	if (rtw_wapi_check_for_drop(padapter,precv_frame))
-	{
-		WAPI_TRACE(WAPI_ERR, "%s(): Rx Reorder Drop case!!\n", __FUNCTION__);
-		goto _recv_indicatepkt_drop;
-	}
-#endif
-
 	skb = precv_frame->u.hdr.pkt;
 	if(skb == NULL)
 	{
@@ -287,7 +277,11 @@ _func_enter_;
 
 	skb->data = precv_frame->u.hdr.rx_data;
 
+#ifdef NET_SKBUFF_DATA_USES_OFFSET
 	skb_set_tail_pointer(skb, precv_frame->u.hdr.len);
+#else
+	skb->tail = precv_frame->u.hdr.rx_tail;
+#endif
 
 	skb->len = precv_frame->u.hdr.len;
 
@@ -432,7 +426,7 @@ void rtw_os_read_port(_adapter *padapter, struct recv_buf *precvbuf)
 
 
 #endif
-#if defined(CONFIG_SDIO_HCI) || defined(CONFIG_GSPI_HCI)
+#ifdef CONFIG_SDIO_HCI
 		precvbuf->pskb = NULL;
 #endif
 

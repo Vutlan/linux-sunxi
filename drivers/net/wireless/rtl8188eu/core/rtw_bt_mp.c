@@ -18,12 +18,9 @@
  *
  ******************************************************************************/
 
-
 #include "rtw_bt_mp.h"
 #include <drv_types.h>
 #include <rtl8723a_hal.h>
-
-#ifdef CONFIG_RTL8723A
 
 void MPh2c_timeout_handle(void *FunctionContext)
 {
@@ -202,7 +199,7 @@ mptbt_BtFwOpCodeProcess(
 	PBT_H2C				pH2c=(PBT_H2C)&H2C_Parameter[0];
 	PMPT_CONTEXT		pMptCtx=&(Adapter->mppriv.MptCtx);
 	PBT_EXT_C2H			pExtC2h=(PBT_EXT_C2H)&pMptCtx->c2hBuf[0];
-	u2Byte				paraLen=0,i;
+	u2Byte				paraLen=0;
 	BT_CTRL_STATUS	h2cStatus=BT_STATUS_H2C_SUCCESS, c2hStatus=BT_STATUS_C2H_SUCCESS;
 	BT_CTRL_STATUS	retStatus=BT_STATUS_H2C_BT_NO_RSP;
 
@@ -218,11 +215,7 @@ mptbt_BtFwOpCodeProcess(
 	DBG_8192C("[MPT], h2c parameter length=%d\n", h2cParaLen);
 	if(h2cParaLen)
 	{
-		DBG_8192C("[MPT], parameters(hex): \n");
-		for(i=0;i<=h2cParaLen;i++)
-		{
-			DBG_8192C(" 0x%x ", pH2c->buf[i]);
-		}
+		//DBG_8192C("[MPT], parameters(hex):0x%x %d \n", &pH2c->buf[0], h2cParaLen);
 	}
 
 	h2cStatus = mptbt_SendH2c(Adapter, pH2c, h2cParaLen+2);
@@ -274,6 +267,7 @@ mptbt_BtReady(
 	u2Byte				btRealFwVer=0;
 	pu2Byte 			pu2Tmp=NULL;
 
+
 	//
 	// check upper layer parameters
 	//
@@ -308,7 +302,7 @@ mptbt_BtReady(
 	{
 		pu2Tmp = (pu2Byte)&pExtC2h->buf[0];
 		btRealFwVer = *pu2Tmp;
-		btFwVer = pExtC2h->buf[1];
+		btFwVer = pExtC2h->buf[2];
 		DBG_8192C("[MPT], btRealFwVer=0x%x, btFwVer=0x%x\n", btRealFwVer, btFwVer);
 	}
 
@@ -348,11 +342,9 @@ mptbt_BtReady(
 		bdAddr[1] = pExtC2h->buf[1];
 		bdAddr[0] = pExtC2h->buf[2];
 	}
-	DBG_8192C("[MPT], Local BDAddr:");
-	for(i=0; i<6; i++)
-	{
-		DBG_8192C(" 0x%x ", bdAddr[i]);
-	}
+	
+	//DBG_8192C("[MPT], Local BDAddr:0x%x", bdAddr);
+	
 	pBtRsp->status = BT_STATUS_SUCCESS;
 	pBtRsp->pParamStart[0] = MP_BT_READY;
 	pu2Tmp = (pu2Byte)&pBtRsp->pParamStart[1];
@@ -492,28 +484,19 @@ MPTBT_FwC2hBtMpCtrl(
 	u1Byte		length
 	)
 {
-	u32 i;
 	PMPT_CONTEXT	pMptCtx=&(Adapter->mppriv.MptCtx);
 	PBT_EXT_C2H pExtC2h=(PBT_EXT_C2H)tmpBuf;
-	
 	//cancel_timeout for h2c handle
 	_cancel_timer_ex( &pMptCtx->MPh2c_timeout_timer);
 
-	DBG_8192C("[MPT], MPTBT_FwC2hBtMpCtrl(), hex: \n");
-	for(i=0;i<=length;i++)
-	{
-		//DBG_8192C("[MPT], MPTBT_FwC2hBtMpCtrl(), hex: \n",tmpBuf[i], length);
-		DBG_8192C(" 0x%x ",tmpBuf[i]);
-	}
-	DBG_8192C("\n [MPT], pExtC2h->extendId=0x%x\n", pExtC2h->extendId);
+	//DBG_8192C("[MPT], MPTBT_FwC2hBtMpCtrl(), hex: \n",tmpBuf, length);
+	DBG_8192C("[MPT], pExtC2h->extendId=0x%x\n", pExtC2h->extendId);
 	
 	switch(pExtC2h->extendId)
 	{
 		case EXT_C2H_WIFI_FW_ACTIVE_RSP:
 			DBG_8192C("[MPT], EXT_C2H_WIFI_FW_ACTIVE_RSP\n");
-			DBG_8192C("[MPT], pExtC2h->buf hex: \n");
-			for(i=0;i<=(length-3);i++)
-				DBG_8192C(" 0x%x ",pExtC2h->buf[0]);
+			//DBG_8192C("[MPT], pExtC2h->buf hex: 0x%x %d\n"),&pExtC2h->buf[0], (length-3);
 				//PlatformSetEvent(&pMptCtx->MptH2cRspEvent);
 				pMptCtx->MptH2cRspEvent=_TRUE;
 				_rtw_up_sema(&pMptCtx->MPh2c_Sema);
@@ -526,9 +509,7 @@ MPTBT_FwC2hBtMpCtrl(
 			DBG_8192C("[MPT], pExtC2h->retLen=0x%x\n", pExtC2h->retLen);
 			DBG_8192C("[MPT], pExtC2h->opCodeVer=0x%x\n", pExtC2h->opCodeVer);
 			DBG_8192C("[MPT], pExtC2h->reqNum=0x%x\n", pExtC2h->reqNum);
-			DBG_8192C("[MPT], pExtC2h->buf hex: \n");
-			for(i=0;i<=(length-3);i++)
-				DBG_8192C(" 0x%x ",pExtC2h->buf[0]);
+			//DBG_8192C("[MPT], pExtC2h->buf hex: 0x%x %d \n"),&pExtC2h->buf[0], (length-3);
 				//PlatformSetEvent(&pMptCtx->MptBtC2hEvent);
 				pMptCtx->MptBtC2hEvent=_TRUE;
 				_rtw_up_sema(&pMptCtx->MPh2c_Sema);
@@ -1593,7 +1574,7 @@ mptbt_BtControlProcess(
 			break;
 		case BT_UP_OP_BT_GET_GENERAL:
 			DBG_8192C("[MPT], OPcode : [BT_GET_GENERAL]\n");
-			pBtRsp->paraLength = mptbt_BtGetGeneral(Adapter, pBtReq, pBtRsp);
+			//pBtRsp->paraLength = mptbt_BtGetGeneral(Adapter, pBtReq, pBtRsp);
 			break;
 		case BT_UP_OP_BT_TEST_CTRL:
 			DBG_8192C("[MPT], OPcode : [BT_TEST_CTRL]\n");
@@ -1606,14 +1587,8 @@ mptbt_BtControlProcess(
 			break;
 	}
 
-	DBG_8192C("pBtRsp->paraLength =%d \n",pBtRsp->paraLength);
-
 	pMptCtx->mptOutLen += pBtRsp->paraLength;
-
-	DBG_8192C("\n [MPT], OUT to DLL pMptCtx->mptOutLen=%d ,pBtRsp->paraLength =%d ",pMptCtx->mptOutLen,pBtRsp->paraLength);
-		
-	DBG_8192C("\n [MPT], mptbt_BtControlProcess()<=========\n");
+	//DBG_8192C("[MPT], OUT to DLL(hex): 0x%x len:%d \n", &pMptCtx->mptOutBuf[0], pMptCtx->mptOutLen);
+	DBG_8192C("[MPT], mptbt_BtControlProcess()<=========\n");
 }
-
-#endif
 

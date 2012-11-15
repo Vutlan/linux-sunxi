@@ -34,10 +34,6 @@
 #include <sdio_osintf.h>
 #endif
 
-#ifdef CONFIG_GSPI_HCI
-#include <gspi_osintf.h>
-#endif
-
 extern void indicate_wx_scan_complete_event(_adapter *padapter);
 
 #define IS_MAC_ADDRESS_BROADCAST(addr) \
@@ -327,7 +323,8 @@ u8 rtw_set_802_11_bssid(_adapter* padapter, u8 *bssid)
 	
 _func_enter_;
 	
-	DBG_871X_LEVEL(_drv_always_, "set bssid:%pM\n", bssid);
+	RT_TRACE(_module_rtl871x_ioctl_set_c_, _drv_notice_,
+		 ("+rtw_set_802_11_bssid: bssid="MAC_FMT"\n", MAC_ARG(bssid) ));
 
 	if ((bssid[0]==0x00 && bssid[1]==0x00 && bssid[2]==0x00 && bssid[3]==0x00 && bssid[4]==0x00 &&bssid[5]==0x00) ||
 	    (bssid[0]==0xFF && bssid[1]==0xFF && bssid[2]==0xFF && bssid[3]==0xFF && bssid[4]==0xFF &&bssid[5]==0xFF))
@@ -426,8 +423,9 @@ u8 rtw_set_802_11_ssid(_adapter* padapter, NDIS_802_11_SSID *ssid)
 	
 _func_enter_;
 	
-	DBG_871X_LEVEL(_drv_always_, "set ssid [%s] fw_state=0x%08x\n",
-		       	ssid->Ssid, get_fwstate(pmlmepriv));
+	RT_TRACE(_module_rtl871x_ioctl_set_c_, _drv_notice_,
+		 ("+rtw_set_802_11_ssid: ssid=[%s] fw_state=0x%08x\n",
+		  ssid->Ssid, get_fwstate(pmlmepriv)));
 
 	if(padapter->hw_init_completed==_FALSE){
 		RT_TRACE(_module_rtl871x_ioctl_set_c_, _drv_err_,
@@ -601,16 +599,6 @@ _func_enter_;
 		RT_TRACE(_module_rtl871x_ioctl_set_c_,_drv_info_,(" change mode!"));
 		//DBG_871X("change mode, old_mode=%d, new_mode=%d, fw_state=0x%x\n", *pold_state, networktype, get_fwstate(pmlmepriv));
 
-		if(*pold_state==Ndis802_11APMode)
-		{		
-			//change to other mode from Ndis802_11APMode			
-			cur_network->join_res = -1;
-			
-#ifdef CONFIG_NATIVEAP_MLME
-			stop_ap_mode(padapter);
-#endif
-		}
-
 		if((check_fwstate(pmlmepriv, _FW_LINKED)== _TRUE) ||(*pold_state==Ndis802_11IBSS))
 			rtw_disassoc_cmd(padapter);
 
@@ -622,11 +610,23 @@ _func_enter_;
 		if((check_fwstate(pmlmepriv, _FW_LINKED)== _TRUE) || (*pold_state==Ndis802_11Infrastructure) ||(*pold_state==Ndis802_11IBSS))
 		{		
 			rtw_indicate_disconnect(padapter); //will clr Linked_state; before this function, we must have chked whether  issue dis-assoc_cmd or not
-		}
+		}	
+	
+		if(*pold_state==Ndis802_11APMode)
+		{		
+			//change to other mode from Ndis802_11APMode			
+			cur_network->join_res = -1;
+			
+#ifdef CONFIG_NATIVEAP_MLME
+			stop_ap_mode(padapter);
+#endif
+		}	
 		
 		*pold_state = networktype;
 
-		_clr_fwstate_(pmlmepriv, ~WIFI_NULL_STATE);
+				// clear WIFI_STATION_STATE; WIFI_AP_STATE; WIFI_ADHOC_STATE; WIFI_ADHOC_MASTER_STATE
+		//pmlmepriv->fw_state &= 0xffffff87;		
+		_clr_fwstate_(pmlmepriv, WIFI_STATION_STATE|WIFI_AP_STATE|WIFI_ADHOC_STATE|WIFI_ADHOC_MASTER_STATE);
 				
 		switch(networktype)
 		{
@@ -762,11 +762,6 @@ _func_enter_;
 	if(psecuritypriv->ndisauthtype>3)
 		psecuritypriv->dot11AuthAlgrthm=dot11AuthAlgrthm_8021X;
 	
-#ifdef CONFIG_WAPI_SUPPORT
-	if(psecuritypriv->ndisauthtype == 6)
-		psecuritypriv->dot11AuthAlgrthm=dot11AuthAlgrthm_WAPI;
-#endif
-
 	res=rtw_set_auth(padapter,psecuritypriv);
 	
 	if(res==_SUCCESS)
@@ -1328,11 +1323,8 @@ u16 rtw_get_cur_max_rate(_adapter *adapter)
 	struct registry_priv *pregpriv = &adapter->registrypriv;
 
 #ifdef CONFIG_MP_INCLUDED
-	if (adapter->registrypriv.mp_mode == 1)
-	{	
-		if (check_fwstate(pmlmepriv, WIFI_MP_STATE) == _TRUE)
+	if (check_fwstate(pmlmepriv, WIFI_MP_STATE) == _TRUE)
 		return 0;
-	}
 #endif
 
 	if((check_fwstate(pmlmepriv, _FW_LINKED) != _TRUE) 

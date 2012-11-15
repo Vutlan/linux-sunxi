@@ -20,7 +20,6 @@
 #ifndef __RTL8192D_HAL_H__
 #define __RTL8192D_HAL_H__
 
-#include "hal_com.h"
 #include "rtl8192d_spec.h"
 #include "Hal8192DPhyReg.h"
 #include "Hal8192DPhyCfg.h"
@@ -80,7 +79,7 @@
 	#define Rtl8192D_RadioB_2T_intPAArray 		Rtl8192DERadioB_2T_intPAArray
 
 	// Array length
-	#define Rtl8192D_FwImageArrayLength				Rtl8192DEImgArrayLength
+	#define Rtl8192D_FwImageArrayLength			Rtl8192DEImgArrayLength
 	#define Rtl8192D_MAC_ArrayLength				Rtl8192DEMAC_2T_ArrayLength
 	#define Rtl8192D_AGCTAB_5GArrayLength			Rtl8192DEAGCTAB_5GArrayLength
 	#define Rtl8192D_AGCTAB_2GArrayLength			Rtl8192DEAGCTAB_2GArrayLength
@@ -99,9 +98,7 @@
 #elif defined(CONFIG_USB_HCI)
 
 	#include "Hal8192DUHWImg.h"
-#ifdef CONFIG_WOWLAN
-	#include "Hal8192DUHWImg_wowlan.h"
-#endif //CONFIG_WOWLAN
+
 	#define RTL819X_DEFAULT_RF_TYPE		RF_1T2R
 
 //---------------------------------------------------------------------
@@ -128,9 +125,7 @@
 		
 	// Fw Array
 	#define Rtl8192D_FwImageArray 					Rtl8192DUFwImgArray
-#ifdef CONFIG_WOWLAN
-	#define Rtl8192D_FwWWImageArray				Rtl8192DUFwWWImgArray
-#endif //CONFIG_WOWLAN
+	
 	// MAC/BB/PHY Array
 	#define Rtl8192D_MAC_Array						Rtl8192DUMAC_2T_Array
 	#define Rtl8192D_AGCTAB_Array					Rtl8192DUAGCTAB_Array
@@ -202,9 +197,8 @@
 									(le16_to_cpu(_pFwHdr->Signature)&0xFFFF) == 0x92D2 ||\
 									(le16_to_cpu(_pFwHdr->Signature)&0xFFFF) == 0x92D3 )
 
-#define FW_8192D_SIZE				0x8020 // Max FW len = 32k + 32(FW header length).
+#define FW_8192D_SIZE				0x8000
 #define FW_8192D_START_ADDRESS	0x1000
-#define FW_8192D_END_ADDRESS		0x1FFF
 
 #define MAX_PAGE_SIZE				4096	// @ page : 4k bytes
 
@@ -217,10 +211,10 @@ typedef struct _RT_FIRMWARE{
 	FIRMWARE_SOURCE	eFWSource;
 	u8*			szFwBuffer;
 	u32			ulFwLength;
-#ifdef CONFIG_WOWLAN
+#ifdef CONFIG_WOWLAN_92D
 	u8*			szWoWLANFwBuffer;
 	u32			ulWoWLANFwLength;
-#endif //CONFIG_WOWLAN
+#endif //CONFIG_WOWLAN_92D
 }RT_FIRMWARE, *PRT_FIRMWARE, RT_FIRMWARE_92D, *PRT_FIRMWARE_92D;
 
 //
@@ -660,6 +654,8 @@ struct hal_data_8192de
 
 	BOOLEAN		bEarlyModeEnable;
 
+	ATOMIC_T	IQKRdyForXmit;// Tx must wait for IQK done
+
 #if 1
 	IQK_MATRIX_REGS_SETTING IQKMatrixRegSetting[IQK_Matrix_Settings_NUM];
 #else
@@ -857,6 +853,8 @@ struct hal_data_8192du
 
 	BOOLEAN		bEarlyModeEnable;
 
+	ATOMIC_T	IQKRdyForXmit;// Tx must wait for IQK done
+
 #if 1
 	IQK_MATRIX_REGS_SETTING IQKMatrixRegSetting[IQK_Matrix_Settings_NUM];
 #else
@@ -933,10 +931,11 @@ typedef struct hal_data_8192du HAL_DATA_TYPE, *PHAL_DATA_TYPE;
 int FirmwareDownload92D(IN	PADAPTER Adapter,IN	BOOLEAN  bUsedWoWLANFw);
 VOID rtl8192d_FirmwareSelfReset(IN PADAPTER Adapter);
 void rtl8192d_ReadChipVersion(IN PADAPTER Adapter);
-VOID rtl8192d_EfuseParseChnlPlan(PADAPTER Adapter, u8 *hwinfo, BOOLEAN AutoLoadFail);
+VOID rtl8192d_ReadChannelPlan(PADAPTER Adapter, u8* PROMContent, BOOLEAN AutoLoadFail);
 VOID rtl8192d_ReadTxPowerInfo(PADAPTER Adapter, u8* PROMContent, BOOLEAN AutoLoadFail);
 VOID rtl8192d_ResetDualMacSwitchVariables(IN PADAPTER Adapter);
 u8 GetEEPROMSize8192D(PADAPTER Adapter);
+void rtl8192d_HalSetBrateCfg(PADAPTER Adapter, u8 *mBratesOS, u16 *pBrateCfg);
 BOOLEAN PHY_CheckPowerOffFor8192D(PADAPTER Adapter);
 VOID PHY_SetPowerOnFor8192D(PADAPTER Adapter);
 //void PHY_ConfigMacPhyMode92D(PADAPTER Adapter);

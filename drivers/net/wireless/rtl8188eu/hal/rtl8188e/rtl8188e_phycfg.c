@@ -1666,11 +1666,23 @@ PHY_BBConfig8188E(
 #endif
 
 #if 0
+		// 2009/10/21 by SD1 Jong. Modified by tynli. Not in Documented in V8.1.
+	if(!IS_NORMAL_CHIP(pHalData->VersionID))
+	{
 #ifdef CONFIG_USB_HCI
-	//To Fix MAC loopback mode fail. Suggested by SD4 Johnny. 2010.03.23.
-	rtw_write8(Adapter, REG_LDOHCI12_CTRL, 0x0f);
-	rtw_write8(Adapter, 0x15, 0xe9);
+		rtw_write8(Adapter, REG_LDOHCI12_CTRL, 0x1f);
+#else
+		rtw_write8(Adapter, REG_LDOHCI12_CTRL, 0x1b);
 #endif
+	}
+	else
+	{
+#ifdef CONFIG_USB_HCI
+		//To Fix MAC loopback mode fail. Suggested by SD4 Johnny. 2010.03.23.
+		rtw_write8(Adapter, REG_LDOHCI12_CTRL, 0x0f);
+		rtw_write8(Adapter, 0x15, 0xe9);
+#endif
+	}
 
 	rtw_write8(Adapter, REG_AFE_XTAL_CTRL+1, 0x80);
 #endif
@@ -2542,12 +2554,11 @@ PHY_SetTxPowerLevel8188E(
 	u8	cckPowerLevel[MAX_TX_COUNT], ofdmPowerLevel[MAX_TX_COUNT];// [0]:RF-A, [1]:RF-B
 	u8	BW20PowerLevel[MAX_TX_COUNT], BW40PowerLevel[MAX_TX_COUNT];
 	u8	i=0;
-/*
+
 #if(MP_DRIVER == 1)
-	if (Adapter->registrypriv.mp_mode == 1)
 	return;
 #endif
-*/
+
 	//getTxPowerIndex(Adapter, channel, &cckPowerLevel[0], &ofdmPowerLevel[0]);
 	getTxPowerIndex88E(Adapter, channel, &cckPowerLevel[0], &ofdmPowerLevel[0],&BW20PowerLevel[0],&BW40PowerLevel[0]);
 

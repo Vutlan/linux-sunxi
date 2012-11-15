@@ -673,6 +673,8 @@ extern void	GetPowerTracking(PADAPTER padapter, u8 *enable);
 
 extern u32	mp_query_psd(PADAPTER pAdapter, u8 *data);
 
+extern u32	rtw_atoi(u8 *s);
+
 
 extern void Hal_SetAntenna(PADAPTER pAdapter);
 extern void Hal_SetBandwidth(PADAPTER pAdapter);

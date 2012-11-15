@@ -31,14 +31,9 @@
 
 #define PLATFORM_LINUX	1
 
-#define CONFIG_IOCTL_CFG80211 1
-#ifdef CONFIG_PLATFORM_ARM_SUN4I
-	#ifndef CONFIG_IOCTL_CFG80211 
-		#define CONFIG_IOCTL_CFG80211 1
-	#endif
-#endif
+
+#define CONFIG_IOCTL_CFG80211 1 //enable for nl80211 interface
 #ifdef CONFIG_IOCTL_CFG80211
-	#define RTW_USE_CFG80211_STA_EVENT /* Opne this for Android 4.1's wpa_supplicant */
 	#define CONFIG_CFG80211_FORCE_COMPATIBLE_2_6_37_UNDER
 	//#define CONFIG_DEBUG_CFG80211 1
 #endif
@@ -64,7 +59,6 @@
 
 //#define CONFIG_TCP_CSUM_OFFLOAD_RX	1
 
-//#define CONFIG_BEFORE_LINKED_DIG	
 //#define CONFIG_DRVEXT_MODULE	1
 
 #ifndef CONFIG_MP_INCLUDED
@@ -72,60 +66,53 @@
 	#ifdef CONFIG_IPS
 		//#define CONFIG_IPS_LEVEL_2	1 //enable this to set default IPS mode to IPS_LEVEL_2
 	#endif
-	
 	#define SUPPORT_HW_RFOFF_DETECTED	1
-
+	
 	#define CONFIG_LPS	1
 	#define CONFIG_BT_COEXIST	1
-
 	//befor link
-	#define CONFIG_ANTENNA_DIVERSITY
-	
+	#define CONFIG_ANTENNA_DIVERSITY	 	
 	//after link
 	#ifdef CONFIG_ANTENNA_DIVERSITY
-		#define CONFIG_SW_ANTENNA_DIVERSITY	 
-		//#define CONFIG_HW_ANTENNA_DIVERSITY	
+	#define CONFIG_SW_ANTENNA_DIVERSITY	 
+	//#define CONFIG_HW_ANTENNA_DIVERSITY	
 	#endif
-
+	
 	#define CONFIG_IOL
-#else 	//#ifndef CONFIG_MP_INCLUDED
+#else  //#ifndef CONFIG_MP_INCLUDED
 	#define CONFIG_MP_IWPRIV_SUPPORT	1
-#endif 	//#ifndef CONFIG_MP_INCLUDED
+#endif  //#ifndef CONFIG_MP_INCLUDED
 
 #define CONFIG_AP_MODE	1
-#ifdef CONFIG_AP_MODE
-	#define CONFIG_NATIVEAP_MLME	1
-	#ifndef CONFIG_NATIVEAP_MLME
-		#define CONFIG_HOSTAPD_MLME	1
-	#endif			
-	#define CONFIG_FIND_BEST_CHANNEL	1
-	//#define CONFIG_NO_WIRELESS_HANDLERS	1
-#endif
+#define CONFIG_NATIVEAP_MLME	1
 
 //	Added by Albert 20110314
 #define CONFIG_P2P	1
-#ifdef CONFIG_P2P
-	//Added by Albert 20110812
-	//The CONFIG_WFD is for supporting the Wi-Fi display
-	#define CONFIG_WFD	1
-	
-	#ifndef CONFIG_WIFI_TEST
-		#define CONFIG_P2P_REMOVE_GROUP_INFO
-	#endif
-	//#define CONFIG_DBG_P2P
 
-	//#define CONFIG_P2P_PS
-	#define CONFIG_P2P_IPS
+
+#ifdef CONFIG_P2P
+//	Added by Albert 20110812
+//	The CONFIG_WFD is for supporting the Wi-Fi display
+//#define CONFIG_WFD	1
+
+//	Unmarked if there is low p2p scanned ratio; Kurt
+//#define CONFIG_P2P_AGAINST_NOISE	1
+#define CONFIG_P2P_REMOVE_GROUP_INFO
+//#define CONFIG_DBG_P2P
 #endif
 
 //	Added by Kurt 20110511
 //#define CONFIG_TDLS	1
 #ifdef CONFIG_TDLS
-//	#ifndef CONFIG_WFD
-//		#define CONFIG_WFD	1
-//	#endif
-//	#define CONFIG_TDLS_AUTOSETUP			1
-//	#define CONFIG_TDLS_AUTOCHECKALIVE		1
+	#define CONFIG_TDLS_AUTOSETUP			1
+	#define CONFIG_TDLS_AUTOCHECKALIVE		1
+#endif
+			
+#ifdef CONFIG_AP_MODE
+	#ifndef CONFIG_NATIVEAP_MLME
+		#define CONFIG_HOSTAPD_MLME	1
+	#endif			
+	#define CONFIG_FIND_BEST_CHANNEL	1
 #endif
 
 #define CONFIG_SKB_COPY	1//for amsdu
@@ -151,7 +138,6 @@
 #define CONFIG_LONG_DELAY_ISSUE
 #define CONFIG_NEW_SIGNAL_STAT_PROCESS
 //#define CONFIG_SIGNAL_DISPLAY_DBM //display RX signal with dbm
-#define RTW_NOTCH_FILTER 0 /* 0:Disable, 1:Enable */
 
 #ifdef CONFIG_IOL
 	#define CONFIG_IOL_LLT
@@ -170,11 +156,6 @@
 #define CONFIG_TX_MCAST2UNI	1	// Support IP multicast->unicast
 //#define CONFIG_CHECK_AC_LIFETIME 1	// Check packet lifetime of 4 ACs.
 
-#define CONFIG_CONCURRENT_MODE 1
-#ifdef CONFIG_CONCURRENT_MODE
-	#define CONFIG_TSF_RESET_OFFLOAD 1			// For 2 PORT TSF SYNC.
-	//#define CONFIG_HWPORT_SWAP				//Port0->Sec , Port1 -> Pri
-#endif	// CONFIG_CONCURRENT_MODE
 
 /*
  * Interface  Related Config
@@ -193,13 +174,9 @@
 /* 
  * CONFIG_USE_USB_BUFFER_ALLOC_XX uses Linux USB Buffer alloc API and is for Linux platform only now!
  */
-//#define CONFIG_USE_USB_BUFFER_ALLOC_TX 1	// Trade-off: For TX path, improve stability on some platforms, but may cause performance degrade on other platforms.
+#define CONFIG_USE_USB_BUFFER_ALLOC_TX 1	// Trade-off: For TX path, improve stability on some platforms, but may cause performance degrade on other platforms.
 //#define CONFIG_USE_USB_BUFFER_ALLOC_RX 1	// For RX path
-#ifdef CONFIG_PLATFORM_ARM_SUN4I
-	#ifndef 	CONFIG_USE_USB_BUFFER_ALLOC_TX 
-		#define CONFIG_USE_USB_BUFFER_ALLOC_TX
-	#endif
-#endif
+
 /* 
  * USB VENDOR REQ BUFFER ALLOCATION METHOD
  * if not set we'll use function local variable (stack memory)
@@ -301,8 +278,7 @@
 //#define DBG_ROAMING_TEST
 
 //#define DBG_HAL_INIT_PROFILING
-
-//#define DBG_MEMORY_LEAK	1
+#define DBG_MEMORY_LEAK	1
 
 #define DBG_CONFIG_ERROR_DETECT
 //#define DBG_CONFIG_ERROR_RESET

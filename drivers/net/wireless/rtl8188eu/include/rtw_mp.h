@@ -215,6 +215,7 @@ struct mp_tx
 	_thread_hdl_	PktTxThread;
 };
 
+//#if (MP_DRIVER == 1)
 #if defined(CONFIG_RTL8192C) || defined(CONFIG_RTL8192D) || defined(CONFIG_RTL8723A) || defined(CONFIG_RTL8188E)
 #ifdef CONFIG_RTL8192C
 #include <Hal8192CPhyCfg.h>
@@ -464,10 +465,9 @@ struct mp_priv
 	u16 antenna_tx;
 	u16 antenna_rx;
 //	u8 curr_rfpath;
-	
+
 	u8 check_mp_pkt;
 
-	u8 bSetTxPower;
 //	uint ForcedDataRate;
 
 	struct wlan_network mp_network;
@@ -725,7 +725,6 @@ extern void	SetContinuousTx(PADAPTER pAdapter, u8 bStart);
 extern void	SetSingleCarrierTx(PADAPTER pAdapter, u8 bStart);
 extern void	SetSingleToneTx(PADAPTER pAdapter, u8 bStart);
 extern void	SetCarrierSuppressionTx(PADAPTER pAdapter, u8 bStart);
-extern void PhySetTxPowerLevel(PADAPTER pAdapter);
 
 extern void	fill_txdesc_for_mp(PADAPTER padapter, struct tx_desc *ptxdesc);
 extern void	SetPacketTx(PADAPTER padapter);
@@ -739,6 +738,8 @@ extern s32	SetPowerTracking(PADAPTER padapter, u8 enable);
 extern void	GetPowerTracking(PADAPTER padapter, u8 *enable);
 
 extern u32	mp_query_psd(PADAPTER pAdapter, u8 *data);
+
+extern u32	rtw_atoi(u8 *s);
 
 
 extern void Hal_SetAntenna(PADAPTER pAdapter);

@@ -128,7 +128,7 @@ int rtw_os_xmit_resource_alloc(_adapter *padapter, struct xmit_buf *pxmitbuf,u32
 {
 #ifdef CONFIG_USB_HCI
 	int i;
-	struct dvobj_priv	*pdvobjpriv = adapter_to_dvobj(padapter);
+	struct dvobj_priv	*pdvobjpriv = &padapter->dvobjpriv;
 	struct usb_device	*pusbd = pdvobjpriv->pusbdev;
 
 #ifdef CONFIG_USE_USB_BUFFER_ALLOC_TX
@@ -160,7 +160,7 @@ int rtw_os_xmit_resource_alloc(_adapter *padapter, struct xmit_buf *pxmitbuf,u32
 	
       	}
 #endif
-#if defined(CONFIG_PCI_HCI) || defined(CONFIG_SDIO_HCI) || defined(CONFIG_GSPI_HCI)
+#if defined(CONFIG_PCI_HCI) || defined(CONFIG_SDIO_HCI)
 	pxmitbuf->pallocated_buf = rtw_zmalloc(alloc_sz);
 	if (pxmitbuf->pallocated_buf == NULL)
 	{
@@ -177,7 +177,7 @@ void rtw_os_xmit_resource_free(_adapter *padapter, struct xmit_buf *pxmitbuf,u32
 {
 #ifdef CONFIG_USB_HCI
 	int i;
-	struct dvobj_priv	*pdvobjpriv = adapter_to_dvobj(padapter);
+	struct dvobj_priv	*pdvobjpriv = &padapter->dvobjpriv;
 	struct usb_device	*pusbd = pdvobjpriv->pusbdev;
 
 
@@ -200,7 +200,7 @@ void rtw_os_xmit_resource_free(_adapter *padapter, struct xmit_buf *pxmitbuf,u32
 #endif	// CONFIG_USE_USB_BUFFER_ALLOC_TX
 
 #endif
-#if defined(CONFIG_PCI_HCI) || defined(CONFIG_SDIO_HCI) || defined(CONFIG_GSPI_HCI)
+#if defined(CONFIG_PCI_HCI) || defined(CONFIG_SDIO_HCI)
 	if(pxmitbuf->pallocated_buf)
 		rtw_mfree(pxmitbuf->pallocated_buf, free_sz);
 #endif
@@ -242,23 +242,13 @@ void rtw_os_xmit_complete(_adapter *padapter, struct xmit_frame *pxframe)
 
 void rtw_os_xmit_schedule(_adapter *padapter)
 {
-	_adapter *pri_adapter = padapter;
-
-#if defined(CONFIG_SDIO_HCI) || defined(CONFIG_GSPI_HCI)
+#ifdef CONFIG_SDIO_HCI
 	if(!padapter)
 		return;
 
-#ifdef CONFIG_CONCURRENT_MODE
-	if(padapter->adapter_type > PRIMARY_ADAPTER)
-		pri_adapter = padapter->pbuddy_adapter;
-#endif
-
-#ifndef CONFIG_SDIO_TX_MULTI_QUEUE
-	if (_rtw_queue_empty(&pri_adapter->xmitpriv.pending_xmitbuf_queue) == _FALSE)
-#endif
-		_rtw_up_sema(&pri_adapter->xmitpriv.xmit_sema);
-
-
+//	if (rtw_txframes_pending(padapter))
+	if (_rtw_queue_empty(&padapter->xmitpriv.pending_xmitbuf_queue) == _FALSE)
+		_rtw_up_sema(&padapter->xmitpriv.xmit_sema);
 #else
 	_irqL  irqL;
 	struct xmit_priv *pxmitpriv;

@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright(c) 2007 - 2012 Realtek Corporation. All rights reserved.
+ * Copyright(c) 2007 - 2011 Realtek Corporation. All rights reserved.
  *                                        
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of version 2 of the GNU General Public License as
@@ -18,7 +18,7 @@
  *
  ******************************************************************************/
 
-#define _HAL_INTF_C_
+#define _HAL_INIT_C_
 #include <drv_conf.h>
 #include <osdep_service.h>
 #include <drv_types.h>
@@ -30,8 +30,6 @@
 	#include <sdio_hal.h>
 #elif defined(CONFIG_USB_HCI)
 	#include <usb_hal.h>
-#elif defined(CONFIG_GSPI_HCI)
-	#include <gspi_hal.h>
 #endif
 
 void rtw_hal_chip_configure(_adapter *padapter)
@@ -85,14 +83,6 @@ void rtw_hal_sw_led_deinit(_adapter *padapter)
 		padapter->HalFunc.DeInitSwLeds(padapter);
 }
 
-u32 rtw_hal_power_on(_adapter *padapter)
-{
-	if(padapter->HalFunc.hal_power_on)
-		return padapter->HalFunc.hal_power_on(padapter);
-	return _FAIL;
-}
-
-
 uint	 rtw_hal_init(_adapter *padapter) 
 {
 	uint	status = _SUCCESS;
@@ -136,8 +126,6 @@ uint	 rtw_hal_init(_adapter *padapter)
 			
 		if (padapter->registrypriv.notch_filter == 1)
 			rtw_hal_notch_filter(padapter, 1);
-
-		rtw_hal_reset_security_engine(padapter);
 	}
 	else{
 	 	padapter->hw_init_completed = _FALSE;
@@ -231,7 +219,7 @@ u32	rtw_hal_inirp_init(_adapter *padapter)
 	if(padapter->HalFunc.inirp_init)	
 		rst = padapter->HalFunc.inirp_init(padapter);	
 	else		
-		DBG_871X(" %s HalFunc.inirp_init is NULL!!!\n",__FUNCTION__);		
+		DBG_871X(" %s Initialize dvobjpriv.inirp_init error!!!\n",__FUNCTION__);		
 	return rst;
 }
 	
@@ -260,14 +248,11 @@ s32	rtw_hal_xmit(_adapter *padapter, struct xmit_frame *pxmitframe)
 	return _FALSE;	
 }
 
-s32	rtw_hal_mgnt_xmit(_adapter *padapter, struct xmit_frame *pmgntframe)
+void	rtw_hal_mgnt_xmit(_adapter *padapter, struct xmit_frame *pmgntframe)
 {
-	s32 ret = _FAIL;
 	if(padapter->HalFunc.mgnt_xmit)
-		ret = padapter->HalFunc.mgnt_xmit(padapter, pmgntframe);
-	return ret;
+		padapter->HalFunc.mgnt_xmit(padapter, pmgntframe);
 }
-
 s32	rtw_hal_init_xmit_priv(_adapter *padapter)
 {	
 	if(padapter->HalFunc.init_xmit_priv != NULL)
@@ -303,25 +288,6 @@ void	rtw_hal_add_ra_tid(_adapter *padapter, u32 bitmap, u8 arg)
 {
 	if(padapter->HalFunc.Add_RateATid)
 		padapter->HalFunc.Add_RateATid(padapter, bitmap, arg);
-}
-#ifdef CONFIG_CONCURRENT_MODE	
-void	rtw_hal_clone_data(_adapter *dst_padapter, _adapter *src_padapter)
-{
-	if(dst_padapter->HalFunc.clone_haldata)
-		dst_padapter->HalFunc.clone_haldata(dst_padapter, src_padapter);
-}
-#endif
-/*	Start specifical interface thread		*/
-void	rtw_hal_start_thread(_adapter *padapter)
-{
-	if(padapter->HalFunc.run_thread)
-		padapter->HalFunc.run_thread(padapter);
-}
-/*	Start specifical interface thread		*/
-void	rtw_hal_stop_thread(_adapter *padapter)
-{
-	if(padapter->HalFunc.cancel_thread)
-		padapter->HalFunc.cancel_thread(padapter);
 }
 
 u32	rtw_hal_read_bbreg(_adapter *padapter, u32 RegAddr, u32 BitMask)
@@ -417,7 +383,7 @@ void rtw_hal_sreset_reset(_adapter *padapter)
 		padapter->HalFunc.silentreset(padapter);	
 }
 
-void rtw_hal_sreset_reset_value(_adapter *padapter)
+void rtw_hal_silent_reset(_adapter *padapter)
 {
 	if(padapter->HalFunc.sreset_reset_value)
 		padapter->HalFunc.sreset_reset_value(padapter);
@@ -425,10 +391,6 @@ void rtw_hal_sreset_reset_value(_adapter *padapter)
 
 void rtw_hal_sreset_xmit_status_check(_adapter *padapter)
 {
-#ifdef CONFIG_CONCURRENT_MODE
-	if (padapter->adapter_type != PRIMARY_ADAPTER)
-		return;
-#endif
 	if(padapter->HalFunc.sreset_xmit_status_check)
 		padapter->HalFunc.sreset_xmit_status_check(padapter);		
 }
@@ -465,15 +427,14 @@ s32 rtw_hal_xmit_thread_handler(_adapter *padapter)
 }
 #endif
 
-void rtw_hal_notch_filter(_adapter *adapter, bool enable)
+void rtw_hal_notch_filter(_adapter * adapter, bool enable)
 {
-	if(adapter->HalFunc.hal_notch_filter)
-		adapter->HalFunc.hal_notch_filter(adapter,enable);		
-}
-
-void rtw_hal_reset_security_engine(_adapter * adapter)
-{
-	if(adapter->HalFunc.hal_reset_security_engine)
-		adapter->HalFunc.hal_reset_security_engine(adapter);
+	if (enable) {
+		DBG_871X("Enable notch filter\n");
+		rtw_write8(adapter, 0xc41, rtw_read8(adapter, 0xc41) | BIT1);
+	} else {
+		DBG_871X("Disable notch filter\n");
+		rtw_write8(adapter, 0xc41, rtw_read8(adapter, 0xc41) & ~BIT1);
+	}
 }
 

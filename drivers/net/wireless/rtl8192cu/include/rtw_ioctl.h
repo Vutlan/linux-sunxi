@@ -16,7 +16,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110, USA
  *
  *
- ******************************************************************************/
+ 
+******************************************************************************/
 #ifndef _RTW_IOCTL_H_
 #define _RTW_IOCTL_H_
 
@@ -87,14 +88,14 @@ struct oid_funs_node {
 
 struct oid_par_priv
 {
-	void		*adapter_context;
-	NDIS_OID	oid;
-	void		*information_buf;
+	void				*adapter_context;
+	NDIS_OID		oid;
+	void*			information_buf;
 	u32		information_buf_len;
-	u32		*bytes_rw;
-	u32		*bytes_needed;
+	u32*	bytes_rw;
+	u32*	bytes_needed;
 	enum oid_type	type_of_oid;
-	u32		dbg;
+	u32 		dbg;
 };
 
 struct oid_obj_priv {
@@ -102,8 +103,7 @@ struct oid_obj_priv {
 	NDIS_STATUS (*oidfuns)(struct oid_par_priv *poid_par_priv);	
 };
 
-#if (defined(CONFIG_MP_INCLUDED) && defined(_RTW_MP_IOCTL_C_)) || \
-	(defined(PLATFORM_WINDOWS) && defined(_RTW_IOCTL_RTL_C_))
+#ifdef CONFIG_MP_INCLUDED
 static NDIS_STATUS oid_null_function(struct oid_par_priv* poid_par_priv)
 {
 	_func_enter_;
@@ -243,8 +243,10 @@ void Set_802_3_MULTICAST_LIST(ADAPTER *pAdapter, UCHAR *MCListbuf, ULONG MCListl
 #endif// end of PLATFORM_WINDOWS
 
 
-#if defined(PLATFORM_LINUX) && defined(CONFIG_WIRELESS_EXT)
+#ifdef PLATFORM_LINUX
+
 extern struct iw_handler_def  rtw_handlers_def;
+
 #endif
 
 extern	NDIS_STATUS drv_query_info(

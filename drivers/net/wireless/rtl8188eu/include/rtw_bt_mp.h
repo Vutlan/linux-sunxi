@@ -218,7 +218,7 @@ typedef struct _BT_REQ_CMD{
     UCHAR       opCodeVer;
     UCHAR       OpCode;
     USHORT      paraLength;
-    UCHAR       pParamStart[100];
+    UCHAR       pParamStart[1];
 } BT_REQ_CMD, *PBT_REQ_CMD;
 
 typedef struct _BT_RSP_CMD{

@@ -237,7 +237,7 @@ static int init_mp_priv_by_os(struct mp_priv *pmp_priv)
 		goto _exit_init_mp_priv;
 	}
 
-	pmp_priv->pmp_xmtframe_buf = pmp_priv->pallocated_mp_xmitframe_buf + 4 - ((SIZE_PTR) (pmp_priv->pallocated_mp_xmitframe_buf) & 3);
+	pmp_priv->pmp_xmtframe_buf = pmp_priv->pallocated_mp_xmitframe_buf + 4 - ((uint) (pmp_priv->pallocated_mp_xmitframe_buf) & 3);
 
 	pmp_xmitframe = (struct mp_xmit_frame*)pmp_priv->pmp_xmtframe_buf;
 
@@ -458,17 +458,12 @@ MPT_InitializeAdapter(
 	pMptCtx->backup0xc50 = (u1Byte)PHY_QueryBBReg(pAdapter, rOFDM0_XAAGCCore1, bMaskByte0);
 	pMptCtx->backup0xc58 = (u1Byte)PHY_QueryBBReg(pAdapter, rOFDM0_XBAGCCore1, bMaskByte0);
 	pMptCtx->backup0xc30 = (u1Byte)PHY_QueryBBReg(pAdapter, rOFDM0_RxDetector1, bMaskByte0);
-#ifdef CONFIG_RTL8188E
-	pMptCtx->backup0x52_RF_A = (u1Byte)PHY_QueryRFReg(pAdapter, RF_PATH_A, RF_0x52, 0x000F0);
-	pMptCtx->backup0x52_RF_B = (u1Byte)PHY_QueryRFReg(pAdapter, RF_PATH_A, RF_0x52, 0x000F0);
-#endif
 
 	//set ant to wifi side in mp mode
 	rtw_write16(pAdapter, 0x870, 0x300);
 	rtw_write16(pAdapter, 0x860, 0x110);
 
-	if (pAdapter->registrypriv.mp_mode == 1)
-		pmlmepriv->fw_state = WIFI_MP_STATE;
+	pmlmepriv->fw_state = WIFI_MP_STATE;
 
 	return	rtStatus;
 }
@@ -498,10 +493,8 @@ MPT_DeInitAdapter(
 	PMPT_CONTEXT		pMptCtx = &pAdapter->mppriv.MptCtx;
 
 	pMptCtx->bMptDrvUnload = _TRUE;
-	#ifdef CONFIG_RTL8723A
 	_rtw_free_sema(&(pMptCtx->MPh2c_Sema));
 	_cancel_timer_ex( &pMptCtx->MPh2c_timeout_timer);
-	#endif
 #if 0 // for Windows
 	PlatformFreeWorkItem( &(pMptCtx->MptWorkItem) );
 
@@ -593,9 +586,7 @@ s32 mp_start_test(PADAPTER padapter)
 	struct mlme_priv *pmlmepriv = &padapter->mlmepriv;
 	struct wlan_network *tgt_network = &pmlmepriv->cur_network;
 
-	padapter->registrypriv.mp_mode = 1;
-	pmppriv->bSetTxPower=0;		//for  manually set tx power
-	
+
 	//3 disable dynamic mechanism
 	disable_dm(padapter);
 
@@ -654,8 +645,7 @@ s32 mp_start_test(PADAPTER padapter)
 		rtw_free_assoc_resources(padapter, 1);
 	}
 	pmppriv->prev_fw_state = get_fwstate(pmlmepriv);
-	if (padapter->registrypriv.mp_mode == 1)
-		pmlmepriv->fw_state = WIFI_MP_STATE;
+	pmlmepriv->fw_state = WIFI_MP_STATE;
 #if 0
 	if (pmppriv->mode == _LOOPBOOK_MODE_) {
 		set_fwstate(pmlmepriv, WIFI_MP_LPBK_STATE); //append txdesc
@@ -726,11 +716,10 @@ void mp_stop_test(PADAPTER padapter)
 	struct sta_info *psta;
 
 	_irqL irqL;
-	
-	if(pmppriv->mode==MP_ON)
-	{
-	pmppriv->bSetTxPower=0;
-	_enter_critical_bh(&pmlmepriv->lock, &irqL);	
+
+
+	_enter_critical_bh(&pmlmepriv->lock, &irqL);
+
 	if (check_fwstate(pmlmepriv, WIFI_MP_STATE) == _FALSE)
 		goto end_of_mp_stop_test;
 
@@ -753,7 +742,6 @@ void mp_stop_test(PADAPTER padapter)
 end_of_mp_stop_test:
 
 	_exit_critical_bh(&pmlmepriv->lock, &irqL);
-	}
 }
 /*---------------------------hal\rtl8192c\MPT_Phy.c---------------------------*/
 #if 0
@@ -954,55 +942,32 @@ void GetThermalMeter(PADAPTER pAdapter, u8 *value)
 
 void SetSingleCarrierTx(PADAPTER pAdapter, u8 bStart)
 {
-	PhySetTxPowerLevel(pAdapter);
 	Hal_SetSingleCarrierTx(pAdapter,bStart);
 }
 
 void SetSingleToneTx(PADAPTER pAdapter, u8 bStart)
 {
-	PhySetTxPowerLevel(pAdapter);
 	Hal_SetSingleToneTx(pAdapter,bStart);
 }
 
 void SetCarrierSuppressionTx(PADAPTER pAdapter, u8 bStart)
 {
-	PhySetTxPowerLevel(pAdapter);
 	Hal_SetCarrierSuppressionTx(pAdapter, bStart);
 }
 
 void SetCCKContinuousTx(PADAPTER pAdapter, u8 bStart)
-{
-	PhySetTxPowerLevel(pAdapter);
+		{
 	Hal_SetCCKContinuousTx(pAdapter,bStart);
-}
+		}
 
 void SetOFDMContinuousTx(PADAPTER pAdapter, u8 bStart)
-{
-	PhySetTxPowerLevel(pAdapter);
-   	Hal_SetOFDMContinuousTx( pAdapter, bStart);
+        {
+   Hal_SetOFDMContinuousTx( pAdapter, bStart);
 }/* mpt_StartOfdmContTx */
 
 void SetContinuousTx(PADAPTER pAdapter, u8 bStart)
 {
-	PhySetTxPowerLevel(pAdapter);
 	Hal_SetContinuousTx(pAdapter,bStart);
-}
-
-
-void PhySetTxPowerLevel(PADAPTER pAdapter)
-{
-	struct mp_priv *pmp_priv = &pAdapter->mppriv;
-		
-	if (pmp_priv->bSetTxPower==0) // for NO manually set power index
-	{
-#ifdef CONFIG_RTL8188E	
-		PHY_SetTxPowerLevel8188E(pAdapter,pmp_priv->channel);
-#elif defined(CONFIG_RTL8192D)
-		PHY_SetTxPowerLevel8192D(pAdapter,pmp_priv->channel);
-#else
-		PHY_SetTxPowerLevel8192C(pAdapter,pmp_priv->channel);
-#endif
-	}
 }
 
 //------------------------------------------------------------------------------
@@ -1023,7 +988,7 @@ static struct xmit_frame *alloc_mp_xmitframe(struct xmit_priv *pxmitpriv)
 
 	if ((pxmitbuf = rtw_alloc_xmitbuf(pxmitpriv)) == NULL)
 	{
-		rtw_free_xmitframe(pxmitpriv, pmpframe);
+		rtw_free_xmitframe_ex(pxmitpriv, pmpframe);
 		return NULL;
 	}
 
@@ -1058,6 +1023,7 @@ static thread_return mp_xmit_packet_thread(thread_context context)
 	while (1) {
 		pxmitframe = alloc_mp_xmitframe(pxmitpriv);
 		if (pxmitframe == NULL) {
+			printk("alloc_mp_xmitframe == NULL \n");
 			if (pmptx->stop ||
 			    padapter->bSurpriseRemoved ||
 			    padapter->bDriverStopped) {
@@ -1159,7 +1125,7 @@ void SetPacketTx(PADAPTER padapter)
 
 	//3 3. init TX descriptor
 	// offset 0
-#if defined(CONFIG_RTL8188E) && !defined(CONFIG_RTL8188E_SDIO)
+#if  defined(CONFIG_RTL8188E) && !defined(CONFIG_RTL8188E_SDIO)
 	desc->txdw0 |= cpu_to_le32(OWN | FSG | LSG);
 	desc->txdw0 |= cpu_to_le32(pkt_size & 0x0000FFFF); // packet size
 	desc->txdw0 |= cpu_to_le32(((TXDESC_SIZE + OFFSET_SZ) << OFFSET_SHT) & 0x00FF0000); //32 bytes for TX Desc
@@ -1275,8 +1241,8 @@ void SetPacketRx(PADAPTER pAdapter, u8 bStartRx)
 	if(bStartRx)
 	{
 		// Accept CRC error and destination address
-#ifndef CONFIG_RTL8723A
-		pHalData->ReceiveConfig |= (RCR_ACRC32|RCR_AAP);
+#if 0
+		pHalData->ReceiveConfig |= (RCR_ACRC32|AB);
 		rtw_write32(pAdapter, REG_RCR, pHalData->ReceiveConfig);
 #else
 		rtw_write32(pAdapter, REG_RCR, 0x70000101);
@@ -1416,6 +1382,29 @@ u32 mp_query_psd(PADAPTER pAdapter, u8 *data)
 	#endif
 
 	return strlen(data)+1;
+}
+
+
+u32 rtw_atoi(u8* s)
+{
+
+	int num=0,flag=0;
+	int i;
+	for(i=0;i<=strlen(s);i++)
+	{
+	  if(s[i] >= '0' && s[i] <= '9')
+		 num = num * 10 + s[i] -'0';
+	  else if(s[0] == '-' && i==0) 
+		 flag =1;
+	  else 
+		  break;
+	 }
+
+	if(flag == 1)
+	   num = num * -1;
+
+	 return(num); 
+
 }
 
 #endif

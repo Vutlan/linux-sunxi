@@ -110,9 +110,6 @@ struct net_device *rtw_init_netdev(_adapter *padapter);
 #ifdef CONFIG_PROC_DEBUG
 void rtw_proc_init_one(struct net_device *dev);
 void rtw_proc_remove_one(struct net_device *dev);
-#else
-static void rtw_proc_init_one(struct net_device *dev){}
-static void rtw_proc_remove_one(struct net_device *dev){}
 #endif
 #endif
 
@@ -128,8 +125,7 @@ void rtw_ips_pwr_down(_adapter *padapter);
 #endif
 
 #ifdef CONFIG_CONCURRENT_MODE
-struct _io_ops;
-_adapter *rtw_drv_if2_init(_adapter *primary_padapter, char *name, void (*set_intf_ops)(struct _io_ops *pops));
+struct net_device *rtw_drv_if2_init(_adapter *pbuddy_padapter, char *name);
 void rtw_drv_if2_free(_adapter *pbuddy_padapter);
 #endif
 

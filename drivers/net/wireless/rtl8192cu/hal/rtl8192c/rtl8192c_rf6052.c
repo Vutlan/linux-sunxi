@@ -16,7 +16,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110, USA
  *
  *
- ******************************************************************************/
+ 
+******************************************************************************/
 /******************************************************************************
  * 
  * 
@@ -108,35 +109,35 @@ void rtl8192c_RF_ChangeTxPath(	IN	PADAPTER	Adapter,
 	if (RF_Path_Type == 2 && (DataRate&0xF) <= 0x7)
 	{
 		// Set TX SYNC power G2G3 loop filter
-		PHY_SetRFReg(Adapter, (RF_RADIO_PATH_E)RF_PATH_A, 
+		PHY_SetRFReg(Adapter, (RF90_RADIO_PATH_E)RF90_PATH_A, 
 					RF_TXPA_G2, bRFRegOffsetMask, 0x0f000);
-		PHY_SetRFReg(Adapter, (RF_RADIO_PATH_E)RF_PATH_A, 
+		PHY_SetRFReg(Adapter, (RF90_RADIO_PATH_E)RF90_PATH_A, 
 					RF_TXPA_G3, bRFRegOffsetMask, 0xeacf1);
 
 		// Change TX AGC gain table
 		for (i = 0; i < 6; i++)					
-			PHY_SetRFReg(Adapter, (RF_RADIO_PATH_E)RF_PATH_A, 
+			PHY_SetRFReg(Adapter, (RF90_RADIO_PATH_E)RF90_PATH_A, 
 						RF_TX_AGC, bRFRegOffsetMask, tx_gain_tbl1[i]);
 
 		// Set PA to high value
-		PHY_SetRFReg(Adapter, (RF_RADIO_PATH_E)RF_PATH_A, 
+		PHY_SetRFReg(Adapter, (RF90_RADIO_PATH_E)RF90_PATH_A, 
 					RF_TXPA_G2, bRFRegOffsetMask, 0x01e39);
 	}
 	else if (RF_Path_Type == 1 && (DataRate&0xF) >= 0x8)
 	{
 		// Set TX SYNC power G2G3 loop filter
-		PHY_SetRFReg(Adapter, (RF_RADIO_PATH_E)RF_PATH_A, 
+		PHY_SetRFReg(Adapter, (RF90_RADIO_PATH_E)RF90_PATH_A, 
 					RF_TXPA_G2, bRFRegOffsetMask, 0x04440);
-		PHY_SetRFReg(Adapter, (RF_RADIO_PATH_E)RF_PATH_A, 
+		PHY_SetRFReg(Adapter, (RF90_RADIO_PATH_E)RF90_PATH_A, 
 					RF_TXPA_G3, bRFRegOffsetMask, 0xea4f1);
 
 		// Change TX AGC gain table
 		for (i = 0; i < 6; i++)
-			PHY_SetRFReg(Adapter, (RF_RADIO_PATH_E)RF_PATH_A, 
+			PHY_SetRFReg(Adapter, (RF90_RADIO_PATH_E)RF90_PATH_A, 
 						RF_TX_AGC, bRFRegOffsetMask, tx_gain_tbl2[i]);
 
 		// Set PA low gain
-		PHY_SetRFReg(Adapter, (RF_RADIO_PATH_E)RF_PATH_A, 
+		PHY_SetRFReg(Adapter, (RF90_RADIO_PATH_E)RF90_PATH_A, 
 					RF_TXPA_G2, bRFRegOffsetMask, 0x01e19);
 	}
 #endif	
@@ -169,12 +170,12 @@ rtl8192c_PHY_RF6052SetBandwidth(
 	{
 		case HT_CHANNEL_WIDTH_20:
 			pHalData->RfRegChnlVal[0] = ((pHalData->RfRegChnlVal[0] & 0xfffff3ff) | 0x0400);
-			PHY_SetRFReg(Adapter, RF_PATH_A, RF_CHNLBW, bRFRegOffsetMask, pHalData->RfRegChnlVal[0]);
+			PHY_SetRFReg(Adapter, RF90_PATH_A, RF_CHNLBW, bRFRegOffsetMask, pHalData->RfRegChnlVal[0]);
 			break;
 				
 		case HT_CHANNEL_WIDTH_40:
 			pHalData->RfRegChnlVal[0] = ((pHalData->RfRegChnlVal[0] & 0xfffff3ff));
-			PHY_SetRFReg(Adapter, RF_PATH_A, RF_CHNLBW, bRFRegOffsetMask, pHalData->RfRegChnlVal[0]);			
+			PHY_SetRFReg(Adapter, RF90_PATH_A, RF_CHNLBW, bRFRegOffsetMask, pHalData->RfRegChnlVal[0]);			
 			break;
 				
 		default:
@@ -231,14 +232,14 @@ rtl8192c_PHY_RF6052SetCckTxPower(
 
 	if(pmlmeext->sitesurvey_res.state == SCAN_PROCESS)
 	{
-		TxAGC[RF_PATH_A] = 0x3f3f3f3f;
-		TxAGC[RF_PATH_B] = 0x3f3f3f3f;
+		TxAGC[RF90_PATH_A] = 0x3f3f3f3f;
+		TxAGC[RF90_PATH_B] = 0x3f3f3f3f;
 
 		TurboScanOff = _TRUE;//disable turbo scan
 		
 		if(TurboScanOff)
 		{
-			for(idx1=RF_PATH_A; idx1<=RF_PATH_B; idx1++)
+			for(idx1=RF90_PATH_A; idx1<=RF90_PATH_B; idx1++)
 			{
 				TxAGC[idx1] = 
 					pPowerlevel[idx1] | (pPowerlevel[idx1]<<8) |
@@ -258,17 +259,17 @@ rtl8192c_PHY_RF6052SetCckTxPower(
 // In the future, two mechanism shall be separated from each other and maintained independantly. Thanks for Lanhsin's reminder.
 		if(pdmpriv->DynamicTxHighPowerLvl == TxHighPwrLevel_Level1)
 		{	
-			TxAGC[RF_PATH_A] = 0x10101010;
-			TxAGC[RF_PATH_B] = 0x10101010;
+			TxAGC[RF90_PATH_A] = 0x10101010;
+			TxAGC[RF90_PATH_B] = 0x10101010;
 		}
 		else if(pdmpriv->DynamicTxHighPowerLvl == TxHighPwrLevel_Level2)
 		{	
-			TxAGC[RF_PATH_A] = 0x00000000;
-			TxAGC[RF_PATH_B] = 0x00000000;
+			TxAGC[RF90_PATH_A] = 0x00000000;
+			TxAGC[RF90_PATH_B] = 0x00000000;
 		}
 		else
 		{
-			for(idx1=RF_PATH_A; idx1<=RF_PATH_B; idx1++)
+			for(idx1=RF90_PATH_A; idx1<=RF90_PATH_B; idx1++)
 			{
 				TxAGC[idx1] = 
 					pPowerlevel[idx1] | (pPowerlevel[idx1]<<8) |
@@ -279,16 +280,16 @@ rtl8192c_PHY_RF6052SetCckTxPower(
 			{
 				tmpval = (pHalData->MCSTxPowerLevelOriginalOffset[0][6]) + 
 						(pHalData->MCSTxPowerLevelOriginalOffset[0][7]<<8);
-				TxAGC[RF_PATH_A] += tmpval;
+				TxAGC[RF90_PATH_A] += tmpval;
 				
 				tmpval = (pHalData->MCSTxPowerLevelOriginalOffset[0][14]) + 
 						(pHalData->MCSTxPowerLevelOriginalOffset[0][15]<<24);
-				TxAGC[RF_PATH_B] += tmpval;
+				TxAGC[RF90_PATH_B] += tmpval;
 			}
 		}
 	}
 
-	for(idx1=RF_PATH_A; idx1<=RF_PATH_B; idx1++)
+	for(idx1=RF90_PATH_A; idx1<=RF90_PATH_B; idx1++)
 	{
 		ptr = (u8*)(&(TxAGC[idx1]));
 		for(idx2=0; idx2<4; idx2++)
@@ -300,18 +301,18 @@ rtl8192c_PHY_RF6052SetCckTxPower(
 	}
 
 	// rf-A cck tx power
-	tmpval = TxAGC[RF_PATH_A]&0xff;
+	tmpval = TxAGC[RF90_PATH_A]&0xff;
 	PHY_SetBBReg(Adapter, rTxAGC_A_CCK1_Mcs32, bMaskByte1, tmpval);
 	//RTPRINT(FPHY, PHY_TXPWR, ("CCK PWR 1M (rf-A) = 0x%x (reg 0x%x)\n", tmpval, rTxAGC_A_CCK1_Mcs32));
-	tmpval = TxAGC[RF_PATH_A]>>8;
+	tmpval = TxAGC[RF90_PATH_A]>>8;
 	PHY_SetBBReg(Adapter, rTxAGC_B_CCK11_A_CCK2_11, 0xffffff00, tmpval);
 	//RTPRINT(FPHY, PHY_TXPWR, ("CCK PWR 2~11M (rf-A) = 0x%x (reg 0x%x)\n", tmpval, rTxAGC_B_CCK11_A_CCK2_11));
 
 	// rf-B cck tx power
-	tmpval = TxAGC[RF_PATH_B]>>24;
+	tmpval = TxAGC[RF90_PATH_B]>>24;
 	PHY_SetBBReg(Adapter, rTxAGC_B_CCK11_A_CCK2_11, bMaskByte0, tmpval);
 	//RTPRINT(FPHY, PHY_TXPWR, ("CCK PWR 11M (rf-B) = 0x%x (reg 0x%x)\n", tmpval, rTxAGC_B_CCK11_A_CCK2_11));
-	tmpval = TxAGC[RF_PATH_B]&0x00ffffff;
+	tmpval = TxAGC[RF90_PATH_B]&0x00ffffff;
 	PHY_SetBBReg(Adapter, rTxAGC_B_CCK1_55_Mcs32, 0xffffff00, tmpval);
 	//RTPRINT(FPHY, PHY_TXPWR, ("CCK PWR 1~5.5M (rf-B) = 0x%x (reg 0x%x)\n", 
 	//	tmpval, rTxAGC_B_CCK1_55_Mcs32));
@@ -332,8 +333,7 @@ static void getPowerBase(
 {
 	HAL_DATA_TYPE	*pHalData = GET_HAL_DATA(Adapter);
 	u32			powerBase0, powerBase1;
-	u8			Legacy_pwrdiff=0;
-	s8			HT20_pwrdiff=0;
+	u8			Legacy_pwrdiff=0, HT20_pwrdiff=0;
 	u8			i, powerlevel[2];
 
 	for(i=0; i<2; i++)
@@ -639,27 +639,43 @@ phy_RF6052_Config_ParaFile(
 	{
 		if(IS_92C_SERIAL( pHalData->VersionID))// 88c's IPA  is different from 92c's
 		{
-			pszRadioAFile = sz92CRadioAFile;
-			pszRadioBFile = sz92CRadioBFile;
+			if(IS_NORMAL_CHIP(pHalData->VersionID))
+			{
+				pszRadioAFile = sz92CRadioAFile;
+				pszRadioBFile = sz92CRadioBFile;
+			}
+			else
+			{
+				rtStatus = _FAIL;
+				return rtStatus;
+			}
 		}
 		else
 		{
-			pszRadioAFile = sz88CRadioAFile;
-			pszRadioBFile = sz88CRadioBFile;
+			if(IS_NORMAL_CHIP(pHalData->VersionID))
+			{
+				pszRadioAFile = sz88CRadioAFile;
+				pszRadioBFile = sz88CRadioBFile;
 #ifdef CONFIG_USB_HCI
-			if( BOARD_MINICARD == pHalData->BoardType)
-			{
-				pszRadioAFile = sz88CRadioAFile_mCard;
-				pszRadioBFile = sz88CRadioBFile_mCard;
-			}
-			else if( BOARD_USB_High_PA == pHalData->BoardType)
-			{
-				pszRadioAFile = sz88CRadioAFile_HP;
-			}
+				if( BOARD_MINICARD == pHalData->BoardType)
+				{
+					pszRadioAFile = sz88CRadioAFile_mCard;
+					pszRadioBFile = sz88CRadioBFile_mCard;
+				}
+				else if( BOARD_USB_High_PA == pHalData->BoardType)
+				{
+					pszRadioAFile = sz88CRadioAFile_HP;
+				}
 #endif	
+			}
+			else
+			{
+				rtStatus = _FAIL;
+				return rtStatus;
+			}
 		}
 	}
-	else if(IS_HARDWARE_TYPE_8723A(Adapter))
+	else if(IS_HARDWARE_TYPE_8723(Adapter))
 	{
 		pszRadioAFile = sz8723RadioAFile;
 		pszRadioBFile = sz8723RadioBFile;	
@@ -668,7 +684,7 @@ phy_RF6052_Config_ParaFile(
 	//3//-----------------------------------------------------------------
 	//3// <2> Initialize RF
 	//3//-----------------------------------------------------------------
-	//for(eRFPath = RF_PATH_A; eRFPath <pHalData->NumTotalRFPath; eRFPath++)
+	//for(eRFPath = RF90_PATH_A; eRFPath <pHalData->NumTotalRFPath; eRFPath++)
 	for(eRFPath = 0; eRFPath <pHalData->NumTotalRFPath; eRFPath++)
 	{
 
@@ -677,12 +693,12 @@ phy_RF6052_Config_ParaFile(
 		/*----Store original RFENV control type----*/		
 		switch(eRFPath)
 		{
-		case RF_PATH_A:
-		case RF_PATH_C:
+		case RF90_PATH_A:
+		case RF90_PATH_C:
 			u4RegValue = PHY_QueryBBReg(Adapter, pPhyReg->rfintfs, bRFSI_RFENV);
 			break;
-		case RF_PATH_B :
-		case RF_PATH_D:
+		case RF90_PATH_B :
+		case RF90_PATH_D:
 			u4RegValue = PHY_QueryBBReg(Adapter, pPhyReg->rfintfs, bRFSI_RFENV<<16);
 			break;
 		}
@@ -705,35 +721,35 @@ phy_RF6052_Config_ParaFile(
 		/*----Initialize RF fom connfiguration file----*/
 		switch(eRFPath)
 		{
-		case RF_PATH_A:
+		case RF90_PATH_A:
 #ifdef CONFIG_EMBEDDED_FWIMG
-			rtStatus= rtl8192c_PHY_ConfigRFWithHeaderFile(Adapter,(RF_RADIO_PATH_E)eRFPath);
+			rtStatus= rtl8192c_PHY_ConfigRFWithHeaderFile(Adapter,(RF90_RADIO_PATH_E)eRFPath);
 #else
-			rtStatus = rtl8192c_PHY_ConfigRFWithParaFile(Adapter, pszRadioAFile, (RF_RADIO_PATH_E)eRFPath);
+			rtStatus = rtl8192c_PHY_ConfigRFWithParaFile(Adapter, pszRadioAFile, (RF90_RADIO_PATH_E)eRFPath);
 #endif
 			break;
-		case RF_PATH_B:
+		case RF90_PATH_B:
 #ifdef CONFIG_EMBEDDED_FWIMG
-			rtStatus = rtl8192c_PHY_ConfigRFWithHeaderFile(Adapter,(RF_RADIO_PATH_E)eRFPath);
+			rtStatus = rtl8192c_PHY_ConfigRFWithHeaderFile(Adapter,(RF90_RADIO_PATH_E)eRFPath);
 #else			
-			rtStatus = rtl8192c_PHY_ConfigRFWithParaFile(Adapter, pszRadioBFile, (RF_RADIO_PATH_E)eRFPath);
+			rtStatus = rtl8192c_PHY_ConfigRFWithParaFile(Adapter, pszRadioBFile, (RF90_RADIO_PATH_E)eRFPath);
 #endif
 			break;
-		case RF_PATH_C:
+		case RF90_PATH_C:
 			break;
-		case RF_PATH_D:
+		case RF90_PATH_D:
 			break;
 		}
 
 		/*----Restore RFENV control type----*/;
 		switch(eRFPath)
 		{
-		case RF_PATH_A:
-		case RF_PATH_C:
+		case RF90_PATH_A:
+		case RF90_PATH_C:
 			PHY_SetBBReg(Adapter, pPhyReg->rfintfs, bRFSI_RFENV, u4RegValue);
 			break;
-		case RF_PATH_B :
-		case RF_PATH_D:
+		case RF90_PATH_B :
+		case RF90_PATH_D:
 			PHY_SetBBReg(Adapter, pPhyReg->rfintfs, bRFSI_RFENV<<16, u4RegValue);
 			break;
 		}
@@ -831,7 +847,7 @@ PHY_RF6052_Config8192C(
 u32
 PHY_RFShadowRead(
 	IN	PADAPTER			Adapter,
-	IN	RF_RADIO_PATH_E	eRFPath,
+	IN	RF90_RADIO_PATH_E	eRFPath,
 	IN	u32				Offset)
 {
 	return	RF_Shadow[eRFPath][Offset].Value;
@@ -842,7 +858,7 @@ PHY_RFShadowRead(
 VOID
 PHY_RFShadowWrite(
 	IN	PADAPTER			Adapter,
-	IN	RF_RADIO_PATH_E	eRFPath,
+	IN	RF90_RADIO_PATH_E	eRFPath,
 	IN	u32				Offset,
 	IN	u32				Data)
 {
@@ -855,7 +871,7 @@ PHY_RFShadowWrite(
 BOOLEAN
 PHY_RFShadowCompare(
 	IN	PADAPTER			Adapter,
-	IN	RF_RADIO_PATH_E	eRFPath,
+	IN	RF90_RADIO_PATH_E	eRFPath,
 	IN	u32				Offset)
 {
 	u32	reg;
@@ -881,7 +897,7 @@ PHY_RFShadowCompare(
 VOID
 PHY_RFShadowRecorver(
 	IN	PADAPTER			Adapter,
-	IN	RF_RADIO_PATH_E	eRFPath,
+	IN	RF90_RADIO_PATH_E	eRFPath,
 	IN	u32				Offset)
 {
 	// Check if the address is error
@@ -912,7 +928,7 @@ PHY_RFShadowCompareAll(
 	{
 		for (Offset = 0; Offset <= RF6052_MAX_REG; Offset++)
 		{
-			PHY_RFShadowCompare(Adapter, (RF_RADIO_PATH_E)eRFPath, Offset);
+			PHY_RFShadowCompare(Adapter, (RF90_RADIO_PATH_E)eRFPath, Offset);
 		}
 	}
 	
@@ -930,7 +946,7 @@ PHY_RFShadowRecorverAll(
 	{
 		for (Offset = 0; Offset <= RF6052_MAX_REG; Offset++)
 		{
-			PHY_RFShadowRecorver(Adapter, (RF_RADIO_PATH_E)eRFPath, Offset);
+			PHY_RFShadowRecorver(Adapter, (RF90_RADIO_PATH_E)eRFPath, Offset);
 		}
 	}
 	
@@ -940,7 +956,7 @@ PHY_RFShadowRecorverAll(
 VOID
 PHY_RFShadowCompareFlagSet(
 	IN	PADAPTER			Adapter,
-	IN	RF_RADIO_PATH_E	eRFPath,
+	IN	RF90_RADIO_PATH_E	eRFPath,
 	IN	u32				Offset,
 	IN	u8				Type)
 {
@@ -953,7 +969,7 @@ PHY_RFShadowCompareFlagSet(
 VOID
 PHY_RFShadowRecorverFlagSet(
 	IN	PADAPTER			Adapter,
-	IN	RF_RADIO_PATH_E	eRFPath,
+	IN	RF90_RADIO_PATH_E	eRFPath,
 	IN	u32				Offset,
 	IN	u8				Type)
 {
@@ -976,9 +992,9 @@ PHY_RFShadowCompareFlagSetAll(
 		{
 			// 2008/11/20 MH For S3S4 test, we only check reg 26/27 now!!!!
 			if (Offset != 0x26 && Offset != 0x27)
-				PHY_RFShadowCompareFlagSet(Adapter, (RF_RADIO_PATH_E)eRFPath, Offset, _FALSE);
+				PHY_RFShadowCompareFlagSet(Adapter, (RF90_RADIO_PATH_E)eRFPath, Offset, _FALSE);
 			else
-				PHY_RFShadowCompareFlagSet(Adapter, (RF_RADIO_PATH_E)eRFPath, Offset, _TRUE);
+				PHY_RFShadowCompareFlagSet(Adapter, (RF90_RADIO_PATH_E)eRFPath, Offset, _TRUE);
 		}
 	}
 		
@@ -998,9 +1014,9 @@ PHY_RFShadowRecorverFlagSetAll(
 		{
 			// 2008/11/20 MH For S3S4 test, we only check reg 26/27 now!!!!
 			if (Offset != 0x26 && Offset != 0x27)
-				PHY_RFShadowRecorverFlagSet(Adapter, (RF_RADIO_PATH_E)eRFPath, Offset, _FALSE);
+				PHY_RFShadowRecorverFlagSet(Adapter, (RF90_RADIO_PATH_E)eRFPath, Offset, _FALSE);
 			else
-				PHY_RFShadowRecorverFlagSet(Adapter, (RF_RADIO_PATH_E)eRFPath, Offset, _TRUE);
+				PHY_RFShadowRecorverFlagSet(Adapter, (RF90_RADIO_PATH_E)eRFPath, Offset, _TRUE);
 		}
 	}
 		

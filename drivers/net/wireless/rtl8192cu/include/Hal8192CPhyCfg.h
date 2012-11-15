@@ -111,7 +111,15 @@ typedef enum _HW90_BLOCK{
 	HW90_BLOCK_MAXIMUM = 4, // Never use this
 }HW90_BLOCK_E, *PHW90_BLOCK_E;
 
-#define	RF_PATH_MAX			2
+typedef enum _RF90_RADIO_PATH{
+	RF90_PATH_A = 0,			//Radio Path A
+	RF90_PATH_B = 1,			//Radio Path B
+	RF90_PATH_C = 2,			//Radio Path C
+	RF90_PATH_D = 3,			//Radio Path D
+	//RF90_PATH_MAX				//Max RF number 90 support 
+}RF90_RADIO_PATH_E, *PRF90_RADIO_PATH_E;
+
+#define	RF90_PATH_MAX			2
 
 #define CHANNEL_MAX_NUMBER		14	// 14 is the max channel number
 #define CHANNEL_GROUP_MAX		3	// ch1~3, ch4~9, ch10~14 total three groups
@@ -286,11 +294,11 @@ void	rtl8192c_PHY_SetBBReg(	IN	PADAPTER	Adapter,
 								IN	u32		BitMask,
 								IN	u32		Data	);
 u32	rtl8192c_PHY_QueryRFReg(	IN	PADAPTER			Adapter,
-								IN	RF_RADIO_PATH_E	eRFPath,
+								IN	RF90_RADIO_PATH_E	eRFPath,
 								IN	u32				RegAddr,
 								IN	u32				BitMask	);
 void	rtl8192c_PHY_SetRFReg(	IN	PADAPTER			Adapter,
-								IN	RF_RADIO_PATH_E	eRFPath,
+								IN	RF90_RADIO_PATH_E	eRFPath,
 								IN	u32				RegAddr,
 								IN	u32				BitMask,
 								IN	u32				Data	);
@@ -305,14 +313,14 @@ int	PHY_RFConfig8192C(	IN	PADAPTER	Adapter	);
 /* RF config */
 int	rtl8192c_PHY_ConfigRFWithParaFile(	IN	PADAPTER	Adapter,
 												IN	u8* 	pFileName,
-												IN	RF_RADIO_PATH_E	eRFPath);
+												IN	RF90_RADIO_PATH_E	eRFPath);
 int	rtl8192c_PHY_ConfigRFWithHeaderFile(	IN	PADAPTER			Adapter,
-												IN	RF_RADIO_PATH_E	eRFPath);
+												IN	RF90_RADIO_PATH_E	eRFPath);
 
 /* BB/RF readback check for making sure init OK */
 int	rtl8192c_PHY_CheckBBAndRFOK(	IN	PADAPTER			Adapter,
 										IN	HW90_BLOCK_E		CheckBlock,
-										IN	RF_RADIO_PATH_E	eRFPath	  );
+										IN	RF90_RADIO_PATH_E	eRFPath	  );
 /* Read initi reg value for tx power setting. */
 void	rtl8192c_PHY_GetHWRegOriginalValue(	IN	PADAPTER		Adapter	);
 
@@ -400,6 +408,8 @@ VOID rtl8192c_PHY_LCCalibrate(IN	PADAPTER	pAdapter);
 // AP calibrate
 //
 VOID rtl8192c_PHY_APCalibrate(IN	PADAPTER	pAdapter, IN 	char		delta);
+
+VOID rtl8192c_PHY_DigitalPredistortion(IN	PADAPTER	pAdapter);
 
 VOID rtl8192c_PHY_SetRFPathSwitch(IN	PADAPTER	pAdapter, IN	BOOLEAN		bMain);
 

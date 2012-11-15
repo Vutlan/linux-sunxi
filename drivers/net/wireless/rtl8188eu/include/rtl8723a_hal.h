@@ -39,7 +39,7 @@
 
 #include "../hal/OUTSRC/odm_precomp.h"
 
-#if defined(CONFIG_SDIO_HCI) || defined(CONFIG_GSPI_HCI)
+#ifdef CONFIG_SDIO_HCI	
 
 	//2TODO: We should define 8192S firmware related macro settings here!!
 	#define RTL819X_DEFAULT_RF_TYPE			RF_1T2R
@@ -72,13 +72,7 @@
 	#define Rtl8723_PHY_REG_Array_PG 			Rtl8723SPHY_REG_Array_PG
 	#define Rtl8723_PHY_REG_Array_PGLength		Rtl8723SPHY_REG_Array_PGLength
 #if MP_DRIVER == 1
-	#define Rtl8723E_FwBTImgArray				Rtl8723EFwBTImgArray
-	#define Rtl8723E_FwBTImgArrayLength			Rtl8723EBTImgArrayLength
-	
-	#define Rtl8723_FwUMCBCutMPImageArray		Rtl8723SFwUMCBCutMPImgArray
-	#define Rtl8723_UMCBCutMPImgArrayLength	Rtl8723SUMCBCutMPImgArrayLength
-	
-	#define Rtl8723_PHY_REG_Array_MP			Rtl8723SPHY_REG_Array_MP
+	#define Rtl8723_PHY_REG_Array_MP 			Rtl8723SPHY_REG_Array_MP
 	#define Rtl8723_PHY_REG_Array_MPLength		Rtl8723SPHY_REG_Array_MPLength
 #endif
 
@@ -136,18 +130,12 @@
 	#define Rtl8723_PHY_REG_Array_PGLength		Rtl8723UPHY_REG_Array_PGLength
 
 #if MP_DRIVER == 1
-	#define Rtl8723E_FwBTImgArray				Rtl8723EFwBTImgArray
-	#define Rtl8723E_FwBTImgArrayLength			Rtl8723EBTImgArrayLength
-	
-	#define Rtl8723_FwUMCBCutMPImageArray		Rtl8723SFwUMCBCutMPImgArray
-	#define Rtl8723_UMCBCutMPImgArrayLength	Rtl8723SUMCBCutMPImgArrayLength
-
-	#define Rtl8723_PHY_REG_Array_MP			Rtl8723UPHY_REG_Array_MP
-	#define Rtl8723_PHY_REG_Array_MPLength		Rtl8723UPHY_REG_Array_MPLength
+	#define Rtl8723_PHY_REG_Array_MP 			Rtl8723UPHY_REG_Array_MP
+	#define Rtl8723_PHY_REG_Array_MPLength			Rtl8723UPHY_REG_Array_MPLength
 #endif
 #ifndef CONFIG_PHY_SETTING_WITH_ODM
 	// MAC/BB/PHY Array
-	#define Rtl8723_MAC_Array					Rtl8723UMAC_2T_Array
+	#define Rtl8723_MAC_Array					tl8723UMAC_2T_Array
 	//#define Rtl8723_AGCTAB_2TArray				Rtl8723UAGCTAB_2TArray
 	#define Rtl8723_AGCTAB_1TArray				Rtl8723UAGCTAB_1TArray
 	//#define Rtl8723_PHY_REG_2TArray				Rtl8723UPHY_REG_2TArray
@@ -454,7 +442,6 @@ typedef struct hal_data_8723a
 	u8	EEPROMBluetoothRadioShared;
 
 	u8	bTXPowerDataReadFromEEPORM;
-	u8	bAPKThermalMeterIgnore;
 
 	u8	bIQKInitialized;
 	u8	bAntennaDetected;
@@ -565,6 +552,8 @@ typedef struct hal_data_8723a
 	u8	OutEpQueueSel;
 	u8	OutEpNumber;
 
+	u8	Queue2EPNum[MAX_TX_QUEUE];//for out endpoint number mapping
+
 	// 2010/12/10 MH Add for USB aggreation mode dynamic shceme.
 	BOOLEAN		UsbRxHighSpeedMode;
 
@@ -613,6 +602,9 @@ typedef struct hal_data_8723a
 #ifdef CONFIG_USB_HCI
 	u32	UsbBulkOutSize;
 
+	int	RtBulkOutPipe[3];
+	int	RtBulkInPipe;
+	int	RtIntInPipe;
 	// Interrupt relatd register information.
 	u32	IntArray[2];
 	u32	IntrMask[2];
@@ -628,7 +620,7 @@ typedef struct hal_data_8723a
 	// Auto FSM to Turn On, include clock, isolation, power control for MAC only
 	u8			bMacPwrCtrlOn;
 
-#if defined(CONFIG_SDIO_HCI) || defined(CONFIG_GSPI_HCI)
+#ifdef CONFIG_SDIO_HCI
 	//
 	// SDIO ISR Related
 	//
@@ -894,8 +886,6 @@ void rtl8723a_FirmwareSelfReset(PADAPTER padapter);
 void rtl8723a_InitializeFirmwareVars(PADAPTER padapter);
 
 void rtl8723a_InitAntenna_Selection(PADAPTER padapter);
-void rtl8723a_DeinitAntenna_Selection(PADAPTER padapter);
-void rtl8723a_CheckAntenna_Selection(PADAPTER padapter);
 void rtl8723a_init_default_value(PADAPTER padapter);
 
 s32 InitLLTTable(PADAPTER padapter, u32 boundary);
@@ -915,11 +905,11 @@ void Hal_EfuseParseCustomerID(PADAPTER padapter, u8 *hwinfo, BOOLEAN AutoLoadFai
 void Hal_EfuseParseAntennaDiversity(PADAPTER padapter, u8 *hwinfo, BOOLEAN AutoLoadFail);
 void Hal_EfuseParseRateIndicationOption(PADAPTER padapter, u8 *hwinfo, BOOLEAN AutoLoadFail);
 void Hal_EfuseParseXtal_8723A(PADAPTER pAdapter, u8 *hwinfo, u8 AutoLoadFail);
-void Hal_EfuseParseThermalMeter_8723A(PADAPTER padapter, u8 *hwinfo, u8 AutoLoadFail);
 
 //RT_CHANNEL_DOMAIN rtl8723a_HalMapChannelPlan(PADAPTER padapter, u8 HalChannelPlan);
 //VERSION_8192C rtl8723a_ReadChipVersion(PADAPTER padapter);
 //void rtl8723a_ReadBluetoothCoexistInfo(PADAPTER padapter, u8 *PROMContent, BOOLEAN AutoloadFail);
+void rtl8192c_HalSetBrateCfg(PADAPTER padapter, u8 *mBratesOS, u16 *pBrateCfg);
 void Hal_InitChannelPlan(PADAPTER padapter);
 
 void rtl8723a_set_hal_ops(struct hal_ops *pHalFunc);
@@ -934,8 +924,5 @@ void SetBcnCtrlReg(PADAPTER padapter, u8 SetBits, u8 ClearBits);
 void rtl8723a_InitBeaconParameters(PADAPTER padapter);
 void rtl8723a_InitBeaconMaxError(PADAPTER padapter, u8 InfraMode);
 
-void rtl8723a_clone_haldata(_adapter *dst_adapter, _adapter *src_adapter);
-void rtl8723a_start_thread(_adapter *padapter);
-void rtl8723a_stop_thread(_adapter *padapter);
 #endif
 

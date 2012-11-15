@@ -297,7 +297,7 @@ void update_recvframe_phyinfo_88e(
 			sa = padapter->mlmepriv.cur_network.network.MacAddress;
 			#if 0
 			{					
-				DBG_8192C("==> rx beacon from AP[%02x:%02x:%02x:%02x:%02x:%02x]\n",
+				printk("==> rx beacon from AP[%02x:%02x:%02x:%02x:%02x:%02x]\n",
 					sa[0],sa[1],sa[2],sa[3],sa[4],sa[5]);					
 			}
 			#endif
@@ -314,7 +314,7 @@ void update_recvframe_phyinfo_88e(
 	if (psta)
 	{
 		pkt_info.StationID = psta->mac_id;		
-		//DBG_8192C("%s ==> StationID(%d)\n",__FUNCTION__,pkt_info.StationID);
+		//printk("%s ==> StationID(%d)\n",__FUNCTION__,pkt_info.StationID);
 	}			
 	pkt_info.Rate = pattrib->mcs_rate;	
 	//rtl8188e_query_rx_phy_status(precvframe, pphy_status);

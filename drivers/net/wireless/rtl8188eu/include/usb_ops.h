@@ -52,7 +52,6 @@ enum{
 	usb_bulk_msg((usb_dev), (pipe), (data), (len), (actual_length), \
 		((timeout_ms) == 0) ||((timeout_ms)*HZ/1000>0)?((timeout_ms)*HZ/1000):1) 
 #endif
-#include <usb_ops_linux.h>
 #endif //PLATFORM_LINUX
 
 #ifdef CONFIG_RTL8192C
@@ -108,15 +107,15 @@ void rtl8188eu_set_intf_ops(struct _io_ops *pops);
 * @return _TRUE:
 * @return _FALSE:
 */
-static inline int rtw_inc_and_chk_continual_urb_error(struct dvobj_priv *dvobj)
+static inline int rtw_inc_and_chk_continual_urb_error(struct dvobj_priv *dvobjpriv)
 {
 	int ret = _FALSE;
 	int value;
-	if( (value=ATOMIC_INC_RETURN(&dvobj->continual_urb_error)) > MAX_CONTINUAL_URB_ERR) {
-		DBG_871X("[dvobj:%p][ERROR] continual_urb_error:%d > %d\n", dvobj, value, MAX_CONTINUAL_URB_ERR);
+	if( (value=ATOMIC_INC_RETURN(&dvobjpriv->continual_urb_error)) > MAX_CONTINUAL_URB_ERR) {
+		DBG_871X("[dvobjpriv:%p][ERROR] continual_urb_error:%d > %d\n", dvobjpriv, value, MAX_CONTINUAL_URB_ERR);
 		ret = _TRUE;
 	} else {
-		//DBG_871X("[dvobj:%p] continual_urb_error:%d\n", dvobj, value);
+		//DBG_871X("[dvobjpriv:%p] continual_urb_error:%d\n", dvobjpriv, value);
 	}
 	return ret;
 }
@@ -124,9 +123,9 @@ static inline int rtw_inc_and_chk_continual_urb_error(struct dvobj_priv *dvobj)
 /*
 * Set the continual_urb_error of this @param dvobjprive to 0
 */
-static inline void rtw_reset_continual_urb_error(struct dvobj_priv *dvobj)
+static inline void rtw_reset_continual_urb_error(struct dvobj_priv *dvobjpriv)
 {
-	ATOMIC_SET(&dvobj->continual_urb_error, 0);	
+	ATOMIC_SET(&dvobjpriv->continual_urb_error, 0);	
 }
 
 #endif //__USB_OPS_H_
