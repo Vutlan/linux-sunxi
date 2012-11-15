@@ -1660,7 +1660,7 @@ int gmac_restore(struct net_device *ndev)
 }
 #endif /* CONFIG_PM */
 
-#ifdef MODULE
+#ifndef MODULE
 static int __init set_mac_addr(char *str)
 {
 	char *p = str;
