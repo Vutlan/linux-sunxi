@@ -380,8 +380,8 @@ struct ar100_message *ar100_hwmsgbox_query_message(void)
 int ar100_hwmsgbox_wait_message_feedback(struct ar100_message *pmessage)
 {
 	//linux method: wait semaphore flag to set.
-	print_call_info();
-	printk("(struct semaphore *)(pmessage->private) = 0x%x. \n", (struct semaphore *)(pmessage->private));
+	AR100_INF("down semaphore for message feedback, semp=0x%x.\n", 
+			   (unsigned int)(pmessage->private));
 	down((struct semaphore *)(pmessage->private));
 	
 	AR100_INF("message : %x finished\n", (unsigned int)pmessage);
@@ -391,8 +391,8 @@ int ar100_hwmsgbox_wait_message_feedback(struct ar100_message *pmessage)
 int ar100_hwmsgbox_message_feedback(struct ar100_message *pmessage)
 {
 	//linux method: wait semaphore flag to set.
-	print_call_info();
-	printk("(struct semaphore *)(pmessage->private) = 0x%x. \n", (struct semaphore *)(pmessage->private));
+	AR100_INF("up semaphore for message feedback, sem=0x%x.\n", 
+			   (unsigned int)(pmessage->private));
 	up((struct semaphore *)(pmessage->private));
 	
 	return 0;
