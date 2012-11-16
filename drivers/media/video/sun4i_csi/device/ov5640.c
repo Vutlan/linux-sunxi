@@ -3449,6 +3449,10 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
 //			ret = sensor_write_array(sd, sensor_default_regs , ARRAY_SIZE(sensor_default_regs));
 //			if(ret < 0)
 //				csi_dev_err("initial sensor error when standby on!\n");
+			//cancel delayed work
+			csi_dev_print("cancel sensor_s_ae_ratio_work!\n");			
+			cancel_delayed_work(&sensor_s_ae_ratio_work);
+			flush_scheduled_work();
 			//disable io oe
 			csi_dev_print("disalbe oe!\n");
 			ret = sensor_write_array(sd, sensor_oe_disable_regs , ARRAY_SIZE(sensor_oe_disable_regs));

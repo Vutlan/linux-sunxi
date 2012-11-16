@@ -1,10 +1,10 @@
 ===========================================
 
-Version: V1_61
+Version: V1_62
 
 Author:  raymonxiu
 
-Date:     2012-9-18 11:39:40
+Date:     2012-11-16 14:32:49
 
 Description:
 
@@ -28,6 +28,11 @@ insmod sun4i_csiX.ko ccm="gc0309" i2c_addr=0x42
 insmod sun4i_csiX.ko ccm="tvp5150" i2c_addr=0xb8
 insmod sun4i_csiX.ko ccm="s5k4ec" i2c_addr=0x5a
 insmod sun4i_csiX.ko ccm="ov5650_mv9335" i2c_addr=0x50
+
+V1_62
+CSI: Fix ov5640 ae ratio and sp0838 powerup bug 
+1) Cancel setting ae ratio when close camera at ov5640
+2) Add delay after reset off at sp0838
 
 V1_61
 CSI: Fix gc0309/gt2005/ov5640 bug and add ov5650+mv9335.

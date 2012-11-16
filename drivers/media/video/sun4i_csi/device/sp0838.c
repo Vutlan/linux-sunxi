@@ -968,7 +968,7 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_ON);
 			mdelay(100);
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_OFF);
-//			mdelay(100);
+			mdelay(100);
 			break;
 		case CSI_SUBDEV_PWR_ON:
 			csi_dev_dbg("CSI_SUBDEV_PWR_ON\n");
