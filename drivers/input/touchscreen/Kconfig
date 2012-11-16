@@ -768,4 +768,14 @@ config  TOUCHSCREEN_COASIA
        tristate  "COASIA touchscreen driver"
        help
           COASIA touchscreen driver
+          
+config  TOUCHSCREEN_ZET6221
+       tristate  "zet6221 touchscreen driver"
+       help
+          zet6221 touchscreen driver
+          
+config  TOUCHSCREEN_GT811
+       tristate  "gt811 touchscreen driver"
+       help
+          gt811 touchscreen driver
 endif

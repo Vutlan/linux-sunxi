@@ -56,6 +56,15 @@ config SENSORS_MMA8452
 	help
 	  If you say yes here you get support for the Freescale 3-Axis
 	  Orientation/Motion Detection Sensor.
+	
+config SENSORS_MMA865X
+	tristate "MMA865X 3-Axis Orientation/Motion Detection Sensor Support"
+	select I2C
+	depends on HWMON
+	default m
+	help
+	  If you say yes here you get support for the Freescale 3-Axis
+	  Orientation/Motion Detection Sensor.
 	  
 config SENSORS_KIONIX_ACCEL
 	tristate "kionix acceleration sensor support"
@@ -64,12 +73,13 @@ config SENSORS_KIONIX_ACCEL
 	help
 	  If you say yes here you get support for acceleration sensors KIONIX.
 	  
-config SENSORS_AFA750
-	tristate "AFA750 acceleration sensor support"
+config SENSORS_LIS3DH
+	tristate "LIS3DH acceleration sensor support"
 	select I2C
 	depends on HWMON
 	help
-	  If you say yes here you get support for acceleration sensors AFA750.
+	  If you say yes here you get support for acceleration sensors LIS3DH.
+	  
 	  
 config SENSORS_ABITUGURU
 	tristate "Abit uGuru (rev 1 & 2)"
