@@ -222,7 +222,7 @@ static int sun6i_pcm_prepare(struct snd_pcm_substream *substream)
 		memset(&hdmiaudio_dma_conf, 0, sizeof(hdmiaudio_dma_conf));
 		hdmiaudio_dma_conf.xfer_type = DMAXFER_D_BWORD_S_BWORD;
 		hdmiaudio_dma_conf.address_type = DMAADDRT_D_IO_S_LN;
-		hdmiaudio_dma_conf.para = 0x1F071F07;
+		hdmiaudio_dma_conf.para = 0;
 		hdmiaudio_dma_conf.irq_spt = CHAN_IRQ_QD;
 		hdmiaudio_dma_conf.src_addr = prtd->dma_start;
 		hdmiaudio_dma_conf.dst_addr = prtd->params->dma_addr;
