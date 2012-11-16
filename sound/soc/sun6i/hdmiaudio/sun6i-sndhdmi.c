@@ -25,15 +25,6 @@
 
 #include "sun6i-hdmipcm.h"
 
-static int sun6i_sndhdmi_startup(struct snd_pcm_substream *substream)
-{
-	return 0;
-}
-
-static void sun6i_sndhdmi_shutdown(struct snd_pcm_substream *substream)
-{
-}
-
 static int sun6i_sndhdmi_hw_params(struct snd_pcm_substream *substream,
 					struct snd_pcm_hw_params *params)
 {
@@ -63,8 +54,6 @@ static int sun6i_sndhdmi_hw_params(struct snd_pcm_substream *substream,
 }
 
 static struct snd_soc_ops sun6i_sndhdmi_ops = {
-	.startup 	= sun6i_sndhdmi_startup,
-	.shutdown 	= sun6i_sndhdmi_shutdown,
 	.hw_params 	= sun6i_sndhdmi_hw_params,
 };
 

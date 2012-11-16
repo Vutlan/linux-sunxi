@@ -51,22 +51,6 @@ void audio_set_hdmi_func(__audio_hdmi_func *hdmi_func)
 }
 EXPORT_SYMBOL(audio_set_hdmi_func);
 
-static int sndhdmi_mute(struct snd_soc_dai *dai, int mute)
-{
-	return 0;
-}
-
-static int sndhdmi_startup(struct snd_pcm_substream *substream,
-	struct snd_soc_dai *dai)
-{
-	return 0;
-}
-
-static void sndhdmi_shutdown(struct snd_pcm_substream *substream,
-	struct snd_soc_dai *dai)
-{
-}
-
 static int sndhdmi_hw_params(struct snd_pcm_substream *substream,
 	struct snd_pcm_hw_params *params,
 	struct snd_soc_dai *dai)
@@ -77,8 +61,7 @@ static int sndhdmi_hw_params(struct snd_pcm_substream *substream,
 	}
 
 	hdmi_para.sample_rate = params_rate(params);
-	hdmi_para.channel_num = substream->runtime->channels;
-	g_hdmi_func.hdmi_audio_enable(1, 1);
+	hdmi_para.channel_num = params_channels(params);
 	g_hdmi_func.hdmi_set_audio_para(&hdmi_para);
 
 	return 0;
@@ -90,13 +73,40 @@ static int sndhdmi_set_dai_fmt(struct snd_soc_dai *codec_dai,
 	return 0;
 }
 
+static int sndhdmi_trigger(struct snd_pcm_substream *substream,
+                              int cmd, struct snd_soc_dai *dai)
+{
+	int ret = 0;
+
+	switch (cmd) {
+		case SNDRV_PCM_TRIGGER_START:
+		case SNDRV_PCM_TRIGGER_RESUME:
+		case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
+			if (substream->stream == SNDRV_PCM_STREAM_CAPTURE) {
+			} else {
+			g_hdmi_func.hdmi_audio_enable(1, 1);
+			}
+		break;
+		case SNDRV_PCM_TRIGGER_STOP:
+		case SNDRV_PCM_TRIGGER_SUSPEND:
+		case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
+			if (substream->stream == SNDRV_PCM_STREAM_CAPTURE) {
+			} else {
+				g_hdmi_func.hdmi_audio_enable(0, 1);
+			}
+			break;
+		default:
+			ret = -EINVAL;
+			break;
+	}
+	return ret;
+}
+
 /*codec dai operation*/
 struct snd_soc_dai_ops sndhdmi_dai_ops = {
-	.startup = sndhdmi_startup,
-	.shutdown = sndhdmi_shutdown,
 	.hw_params = sndhdmi_hw_params,
-	.digital_mute = sndhdmi_mute,
 	.set_fmt = sndhdmi_set_dai_fmt,
+	.trigger = sndhdmi_trigger,
 };
 
 /*codec dai*/

@@ -67,12 +67,7 @@ static int sun6i_hdmiaudio_hw_params(struct snd_pcm_substream *substream,
 	}
 
 	snd_soc_dai_set_dma_data(rtd->cpu_dai, substream, dma_data);
-	return 0;
-}
-
-static int sun6i_hdmiaudio_trigger(struct snd_pcm_substream *substream,
-                              int cmd, struct snd_soc_dai *dai)
-{
+	
 	return 0;
 }
 
@@ -97,7 +92,6 @@ static int sun6i_hdmiaudio_resume(struct snd_soc_dai *cpu_dai)
 
 #define SUN6I_I2S_RATES (SNDRV_PCM_RATE_8000_192000 | SNDRV_PCM_RATE_KNOT)
 static struct snd_soc_dai_ops sun6i_hdmiaudio_dai_ops = {
-	.trigger 		= sun6i_hdmiaudio_trigger,
 	.hw_params 	= sun6i_hdmiaudio_hw_params,
 	.set_fmt 		= sun6i_hdmiaudio_set_fmt,
 };
