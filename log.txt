@@ -1,0 +1,417 @@
+# On branch a1x-ics
+# Changes to be committed:
+#   (use "git reset HEAD <file>..." to unstage)
+#
+#	new file:   drivers/net/wireless/rtl8188eu/Kconfig_rtl8188e_usb_linux
+#	new file:   drivers/net/wireless/rtl8188eu/Kconfig_rtl8189e_sdio_linux
+#	new file:   drivers/net/wireless/rtl8188eu/autoconf_rtl8188e_usb_linux.h
+#	new file:   drivers/net/wireless/rtl8188eu/autoconf_rtl8189e_sdio_linux.h
+#	new file:   drivers/net/wireless/rtl8188eu/hal/OUTSRC/rtl8188e/Hal8188ESHWImg_CE.c
+#	new file:   drivers/net/wireless/rtl8188eu/hal/OUTSRC/rtl8188e/Hal8188ESHWImg_CE.h
+#	new file:   drivers/net/wireless/rtl8188eu/hal/OUTSRC/rtl8188e/Hal8188EUHWImg_CE.c
+#	new file:   drivers/net/wireless/rtl8188eu/hal/OUTSRC/rtl8188e/Hal8188EUHWImg_CE.h
+#	new file:   drivers/net/wireless/rtl8188eu/hal/hal_init.c
+#	new file:   drivers/net/wireless/rtl8188eu/hal/rtl8188e/sdio/rtl8189es_led.c
+#	new file:   drivers/net/wireless/rtl8188eu/hal/rtl8188e/sdio/rtl8189es_recv.c
+#	new file:   drivers/net/wireless/rtl8188eu/hal/rtl8188e/sdio/rtl8189es_xmit.c
+#	new file:   drivers/net/wireless/rtl8188eu/hal/rtl8188e/sdio/sdio_halinit.c
+#	new file:   drivers/net/wireless/rtl8188eu/hal/rtl8188e/sdio/sdio_ops.c
+#	new file:   drivers/net/wireless/rtl8188eu/include/hal_init.h
+#	new file:   drivers/net/wireless/rtl8188eu/make_drv
+#	new file:   drivers/net/wireless/rtl8192cu/autoconf_rtl8192c_usb_linux.h
+#	new file:   drivers/net/wireless/rtl8192cu/autoconf_rtl8192d_usb_linux.h
+#	new file:   drivers/net/wireless/rtl8192cu/hal/rtl8192d/rtl8192d_cmd.c
+#	new file:   drivers/net/wireless/rtl8192cu/hal/rtl8192d/rtl8192d_dm.c
+#	new file:   drivers/net/wireless/rtl8192cu/hal/rtl8192d/rtl8192d_hal_init.c
+#	new file:   drivers/net/wireless/rtl8192cu/hal/rtl8192d/rtl8192d_mp.c
+#	new file:   drivers/net/wireless/rtl8192cu/hal/rtl8192d/rtl8192d_phycfg.c
+#	new file:   drivers/net/wireless/rtl8192cu/hal/rtl8192d/rtl8192d_rf6052.c
+#	new file:   drivers/net/wireless/rtl8192cu/hal/rtl8192d/rtl8192d_rxdesc.c
+#	new file:   drivers/net/wireless/rtl8192cu/hal/rtl8192d/usb/Hal8192DUHWImg.c
+#	new file:   drivers/net/wireless/rtl8192cu/hal/rtl8192d/usb/Hal8192DUTestHWImg.c
+#	new file:   drivers/net/wireless/rtl8192cu/hal/rtl8192d/usb/rtl8192du_led.c
+#	new file:   drivers/net/wireless/rtl8192cu/hal/rtl8192d/usb/rtl8192du_recv.c
+#	new file:   drivers/net/wireless/rtl8192cu/hal/rtl8192d/usb/rtl8192du_xmit.c
+#	new file:   drivers/net/wireless/rtl8192cu/hal/rtl8192d/usb/usb_halinit.c
+#	new file:   drivers/net/wireless/rtl8192cu/hal/rtl8192d/usb/usb_ops_linux.c
+#	new file:   drivers/net/wireless/rtl8192cu/include/Hal8192DETestHWImg.h
+#	new file:   drivers/net/wireless/rtl8192cu/include/Hal8192DUTestHWImg.h
+#	new file:   drivers/net/wireless/rtl8192cu/include/farray.h
+#	new file:   drivers/net/wireless/rtl8192cu/include/sdio_hal.h
+#	new file:   drivers/net/wireless/rtl8192cu/include/sdio_ops.h
+#	new file:   drivers/net/wireless/rtl8192cu/include/sdio_ops_ce.h
+#	new file:   drivers/net/wireless/rtl8192cu/include/sdio_ops_linux.h
+#	new file:   drivers/net/wireless/rtl8192cu/include/sdio_ops_xp.h
+#	new file:   drivers/net/wireless/rtl8192cu/include/sdio_osintf.h
+#	new file:   drivers/net/wireless/rtl8192cu/make_drv
+#	new file:   drivers/net/wireless/rtl8192cu/os_dep/linux/sdio_intf.c
+#
+# Changes not staged for commit:
+#   (use "git add/rm <file>..." to update what will be committed)
+#   (use "git checkout -- <file>..." to discard changes in working directory)
+#
+#	modified:   drivers/net/wireless/rtl8188eu/Kconfig
+#	modified:   drivers/net/wireless/rtl8188eu/Makefile
+#	modified:   drivers/net/wireless/rtl8188eu/core/efuse/rtw_efuse.c
+#	deleted:    drivers/net/wireless/rtl8188eu/core/rtw_ap.c
+#	modified:   drivers/net/wireless/rtl8188eu/core/rtw_br_ext.c
+#	deleted:    drivers/net/wireless/rtl8188eu/core/rtw_bt_mp.c
+#	modified:   drivers/net/wireless/rtl8188eu/core/rtw_cmd.c
+#	modified:   drivers/net/wireless/rtl8188eu/core/rtw_debug.c
+#	modified:   drivers/net/wireless/rtl8188eu/core/rtw_ieee80211.c
+#	modified:   drivers/net/wireless/rtl8188eu/core/rtw_io.c
+#	modified:   drivers/net/wireless/rtl8188eu/core/rtw_ioctl_rtl.c
+#	modified:   drivers/net/wireless/rtl8188eu/core/rtw_ioctl_set.c
+#	modified:   drivers/net/wireless/rtl8188eu/core/rtw_iol.c
+#	deleted:    drivers/net/wireless/rtl8188eu/core/rtw_led.c
+#	modified:   drivers/net/wireless/rtl8188eu/core/rtw_mlme.c
+#	modified:   drivers/net/wireless/rtl8188eu/core/rtw_mlme_ext.c
+#	modified:   drivers/net/wireless/rtl8188eu/core/rtw_mp.c
+#	modified:   drivers/net/wireless/rtl8188eu/core/rtw_mp_ioctl.c
+#	modified:   drivers/net/wireless/rtl8188eu/core/rtw_p2p.c
+#	modified:   drivers/net/wireless/rtl8188eu/core/rtw_pwrctrl.c
+#	modified:   drivers/net/wireless/rtl8188eu/core/rtw_recv.c
+#	modified:   drivers/net/wireless/rtl8188eu/core/rtw_security.c
+#	deleted:    drivers/net/wireless/rtl8188eu/core/rtw_sreset.c
+#	modified:   drivers/net/wireless/rtl8188eu/core/rtw_sta_mgt.c
+#	deleted:    drivers/net/wireless/rtl8188eu/core/rtw_tdls.c
+#	deleted:    drivers/net/wireless/rtl8188eu/core/rtw_wapi.c
+#	deleted:    drivers/net/wireless/rtl8188eu/core/rtw_wapi_sms4.c
+#	modified:   drivers/net/wireless/rtl8188eu/core/rtw_wlan_util.c
+#	modified:   drivers/net/wireless/rtl8188eu/core/rtw_xmit.c
+#	modified:   drivers/net/wireless/rtl8188eu/hal/HalPwrSeqCmd.c
+#	modified:   drivers/net/wireless/rtl8188eu/hal/OUTSRC/HalPhyRf.c
+#	modified:   drivers/net/wireless/rtl8188eu/hal/OUTSRC/HalPhyRf.h
+#	modified:   drivers/net/wireless/rtl8188eu/hal/OUTSRC/odm.c
+#	modified:   drivers/net/wireless/rtl8188eu/hal/OUTSRC/odm.h
+#	modified:   drivers/net/wireless/rtl8188eu/hal/OUTSRC/odm_HWConfig.c
+#	modified:   drivers/net/wireless/rtl8188eu/hal/OUTSRC/odm_HWConfig.h
+#	deleted:    drivers/net/wireless/rtl8188eu/hal/OUTSRC/odm_RegDefine11AC.h
+#	deleted:    drivers/net/wireless/rtl8188eu/hal/OUTSRC/odm_RegDefine11N.h
+#	modified:   drivers/net/wireless/rtl8188eu/hal/OUTSRC/odm_debug.h
+#	modified:   drivers/net/wireless/rtl8188eu/hal/OUTSRC/odm_interface.c
+#	modified:   drivers/net/wireless/rtl8188eu/hal/OUTSRC/odm_interface.h
+#	modified:   drivers/net/wireless/rtl8188eu/hal/OUTSRC/odm_precomp.h
+#	modified:   drivers/net/wireless/rtl8188eu/hal/OUTSRC/odm_reg.h
+#	modified:   drivers/net/wireless/rtl8188eu/hal/OUTSRC/odm_types.h
+#	modified:   drivers/net/wireless/rtl8188eu/hal/OUTSRC/rtl8188e/Hal8188EFWImg_CE.c
+#	modified:   drivers/net/wireless/rtl8188eu/hal/OUTSRC/rtl8188e/Hal8188EFWImg_CE.h
+#	modified:   drivers/net/wireless/rtl8188eu/hal/OUTSRC/rtl8188e/Hal8188ERateAdaptive.c
+#	modified:   drivers/net/wireless/rtl8188eu/hal/OUTSRC/rtl8188e/Hal8188ERateAdaptive.h
+#	modified:   drivers/net/wireless/rtl8188eu/hal/OUTSRC/rtl8188e/Hal8188EReg.h
+#	modified:   drivers/net/wireless/rtl8188eu/hal/OUTSRC/rtl8188e/HalHWImg8188E_BB.c
+#	modified:   drivers/net/wireless/rtl8188eu/hal/OUTSRC/rtl8188e/HalHWImg8188E_BB.h
+#	modified:   drivers/net/wireless/rtl8188eu/hal/OUTSRC/rtl8188e/HalHWImg8188E_FW.c
+#	modified:   drivers/net/wireless/rtl8188eu/hal/OUTSRC/rtl8188e/HalHWImg8188E_FW.h
+#	modified:   drivers/net/wireless/rtl8188eu/hal/OUTSRC/rtl8188e/HalHWImg8188E_MAC.c
+#	modified:   drivers/net/wireless/rtl8188eu/hal/OUTSRC/rtl8188e/HalHWImg8188E_MAC.h
+#	modified:   drivers/net/wireless/rtl8188eu/hal/OUTSRC/rtl8188e/HalHWImg8188E_RF.c
+#	modified:   drivers/net/wireless/rtl8188eu/hal/OUTSRC/rtl8188e/HalHWImg8188E_RF.h
+#	modified:   drivers/net/wireless/rtl8188eu/hal/OUTSRC/rtl8188e/HalPhyRf_8188e.c
+#	modified:   drivers/net/wireless/rtl8188eu/hal/OUTSRC/rtl8188e/HalPhyRf_8188e.h
+#	modified:   drivers/net/wireless/rtl8188eu/hal/OUTSRC/rtl8188e/odm_RTL8188E.c
+#	modified:   drivers/net/wireless/rtl8188eu/hal/OUTSRC/rtl8188e/odm_RTL8188E.h
+#	modified:   drivers/net/wireless/rtl8188eu/hal/OUTSRC/rtl8188e/odm_RegConfig8188E.c
+#	modified:   drivers/net/wireless/rtl8188eu/hal/OUTSRC/rtl8188e/odm_RegConfig8188E.h
+#	modified:   drivers/net/wireless/rtl8188eu/hal/hal_com.c
+#	deleted:    drivers/net/wireless/rtl8188eu/hal/hal_intf.c
+#	modified:   drivers/net/wireless/rtl8188eu/hal/rtl8188e/rtl8188e_cmd.c
+#	modified:   drivers/net/wireless/rtl8188eu/hal/rtl8188e/rtl8188e_dm.c
+#	modified:   drivers/net/wireless/rtl8188eu/hal/rtl8188e/rtl8188e_hal_init.c
+#	modified:   drivers/net/wireless/rtl8188eu/hal/rtl8188e/rtl8188e_mp.c
+#	modified:   drivers/net/wireless/rtl8188eu/hal/rtl8188e/rtl8188e_phycfg.c
+#	modified:   drivers/net/wireless/rtl8188eu/hal/rtl8188e/rtl8188e_rf6052.c
+#	modified:   drivers/net/wireless/rtl8188eu/hal/rtl8188e/rtl8188e_rxdesc.c
+#	modified:   drivers/net/wireless/rtl8188eu/hal/rtl8188e/rtl8188e_sreset.c
+#	modified:   drivers/net/wireless/rtl8188eu/hal/rtl8188e/rtl8188e_xmit.c
+#	modified:   drivers/net/wireless/rtl8188eu/hal/rtl8188e/usb/rtl8188eu_led.c
+#	modified:   drivers/net/wireless/rtl8188eu/hal/rtl8188e/usb/rtl8188eu_recv.c
+#	modified:   drivers/net/wireless/rtl8188eu/hal/rtl8188e/usb/rtl8188eu_xmit.c
+#	modified:   drivers/net/wireless/rtl8188eu/hal/rtl8188e/usb/usb_halinit.c
+#	modified:   drivers/net/wireless/rtl8188eu/hal/rtl8188e/usb/usb_ops_linux.c
+#	modified:   drivers/net/wireless/rtl8188eu/include/Hal8188EPhyCfg.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/Hal8188EPhyReg.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/Hal8188EPwrSeq.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/Hal8192CPhyCfg.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/Hal8192CPhyReg.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/Hal8192DPhyCfg.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/Hal8723APhyCfg.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/Hal8723APhyReg.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/Hal8723PwrSeq.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/HalPwrSeqCmd.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/HalVerDef.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/autoconf.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/basic_types.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/byteorder/big_endian.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/byteorder/generic.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/byteorder/little_endian.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/byteorder/swab.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/byteorder/swabb.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/circ_buf.h
+#	deleted:    drivers/net/wireless/rtl8188eu/include/custom_gpio.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/drv_conf.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/drv_types.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/drv_types_ce.h
+#	deleted:    drivers/net/wireless/rtl8188eu/include/drv_types_gspi.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/ethernet.h
+#	deleted:    drivers/net/wireless/rtl8188eu/include/gspi_hal.h
+#	deleted:    drivers/net/wireless/rtl8188eu/include/gspi_ops.h
+#	deleted:    drivers/net/wireless/rtl8188eu/include/gspi_ops_linux.h
+#	deleted:    drivers/net/wireless/rtl8188eu/include/gspi_osintf.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/h2clbk.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/hal_com.h
+#	deleted:    drivers/net/wireless/rtl8188eu/include/hal_intf.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/ieee80211.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/if_ether.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/ioctl_cfg80211.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/ip.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/linux/wireless.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/mlme_osdep.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/mp_custom_oid.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/osdep_intf.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/osdep_service.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/pci_hal.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/pci_ops.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtl8188e_cmd.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtl8188e_dm.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtl8188e_hal.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtl8188e_recv.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtl8188e_rf.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtl8188e_spec.h
+#	deleted:    drivers/net/wireless/rtl8188eu/include/rtl8188e_sreset.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtl8188e_xmit.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtl8192c_dm.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtl8192c_hal.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtl8192c_recv.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtl8192c_spec.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtl8192c_sreset.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtl8192c_xmit.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtl8192d_dm.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtl8192d_hal.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtl8192d_spec.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtl8192d_xmit.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtl8723a_bt-coexist.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtl8723a_cmd.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtl8723a_dm.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtl8723a_hal.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtl8723a_led.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtl8723a_pg.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtl8723a_recv.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtl8723a_rf.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtl8723a_spec.h
+#	deleted:    drivers/net/wireless/rtl8188eu/include/rtl8723a_sreset.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtl8723a_xmit.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtw_android.h
+#	deleted:    drivers/net/wireless/rtl8188eu/include/rtw_ap.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtw_br_ext.h
+#	deleted:    drivers/net/wireless/rtl8188eu/include/rtw_bt_mp.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtw_cmd.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtw_debug.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtw_eeprom.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtw_efuse.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtw_event.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtw_io.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtw_ioctl.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtw_ioctl_rtl.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtw_ioctl_set.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtw_iol.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtw_led.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtw_mlme.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtw_mlme_ext.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtw_mp.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtw_p2p.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtw_pwrctrl.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtw_recv.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtw_rf.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtw_security.h
+#	deleted:    drivers/net/wireless/rtl8188eu/include/rtw_sreset.h
+#	deleted:    drivers/net/wireless/rtl8188eu/include/rtw_tdls.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtw_version.h
+#	deleted:    drivers/net/wireless/rtl8188eu/include/rtw_wapi.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/rtw_xmit.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/sdio_hal.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/sdio_ops.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/sta_info.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/usb_ops.h
+#	deleted:    drivers/net/wireless/rtl8188eu/include/usb_ops_linux.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/usb_vendor_req.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/wifi.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/wlan_bssdef.h
+#	modified:   drivers/net/wireless/rtl8188eu/include/xmit_osdep.h
+#	deleted:    drivers/net/wireless/rtl8188eu/os_dep/linux/custom_gpio_linux.c
+#	deleted:    drivers/net/wireless/rtl8188eu/os_dep/linux/gspi_intf.c
+#	deleted:    drivers/net/wireless/rtl8188eu/os_dep/linux/gspi_ops_linux.c
+#	modified:   drivers/net/wireless/rtl8188eu/os_dep/linux/ioctl_cfg80211.c
+#	modified:   drivers/net/wireless/rtl8188eu/os_dep/linux/ioctl_linux.c
+#	modified:   drivers/net/wireless/rtl8188eu/os_dep/linux/mlme_linux.c
+#	modified:   drivers/net/wireless/rtl8188eu/os_dep/linux/os_intfs.c
+#	modified:   drivers/net/wireless/rtl8188eu/os_dep/linux/pci_intf.c
+#	deleted:    drivers/net/wireless/rtl8188eu/os_dep/linux/pci_ops_linux.c
+#	modified:   drivers/net/wireless/rtl8188eu/os_dep/linux/recv_linux.c
+#	modified:   drivers/net/wireless/rtl8188eu/os_dep/linux/rtw_android.c
+#	modified:   drivers/net/wireless/rtl8188eu/os_dep/linux/sdio_intf.c
+#	modified:   drivers/net/wireless/rtl8188eu/os_dep/linux/sdio_ops_linux.c
+#	modified:   drivers/net/wireless/rtl8188eu/os_dep/linux/usb_intf.c
+#	deleted:    drivers/net/wireless/rtl8188eu/os_dep/linux/usb_ops_linux.c
+#	modified:   drivers/net/wireless/rtl8188eu/os_dep/linux/xmit_linux.c
+#	modified:   drivers/net/wireless/rtl8188eu/os_dep/osdep_service.c
+#	modified:   drivers/net/wireless/rtl8192cu/Kconfig
+#	modified:   drivers/net/wireless/rtl8192cu/Makefile
+#	modified:   drivers/net/wireless/rtl8192cu/clean
+#	modified:   drivers/net/wireless/rtl8192cu/core/efuse/rtw_efuse.c
+#	modified:   drivers/net/wireless/rtl8192cu/core/rtw_br_ext.c
+#	modified:   drivers/net/wireless/rtl8192cu/core/rtw_cmd.c
+#	modified:   drivers/net/wireless/rtl8192cu/core/rtw_debug.c
+#	modified:   drivers/net/wireless/rtl8192cu/core/rtw_eeprom.c
+#	modified:   drivers/net/wireless/rtl8192cu/core/rtw_ieee80211.c
+#	modified:   drivers/net/wireless/rtl8192cu/core/rtw_io.c
+#	modified:   drivers/net/wireless/rtl8192cu/core/rtw_ioctl_query.c
+#	modified:   drivers/net/wireless/rtl8192cu/core/rtw_ioctl_rtl.c
+#	modified:   drivers/net/wireless/rtl8192cu/core/rtw_ioctl_set.c
+#	modified:   drivers/net/wireless/rtl8192cu/core/rtw_iol.c
+#	modified:   drivers/net/wireless/rtl8192cu/core/rtw_mlme.c
+#	modified:   drivers/net/wireless/rtl8192cu/core/rtw_mlme_ext.c
+#	modified:   drivers/net/wireless/rtl8192cu/core/rtw_mp.c
+#	modified:   drivers/net/wireless/rtl8192cu/core/rtw_mp_ioctl.c
+#	modified:   drivers/net/wireless/rtl8192cu/core/rtw_p2p.c
+#	modified:   drivers/net/wireless/rtl8192cu/core/rtw_pwrctrl.c
+#	modified:   drivers/net/wireless/rtl8192cu/core/rtw_recv.c
+#	modified:   drivers/net/wireless/rtl8192cu/core/rtw_rf.c
+#	modified:   drivers/net/wireless/rtl8192cu/core/rtw_security.c
+#	deleted:    drivers/net/wireless/rtl8192cu/core/rtw_sreset.c
+#	modified:   drivers/net/wireless/rtl8192cu/core/rtw_sta_mgt.c
+#	deleted:    drivers/net/wireless/rtl8192cu/core/rtw_tdls.c
+#	modified:   drivers/net/wireless/rtl8192cu/core/rtw_wlan_util.c
+#	modified:   drivers/net/wireless/rtl8192cu/core/rtw_xmit.c
+#	deleted:    drivers/net/wireless/rtl8192cu/hal/HalPwrSeqCmd.c
+#	deleted:    drivers/net/wireless/rtl8192cu/hal/hal_com.c
+#	modified:   drivers/net/wireless/rtl8192cu/hal/hal_init.c
+#	modified:   drivers/net/wireless/rtl8192cu/hal/rtl8192c/rtl8192c_cmd.c
+#	modified:   drivers/net/wireless/rtl8192cu/hal/rtl8192c/rtl8192c_dm.c
+#	modified:   drivers/net/wireless/rtl8192cu/hal/rtl8192c/rtl8192c_hal_init.c
+#	modified:   drivers/net/wireless/rtl8192cu/hal/rtl8192c/rtl8192c_mp.c
+#	modified:   drivers/net/wireless/rtl8192cu/hal/rtl8192c/rtl8192c_phycfg.c
+#	modified:   drivers/net/wireless/rtl8192cu/hal/rtl8192c/rtl8192c_rf6052.c
+#	modified:   drivers/net/wireless/rtl8192cu/hal/rtl8192c/rtl8192c_rxdesc.c
+#	modified:   drivers/net/wireless/rtl8192cu/hal/rtl8192c/rtl8192c_sreset.c
+#	modified:   drivers/net/wireless/rtl8192cu/hal/rtl8192c/usb/Hal8192CUHWImg.c
+#	modified:   drivers/net/wireless/rtl8192cu/hal/rtl8192c/usb/Hal8192CUHWImg_wowlan.c
+#	modified:   drivers/net/wireless/rtl8192cu/hal/rtl8192c/usb/rtl8192cu_led.c
+#	modified:   drivers/net/wireless/rtl8192cu/hal/rtl8192c/usb/rtl8192cu_recv.c
+#	modified:   drivers/net/wireless/rtl8192cu/hal/rtl8192c/usb/rtl8192cu_xmit.c
+#	modified:   drivers/net/wireless/rtl8192cu/hal/rtl8192c/usb/usb_halinit.c
+#	modified:   drivers/net/wireless/rtl8192cu/hal/rtl8192c/usb/usb_ops_ce.c
+#	modified:   drivers/net/wireless/rtl8192cu/hal/rtl8192c/usb/usb_ops_linux.c
+#	modified:   drivers/net/wireless/rtl8192cu/hal/rtl8192c/usb/usb_ops_xp.c
+#	modified:   drivers/net/wireless/rtl8192cu/include/Hal8192CEHWImg.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/Hal8192CPhyCfg.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/Hal8192CPhyReg.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/Hal8192CUHWImg.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/Hal8192CUHWImg_wowlan.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/Hal8192DEHWImg.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/Hal8192DPhyCfg.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/Hal8192DPhyReg.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/Hal8192DUHWImg.h
+#	deleted:    drivers/net/wireless/rtl8192cu/include/Hal8192DUHWImg_wowlan.h
+#	deleted:    drivers/net/wireless/rtl8192cu/include/HalPwrSeqCmd.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/autoconf.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/basic_types.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/byteorder/generic.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/byteorder/swab.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/byteorder/swabb.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/drv_conf.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/drv_types.h
+#	deleted:    drivers/net/wireless/rtl8192cu/include/drv_types_sdio.h
+#	deleted:    drivers/net/wireless/rtl8192cu/include/hal_com.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/hal_init.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/ieee80211.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/ieee80211_ext.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/if_ether.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/ioctl_cfg80211.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/ip.h
+#	deleted:    drivers/net/wireless/rtl8192cu/include/linux/wireless.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/osdep_ce_service.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/osdep_intf.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/osdep_service.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/pci_ops.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtl8192c_cmd.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtl8192c_dm.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtl8192c_event.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtl8192c_hal.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtl8192c_led.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtl8192c_recv.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtl8192c_rf.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtl8192c_spec.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtl8192c_sreset.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtl8192c_xmit.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtl8192d_cmd.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtl8192d_dm.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtl8192d_hal.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtl8192d_led.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtl8192d_recv.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtl8192d_rf.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtl8192d_spec.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtl8192d_xmit.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtw_android.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtw_byteorder.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtw_cmd.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtw_debug.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtw_eeprom.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtw_efuse.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtw_event.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtw_ht.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtw_io.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtw_ioctl.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtw_ioctl_query.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtw_ioctl_rtl.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtw_ioctl_set.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtw_iol.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtw_led.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtw_mlme.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtw_mlme_ext.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtw_mp.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtw_mp_ioctl.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtw_mp_phy_regdef.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtw_p2p.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtw_pwrctrl.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtw_qos.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtw_recv.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtw_rf.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtw_security.h
+#	deleted:    drivers/net/wireless/rtl8192cu/include/rtw_sreset.h
+#	deleted:    drivers/net/wireless/rtl8192cu/include/rtw_tdls.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtw_version.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/rtw_xmit.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/sta_info.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/usb_hal.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/usb_ops.h
+#	deleted:    drivers/net/wireless/rtl8192cu/include/usb_ops_linux.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/usb_osintf.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/usb_vendor_req.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/wifi.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/wlan_bssdef.h
+#	modified:   drivers/net/wireless/rtl8192cu/include/xmit_osdep.h
+#	modified:   drivers/net/wireless/rtl8192cu/os_dep/linux/ioctl_cfg80211.c
+#	modified:   drivers/net/wireless/rtl8192cu/os_dep/linux/ioctl_linux.c
+#	modified:   drivers/net/wireless/rtl8192cu/os_dep/linux/mlme_linux.c
+#	modified:   drivers/net/wireless/rtl8192cu/os_dep/linux/os_intfs.c
+#	modified:   drivers/net/wireless/rtl8192cu/os_dep/linux/pci_intf.c
+#	deleted:    drivers/net/wireless/rtl8192cu/os_dep/linux/pci_ops_linux.c
+#	modified:   drivers/net/wireless/rtl8192cu/os_dep/linux/recv_linux.c
+#	modified:   drivers/net/wireless/rtl8192cu/os_dep/linux/rtw_android.c
+#	modified:   drivers/net/wireless/rtl8192cu/os_dep/linux/usb_intf.c
+#	deleted:    drivers/net/wireless/rtl8192cu/os_dep/linux/usb_ops_linux.c
+#	modified:   drivers/net/wireless/rtl8192cu/os_dep/linux/xmit_linux.c
+#	modified:   drivers/net/wireless/rtl8192cu/os_dep/osdep_service.c
+#	deleted:    drivers/net/wireless/rtl8192cu/runwpa
+#	modified:   include/linux/nl80211.h
+#	modified:   include/net/arp.h
+#	modified:   include/net/cfg80211.h
+#	modified:   net/wireless/nl80211.c
+#	modified:   net/wireless/reg.c
+#	modified:   net/wireless/util.c
+#
+# Untracked files:
+#   (use "git add <file>..." to include in what will be committed)
+#
+#	log.txt
