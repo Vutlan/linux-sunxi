@@ -18,6 +18,7 @@ install: build
 
 build:
 	@echo $(LICHEE_KDIR)
+	cp libnand libnand.a
 	$(MAKE) -C $(LICHEE_KDIR) M=$(PWD)
 
 

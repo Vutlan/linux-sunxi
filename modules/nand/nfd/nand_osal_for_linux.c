@@ -169,11 +169,11 @@ __u32 NAND_DMASingleMap(__u32 rw, __u32 buff_addr, __u32 len)
     
     if (rw == 1) 
     {
-	    mem_addr = dma_map_single(NULL, buff_addr, len, DMA_TO_DEVICE);
+	    mem_addr = (__u32)dma_map_single(NULL, (void *)buff_addr, len, DMA_TO_DEVICE);
 	} 
 	else 
     {
-	    mem_addr = dma_map_single(NULL, buff_addr, len, DMA_FROM_DEVICE);
+	    mem_addr = (__u32)dma_map_single(NULL, (void *)buff_addr, len, DMA_FROM_DEVICE);
 	}
 	
 	return mem_addr;
@@ -183,15 +183,15 @@ __u32 NAND_DMASingleUnmap(__u32 rw, __u32 buff_addr, __u32 len)
 {
     __u32 mem_addr;
     
-    mem_addr = virt_to_phys(buff_addr);
+    mem_addr = (__u32)virt_to_phys((void *)buff_addr);
 
 	if (rw == 1) 
 	{
-	    dma_unmap_single(NULL, mem_addr, len, DMA_TO_DEVICE);
+	    dma_unmap_single(NULL, (dma_addr_t)mem_addr, len, DMA_TO_DEVICE);
 	} 
 	else 
 	{
-	    dma_unmap_single(NULL, mem_addr, len, DMA_FROM_DEVICE);
+	    dma_unmap_single(NULL, (dma_addr_t)mem_addr, len, DMA_FROM_DEVICE);
 	}
 	
 	return mem_addr;

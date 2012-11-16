@@ -100,11 +100,11 @@ __s32 _free_mbr(void)
 int mbr2disks(struct nand_disk* disk_array)
 {
 	int part_cnt = 0;
-	int part_index;
+	int part_index = 0;
 
 	if(_get_mbr()){
 		printk("get mbr error\n" );
-		return part_cnt;
+		goto mbr_error;
 	}
 	part_index = 0;
 
@@ -129,9 +129,12 @@ int mbr2disks(struct nand_disk* disk_array)
 	_free_mbr();
 	PRINT("The %d disk size = %lu\n", part_index - 1, disk_array[part_index - 1].size);
 	PRINT("part total count = %d\n", part_index);
+
+mbr_error: 	
 #if 1
 	if(part_index == 0)
 	{
+		printk("get mbr error, set 2 part as nanda, nandb\n" );
 		part_index = 0;
 
 		for(part_cnt = 0; part_cnt<ND_MAX_PART_COUNT; part_cnt++)

@@ -22,6 +22,8 @@ OBJ=src/format/nand_format.o src/logic/bad_manage.o \
          	src/physic/nand_phy.o src/physic/nand_simple_r.o src/physic/nand_simple_w.o \
          	src/nfc/nfc_r.o src/nfc/nfc_w.o
 
+install:lib
+	cp libnand.a ../libnand
 
 lib : $(LIB)
 $(OBJ) : $(LIBPATH)/../include/nand_include.h $(LIBPATH)/osal/nand_osal.h

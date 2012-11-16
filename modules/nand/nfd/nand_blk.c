@@ -32,7 +32,7 @@
 extern __u32 nand_current_dev_num;
 extern int part_secur[ND_MAX_PART_COUNT];
 
-struct nand_disk disk_array[ND_MAX_PART_COUNT] = {0};
+struct nand_disk disk_array[ND_MAX_PART_COUNT];
 
 #define BLK_ERR_MSG_ON
 #ifdef  BLK_ERR_MSG_ON

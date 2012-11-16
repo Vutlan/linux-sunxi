@@ -18,7 +18,7 @@ KERNEL_VERSION="3.3"
 LICHEE_KDIR=`pwd`
 LICHEE_MOD_DIR==${LICHEE_KDIR}/output/lib/modules/${KERNEL_VERSION}
 
-#CONFIG_CHIP_ID=1125
+#CONFIG_CHIP_ID=1633
 
 update_kern_ver()
 {
@@ -50,6 +50,46 @@ build_standby()
 		-C ${LICHEE_KDIR}/arch/arm/mach-sun6i/pm/standby all
 }
 
+NAND_ROOT=${LICHEE_KDIR}/modules/nand
+
+build_nand_lib()
+{
+	echo "build nand library ${NAND_ROOT}/lib"
+	if [ -d ${NAND_ROOT}/lib ]; then
+		echo "build nand library now"		
+	make -C modules/nand/lib lib install
+	else
+		echo "build nand with existing library"
+	fi
+}
+
+copy_nand_mod()
+{
+
+    cd $LICHEE_KDIR
+    if [ -x "./scripts/build_rootfs.sh" ]; then
+        ./scripts/build_rootfs.sh e rootfs.cpio.gz
+    else
+        echo "No such file: build_rootfs.sh"
+        exit 1
+    fi
+
+    if [ ! -d "./skel/lib/modules/$KERNEL_VERSION" ]; then
+        mkdir -p ./skel/lib/modules/$KERNEL_VERSION
+    fi
+    cp $LICHEE_MOD_DIR/nand.ko ./skel/lib/modules/$KERNEL_VERSION
+    if [ $? -ne 0 ]; then
+        echo "copy nand module error: $?"
+        exit 1
+    fi
+    if [ -f "./rootfs.cpio.gz" ]; then
+        rm rootfs.cpio.gz
+    fi
+    ./scripts/build_rootfs.sh c rootfs.cpio.gz
+    rm -rf skel
+
+}
+
 build_kernel()
 {
 	cd ${LICHEE_KDIR}
@@ -72,21 +112,6 @@ ${OBJCOPY} -R .note.gnu.build-id -S -O binary vmlinux bImage
 	cp -vf arch/arm/boot/[zu]Image output/
 	cp .config output/
 	cp output/uImage output/boot.img
-#	cp rootfs/sun5i_rootfs.cpio.gz output/
-
-#        mkbootimg --kernel output/bImage \
-#                        --ramdisk output/sun5i_rootfs.cpio.gz \
-#                        --board 'sun5i' \
-#                        --base 0x40000000 \
-#                        -o output/boot.img
-
-
-#	mkbootimg --kernel output/bImage \
-#			--ramdisk output/sun5i_rootfs.cpio.gz \
-#			--board 'sun5i' \
-#			--base 0x40000000 \
-#			-o output/boot.img
-
 
 	for file in $(find drivers sound crypto block fs security net -name "*.ko"); do
 		cp $file ${LICHEE_MOD_DIR}
@@ -114,9 +139,10 @@ build_modules()
 	make -C modules/example LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LICHEE_KDIR=${LICHEE_KDIR} \
 		CONFIG_CHIP_ID=${CONFIG_CHIP_ID} install
 
-	 make -C modules/nand LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LICHEE_KDIR=${LICHEE_KDIR} \
+	build_nand_lib
+	make -C modules/nand LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LICHEE_KDIR=${LICHEE_KDIR} \
 		CONFIG_CHIP_ID=${CONFIG_CHIP_ID} install
-
+	copy_nand_mod
 #	(
 #	export LANG=en_US.UTF-8
 #	unset LANGUAGE
@@ -148,6 +174,18 @@ build_modules()
 #		LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LINUXDIR=${LICHEE_KDIR} CONFIG_CHIP_ID=${CONFIG_CHIP_ID} \
 #		INSTALL_DIR=${LICHEE_MOD_DIR} OEM_ANDROID=1 dhd-cdc-sdmmc-gpl
 }
+
+build_ramfs()
+{
+#		cp rootfs.cpio.gz output/
+#		mkbootimg	--kernel output/bImage \
+#					--ramdisk output/rootfs.cpio.gz \
+#					--board 'a31' \
+#					--base 0x40000000 \
+#					-o output/boot.img
+	echo build_ramfs
+}
+
 
 clean_kernel()
 {
@@ -215,10 +253,10 @@ clean)
 all)
 	build_kernel
 	build_modules
+	build_ramfs
 	;;
 *)
-	build_kernel
-	#show_help
+	show_help
 	;;
 esac
 
