@@ -1,10 +1,10 @@
 ===========================================
 
-Version: V1_41
+Version: V1_42
 
 Author:  raymonxiu
 
-Date:     2012-9-18 18:34:34
+Date:     2012-11-16 14:31:51
 
 Description:
 
@@ -28,6 +28,12 @@ insmod sun4i_csiX.ko ccm="gc0309" i2c_addr=0x42
 insmod sun4i_csiX.ko ccm="tvp5150" i2c_addr=0xb8
 insmod sun4i_csiX.ko ccm="s5k4ec" i2c_addr=0x5a
 insmod sun4i_csiX.ko ccm="ov5650_mv9335" i2c_addr=0x50
+insmod sun4i_csiX.ko ccm="siv121d" i2c_addr=0x66
+
+V1_42
+CSI: Fix ov5640 ae ratio bug and add siv121d.
+1) Cancel setting ae ratio when close camera at ov5640
+2) Add new sensor siv121d
 
 V1_41
 CSI: Fix gc0309/gt2005/ov5640 bug and add ov5650+mv9335.
