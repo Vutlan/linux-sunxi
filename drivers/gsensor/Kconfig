@@ -12,15 +12,8 @@ config SENSORS_BMA250
 	depends on I2C
 	help
 	  If you say yes here you get support for Bosch Sensortec's 
-	  acceleration sensors BMA250.
+	  acceleration sensors BMA250.	  
 	  
-config SENSORS_GSENSOR
-	tristate "gsensor detect support"
-	depends on I2C
-	help
-	  If you say yes here you get support for Detection Sensor.	  
-	  
-
 config MEMSIC_ECOMPASS
 	tristate "MEMSIC eCompass Driver Support"
 	depends on I2C

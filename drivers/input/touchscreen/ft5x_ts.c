@@ -141,10 +141,8 @@ static int exchange_x_y_flag = 0;
 static int	int_cfg_addr[]={PIO_INT_CFG0_OFFSET,PIO_INT_CFG1_OFFSET,
 			PIO_INT_CFG2_OFFSET, PIO_INT_CFG3_OFFSET};
 /* Addresses to scan */
-static union{
-	unsigned short dirty_addr_buf[2];
-	const unsigned short normal_i2c[2];
-}u_i2c_addr = {{0x00},};
+static const unsigned short normal_i2c[2] = {0x38,I2C_CLIENT_END};
+static const int chip_id_value[] = {0x55,0x06,0x08,0x02};
 static __u32 twi_id = 0;
 
 /*
@@ -385,30 +383,8 @@ static int ctp_fetch_sysconfig_para(void)
 		return ret;
 	}
 
-	if(SCRIPT_PARSER_OK != script_parser_fetch_ex("ctp_para", "ctp_name", (int *)(&name), &type, sizeof(name)/sizeof(int))){
-		pr_err("%s: script_parser_fetch err. \n", __func__);
-		goto script_parser_fetch_err;
-	}
-	if(strcmp(CTP_NAME, name)){
-		pr_err("%s: name %s does not match CTP_NAME. \n", __func__, name);
-		pr_err(CTP_NAME);
-		//ret = 1;
-		return ret;
-	}
-
-	if(SCRIPT_PARSER_OK != script_parser_fetch("ctp_para", "ctp_twi_addr", &twi_addr, sizeof(twi_addr)/sizeof(__u32))){
-		pr_err("%s: script_parser_fetch err. \n", name);
-		goto script_parser_fetch_err;
-	}
-	//big-endian or small-endian?
-	//pr_info("%s: before: ctp_twi_addr is 0x%x, dirty_addr_buf: 0x%hx. dirty_addr_buf[1]: 0x%hx \n", __func__, twi_addr, u_i2c_addr.dirty_addr_buf[0], u_i2c_addr.dirty_addr_buf[1]);
-	u_i2c_addr.dirty_addr_buf[0] = twi_addr;
-	u_i2c_addr.dirty_addr_buf[1] = I2C_CLIENT_END;
-	pr_info("%s: after: ctp_twi_addr is 0x%x, dirty_addr_buf: 0x%hx. dirty_addr_buf[1]: 0x%hx \n", __func__, twi_addr, u_i2c_addr.dirty_addr_buf[0], u_i2c_addr.dirty_addr_buf[1]);
-	//pr_info("%s: after: ctp_twi_addr is 0x%x, u32_dirty_addr_buf: 0x%hx. u32_dirty_addr_buf[1]: 0x%hx \n", __func__, twi_addr, u32_dirty_addr_buf[0],u32_dirty_addr_buf[1]);
-
 	if(SCRIPT_PARSER_OK != script_parser_fetch("ctp_para", "ctp_twi_id", &twi_id, sizeof(twi_id)/sizeof(__u32))){
-		pr_err("%s: script_parser_fetch err. \n", name);
+		pr_err("%s: script_parser_fetch err. \n", CTP_NAME);
 		goto script_parser_fetch_err;
 	}
 	pr_info("%s: ctp_twi_id is %d. \n", __func__, twi_id);
@@ -495,17 +471,28 @@ static void ctp_wakeup(void)
  *                    = 0; success;
  *                    < 0; err
  */
-int ctp_detect(struct i2c_client *client, struct i2c_board_info *info)
+static int ctp_detect(struct i2c_client *client, struct i2c_board_info *info)
 {
 	struct i2c_adapter *adapter = client->adapter;
-
-	if(twi_id == adapter->nr)
-	{
-		pr_info("%s: Detected chip %s at adapter %d, address 0x%02x\n",
-			 __func__, CTP_NAME, i2c_adapter_id(adapter), client->addr);
-
-		strlcpy(info->type, CTP_NAME, I2C_NAME_SIZE);
-		return 0;
+        int ret = 0, i = 0;
+        
+        if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE_DATA))
+                return -ENODEV;
+    
+	if(twi_id == adapter->nr){
+                pr_info("%s: addr= %x\n",__func__,client->addr);
+                msleep(200);
+	        ret = i2c_smbus_read_byte_data(client,0xA3);
+                pr_info("chip_id_value:0x%x\n",ret);
+                while(chip_id_value[i++]){
+                        if(ret == chip_id_value[i - 1]){
+                                pr_info("I2C connection sucess!\n");
+            	                strlcpy(info->type, CTP_NAME, I2C_NAME_SIZE);
+    		                return 0;
+                        }                   
+                }
+        	pr_info("%s:I2C connection might be something wrong ! \n",__func__);
+        	return -ENODEV;
 	}else{
 		return -ENODEV;
 	}
@@ -1836,7 +1823,7 @@ static struct i2c_driver ft5x_ts_driver = {
 		.name	= CTP_NAME,
 		.owner	= THIS_MODULE,
 	},
-	.address_list	= u_i2c_addr.normal_i2c,
+	.address_list	= normal_i2c,
 };
 
 static int aw_open(struct inode *inode, struct file *file)
@@ -1947,7 +1934,7 @@ static int __init ft5x_ts_init(void)
 		}
 	}
 	pr_info("%s: after fetch_sysconfig_para:  normal_i2c: 0x%hx. normal_i2c[1]: 0x%hx \n", \
-	__func__, u_i2c_addr.normal_i2c[0], u_i2c_addr.normal_i2c[1]);
+	__func__, normal_i2c[0], normal_i2c[1]);
 
 	err = ctp_ops.init_platform_resource();
 	if(0 != err){

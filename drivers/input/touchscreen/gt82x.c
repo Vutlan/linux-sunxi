@@ -150,11 +150,85 @@ static __u32 twi_id = 0;
 static int	int_cfg_addr[]={PIO_INT_CFG0_OFFSET,PIO_INT_CFG1_OFFSET,
 			PIO_INT_CFG2_OFFSET, PIO_INT_CFG3_OFFSET};
 /* Addresses to scan */
-union{
-	unsigned short dirty_addr_buf[2];
-	const unsigned short normal_i2c[2];
-}u_i2c_addr = {{0x00},};
+static const unsigned short normal_i2c[2] = {0x5d,I2C_CLIENT_END};
+static const int chip_id_value[] = {0x13,0x27,0x28};
+/**********************************************************************	
+本程序中I2C通信方式为：
+	7bit从机地址｜读写位 + buf（数据地址+读写数据）
+	 --------------------------------------------------------------------
+	｜  从机地址   ｜ buf[0](数据地址) | buf[1]~buf[MAX-1](写入或读取到的数据)  |
+	 --------------------------------------------------------------------
+	移植前请根据自身主控格式修改！！
+***********************************************************************/
 
+//Function as i2c_master_receive, and return 2 if operation is successful.
+static int i2c_read_bytes(struct i2c_client *client, uint8_t *buf, uint16_t len)
+{
+	struct i2c_msg msgs[2];
+	int ret=-1;
+	//发送写地址
+	msgs[0].flags = !I2C_M_RD;
+	msgs[0].addr = client->addr;
+	msgs[0].len = 2;		//data address
+	msgs[0].buf = buf;
+	//接收数据
+	msgs[1].flags = I2C_M_RD;//读消息
+	msgs[1].addr = client->addr;
+	msgs[1].len = len-2;
+	msgs[1].buf = buf+2;
+	
+	ret=i2c_transfer(client->adapter, msgs, 2);
+	return ret;
+}
+
+//Function as i2c_master_send, and return 1 if operation is successful. 
+static int i2c_write_bytes(struct i2c_client *client, uint8_t *data, uint16_t len)
+{
+	struct i2c_msg msg;
+	int ret=-1;
+	
+	msg.flags = !I2C_M_RD;//写消息
+	msg.addr = client->addr;
+	msg.len = len;
+	msg.buf = data;		
+	
+	ret=i2c_transfer(client->adapter, &msg,1);
+	return ret;
+}
+
+/*******************************************************
+功能：
+	发送前缀命令
+	
+	ts:	client私有数据结构体
+return：
+    成功返回1
+*******************************************************/
+static s32 i2c_pre_cmd(struct goodix_ts_data *ts)
+{
+    s32 ret;
+    u8 pre_cmd_data[2]={0x0f, 0xff};
+
+    ret=i2c_write_bytes(ts->client,pre_cmd_data,2);
+    return ret;//*/
+}
+
+/*******************************************************
+功能：
+	发送后缀命令
+	
+	ts:	client私有数据结构体
+return：
+    成功返回1
+*******************************************************/
+static s32 i2c_end_cmd(struct goodix_ts_data *ts)
+{
+    s32 ret;
+    u8 end_cmd_data[2]={0x80, 0x00};    
+
+    ret=i2c_write_bytes(ts->client,end_cmd_data,2);
+    return ret;//*/
+}
 /*
  * ctp_get_pendown_state  : get the int_line data state, 
  * 
@@ -396,20 +470,20 @@ static int ctp_fetch_sysconfig_para(void)
 		pr_err("%s: script_parser_fetch err. \n", __func__);
 		goto script_parser_fetch_err;
 	}
-	if(strcmp(CTP_NAME, name)){
-		pr_err("%s: name %s does not match CTP_NAME. \n", __func__, name);
-		pr_err(CTP_NAME);
-		//ret = 1;
-		return ret;
-	}
+//	if(strcmp(CTP_NAME, name)){
+//		pr_err("%s: name %s does not match CTP_NAME. \n", __func__, name);
+//		pr_err(CTP_NAME);
+//		//ret = 1;
+//		return ret;
+//	}
 
-	if(SCRIPT_PARSER_OK != script_parser_fetch("ctp_para", "ctp_twi_addr", &twi_addr, sizeof(twi_addr)/sizeof(__u32))){
-		pr_err("%s: script_parser_fetch err. \n", name);
-		goto script_parser_fetch_err;
-	}
-	//big-endian or small-endian?
-	//printk("%s: before: ctp_twi_addr is 0x%x, dirty_addr_buf: 0x%hx. dirty_addr_buf[1]: 0x%hx \n", __func__, twi_addr, u_i2c_addr.dirty_addr_buf[0], u_i2c_addr.dirty_addr_buf[1]);
-	u_i2c_addr.dirty_addr_buf[0] = twi_addr;
+//	if(SCRIPT_PARSER_OK != script_parser_fetch("ctp_para", "ctp_twi_addr", &twi_addr, sizeof(twi_addr)/sizeof(__u32))){
+//		pr_err("%s: script_parser_fetch err. \n", name);
+//		goto script_parser_fetch_err;
+//	}
+//	//big-endian or small-endian?
+//	//printk("%s: before: ctp_twi_addr is 0x%x, dirty_addr_buf: 0x%hx. dirty_addr_buf[1]: 0x%hx \n", __func__, twi_addr, u_i2c_addr.dirty_addr_buf[0], u_i2c_addr.dirty_addr_buf[1]);
+	u_i2c_addr.dirty_addr_buf[0] = 0x5d;
 	u_i2c_addr.dirty_addr_buf[1] = I2C_CLIENT_END;
 	printk("%s: after: ctp_twi_addr is 0x%x, dirty_addr_buf: 0x%hx. dirty_addr_buf[1]: 0x%hx \n", __func__, twi_addr, u_i2c_addr.dirty_addr_buf[0], u_i2c_addr.dirty_addr_buf[1]);
 	//printk("%s: after: ctp_twi_addr is 0x%x, u32_dirty_addr_buf: 0x%hx. u32_dirty_addr_buf[1]: 0x%hx \n", __func__, twi_addr, u32_dirty_addr_buf[0],u32_dirty_addr_buf[1]);
@@ -505,14 +579,26 @@ static void ctp_wakeup(void)
 int ctp_detect(struct i2c_client *client, struct i2c_board_info *info)
 {
 	struct i2c_adapter *adapter = client->adapter;
-
-	if(twi_id == adapter->nr)
-	{
-		pr_info("%s: Detected chip %s at adapter %d, address 0x%02x\n",
-			 __func__, CTP_NAME, i2c_adapter_id(adapter), client->addr);
-
-		strlcpy(info->type, CTP_NAME, I2C_NAME_SIZE);
-		return 0;
+	uint8_t buf[3] = {0x0f,0x7d,0};
+        int ret = 0, i = 0;
+        
+        if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE_DATA))
+                return -ENODEV;
+    
+	if(twi_id == adapter->nr){
+                pr_info("%s: addr= %x\n",__func__,client->addr);
+                msleep(50);
+	        i2c_read_bytes(client,buf,3);
+                pr_info("chip_id_value:0x%x\n",buf[2]);
+                while(chip_id_value[i++]){
+                        if(buf[2] == chip_id_value[i - 1]){
+                                pr_info("I2C connection sucess!\n");
+            	                strlcpy(info->type, CTP_NAME, I2C_NAME_SIZE);
+    		                return 0;
+                        }                   
+                }
+        	pr_info("%s:I2C connection might be something wrong ! \n",__func__);
+        	return -ENODEV;
 	}else{
 		return -ENODEV;
 	}
@@ -624,84 +710,7 @@ static int goodix_ts_resume(struct i2c_client *client)
 
 /*used by GT80X-IAP module */
 struct i2c_client * i2c_connect_client = NULL;
-EXPORT_SYMBOL(i2c_connect_client);
-/**********************************************************************	
-本程序中I2C通信方式为：
-	7bit从机地址｜读写位 + buf（数据地址+读写数据）
-	 --------------------------------------------------------------------
-	｜  从机地址   ｜ buf[0](数据地址) | buf[1]~buf[MAX-1](写入或读取到的数据)  |
-	 --------------------------------------------------------------------
-	移植前请根据自身主控格式修改！！
-***********************************************************************/
 
-//Function as i2c_master_receive, and return 2 if operation is successful.
-static int i2c_read_bytes(struct i2c_client *client, uint8_t *buf, uint16_t len)
-{
-	struct i2c_msg msgs[2];
-	int ret=-1;
-	//发送写地址
-	msgs[0].flags = !I2C_M_RD;
-	msgs[0].addr = client->addr;
-	msgs[0].len = 2;		//data address
-	msgs[0].buf = buf;
-	//接收数据
-	msgs[1].flags = I2C_M_RD;//读消息
-	msgs[1].addr = client->addr;
-	msgs[1].len = len-2;
-	msgs[1].buf = buf+2;
-	
-	ret=i2c_transfer(client->adapter, msgs, 2);
-	return ret;
-}
-
-//Function as i2c_master_send, and return 1 if operation is successful. 
-static int i2c_write_bytes(struct i2c_client *client, uint8_t *data, uint16_t len)
-{
-	struct i2c_msg msg;
-	int ret=-1;
-	
-	msg.flags = !I2C_M_RD;//写消息
-	msg.addr = client->addr;
-	msg.len = len;
-	msg.buf = data;		
-	
-	ret=i2c_transfer(client->adapter, &msg,1);
-	return ret;
-}
-
-/*******************************************************
-功能：
-	发送前缀命令
-	
-	ts:	client私有数据结构体
-return：
-    成功返回1
-*******************************************************/
-static s32 i2c_pre_cmd(struct goodix_ts_data *ts)
-{
-    s32 ret;
-    u8 pre_cmd_data[2]={0x0f, 0xff};
-
-    ret=i2c_write_bytes(ts->client,pre_cmd_data,2);
-    return ret;//*/
-}
-
-/*******************************************************
-功能：
-	发送后缀命令
-	
-	ts:	client私有数据结构体
-return：
-    成功返回1
-*******************************************************/
-static s32 i2c_end_cmd(struct goodix_ts_data *ts)
-{
-    s32 ret;
-    u8 end_cmd_data[2]={0x80, 0x00};    
-
-    ret=i2c_write_bytes(ts->client,end_cmd_data,2);
-    return ret;//*/
-}
 
 /*******************************************************
 功能：
