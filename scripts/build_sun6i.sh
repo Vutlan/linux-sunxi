@@ -114,6 +114,9 @@ build_modules()
 	make -C modules/example LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LICHEE_KDIR=${LICHEE_KDIR} \
 		CONFIG_CHIP_ID=${CONFIG_CHIP_ID} install
 
+	 make -C modules/nand LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LICHEE_KDIR=${LICHEE_KDIR} \
+		CONFIG_CHIP_ID=${CONFIG_CHIP_ID} install
+
 #	(
 #	export LANG=en_US.UTF-8
 #	unset LANGUAGE
