@@ -62,6 +62,12 @@ static int sndhdmi_hw_params(struct snd_pcm_substream *substream,
 
 	hdmi_para.sample_rate = params_rate(params);
 	hdmi_para.channel_num = params_channels(params);
+	if (4 == hdmi_para.channel_num) {
+		hdmi_para.channel_num = 2;
+		hdmi_para.data_raw =1;
+	} else {
+		hdmi_para.data_raw =0;
+	}
 	g_hdmi_func.hdmi_set_audio_para(&hdmi_para);
 
 	return 0;

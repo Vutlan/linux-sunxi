@@ -52,6 +52,7 @@ typedef struct audio_timing
 	__s32 ACR_N; 	
 	__s32 CH_STATUS0; 		
 	__s32 CH_STATUS1; 	 	
+	__u8	data_raw;		/*0:pcm;1:raw*/
 
 }HDMI_AUDIO_INFO;
 
