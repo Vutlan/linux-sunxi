@@ -31,4 +31,4 @@ $(OBJ) : $(LIBPATH)/../include/nand_include.h $(LIBPATH)/osal/nand_osal.h
 $(LIB) : $(OBJ)
 	$(AR) -rcs $@ $^
 clean:
-	rm $(OBJ) $(LIB)
+	-rm $(OBJ) $(LIB)

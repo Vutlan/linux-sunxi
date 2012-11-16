@@ -148,8 +148,8 @@ u8* _rtw_malloc(u32 sz)
 	if(sz > 0x4000)
 		pbuf = (u8 *)dvr_malloc(sz);
 	else
-#endif
-		pbuf = kmalloc(sz, /*GFP_KERNEL*/GFP_ATOMIC);
+#endif		
+		pbuf = kmalloc(sz,in_interrupt() ? GFP_ATOMIC : GFP_KERNEL); 		
 
 #endif	
 #ifdef PLATFORM_FREEBSD
@@ -227,7 +227,6 @@ void	_rtw_mfree(u8 *pbuf, u32 sz)
 #endif /* DBG_MEMORY_LEAK */
 	
 }
-
 
 #ifdef DBG_MEM_ALLOC
 
@@ -459,6 +458,27 @@ inline void dbg_rtw_mfree(u8 *pbuf, u32 sz, const char *func, int line)
 }
 #endif
 
+void* rtw_malloc2d(int h, int w, int size)
+{
+	int j;
+
+	void **a = (void **) rtw_zmalloc( h*sizeof(void *) + h*w*size );
+	if(a == NULL)
+	{
+		DBG_871X("%s: alloc memory fail!\n", __FUNCTION__);
+		return NULL;
+	}
+
+	for( j=0; j<h; j++ )
+		a[j] = ((char *)(a+h)) + j*w*size;
+
+	return a;
+}
+
+void rtw_mfree2d(void *pbuf, int h, int w, int size)
+{
+	rtw_mfree((u8 *)pbuf, h*sizeof(void*) + w*h*size);
+}
 
 void _rtw_memcpy(void* dst, void* src, u32 sz)
 {
@@ -1260,8 +1280,7 @@ inline void rtw_suspend_lock_uninit()
 
 	#if  defined(CONFIG_WAKELOCK) || defined(CONFIG_ANDROID_POWER)
 	DBG_871X("##########%s###########\n", __FUNCTION__);
-	//modified by winner, yemao, 2012-8-24 17:19:51
-	#if LINUX_VERSION_CODE < KERNEL_VERSION(3,3,00)
+	#if LINUX_VERSION_CODE < KERNEL_VERSION(3,3,0)
 	if(rtw_suspend_lock.link.next == LIST_POISON1 || rtw_suspend_lock.link.prev == LIST_POISON2)
 	#else
 	if(rtw_suspend_lock.ws.entry.next == LIST_POISON1 || rtw_suspend_lock.ws.entry.prev == LIST_POISON2)
@@ -1285,8 +1304,7 @@ inline void rtw_lock_suspend()
 
 	#if  defined(CONFIG_WAKELOCK) || defined(CONFIG_ANDROID_POWER)
 	//DBG_871X("##########%s###########\n", __FUNCTION__);
-	//modified by winner, yemao, 2012-8-24 17:19:51
-	#if LINUX_VERSION_CODE < KERNEL_VERSION(3,3,00)
+	#if LINUX_VERSION_CODE < KERNEL_VERSION(3,3,0)
 	if(rtw_suspend_lock.link.next == LIST_POISON1 || rtw_suspend_lock.link.prev == LIST_POISON2)
 	#else
 	if(rtw_suspend_lock.ws.entry.next == LIST_POISON1 || rtw_suspend_lock.ws.entry.prev == LIST_POISON2)
@@ -1308,8 +1326,7 @@ inline void rtw_unlock_suspend()
 {
 	#if  defined(CONFIG_WAKELOCK) || defined(CONFIG_ANDROID_POWER)
 	//DBG_871X("##########%s###########\n", __FUNCTION__);
-	//modified by winner, yemao, 2012-8-24 17:19:51
-	#if LINUX_VERSION_CODE < KERNEL_VERSION(3,3,00)
+	#if LINUX_VERSION_CODE < KERNEL_VERSION(3,3,0)
 	if(rtw_suspend_lock.link.next == LIST_POISON1 || rtw_suspend_lock.link.prev == LIST_POISON2)
 	#else
 	if(rtw_suspend_lock.ws.entry.next == LIST_POISON1 || rtw_suspend_lock.ws.entry.prev == LIST_POISON2)
@@ -1676,8 +1693,12 @@ struct net_device *rtw_alloc_etherdev_with_old_priv(int sizeof_priv, void *old_p
 {
 	struct net_device *pnetdev;
 	struct rtw_netdev_priv_indicator *pnpi;
-	
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,35))
+	pnetdev = alloc_etherdev_mq(sizeof(struct rtw_netdev_priv_indicator), 4);
+#else
 	pnetdev = alloc_etherdev(sizeof(struct rtw_netdev_priv_indicator));
+#endif
 	if (!pnetdev)
 		goto RETURN;
 	
@@ -1693,8 +1714,12 @@ struct net_device *rtw_alloc_etherdev(int sizeof_priv)
 {
 	struct net_device *pnetdev;
 	struct rtw_netdev_priv_indicator *pnpi;
-	
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,35))
+	pnetdev = alloc_etherdev_mq(sizeof(struct rtw_netdev_priv_indicator), 4);
+#else
 	pnetdev = alloc_etherdev(sizeof(struct rtw_netdev_priv_indicator));
+#endif
 	if (!pnetdev)
 		goto RETURN;
 	

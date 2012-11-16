@@ -15,7 +15,8 @@ extract_rootfs()
 {
 if [ -f "$1" ]; then
 	rm -rf skel && mkdir skel
-	gzip -dc $1 | (cd skel;fakeroot cpio -iv)
+#	gzip -dc $1 | (cd skel;fakeroot cpio -iv)
+	gzip -dc $1 | (cd skel;fakeroot cpio -i)
 else
 	echo "$1 not there"
 	exit 1

@@ -56,7 +56,8 @@ build_nand_lib()
 {
 	echo "build nand library ${NAND_ROOT}/lib"
 	if [ -d ${NAND_ROOT}/lib ]; then
-		echo "build nand library now"		
+		echo "build nand library now"
+	make -C modules/nand/lib clean	2>/dev/null	
 	make -C modules/nand/lib lib install
 	else
 		echo "build nand with existing library"
@@ -68,7 +69,7 @@ copy_nand_mod()
 
     cd $LICHEE_KDIR
     if [ -x "./scripts/build_rootfs.sh" ]; then
-        ./scripts/build_rootfs.sh e rootfs.cpio.gz
+        ./scripts/build_rootfs.sh e rootfs.cpio.gz >/dev/null
     else
         echo "No such file: build_rootfs.sh"
         exit 1
@@ -85,7 +86,7 @@ copy_nand_mod()
     if [ -f "./rootfs.cpio.gz" ]; then
         rm rootfs.cpio.gz
     fi
-    ./scripts/build_rootfs.sh c rootfs.cpio.gz
+    ./scripts/build_rootfs.sh c rootfs.cpio.gz >/dev/null
     rm -rf skel
 
 }

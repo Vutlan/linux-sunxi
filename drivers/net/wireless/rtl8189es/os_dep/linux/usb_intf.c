@@ -24,7 +24,7 @@
 #include <drv_types.h>
 #include <recv_osdep.h>
 #include <xmit_osdep.h>
-#include <hal_init.h>
+#include <hal_intf.h>
 #include <rtw_version.h>
 
 #ifndef CONFIG_USB_HCI
@@ -180,6 +180,8 @@ static struct usb_device_id rtw_usb_id_tbl[] ={
 #endif
 #ifdef CONFIG_RTL8723A
 	{USB_DEVICE_AND_INTERFACE_INFO(USB_VENDER_ID_REALTEK, 0x8724,0xff,0xff,0xff)}, //8723AU 1*1
+	{USB_DEVICE_AND_INTERFACE_INFO(USB_VENDER_ID_REALTEK, 0x1724,0xff,0xff,0xff)}, //8723AU 1*1
+	{USB_DEVICE_AND_INTERFACE_INFO(USB_VENDER_ID_REALTEK, 0x0724,0xff,0xff,0xff)}, //8723AU 1*1
 #endif
 #ifdef CONFIG_RTL8188E
 	/*=== Realtek demoboard ===*/		
@@ -203,23 +205,21 @@ static struct specific_device_id specific_device_id_tbl[] = {
 	{}
 };
 
-typedef struct _driver_priv{
-
+struct usb_drv_priv {
 	struct usb_driver rtw_usb_drv;
 	int drv_registered;
 
+	_mutex hw_init_mutex;
 #if defined(CONFIG_CONCURRENT_MODE) || defined(CONFIG_DUALMAC_CONCURRENT)
 	//global variable
 	_mutex h2c_fwcmd_mutex;
 	_mutex setch_mutex;
 	_mutex setbw_mutex;
-	_mutex hw_init_mutex;
-#endif	
-
-}drv_priv, *pdrv_priv;
+#endif
+};
 
 
-static drv_priv drvpriv = {
+static struct usb_drv_priv usb_drvpriv = {
 	.rtw_usb_drv.name = (char*)DRV_NAME,
 	.rtw_usb_drv.probe = rtw_drv_init,
 	.rtw_usb_drv.disconnect = rtw_dev_remove,
@@ -277,51 +277,45 @@ static inline int RT_usb_endpoint_num(const struct usb_endpoint_descriptor *epd)
 	return epd->bEndpointAddress & USB_ENDPOINT_NUMBER_MASK;
 }
 
-u8 rtw_init_intf_priv(_adapter * padapter)
+static u8 rtw_init_intf_priv(struct dvobj_priv *dvobj)
 {
 	u8 rst = _SUCCESS; 
 	
 	#ifdef CONFIG_USB_VENDOR_REQ_MUTEX
-	_rtw_mutex_init(&padapter->dvobjpriv.usb_vendor_req_mutex);
+	_rtw_mutex_init(&dvobj->usb_vendor_req_mutex);
 	#endif
 
 
-#ifdef CONFIG_USB_VENDOR_REQ_BUFFER_PREALLOC
-	padapter->dvobjpriv.usb_alloc_vendor_req_buf = rtw_zmalloc(MAX_USB_IO_CTL_SIZE);
-
-	if (padapter->dvobjpriv.usb_alloc_vendor_req_buf   == NULL){
-		padapter->dvobjpriv.usb_alloc_vendor_req_buf  =NULL;
+	#ifdef CONFIG_USB_VENDOR_REQ_BUFFER_PREALLOC
+	dvobj->usb_alloc_vendor_req_buf = rtw_zmalloc(MAX_USB_IO_CTL_SIZE);
+	if (dvobj->usb_alloc_vendor_req_buf == NULL) {
 		DBG_871X("alloc usb_vendor_req_buf failed... /n");
 		rst = _FAIL;
 		goto exit;
 	}
-	padapter->dvobjpriv.usb_vendor_req_buf  = 
-		(u8 *)N_BYTE_ALIGMENT((SIZE_PTR)(padapter->dvobjpriv.usb_alloc_vendor_req_buf ), ALIGNMENT_UNIT);
+	dvobj->usb_vendor_req_buf  = 
+		(u8 *)N_BYTE_ALIGMENT((SIZE_PTR)(dvobj->usb_alloc_vendor_req_buf ), ALIGNMENT_UNIT);
 exit:
-#endif //CONFIG_USB_VENDOR_REQ_BUFFER_PREALLOC
+	#endif
 
 	return rst;
 	
 }
 
-u8 rtw_deinit_intf_priv(_adapter * padapter)
+static u8 rtw_deinit_intf_priv(struct dvobj_priv *dvobj)
 {
 	u8 rst = _SUCCESS; 
 
 	#ifdef CONFIG_USB_VENDOR_REQ_BUFFER_PREALLOC
-	if(padapter->dvobjpriv.usb_vendor_req_buf)
-	{
-		rtw_mfree(padapter->dvobjpriv.usb_alloc_vendor_req_buf,MAX_USB_IO_CTL_SIZE);
-	}
-	#endif //CONFIG_USB_VENDOR_REQ_BUFFER_PREALLOC
-
+	if(dvobj->usb_vendor_req_buf)
+		rtw_mfree(dvobj->usb_alloc_vendor_req_buf, MAX_USB_IO_CTL_SIZE);
+	#endif
 
 	#ifdef CONFIG_USB_VENDOR_REQ_MUTEX
-	_rtw_mutex_free(&padapter->dvobjpriv.usb_vendor_req_mutex);
+	_rtw_mutex_free(&dvobj->usb_vendor_req_mutex);
 	#endif
 	
 	return rst;
-	
 }
 
 #ifdef CONFIG_DUALMAC_CONCURRENT
@@ -425,8 +419,7 @@ _func_enter_;
 			DBG_871X("bDescriptorType=%x\n",pendp_desc->bDescriptorType);
 			DBG_871X("bEndpointAddress=%x\n",pendp_desc->bEndpointAddress);
 			//DBG_871X("bmAttributes=%x\n",pendp_desc->bmAttributes);
-			//DBG_871X("wMaxPacketSize=%x\n",pendp_desc->wMaxPacketSize);
-			DBG_871X("wMaxPacketSize=%x\n",le16_to_cpu(pendp_desc->wMaxPacketSize));
+			DBG_871X("wMaxPacketSize=%d\n",le16_to_cpu(pendp_desc->wMaxPacketSize));
 			DBG_871X("bInterval=%x\n",pendp_desc->bInterval);
 			//DBG_871X("bRefresh=%x\n",pendp_desc->bRefresh);
 			//DBG_871X("bSynchAddress=%x\n",pendp_desc->bSynchAddress);
@@ -464,13 +457,13 @@ _func_enter_;
 	}
 
 	//.2
-	if ((rtw_init_io_priv(padapter)) == _FAIL)
+	if ((rtw_init_io_priv(padapter, usb_set_intf_ops)) == _FAIL)
 	{
 		RT_TRACE(_module_hci_intfs_c_,_drv_err_,(" \n Can't init io_reqs\n"));
 		status = _FAIL;
 	}
 	
-	if((rtw_init_intf_priv(padapter) )== _FAIL)
+	if(rtw_init_intf_priv(pdvobjpriv) == _FAIL)
 	{
 		RT_TRACE(_module_os_intfs_c_,_drv_err_,("\n Can't INIT rtw_init_intf_priv\n"));
 		status = _FAIL;
@@ -479,10 +472,10 @@ _func_enter_;
 	//.3 misc
 	_rtw_init_sema(&(padapter->dvobjpriv.usb_suspend_sema), 0);	
 
-	intf_read_chip_version(padapter);
+	rtw_hal_read_chip_version(padapter);
 
 	//.4 usb endpoint mapping
-	intf_chip_configure(padapter);
+	rtw_hal_chip_configure(padapter);
 
 	rtw_reset_continual_urb_error(pdvobjpriv);
 	
@@ -521,12 +514,6 @@ _func_enter_;
 		pbuddy_padapter = NULL;
 		DBG_871X("%s(): pbuddy_padapter exist, Exchange Information\n",__FUNCTION__);
 	}
-
-	//set global variable to primary adapter
-	padapter->ph2c_fwcmd_mutex = &drvpriv.h2c_fwcmd_mutex;
-	padapter->psetch_mutex = &drvpriv.setch_mutex;
-	padapter->psetbw_mutex = &drvpriv.setbw_mutex;
-	padapter->hw_init_mutex = &drvpriv.hw_init_mutex;	
 #endif
 
 _func_exit_;
@@ -540,7 +527,7 @@ static void usb_dvobj_deinit(_adapter * padapter){
 
 	_func_enter_;
 
-	rtw_deinit_intf_priv(padapter);
+	rtw_deinit_intf_priv(pdvobjpriv);
 
 	_func_exit_;
 }
@@ -562,16 +549,9 @@ static void decide_chip_type_by_usb_device_id(_adapter *padapter, const struct u
 static void usb_intf_start(_adapter *padapter)
 {
 
-	RT_TRACE(_module_hci_intfs_c_,_drv_err_,("+usb_intf_start\n"));
-
-	if(padapter->HalFunc.inirp_init == NULL)
-	{
-		RT_TRACE(_module_os_intfs_c_,_drv_err_,("Initialize dvobjpriv.inirp_init error!!!\n"));
-	}
-	else
-	{	
-		padapter->HalFunc.inirp_init(padapter);
-	}			
+	RT_TRACE(_module_hci_intfs_c_,_drv_err_,("+usb_intf_start\n"));	
+	
+	rtw_hal_inirp_init(padapter);
 
 	RT_TRACE(_module_hci_intfs_c_,_drv_err_,("-usb_intf_start\n"));
 
@@ -591,10 +571,7 @@ static void usb_intf_stop(_adapter *padapter)
 	}
 
 	//cancel in irp
-	if(padapter->HalFunc.inirp_deinit !=NULL)
-	{
-		padapter->HalFunc.inirp_deinit(padapter);
-	}
+	rtw_hal_inirp_deinit(padapter);	
 
 	//cancel out irp
 	rtw_write_port_cancel(padapter);
@@ -725,7 +702,7 @@ int rtw_hw_suspend(_adapter *padapter )
 		if(pnetdev)
 		{
 			netif_carrier_off(pnetdev);
-			netif_stop_queue(pnetdev);
+			rtw_netif_stop_queue(pnetdev);
 		}
 
 		//s2.
@@ -874,7 +851,7 @@ static int rtw_suspend(struct usb_interface *pusb_intf, pm_message_t message)
 		if(pnetdev)
 		{
 			netif_carrier_off(pnetdev);
-			netif_stop_queue(pnetdev);
+			rtw_netif_stop_queue(pnetdev);
 		}
 #ifdef CONFIG_WOWLAN
 		padapter->pwrctrlpriv.bSupportWakeOnWlan=_TRUE;
@@ -1145,6 +1122,14 @@ error_exit:
 extern void rtd2885_wlan_netlink_sendMsg(char *action_string, char *name);
 #endif
 
+#ifdef CONFIG_PLATFORM_ARM_SUNxI
+#include <mach/sys_config.h>
+extern int sw_usb_disable_hcd(__u32 usbc_no);
+extern int sw_usb_enable_hcd(__u32 usbc_no);
+static int usb_wifi_host = 2;
+#endif
+
+
 extern char* ifname;
 /*
  * drv_init() - a device potentially for us
@@ -1234,7 +1219,7 @@ static int rtw_drv_init(struct usb_interface *pusb_intf, const struct usb_device
 	}
 
 	//step 4. read efuse/eeprom data and get mac_addr
-	intf_read_chip_info(padapter);	
+	rtw_hal_read_chip_info(padapter);	
 
 	//step 5.
 	status = rtw_init_drv_sw(padapter);
@@ -1301,13 +1286,12 @@ static int rtw_drv_init(struct usb_interface *pusb_intf, const struct usb_device
 	hostapd_mode_init(padapter);
 #endif
 
-#ifdef CONFIG_CONCURRENT_MODE
-
+	padapter->hw_init_mutex = &usb_drvpriv.hw_init_mutex;
+#if defined(CONFIG_CONCURRENT_MODE) || defined(CONFIG_DUALMAC_CONCURRENT)
 	//set global variable to primary adapter
-	padapter->ph2c_fwcmd_mutex = &drvpriv.h2c_fwcmd_mutex;
-	padapter->psetch_mutex = &drvpriv.setch_mutex;
-	padapter->psetbw_mutex = &drvpriv.setbw_mutex;	
-	padapter->hw_init_mutex = &drvpriv.hw_init_mutex;
+	padapter->ph2c_fwcmd_mutex = &usb_drvpriv.h2c_fwcmd_mutex;
+	padapter->psetch_mutex = &usb_drvpriv.setch_mutex;
+	padapter->psetbw_mutex = &usb_drvpriv.setbw_mutex;
 #endif
 
 #ifdef CONFIG_PLATFORM_RTD2880B
@@ -1409,7 +1393,7 @@ _func_enter_;
 		if(check_fwstate(pmlmepriv, _FW_LINKED))
 			disconnect_hdl(padapter, NULL);
 
-		if(drvpriv.drv_registered == _TRUE)
+		if(usb_drvpriv.drv_registered == _TRUE)
 		{
 			//DBG_871X("r871xu_dev_remove():padapter->bSurpriseRemoved == _TRUE\n");
 			padapter->bSurpriseRemoved = _TRUE;
@@ -1447,9 +1431,10 @@ _func_enter_;
 
 		DBG_871X("+r871xu_dev_remove, hw_init_completed=%d\n", padapter->hw_init_completed);
 
+		//Modify condition for 8723AS-VAU 2012.06.19	
 		//Modify condition for 92DU DMDP 2010.11.18, by Thomas
 		//move code to here, avoid access null pointer. 2011.05.25.
-		if((pdvobjpriv->NumInterfaces != 2) || (pdvobjpriv->InterfaceNumber == 1))
+		if(((pdvobjpriv->NumInterfaces != 2)&&(pdvobjpriv->NumInterfaces != 3))  || (pdvobjpriv->InterfaceNumber == 1))
 			bResetDevice = _TRUE;
 
 		//s6.
@@ -1514,28 +1499,42 @@ static int __init rtw_drv_entry(void)
 	tmp |= 0x55;
 	writel(tmp,(volatile unsigned int*)0xb801a608);//write dummy register for 1055
 #endif
-
+#ifdef CONFIG_PLATFORM_ARM_SUNxI
+#ifndef CONFIG_RTL8723A
+	int ret = 0;
+	/* ----------get usb_wifi_usbc_num------------- */	
+	ret = script_parser_fetch("usb_wifi_para", "usb_wifi_usbc_num", (int *)&usb_wifi_host, 64);	
+	if(ret != 0){		
+		printk("ERR: script_parser_fetch usb_wifi_usbc_num failed\n");		
+		ret = -ENOMEM;		
+		return ret;	
+	}	
+	printk("sw_usb_enable_hcd: usbc_num = %d\n", usb_wifi_host);	
+	sw_usb_enable_hcd(usb_wifi_host);
+#endif //CONFIG_RTL8723A	
+#endif //CONFIG_PLATFORM_ARM_SUNxI
 
 	RT_TRACE(_module_hci_intfs_c_,_drv_err_,("+rtw_drv_entry\n"));
 
-	DBG_871X("rtw driver version=%s \n", DRIVERVERSION);
-	DBG_871X("Build at: %s %s\n", __DATE__, __TIME__);
+	DBG_871X(DRV_NAME " driver version=%s\n", DRIVERVERSION);
+	DBG_871X("build time: %s %s\n", __DATE__, __TIME__);
+	
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24)) 
 	//console_suspend_enabled=0;
 #endif
 
 	rtw_suspend_lock_init();
 
+	_rtw_mutex_init(&usb_drvpriv.hw_init_mutex);
 #if defined(CONFIG_CONCURRENT_MODE) || defined(CONFIG_DUALMAC_CONCURRENT)
 	//init global variable
-	_rtw_mutex_init(&drvpriv.h2c_fwcmd_mutex);
-	_rtw_mutex_init(&drvpriv.setch_mutex);
-	_rtw_mutex_init(&drvpriv.setbw_mutex);
-	_rtw_mutex_init(&drvpriv.hw_init_mutex);
+	_rtw_mutex_init(&usb_drvpriv.h2c_fwcmd_mutex);
+	_rtw_mutex_init(&usb_drvpriv.setch_mutex);
+	_rtw_mutex_init(&usb_drvpriv.setbw_mutex);
 #endif
 
-	drvpriv.drv_registered = _TRUE;
-	return usb_register(&drvpriv.rtw_usb_drv);
+	usb_drvpriv.drv_registered = _TRUE;
+	return usb_register(&usb_drvpriv.rtw_usb_drv);
 }
 
 static void __exit rtw_drv_halt(void)
@@ -1545,17 +1544,24 @@ static void __exit rtw_drv_halt(void)
 
 	rtw_suspend_lock_uninit();
 
-        drvpriv.drv_registered = _FALSE;
-	usb_deregister(&drvpriv.rtw_usb_drv);
+        usb_drvpriv.drv_registered = _FALSE;
+	usb_deregister(&usb_drvpriv.rtw_usb_drv);
 
+	_rtw_mutex_free(&usb_drvpriv.hw_init_mutex);
 #if defined(CONFIG_CONCURRENT_MODE) || defined(CONFIG_DUALMAC_CONCURRENT)
-	_rtw_mutex_free(&drvpriv.h2c_fwcmd_mutex);
-	_rtw_mutex_free(&drvpriv.setch_mutex);
-	_rtw_mutex_free(&drvpriv.setbw_mutex);
-	_rtw_mutex_free(&drvpriv.hw_init_mutex);
+	_rtw_mutex_free(&usb_drvpriv.h2c_fwcmd_mutex);
+	_rtw_mutex_free(&usb_drvpriv.setch_mutex);
+	_rtw_mutex_free(&usb_drvpriv.setbw_mutex);
 #endif
 
 	DBG_871X("-rtw_drv_halt\n");
+
+#ifdef CONFIG_PLATFORM_ARM_SUNxI
+#ifndef CONFIG_RTL8723A
+	printk("sw_usb_disable_hcd: usbc_num = %d\n", usb_wifi_host);
+	sw_usb_disable_hcd(usb_wifi_host);
+#endif //ifndef CONFIG_RTL8723A	
+#endif	//CONFIG_PLATFORM_ARM_SUNxI
 }
 
 
