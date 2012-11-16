@@ -50,5 +50,16 @@ static inline void arch_reset(char mode, const char *cmd)
 */
 }
 
+/*
+ * define chip version
+ */
+enum sw_ic_ver {
+	MAGIC_VER_NULL      = 0,        /* invalid value        */
+	MAGIC_VER_UNKNOWN   = 1,        /* unknown version      */
+	MAGIC_VER_A31       = 0xA310,   /* chip version a31     */
+	MAGIC_VER_A31S      = 0xA315,   /* chip version a31s    */
+	MAGIC_VER_A3XP      = 0xA388,   /* chip versiion a3x    */
+};
+enum sw_ic_ver sw_get_ic_ver(void);
 
 #endif
