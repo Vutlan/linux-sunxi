@@ -187,3 +187,11 @@ config CSI_OV5650_MV9335
 	select	CSI_DEV_SEL_SUN5I
 	---help---
 	  This is a Video4Linux2 sensor-level driver for the ov5650+mv9335.	 
+
+config CSI_SIV121D
+	tristate "SET SIV121D VGA sensor support"
+	default m
+	depends on I2C && VIDEO_V4L2
+	select	CSI_DEV_SEL_SUN5I
+	---help---
+	  This is a Video4Linux2 sensor-level driver for the siv121d.	
