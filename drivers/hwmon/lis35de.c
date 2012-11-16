@@ -31,7 +31,7 @@
 			__FILE__, __LINE__, __func__, #expr);\
 	}
 
-#define LIS3DH_DRV_NAME	"lis3dh"
+#define LIS3DH_DRV_NAME	"lis35de"
 #define SENSOR_NAME 			LIS3DH_DRV_NAME
 
 
