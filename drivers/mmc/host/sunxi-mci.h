@@ -3,7 +3,7 @@
  * (C) Copyright 2007-2011
  * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
  * Aaron.Maoye <leafy.myeh@reuuimllatech.com>
- * 
+ *
  * description for this code
  *
  * This program is free software; you can redistribute it and/or
@@ -28,11 +28,11 @@
 #define REG_FIFO_OS	(0x200)
 #define SMC_IRQNO(x)	(AW_IRQ_MMC0 + (x))
 
-#define MMC_SRCCLK_HOSC	"sys_hosc"
-#define MMC_SRCCLK_PLL6	"sys_pll6"
-#define MMC_AHBCLK_PREFIX	"ahb_sdmmc"
-#define MMC_MODCLK_PREFIX	"mod_sdc"
-#define MMC3_DMA_TL	(0x2007000f)
+#define MMC_SRCCLK_HOSC   "sys_hosc"
+#define MMC_SRCCLK_PLL6   "sys_pll6"
+#define MMC_AHBCLK_PREFIX "ahb_sdmmc"
+#define MMC_MODCLK_PREFIX "mod_sdc"
+#define MMC3_DMA_TL       (0x2007000f)
 
 #ifdef MMC_FPGA
 #undef SMC_IRQNO
@@ -46,12 +46,12 @@
 #define REG_FIFO_OS	(0x100)
 #define SMC_IRQNO(x)	(AW_IRQ_MMC0 + (x))
 
-#define MMC_SRCCLK_HOSC	"hosc"
-#define MMC_SRCCLK_PLL5	"sdram_pll_p"
-#define MMC_SRCCLK_PLL6	"sata_pll_2"
-#define MMC_AHBCLK_PREFIX	"ahb_sdc"
-#define MMC_MODCLK_PREFIX	"sdc"
-#define MMC3_DMA_TL	(0x20070008)
+#define MMC_SRCCLK_HOSC   "hosc"
+#define MMC_SRCCLK_PLL5   "sdram_pll_p"
+#define MMC_SRCCLK_PLL6   "sata_pll_2"
+#define MMC_AHBCLK_PREFIX "ahb_sdc"
+#define MMC_MODCLK_PREFIX "sdc"
+#define MMC3_DMA_TL       (0x20070008)
 
 #ifdef MMC_FPGA
 #undef SMC_IRQNO
@@ -66,7 +66,7 @@
 #define SMC_BASE(x)	(SMC0_BASE + 0x1000 * (x))
 
 /* register offset define */
-#define SDXC_REG_GCTRL	( 0x00 ) // SMC Global Control Register          
+#define SDXC_REG_GCTRL	( 0x00 ) // SMC Global Control Register
 #define SDXC_REG_CLKCR	( 0x04 ) // SMC Clock Control Register
 #define SDXC_REG_TMOUT	( 0x08 ) // SMC Time Out Register
 #define SDXC_REG_WIDTH	( 0x0C ) // SMC Bus Width Register
@@ -92,7 +92,7 @@
 #define SDXC_REG_DLBA	( 0x84 ) // SMC IDMAC Descriptor List Base Addre
 #define SDXC_REG_IDST	( 0x88 ) // SMC IDMAC Status Register
 #define SDXC_REG_IDIE	( 0x8C ) // SMC IDMAC Interrupt Enable Register
-#define SDXC_REG_CHDA	( 0x90 ) 
+#define SDXC_REG_CHDA	( 0x90 )
 #define SDXC_REG_CBDA	( 0x94 )
 #define SDXC_REG_FIFO	( REG_FIFO_OS ) // SMC FIFO Access Address
 
@@ -254,23 +254,24 @@ struct sunxi_mmc_platform_data {
 	u32 f_min;
 	u32 f_max;
 	u32 dma_tl;
+	char* regulator;
 };
 
 struct sunxi_mmc_host {
-    
+
 	struct platform_device  *pdev;
 	struct mmc_host *mmc;
 	struct sunxi_mmc_platform_data  *pdata;
-	   
+
 	/* IO mapping base */
 	void __iomem 	*reg_base;
 	spinlock_t 	lock;
 	struct tasklet_struct tasklet;
-	
+
 	/* clock management */
 	struct clk 	*hclk;
 	struct clk 	*mclk;
-	
+
 	/* ios information */
 	u32 		mod_clk;
 	u32 		card_clk;
@@ -284,11 +285,11 @@ struct sunxi_mmc_host {
 #define SDC_WOLTAGE_1V2 (2)
 #define SDC_WOLTAGE_OFF (3)
 	u32 		present;
-	
+
 	/* irq */
 	int 		irq;
 	u32 		int_sum;
-	
+
 	u32 		dodma;
 	u32 		dma_done;
 	dma_addr_t	sg_dma;
@@ -311,7 +312,7 @@ struct sunxi_mmc_host {
 #define SDC_STATE_IDLE		(0)
 #define SDC_STATE_SENDCMD	(1)
 #define SDC_STATE_CMDDONE	(2)
-	
+
 	struct timer_list cd_timer;
 	u32 pio_hdle;
 	s32 cd_hdle;
@@ -325,7 +326,7 @@ struct sunxi_mmc_host {
 	u32 read_only:8;
 	u32 io_flag:8;
 	u32 suspend:8;
-	
+
 	u32 debuglevel;
 #ifdef CONFIG_PROC_FS
 	struct proc_dir_entry *proc_root;
