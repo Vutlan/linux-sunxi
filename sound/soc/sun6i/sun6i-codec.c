@@ -311,20 +311,30 @@ int codec_rd_control(u32 reg, u32 bit, u32 *val)
 * Reset the codec, set the register of codec default value
 * Return 0 for success
 */
-static  int codec_init(void)
+static  void codec_init(void)
 {
 	/*mute l_pa and r_pa.耳机，听筒，喇叭默认已经是关闭状态，初始化的时候，不需要重新关闭*/
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPPA_MUTE, 0x0);
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPPA_MUTE, 0x0);
+
+	codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTL_EN, 0x0);
+	codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTR_EN, 0x0);
+
 	/*enable pa*/
 	codec_wr_control(SUN6I_PA_CTRL, 0x1, HPPAEN, 0x1);
+
 	/*when TX FIFO available room less than or equal N,
 	* DRQ Requeest will be de-asserted.
 	*/
 	codec_wr_control(SUN6I_DAC_FIFOC, 0x3, DRA_LEVEL,0x3);
+
+	/*write 1 to flush tx fifo*/
+	codec_wr_control(SUN6I_DAC_FIFOC, 0x1, DAC_FIFO_FLUSH, 0x1);
+	/*write 1 to flush rx fifo*/
+	codec_wr_control(SUN6I_ADC_FIFOC, 0x1, ADC_FIFO_FLUSH, 0x1);
+
 	/*set HPVOL volume*/
-	codec_wr_control(SUN6I_DAC_ACTL, 0x6, VOLUME, 0x3b);
-	return 0;
+	codec_wr_control(SUN6I_DAC_ACTL, 0x3f, VOLUME, 0x3b);
 }
 
 static int codec_play_open(struct snd_pcm_substream *substream)
@@ -332,11 +342,15 @@ static int codec_play_open(struct snd_pcm_substream *substream)
 	/*mute l_pa and r_pa*/
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPPA_MUTE, 0x0);
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPPA_MUTE, 0x0);
+
+	codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTL_EN, 0x0);
+	codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTR_EN, 0x0);
+
 	/*enable dac digital*/
 	codec_wr_control(SUN6I_DAC_DPC, 0x1, DAC_EN, 0x1);
 
 	/*set TX FIFO send drq level*/
-	codec_wr_control(SUN6I_DAC_FIFOC ,0x4, TX_TRI_LEVEL, 0xf);
+	codec_wr_control(SUN6I_DAC_FIFOC ,0x7f, TX_TRI_LEVEL, 0xf);
 	/*set TX FIFO MODE*/
 	codec_wr_control(SUN6I_DAC_FIFOC ,0x1, TX_FIFO_MODE, 0x1);
 	
@@ -346,16 +360,21 @@ static int codec_play_open(struct snd_pcm_substream *substream)
 	/*enable dac_l and dac_r*/
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, DACALEN, 0x1);
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, DACAREN, 0x1);
-	
-	/*set the default output is HPOUTL/R*/
-	codec_wr_control(SUN6I_PA_CTRL, 0x1, LTRNMUTE, 0x1);
-	codec_wr_control(SUN6I_PA_CTRL, 0x1, RTLNMUTE, 0x1);
+
+	/*set the default output is HPOUTL/R for pad 耳机*/
+	codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPPA_MUTE, 0x1);
+	codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPPA_MUTE, 0x1);
+
+	#ifdef CONFIG_3G_PAD
+	/*set the default output is HPOUTL/R for 3gpad 听筒: HPL inverting output*/
+	codec_wr_control(SUN6I_PA_CTRL, 0x3, HPCOM_CTL, 0x1);
+	#endif
 	return 0;
 }
 
 static int codec_capture_open(void)
 {
-	 /*mic1 gain 30dB*/
+	 /*mic1 gain 30dB，if capture volume is too small, enlarge the mic1booost*/
 	 codec_wr_control(SUN6I_MIC_CTRL, 0x7,MIC1BOOST,0x3);//30db
 	 /*enable Master microphone bias*/
 	 codec_wr_control(SUN6I_MIC_CTRL, 0x1, MBIASEN, 0x1);
@@ -372,7 +391,7 @@ static int codec_capture_open(void)
 	 /*set RX FIFO mode*/
 	 codec_wr_control(SUN6I_ADC_FIFOC, 0x1, RX_FIFO_MODE, 0x1);
 	 /*set RX FIFO rec drq level*/
-	 codec_wr_control(SUN6I_ADC_FIFOC, 0xf, RX_TRI_LEVEL, 0x7);
+	 codec_wr_control(SUN6I_ADC_FIFOC, 0x1f, RX_TRI_LEVEL, 0xf);
 	 /*enable adc digital part*/
 	 codec_wr_control(SUN6I_ADC_FIFOC, 0x1,ADC_EN, 0x1);
 
@@ -381,15 +400,20 @@ static int codec_capture_open(void)
 
 static int codec_play_start(void)
 {
-	/*DAC FIFO Flush,Write '1' to flush TX FIFO, self clear to '0'*/
-	codec_wr_control(SUN6I_DAC_FIFOC ,0x1, DAC_FIFO_FLUSH, 0x1);
 	/*enable dac drq*/
 	codec_wr_control(SUN6I_DAC_FIFOC ,0x1, DAC_DRQ, 0x1);
+	/*DAC FIFO Flush,Write '1' to flush TX FIFO, self clear to '0'*/
+	codec_wr_control(SUN6I_DAC_FIFOC ,0x1, DAC_FIFO_FLUSH, 0x1);
+
 	return 0;
 }
 
 static int codec_play_stop(void)
 {
+	#ifdef CONFIG_3G_PAD
+	/*set the default output is HPOUTL/R for 3gpad 听筒: HPL inverting output*/
+	codec_wr_control(SUN6I_PA_CTRL, 0x3, HPCOM_CTL, 0x0);
+	#endif
 	/*mute l_pa and r_pa*/
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPPA_MUTE, 0x0);
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPPA_MUTE, 0x0);
@@ -1157,7 +1181,7 @@ static int snd_sun6i_codec_prepare(struct snd_pcm_substream	*substream)
 	   	//open the adc channel register
 	   	codec_capture_open();
 		memset(&capture_dma_config, 0, sizeof(capture_dma_config));
-		capture_dma_config.xfer_type = DMAXFER_D_BHALF_S_BHALF;
+		capture_dma_config.xfer_type = DMAXFER_D_BHALF_S_BHALF;//16bit
 		capture_dma_config.address_type = DMAADDRT_D_LN_S_IO;
 		capture_dma_config.para = 0;
 		capture_dma_config.irq_spt = CHAN_IRQ_QD;
@@ -1205,7 +1229,7 @@ static int snd_sun6i_codec_trigger(struct snd_pcm_substream *substream, int cmd)
 				codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPPA_MUTE, 0x1);
 				codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPPA_MUTE, 0x1);
 				break;
-			case SNDRV_PCM_TRIGGER_SUSPEND:				
+			case SNDRV_PCM_TRIGGER_SUSPEND:
 				codec_play_stop();
 				/*
 				 * stop play dma transfer
@@ -1513,7 +1537,7 @@ static int snd_sun6i_codec_suspend(struct platform_device *pdev,pm_message_t sta
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPPA_MUTE, 0x0);
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPPA_MUTE, 0x0);
 	/*disable pa*/
-	codec_wr_control(SUN6I_PA_CTRL, 0x1, HPPAEN, 0x0);	
+	codec_wr_control(SUN6I_PA_CTRL, 0x1, HPPAEN, 0x0);
 	/*disable dac_l and dac_r*/
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, DACALEN, 0x0);
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, DACAREN, 0x0);
@@ -1524,10 +1548,10 @@ static int snd_sun6i_codec_suspend(struct platform_device *pdev,pm_message_t sta
 	codec_wr_control(SUN6I_MIC_CTRL, 0x1, MBIASEN, 0x0);
 	/*disable mic1 pa*/
 	codec_wr_control(SUN6I_MIC_CTRL, 0x1, MIC1AMPEN, 0x0);	
-	codec_wr_control(SUN6I_ADC_ACTL, 0x1,  ADCREN, 0x0);//移到外部控制
-	codec_wr_control(SUN6I_ADC_ACTL, 0x1,  ADCLEN, 0x0);//移到外部控制	
-	/*enable adc digital part*/
-	codec_wr_control(SUN6I_ADC_FIFOC, 0x1,ADC_EN, 0x1);
+	codec_wr_control(SUN6I_ADC_ACTL, 0x1, ADCREN, 0x0);//移到外部控制
+	codec_wr_control(SUN6I_ADC_ACTL, 0x1, ADCLEN, 0x0);//移到外部控制	
+	/*disable adc digital part*/
+	codec_wr_control(SUN6I_ADC_FIFOC, 0x1, ADC_EN, 0x0);
 
 	clk_disable(codec_moduleclk);
 	printk("[audio codec]:suspend end\n");
