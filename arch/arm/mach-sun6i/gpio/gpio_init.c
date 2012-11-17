@@ -96,7 +96,7 @@ struct aw_gpio_chip gpio_chips[] = {
 		},
 		.vbase  = (void __iomem *)PIO_VBASE(0),
 		/* cfg for eint */
-		.irq_num = AW_IRQ_EINT_PA,
+		.irq_num = AW_IRQ_EINTA,
 		.vbase_eint = (void __iomem *)PIO_VBASE_EINT_PA,
 		.cfg_eint = &g_eint_cfg,
 	}, {
@@ -110,7 +110,7 @@ struct aw_gpio_chip gpio_chips[] = {
 		},
 		.vbase  = (void __iomem *)PIO_VBASE(1),
 		/* cfg for eint */
-		.irq_num = AW_IRQ_EINT_PB,
+		.irq_num = AW_IRQ_EINTB,
 		.vbase_eint = (void __iomem *)PIO_VBASE_EINT_PB,
 		.cfg_eint = &g_eint_cfg,
 	}, {
@@ -142,7 +142,7 @@ struct aw_gpio_chip gpio_chips[] = {
 		},
 		.vbase  = (void __iomem *)PIO_VBASE(4),
 		/* cfg for eint */
-		.irq_num = AW_IRQ_EINT_PE,
+		.irq_num = AW_IRQ_EINTE,
 		.vbase_eint = (void __iomem *)PIO_VBASE_EINT_PE,
 		.cfg_eint = &g_eint_cfg,
 	}, {
@@ -165,7 +165,7 @@ struct aw_gpio_chip gpio_chips[] = {
 		},
 		.vbase  = (void __iomem *)PIO_VBASE(6),
 		/* cfg for eint */
-		.irq_num = AW_IRQ_EINT_PG,
+		.irq_num = AW_IRQ_EINTG,
 		.vbase_eint = (void __iomem *)PIO_VBASE_EINT_PG,
 		.cfg_eint = &g_eint_cfg,
 	}, {
@@ -188,7 +188,7 @@ struct aw_gpio_chip gpio_chips[] = {
 		},
 		.vbase  = (void __iomem *)RPIO_VBASE(0),
 		/* cfg for eint */
-		.irq_num = AW_IRQ_EINT_R_PL,
+		.irq_num = AW_IRQ_EINTL,
 		.vbase_eint = (void __iomem *)PIO_VBASE_EINT_R_PL,
 		.cfg_eint = &g_eint_cfg,
 	}, {
@@ -202,7 +202,7 @@ struct aw_gpio_chip gpio_chips[] = {
 		},
 		.vbase  = (void __iomem *)RPIO_VBASE(1),
 		/* cfg for eint */
-		.irq_num = AW_IRQ_EINT_R_PM,
+		.irq_num = AW_IRQ_EINTM,
 		.vbase_eint = (void __iomem *)PIO_VBASE_EINT_R_PM,
 		.cfg_eint = &g_eint_cfg,
 	}

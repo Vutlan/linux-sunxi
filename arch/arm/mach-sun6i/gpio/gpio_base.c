@@ -266,7 +266,7 @@ int __pio_to_irq(struct gpio_chip *chip, unsigned offset)
 #endif /* DBG_GPIO */
 
 	/* for r-pio-L, only PL5 ~ PL8 can be configured as einit */
-	if(AW_IRQ_EINT_R_PL == pchip->irq_num) {
+	if(AW_IRQ_EINTL == pchip->irq_num) {
 		if(!(offset >= 5 && offset <= 8)) {
 			PIO_ERR_FUN_LINE;
 			return IRQ_NUM_INVALID;

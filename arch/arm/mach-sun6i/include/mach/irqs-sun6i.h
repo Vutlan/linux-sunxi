@@ -298,13 +298,4 @@
 #define NR_IRQS           (AW_IRQ_GIC_START + 128)
 #define MAX_GIC_NR        1
 
-#define AW_IRQ_EINT_PA	(AW_IRQ_GIC_START + 11)
-#define AW_IRQ_EINT_PB	(AW_IRQ_GIC_START + 15)
-#define AW_IRQ_EINT_PE	(AW_IRQ_GIC_START + 16)
-#define AW_IRQ_EINT_PG	(AW_IRQ_GIC_START + 17)
-#define AW_IRQ_EINT_R_PL	(AW_IRQ_GIC_START + 45)
-#define AW_IRQ_EINT_R_PM	(AW_IRQ_GIC_START + 46)
-
-
-
 #endif    /* __MACH_IRQS_AW_H */
