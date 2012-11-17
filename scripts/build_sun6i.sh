@@ -98,10 +98,13 @@ build_kernel()
 		echo -e "\n\t\tUsing default config... ...!\n"
 		cp arch/arm/configs/sun6ismp_defconfig .config
 	fi
-build_standby
-make ARCH=arm CROSS_COMPILE=${CROSS_COMPILE} -j8 uImage modules
 
-${OBJCOPY} -R .note.gnu.build-id -S -O binary vmlinux bImage
+	cp rootfs/rootfs.cpio.gz .
+
+	build_standby
+	make ARCH=arm CROSS_COMPILE=${CROSS_COMPILE} -j8 uImage modules
+
+	${OBJCOPY} -R .note.gnu.build-id -S -O binary vmlinux bImage
 
 	update_kern_ver
 
@@ -184,7 +187,8 @@ build_ramfs()
 #					--board 'a31' \
 #					--base 0x40000000 \
 #					-o output/boot.img
-	echo build_ramfs
+		rm  rootfs.cpio.gz
+		echo build_ramfs
 }
 
 
