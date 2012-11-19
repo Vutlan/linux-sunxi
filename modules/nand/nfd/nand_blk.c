@@ -103,11 +103,16 @@ extern int NAND_WaitDmaFinish(void);
 //for PIO
 extern void NAND_PIORequest(void);
 extern void NAND_PIORelease(void);
-//for RB Int
+//for Int
 extern void NAND_EnRbInt(void);
 extern void NAND_ClearRbInt(void);
 extern int NAND_WaitRbReady(void);
-extern void NAND_RbInterrupt(void);
+extern void NAND_EnDMAInt(void);
+extern void NAND_ClearDMAInt(void);
+extern void NAND_DMAInterrupt(void);
+
+extern void NAND_Interrupt(void);
+
 
 DEFINE_SEMAPHORE(nand_mutex);
 static unsigned char volatile IS_IDLE = 1;
@@ -118,7 +123,18 @@ static int nand_flush_force(__u32 dev_num);
 #ifdef __OS_NAND_SUPPORT_INT__	
     spinlock_t     nand_int_lock;
     
-    static irqreturn_t nand_interrupt(int irq, void *dev_id)
+    static irqreturn_t nand_interrupt_ch0(int irq, void *dev_id)
+    {
+        unsigned long iflags;
+    
+        spin_lock_irqsave(&nand_int_lock, iflags);
+        NAND_Interrupt();
+        spin_unlock_irqrestore(&nand_int_lock, iflags);
+    
+    	return IRQ_HANDLED;
+    }
+
+	static irqreturn_t nand_interrupt_ch1(int irq, void *dev_id)
     {
         unsigned long iflags;
     
@@ -1042,19 +1058,12 @@ int cal_partoff_within_disk(char *name,struct inode *i)
 	return ( gd->part_tbl->part[ index - 1]->start_sect);
 }
 
-
-
-#ifdef __FPGA_TEST__
-    #define SW_INT_IRQNO_NAND (46)
-#endif    
-
-
 #ifndef CONFIG_SUN6I_NANDFLASH_TEST
 static int __init init_blklayer(void)
 {
 	int ret;
 #ifdef __OS_NAND_SUPPORT_INT__	
-	unsigned long irqflags;
+	unsigned long irqflags_ch0, irqflags_ch1;
 #endif
 	ClearNandStruct();
 
@@ -1074,17 +1083,28 @@ static int __init init_blklayer(void)
     NAND_ClearDMAInt();
   
     spin_lock_init(&nand_int_lock);
-	irqflags = IRQF_DISABLED;
+	irqflags_ch0 = IRQF_DISABLED;
+	irqflags_ch1 = IRQF_DISABLED;
 
-	if (request_irq(SW_INT_IRQNO_NAND, nand_interrupt, irqflags, mytr.name, &mytr))
+	if (request_irq(AW_IRQ_NAND0, nand_interrupt_ch0, irqflags_ch0, mytr.name, &mytr))
 	{
-	    printk("nand interrupte register error\n");
+	    printk("nand interrupte ch0 register error\n");
 	    return -EAGAIN;
 	}
 	else
 	{
-	    printk("nand interrupte register ok\n");
+	    printk("nand interrupte ch0 register ok\n");
 	}	
+
+	if (request_irq(AW_IRQ_NAND1, nand_interrupt_ch1, irqflags_ch1, mytr.name, &mytr))
+	{
+	    printk("nand interrupte ch1 register error\n");
+	    return -EAGAIN;
+	}
+	else
+	{
+	    printk("nand interrupte ch1 register ok\n");
+	}
 #endif		
 
 	ret = PHY_ChangeMode(1);

@@ -3,6 +3,9 @@
 
 #define __FPGA_TEST__
 //#define __OS_NAND_SUPPORT_INT__
+//#define __OS_SUPPORT_DMA_INT__
+//#define __OS_SUPPORT_RB_INT__
+
 
 struct nand_blk_ops;
 struct list_head;

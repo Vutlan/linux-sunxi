@@ -5,7 +5,7 @@
 //  nand driver 版本号
 //---------------------------------------------------------------
 #define  NAND_VERSION_0                 0x02
-#define  NAND_VERSION_1                 0x09
+#define  NAND_VERSION_1                 0x10
 
 //---------------------------------------------------------------
 //  结构体 定义
@@ -129,10 +129,17 @@ extern __s32 NFC_LSBExit(__u32 read_retry_type);
 //for rb int
 extern void NFC_RbIntEnable(void);
 extern void NFC_RbIntDisable(void);
-extern void NFC_RbIntClear(void);
-extern __u32 NFC_RbIntStatus(void);
+extern void NFC_RbIntClearStatus(void);
+extern __u32 NFC_RbIntGetStatus(void);
 extern __u32 NFC_GetRbSelect(void);
 extern __u32 NFC_GetRbStatus(__u32 rb);
+extern __u32 NFC_RbIntOccur(void);
+
+extern void NFC_DmaIntEnable(void);
+extern void NFC_DmaIntDisable(void);
+extern void NFC_DmaIntClearStatus(void);
+extern __u32 NFC_DmaIntGetStatus(void);
+extern __u32 NFC_DmaIntOccur(void);
 
 //for mbr
 extern int mbr2disks(struct nand_disk* disk_array);
