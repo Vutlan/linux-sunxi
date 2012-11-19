@@ -928,6 +928,9 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
     int num_hist = hotplug_history->num_hist;
     int max_hotplug_rate = max(dbs_tuners_ins.cpu_up_rate, dbs_tuners_ins.cpu_down_rate);
 
+    max_hotplug_rate = max(max_hotplug_rate, dbs_tuners_ins.freq_up_rate);
+    max_hotplug_rate = max(max_hotplug_rate, dbs_tuners_ins.freq_down_rate);
+
     policy = this_dbs_info->cur_policy;
 
     /* static cpu loading */
