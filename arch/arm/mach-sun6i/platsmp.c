@@ -49,8 +49,9 @@ static void __iomem *scu_base_addr(void)
 void enable_aw_cpu(int cpu)
 {
 	long paddr;
+/*
 	volatile long reg1 = 0x0;
-
+*/
 	paddr = virt_to_phys(sun6i_secondary_startup);
         writel(paddr, IO_ADDRESS(AW_R_CPUCFG_BASE) + AW_CPUCFG_P_REG0);
 	if(cpu)
