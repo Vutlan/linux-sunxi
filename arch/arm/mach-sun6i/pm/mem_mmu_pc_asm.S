@@ -447,7 +447,11 @@ jump_to_suspend:
 	.text
 	.globl jump_to_resume
 jump_to_resume:
-	/*before jump to resume, invalidate the data*/                                                                          
+	/*before jump to resume:
+	 * 1st: invalidate the data
+	 * 2nd: restore r0-r13.
+	 * 3rd: jump (para 1).
+	 */                                                                          
 	/* Set the return pointer */                                                 
 	mov     r12, r0
 	mov 	r8, r1

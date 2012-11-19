@@ -61,7 +61,8 @@ int standby_ar100_exit(void)
 }
 
 /*
- * notify ar100 to wakeup: restore cpus freq, volt, and init_dram.
+ * standby_ar100_notify_restore: 
+ * function: notify ar100 to wakeup: restore cpus freq, volt, and init_dram.
  * para:  mode.
  * STANDBY_AR100_SYNC:
  * STANDBY_AR100_ASYNC:
@@ -98,8 +99,9 @@ int standby_ar100_notify_restore(unsigned long mode)
 	return 0;
 }
 
-/*
- * check ar100 restore status.
+/* 
+ * standby_ar100_check_restore_status
+ * function: check ar100 restore status.
  * para:  none.
  * return: result, 0 - restore completion successed, !0 - notify failed;
  */
@@ -142,8 +144,9 @@ int standby_ar100_check_restore_status(void)
 	return -EINVAL;
 }
 
-/*
- * query standby wakeup source.
+/* 
+ * standby_ar100_query_wakeup_src
+ * function: query standby wakeup source.
  * para:  point of buffer to store wakeup event informations.
  * return: result, 0 - query successed, !0 - query failed;
  */
@@ -195,7 +198,8 @@ int standby_ar100_query_wakeup_src(unsigned long *event)
 }
 
 /*
- * enter normal standby.
+ * standby_ar100_standby_normal
+ * function: enter normal standby.
  * para:  parameter for enter normal standby.
  * return: result, 0 - normal standby successed, !0 - normal standby failed;
  */

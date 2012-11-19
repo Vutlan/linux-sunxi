@@ -10,7 +10,11 @@
  * License terms: GNU General Public License (GPL) version 2                         
  */                                                                                  
                                                                                      
-#include <linux/linkage.h>                                                           
+#include <linux/linkage.h>    
+/*
+ * function: mem_arch_suspend
+ * discription: save main part of general purpose register.
+ */                                                       
 	.text 
 	.globl mem_arch_suspend  
 mem_arch_suspend:  
@@ -139,9 +143,12 @@ mem_arch_suspend:
 	 *  return                                                   
 	 */                                                                                
 	mov     pc, lr                                                                 
-	
-	.align	4                                                         
-        
+
+/*
+ * function: mem_arch_resume
+ * discription: retore main part of general purpose register.
+ */ 	
+	.align	4                                                                 
         .globl  mem_arch_resume                                                                           
 mem_arch_resume:
 	push    {r0-r3}

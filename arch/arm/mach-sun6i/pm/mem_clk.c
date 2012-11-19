@@ -1,9 +1,15 @@
-//#include "pm_types.h"
-#include <asm/delay.h>
+#ifdef __STANDBY_MODULE__
+#include "pm_types.h" 
+#include "pm.h"
+
+#elif defined(__KERNEL__)
 #include <linux/delay.h>
 #include "pm_i.h"
+#endif
 
 //#define CHECK_RESTORE_STATUS
+static __ccmu_reg_list_t   *CmuReg;
+
 
 /*
 *********************************************************************************************************
@@ -21,7 +27,6 @@
 */
 __s32 mem_clk_save(struct clk_state *pclk_state)
 {
-	__ccmu_reg_list_t   *CmuReg;
 	pclk_state->CmuReg = CmuReg = (__ccmu_reg_list_t *)IO_ADDRESS(AW_CCM_BASE);
 
 	/*backup clk src and ldo*/
@@ -66,7 +71,7 @@ __s32 mem_clk_save(struct clk_state *pclk_state)
 __s32 mem_clk_restore(struct clk_state *pclk_state)
 {
 	/* initialise the CCU io base */
-	__ccmu_reg_list_t   *CmuReg = pclk_state->CmuReg;
+	CmuReg = pclk_state->CmuReg;
 	
 	/*restore clk src and ldo*/
 	*(volatile __u32 *)&CmuReg->SysClkDiv    = pclk_state->ccu_reg_back[0];  
@@ -163,7 +168,7 @@ __s32 mem_clk_restore(struct clk_state *pclk_state)
 #endif
 
 	//is this neccessary?
-	 mdelay(2);
+	// mdelay(2);
 	 
 	/* config the CCU to default status */
 	//needed?
@@ -180,3 +185,129 @@ __s32 mem_clk_restore(struct clk_state *pclk_state)
 	
 	return 0;
 }
+
+
+/*
+*********************************************************************************************************
+*                           mem_clk_init
+*
+*Description: ccu init for platform mem
+*
+*Arguments  : none
+*
+*Return     : result,
+*
+*Notes      :
+*
+*********************************************************************************************************
+*/
+__s32 mem_clk_init(void)
+{
+    CmuReg = (__ccmu_reg_list_t *)IO_ADDRESS(AW_CCM_BASE);
+
+    return 0;
+}
+
+/*
+*********************************************************************************************************
+*                                     mem_clk_setdiv
+*
+* Description: switch core clock to 32k low osc.
+*
+* Arguments  : none
+*
+* Returns    : 0;
+*********************************************************************************************************
+*/
+__s32 mem_clk_setdiv(struct clk_div_t *clk_div)
+{
+	if(!clk_div)
+	{
+	return -1;
+	}
+	
+	CmuReg->SysClkDiv.AXIClkDiv = clk_div->axi_div;
+	//CmuReg->SysClkDiv.AHBClkDiv = clk_div->ahb_div;
+	//CmuReg->SysClkDiv.APB0ClkDiv = clk_div->apb_div;
+	
+	return 0;
+}
+
+/*
+*********************************************************************************************************
+*                                     mem_clk_getdiv
+*
+* Description: switch core clock to 32k low osc.
+*
+* Arguments  : none
+*
+* Returns    : 0;
+*********************************************************************************************************
+*/
+__s32 mem_clk_getdiv(struct clk_div_t  *clk_div)
+{
+	if(!clk_div)
+	{
+	return -1;
+	}
+	
+	clk_div->axi_div = CmuReg->SysClkDiv.AXIClkDiv;
+	//clk_div->ahb_div = CmuReg->SysClkDiv.AHBClkDiv;
+	//clk_div->apb_div = CmuReg->SysClkDiv.APB0ClkDiv;
+	
+	return 0;
+}
+
+
+/*
+*********************************************************************************************************
+*                                     mem_clk_set_pll_factor
+*
+* Description: set pll factor, target cpu freq is ?M hz
+*
+* Arguments  : none
+*
+* Returns    : 0;
+*********************************************************************************************************
+*/
+
+__s32 mem_clk_set_pll_factor(struct pll_factor_t *pll_factor)
+{
+
+	CmuReg->Pll1Ctl.FactorN = pll_factor->FactorN;
+	CmuReg->Pll1Ctl.FactorK = pll_factor->FactorK;
+	CmuReg->Pll1Ctl.FactorM = pll_factor->FactorM;
+	//CmuReg->Pll1Ctl.PLLDivP = pll_factor->FactorP;
+	
+	//busy_waiting();
+	
+	return 0;
+}
+
+/*
+*********************************************************************************************************
+*                                     mem_clk_get_pll_factor
+*
+* Description: get pll factor
+*
+* Arguments  : none
+*
+* Returns    : 0;
+*********************************************************************************************************
+*/
+
+__s32 mem_clk_get_pll_factor(struct pll_factor_t *pll_factor)
+{
+	pll_factor->FactorN = CmuReg->Pll1Ctl.FactorN;
+	pll_factor->FactorK = CmuReg->Pll1Ctl.FactorK;
+	pll_factor->FactorM = CmuReg->Pll1Ctl.FactorM;
+	//pll_factor->FactorP = CmuReg->Pll1Ctl.PLLDivP;
+	
+	//busy_waiting();
+	
+	return 0;
+}
+
+
+
+

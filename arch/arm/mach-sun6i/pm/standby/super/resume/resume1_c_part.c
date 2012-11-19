@@ -109,6 +109,9 @@ int resume1_c_part(void)
 void set_pll( void )
 {
 	//cpus in charge this
+	mem_clk_init();
+	mem_clk_setdiv(&mem_para_info.clk_div);
+	mem_clk_set_pll_factor(&mem_para_info.pll_factor);
 
 	return ;
 }

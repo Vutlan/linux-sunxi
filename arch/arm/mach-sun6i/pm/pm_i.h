@@ -139,11 +139,6 @@ struct gic_state{
 	struct gic_cpu_interface_state m_interface;
 };
 
-struct clk_state{
-	__ccmu_reg_list_t   *CmuReg;
-	__u32    ccu_reg_back[15];
-};
-
 struct twi_state{
 	__mem_twic_reg_t *twi_reg;
 	__u32 twi_reg_backup[7];
@@ -158,8 +153,6 @@ struct sram_state{
 };
 
 //save module state
-__s32 mem_clk_save(struct clk_state *pclk_state);
-__s32 mem_clk_restore(struct clk_state *pclk_state);
 __s32 mem_twi_save(struct twi_state *ptwi_state);
 __s32 mem_twi_restore(struct twi_state *ptwi_state);
 __s32 mem_gpio_save(struct gpio_state *pgpio_state);

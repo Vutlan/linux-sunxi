@@ -82,8 +82,8 @@ typedef	struct normal_standby_para
 *@brief struct of pmu device arg
 */
 struct aw_pmu_arg{
-    unsigned int  twi_port;     /**<twi port for pmu chip   */
-    unsigned char dev_addr;     /**<address of pmu device   */
+    unsigned int  twi_port;		/**<twi port for pmu chip   */
+    unsigned char dev_addr;		/**<address of pmu device   */
 };
 
 
@@ -91,10 +91,10 @@ struct aw_pmu_arg{
 *@brief struct of standby
 */
 struct aw_standby_para{
-	unsigned int event;     /**<event type for system wakeup    */
-	unsigned int axp_event;     /**<axp event type for system wakeup    */
-	unsigned int debug_mask;     /* debug mask */
-	signed int   timeout;  /**<time to power off from now, based on second */
+	unsigned int event;		/**<event type for system wakeup    */
+	unsigned int axp_event;		/**<axp event type for system wakeup    */
+	unsigned int debug_mask;	/* debug mask */
+	signed int   timeout;		/**<time to power off system from now, based on second */
 };
 
 
@@ -102,8 +102,8 @@ struct aw_standby_para{
 *@brief struct of power management info
 */
 struct aw_pm_info{
-    struct aw_standby_para  standby_para;   /* standby parameter            */
-    struct aw_pmu_arg       pmu_arg;        /**<args used by main function  */
+    struct aw_standby_para		standby_para;   /* standby parameter            */
+    struct aw_pmu_arg			pmu_arg;        /**<args used by main function  */
 };
 
 

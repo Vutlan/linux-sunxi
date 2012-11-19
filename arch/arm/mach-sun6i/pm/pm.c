@@ -93,7 +93,7 @@ extern void save_runtime_context(__u32 *addr);
 extern void clear_reg_context(void);
 
 /*mem_mapping.c*/
-void create_mapping(struct map_desc *md);
+void create_mapping(void);
 void save_mapping(unsigned long vaddr);
 void restore_mapping(unsigned long vaddr);
 
@@ -102,13 +102,6 @@ int (*mem)(void) = 0;
 #ifdef CONFIG_CPU_FREQ_USR_EVNT_NOTIFY
 extern void cpufreq_user_event_notify(void);
 #endif
-
-static struct map_desc mem_sram_md = { 
-	.virtual = MEM_SW_VA_SRAM_BASE,         
-	.pfn = __phys_to_pfn(MEM_SW_PA_SRAM_BASE),         
-	.length = SZ_1M, 
-	.type = MT_MEMORY_ITCM,  
- 	};
 
 static struct aw_pm_info standby_info = {
     .standby_para = {
@@ -351,7 +344,10 @@ static int aw_early_suspend(void)
 	}else{
 		retry = MAX_RETRY_TIMES;
 	}	
+#endif
 
+#if 1
+	mem_clk_init();
 	/*backup bus ratio*/
 	mem_clk_getdiv(&mem_para_info.clk_div);
 	/*backup pll ratio*/
@@ -378,8 +374,9 @@ static int aw_early_suspend(void)
 	save_processor_state(); 
 
 	//create 0x0000,0000 mapping table: 0x0000,0000 -> 0x0000,0000 
-	create_mapping(&mem_sram_md);
+	create_mapping();
 
+#if 1
 	//before creating mapping, build the coherent between cache and memory
 	//clean and flush
 	__cpuc_flush_kern_all();
@@ -387,7 +384,7 @@ static int aw_early_suspend(void)
 
 	__cpuc_coherent_user_range(0x00000000, 0xc0000000-1);
 	__cpuc_coherent_kern_range(0xc0000000, 0xffffffff-1);
-	
+#endif	
 
 #ifdef ENTER_SUPER_STANDBY
 	//print_call_info();
@@ -404,10 +401,11 @@ static int aw_early_suspend(void)
 		pr_info("resume1_bin_start = 0x%x, resume1_bin_end = 0x%x. \n", (int)&resume1_bin_start, (int)&resume1_bin_end);
 		pr_info("resume_code_src = 0x%lx, resume_code_length = %ld. resume_code_length = %lx \n", super_standby_para_info.resume_code_src, super_standby_para_info.resume_code_length, super_standby_para_info.resume_code_length);
 	}
-	
-	ar100_standby_super((struct super_standby_para *)(&super_standby_para_info));
+
 	//disable int to make sure the cpu0 into wfi state.
-	mem_int_init();
+	mem_int_init();	
+	ar100_standby_super((struct super_standby_para *)(&super_standby_para_info));
+
 	if(unlikely(debug_mask&PM_STANDBY_PRINT_STANDBY)){
 		pr_info("warning: cpus not sync to enter super standby. \n");
 		while(1){

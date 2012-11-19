@@ -22,5 +22,6 @@
 //other module may define printk, while its declaration may not be the same with this. 
 //so, it not proper to export this symbols to global.
 __s32 printk(const char *format, ...);
+__s32 printk_nommu(const char *format, ...);
 
 #endif  //__MEM_PRINTK_H__

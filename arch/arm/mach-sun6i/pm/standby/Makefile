@@ -46,7 +46,8 @@ RESUME1_OBJ =	./super/common.o             	\
 		./../mem_divlib.o		\
 		./../mem_divlibc.o		\
 		./../mem_int.o			\
-		./../mem_tmr.o
+		./../mem_tmr.o			\
+		./../mem_clk.o
 		
 STANDBY_OUPUTFILE = standby
 RESUME1_OUPUTFILE = resume1
@@ -123,6 +124,7 @@ resume1:
 	$(CC) $(INCLUDE) $(CFLAGS) ./../mem_divlibc.c    -o 		./../mem_divlibc.o 
 	$(CC) $(INCLUDE) $(CFLAGS) ./../mem_int.c    	-o 		./../mem_int.o
 	$(CC) $(INCLUDE) $(CFLAGS) ./../mem_tmr.c    -o 		./../mem_tmr.o
+	$(CC) $(INCLUDE) $(CFLAGS) ./../mem_clk.c    -o 		./../mem_clk.o
 	
 	$(CROSS_COMPILE)ld -T $(RESUME1_LD_FILE)  -EL  $(RESUME1_OBJ) -o $(RESUME1_OUPUTFILE).elf  -Map $(RESUME1_OUPUTFILE).map
 	$(CROSS_COMPILE)objdump -D $(RESUME1_OUPUTFILE).elf > $(RESUME1_OUPUTFILE).lst

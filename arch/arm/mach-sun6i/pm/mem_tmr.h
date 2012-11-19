@@ -4,13 +4,13 @@
 *                                        AllWinner Linux Platform Develop Kits
 *                                                   Kernel Module
 *
-*                                    (c) Copyright 2006-2011, kevin.z China
+*                                    (c) Copyright 2011-2015, gq.yang China
 *                                             All Rights Reserved
 *
 * File    : mem_tmr.h
-* By      : kevin.z
+* By      : gq.yang
 * Version : v1.0
-* Date    : 2011-5-31 15:23
+* Date    : 2012-11-31 15:23
 * Descript:
 * Update  : date                auther      ver     notes
 *********************************************************************************************************

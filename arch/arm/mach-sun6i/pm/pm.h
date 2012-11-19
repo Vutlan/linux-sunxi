@@ -20,6 +20,8 @@
 #include "mem_divlibc.h"
 #include "mem_int.h"
 #include "mem_tmr.h"
+#include <mach/ccmu.h>
+#include "mem_clk.h"
 #include "mem_timing.h"
 
 #define PM_STANDBY_PRINT_STANDBY (1U << 0)
@@ -45,21 +47,6 @@
 
 #define likely(x)	__builtin_expect(!!(x), 1)
 #define unlikely(x)	__builtin_expect(!!(x), 0)
-
-struct clk_div_t {
-    __u32   cpu_div:4;      /* division of cpu clock, divide core_pll */
-    __u32   axi_div:4;      /* division of axi clock, divide cpu clock*/
-    __u32   ahb_div:4;      /* division of ahb clock, divide axi clock*/
-    __u32   apb_div:4;      /* division of apb clock, divide ahb clock*/
-    __u32   reserved:16;
-};
-struct pll_factor_t {
-    __u8    FactorN;
-    __u8    FactorK;
-    __u8    FactorM;
-    __u8    FactorP;
-    __u32   Pll;
-};
 
 struct mmu_state {
 	/* CR0 */
@@ -90,6 +77,8 @@ struct aw_mem_para{
 	__u32 sys_event;
 	__u32 debug_mask;
 	__u32 saved_runtime_context_svc[RUNTIME_CONTEXT_SIZE];
+	struct clk_div_t clk_div;
+	struct pll_factor_t pll_factor;
 	struct mmu_state saved_mmu_state;
 	struct saved_context saved_cpu_context;
 };

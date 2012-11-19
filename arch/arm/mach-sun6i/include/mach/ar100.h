@@ -32,9 +32,10 @@ typedef int (*ar100_cb_t)(void *arg);
  */
 int ar100_dvfs_set_cpufreq(unsigned long freq, unsigned long mode, ar100_cb_t cb);
 
-/*
- * enter super standby.
- * para:  parameter for enter normal standby.
+/* 
+ * ar100_standby_super
+ * function: enter super standby.
+ * para:  parameter for enter super standby.
  * return: result, 0 - super standby successed, !0 - super standby failed;
  */
 int ar100_standby_super(struct super_standby_para *para);
