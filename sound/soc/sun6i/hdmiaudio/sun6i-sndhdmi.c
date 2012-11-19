@@ -41,7 +41,6 @@ static int sun6i_sndhdmi_hw_params(struct snd_pcm_substream *substream,
 	codec_dai = rtd->codec_dai;
 	cpu_dai = rtd->cpu_dai;
 	
-	/*0:pcm.1:raw data*/
 	ret = snd_soc_dai_set_fmt(codec_dai, 0);
 	if (ret < 0)
 		return ret;

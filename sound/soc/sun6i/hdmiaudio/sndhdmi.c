@@ -122,7 +122,7 @@ struct snd_soc_dai_driver sndhdmi_dai = {
 	.playback = {
 		.stream_name = "Playback",
 		.channels_min = 1,
-		.channels_max = 2,
+		.channels_max = 4,
 		.rates = SNDHDMI_RATES,
 		.formats = SNDHDMI_FORMATS,
 	},
