@@ -140,4 +140,7 @@ source "drivers/devfreq/Kconfig"
 
 source "drivers/sunxi_gpio/Kconfig"
 
+# for test
+source "drivers/test/Kconfig"
+
 endmenu

@@ -1,0 +1,4 @@
+config SUN4I_NANDFLASH_TEST
+        tristate "SUN4I Nandflash_test Driver"
+        ---help---
+          Nand flash driver for SUN4I
