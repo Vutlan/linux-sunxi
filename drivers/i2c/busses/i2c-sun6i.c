@@ -28,8 +28,9 @@
 #include <linux/io.h>
 #include <asm/irq.h>
 
-// #include <mach/sys_config.h>
+#include <mach/gpio.h>
 #include <mach/irqs-sun6i.h>
+
 #include <mach/i2c.h>
 
 #define SUN6I_I2C_DEBUG
@@ -429,6 +430,7 @@ static int twi_request_gpio(struct sun6i_i2c *i2c)
 	    reg_val |= 0x500000;
 	    writel(reg_val, _Pn_DRV0(6));
 	}
+#ifdef SUN6I_RTWI
 	else if(i2c->bus_num == 4) {
 		/* configuration register */
 		unsigned int  reg_val = readl(_R_Pn_CFG0(0));
@@ -448,6 +450,7 @@ static int twi_request_gpio(struct sun6i_i2c *i2c)
 	    reg_val |= 0x5;
 	    writel(reg_val, _R_Pn_DRV0(0));
 	}
+#endif
 #else
 	if(i2c->bus_num == 0) {
 		/* PH14-PH15 TWI0 SCK,SDA */
@@ -481,6 +484,7 @@ static int twi_request_gpio(struct sun6i_i2c *i2c)
 			return -1;
 		}
 	}
+#ifdef SUN6I_RTWI
 	else if(i2c->bus_num == 4) {
 		/* PL0-PL1 R_TWI SCK,SDA */
 		i2c->gpio_hdle = sw_gpio_request_ex("r_twi_para", NULL);
@@ -489,6 +493,7 @@ static int twi_request_gpio(struct sun6i_i2c *i2c)
 			return -1;
 		}
 	}
+#endif
 #endif
 
 	return 0;
@@ -569,6 +574,7 @@ static void twi_release_gpio(struct sun6i_i2c *i2c)
 	    reg_val |= 0x500000;
 	    writel(reg_val, _Pn_PUL0(6));
 	}
+#ifdef SUN6I_RTWI
 	else if(i2c->bus_num == 4){
 		/* config reigster */
 		unsigned int  reg_val = readl(_R_Pn_CFG0(0));
@@ -587,8 +593,9 @@ static void twi_release_gpio(struct sun6i_i2c *i2c)
 	    reg_val |= 0x5;
 	    writel(reg_val, _R_Pn_PUL0(0));
 	}
+#endif
 #else
-	gpio_release(i2c->gpio_hdle, 0);
+	sw_gpio_release(i2c->gpio_hdle, 0);
 #endif
 }
 #endif
@@ -1200,8 +1207,8 @@ static int sun6i_i2c_probe(struct platform_device *pdev)
 	struct resource *res = NULL;
 	struct sun6i_i2c_platform_data *pdata = NULL;
 #ifdef AW_ASIC_PLATFORM
-	char *i2c_clk[] ={"mod_twi0","mod_twi1","mod_twi2","mod_twi3","r_twi"};
-	char *i2c_pclk[] ={"apb_twi0","apb_twi1","apb_twi2","aph_twi3","apb_r_twi"};
+	char *i2c_clk[] ={"mod_twi0","mod_twi1","mod_twi2","mod_twi3"};
+	char *i2c_pclk[] ={"apb_twi0","apb_twi1","apb_twi2","apb_twi3"};
 #endif
 	int ret;
 	int irq;
@@ -1572,6 +1579,7 @@ struct platform_device sun6i_twi3_device = {
 };
 #endif
 
+#ifdef SUN6I_RTWI
 /* r_twi */
 static struct resource sun6i_rtwi_resources[] = {
 	{
@@ -1601,6 +1609,7 @@ struct platform_device sun6i_rtwi_device = {
 		.platform_data = sun6i_rtwi_pdata,
 	},
 };
+#endif
 
 // static struct i2c_board_info eeprom_i2c_board_info[] __initdata = {
 	// {
@@ -1623,7 +1632,9 @@ static int __init sun6i_i2c_adap_init(void) {
 	platform_device_register(&sun6i_twi2_device);
 	platform_device_register(&sun6i_twi3_device);
 #endif
+#ifdef SUN6I_RTWI
 	platform_device_register(&sun6i_rtwi_device);
+#endif
 
 	return platform_driver_register(&sun6i_i2c_driver);
 }

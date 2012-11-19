@@ -176,14 +176,21 @@ Foscl is clock SCL;standard mode:100KHz or fast mode:400KHz
 #define TWI2_BASE_ADDR_END    (TWI2_BASE_ADDR_START + SUN6I_TWI_ADDR_SIZE)
 #define TWI3_BASE_ADDR_START  (0x01C2B800)
 #define TWI3_BASE_ADDR_END    (TWI3_BASE_ADDR_START + SUN6I_TWI_ADDR_SIZE)
+
+#undef SUN6I_RTWI
+#ifdef SUN6I_RTWI
 #define RTWI_BASE_ADDR_START  (0x01F02400)
 #define RTWI_BASE_ADDR_END    (RTWI_BASE_ADDR_START + SUN6I_TWI_ADDR_SIZE)
+#endif
 
 #define TWI0_TRANSFER_SPEED     (200000)
 #define TWI1_TRANSFER_SPEED     (100000)
 #define TWI2_TRANSFER_SPEED     (200000)
 #define TWI3_TRANSFER_SPEED     (200000)
+
+#ifdef SUN6I_RTWI
 #define RTWI_TRANSFER_SPEED     (100000)
+#endif
 
 struct sun6i_i2c_platform_data {
 	int 		 bus_num;

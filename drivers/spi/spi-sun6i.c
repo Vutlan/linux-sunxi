@@ -31,6 +31,7 @@
 #include <mach/hardware.h>
 #include <mach/irqs-sun6i.h>
 #include <mach/sys_config.h>
+#include <mach/gpio.h>
 #include <mach/spi.h>
 
 #define SPI_INF(...)    printk(__VA_ARGS__)
@@ -1206,7 +1207,7 @@ static int sun6i_spi_set_gpio(struct sun6i_spi *sspi, bool on)
         }
     }
     else {
-		gpio_release(sspi->gpio_hdle, 0);
+		sw_gpio_release(sspi->gpio_hdle, 0);
     }
 
 	return 0;
@@ -1221,16 +1222,12 @@ static int sun6i_spi_set_mclk(struct sun6i_spi *sspi, u32 mod_clk)
     switch (source)
     {
         case 0:
-            source_clock = clk_get(NULL, "hosc");
-            name = "hosc";
+            source_clock = clk_get(NULL, "sys_hosc");
+            name = "sys_hosc";
             break;
         case 1:
-            source_clock = clk_get(NULL, "sdram_pll_p");
-            name = "sdram_pll_p";
-            break;
-        case 2:
-            source_clock = clk_get(NULL, "sata_pll");
-            name = "sata_pll";
+            source_clock = clk_get(NULL, "sys_pll6");
+            name = "sys_pll6";
             break;
         default:
             return -1;
@@ -1276,7 +1273,7 @@ static int sun6i_spi_hw_init(struct sun6i_spi *sspi)
 {
 	void *base_addr = sspi->base_addr;
 	unsigned long sclk_freq = 0;
-	char* mclk_name[] = {"spi0","spi1","spi2","spi3"};
+	char* mclk_name[] = {"mod_spi0","mod_spi1","mod_spi2","mod_spi3"};
     sspi->mclk = clk_get(&sspi->pdev->dev, mclk_name[sspi->pdev->id]);
 	if (IS_ERR(sspi->mclk)) {
 		SPI_ERR("Unable to acquire module clock 'spi'\n");
@@ -1324,6 +1321,7 @@ static int sun6i_spi_hw_exit(struct sun6i_spi *sspi)
 	/* disable module clock */
     clk_disable(sspi->mclk);
     clk_put(sspi->mclk);
+	sun6i_spi_set_gpio(sspi, 0);
 
 	return 0;
 }
@@ -1374,6 +1372,7 @@ static int __init sun6i_spi_probe(struct platform_device *pdev)
 	struct sun6i_spi *sspi;
 	struct sun6i_spi_platform_data *pdata;
 	struct spi_master *master;
+	char irq_name[48];
 	int ret = 0, err = 0, irq;
 	int cs_bitmap = 0;
 
@@ -1445,7 +1444,8 @@ static int __init sun6i_spi_probe(struct platform_device *pdev)
 	    SPI_INF("[spi-%d]: cs bitmap from cfg = 0x%x \n", master->bus_num, cs_bitmap);
 	}
 
-	err = request_irq(sspi->irq, sun6i_spi_handler, IRQF_DISABLED, pdev->name, sspi);
+	snprintf(irq_name, sizeof(irq_name), "sun6i-spi.%u", pdev->id);
+	err = request_irq(sspi->irq, sun6i_spi_handler, IRQF_DISABLED, irq_name, sspi);
 	if (err) {
 		SPI_ERR("Cannot request IRQ\n");
 		goto err0;
@@ -1515,10 +1515,12 @@ static int __init sun6i_spi_probe(struct platform_device *pdev)
 err6:
 	destroy_workqueue(sspi->workqueue);
 err5:
-	// clk_disable(sspi->hclk);
-// err4:
-	// clk_put(sspi->hclk);
-// err3:
+#ifdef AW_ASIC_PLATFORM
+	clk_disable(sspi->hclk);
+err4:
+	clk_put(sspi->hclk);
+err3:
+#endif
 	iounmap((void *)sspi->base_addr);
 err2:
 	release_mem_region(mem_res->start, resource_size(mem_res));
