@@ -567,6 +567,7 @@ __s32 BSP_disp_layer_set_framebuffer(__u32 sel, __u32 hid, __disp_fb_t * pfb)//k
                 layer_fb.offset_x   = layer_man->para.src_win.x;
                 layer_fb.offset_y   = layer_man->para.src_win.y;
                 layer_fb.format = pfb->format;
+                layer_fb.pre_multiply = pfb->pre_multiply;
                 DE_BE_Layer_Set_Framebuffer(sel, hid,&layer_fb);
             }
 
@@ -675,6 +676,7 @@ __s32 BSP_disp_layer_set_src_window(__u32 sel, __u32 hid,__disp_rect_t *regn)//i
                 layer_fb.offset_x   = regn->x;
                 layer_fb.offset_y   = regn->y;
                 layer_fb.format = layer_man->para.fb.format;
+                layer_fb.pre_multiply = layer_man->para.fb.pre_multiply;
 
                 DE_BE_Layer_Set_Framebuffer(sel, hid,&layer_fb);
             }
@@ -1011,6 +1013,7 @@ __s32 BSP_disp_layer_set_para(__u32 sel, __u32 hid,__disp_layer_info_t *player)
                 layer_fb.fb_width   = player->fb.size.width;
                 layer_fb.offset_x   = player->src_win.x;
                 layer_fb.offset_y   = player->src_win.y;
+                layer_fb.pre_multiply = player->fb.pre_multiply;
 
 	            bpp = DE_BE_Format_To_Bpp(sel, layer_fb.format);
                 size = (player->fb.size.width * player->scn_win.height * bpp + 7)/8;

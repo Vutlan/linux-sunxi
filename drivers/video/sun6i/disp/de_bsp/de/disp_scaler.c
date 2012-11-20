@@ -1096,6 +1096,7 @@ __s32 BSP_disp_scaler_start_ex(__u32 handle,__disp_scaler_para_t *para)
     DE_SCAL_Set_Writeback_Addr_ex(sel,&out_addr,&out_size,&out_type);
     DE_SCAL_Writeback_Linestride_Enable(sel);
     DE_SCAL_Output_Select(sel, 3);
+    DE_SCAL_Input_Select(sel, 0);
     
     DE_SCAL_EnableINT(sel,DE_WB_END_IE);
     DE_SCAL_Start(sel);   

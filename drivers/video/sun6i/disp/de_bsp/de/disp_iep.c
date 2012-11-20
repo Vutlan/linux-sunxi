@@ -19,7 +19,7 @@ __s32 iep_init(__u32 sel)
 
     memset(cmu, 0, sizeof(__iep_cmu_t));
     cmu->status = 0;
-	cmu->layer_mode = DISP_ENHANCE_MODE_STANDARD;
+	cmu->layer_mode = DISP_ENHANCE_MODE_VIVID;
     cmu->layer_rect.x = 0;
     cmu->layer_rect.y = 0;
     cmu->layer_rect.width = BSP_disp_get_screen_width(sel);
@@ -29,7 +29,7 @@ __s32 iep_init(__u32 sel)
     cmu->layer_contrast = 50;
     cmu->layer_hue = 50;
 
-    cmu->screen_mode = DISP_ENHANCE_MODE_STANDARD;
+    cmu->screen_mode = DISP_ENHANCE_MODE_VIVID;
     cmu->screen_rect.x = 0;
     cmu->screen_rect.y = 0;
     cmu->screen_rect.width = BSP_disp_get_screen_width(sel);

@@ -3,8 +3,8 @@
 
 #include "disp_display_i.h"
 
-#define  AW_MOD_CLK_AHB_TVE0  AW_SYS_CLK_NONE
-#define  AW_MOD_CLK_AHB_TVE1  AW_SYS_CLK_NONE
+#define  MOD_CLK_AHB_TVE0  0
+#define  MOD_CLK_AHB_TVE1  0
 
 typedef struct
 {
@@ -53,6 +53,12 @@ __s32 lvds_clk_init(void);
 __s32 lvds_clk_exit(void);
 __s32 lvds_clk_on(void);
 __s32 lvds_clk_off(void);
+
+__s32 dsi_clk_init(void);
+__s32 dsi_clk_exit(void);
+__s32 dsi_clk_on(void);
+__s32 dsi_clk_off(void);
+
 
 __s32 disp_pll_init(void);
 __s32 disp_clk_cfg(__u32 sel, __u32 type, __u8 mode);

@@ -457,7 +457,7 @@ __s32 dsi_packet_cfg(__u32 sel,__panel_para_t * panel)
 		dsi_hbp = (panel->lcd_hbp-panel->lcd_hspw)  *dsi_pixel_bits[panel->lcd_dsi_format]/8 - (4+2+4);
 		dsi_hfp = (panel->lcd_ht-panel->lcd_x-panel->lcd_hbp)  *dsi_pixel_bits[panel->lcd_dsi_format]/8 - (2+4+2+4);
 		dsi_hblk = (4+dsi_hbp+2)+(4+dsi_hact+2)+(4+dsi_hfp+2)-4-2;
-		tmp = (4+(4+dsi_hsa+2)+4+(4+dsi_hblk+2))*(panel->lcd_vt/2-1);
+		tmp = (4+(4+dsi_hsa+2)+4+(4+dsi_hblk+2))*(panel->lcd_vt-1);
 		tmp = tmp+4+(4+dsi_hsa+2)+4+(4+2);
 		dsi_vblk = 4-tmp%4;
 
@@ -485,7 +485,7 @@ __s32 dsi_packet_cfg(__u32 sel,__panel_para_t * panel)
 		dsi_dev[sel]->dsi_basic_size0.bits.vsa = panel->lcd_vspw;
 		dsi_dev[sel]->dsi_basic_size0.bits.vbp = panel->lcd_vbp-panel->lcd_vspw;
 		dsi_dev[sel]->dsi_basic_size1.bits.vact = panel->lcd_y;
-		dsi_dev[sel]->dsi_basic_size1.bits.vt = panel->lcd_vt/2;
+		dsi_dev[sel]->dsi_basic_size1.bits.vt = panel->lcd_vt;
 		dsi_dev[sel]->dsi_blk_hsa0.bits.vc = panel->lcd_dsi_vc;
 		dsi_dev[sel]->dsi_blk_hsa0.bits.dt = DSI_DT_BLK;
 		dsi_dev[sel]->dsi_blk_hsa0.bits.wc = dsi_hsa;

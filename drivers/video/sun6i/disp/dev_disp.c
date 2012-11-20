@@ -86,6 +86,7 @@ __s32 disp_create_heap(__u32 pHeapHead, __u32 pHeapHeadPhy, __u32 nHeapSize)
 
 void *disp_malloc(__u32 num_bytes, __u32 *phy_addr)
 {
+#if 0
     struct alloc_struct_t *ptr, *newptr;
     __u32  actual_bytes;
 
@@ -135,10 +136,32 @@ void *disp_malloc(__u32 num_bytes, __u32 *phy_addr)
     }
     
     return (void *)newptr->address;
+#else
+    __u32 actual_bytes;
+    __u32 address;
+    
+    if(num_bytes != 0)
+    {
+        actual_bytes = MY_BYTE_ALIGN(num_bytes);
+        address = sunxi_mem_alloc(actual_bytes);
+        if(address)
+        {
+            __inf("sunxi_mem_alloc ok, address=0x%x, size=0x%x\n", address, num_bytes);
+            *phy_addr = address;
+            return (void*)ioremap_nocache((unsigned long)address, actual_bytes);
+        }
+        __wrn("sunxi_mem_alloc fail, size=0x%x\n", num_bytes);
+    }
+    
+    __wrn("disp_malloc size is zero\n");
+
+    return 0;
+#endif
 }
 
-void  disp_free(void *p)
+void  disp_free(void *virt_addr, void* phy_addr)
 {
+#if 0
     struct alloc_struct_t *ptr, *prev;
 
 	if( p == NULL )
@@ -160,6 +183,19 @@ void  disp_free(void *p)
     prev->next = ptr->next;     /* delete the node which need be released from the memory block chain  */
 
     return ;
+#else
+    if(virt_addr)
+    {
+       iounmap(virt_addr); 
+    }
+
+    if(phy_addr)
+    {
+        sunxi_mem_free((unsigned long)phy_addr);
+    }
+
+    return ;
+#endif
 }
 
 __s32 DRV_lcd_open(__u32 sel)
@@ -310,11 +346,9 @@ void disp_lcd_open_timer(unsigned long sel)
     return;
 }
 
-extern __s32 Hdmi_get_disp_func(__disp_hdmi_func * disp_func);
-
-__s32 disp_get_hdmi_func(__disp_hdmi_func * func)
+__s32 disp_set_hdmi_func(__disp_hdmi_func * func)
 {
-    Hdmi_get_disp_func(func);
+    BSP_disp_set_hdmi_func(func);
 
     return 0;
 }
@@ -323,6 +357,8 @@ __s32 DRV_DISP_Init(void)
 {
     __disp_bsp_init_para para;
 
+	__inf("DRV_DISP_Init !\n");
+		
     init_waitqueue_head(&g_fbi.wait[0]);
     init_waitqueue_head(&g_fbi.wait[1]);
     g_fbi.wait_count[0] = 0;
@@ -350,13 +386,14 @@ __s32 DRV_DISP_Init(void)
     para.base_dsi0       = (__u32)g_fbi.base_dsi0;
 
 	para.disp_int_process       = DRV_disp_int_process;
-    para.hdmi_get_disp_func     = disp_get_hdmi_func;
+    para.vsync_event            = DRV_disp_vsync_event;
 
 	memset(&g_disp_drv, 0, sizeof(__disp_drv_t));
 
     BSP_disp_init(&para);
     BSP_disp_open();
 
+	__inf("DRV_DISP_Init end\n");
     return 0;
 }
 
@@ -440,8 +477,9 @@ int disp_mem_release(int sel)
 #else
 	if(g_disp_mm[sel].info_base == 0)
 		return -EINVAL;
-
-    disp_free((void *)g_disp_mm[sel].info_base);
+    
+    __inf("disp_mem_release, mem_id=%d, phy_addr=0x%x\n", sel, (long unsigned int)g_disp_mm[sel].mem_start);
+    disp_free((void *)g_disp_mm[sel].info_base, (void*)g_disp_mm[sel].mem_start);
     memset(&g_disp_mm[sel],0,sizeof(struct info_mm));
 #endif
 
@@ -485,8 +523,8 @@ static int __init disp_probe(struct platform_device *pdev)//called when platform
 {
 	fb_info_t * info = NULL;
 
-	__inf("disp_probe call\n");
-    
+	pr_info("[DISP]==disp_probe call==\n");
+
 	info = &g_fbi;
     init_timer(&info->disp_timer[0]);
     init_timer(&info->disp_timer[1]);
@@ -530,9 +568,7 @@ static int __init disp_probe(struct platform_device *pdev)//called when platform
 	__inf("PIO base 0x%08x\n", info->base_pioc);
 	__inf("PWM base 0x%08x\n", info->base_pwm);
 
-    DRV_DISP_Init();
-
-    Fb_Init();
+    pr_info("[DISP]==disp_probe finish==\n");
 
 	return 0;
 }
@@ -643,6 +679,8 @@ static struct early_suspend backlight_early_suspend_handler =
 #endif
 
 static __u32 image0_reg_bak,scaler0_reg_bak;
+static __u32 image1_reg_bak,scaler1_reg_bak;
+
 int disp_suspend(struct platform_device *pdev, pm_message_t state)
 {
 #ifndef CONFIG_HAS_EARLYSUSPEND
@@ -685,10 +723,15 @@ int disp_suspend(struct platform_device *pdev, pm_message_t state)
      {
         pr_info("==disp super standby enter\n");
 
-        image0_reg_bak = (__u32)disp_malloc(0xe00 - 0x800, 0);
-        scaler0_reg_bak = (__u32)disp_malloc(0xa18, 0);
+        image0_reg_bak = (__u32)kmalloc(0xe00 - 0x800, GFP_KERNEL | __GFP_ZERO);
+        scaler0_reg_bak = (__u32)kmalloc(0xa18, GFP_KERNEL | __GFP_ZERO);
         BSP_disp_store_image_reg(0, image0_reg_bak);
         BSP_disp_store_scaler_reg(0, scaler0_reg_bak);
+
+        image1_reg_bak = (__u32)kmalloc(0xe00 - 0x800, GFP_KERNEL | __GFP_ZERO);
+        scaler1_reg_bak = (__u32)kmalloc(0xa18, GFP_KERNEL | __GFP_ZERO);
+        BSP_disp_store_image_reg(1, image1_reg_bak);
+        BSP_disp_store_scaler_reg(1, scaler1_reg_bak);
      }
 
     BSP_disp_hdmi_suspend();
@@ -716,8 +759,14 @@ int disp_resume(struct platform_device *pdev)
         BSP_disp_restore_scaler_reg(0, scaler0_reg_bak);
         BSP_disp_restore_image_reg(0, image0_reg_bak);
         BSP_disp_restore_lcdc_reg(0);
-        disp_free((void*)scaler0_reg_bak);
-        disp_free((void*)image0_reg_bak);
+        kfree((void*)scaler0_reg_bak);
+        kfree((void*)image0_reg_bak);
+
+        BSP_disp_restore_scaler_reg(1, scaler1_reg_bak);
+        BSP_disp_restore_image_reg(1, image1_reg_bak);
+        BSP_disp_restore_lcdc_reg(1);
+        kfree((void*)scaler1_reg_bak);
+        kfree((void*)image1_reg_bak);
     }
 
     BSP_disp_hdmi_resume();
@@ -1048,6 +1097,11 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
             return ret;
             break;
        }
+
+      case DISP_CMD_VSYNC_EVENT_EN:
+            ret = BSP_disp_vsync_event_enable(ubuffer[0], ubuffer[1]);
+            break;
+            
     //----layer----
     	case DISP_CMD_LAYER_REQUEST:
     		ret = BSP_disp_layer_request(ubuffer[0], (__disp_layer_work_mode_t)ubuffer[1]);
@@ -1970,7 +2024,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			break;
 
 	//----for test----
-		case DISP_CMD_MEM_RELASE:
+		case DISP_CMD_MEM_RELEASE:
 			ret =  disp_mem_release(ubuffer[0]);
 			break;
 
@@ -2046,8 +2100,7 @@ int __init disp_module_init(void)
 {
     int ret = 0, err;
 
-    __inf("disp_module_init\n");
-
+    pr_info("[DISP]==disp_module_init==\n");
 
     alloc_chrdev_region(&devid, 0, 1, "disp");
     my_cdev = cdev_alloc();
@@ -2081,8 +2134,7 @@ int __init disp_module_init(void)
 
     disp_attr_node_init();
 
-    __inf("disp_module_init finish\n");
-
+    pr_info("[DISP]==disp_module_init finish==\n");
 
 	return ret;
 }
@@ -2105,12 +2157,11 @@ static void __exit disp_module_exit(void)
     cdev_del(my_cdev);
 }
 
-//EXPORT_SYMBOL(disp_set_hdmi_func);
-//EXPORT_SYMBOL(DRV_DISP_Init);
+EXPORT_SYMBOL(disp_set_hdmi_func);
+EXPORT_SYMBOL(DRV_DISP_Init);
 
 
-//module_init(disp_module_init);
-late_initcall(disp_module_init);
+module_init(disp_module_init);
 module_exit(disp_module_exit);
 
 

@@ -111,6 +111,9 @@ __s32 BSP_disp_exit(__u32 mode)
 
         OSAL_InterruptDisable(INTC_IRQNO_SCALER1);
         OSAL_UnRegISR(INTC_IRQNO_SCALER1,Scaler_event_proc,(void*)0);
+
+        OSAL_InterruptDisable(INTC_IRQNO_DSI);
+        OSAL_UnRegISR(INTC_IRQNO_DSI,Disp_lcdc_event_proc,(void*)0);
     }
     
     return DIS_SUCCESS;

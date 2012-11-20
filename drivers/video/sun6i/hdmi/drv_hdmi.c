@@ -256,10 +256,13 @@ int Hdmi_run_thread(void *parg)
 }
 
 extern void audio_set_hdmi_func(__audio_hdmi_func * hdmi_func);
+extern __s32 disp_set_hdmi_func(__disp_hdmi_func * func);
+
 
 __s32 Hdmi_init(void)
 {	    
     __audio_hdmi_func audio_func;
+    __disp_hdmi_func disp_func;
     __s32 ret;
     __u32 value;
 
@@ -295,25 +298,21 @@ __s32 Hdmi_init(void)
             audio_func.hdmi_audio_enable = Hdmi_Audio_Enable;
             audio_func.hdmi_set_audio_para = Hdmi_Set_Audio_Para;
         	audio_set_hdmi_func(&audio_func);
+
+            
+            disp_func.hdmi_open = Hdmi_open;
+            disp_func.hdmi_close = Hdmi_close;
+            disp_func.hdmi_set_mode = Hdmi_set_display_mode;
+            disp_func.hdmi_mode_support = Hdmi_mode_support;
+            disp_func.hdmi_get_HPD_status = Hdmi_get_HPD_status;
+            disp_func.hdmi_set_pll = Hdmi_set_pll;
+            disp_set_hdmi_func(&disp_func);
         }
     }
 
     return 0;
 }
 
-__s32 Hdmi_get_disp_func(__disp_hdmi_func * disp_func)
-{
-    disp_func->hdmi_open = Hdmi_open;
-    disp_func->hdmi_close = Hdmi_close;
-    disp_func->hdmi_set_mode = Hdmi_set_display_mode;
-    disp_func->hdmi_mode_support = Hdmi_mode_support;
-    disp_func->hdmi_get_HPD_status = Hdmi_get_HPD_status;
-    disp_func->hdmi_set_pll = Hdmi_set_pll;
-    disp_func->hdmi_suspend = Hdmi_suspend;
-    disp_func->hdmi_resume = Hdmi_resume;
-
-    return 0;
-}
 __s32 Hdmi_exit(void)
 {
     if(hdmi_used)
@@ -337,17 +336,22 @@ __s32 Hdmi_exit(void)
 
 __s32 Hdmi_suspend(void)
 {
-    Hdmi_exit();
+    if(hdmi_used)
+    {
+        Hdmi_exit();
+    }
 
     return 0;
 }
 
 __s32 Hdmi_resume(void)
 {
-    Hdmi_init();
+    if(hdmi_used)
+    {
+        Hdmi_init();
+    }
 
     return  0;
 }
 
-EXPORT_SYMBOL(Hdmi_get_disp_func);
 

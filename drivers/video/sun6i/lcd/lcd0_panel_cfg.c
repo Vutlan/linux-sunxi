@@ -34,29 +34,43 @@ static void LCD_cfg_panel_info(__panel_para_t * info)
     
     memset(info,0,sizeof(__panel_para_t));
 
-    info->lcd_x             = 800;
-    info->lcd_y             = 480;
-    info->lcd_dclk_freq     = 33;       //MHz
+    info->lcd_if              = 3;        //0:hv(sync+de); 1:8080; 2:ttl;  3:lvds; 4:dsi
+
+    info->lcd_x               = 1280;
+    info->lcd_y               = 800;
+    info->lcd_dclk_freq       = 70;       //MHz 
+    info->lcd_dclk_phase      = 1;        //0: normal phase offset; 1: 1/3 phase offset;  2: 2/3 phase offset; 4: 90 phase  5: phase 0; 
+    info->lcd_pwm_freq        = 50000;     //Hz
+    info->lcd_pwm_pol         = 1;
+
+    info->lcd_hbp             = 20;      //hsync back porch
+    info->lcd_ht              = 1418;     //hsync total cycle
+    info->lcd_hspw            = 0;        //hsync plus width
+    info->lcd_vbp             = 10;       //vsync back porch
+    info->lcd_vt              = 814;      //vysnc total cycle
+    info->lcd_vspw            = 0;        //vysnc plus width
+
+    info->lcd_hv_if           = 0;        //0:parallel  hv; 8:serial hv; 12:ccir656 
+    info->lcd_hv_srgb_seq     = 0;        //serial RGB output sequence
+    info->lcd_hv_syuv_seq     = 0;        //serial YUV output sequence
+    info->lcd_hv_syuv_fdly    = 0;        //serial YUV output F line delay
+
+    info->lcd_lvds_if         = 0;        //0:single channel; 1:dual channel    
+    info->lcd_lvds_mode       = 0;        //0:NS mode; 1:JEIDA mode    
+    info->lcd_lvds_colordepth = 1;        //0:8bit; 1:6bit    
+    info->lcd_lvds_io_polarity= 0;        //0:normal; 1:pn cross
     
-    info->lcd_pwm_not_used  = 0;
-    info->lcd_pwm_ch        = 0;
-    info->lcd_pwm_freq      = 10000;     //Hz
-    info->lcd_pwm_pol       = 0;
+    info->lcd_dsi_if          = 0;        //0: video mode;   1:command mode
+    info->lcd_dsi_lane        = 0;        //0: 1 lnae;  1: 2lane; 2:3lane;  3:4lane
+    info->lcd_dsi_format      = 0;        //0: RGB888;  1:RGB666;  2:RGB666P;   3: RGB565
+    info->lcd_dsi_eotp        = 0;        //0: no ending symbol;  1: insert  ending symbol
+    info->lcd_dsi_te          = 0;        //0: disable; 1: rising te mode;  2:falling te mode
 
-    info->lcd_if            = 0;        //0:hv(sync+de); 1:8080; 2:ttl; 3:lvds
+    info->lcd_cpu_if          = 0;        //0: 18bit; 8:16bit
+    info->lcd_cpu_te          = 0;        //0: disable; 1: rising te mode;  2:falling te mode
 
-    info->lcd_hbp           = 215;      //hsync back porch
-    info->lcd_ht            = 1055;     //hsync total cycle
-    info->lcd_hspw          = 0;        //hsync plus width
-    info->lcd_vbp           = 34;       //vsync back porch
-    info->lcd_vt            = 2 * 525;  //vysnc total cycle *2
-    info->lcd_vspw          = 0;        //vysnc plus width
+    info->lcd_frm             = 1;        //0: disable; 1: enable rgb666 dither; 2:enable rgb656 dither
 
-    info->lcd_hv_if         = 0;        //0:hv parallel 1:hv serial 
-
-    info->lcd_frm           = 0;        //0: disable; 1: enable rgb666 dither; 2:enable rgb656 dither
-
-    info->lcd_io_cfg0       = 0x00000000;
 
     info->lcd_gamma_en = 0;
     if(info->lcd_gamma_en)
@@ -67,18 +81,15 @@ static void LCD_cfg_panel_info(__panel_para_t * info)
         {
             __u32 num = g_gamma_tbl[i+1][0] - g_gamma_tbl[i][0];
 
-            //__inf("handling{%d,%d}\n", g_gamma_tbl[i][0], g_gamma_tbl[i][1]);
             for(j=0; j<num; j++)
             {
                 __u32 value = 0;
 
                 value = g_gamma_tbl[i][1] + ((g_gamma_tbl[i+1][1] - g_gamma_tbl[i][1]) * j)/num;
                 info->lcd_gamma_tbl[g_gamma_tbl[i][0] + j] = (value<<16) + (value<<8) + value;
-                //__inf("----gamma %d, %d\n", g_gamma_tbl[i][0] + j, value);
             }
         }
         info->lcd_gamma_tbl[255] = (g_gamma_tbl[items-1][1]<<16) + (g_gamma_tbl[items-1][1]<<8) + g_gamma_tbl[items-1][1];
-        //__inf("----gamma 255, %d\n", g_gamma_tbl[items-1][1]);
     }
 }
 #endif
@@ -131,6 +142,7 @@ static __s32 LCD_user_defined_func(__u32 sel, __u32 para1, __u32 para2, __u32 pa
 
 void LCD_get_panel_funs_0(__lcd_panel_fun_t * fun)
 {
+    __inf("LCD_get_panel_funs_0\n");
 #ifdef LCD_PARA_USE_CONFIG
     fun->cfg_panel_info = LCD_cfg_panel_info;//delete this line if you want to use the lcd para define in sys_config1.fex
 #endif

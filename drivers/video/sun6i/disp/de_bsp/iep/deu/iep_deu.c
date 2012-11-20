@@ -18,19 +18,23 @@ static __u8 *plptab;
 
 #define CLK_ON 1
 #define CLK_OFF 0
-#define RST_INVAILD 0
-#define RST_VAILD   1
+#define RST_INVAILD AW_CCU_CLK_NRESET
+#define RST_VAILD   AW_CCU_CLK_RESET
 
 #define ____SEPARATOR_DEU_CLK____
 __s32 deu_clk_init(__u32 sel)
 {
 	if(!sel)
 	{
-	    h_deuahbclk0 = OSAL_CCMU_OpenMclk(AW_AHB_CLK_DEU0);
-	    h_deudramclk0 = OSAL_CCMU_OpenMclk(AW_DRAM_CLK_DEU0);
-	    h_deumclk0 = OSAL_CCMU_OpenMclk(AW_MOD_CLK_IEPDEU0);
+	    h_deuahbclk0 = OSAL_CCMU_OpenMclk(AHB_CLK_DEU0);
+	    h_deudramclk0 = OSAL_CCMU_OpenMclk(DRAM_CLK_DEU0);
+	    h_deumclk0 = OSAL_CCMU_OpenMclk(MOD_CLK_IEPDEU0);
 
 		OSAL_CCMU_MclkReset(h_deumclk0, RST_INVAILD);
+		
+		OSAL_CCMU_SetMclkSrc(h_deumclk0, SYS_CLK_PLL7);	//FIX CONNECT TO VIDEO PLL1
+		OSAL_CCMU_SetMclkDiv(h_deumclk0, 1);
+		
 		OSAL_CCMU_MclkOnOff(h_deuahbclk0, CLK_ON);
 		OSAL_CCMU_MclkOnOff(h_deumclk0, CLK_ON);
 		
@@ -38,11 +42,15 @@ __s32 deu_clk_init(__u32 sel)
 	}
 	else
 	{
-		h_deuahbclk1 = OSAL_CCMU_OpenMclk(AW_AHB_CLK_DEU1);
-	    h_deudramclk1 = OSAL_CCMU_OpenMclk(AW_DRAM_CLK_DEU1);
-	    h_deumclk1 = OSAL_CCMU_OpenMclk(AW_MOD_CLK_IEPDEU1);
+		h_deuahbclk1 = OSAL_CCMU_OpenMclk(AHB_CLK_DEU1);
+	    h_deudramclk1 = OSAL_CCMU_OpenMclk(DRAM_CLK_DEU1);
+	    h_deumclk1 = OSAL_CCMU_OpenMclk(MOD_CLK_IEPDEU1);
 
 		OSAL_CCMU_MclkReset(h_deumclk1, RST_INVAILD);
+		
+		OSAL_CCMU_SetMclkSrc(h_deumclk1, SYS_CLK_PLL7);	//FIX CONNECT TO VIDEO PLL1
+		OSAL_CCMU_SetMclkDiv(h_deumclk1, 1);
+		
 		OSAL_CCMU_MclkOnOff(h_deuahbclk1, CLK_ON);
 		OSAL_CCMU_MclkOnOff(h_deumclk1, CLK_ON);
 		

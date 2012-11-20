@@ -37,26 +37,24 @@ void OSAL_free(void *pAddr)
 /* 连续的物理内存分配 */
 void * OSAL_PhyAlloc(__u32 Size)
 {
-	return NULL;
+	return kmalloc(Size, GFP_KERNEL | __GFP_ZERO);
 }
 
 void OSAL_PhyFree(void *pAddr, __u32 Size)
 {
-
+    kfree(pAddr);
 }
 
 
 /* 虚拟内存和物理内存之间的转化 */
 unsigned int OSAL_VAtoPA(void *va)
 {
-	return (unsigned int)va;
-    //return virt_to_phys(va);
+	return (unsigned int)(va);
 }
 
 void *OSAL_PAtoVA(unsigned int pa)
 {
-	return (void *)pa;
-    //return phys_to_virt(pa);
+    return (void*)(pa);
 }
 
 

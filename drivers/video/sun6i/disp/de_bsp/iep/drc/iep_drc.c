@@ -19,8 +19,8 @@ static __u32 g_iep_status[2] = {0,0};
 
 #define CLK_ON 1
 #define CLK_OFF 0
-#define RST_INVAILD 0
-#define RST_VAILD   1
+#define RST_INVAILD AW_CCU_CLK_NRESET
+#define RST_VAILD   AW_CCU_CLK_RESET
 
 //#define DRC_DEFAULT_ENABLE	//Enable drc default
 //#define DRC_DEMO_HALF_SCREEN //when defined DRC_DEFAULT_ENABLE, run DRC in DEMO mode 		
@@ -29,13 +29,28 @@ static __u32 g_iep_status[2] = {0,0};
 #define ____SEPARATOR_DRC_CLK____
 __s32 drc_clk_init(__u32 sel)
 {
+	__u32 dram_pll;
+	
 	if(!sel)
 	{
-	    h_drcahbclk0 = OSAL_CCMU_OpenMclk(AW_AHB_CLK_DRC0);
-	    h_drcdramclk0 = OSAL_CCMU_OpenMclk(AW_DRAM_CLK_DRC0);
-	    h_drcmclk0 = OSAL_CCMU_OpenMclk(AW_MOD_CLK_IEPDRC0);
+	    h_drcahbclk0 = OSAL_CCMU_OpenMclk(AHB_CLK_DRC0);
+	    h_drcdramclk0 = OSAL_CCMU_OpenMclk(DRAM_CLK_DRC0);
+	    h_drcmclk0 = OSAL_CCMU_OpenMclk(MOD_CLK_IEPDRC0);
 
 		OSAL_CCMU_MclkReset(h_drcmclk0, RST_INVAILD);
+
+		OSAL_CCMU_SetMclkSrc(h_drcmclk0, SYS_CLK_PLL6);
+
+		dram_pll = OSAL_CCMU_GetSrcFreq(SYS_CLK_PLL6);
+		if(dram_pll < 300000000)
+		{
+			OSAL_CCMU_SetMclkDiv(h_drcmclk0, 1);
+		}
+		else
+		{
+			OSAL_CCMU_SetMclkDiv(h_drcmclk0, 2);
+		}
+		
 		OSAL_CCMU_MclkOnOff(h_drcahbclk0, CLK_ON);
 		OSAL_CCMU_MclkOnOff(h_drcmclk0, CLK_ON);
 		
@@ -43,11 +58,24 @@ __s32 drc_clk_init(__u32 sel)
 	}
 	else
 	{
-		h_drcahbclk1 = OSAL_CCMU_OpenMclk(AW_AHB_CLK_DRC1);
-	    h_drcdramclk1 = OSAL_CCMU_OpenMclk(AW_DRAM_CLK_DRC1);
-	    h_drcmclk1 = OSAL_CCMU_OpenMclk(AW_MOD_CLK_IEPDRC1);
+		h_drcahbclk1 = OSAL_CCMU_OpenMclk(AHB_CLK_DRC1);
+	    h_drcdramclk1 = OSAL_CCMU_OpenMclk(DRAM_CLK_DRC1);
+	    h_drcmclk1 = OSAL_CCMU_OpenMclk(MOD_CLK_IEPDRC1);
 
 		OSAL_CCMU_MclkReset(h_drcmclk1, RST_INVAILD);
+
+		OSAL_CCMU_SetMclkSrc(h_drcmclk1, SYS_CLK_PLL6);
+		
+		dram_pll = OSAL_CCMU_GetSrcFreq(SYS_CLK_PLL6);
+		if(dram_pll < 300000000)
+		{
+			OSAL_CCMU_SetMclkDiv(h_drcmclk1, 1);
+		}
+		else
+		{
+			OSAL_CCMU_SetMclkDiv(h_drcmclk1, 2);
+		}
+				
 		OSAL_CCMU_MclkOnOff(h_drcahbclk1, CLK_ON);
 		OSAL_CCMU_MclkOnOff(h_drcmclk1, CLK_ON);
 		

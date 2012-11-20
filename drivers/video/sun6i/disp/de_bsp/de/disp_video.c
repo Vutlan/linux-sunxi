@@ -291,6 +291,7 @@ static __inline __s32 Hal_Set_Frame(__u32 sel, __u32 tcon_index, __u32 id)
         __disp_fb_t fb;
         layer_src_t layer_fb;
 
+        memset(&layer_fb, 0, sizeof(layer_src_t));
         layer_man = &gdisp.screen[sel].layer_manage[id];
 
         BSP_disp_layer_get_framebuffer(sel, id, &fb);
@@ -465,11 +466,12 @@ __s32 BSP_disp_video_stop(__u32 sel, __u32 hid)
 __s32 disp_video_init()
 {
     memset(g_video,0,sizeof(g_video));
+#ifdef __LINUX_OSAL__
     maf_flag_mem[0][0] = (void*)__pa((char __iomem *)kmalloc(maf_flag_mem_len, GFP_KERNEL |  __GFP_ZERO));
     maf_flag_mem[0][1] = (void*)__pa((char __iomem *)kmalloc(maf_flag_mem_len, GFP_KERNEL |  __GFP_ZERO));
     maf_flag_mem[1][0] = (void*)__pa((char __iomem *)kmalloc(maf_flag_mem_len, GFP_KERNEL |  __GFP_ZERO));
     maf_flag_mem[1][1] = (void*)__pa((char __iomem *)kmalloc(maf_flag_mem_len, GFP_KERNEL |  __GFP_ZERO));
-
+#endif
     dit_mode_default[0] = DIT_MODE_MAF;
     dit_mode_default[1] = DIT_MODE_MAF;
 	return DIS_SUCCESS;
@@ -477,10 +479,12 @@ __s32 disp_video_init()
 
 __s32 disp_video_exit()
 {
+#ifdef __LINUX_OSAL__
     kfree(maf_flag_mem[0][0]);
     kfree(maf_flag_mem[0][1]);
     kfree(maf_flag_mem[1][0]);
     kfree(maf_flag_mem[1][1]);
+#endif
     memset(g_video,0,sizeof(g_video));
     
 	return DIS_SUCCESS;

@@ -17,376 +17,107 @@
 #include "OSAL_Clock.h"
 
 #ifndef __OSAL_CLOCK_MASK__
-static char* _sysClkName[AW_CCU_CLK_CNT] =
+
+#define disp_clk_inf(clk_id, clk_name)   {.id = clk_id, .name = clk_name}
+
+__disp_clk_t disp_clk_tbl[] =
 {
-    "none"            ,
-    "sys_losc"         ,
-    "sys_hosc"         ,
-    "sys_pll1"         ,
-    "sys_pll2"         ,
-    "sys_pll3"         ,
-    "sys_pll4"         ,
-    "sys_pll5"         ,
-    "sys_pll6"         ,
-    "sys_pll7"         ,
-    "sys_pll8"         ,
-    "sys_pll9"         ,
-    "sys_pll10"        ,
-    "sys_pll2X8"       ,
-    "sys_pll3X2"       ,
-    "sys_pll6X2"       ,
-    "sys_pll7X2"       ,
-    "sys_mipi_pll"     ,
-    "sys_ac327"        ,
-    "sys_ar100"        ,
-    "sys_axi"          ,
-    "sys_ahb0"         ,
-    "sys_ahb1"         ,
-    "sys_apb0"         ,
-    "sys_apb1"         ,
-    "sys_apb2"         ,
-    "none"             ,
-    "mod_nand0"        ,
-    "mod_nand1"        ,
-    "mod_sdc0"         ,
-    "mod_sdc1"         ,
-    "mod_sdc2"         ,
-    "mod_sdc3"         ,
-    "mod_ts"           ,
-    "mod_ss"           ,
-    "mod_spi0"         ,
-    "mod_spi1"         ,
-    "mod_spi2"         ,
-    "mod_spi3"         ,
-    "mod_i2s0"         ,
-    "mod_i2s1"         ,
-    "mod_spdif"        ,
-    "mod_usbphy0"      ,
-    "mod_usbphy1"      ,
-    "mod_usbphy2"      ,
-    "mod_usbehci0"     ,
-    "mod_usbehci1"     ,
-    "mod_usbohci0"     ,
-    "mod_usbohci1"     ,
-    "mod_usbohci2"     ,
-    "mod_usbotg"       ,
-    "mod_mdfs"         ,
-    "mod_debe0"        ,
-    "mod_debe1"        ,
-    "mod_defe0"        ,
-    "mod_defe1"        ,
-    "mod_demp"         ,
-    "mod_lcd0ch0"      ,
-    "mod_lcd0ch1"      ,
-    "mod_lcd1ch0"      ,
-    "mod_lcd1ch1"      ,
-    "mod_csi0s"        ,
-    "mod_csi0m"        ,
-    "mod_csi1s"        ,
-    "mod_csi1m"        ,
-    "mod_ve"           ,
-    "mod_adda"         ,
-    "mod_avs"          ,
-    "mod_hdmi"         ,
-    "mod_ps"           ,
-    "mod_mtcacc"       ,
-    "mod_mbus0"        ,
-    "mod_mbus1"        ,
-    "mod_dram"         ,
-    "mod_mipidsis"     ,
-    "mod_mipidsip"     ,
-    "mod_mipicsis"     ,
-    "mod_mipicsip"     ,
-    "mod_iepdrc0"      ,
-    "mod_iepdrc1"      ,
-    "mod_iepdeu0"      ,
-    "mod_iepdeu1"      ,
-    "mod_gpucore"      ,
-    "mod_gpumem"       ,
-    "mod_gpuhyd"       ,
-    "mod_twi0"         ,
-    "mod_twi1"         ,
-    "mod_twi2"         ,
-    "mod_twi3"         ,
-    "mod_uart0"        ,
-    "mod_uart1"        ,
-    "mod_uart2"        ,
-    "mod_uart3"        ,
-    "mod_uart4"        ,
-    "mod_uart5"        ,
-    "mod_gmac"         ,
-    "mod_dma"          ,
-    "mod_hstmr"        ,
-    "mod_msgbox"       ,
-    "mod_spinlock"     ,
-    "mod_lvds"         ,
-    "smp_twd"          ,
-    "axi_dram"         ,
-    "ahb_mipicsi"      ,
-    "ahb_mipidsi"      ,
-    "ahb_ss"           ,
-    "ahb_dma"          ,
-    "ahb_sdmmc0"       ,
-    "ahb_sdmmc1"       ,
-    "ahb_sdmmc2"       ,
-    "ahb_sdmmc3"       ,
-    "ahb_nand1"        ,
-    "ahb_nand0"        ,
-    "ahb_sdram"        ,
-    "ahb_gmac"         ,
-    "ahb_ts"           ,
-    "ahb_hstmr"        ,
-    "ahb_spi0"         ,
-    "ahb_spi1"         ,
-    "ahb_spi2"         ,
-    "ahb_spi3"         ,
-    "ahb_otg"          ,
-    "ahb_ehci0"        ,
-    "ahb_ehci1"        ,
-    "ahb_ohci0"        ,
-    "ahb_ohci1"        ,
-    "ahb_ohci2"        ,
-    "ahb_ve"           ,
-    "ahb_lcd0"         ,
-    "ahb_lcd1"         ,
-    "ahb_csi0"         ,
-    "ahb_csi1"         ,
-    "ahb_hdmid"        ,
-    "ahb_debe0"        ,
-    "ahb_debe1"        ,
-    "ahb_defe0"        ,
-    "ahb_defe1"        ,
-    "ahb_mp"           ,
-    "ahb_gpu"          ,
-    "ahb_msgbox"       ,
-    "ahb_spinlock"     ,
-    "ahb_deu0"         ,
-    "ahb_deu1"         ,
-    "ahb_drc0"         ,
-    "ahb_drc1"         ,
-    "ahb_mtcacc"       ,
-    "apb_adda"         ,
-    "apb_spdif"        ,
-    "apb_pio"          ,
-    "apb_i2s0"         ,
-    "apb_i2s1"         ,
-    "apb_twi0"         ,
-    "apb_twi1"         ,
-    "apb_twi2"         ,
-    "apb_twi3"         ,
-    "apb_uart0"        ,
-    "apb_uart1"        ,
-    "apb_uart2"        ,
-    "apb_uart3"        ,
-    "apb_uart4"        ,
-    "apb_uart5"        ,
-    "dram_ve"          ,
-    "dram_csi0"        ,
-    "dram_csi1"        ,
-    "dram_ts"          ,
-    "dram_drc0"        ,
-    "dram_drc1"        ,
-    "dram_deu0"        ,
-    "dram_deu1"        ,
-    "dram_defe0"       ,
-    "dram_defe1"       ,
-    "dram_debe0"       ,
-    "dram_debe1"       ,
-    "dram_mp"          ,
+    disp_clk_inf(SYS_CLK_PLL3,        "sys_pll3"      ),
+    disp_clk_inf(SYS_CLK_PLL7,        "sys_pll7"      ),
+    disp_clk_inf(SYS_CLK_PLL9,        "sys_pll9"      ),
+    disp_clk_inf(SYS_CLK_PLL10,       "sys_pll10"     ),
+    disp_clk_inf(SYS_CLK_PLL3X2,      "sys_pll3x2"    ),
+    disp_clk_inf(SYS_CLK_PLL6,        "sys_pll6"      ),
+    disp_clk_inf(SYS_CLK_PLL6x2,      "sys_pll6x2"    ),
+    disp_clk_inf(SYS_CLK_PLL7X2,      "sys_pll7x2"    ),
+    disp_clk_inf(SYS_CLK_MIPIPLL,     "sys_mipi-pll"  ),
+
+    disp_clk_inf(MOD_CLK_DEBE0,       "mod_debe0"     ),
+    disp_clk_inf(MOD_CLK_DEBE1,       "mod_debe1"     ),
+    disp_clk_inf(MOD_CLK_DEFE0,       "mod_defe0"     ),
+    disp_clk_inf(MOD_CLK_DEFE1,       "mod_defe1"     ),
+    disp_clk_inf(MOD_CLK_DEMIX,       "mod_demp"      ),
+    disp_clk_inf(MOD_CLK_LCD0CH0,     "mod_lcd0ch0"   ),
+    disp_clk_inf(MOD_CLK_LCD0CH1,     "mod_lcd0ch1"   ),
+    disp_clk_inf(MOD_CLK_LCD1CH0,     "mod_lcd1ch0"   ),
+    disp_clk_inf(MOD_CLK_LCD1CH1,     "mod_lcd1ch1"   ),
+    disp_clk_inf(MOD_CLK_HDMI,        "mod_hdmi"      ),
+    disp_clk_inf(MOD_CLK_MIPIDSIS,    "mod_mipidsis"  ),
+    disp_clk_inf(MOD_CLK_MIPIDSIP,    "mod_mipidsip"  ),
+    disp_clk_inf(MOD_CLK_IEPDRC0,     "mod_iepdrc0"   ),
+    disp_clk_inf(MOD_CLK_IEPDRC1,     "mod_iepdrc1"   ),
+    disp_clk_inf(MOD_CLK_IEPDEU0,     "mod_iepdeu0"   ),
+    disp_clk_inf(MOD_CLK_IEPDEU1,     "mod_iepdeu1"   ),
+    disp_clk_inf(MOD_CLK_LVDS,        "mod_lvds"      ),
+    
+    disp_clk_inf(AHB_CLK_MIPIDSI,     "ahb_mipidsi"   ),
+    disp_clk_inf(AHB_CLK_LCD0,        "ahb_lcd0"      ),
+    disp_clk_inf(AHB_CLK_LCD1,        "ahb_lcd1"      ),
+    disp_clk_inf(AHB_CLK_CSI0,        "ahb_csi0"      ),
+    disp_clk_inf(AHB_CLK_CSI1,        "ahb_csi1"      ),
+    disp_clk_inf(AHB_CLK_HDMID,       "ahb_hdmid"     ),
+    disp_clk_inf(AHB_CLK_DEBE0,       "ahb_debe0"     ),
+    disp_clk_inf(AHB_CLK_DEBE1,       "ahb_debe1"     ),
+    disp_clk_inf(AHB_CLK_DEFE0,       "ahb_defe0"     ),
+    disp_clk_inf(AHB_CLK_DEFE1,       "ahb_defe1"     ),
+    disp_clk_inf(AHB_CLK_DEU0,        "ahb_deu0"      ),
+    disp_clk_inf(AHB_CLK_DEU1,        "ahb_deu1"      ),
+    disp_clk_inf(AHB_CLK_DRC0,        "ahb_drc0"      ),
+    disp_clk_inf(AHB_CLK_DRC1,        "ahb_drc1"      ),
+    
+    disp_clk_inf(DRAM_CLK_DRC0,       "dram_drc0"     ),
+    disp_clk_inf(DRAM_CLK_DRC1,       "dram_drc1"     ),
+    disp_clk_inf(DRAM_CLK_DEU0,       "dram_deu0"     ),
+    disp_clk_inf(DRAM_CLK_DEU1,       "dram_deu1"     ),
+    disp_clk_inf(DRAM_CLK_DEFE0,      "dram_defe0"    ),
+    disp_clk_inf(DRAM_CLK_DEFE1,      "dram_defe1"    ),
+    disp_clk_inf(DRAM_CLK_DEBE0,      "dram_debe0"    ),
+    disp_clk_inf(DRAM_CLK_DEBE1,      "dram_debe1"    ),
 };
 
-static char* _modClkName[AW_CCU_CLK_CNT] =
+__s32 osal_ccmu_get_clk_name(__disp_clk_id_t clk_no, char *clk_name)
 {
-    "none"            ,
-    "sys_losc"         ,
-    "sys_hosc"         ,
-    "sys_pll1"         ,
-    "sys_pll2"         ,
-    "sys_pll3"         ,
-    "sys_pll4"         ,
-    "sys_pll5"         ,
-    "sys_pll6"         ,
-    "sys_pll7"         ,
-    "sys_pll8"         ,
-    "sys_pll9"         ,
-    "sys_pll10"        ,
-    "sys_pll2X8"       ,
-    "sys_pll3X2"       ,
-    "sys_pll6X2"       ,
-    "sys_pll7X2"       ,
-    "sys_mipi_pll"     ,
-    "sys_ac327"        ,
-    "sys_ar100"        ,
-    "sys_axi"          ,
-    "sys_ahb0"         ,
-    "sys_ahb1"         ,
-    "sys_apb0"         ,
-    "sys_apb1"         ,
-    "sys_apb2"         ,
-    "none"             ,
-    "mod_nand0"        ,
-    "mod_nand1"        ,
-    "mod_sdc0"         ,
-    "mod_sdc1"         ,
-    "mod_sdc2"         ,
-    "mod_sdc3"         ,
-    "mod_ts"           ,
-    "mod_ss"           ,
-    "mod_spi0"         ,
-    "mod_spi1"         ,
-    "mod_spi2"         ,
-    "mod_spi3"         ,
-    "mod_i2s0"         ,
-    "mod_i2s1"         ,
-    "mod_spdif"        ,
-    "mod_usbphy0"      ,
-    "mod_usbphy1"      ,
-    "mod_usbphy2"      ,
-    "mod_usbehci0"     ,
-    "mod_usbehci1"     ,
-    "mod_usbohci0"     ,
-    "mod_usbohci1"     ,
-    "mod_usbohci2"     ,
-    "mod_usbotg"       ,
-    "mod_mdfs"         ,
-    "mod_debe0"        ,
-    "mod_debe1"        ,
-    "mod_defe0"        ,
-    "mod_defe1"        ,
-    "mod_demp"         ,
-    "mod_lcd0ch0"      ,
-    "mod_lcd0ch1"      ,
-    "mod_lcd1ch0"      ,
-    "mod_lcd1ch1"      ,
-    "mod_csi0s"        ,
-    "mod_csi0m"        ,
-    "mod_csi1s"        ,
-    "mod_csi1m"        ,
-    "mod_ve"           ,
-    "mod_adda"         ,
-    "mod_avs"          ,
-    "mod_hdmi"         ,
-    "mod_ps"           ,
-    "mod_mtcacc"       ,
-    "mod_mbus0"        ,
-    "mod_mbus1"        ,
-    "mod_dram"         ,
-    "mod_mipidsis"     ,
-    "mod_mipidsip"     ,
-    "mod_mipicsis"     ,
-    "mod_mipicsip"     ,
-    "mod_iepdrc0"      ,
-    "mod_iepdrc1"      ,
-    "mod_iepdeu0"      ,
-    "mod_iepdeu1"      ,
-    "mod_gpucore"      ,
-    "mod_gpumem"       ,
-    "mod_gpuhyd"       ,
-    "mod_twi0"         ,
-    "mod_twi1"         ,
-    "mod_twi2"         ,
-    "mod_twi3"         ,
-    "mod_uart0"        ,
-    "mod_uart1"        ,
-    "mod_uart2"        ,
-    "mod_uart3"        ,
-    "mod_uart4"        ,
-    "mod_uart5"        ,
-    "mod_gmac"         ,
-    "mod_dma"          ,
-    "mod_hstmr"        ,
-    "mod_msgbox"       ,
-    "mod_spinlock"     ,
-    "mod_lvds"         ,
-    "smp_twd"          ,
-    "axi_dram"         ,
-    "ahb_mipicsi"      ,
-    "ahb_mipidsi"      ,
-    "ahb_ss"           ,
-    "ahb_dma"          ,
-    "ahb_sdmmc0"       ,
-    "ahb_sdmmc1"       ,
-    "ahb_sdmmc2"       ,
-    "ahb_sdmmc3"       ,
-    "ahb_nand1"        ,
-    "ahb_nand0"        ,
-    "ahb_sdram"        ,
-    "ahb_gmac"         ,
-    "ahb_ts"           ,
-    "ahb_hstmr"        ,
-    "ahb_spi0"         ,
-    "ahb_spi1"         ,
-    "ahb_spi2"         ,
-    "ahb_spi3"         ,
-    "ahb_otg"          ,
-    "ahb_ehci0"        ,
-    "ahb_ehci1"        ,
-    "ahb_ohci0"        ,
-    "ahb_ohci1"        ,
-    "ahb_ohci2"        ,
-    "ahb_ve"           ,
-    "ahb_lcd0"         ,
-    "ahb_lcd1"         ,
-    "ahb_csi0"         ,
-    "ahb_csi1"         ,
-    "ahb_hdmid"        ,
-    "ahb_debe0"        ,
-    "ahb_debe1"        ,
-    "ahb_defe0"        ,
-    "ahb_defe1"        ,
-    "ahb_mp"           ,
-    "ahb_gpu"          ,
-    "ahb_msgbox"       ,
-    "ahb_spinlock"     ,
-    "ahb_deu0"         ,
-    "ahb_deu1"         ,
-    "ahb_drc0"         ,
-    "ahb_drc1"         ,
-    "ahb_mtcacc"       ,
-    "apb_adda"         ,
-    "apb_spdif"        ,
-    "apb_pio"          ,
-    "apb_i2s0"         ,
-    "apb_i2s1"         ,
-    "apb_twi0"         ,
-    "apb_twi1"         ,
-    "apb_twi2"         ,
-    "apb_twi3"         ,
-    "apb_uart0"        ,
-    "apb_uart1"        ,
-    "apb_uart2"        ,
-    "apb_uart3"        ,
-    "apb_uart4"        ,
-    "apb_uart5"        ,
-    "dram_ve"          ,
-    "dram_csi0"        ,
-    "dram_csi1"        ,
-    "dram_ts"          ,
-    "dram_drc0"        ,
-    "dram_drc1"        ,
-    "dram_deu0"        ,
-    "dram_deu1"        ,
-    "dram_defe0"       ,
-    "dram_defe1"       ,
-    "dram_debe0"       ,
-    "dram_debe1"       ,
-    "dram_mp"          ,
-};
+    __u32 i;
+    __u32 count;
+
+    count = sizeof(disp_clk_tbl)/sizeof(__disp_clk_t);
+    __inf("osal_ccmu_get_clk_name, count=%d\n",count);
+
+    for(i=0;i<count;i++)
+    {
+        if(disp_clk_tbl[i].id == clk_no)
+        {
+            memcpy(clk_name, disp_clk_tbl[i].name, strlen(disp_clk_tbl[i].name)+1);
+            return 0;
+        }
+    }
+
+    return -1;
+}
+
 __s32 OSAL_CCMU_SetSrcFreq( __u32 nSclkNo, __u32 nFreq )
 {
     struct clk* hSysClk = NULL;
     s32 retCode = -1;
+    char clk_name[20];
 
-    __inf("OSAL_CCMU_SetSrcFreq,  _sysClkName[%d]=%s\n", nSclkNo,_sysClkName[nSclkNo]);
+
+    if(osal_ccmu_get_clk_name(nSclkNo, clk_name) != 0)
+    {
+        __wrn("Fail to get clk name from clk id [%d].\n", nSclkNo);
+        return -1;
+    }
+    __inf("OSAL_CCMU_SetSrcFreq,  _sysClkName[%d]=%s\n", nSclkNo,clk_name);
     
-    hSysClk = clk_get(NULL, _sysClkName[nSclkNo]);
-
-    __inf("OSAL_CCMU_SetSrcFreq<%s,%d>\n",hSysClk->aw_clk->name, nFreq);
-
+    hSysClk = clk_get(NULL, clk_name);
+    
     if(NULL == hSysClk){
         __wrn("Fail to get handle for system clock [%d].\n", nSclkNo);
         return -1;
     }
+    
+    __inf("OSAL_CCMU_SetSrcFreq<%s,%d>\n",hSysClk->aw_clk->name, nFreq);
+
     if(nFreq == clk_get_rate(hSysClk)){
         __inf("Sys clk[%d] freq is alreay %d, not need to set.\n", nSclkNo, nFreq);
         clk_put(hSysClk);
@@ -409,9 +140,17 @@ __u32 OSAL_CCMU_GetSrcFreq( __u32 nSclkNo )
     struct clk* hSysClk = NULL;
     u32 nFreq = 0;
 
-    __inf("OSAL_CCMU_GetSrcFreq,  _sysClkName[%d]=%s\n", nSclkNo,_sysClkName[nSclkNo]);
+    char clk_name[20];
+
+    if(osal_ccmu_get_clk_name(nSclkNo, clk_name) != 0)
+    {
+        __wrn("Fail to get clk name from clk id [%d].\n", nSclkNo);
+        return -1;
+    }
+    __inf("OSAL_CCMU_SetSrcFreq,  _sysClkName[%d]=%s\n", nSclkNo,clk_name);
     
-    hSysClk = clk_get(NULL, _sysClkName[nSclkNo]);
+    hSysClk = clk_get(NULL, clk_name);
+    
     if(NULL == hSysClk){
         __wrn("Fail to get handle for system clock [%d].\n", nSclkNo);
         return -1;
@@ -426,10 +165,17 @@ __u32 OSAL_CCMU_GetSrcFreq( __u32 nSclkNo )
 __hdle OSAL_CCMU_OpenMclk( __s32 nMclkNo )
 {
     struct clk* hModClk = NULL;
+    char clk_name[20];
 
-    __inf("OSAL_CCMU_OpenMclk,  _modClkName[%d]=%s\n", nMclkNo,_modClkName[nMclkNo]);
-    hModClk = clk_get(NULL, _modClkName[nMclkNo]);
-
+    if(osal_ccmu_get_clk_name(nMclkNo, clk_name) != 0)
+    {
+        __wrn("Fail to get clk name from clk id [%d].\n", nMclkNo);
+        return -1;
+    }
+    __inf("OSAL_CCMU_SetSrcFreq,  _sysClkName[%d]=%s\n", nMclkNo,clk_name);
+    
+    hModClk = clk_get(NULL, clk_name);
+    
     return (__hdle)hModClk;
 }
 
@@ -448,16 +194,24 @@ __s32 OSAL_CCMU_SetMclkSrc( __hdle hMclk, __u32 nSclkNo )
     struct clk* hModClk = (struct clk*)hMclk;
     s32 retCode = -1;
 
-    __inf("OSAL_CCMU_SetMclkSrc, Mclk=%s, _sysClkName[%d]=%s\n", hModClk->aw_clk->name, nSclkNo,_sysClkName[nSclkNo]);
+    char clk_name[20];
 
-    hSysClk = clk_get(NULL, _sysClkName[nSclkNo]);
-
-    __inf("OSAL_CCMU_SetMclkSrc<%s,%s>\n",hModClk->aw_clk->name,hSysClk->aw_clk->name);
+    if(osal_ccmu_get_clk_name(nSclkNo, clk_name) != 0)
+    {
+        __wrn("Fail to get clk name from clk id [%d].\n", nSclkNo);
+        return -1;
+    }
+    __inf("OSAL_CCMU_SetSrcFreq,  _sysClkName[%d]=%s\n", nSclkNo,clk_name);
+    
+    hSysClk = clk_get(NULL, clk_name);
 
     if(NULL == hSysClk){
         __wrn("Fail to get handle for system clock [%d].\n", nSclkNo);
         return -1;
     }
+
+    __inf("OSAL_CCMU_SetMclkSrc<%s,%s>\n",hModClk->aw_clk->name,hSysClk->aw_clk->name);
+    
     if(clk_get_parent(hModClk) == hSysClk){
         __inf("Parent is alreay %d, not need to set.\n", nSclkNo);
         clk_put(hSysClk);
@@ -478,6 +232,7 @@ __s32 OSAL_CCMU_SetMclkSrc( __hdle hMclk, __u32 nSclkNo )
 __s32 OSAL_CCMU_GetMclkSrc( __hdle hMclk )
 {
     int sysClkNo = 0;
+#if 0
     struct clk* hModClk = (struct clk*)hMclk;
     struct clk* hParentClk = clk_get_parent(hModClk);
     const int TOTAL_SYS_CLK = sizeof(_sysClkName)/sizeof(char*);
@@ -500,7 +255,7 @@ __s32 OSAL_CCMU_GetMclkSrc( __hdle hMclk )
         __wrn("Failed to get parent clk.\n");
         return -1;
     }
-
+#endif
     return sysClkNo;
 }
 

@@ -137,6 +137,7 @@ typedef struct layer_input_src
    __u32    offset_y;
 
    __bool yuv_ch;
+   __bool pre_multiply;
 }layer_src_t;
 
 typedef struct dlcdp_src         /*direct lcd pipe input source definition */
@@ -317,7 +318,7 @@ __u32 DE_BE_ClearINT(__u8 sel,__u32 irqsrc);
 __s32 DE_BE_reg_auto_load_en(__u32 sel, __u32 en);
 
 __s32 DE_BE_Layer_Enable(__u32 sel, __u8 layidx, __bool enable);
-__s32 DE_BE_Layer_Set_Format(__u32 sel, __u8 layidx,__u8 format,__bool br_swap,__u8 order);
+__s32 DE_BE_Layer_Set_Format(__u32 sel, __u8 layidx,__u8 format,__bool br_swap,__u8 order, __bool pre_multiply);
 __s32 DE_BE_Layer_Set_Framebuffer(__u32 sel, __u8 layidx,layer_src_t *layer_fb);
 __s32 DE_BE_Layer_Set_Screen_Win(__u32 sel, __u8 layidx, __disp_rect_t * win);
 __s32 DE_BE_Layer_Video_Enable(__u32 sel, __u8 layidx,__bool video_en);

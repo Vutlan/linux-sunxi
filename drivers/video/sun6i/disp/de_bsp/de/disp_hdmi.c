@@ -29,14 +29,6 @@ __s32 Display_Hdmi_Init(void)
         }
         gdisp.screen[0].hdmi_mode = DISP_TV_MOD_720P_50HZ;
         gdisp.screen[1].hdmi_mode = DISP_TV_MOD_720P_50HZ;
-
-        if(gdisp.init_para.hdmi_get_disp_func)
-        {
-            __disp_hdmi_func disp_func;
-
-            gdisp.init_para.hdmi_get_disp_func(&disp_func);
-            BSP_disp_set_hdmi_func(&disp_func);
-        }
     }
 
     return DIS_SUCCESS;
@@ -212,7 +204,7 @@ __s32 BSP_disp_hdmi_set_src(__u32 sel, __disp_lcdc_src_t src)
                 tcon1_src_select(sel, LCD_SRC_BE1);
                 break;
 
-            case DISP_LCDC_SRC_BLUT:
+            case DISP_LCDC_SRC_BLUE:
                 tcon1_src_select(sel, LCD_SRC_BLUE);
                 break;
 

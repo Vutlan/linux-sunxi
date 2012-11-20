@@ -114,6 +114,41 @@ static DEVICE_ATTR(reg_dump, S_IRUGO|S_IWUSR|S_IWGRP,
 		disp_reg_dump_show, disp_reg_dump_store);
 
 
+#define ____SEPARATOR_VSYNC_EVENT____
+static ssize_t disp_vsync_event_enable_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return 0xff;
+}
+
+static ssize_t disp_vsync_event_enable_store(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+	int err;
+    unsigned long val;
+    
+	err = strict_strtoul(buf, 10, &val);
+	if (err) {
+		printk("Invalid size\n");
+		return err;
+	}
+
+    if((val>1))
+    {
+        printk("Invalid value, 0/1 is expected!\n");
+    }else
+    {
+        BSP_disp_vsync_event_enable(sel, val);
+	}
+    
+	return count;
+}
+
+static DEVICE_ATTR(vsync_event_enable, S_IRUGO|S_IWUSR|S_IWGRP,
+		disp_vsync_event_enable_show, disp_vsync_event_enable_store);
+
+
 #define ____SEPARATOR_LAYER____
 static ssize_t disp_layer_mode_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
@@ -870,6 +905,7 @@ static struct attribute *disp_attributes[] = {
     &dev_attr_hid.attr,
     &dev_attr_reg_dump.attr,
     &dev_attr_layer_mode.attr,
+    &dev_attr_vsync_event_enable.attr,
 	NULL
 };
 

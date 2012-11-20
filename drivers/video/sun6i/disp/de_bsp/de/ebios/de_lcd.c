@@ -20,7 +20,7 @@ __s32 lvds_open(__u32 sel, __panel_para_t * panel)
 {
 	volatile __u32 i;
 	lcd_dev[sel]->tcon0_lvds_ctl.bits.tcon0_lvds_en = 1;
-	if(panel->lcd_lvds_if == LCD_LVDS_IF_2LINK)
+	if(panel->lcd_lvds_if == LCD_LVDS_IF_DUAL_LINK)
 	{
 		lcd_dev[sel]->tcon0_lvds_ana[0].bits.en_ldo = 1;
 		lcd_dev[sel]->tcon0_lvds_ana[1].bits.en_ldo = 1;
@@ -30,7 +30,7 @@ __s32 lvds_open(__u32 sel, __panel_para_t * panel)
 		for(i=0;i<1200;i++);	//1200ns
 		lcd_dev[sel]->tcon0_lvds_ana[0].bits.en_drvc = 1;
 		lcd_dev[sel]->tcon0_lvds_ana[1].bits.en_drvc = 1;
-		if(panel->lcd_lvds_channel == LCD_LVDS_3CHANNEL)
+		if(panel->lcd_lvds_colordepth== LCD_LVDS_6bit)
 		{
 			lcd_dev[sel]->tcon0_lvds_ana[0].bits.en_drvd = 0x7;
 			lcd_dev[sel]->tcon0_lvds_ana[1].bits.en_drvd = 0x7;
@@ -48,7 +48,7 @@ __s32 lvds_open(__u32 sel, __panel_para_t * panel)
 		lcd_dev[sel]->tcon0_lvds_ana[sel].bits.en_mb = 1;
 		for(i=0;i<1200;i++);	//1200ns
 		lcd_dev[sel]->tcon0_lvds_ana[sel].bits.en_drvc = 1;
-		if(panel->lcd_lvds_channel == 3)
+		if(panel->lcd_lvds_colordepth== LCD_LVDS_6bit)
 		{
 			lcd_dev[sel]->tcon0_lvds_ana[sel].bits.en_drvd = 0x7;
 		}
@@ -252,15 +252,18 @@ __s32 tcon0_cfg_mode_auto(__u32 sel, __panel_para_t * panel)
 	lcd_dev[sel]->tcon0_basic0.bits.y = panel->lcd_y-1;
 	lcd_dev[sel]->tcon0_basic1.bits.ht = panel->lcd_ht-1;
 	lcd_dev[sel]->tcon0_basic1.bits.hbp = (panel->lcd_hbp==0)? 0:panel->lcd_hbp-1;
-	lcd_dev[sel]->tcon0_basic2.bits.vt = panel->lcd_vt;
+	lcd_dev[sel]->tcon0_basic2.bits.vt = panel->lcd_vt*2;
 	lcd_dev[sel]->tcon0_basic2.bits.vbp = (panel->lcd_vbp==0)? 0:panel->lcd_vbp-1;
 	lcd_dev[sel]->tcon0_basic3.bits.hspw = (panel->lcd_hspw==0)? 0:panel->lcd_hspw-1;
 	lcd_dev[sel]->tcon0_basic3.bits.vspw = (panel->lcd_vspw==0)? 0:panel->lcd_vspw-1;
-	start_delay = panel->lcd_vt/2-panel->lcd_y-10;
+	start_delay = panel->lcd_vt-panel->lcd_y-10;
 	if(start_delay<1)
 		start_delay = 1;
     else if(start_delay>31)
 		start_delay = 31;
+#ifdef __FPGA_DEBUG__
+    start_delay = (start_delay < 10)? 10: start_delay;
+#endif
 	lcd_dev[sel]->tcon0_ctl.bits.start_delay = start_delay;
 	return 0;
 }
@@ -310,18 +313,25 @@ __s32 tcon0_cfg_mode_tri(__u32 sel, __panel_para_t * panel)
 	{
 		lcd_dev[sel]->tcon0_cpu_tri0.bits.block_space = 30;
 	}
-	else if(panel->lcd_if==LCD_IF_DSI && panel->lcd_dsi_if==LCD_DSI_IF_COMMAND_MODE)
+	else if((panel->lcd_if==LCD_IF_DSI) && 	(panel->lcd_dsi_if==LCD_DSI_IF_COMMAND_MODE))
 	{
 		lcd_dev[sel]->tcon0_cpu_tri0.bits.block_space = 200;
 	}
-	else if(panel->lcd_if==LCD_IF_DSI && panel->lcd_dsi_if==LCD_DSI_IF_VIDEO_MODE)
+	else if((panel->lcd_if==LCD_IF_DSI) && 	(panel->lcd_dsi_if==LCD_DSI_IF_VIDEO_MODE))
 	{
 		//__u32 hfp = panel->lcd_ht-panel->lcd_x-panel->lcd_hbp-panel->lcd_hspw;
 		lcd_dev[sel]->tcon0_cpu_tri0.bits.block_space = panel->lcd_ht - panel->lcd_x - 2;
 	}
 	if(panel->lcd_fresh_mode == 1)
 	{
-		if(panel->lcd_cpu_te==1)
+	    __u32 lcd_te;
+
+        lcd_te = (panel->lcd_if==LCD_IF_CPU)? panel->lcd_cpu_te: panel->lcd_dsi_te;
+		if(lcd_te == 2)//falling mode
+        {
+            lcd_dev[sel]->tcon0_cpu_tri3.bits.tri_int_mode = 3;
+        }
+        else if(lcd_te == 1)//rising mode
 	    {
 	    	lcd_dev[sel]->tcon0_cpu_tri3.bits.tri_int_mode = 2;
 	        return 0;
@@ -359,22 +369,22 @@ __s32 tcon0_cfg(__u32 sel, __panel_para_t * panel)
 		lcd_dev[sel]->tcon0_hv_ctl.bits.srgb_seq = panel->lcd_hv_srgb_seq;
 		lcd_dev[sel]->tcon0_hv_ctl.bits.syuv_seq = panel->lcd_hv_syuv_seq;
 		lcd_dev[sel]->tcon0_hv_ctl.bits.syuv_fdly = panel->lcd_hv_syuv_fdly;
-		tcon0_cfg_mode_auto(sel,panel);
 		panel->lcd_fresh_mode = 0;
+        tcon0_cfg_mode_auto(sel,panel);
 	}
 	else if(panel->lcd_if == LCD_IF_LVDS)
 	{
 		lcd_dev[sel]->tcon0_ctl.bits.tcon0_if = 0;
 		lcd_dev[sel]->tcon0_hv_ctl.bits.hv_mode = 0;
 		lcd_dev[sel]->tcon0_lvds_ctl.bits.tcon0_lvds_link = panel->lcd_lvds_if;
-		lcd_dev[sel]->tcon0_lvds_ctl.bits.tcon0_lvds_bitwidth = panel->lcd_lvds_channel;
+		lcd_dev[sel]->tcon0_lvds_ctl.bits.tcon0_lvds_bitwidth = panel->lcd_lvds_colordepth;
 		lcd_dev[sel]->tcon0_lvds_ctl.bits.tcon0_lvds_mode = panel->lcd_lvds_mode;
 		lcd_dev[sel]->tcon0_lvds_ctl.bits.tcon0_lvds_debug_en = 0;
 		lcd_dev[sel]->tcon0_lvds_ctl.bits.tcon0_lvds_correct_mode = 0;
 		lcd_dev[sel]->tcon0_lvds_ctl.bits.tcon0_lvds_dir = 0;
 		lcd_dev[sel]->tcon0_lvds_ctl.bits.tcon0_lvds_clk_sel = 0;
-		tcon0_cfg_mode_auto(sel,panel);
 		panel->lcd_fresh_mode = 0;
+        tcon0_cfg_mode_auto(sel,panel);
 	}
 	else if(panel->lcd_if == LCD_IF_CPU)
 	{
@@ -382,16 +392,16 @@ __s32 tcon0_cfg(__u32 sel, __panel_para_t * panel)
 		lcd_dev[sel]->tcon0_cpu_ctl.bits.cpu_mode = panel->lcd_cpu_if;
 		lcd_dev[sel]->tcon0_cpu_ctl.bits.da = 1;
 		lcd_dev[sel]->tcon_ecfifo_ctl.bits.ecc_fifo_setting = (1<<3);
-		tcon0_cfg_mode_tri(sel,panel);
 		panel->lcd_fresh_mode = 1;
+        tcon0_cfg_mode_tri(sel,panel);
 	}
 	else if(panel->lcd_if == LCD_IF_DSI)
 	{
 		lcd_dev[sel]->tcon0_ctl.bits.tcon0_if = 1;
 		lcd_dev[sel]->tcon0_cpu_ctl.bits.cpu_mode = 0x1;
 		lcd_dev[sel]->tcon_ecfifo_ctl.bits.ecc_fifo_setting = (1<<3);
-		tcon0_cfg_mode_tri(sel,panel);
 		panel->lcd_fresh_mode = panel->lcd_dsi_if;
+        tcon0_cfg_mode_tri(sel,panel);
 	}
 
 	tcon0_frm(sel,panel->lcd_frm);
@@ -402,11 +412,14 @@ __s32 tcon0_cfg(__u32 sel, __panel_para_t * panel)
 	lcd_dev[sel]->tcon0_io_tri.bits.rgb_endian = panel->lcd_rgb_endian;
 	lcd_dev[sel]->tcon_volume_ctl.bits.safe_period_mode = 3;
 	lcd_dev[sel]->tcon_volume_ctl.bits.safe_period_fifo_num = panel->lcd_dclk_freq*15;
-	lcd_dev[sel]->tcon0_io_pol.dwval = panel->lcd_io_cfg0;
+	lcd_dev[sel]->tcon0_io_pol.dwval = (panel->lcd_dclk_phase&0x3) << 28;
 
 	if(panel->lcd_fresh_mode == 1)
 	{
-		lcd_dev[sel]->tcon0_io_tri.bits.io0_output_tri_en = panel->lcd_cpu_te;
+	    __u32 lcd_te;
+
+        lcd_te = (panel->lcd_if==LCD_IF_CPU)? panel->lcd_cpu_te: panel->lcd_dsi_te;
+		lcd_dev[sel]->tcon0_io_tri.bits.io0_output_tri_en = (lcd_te==0)? 0:1;
 	}
 	else
 	{
@@ -544,9 +557,7 @@ __s32 tcon0_cpu_rd_16b(__u32 sel, __u32 index, __u32 *data)
 __s32 tcon0_set_dclk_div(__u32 sel, __u8 div)
 {
 	lcd_dev[sel]->tcon0_dclk.bits.tcon0_dclk_div = div;
-#ifdef __FPGA_DEBUG__
-    lcd_dev[sel]->tcon0_dclk.bits.tcon0_dclk_div = 0xf;
-#endif
+    
 	return 0;
 }
 

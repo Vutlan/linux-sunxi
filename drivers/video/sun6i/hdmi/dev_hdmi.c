@@ -30,14 +30,17 @@ struct platform_device hdmi_device =
 
 static int __init hdmi_probe(struct platform_device *pdev)
 {
-	__inf("hdmi_probe call\n");
+	pr_info("[HDMI]==hdmi_probe call==\n");
 		
     memset(&ghdmi, 0, sizeof(hdmi_info_t));
 
 	ghdmi.base_hdmi = 0xf1c16000;
 
 	Hdmi_init();
+    Fb_Init(1);
 
+    pr_info("[HDMI]==hdmi_probe finish==\n");
+    
 	return 0;
 }
 
@@ -120,7 +123,7 @@ int __init hdmi_module_init(void)
 {
 	int ret = 0, err;
 	
-	__inf("hdmi_module_init\n");
+	pr_info("[HDMI]==hdmi_module_init==\n");
 
 	 alloc_chrdev_region(&devid, 0, 1, "hdmi");
 	 my_cdev = cdev_alloc();
@@ -149,7 +152,7 @@ int __init hdmi_module_init(void)
 		ret = platform_driver_register(&hdmi_driver);
 	}
 
-    __inf("hdmi_module_init finish\n");
+    pr_info("[HDMI]==hdmi_module_init finish==\n");
 	
 	return ret;
 }
@@ -170,8 +173,7 @@ static void __exit hdmi_module_exit(void)
 
 
 
-//late_initcall(hdmi_module_init);
-module_init(hdmi_module_init);
+late_initcall(hdmi_module_init);
 module_exit(hdmi_module_exit);
 
 MODULE_AUTHOR("danling_xiao");

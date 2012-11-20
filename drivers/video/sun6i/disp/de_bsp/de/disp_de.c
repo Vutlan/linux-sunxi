@@ -171,17 +171,10 @@ __s32 BSP_disp_set_output_csc(__u32 sel, __disp_output_type_t type)
         if(enhance_en == 0)
         {
             enhance_en = 1;
-#ifndef __FPGA_DEBUG__
             bright = gdisp.screen[sel].lcd_cfg.lcd_bright;
             contrast = gdisp.screen[sel].lcd_cfg.lcd_contrast;
             saturation = gdisp.screen[sel].lcd_cfg.lcd_saturation;
             hue = gdisp.screen[sel].lcd_cfg.lcd_hue;
-#else
-            bright = 50;//gdisp.screen[sel].lcd_cfg.lcd_bright;
-            contrast = 50;//gdisp.screen[sel].lcd_cfg.lcd_contrast;
-            saturation = 57;//gdisp.screen[sel].lcd_cfg.lcd_saturation;
-            hue = 50;//gdisp.screen[sel].lcd_cfg.lcd_hue;
-#endif
         }
     }
 

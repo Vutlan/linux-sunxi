@@ -15,7 +15,6 @@ struct info_mm {
 };
 
 
-
 typedef struct
 {
 	struct device   *       dev;
@@ -82,7 +81,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
 
 __s32 disp_create_heap(__u32 pHeapHead, __u32 pHeapHeadPhy, __u32 nHeapSize);
 void *disp_malloc(__u32 num_bytes, __u32 *phy_addr);
-void  disp_free(void *p);
+void  disp_free(void *virt_addr, void* phy_addr);
 
 
 extern __s32 Display_Fb_Request(__u32 fb_id, __disp_fb_create_para_t *fb_para);
@@ -91,6 +90,8 @@ extern __s32 Display_Fb_get_para(__u32 fb_id, __disp_fb_create_para_t *fb_para);
 extern __s32 Display_get_disp_init_para(__disp_init_t * init_para);
 
 extern __s32 DRV_disp_int_process(__u32 sel);
+extern __s32 DRV_disp_vsync_event(__u32 sel);
+
 
 extern __s32 DRV_DISP_Init(void);
 extern __s32 DRV_DISP_Exit(void);
@@ -101,7 +102,7 @@ extern __disp_drv_t    g_disp_drv;
 
 extern __s32 DRV_lcd_open(__u32 sel);
 extern __s32 DRV_lcd_close(__u32 sel);
-extern __s32 Fb_Init(void);
+extern __s32 Fb_Init(__u32 from);
 extern __s32 Fb_Exit(void);
 
 #endif

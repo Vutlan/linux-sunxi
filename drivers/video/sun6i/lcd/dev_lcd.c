@@ -54,7 +54,15 @@ int lcd_init(void)
 
 	memset(&lcd0_cfg, 0, sizeof(__lcd_panel_fun_t));
 	memset(&lcd1_cfg, 0, sizeof(__lcd_panel_fun_t));
-	
+    
+    LCD_get_panel_funs_0(&lcd0_cfg);
+	LCD_get_panel_funs_1(&lcd1_cfg);
+	LCD_set_panel_funs(&lcd0_cfg, &lcd1_cfg);
+
+    DRV_DISP_Init();
+
+	Fb_Init(0);
+    
 	return 0;
 }
 
@@ -62,7 +70,7 @@ int __init lcd_module_init(void)
 {
 	int ret = 0, err;
 	
-	__inf("lcd_module_init\n");
+	pr_info("[LCD]==lcd_module_init==\n");
 
 	 alloc_chrdev_region(&devid, 0, 1, "lcd");
 	 my_cdev = cdev_alloc();
@@ -86,7 +94,7 @@ int __init lcd_module_init(void)
 
 	lcd_init();
 
-    __inf("lcd_module_init finish\n");
+    pr_info("[LCD]==lcd_module_init finish==\n");
 	
 	return ret;
 }
@@ -95,15 +103,14 @@ static void __exit lcd_module_exit(void)
 {
 	__inf("lcd_module_exit\n");
 		
-		device_destroy(lcd_class,  devid);
+	device_destroy(lcd_class,  devid);
 		
     class_destroy(lcd_class);
 
     cdev_del(my_cdev);
 }
 
-//late_initcall(lcd_module_init);
-module_init(lcd_module_init);
+late_initcall(lcd_module_init);
 module_exit(lcd_module_exit);
 
 

@@ -14,7 +14,9 @@
 #define DE_INF(msg...)
 #define DE_MSG __msg
 #define DE_WRN __wrn
+#ifndef OSAL_IRQ_RETURN
 #define OSAL_IRQ_RETURN DIS_SUCCESS
+#endif
 #endif
 
 #define HANDTOID(handle)  ((handle) - 100)
