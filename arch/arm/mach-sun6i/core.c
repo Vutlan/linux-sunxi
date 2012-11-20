@@ -81,8 +81,9 @@ static void sun6i_fixup(struct tag *tags, char **from,
 			       struct meminfo *meminfo)
 {
 	printk("[%s] enter\n", __FUNCTION__);
-	meminfo->bank[0].start = 0x40000000;
-	meminfo->bank[0].size = SZ_1G - (FB_MEM_SIZE + VE_MEM_SIZE);
+	meminfo->bank[0].start = PLAT_PHYS_OFFSET;
+	meminfo->bank[0].size = SZ_1G - VE_MEM_SIZE;
+
 	memblock_reserve(0x43000000, SZ_64K);
 	memblock_reserve(0x40000000 + 0x4000000, SZ_32M);
 	//for standby: 0x4600,0000-0x4600,0000+1k;
