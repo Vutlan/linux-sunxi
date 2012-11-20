@@ -765,7 +765,7 @@ static int __devinit sun6i_i2s_dev_probe(struct platform_device *pdev)
 		return -ENXIO;
 
 	/*i2s apbclk*/
-	i2s_apbclk = clk_get(NULL, "apb_i2s0");
+	i2s_apbclk = clk_get(NULL, CLK_APB_I2S0);
 	if ((!i2s_apbclk)||(IS_ERR(i2s_apbclk))) {
 		printk("try to get i2s_apbclk failed\n");
 	}
@@ -773,19 +773,19 @@ static int __devinit sun6i_i2s_dev_probe(struct platform_device *pdev)
 		printk("i2s_apbclk failed! line = %d\n", __LINE__);
 	}
 	
-	i2s_pllx8 = clk_get(NULL, "sys_pll2X8");
+	i2s_pllx8 = clk_get(NULL, CLK_SYS_PLL2X8);
 	if ((!i2s_pllx8)||(IS_ERR(i2s_pllx8))) {
 		printk("try to get i2s_pllx8 failed\n");
 	}
 
 	/*i2s pll2clk*/
-	i2s_pll2clk = clk_get(NULL, "sys_pll2");
+	i2s_pll2clk = clk_get(NULL, CLK_SYS_PLL2);
 	if ((!i2s_pll2clk)||(IS_ERR(i2s_pll2clk))) {
 		printk("try to get i2s_pll2clk failed\n");
 	}
 	
 	/*i2s module clk*/
-	i2s_moduleclk = clk_get(NULL, "mod_i2s0");
+	i2s_moduleclk = clk_get(NULL, CLK_MOD_I2S0);
 	if ((!i2s_moduleclk)||(IS_ERR(i2s_moduleclk))) {
 		printk("try to get i2s_moduleclk failed\n");
 	}

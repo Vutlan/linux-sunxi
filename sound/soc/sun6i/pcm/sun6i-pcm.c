@@ -753,7 +753,7 @@ static int __devinit sun6i_pcm_dev_probe(struct platform_device *pdev)
 		return -ENXIO;
 
 	/*pcm apbclk*/
-	pcm_apbclk = clk_get(NULL, "apb_i2s1");
+	pcm_apbclk = clk_get(NULL, CLK_APB_I2S1);
 	if ((!pcm_apbclk)||(IS_ERR(pcm_apbclk))) {
 		printk("try to get pcm_apbclk failed\n");
 	}
@@ -761,17 +761,17 @@ static int __devinit sun6i_pcm_dev_probe(struct platform_device *pdev)
 		printk("pcm_apbclk failed! line = %d\n", __LINE__);
 	}
 	
-	pcm_pllx8 = clk_get(NULL, "sys_pll2X8");
+	pcm_pllx8 = clk_get(NULL, CLK_SYS_PLL2X8);
 	if ((!pcm_pllx8)||(IS_ERR(pcm_pllx8))) {
 		printk("try to get pcm_pllx8 failed\n");
 	}
 	/*pcm pll2clk*/
-	pcm_pll2clk = clk_get(NULL, "sys_pll2");
+	pcm_pll2clk = clk_get(NULL, CLK_SYS_PLL2);
 	if ((!pcm_pll2clk)||(IS_ERR(pcm_pll2clk))) {
 		printk("try to get pcm_pll2clk failed\n");
 	}
 	/*pcm module clk*/
-	pcm_moduleclk = clk_get(NULL, "mod_i2s1");
+	pcm_moduleclk = clk_get(NULL, CLK_MOD_I2S1);
 	if ((!pcm_moduleclk)||(IS_ERR(pcm_moduleclk))) {
 		printk("try to get pcm_moduleclk failed\n");
 	}

@@ -38,6 +38,7 @@
 #include <sound/initval.h>
 #include <linux/clk.h>
 #include <linux/timer.h>
+#include <mach/clock.h>
 #include "sun6i-codec.h"
 
 struct clk *codec_apbclk,*codec_pll2clk,*codec_moduleclk;
@@ -1564,7 +1565,7 @@ static int __init sun6i_codec_probe(struct platform_device *pdev)
 	if (!db)
 		return -ENOMEM;
   	/* codec_apbclk */
-	codec_apbclk = clk_get(NULL,"apb_adda");
+	codec_apbclk = clk_get(NULL, CLK_APB_ADDA);
 	if ((!codec_apbclk)||(IS_ERR(codec_apbclk))) {
 		printk("try to get codec_apbclk failed!\n");
 	}
@@ -1572,12 +1573,12 @@ static int __init sun6i_codec_probe(struct platform_device *pdev)
 		printk("enable codec_apbclk failed; \n");
 	}
 	/* codec_pll2clk */
-	codec_pll2clk = clk_get(NULL,"sys_pll2");
+	codec_pll2clk = clk_get(NULL, CLK_SYS_PLL2);
 	if ((!codec_pll2clk)||(IS_ERR(codec_pll2clk))) {
 		printk("try to get codec_pll2clk failed!\n");
 	}
 	/* codec_moduleclk */
-	codec_moduleclk = clk_get(NULL,"mod_adda");
+	codec_moduleclk = clk_get(NULL, CLK_MOD_ADDA);
 	if ((!codec_moduleclk)||(IS_ERR(codec_moduleclk))) {
 		printk("try to get codec_moduleclk failed!\n");
 	}

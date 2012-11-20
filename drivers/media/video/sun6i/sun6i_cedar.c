@@ -1022,7 +1022,7 @@ static int __init cedardev_init(void)
 	val |= 0x7fffffff;
 	writel(val,0xf1c00000);
 	
-	ve_pll4clk = clk_get(NULL,"sys_pll4");
+	ve_pll4clk = clk_get(NULL, CLK_SYS_PLL4);
 	if ((!ve_pll4clk)||IS_ERR(ve_pll4clk)) {
 		printk("try to get ve_pll4clk fail\n");
 		return -EINVAL;
@@ -1033,12 +1033,12 @@ static int __init cedardev_init(void)
 		return -EINVAL;
 	}
 	/* getting ahb clk for ve!(macc) */
-	ahb_veclk = clk_get(NULL,"ahb_ve");
+	ahb_veclk = clk_get(NULL, CLK_AHB_VE);
 	if ((!ahb_veclk)||IS_ERR(ahb_veclk)) {
 		printk("try to get ahb_veclk fail\n");
 		return -EINVAL;
 	}
-	ve_moduleclk = clk_get(NULL,"mod_ve");
+	ve_moduleclk = clk_get(NULL, CLK_MOD_VE);
 	if ((!ve_moduleclk)||IS_ERR(ve_moduleclk)) {
 		printk("try to get ve_moduleclk fail\n");
 		return -EINVAL;
@@ -1056,17 +1056,17 @@ static int __init cedardev_init(void)
 		printk("try to set ve rate fail\n");
 	}
 	/*geting dram clk for ve!*/
-	dram_veclk = clk_get(NULL, "dram_ve");
+	dram_veclk = clk_get(NULL, CLK_DRAM_VE);
 	if ((!dram_veclk)||IS_ERR(dram_veclk)) {
 		printk("try to get dram veclk fail\n");
 		return -EINVAL;
 	}
-	hosc_clk = clk_get(NULL,"sys_hosc");
+	hosc_clk = clk_get(NULL, CLK_SYS_HOSC);
 	if ((!hosc_clk)||IS_ERR(hosc_clk)) {
 		printk("try to get hosc clk fail\n");
 		return -EINVAL;
 	}
-	avs_moduleclk = clk_get(NULL,"mod_avs");
+	avs_moduleclk = clk_get(NULL, CLK_MOD_AVS);
 	if ((!avs_moduleclk)||IS_ERR(avs_moduleclk)) {
 		printk("try to get avs module clk fail\n");
 		return -EINVAL;

@@ -667,7 +667,7 @@ static int __devinit sun6i_spdif_dev_probe(struct platform_device *pdev)
 	}
 	
 	/*spdif apbclk*/
-	spdif_apbclk = clk_get(NULL, "apb_spdif");
+	spdif_apbclk = clk_get(NULL, CLK_APB_SPDIF);
 	if ((!spdif_apbclk)||(IS_ERR(spdif_apbclk))) {
 		printk("try to get spdif_apbclk failed\n");
 	}
@@ -675,18 +675,18 @@ static int __devinit sun6i_spdif_dev_probe(struct platform_device *pdev)
 		printk("spdif_apbclk failed! line = %d\n", __LINE__);
 	}
 
-	spdif_pllx8 = clk_get(NULL, "sys_pll2X8");
+	spdif_pllx8 = clk_get(NULL, CLK_SYS_PLL2X8);
 	if ((!spdif_pllx8)||(IS_ERR(spdif_pllx8))) {
 		printk("try to get spdif_pllx8 failed\n");
 	}
 	/*spdif pll2clk*/
-	spdif_pll2clk = clk_get(NULL, "sys_pll2");
+	spdif_pll2clk = clk_get(NULL, CLK_SYS_PLL2);
 	if ((!spdif_pll2clk)||(IS_ERR(spdif_pll2clk))) {
 		printk("try to get spdif_pll2clk failed\n");
 	}
 	
 	/*spdif module clk*/
-	spdif_moduleclk = clk_get(NULL, "mod_spdif");
+	spdif_moduleclk = clk_get(NULL, CLK_MOD_SPDIF);
 	if ((!spdif_moduleclk)||(IS_ERR(spdif_moduleclk))) {
 		printk("try to get spdif_moduleclk failed\n");
 	}
