@@ -67,7 +67,10 @@ static struct sun6i_dma_params sun6i_pcm_pcm_stereo_in = {
 };
 
 struct sun6i_pcm_info sun6i_pcm;
-static struct clk *pcm_apbclk, *pcm_pll2clk, *pcm_pllx8, *pcm_moduleclk;
+static struct clk *pcm_apbclk 		= NULL;
+static struct clk *pcm_pll2clk 		= NULL;
+static struct clk *pcm_pllx8 		= NULL;
+static struct clk *pcm_moduleclk	= NULL;
 
 static void sun6i_snd_txctrl_pcm(struct snd_pcm_substream *substream, int on)
 {
@@ -338,7 +341,9 @@ static int sun6i_pcm_trigger(struct snd_pcm_substream *substream,
 static int sun6i_pcm_set_sysclk(struct snd_soc_dai *cpu_dai, int clk_id, 
                                  unsigned int freq, int dir)
 {
-	clk_set_rate(pcm_pll2clk, freq);
+	if (clk_set_rate(pcm_pll2clk, freq)) {
+		printk("try to set the pcm_pll2clk rate failed!\n");
+	}
 
 	return 0;
 }
@@ -669,12 +674,19 @@ static int sun6i_pcm_suspend(struct snd_soc_dai *cpu_dai)
 	writel(reg_val, sun6i_pcm.regs + SUN6I_PCMCTL);
 
 	pcmregsave();
-	
-	/*release the module clock*/
-	clk_disable(pcm_moduleclk);
-
-	clk_disable(pcm_apbclk);
-	
+	if ((NULL == pcm_moduleclk) ||(IS_ERR(pcm_moduleclk))) {
+		printk("pcm_moduleclk handle is invalid, just return\n");
+		return -EFAULT;
+	} else {
+		/*release the module clock*/
+		clk_disable(pcm_moduleclk);
+	}
+	if ((NULL == pcm_apbclk) ||(IS_ERR(pcm_apbclk))) {
+		printk("pcm_apbclk handle is invalid, just return\n");
+		return -EFAULT;
+	} else {
+		clk_disable(pcm_apbclk);
+	}
 	return 0;
 }
 static int sun6i_pcm_resume(struct snd_soc_dai *cpu_dai)
@@ -683,10 +695,14 @@ static int sun6i_pcm_resume(struct snd_soc_dai *cpu_dai)
 	printk("[PCM]Entered %s\n", __func__);
 
 	/*release the module clock*/
-	clk_enable(pcm_apbclk);
+	if (clk_enable(pcm_apbclk)) {
+		printk("try to enable pcm_apbclk output failed!\n");
+	}
 
 	/*release the module clock*/
-	clk_enable(pcm_moduleclk);
+	if (clk_enable(pcm_moduleclk)) {
+		printk("try to enable pcm_moduleclk output failed!\n");
+	}
 	
 	pcmregrestore();
 	
@@ -738,27 +754,37 @@ static int __devinit sun6i_pcm_dev_probe(struct platform_device *pdev)
 
 	/*pcm apbclk*/
 	pcm_apbclk = clk_get(NULL, "apb_i2s1");
-	if(-1 == clk_enable(pcm_apbclk)){
+	if ((!pcm_apbclk)||(IS_ERR(pcm_apbclk))) {
+		printk("try to get pcm_apbclk failed\n");
+	}
+	if (clk_enable(pcm_apbclk)) {
 		printk("pcm_apbclk failed! line = %d\n", __LINE__);
 	}
 	
 	pcm_pllx8 = clk_get(NULL, "sys_pll2X8");
-	
+	if ((!pcm_pllx8)||(IS_ERR(pcm_pllx8))) {
+		printk("try to get pcm_pllx8 failed\n");
+	}
 	/*pcm pll2clk*/
 	pcm_pll2clk = clk_get(NULL, "sys_pll2");
-	
+	if ((!pcm_pll2clk)||(IS_ERR(pcm_pll2clk))) {
+		printk("try to get pcm_pll2clk failed\n");
+	}
 	/*pcm module clk*/
 	pcm_moduleclk = clk_get(NULL, "mod_i2s1");
-	
-	if(clk_set_parent(pcm_moduleclk, pcm_pll2clk)){
+	if ((!pcm_moduleclk)||(IS_ERR(pcm_moduleclk))) {
+		printk("try to get pcm_moduleclk failed\n");
+	}
+
+	if (clk_set_parent(pcm_moduleclk, pcm_pll2clk)) {
 		printk("try to set parent of pcm_moduleclk to pcm_pll2ck failed! line = %d\n",__LINE__);
 	}
 	
-	if(clk_set_rate(pcm_moduleclk, 24576000/8)){
+	if (clk_set_rate(pcm_moduleclk, 24576000/8)) {
 		printk("set pcm_moduleclk clock freq to 24576000 failed! line = %d\n", __LINE__);
 	}
 	
-	if(-1 == clk_enable(pcm_moduleclk)){
+	if (clk_enable(pcm_moduleclk)) {
 		printk("open pcm_moduleclk failed! line = %d\n", __LINE__);
 	}
 	
@@ -776,20 +802,36 @@ static int __devinit sun6i_pcm_dev_probe(struct platform_device *pdev)
 
 static int __devexit sun6i_pcm_dev_remove(struct platform_device *pdev)
 {
-	if(pcm_used) {
+	if (pcm_used) {
 		pcm_used = 0;
-		/*release the module clock*/
-		clk_disable(pcm_moduleclk);
-		
-		/*release pllx8clk*/
-		clk_put(pcm_pllx8);
-		
-		/*release pll2clk*/
-		clk_put(pcm_pll2clk);
-		
-		/*release apbclk*/
-		clk_put(pcm_apbclk);
-			
+		if ((NULL == pcm_moduleclk) ||(IS_ERR(pcm_moduleclk))) {
+			printk("pcm_moduleclk handle is invalid, just return\n");
+			return -EFAULT;
+		} else {
+			/*release the module clock*/
+			clk_disable(pcm_moduleclk);
+		}
+		if ((NULL == pcm_pllx8) ||(IS_ERR(pcm_pllx8))) {
+			printk("pcm_pllx8 handle is invalid, just return\n");
+			return -EFAULT;
+		} else {
+			/*release pllx8clk*/
+			clk_put(pcm_pllx8);
+		}
+		if ((NULL == pcm_pll2clk) ||(IS_ERR(pcm_pll2clk))) {
+			printk("pcm_pll2clk handle is invalid, just return\n");
+			return -EFAULT;
+		} else {
+			/*release pll2clk*/
+			clk_put(pcm_pll2clk);
+		}
+		if ((NULL == pcm_apbclk) ||(IS_ERR(pcm_apbclk))) {
+			printk("pcm_apbclk handle is invalid, just return\n");
+			return -EFAULT;
+		} else {
+			/*release apbclk*/
+			clk_put(pcm_apbclk);
+		}	
 		sw_gpio_release(pcm_handle, 2);		
 		snd_soc_unregister_dai(&pdev->dev);
 		platform_set_drvdata(pdev, NULL);

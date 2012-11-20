@@ -68,7 +68,10 @@ static struct sun6i_dma_params sun6i_i2s_pcm_stereo_in = {
 };
 
 struct sun6i_i2s_info sun6i_iis;
- static struct clk *i2s_apbclk, *i2s_pll2clk, *i2s_pllx8, *i2s_moduleclk;
+static struct clk *i2s_apbclk 		= NULL;
+static struct clk *i2s_pll2clk 		= NULL;
+static struct clk *i2s_pllx8 		= NULL;
+static struct clk *i2s_moduleclk	= NULL;
 
 void sun6i_snd_txctrl_i2s(struct snd_pcm_substream *substream, int on)
 {
@@ -351,7 +354,9 @@ static int sun6i_i2s_trigger(struct snd_pcm_substream *substream,
 static int sun6i_i2s_set_sysclk(struct snd_soc_dai *cpu_dai, int clk_id, 
                                  unsigned int freq, int dir)
 {
-	clk_set_rate(i2s_pll2clk, freq);
+	if (clk_set_rate(i2s_pll2clk, freq)) {
+		printk("try to set the i2s_pll2clk failed!\n");
+	}
 
 	return 0;
 }
@@ -681,12 +686,19 @@ static int sun6i_i2s_suspend(struct snd_soc_dai *cpu_dai)
 	writel(reg_val, sun6i_iis.regs + SUN6I_IISCTL);
 
 	iisregsave();
-	
-	/*release the module clock*/
-	clk_disable(i2s_moduleclk);
-
-	clk_disable(i2s_apbclk);
-	
+	if ((NULL == i2s_moduleclk) ||(IS_ERR(i2s_moduleclk))) {
+		printk("i2s_moduleclk handle is invalid, just return\n");
+		return -EFAULT;
+	} else {
+		/*release the module clock*/
+		clk_disable(i2s_moduleclk);
+	}
+	if ((NULL == i2s_apbclk) ||(IS_ERR(i2s_apbclk))) {
+		printk("i2s_apbclk handle is invalid, just return\n");
+		return -EFAULT;
+	} else {
+		clk_disable(i2s_apbclk);
+	}
 	return 0;
 }
 static int sun6i_i2s_resume(struct snd_soc_dai *cpu_dai)
@@ -695,11 +707,15 @@ static int sun6i_i2s_resume(struct snd_soc_dai *cpu_dai)
 	printk("[IIS]Entered %s\n", __func__);
 
 	/*release the module clock*/
-	clk_enable(i2s_apbclk);
+	if (clk_enable(i2s_apbclk)) {
+		printk("try to enable i2s_apbclk output failed!\n");
+	}
 
 	/*release the module clock*/
-	clk_enable(i2s_moduleclk);
-	
+	if (clk_enable(i2s_moduleclk)) {
+		printk("try to enable i2s_moduleclk output failed!\n");
+	}
+
 	iisregrestore();
 	
 	/*Global Enable Digital Audio Interface*/
@@ -750,17 +766,29 @@ static int __devinit sun6i_i2s_dev_probe(struct platform_device *pdev)
 
 	/*i2s apbclk*/
 	i2s_apbclk = clk_get(NULL, "apb_i2s0");
-	if(-1 == clk_enable(i2s_apbclk)){
+	if ((!i2s_apbclk)||(IS_ERR(i2s_apbclk))) {
+		printk("try to get i2s_apbclk failed\n");
+	}
+	if (clk_enable(i2s_apbclk)) {
 		printk("i2s_apbclk failed! line = %d\n", __LINE__);
 	}
 	
 	i2s_pllx8 = clk_get(NULL, "sys_pll2X8");
-	
+	if ((!i2s_pllx8)||(IS_ERR(i2s_pllx8))) {
+		printk("try to get i2s_pllx8 failed\n");
+	}
+
 	/*i2s pll2clk*/
 	i2s_pll2clk = clk_get(NULL, "sys_pll2");
+	if ((!i2s_pll2clk)||(IS_ERR(i2s_pll2clk))) {
+		printk("try to get i2s_pll2clk failed\n");
+	}
 	
 	/*i2s module clk*/
 	i2s_moduleclk = clk_get(NULL, "mod_i2s0");
+	if ((!i2s_moduleclk)||(IS_ERR(i2s_moduleclk))) {
+		printk("try to get i2s_moduleclk failed\n");
+	}
 	
 	if(clk_set_parent(i2s_moduleclk, i2s_pll2clk)){
 		printk("try to set parent of i2s_moduleclk to i2s_pll2ck failed! line = %d\n",__LINE__);
@@ -770,7 +798,7 @@ static int __devinit sun6i_i2s_dev_probe(struct platform_device *pdev)
 		printk("set i2s_moduleclk clock freq to 24576000 failed! line = %d\n", __LINE__);
 	}
 	
-	if(-1 == clk_enable(i2s_moduleclk)){
+	if (clk_enable(i2s_moduleclk)) {
 		printk("open i2s_moduleclk failed! line = %d\n", __LINE__);
 	}
 	
@@ -788,20 +816,37 @@ static int __devinit sun6i_i2s_dev_probe(struct platform_device *pdev)
 
 static int __devexit sun6i_i2s_dev_remove(struct platform_device *pdev)
 {
-	if(i2s_used) {
+	if (i2s_used) {
 		i2s_used = 0;
-		/*release the module clock*/
-		clk_disable(i2s_moduleclk);
-		
-		/*release pllx8clk*/
-		clk_put(i2s_pllx8);
-		
-		/*release pll2clk*/
-		clk_put(i2s_pll2clk);
-		
-		/*release apbclk*/
-		clk_put(i2s_apbclk);
-		
+
+		if ((NULL == i2s_moduleclk) ||(IS_ERR(i2s_moduleclk))) {
+			printk("i2s_moduleclk handle is invalid, just return\n");
+			return -EFAULT;
+		} else {
+			/*release the module clock*/
+			clk_disable(i2s_moduleclk);
+		}
+		if ((NULL == i2s_pllx8) ||(IS_ERR(i2s_pllx8))) {
+			printk("i2s_pllx8 handle is invalid, just return\n");
+			return -EFAULT;
+		} else {
+			/*reease pllx8clk*/
+			clk_put(i2s_pllx8);
+		}
+		if ((NULL == i2s_pll2clk) ||(IS_ERR(i2s_pll2clk))) {
+			printk("i2s_pll2clk handle is invalid, just return\n");
+			return -EFAULT;
+		} else {
+			/*release pll2clk*/
+			clk_put(i2s_pll2clk);
+		}
+		if ((NULL == i2s_apbclk) ||(IS_ERR(i2s_apbclk))) {
+			printk("i2s_apbclk handle is invalid, just return\n");
+			return -EFAULT;
+		} else {		
+			/*release apbclk*/
+			clk_put(i2s_apbclk);
+		}
 		sw_gpio_release(i2s_handle, 2);		
 		snd_soc_unregister_dai(&pdev->dev);
 		platform_set_drvdata(pdev, NULL);

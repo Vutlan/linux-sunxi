@@ -41,7 +41,10 @@ static int regsave[9];
 static int spdif_used = 0;
 static u32 spdif_handle = 0;
 struct sun6i_spdif_info sun6i_spdif;
-static struct clk *spdif_apbclk, *spdif_pll2clk, *spdif_pllx8, *spdif_moduleclk;
+static struct clk *spdif_apbclk 	= NULL;
+static struct clk *spdif_pll2clk	= NULL;
+static struct clk *spdif_pllx8		= NULL;
+static struct clk *spdif_moduleclk	= NULL;
 
 static struct sun6i_dma_params sun6i_spdif_stereo_out = {	
 	.name		= "spdif_out",	
@@ -267,9 +270,13 @@ static int sun6i_spdif_set_sysclk(struct snd_soc_dai *cpu_dai, int clk_id,
                                  unsigned int freq, int dir)
 {
 	if (!freq) {
-		clk_set_rate(spdif_pll2clk, 24576000);
+		if (clk_set_rate(spdif_pll2clk, 24576000)) {
+			printk("try to set the spdif_pll2clk rate failed!\n");
+		}
 	} else {
-		clk_set_rate(spdif_pll2clk, 22579200);
+		if (clk_set_rate(spdif_pll2clk, 22579200)) {
+			printk("try to set the spdif_pll2clk rate failed!\n");
+		}
 	}
 
 	return 0;
@@ -583,12 +590,19 @@ static int sun6i_spdif_suspend(struct snd_soc_dai *cpu_dai)
 	writel(reg_val, sun6i_spdif.regs + SUN6I_SPDIF_CTL);
 
 	spdifregsave();
-	
-	/*disable the module clock*/
-	clk_disable(spdif_moduleclk);
-	
-	clk_disable(spdif_apbclk);	
-
+	if ((NULL == spdif_moduleclk) ||(IS_ERR(spdif_moduleclk))) {
+		printk("spdif_moduleclk handle is invalid, just return\n");
+		return -EFAULT;
+	} else {
+		/*disable the module clock*/
+		clk_disable(spdif_moduleclk);
+	}
+	if ((NULL == spdif_apbclk) ||(IS_ERR(spdif_apbclk))) {
+		printk("spdif_apbclk handle is invalid, just return\n");
+		return -EFAULT;
+	} else {	
+		clk_disable(spdif_apbclk);
+	}
 	return 0;
 }
 
@@ -598,10 +612,14 @@ static int sun6i_spdif_resume(struct snd_soc_dai *cpu_dai)
 	printk("[SPDIF]Enter %s\n", __func__);
 
 	/*disable the module clock*/
-	clk_enable(spdif_apbclk);		
+	if (clk_enable(spdif_apbclk)) {
+		printk("try to enable spdif_apbclk output failed!\n");
+	}
 
 	/*enable the module clock*/
-	clk_enable(spdif_moduleclk);
+	if (clk_enable(spdif_moduleclk)) {
+		printk("try to enable spdif_moduleclk output failed!\n");
+	}
 	
 	spdifregrestore();
 	
@@ -644,60 +662,88 @@ static int __devinit sun6i_spdif_dev_probe(struct platform_device *pdev)
 	int ret = 0;
 	
 	sun6i_spdif.regs = ioremap(SUN6I_SPDIFBASE, 0x100);
-	if(sun6i_spdif.regs == NULL)
+	if (sun6i_spdif.regs == NULL) {
 		return -ENXIO;
+	}
 	
-		/*spdif apbclk*/
-		spdif_apbclk = clk_get(NULL, "apb_spdif");
-		if(-1 == clk_enable(spdif_apbclk)){
-			printk("spdif_apbclk failed! line = %d\n", __LINE__);
-		}
+	/*spdif apbclk*/
+	spdif_apbclk = clk_get(NULL, "apb_spdif");
+	if ((!spdif_apbclk)||(IS_ERR(spdif_apbclk))) {
+		printk("try to get spdif_apbclk failed\n");
+	}
+	if (clk_enable(spdif_apbclk)) {
+		printk("spdif_apbclk failed! line = %d\n", __LINE__);
+	}
 
-		spdif_pllx8 = clk_get(NULL, "sys_pll2X8");
-
-		/*spdif pll2clk*/
-		spdif_pll2clk = clk_get(NULL, "sys_pll2");
-
-		/*spdif module clk*/
-		spdif_moduleclk = clk_get(NULL, "mod_spdif");
-
-		if(clk_set_parent(spdif_moduleclk, spdif_pll2clk)){
-			printk("try to set parent of spdif_moduleclk to spdif_pll2ck failed! line = %d\n",__LINE__);
-		}
-		
-		if(clk_set_rate(spdif_moduleclk, 24576000/8)){
-			printk("set spdif_moduleclk clock freq to 24576000 failed! line = %d\n", __LINE__);
-		}
-		
-		if(-1 == clk_enable(spdif_moduleclk)){
-			printk("open spdif_moduleclk failed! line = %d\n", __LINE__);
-		}
+	spdif_pllx8 = clk_get(NULL, "sys_pll2X8");
+	if ((!spdif_pllx8)||(IS_ERR(spdif_pllx8))) {
+		printk("try to get spdif_pllx8 failed\n");
+	}
+	/*spdif pll2clk*/
+	spdif_pll2clk = clk_get(NULL, "sys_pll2");
+	if ((!spdif_pll2clk)||(IS_ERR(spdif_pll2clk))) {
+		printk("try to get spdif_pll2clk failed\n");
+	}
 	
-		/*global enbale*/
-		reg_val = readl(sun6i_spdif.regs + SUN6I_SPDIF_CTL);
-		reg_val |= SUN6I_SPDIF_CTL_GEN;
-		writel(reg_val, sun6i_spdif.regs + SUN6I_SPDIF_CTL);
-		
-		ret = snd_soc_register_dai(&pdev->dev, &sun6i_spdif_dai);
-		return 0;
+	/*spdif module clk*/
+	spdif_moduleclk = clk_get(NULL, "mod_spdif");
+	if ((!spdif_moduleclk)||(IS_ERR(spdif_moduleclk))) {
+		printk("try to get spdif_moduleclk failed\n");
+	}
+
+	if (clk_set_parent(spdif_moduleclk, spdif_pll2clk)) {
+		printk("try to set parent of spdif_moduleclk to spdif_pll2ck failed! line = %d\n",__LINE__);
+	}
+	
+	if (clk_set_rate(spdif_moduleclk, 24576000/8)) {
+		printk("set spdif_moduleclk clock freq to 24576000 failed! line = %d\n", __LINE__);
+	}
+	
+	if (clk_enable(spdif_moduleclk)) {
+		printk("open spdif_moduleclk failed! line = %d\n", __LINE__);
+	}
+
+	/*global enbale*/
+	reg_val = readl(sun6i_spdif.regs + SUN6I_SPDIF_CTL);
+	reg_val |= SUN6I_SPDIF_CTL_GEN;
+	writel(reg_val, sun6i_spdif.regs + SUN6I_SPDIF_CTL);
+	
+	ret = snd_soc_register_dai(&pdev->dev, &sun6i_spdif_dai);
+	return 0;
 }
 
 static int __devexit sun6i_spdif_dev_remove(struct platform_device *pdev)
 {
 	if (spdif_used) {
 		spdif_used = 0;
-		/*release the module clock*/
-		clk_disable(spdif_moduleclk);
-	
-		/*release pllx8clk*/
-		clk_put(spdif_pllx8);
-		
-		/*release pll2clk*/
-		clk_put(spdif_pll2clk);
-	
-		/*release apbclk*/
-		clk_put(spdif_apbclk);
-		
+		if ((NULL == spdif_moduleclk) ||(IS_ERR(spdif_moduleclk))) {
+			printk("spdif_moduleclk handle is invalid, just return\n");
+			return -EFAULT;
+		} else {
+			/*release the module clock*/
+			clk_disable(spdif_moduleclk);
+		}
+		if ((NULL == spdif_pllx8) ||(IS_ERR(spdif_pllx8))) {
+			printk("spdif_pllx8 handle is invalid, just return\n");
+			return -EFAULT;
+		} else {
+			/*release pllx8clk*/
+			clk_put(spdif_pllx8);
+		}
+		if ((NULL == spdif_pll2clk) ||(IS_ERR(spdif_pll2clk))) {
+			printk("spdif_pll2clk handle is invalid, just return\n");
+			return -EFAULT;
+		} else {
+			/*release pll2clk*/
+			clk_put(spdif_pll2clk);
+		}
+		if ((NULL == spdif_apbclk) ||(IS_ERR(spdif_apbclk))) {
+			printk("spdif_apbclk handle is invalid, just return\n");
+			return -EFAULT;
+		} else {
+			/*release apbclk*/
+			clk_put(spdif_apbclk);
+		}
 		sw_gpio_release(spdif_handle, 2);
 		snd_soc_unregister_dai(&pdev->dev);
 		platform_set_drvdata(pdev, NULL);
