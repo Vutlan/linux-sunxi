@@ -40,19 +40,19 @@
 #include <linux/cpufreq.h>
 #include <linux/sched.h>
 
-#include "../lib/src/include/nand_type.h"
-#include "../lib/src/include/nand_drv_cfg.h"
-#include "../lib/src/include/nand_format.h"
-#include "../lib/src/include/nand_logic.h"
-#include "../lib/osal/nand_osal.h"
-#include "../lib/src/include/nand_physic.h"
-#include "../lib/src/include/nand_scan.h"
-#include "../lib/src/include/nand_simple.h"
+//#include "../lib/src/include/nand_type.h"
+//#include "../lib/src/include/nand_drv_cfg.h"
+//#include "../lib/src/include/nand_format.h"
+//#include "../lib/src/include/nand_logic.h"
+//#include "../lib/osal/nand_osal.h"
+//#include "../lib/src/include/nand_physic.h"
+//#include "../lib/src/include/nand_scan.h"
+//#include "../lib/src/include/nand_simple.h"
 
 //#include "../nfd/nand_blk.h"
-#include "../lib/src/include/mbr.h"
+//#include "../lib/src/include/mbr.h"
 
-//#include "../nfd/nand_lib.h"			//nand驱动编译成库时，用此头文件代替 
+#include "../nfd/nand_lib.h"			//nand驱动编译成库时，用此头文件代替 
 
 #include "nand_test.h"
 
@@ -77,6 +77,9 @@ typedef enum
 
 
 #define NAND_TEST  "[nand_test]:"
+
+// for unused
+#define	DiskSize		128
 
 #define RESULT_OK   (0)
 #define RESULT_FAIL   (1)
