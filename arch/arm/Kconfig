@@ -1006,6 +1006,8 @@ config ARCH_ZYNQ
 	  Support for Xilinx Zynq ARM Cortex A9 Platform
 endchoice
 
+
+
 #
 # This is sorted alphabetically by mach-* pathname.  However, plat-*
 # Kconfigs may be included either alphabetically (according to the
@@ -1060,6 +1062,8 @@ source "arch/arm/plat-mxc/Kconfig"
 source "arch/arm/mach-mxs/Kconfig"
 
 source "arch/arm/mach-netx/Kconfig"
+
+source "arch/arm/mach-sun6i/Kconfig"
 
 source "arch/arm/mach-nomadik/Kconfig"
 source "arch/arm/plat-nomadik/Kconfig"

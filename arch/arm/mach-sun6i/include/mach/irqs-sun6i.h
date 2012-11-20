@@ -29,10 +29,7 @@
 /* the define support AW_FPGA_V4_PLATFORM AW_FPGA_V7_PLATFORM AW_ASIC_PLATFORM
  *	you must choose one define to compile
  * */
-#define AW_FPGA_V4_PLATFORM
-
-
-#if defined (AW_FPGA_V4_PLATFORM) /* S4 820 */
+#if defined (CONFIG_AW_FPGA_V4_PLATFORM) /* S4 820 */
 
 #define AW_IRQ_UART0		(AW_IRQ_GIC_START + 1)				/*	UART0		*/
 #define AW_IRQ_UART1		(AW_IRQ_GIC_START + 1)				/*	UART1		*/
@@ -140,7 +137,7 @@
 #define	AW_IRQ_PMU3			(AW_IRQ_GIC_START + 123 + 200)		/*	PMU3		*/
 #define	AW_IRQ_AXI_ERROR	(AW_IRQ_GIC_START + 124 + 200)		/*	AXI_ERROR	*/
 
-#elif defined (AW_FPGA_V7_PLATFORM)
+#elif defined (CONFIG_AW_FPGA_V7_PLATFORM)
 
 #define AW_IRQ_UART0		(AW_IRQ_GIC_START + 1)				/*	UART0		*/
 #define AW_IRQ_UART1		(AW_IRQ_GIC_START + 1)				/*	UART1		*/
@@ -248,7 +245,7 @@
 #define	AW_IRQ_PMU3			(AW_IRQ_GIC_START + 123 + 200)		/*	PMU3		*/
 #define	AW_IRQ_AXI_ERROR	(AW_IRQ_GIC_START + 124 + 200)		/*	AXI_ERROR	*/
 
-#elif defined (AW_ASIC_PLATFORM)
+#elif defined (CONFIG_AW_ASIC_EVB_PLATFORM)
 
 #define AW_IRQ_UART0		(AW_IRQ_GIC_START + 0)		/*	UART0		*/
 #define AW_IRQ_UART1		(AW_IRQ_GIC_START + 1)		/*	UART1		*/
@@ -376,8 +373,6 @@
 #define	AW_IRQ_PMU2			(AW_IRQ_GIC_START + 122)	/*	PMU2		*/
 #define	AW_IRQ_PMU3			(AW_IRQ_GIC_START + 123)	/*	PMU3		*/
 #define	AW_IRQ_AXI_ERROR	(AW_IRQ_GIC_START + 124)	/*	AXI_ERROR	*/
-
-
 
 
 /*
