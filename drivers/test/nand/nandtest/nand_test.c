@@ -49,7 +49,7 @@
 //#include "../lib/src/include/nand_scan.h"
 //#include "../lib/src/include/nand_simple.h"
 
-//#include "../nfd/nand_blk.h"
+////#include "../nfd/nand_blk.h"
 //#include "../lib/src/include/mbr.h"
 
 #include "../nfd/nand_lib.h"			//nand驱动编译成库时，用此头文件代替 
@@ -62,6 +62,7 @@
 typedef unsigned char	BYTE;
 typedef unsigned short	WORD;
 typedef unsigned long	DWORD;
+
 /*
 typedef enum
 {
@@ -86,6 +87,9 @@ typedef enum
 
 #define MAX_SECTORS       (0x80)         // max alloc buffer
 #define BUFFER_SIZE       (512*MAX_SECTORS)
+
+static DEFINE_MUTEX(nand_test_lock);
+
 
 static ssize_t nand_test_store(struct kobject *kobject,struct attribute *attr, const char *buf, size_t count);
 static ssize_t nand_test_show(struct kobject *kobject,struct attribute *attr, char *buf);
@@ -140,6 +144,9 @@ void obj_test_release(struct kobject *kobject)
 struct kobject kobj;
 
 
+
+
+#ifdef		PREV_NAND_TEST_
 /* prepare buffer data for read and write*/
 static int __nand_test_prepare(struct nand_test_card *test, int sector_cnt,int write)
 {
@@ -1007,8 +1014,6 @@ static const struct nand_test_case nand_test_cases[] = {
     },
 };
 
-static DEFINE_MUTEX(nand_test_lock);
-
 
 /* run test cases*/
 static void nand_test_run(struct nand_test_card *test, int testcase)
@@ -1070,6 +1075,7 @@ static void nand_test_run(struct nand_test_card *test, int testcase)
     
     printk(KERN_INFO "[nand_test]: Nand tests completed.\n");
 }
+#endif
 
 
 /* do nothing */
@@ -1123,7 +1129,7 @@ static bool verifydata(const BYTE *buf, DWORD off, DWORD cnt)
 * -3  --> general err		such as: cmd fmt err
 * -4  --> severe  err		such as: w/r nand exe err
 */
-static int nand_rw_ops(DWORD startsec, DWORD secnum, void *buf, DWORD off, bool rw, bool cache, bool verify)
+static int nand_rw_ops(unsigned int startsec, unsigned int secnum, void *buf, unsigned int off, bool rw, bool cache, bool verify)
 {
 	int		i;
 	int		rws;
@@ -1133,8 +1139,8 @@ static int nand_rw_ops(DWORD startsec, DWORD secnum, void *buf, DWORD off, bool 
 
 	struct timeval	starttime;	
 	struct timeval 	endtime;	
-	DWORD 			usedtime;	
-	DWORD 			speed;
+	unsigned int 		usedtime;	
+	unsigned int 		speed;
 	bool			verifyres = false;
 
 	startaddr = (BYTE *)buf + off;
@@ -1250,9 +1256,9 @@ static ssize_t nand_test_store(struct kobject *kobject,struct attribute *attr, c
 	char 	func = 'x';
 	char 	cache = 'x';
 	char 	verify = 'x';
-	DWORD 	startsec = ~(DWORD)0;
-	DWORD	secnum = ~(DWORD)0;
-	DWORD	bufoff = ~(DWORD)0;
+	unsigned int 	startsec = ~(DWORD)0;
+	unsigned int	secnum = ~(DWORD)0;
+	unsigned int	bufoff = ~(DWORD)0;
 	BYTE	*databuf;
 
 	g_iShowVar = -1;
@@ -1404,23 +1410,16 @@ NAND_TEST_STORE_EXIT:
 }
 
 
-/* if nand driver is not inited ,  functions below will be used  */
-#ifdef INIT_NAND_IN_TESTDRIVER   
-
-#endif
 
 static int __init nand_test_init(void)
 {
-   int ret;
-#ifdef INIT_NAND_IN_TESTDRIVER
-    __u32 cmu_clk;
-#endif
+  int ret;
 
 	printk(KERN_INFO "nand_test_init start...\n");
 
-    if((ret = kobject_init_and_add(&kobj,&ktype,NULL,"nand")) != 0 ) {
-        return ret; 
-    }
+  if((ret = kobject_init_and_add(&kobj,&ktype,NULL,"nand")) != 0 ) {
+  	return ret; 
+  }
 
 
 #ifdef INIT_NAND_IN_TESTDRIVER
@@ -1489,8 +1488,7 @@ static int __init nand_test_init(void)
 
    printk(KERN_INFO "nand_test_init ok\n");
 
-   return 0;  // init success
-  
+   return 0;  // init success 
 }
 
 
