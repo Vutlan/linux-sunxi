@@ -68,6 +68,7 @@ copy_nand_mod()
 {
 
     cd $LICHEE_KDIR
+    echo _________________cpio build____________________________
     if [ -x "./scripts/build_rootfs.sh" ]; then
         ./scripts/build_rootfs.sh e rootfs.cpio.gz >/dev/null
     else
@@ -87,7 +88,7 @@ copy_nand_mod()
         rm rootfs.cpio.gz
     fi
     ./scripts/build_rootfs.sh c rootfs.cpio.gz >/dev/null
-    rm -rf skel
+#    rm -rf skel
 
 }
 
@@ -187,7 +188,7 @@ build_ramfs()
 #					--board 'a31' \
 #					--base 0x40000000 \
 #					-o output/boot.img
-		rm  rootfs.cpio.gz
+#		rm  rootfs.cpio.gz
 		echo build_ramfs
 }
 
