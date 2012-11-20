@@ -13,7 +13,7 @@
 #include <media/v4l2-chip-ident.h>
 #include <media/v4l2-mediabus.h>//linux-3.0
 #include <linux/io.h>
-//#include <mach/gpio_v2.h>
+#include <mach/gpio.h>
 #include <mach/sys_config.h>
 #include <linux/regulator/consumer.h>
 //#include <mach/system.h>
@@ -33,8 +33,30 @@ MODULE_AUTHOR("raymonxiu");
 MODULE_DESCRIPTION("A low-level driver for OV ov5640 sensors");
 MODULE_LICENSE("GPL");
 
+#define FPGA
+
+#ifdef FPGA
+
+//int gpio_write_one_pin_value(int hdl, int status, char *name)
+//{
+//  return 0;
+//}
+//int gpio_set_one_pin_io_status(int hdl, int status, char *name)
+//{
+//  return 0;
+//}
+int axp_gpio_set_io(int num, int val)
+{
+  return 0;
+}
+int axp_gpio_set_value(int num, int sta)
+{
+  return 0;
+}
+#endif
+
 //for internel driver debug
-#define DEV_DBG_EN   		0 
+#define DEV_DBG_EN   		1 
 #if(DEV_DBG_EN == 1)		
 #define csi_dev_dbg(x,arg...) printk(KERN_INFO"[CSI_DEBUG][OV5640]"x,##arg)
 #else
@@ -2194,32 +2216,26 @@ static int sensor_write_continuous(struct v4l2_subdev *sd, int addr, char vals[]
  */
 static void csi_gpio_write(struct v4l2_subdev *sd, user_gpio_set_t *gpio, int status)
 {
-#ifndef FPGA	
 	struct csi_dev *dev=(struct csi_dev *)dev_get_drvdata(sd->v4l2_dev->dev);
-	
+		
   if(gpio->port == 0xffff) {
     axp_gpio_set_io(gpio->port_num, 1);
     axp_gpio_set_value(gpio->port_num, status); 
   } else {
-    gpio_write_one_pin_value(dev->csi_pin_hd,status,(char *)&gpio->gpio_name);
+    sw_gpio_write_one_pin_value(dev->csi_pin_hd,status,(char *)&gpio->gpio_name);
   }
-#endif
 }
 
-#if 1
 static void csi_gpio_set_status(struct v4l2_subdev *sd, user_gpio_set_t *gpio, int status)
 {
-#ifndef FPGA		
 	struct csi_dev *dev=(struct csi_dev *)dev_get_drvdata(sd->v4l2_dev->dev);
-
+		
   if(gpio->port == 0xffff) {
     axp_gpio_set_io(gpio->port_num, status);
   } else {
-    gpio_set_one_pin_io_status(dev->csi_pin_hd,status,(char *)&gpio->gpio_name);
+    sw_gpio_set_one_pin_io_status(dev->csi_pin_hd,status,(char *)&gpio->gpio_name);
   }
-#endif
 }
-#endif
 
 
 /* 
@@ -4464,11 +4480,18 @@ static int sensor_s_parm(struct v4l2_subdev *sd, struct v4l2_streamparm *parms)
 	csi_dev_dbg("sensor_s_parm\n");
 	
 	if (parms->type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
+	  {
+	  csi_dev_dbg("sensor_s_parm not correct type\n");
+	
 		return -EINVAL;
+	}
 	
 	if (info->tpf.numerator == 0)
+	  {
+	  csi_dev_dbg("sensor_s_parm tpf.numerator == 0\n");
+	
 		return -EINVAL;
-		
+	}
 	info->capture_mode = cp->capturemode;
 	
 	if (info->capture_mode == V4L2_MODE_IMAGE) {
@@ -4484,7 +4507,10 @@ static int sensor_s_parm(struct v4l2_subdev *sd, struct v4l2_streamparm *parms)
 	
 	div = SENSOR_FRAME_RATE/(tpf->denominator/tpf->numerator);
 	if(div > 15 || div == 0) 
+	  {
+	  csi_dev_dbg("div=%d\n",div);  
 		return -EINVAL;
+	}
 	
 	csi_dev_dbg("set frame rate %d\n",tpf->denominator/tpf->numerator);
 	
@@ -4504,7 +4530,7 @@ static int sensor_queryctrl(struct v4l2_subdev *sd,
 	/* Fill in min, max, step and default value for these controls. */
 	/* see include/linux/videodev2.h for details */
 	/* see sensor_s_parm and sensor_g_parm for the meaning of value */
-	
+	csi_dev_dbg("sensor_queryctrl qc->id=0x%x\n",qc->id);
 	switch (qc->id) {
 //	case V4L2_CID_BRIGHTNESS:
 //		return v4l2_ctrl_query_fill(qc, -4, 4, 1, 1);
@@ -4534,10 +4560,21 @@ static int sensor_queryctrl(struct v4l2_subdev *sd,
 	case V4L2_CID_CAMERA_FLASH_MODE:
 	  return v4l2_ctrl_query_fill(qc, 0, 4, 1, 0);	
 	case V4L2_CID_CAMERA_AF_MODE:
-	  return v4l2_ctrl_query_fill(qc, 0, 5, 1, 0);
-	case V4L2_CID_CAMERA_AF_CTRL:
-	  return v4l2_ctrl_query_fill(qc, 0, 6, 1, 0);
+	{
+		int ret = 0;
+		csi_dev_dbg("V4L2_CID_CAMERA_AF_MODE\n");
+		ret = v4l2_ctrl_query_fill(qc, 0, 5, 1, 0);
+	  return ret;
 	}
+	case V4L2_CID_CAMERA_AF_CTRL:
+	{
+		int ret = 0;
+		csi_dev_dbg("V4L2_CID_CAMERA_AF_CTRL\n");
+		ret = v4l2_ctrl_query_fill(qc, 0, 6, 1, 0);
+	  return ret;
+	}
+	}
+	csi_dev_dbg("no id\n");
 	return -EINVAL;
 }
 
@@ -4584,6 +4621,8 @@ static int sensor_g_ctrl(struct v4l2_subdev *sd, struct v4l2_control *ctrl)
 
 static int sensor_s_ctrl(struct v4l2_subdev *sd, struct v4l2_control *ctrl)
 {
+  csi_dev_dbg("sensor_s_ctrl ctrl->id=%d\n",ctrl->id);
+  
 	switch (ctrl->id) {
 	case V4L2_CID_BRIGHTNESS:
 		return sensor_s_brightness(sd, ctrl->value);
@@ -4674,7 +4713,8 @@ static int sensor_probe(struct i2c_client *client,
 	struct v4l2_subdev *sd;
 	struct sensor_info *info;
 //	int ret;
-
+  
+  csi_dev_dbg("sensor_probe");
 	info = kzalloc(sizeof(struct sensor_info), GFP_KERNEL);
 	if (info == NULL)
 		return -ENOMEM;

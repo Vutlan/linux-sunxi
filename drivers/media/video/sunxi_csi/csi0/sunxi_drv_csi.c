@@ -2081,10 +2081,10 @@ static int fetch_config(struct csi_dev *dev)
 	dev->dev_qty = 1;
   dev->stby_mode = 0;
 	dev->ccm_cfg[0] = &ccm_cfg[0]; 
-	dev->ccm_cfg[0]->twi_id = 0;
+	dev->ccm_cfg[0]->twi_id = 1;
 	dev->ccm_cfg[0]->i2c_addr = 0x78;
-  strcpy(dev->ccm_cfg[0]->ccm,"ov5640_mipi");
-	dev->ccm_cfg[0]->interface = 0x80;	//0:normal sensor 0x80:mipi sensor
+  strcpy(dev->ccm_cfg[0]->ccm,"ov5640");
+	dev->ccm_cfg[0]->interface = 0;	//0:normal sensor 0x80:mipi sensor
 	dev->ccm_cfg[0]->stby_mode = 0;
 	dev->ccm_cfg[0]->vflip = 0;
 	dev->ccm_cfg[0]->hflip = 1;
@@ -2149,7 +2149,7 @@ static int csi_probe(struct platform_device *pdev)
 
 	dev->irq = res->start;
 
-	ret = request_irq(dev->irq, csi_isr, 0, pdev->name, dev);
+	ret = request_irq(dev->irq, csi_isr, 0/*IRQF_DISABLE*/, pdev->name, dev);
 	if (ret) {
 		csi_err("failed to install irq (%d)\n", ret);
 		goto err_clk;
@@ -2206,6 +2206,7 @@ static int csi_probe(struct platform_device *pdev)
 		i2c_adap = i2c_get_adapter(dev->ccm_cfg[input_num]->twi_id);
 
 		if (i2c_adap == NULL) {
+		  csi_err("twi_id=0x%x",dev->ccm_cfg[input_num]->twi_id);
 			csi_err("request i2c adapter failed,input_num = %d\n",input_num);
 			ret = -EINVAL;
 			goto free_dev;//linux-3.0

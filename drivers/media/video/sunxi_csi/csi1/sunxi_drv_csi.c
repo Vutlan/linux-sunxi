@@ -1368,6 +1368,7 @@ static int vidioc_queryctrl(struct file *file, void *priv,
 	struct csi_dev *dev = video_drvdata(file);
 	int ret;
 		
+		printk("[CSI]v4l2 sub device queryctrl qc->id=[0x%x] qc->name=[%s]\n",qc->id, qc->name);
 	ret = v4l2_subdev_call(dev->sd,core,queryctrl,qc);
 	if (ret < 0)
 		csi_err("v4l2 sub device queryctrl error!\n");
@@ -1868,19 +1869,40 @@ static int fetch_config(struct csi_dev *dev)
 	dev->dev_qty = 1;
   dev->stby_mode = 0;
 	dev->ccm_cfg[0] = &ccm_cfg[0]; 
-	dev->ccm_cfg[0]->twi_id = 0;
+	dev->ccm_cfg[0]->twi_id = 1;
 	dev->ccm_cfg[0]->i2c_addr = 0x78;
   strcpy(dev->ccm_cfg[0]->ccm,"ov5640");
+//	dev->ccm_cfg[0]->i2c_addr = 0x5a;
+//  strcpy(dev->ccm_cfg[0]->ccm,"s5k4ec");
+//	dev->ccm_cfg[0]->i2c_addr = 0x78;
+//  strcpy(dev->ccm_cfg[0]->ccm,"gc2035");
 	dev->ccm_cfg[0]->interface = 0x0;
 	dev->ccm_cfg[0]->stby_mode = 0;
 	dev->ccm_cfg[0]->vflip = 0;
 	dev->ccm_cfg[0]->hflip = 1;
+	
+	dev->dev_qty = 2;
+  dev->stby_mode = 0;
+	dev->ccm_cfg[1] = &ccm_cfg[1]; 
+	dev->ccm_cfg[1]->twi_id = 1;
+	dev->ccm_cfg[1]->i2c_addr = 0x42;
+  strcpy(dev->ccm_cfg[0]->ccm,"gc0308");
+//	dev->ccm_cfg[0]->i2c_addr = 0x5a;
+//  strcpy(dev->ccm_cfg[0]->ccm,"s5k4ec");
+//	dev->ccm_cfg[0]->i2c_addr = 0x42;
+//  strcpy(dev->ccm_cfg[0]->ccm,"gc0308");
+	dev->ccm_cfg[1]->interface = 0x0;
+	dev->ccm_cfg[1]->stby_mode = 0;
+	dev->ccm_cfg[1]->vflip = 0;
+	dev->ccm_cfg[1]->hflip = 1;
 #endif	
 	return 0;
 }
 
 static int csi_probe(struct platform_device *pdev)
 {
+//#define _PIO_BASE_ADDRESS		(0x01c20800)
+//#define _Pn_CFG2(n) ( (n)*0x24 + 0x08 + gpio_addr )
 	struct csi_dev *dev;
 	struct resource *res;
 	struct video_device *vfd;
@@ -1888,7 +1910,20 @@ static int csi_probe(struct platform_device *pdev)
 	int ret = 0;
 	int input_num;
 
+//  void* __iomem gpio_addr = NULL;
+//  unsigned int  reg_val;
+  
 	csi_dbg(0,"csi_probe\n");
+	
+//	printk("========set PH16/17 to twi1 pin mode========\n");
+//  gpio_addr = ioremap(_PIO_BASE_ADDRESS, 0x400);
+//	printk("_PIO_BASE_ADDRESS=0x%x\n",gpio_addr);
+//	reg_val = readl(gpio_addr+0x104);
+//	printk("PH16/17=0x%x\n",reg_val);
+//  reg_val &= (0xffffff00);/* PH16-PH17 TWI1 SCK,SDA */
+//  reg_val |= (0x22);
+//  writel(reg_val, gpio_addr+0x104);
+  
 	/*request mem for dev*/	
 	dev = kzalloc(sizeof(struct csi_dev), GFP_KERNEL);
 	if (!dev) {
