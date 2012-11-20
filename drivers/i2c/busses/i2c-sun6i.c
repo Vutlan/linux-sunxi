@@ -30,7 +30,7 @@
 
 #include <mach/gpio.h>
 #include <mach/irqs-sun6i.h>
-
+#include <mach/clock.h>
 #include <mach/i2c.h>
 
 #define SUN6I_I2C_DEBUG
@@ -41,6 +41,7 @@
 	#define I2C_DBG(x...)
 #endif
 
+#define I2C_ERR(x...)		printk(x)
 
 #define SUN6I_I2C_OK      0
 #define SUN6I_I2C_FAIL   -1
@@ -95,8 +96,8 @@ struct sun6i_i2c {
 	unsigned int		msg_idx;
 	unsigned int		msg_ptr;
 
-#ifdef AW_ASIC_PLATFORM
-	struct clk		 	*clk;
+#ifdef CONFIG_AW_ASIC_EVB_PLATFORM
+	struct clk		 	*mclk;
 	struct clk       	*pclk;
 	unsigned int     	gpio_hdle;
 #endif
@@ -332,25 +333,7 @@ static inline void twi_set_efr(void *base_addr, unsigned int efr)
 static int sun6i_i2c_xfer_complete(struct sun6i_i2c *i2c, int code);
 static int sun6i_i2c_do_xfer(struct sun6i_i2c *i2c, struct i2c_msg *msgs, int num);
 
-#ifdef AW_ASIC_PLATFORM
-static int twi_enable_sys_clk(struct sun6i_i2c *i2c)
-{
-	int     result;
-
-	result = clk_enable(i2c->pclk);
-	if(result) {
-		return result;
-	}
-
-	return clk_enable(i2c->clk);
-}
-
-static void twi_disable_sys_clk(struct sun6i_i2c *i2c)
-{
-	clk_disable(i2c->clk);
-	clk_disable(i2c->pclk);
-}
-
+#ifdef CONFIG_AW_ASIC_EVB_PLATFORM
 static int twi_request_gpio(struct sun6i_i2c *i2c)
 {
 #ifndef SYS_I2C_PIN
@@ -607,8 +590,8 @@ static int twi_start(void *base_addr, int bus_num)
 
 	twi_set_start(base_addr);
 	while((1 == twi_get_start(base_addr))&&(--timeout));
-	if(timeout == 0) {
-		I2C_DBG("[i2c%d] START can't sendout!\n", bus_num);
+	if (timeout == 0) {
+		I2C_ERR("[i2c%d] START can't sendout!\n", bus_num);
 		return SUN6I_I2C_FAIL;
 	}
 
@@ -621,8 +604,8 @@ static int twi_restart(void  *base_addr, int bus_num)
 	twi_set_start(base_addr);
 	twi_clear_irq_flag(base_addr);
 	while((1 == twi_get_start(base_addr))&&(--timeout));
-	if(timeout == 0) {
-		I2C_DBG("[i2c%d] Restart can't sendout!\n", bus_num);
+	if (timeout == 0) {
+		I2C_ERR("[i2c%d] Restart can't sendout!\n", bus_num);
 		return SUN6I_I2C_FAIL;
 	}
 	return SUN6I_I2C_OK;
@@ -637,23 +620,22 @@ static int twi_stop(void *base_addr, int bus_num)
 
 	twi_get_stop(base_addr);/* it must delay 1 nop to check stop bit */
 	while(( 1 == twi_get_stop(base_addr))&& (--timeout));
-	if(timeout == 0) {
-		I2C_DBG("[i2c%d] STOP can't sendout!\n", bus_num);
+	if (timeout == 0) {
+		I2C_ERR("[i2c%d] STOP can't sendout!\n", bus_num);
 		return SUN6I_I2C_TFAIL;
 	}
 
 	timeout = 0xff;
 	while((TWI_STAT_IDLE != readl(base_addr + TWI_STAT_REG))&&(--timeout));
-	if(timeout == 0)
-	{
-		I2C_DBG("[i2c%d] i2c state isn't idle(0xf8)\n", bus_num);
+	if (timeout == 0) {
+		I2C_ERR("[i2c%d] i2c state isn't idle(0xf8)\n", bus_num);
 		return SUN6I_I2C_TFAIL;
 	}
 
 	timeout = 0xff;
 	while((TWI_LCR_IDLE_STATUS != readl(base_addr + TWI_LCR_REG))&&(--timeout));
-	if(timeout == 0) {
-		I2C_DBG("[i2c%d] i2c lcr isn't idle(0x3a)\n", bus_num);
+	if (timeout == 0) {
+		I2C_ERR("[i2c%d] i2c lcr isn't idle(0x3a)\n", bus_num);
 		return SUN6I_I2C_TFAIL;
 	}
 
@@ -685,13 +667,10 @@ static void twi_enable_lcr(void *base_addr, unsigned int sda_scl)
     unsigned int reg_val = readl(base_addr + TWI_LCR_REG);
     sda_scl &= 0x01;
     if(sda_scl)
-    {
         reg_val |= TWI_LCR_SCL_EN;/* enable scl line control */
-    }
     else
-    {
         reg_val |= TWI_LCR_SDA_EN;/* enable sda line control */
-    }
+
     writel(reg_val, base_addr + TWI_LCR_REG);
 }
 
@@ -701,13 +680,10 @@ static void twi_disable_lcr(void *base_addr, unsigned int sda_scl)
     unsigned int reg_val = readl(base_addr + TWI_LCR_REG);
     sda_scl &= 0x01;
     if(sda_scl)
-    {
         reg_val &= ~TWI_LCR_SCL_EN;/* disable scl line control */
-    }
     else
-    {
         reg_val &= ~TWI_LCR_SDA_EN;/* disable sda line control */
-    }
+
     writel(reg_val, base_addr + TWI_LCR_REG);
 }
 
@@ -724,10 +700,9 @@ static int twi_send_clk_9pulse(void *base_addr, int bus_num)
 
     while(cycle < 10)
     {
-        if( twi_get_sda(base_addr)
+        if (twi_get_sda(base_addr)
             && twi_get_sda(base_addr)
-            && twi_get_sda(base_addr) )
-        {
+            && twi_get_sda(base_addr)) {
             break;
         }
         /* twi_scl -> low */
@@ -740,14 +715,12 @@ static int twi_send_clk_9pulse(void *base_addr, int bus_num)
         cycle++;
     }
 
-    if(twi_get_sda(base_addr))
-    {
+    if (twi_get_sda(base_addr)) {
         twi_disable_lcr(base_addr, twi_scl);
         return SUN6I_I2C_OK;
     }
-    else
-    {
-        I2C_DBG("[i2c%d] SDA is still Stuck Low, failed. \n", bus_num);
+    else {
+        I2C_ERR("[i2c%d] SDA is still Stuck Low, failed. \n", bus_num);
         twi_disable_lcr(base_addr, twi_scl);
         return SUN6I_I2C_FAIL;
     }
@@ -823,7 +796,7 @@ static int sun6i_i2c_core_process(struct sun6i_i2c *i2c)
 #endif
 
     if(i2c->msg == NULL) {
-        I2C_DBG("[i2c%d] i2c message is NULL, err_code = 0xfe\n", i2c->bus_num);
+        I2C_ERR("[i2c%d] i2c message is NULL, err_code = 0xfe\n", i2c->bus_num);
         err_code = 0xfe;
         goto msg_null;
     }
@@ -948,7 +921,7 @@ static int sun6i_i2c_core_process(struct sun6i_i2c *i2c)
 ok_out:
 err_out:
 	if(SUN6I_I2C_TFAIL == twi_stop(base_addr, i2c->bus_num)) {
-		I2C_DBG("[i2c%d] STOP failed!\n", i2c->bus_num);
+		I2C_ERR("[i2c%d] STOP failed!\n", i2c->bus_num);
 	}
 
 msg_null:
@@ -963,7 +936,7 @@ static irqreturn_t sun6i_i2c_handler(int this_irq, void * dev_id)
 	int ret = SUN6I_I2C_FAIL;
 
 	if(!twi_query_irq_flag(i2c->base_addr)) {
-		pr_warning("unknown interrupt!");
+		I2C_ERR("unknown interrupt!");
 		return ret;
 	}
 
@@ -992,7 +965,7 @@ static int sun6i_i2c_xfer_complete(struct sun6i_i2c *i2c, int code)
 
 	/* i2c->msg_idx  store the information */
 	if(code == SUN6I_I2C_FAIL) {
-		I2C_DBG("[i2c%d] Maybe Logic Error, debug it!\n", i2c->bus_num);
+		I2C_ERR("[i2c%d] Maybe Logic Error, debug it!\n", i2c->bus_num);
 		i2c->msg_idx = code;
 		ret = SUN6I_I2C_FAIL;
 	}
@@ -1013,7 +986,7 @@ static int sun6i_i2c_xfer(struct i2c_adapter *adap, struct i2c_msg *msgs, int nu
 	int i   = 0;
 
 	if(i2c->suspended) {
-		I2C_DBG("[i2c%d] has already suspend, dev addr:0x%x!\n", i2c->adap.nr, msgs->addr);
+		I2C_ERR("[i2c%d] has already suspend, dev addr:0x%x!\n", i2c->adap.nr, msgs->addr);
 		return -ENODEV;
 	}
 
@@ -1043,16 +1016,14 @@ static int sun6i_i2c_do_xfer(struct sun6i_i2c *i2c, struct i2c_msg *msgs, int nu
 	udelay(100);
 
 	/* test the bus is free,already protect by the semaphore at DEV layer */
-	while( TWI_STAT_IDLE != twi_query_irq_status(i2c->base_addr)&&
+	while(TWI_STAT_IDLE != twi_query_irq_status(i2c->base_addr)&&
 	       TWI_STAT_BUS_ERR != twi_query_irq_status(i2c->base_addr) &&
-	       TWI_STAT_ARBLOST_SLAR_ACK != twi_query_irq_status(i2c->base_addr) ) {
+	       TWI_STAT_ARBLOST_SLAR_ACK != twi_query_irq_status(i2c->base_addr)) {
 		I2C_DBG("[i2c%d] bus is busy, status = %x\n", i2c->bus_num, twi_query_irq_status(i2c->base_addr));
-        if( SUN6I_I2C_OK == twi_send_clk_9pulse(i2c->base_addr, i2c->bus_num) )
-        {
+        if (SUN6I_I2C_OK == twi_send_clk_9pulse(i2c->base_addr, i2c->bus_num)) {
             break;
         }
-        else
-        {
+        else {
             ret = SUN6I_I2C_RETRY;
             goto out;
         }
@@ -1096,11 +1067,11 @@ static int sun6i_i2c_do_xfer(struct sun6i_i2c *i2c, struct i2c_msg *msgs, int nu
 	ret = i2c->msg_idx;
 
 	if (timeout == 0){
-		pr_warning("[i2c%d], xfer timeout\n", i2c->bus_num);
+		I2C_ERR("[i2c%d] xfer timeout\n", i2c->bus_num);
 		ret = -ETIME;
 	}
 	else if (ret != num){
-		I2C_DBG("[i2c%d] incomplete xfer (0x%x)\n", i2c->bus_num, ret);
+		I2C_ERR("[i2c%d] incomplete xfer (status: 0x%x)\n", i2c->bus_num, ret);
 		ret = -ECOMM;
 	}
 out:
@@ -1118,16 +1089,18 @@ static const struct i2c_algorithm sun6i_i2c_algorithm = {
 	.functionality	  = sun6i_i2c_functionality,
 };
 
-#ifdef AW_ASIC_PLATFORM
+#ifdef CONFIG_AW_ASIC_EVB_PLATFORM
 static int sun6i_i2c_clk_init(struct sun6i_i2c *i2c)
 {
-	int ret = 0;
 	unsigned int apb_clk = 0;
 
-	/* enable APB clk */
-	ret = twi_enable_sys_clk(i2c);
-	if(ret == -1){
-		I2C_DBG("[i2c%d] enable i2c clock failed!\n", i2c->bus_num);
+	if (clk_enable(i2c->pclk)) {
+		I2C_ERR("[i2c%d] enable apb_twi clock failed!\n", i2c->bus_num);
+		return -1;
+	}
+
+	if (clk_enable(i2c->mclk)) {
+		I2C_ERR("[i2c%d] enable mod_twi clock failed!\n", i2c->bus_num);
 		return -1;
 	}
 
@@ -1135,11 +1108,12 @@ static int sun6i_i2c_clk_init(struct sun6i_i2c *i2c)
 	twi_enable_bus(i2c->base_addr);
 
 	/* set twi module clock */
-	apb_clk  =  clk_get_rate(i2c->clk);
+	apb_clk  =  clk_get_rate(i2c->mclk);
 	if(apb_clk == 0){
-		I2C_DBG("[i2c%d] get i2c source clock frequency failed!\n", i2c->bus_num);
+		I2C_ERR("[i2c%d] get i2c source clock frequency failed!\n", i2c->bus_num);
 		return -1;
 	}
+
 	I2C_DBG("[i2c%d] apb clock = %d \n",i2c->bus_num, apb_clk);
 	twi_set_clock(apb_clk, i2c->bus_freq, i2c->base_addr);
 
@@ -1148,13 +1122,23 @@ static int sun6i_i2c_clk_init(struct sun6i_i2c *i2c)
 
 static int sun6i_i2c_clk_exit(struct sun6i_i2c *i2c)
 {
-	void *base_addr = i2c->base_addr;
-
-	// twi_disable_irq(base_addr);
 	/* disable twi bus */
-	twi_disable_bus(base_addr);
-	/* disable APB clk */
-	twi_disable_sys_clk(i2c);
+	twi_disable_bus(i2c->base_addr);
+
+	/* disable clk */
+	if (!i2c->mclk || IS_ERR(i2c->mclk)) {
+		I2C_ERR("i2c mclk handle is invalid, just return!\n");
+		return -1;
+	} else {
+		clk_disable(i2c->mclk);
+	}
+
+	if (!i2c->pclk || IS_ERR(i2c->pclk)) {
+		I2C_ERR("i2c pclk handle is invalid, just return!\n");
+		return -1;
+	} else {
+		clk_disable(i2c->pclk);
+	}
 
 	return 0;
 }
@@ -1165,12 +1149,13 @@ static int sun6i_i2c_hw_init(struct sun6i_i2c *i2c)
 	int ret = 0;
 
 	ret = twi_request_gpio(i2c);
-	if(ret == -1){
-		I2C_DBG("[i2c%d] request i2c gpio failed!\n", i2c->bus_num);
+	if (ret == -1) {
+		I2C_ERR("[i2c%d] request i2c gpio failed!\n", i2c->bus_num);
 		return -1;
 	}
 
-	if(sun6i_i2c_clk_init(i2c)) {
+	if (sun6i_i2c_clk_init(i2c)) {
+		I2C_ERR("[i2c%d] init i2c clock failed!\n", i2c->bus_num);
 		return -1;
 	}
 
@@ -1181,7 +1166,8 @@ static int sun6i_i2c_hw_init(struct sun6i_i2c *i2c)
 
 static void sun6i_i2c_hw_exit(struct sun6i_i2c *i2c)
 {
-	if(sun6i_i2c_clk_exit(i2c)) {
+	if (sun6i_i2c_clk_exit(i2c)) {
+		I2C_ERR("[i2c%d] exit i2c clock failed!\n", i2c->bus_num);
 		return;
 	}
 	twi_release_gpio(i2c);
@@ -1206,9 +1192,9 @@ static int sun6i_i2c_probe(struct platform_device *pdev)
 	struct sun6i_i2c *i2c = NULL;
 	struct resource *res = NULL;
 	struct sun6i_i2c_platform_data *pdata = NULL;
-#ifdef AW_ASIC_PLATFORM
-	char *i2c_clk[] ={"mod_twi0","mod_twi1","mod_twi2","mod_twi3"};
-	char *i2c_pclk[] ={"apb_twi0","apb_twi1","apb_twi2","apb_twi3"};
+#ifdef CONFIG_AW_ASIC_EVB_PLATFORM
+	char *i2c_mclk[] ={CLK_MOD_TWI0, CLK_MOD_TWI1, CLK_MOD_TWI2, CLK_MOD_TWI3};
+	char *i2c_pclk[] ={CLK_APB_TWI0, CLK_APB_TWI1, CLK_APB_TWI2, CLK_APB_TWI3};
 #endif
 	int ret;
 	int irq;
@@ -1248,18 +1234,17 @@ static int sun6i_i2c_probe(struct platform_device *pdev)
 	spin_lock_init(&i2c->lock);
 	init_waitqueue_head(&i2c->wait);
 
-#ifdef AW_ASIC_PLATFORM
+#ifdef CONFIG_AW_ASIC_EVB_PLATFORM
 	i2c->pclk = clk_get(NULL, i2c_pclk[i2c->adap.nr]);
-	if(NULL == i2c->pclk){
-		I2C_DBG("[i2c%d] request apb_i2c clock failed\n", i2c->bus_num);
+	if(!i2c->pclk || IS_ERR(i2c->pclk)){
+		I2C_ERR("[i2c%d] request apb_twi clock failed\n", i2c->bus_num);
 		ret = -EIO;
 		goto eremap;
 	}
 
-	i2c->clk = clk_get(NULL, i2c_clk[i2c->adap.nr]);
-	if(NULL == i2c->clk){
-		I2C_DBG("[i2c%d] request i2c clock failed\n", i2c->bus_num);
-        clk_put(i2c->pclk);
+	i2c->mclk = clk_get(NULL, i2c_mclk[i2c->adap.nr]);
+	if(!i2c->mclk || IS_ERR(i2c->mclk)){
+		I2C_ERR("[i2c%d] request mod_twi clock failed\n", i2c->bus_num);
 		ret = -EIO;
 		goto eremap;
 	}
@@ -1271,7 +1256,7 @@ static int sun6i_i2c_probe(struct platform_device *pdev)
 		ret = -EIO;
 		goto eremap;
 	}
-	I2C_DBG("[i2c%d] base_Addr = 0x%x \n", i2c->bus_num, (unsigned int)i2c->base_addr );
+	I2C_DBG("[i2c%d] base_Addr = 0x%x \n", i2c->bus_num, (unsigned int)i2c->base_addr);
 
 #ifndef SYS_I2C_PIN
 	gpio_addr = ioremap(_PIO_BASE_ADDRESS, 0x400);
@@ -1289,14 +1274,14 @@ static int sun6i_i2c_probe(struct platform_device *pdev)
 
 	i2c->adap.algo = &sun6i_i2c_algorithm;
 	ret = request_irq(irq, sun6i_i2c_handler, IRQF_DISABLED, i2c->adap.name, i2c);
-	if (ret)
-	{
+	if (ret) {
+		I2C_ERR("[i2c%d] requeset irq failed!\n", i2c->bus_num);
 		goto ereqirq;
 	}
 
-	if(-1 == sun6i_i2c_hw_init(i2c)){
+	if (sun6i_i2c_hw_init(i2c)) {
 		ret = -EIO;
-		goto eadapt;
+		goto ehwinit;
 	}
 
 	i2c->adap.algo_data  = i2c;
@@ -1307,13 +1292,13 @@ static int sun6i_i2c_probe(struct platform_device *pdev)
 
 	ret = i2c_add_numbered_adapter(&i2c->adap);
 	if (ret < 0) {
-		I2C_DBG(KERN_INFO "I2C: Failed to add bus\n");
+		I2C_ERR( "[i2c%d] failed to add bus\n", i2c->bus_num);
 		goto eadapt;
 	}
 
 	platform_set_drvdata(pdev, i2c);
 
-	I2C_DBG(KERN_INFO "I2C: %s: sun6i I2C adapter\n", dev_name(&i2c->adap.dev));
+	I2C_DBG("I2C: %s: sun6i I2C adapter\n", dev_name(&i2c->adap.dev));
 
 	I2C_DBG("**********start************\n");
 	I2C_DBG("0x%x \n",readl(i2c->base_addr + 0x0c));
@@ -1326,23 +1311,39 @@ static int sun6i_i2c_probe(struct platform_device *pdev)
 	return 0;
 
 eadapt:
-	free_irq(irq, i2c);
-#ifdef AW_ASIC_PLATFORM
-	clk_disable(i2c->clk);
+#ifdef CONFIG_AW_ASIC_EVB_PLATFORM
+	if (i2c->mclk)
+		clk_disable(i2c->mclk);
+
+	if (i2c->pclk)
+		clk_disable(i2c->pclk);
 #endif
+
+ehwinit:
+	free_irq(irq, i2c);
 
 ereqirq:
 #ifndef SYS_I2C_PIN
-    if(gpio_addr){
+    if (r_gpio_addr)
+        iounmap(r_gpio_addr);
+
+    if (gpio_addr)
         iounmap(gpio_addr);
-    }
 #endif
 	iounmap(i2c->base_addr);
-#ifdef AW_ASIC_PLATFORM
-	clk_put(i2c->clk);
-#endif
 
 eremap:
+#ifdef CONFIG_AW_ASIC_EVB_PLATFORM
+	if (i2c->mclk) {
+		clk_put(i2c->mclk);
+		i2c->mclk = NULL;
+	}
+
+	if (i2c->pclk) {
+		clk_put(i2c->pclk);
+		i2c->pclk = NULL;
+	}
+#endif
 	kfree(i2c);
 
 emalloc:
@@ -1361,9 +1362,22 @@ static int __exit sun6i_i2c_remove(struct platform_device *pdev)
 
 	/* disable clock and release gpio */
 	sun6i_i2c_hw_exit(i2c);
-#ifdef AW_ASIC_PLATFORM
-	clk_put(i2c->clk);
-	clk_put(i2c->pclk);
+#ifdef CONFIG_AW_ASIC_EVB_PLATFORM
+	if (!i2c->mclk || IS_ERR(i2c->mclk)) {
+		I2C_ERR("i2c mclk handle is invalid, just return!\n");
+		return -1;
+	} else {
+		clk_put(i2c->mclk);
+		i2c->mclk = NULL;
+	}
+
+	if (!i2c->pclk || IS_ERR(i2c->pclk)) {
+		I2C_ERR("i2c pclk handle is invalid, just return!\n");
+		return -1;
+	} else {
+		clk_put(i2c->pclk);
+		i2c->pclk = NULL;
+	}
 #endif
 
 	iounmap(i2c->base_addr);
@@ -1376,7 +1390,7 @@ static int __exit sun6i_i2c_remove(struct platform_device *pdev)
 #ifdef CONFIG_PM
 static int sun6i_i2c_suspend(struct device *dev)
 {
-#ifdef AW_ASIC_PLATFORM
+#ifdef CONFIG_AW_ASIC_EVB_PLATFORM
 	struct platform_device *pdev = to_platform_device(dev);
 	struct sun6i_i2c *i2c = platform_get_drvdata(pdev);
 	int count = 10;
@@ -1393,13 +1407,13 @@ static int sun6i_i2c_suspend(struct device *dev)
 	}
 
 	while((i2c->status != I2C_XFER_IDLE) && (count-- > 0)) {
-		I2C_DBG("[i2c%d] suspend while xfer,dev addr = 0x%x\n",
+		I2C_ERR("[i2c%d] suspend while xfer,dev addr = 0x%x\n",
 			i2c->adap.nr, i2c->msg? i2c->msg->addr : 0xff);
 		msleep(100);
 	}
 
 	if(sun6i_i2c_clk_exit(i2c)) {
-		I2C_DBG("[i2c%d] suspend failed.. \n", i2c->bus_num);
+		I2C_ERR("[i2c%d] suspend failed.. \n", i2c->bus_num);
 		i2c->suspended = 0;
 		return -1;
 	}
@@ -1411,7 +1425,7 @@ static int sun6i_i2c_suspend(struct device *dev)
 
 static int sun6i_i2c_resume(struct device *dev)
 {
-#ifdef AW_ASIC_PLATFORM
+#ifdef CONFIG_AW_ASIC_EVB_PLATFORM
 	struct platform_device *pdev = to_platform_device(dev);
 	struct sun6i_i2c *i2c = platform_get_drvdata(pdev);
 
@@ -1422,7 +1436,7 @@ static int sun6i_i2c_resume(struct device *dev)
 	}
 
 	if(sun6i_i2c_clk_init(i2c)) {
-		I2C_DBG("[i2c%d] resume failed.. \n", i2c->bus_num);
+		I2C_ERR("[i2c%d] resume failed.. \n", i2c->bus_num);
 		return -1;
 	}
 
@@ -1515,7 +1529,6 @@ struct platform_device sun6i_twi1_device = {
 	},
 };
 
-#ifdef AW_ASIC_PLATFORM
 /* twi2 */
 static struct resource sun6i_twi2_resources[] = {
 	{
@@ -1577,7 +1590,6 @@ struct platform_device sun6i_twi3_device = {
 		.platform_data = sun6i_twi3_pdata,
 	},
 };
-#endif
 
 #ifdef SUN6I_RTWI
 /* r_twi */
@@ -1611,13 +1623,68 @@ struct platform_device sun6i_rtwi_device = {
 };
 #endif
 
+#ifdef CONFIG_AW_ASIC_EVB_PLATFORM
+#define TWI0_USED_MASK 0x1
+#define TWI1_USED_MASK 0x2
+#define TWI2_USED_MASK 0x4
+#define TWI3_USED_MASK 0x8
+static int twi_used_mask = 0;
+
+static int __init sun6i_i2c_adap_init(void)
+{
+    int used = 0;
+    int i = 0;
+    int ret = 0;
+    char twi_para[16] = {0};
+
+    for (i=0; i<4; i++) {
+        used = 0;
+        sprintf(twi_para, "twi%d_para", i);
+
+        ret = script_parser_fetch(twi_para, "twi_used", &used, sizeof(int));
+        if (ret) {
+            I2C_ERR("[i2c%d] fetch para from sysconfig failed\n", i);
+            continue;
+        }
+
+        if (used)
+            twi_used_mask |= 1 << i;
+    }
+
+    if (twi_used_mask & TWI0_USED_MASK)
+        platform_device_register(&sun6i_twi0_device);
+
+    if (twi_used_mask & TWI1_USED_MASK)
+        platform_device_register(&sun6i_twi1_device);
+
+    if (twi_used_mask & TWI2_USED_MASK)
+        platform_device_register(&sun6i_twi2_device);
+
+    if (twi_used_mask & TWI3_USED_MASK)
+        platform_device_register(&sun6i_twi3_device);
+
+    if (twi_used_mask)
+        return platform_driver_register(&sun6i_i2c_driver);
+
+    I2C_DBG("cannot find any using configuration for all twi controllers!\n");
+
+	return 0;
+}
+
+static void __exit sun6i_i2c_adap_exit(void)
+{
+	if (twi_used_mask)
+		platform_driver_unregister(&sun6i_i2c_driver);
+}
+#else
 // static struct i2c_board_info eeprom_i2c_board_info[] __initdata = {
 	// {
 		// I2C_BOARD_INFO("24c16", 0x50),
 	// },
 // };
 
-static int __init sun6i_i2c_adap_init(void) {
+static int __init sun6i_i2c_adap_init(void)
+{
 	// int status;
 	// status = i2c_register_board_info(1, eeprom_i2c_board_info, ARRAY_SIZE(eeprom_i2c_board_info));
 	// if(status) {
@@ -1626,12 +1693,7 @@ static int __init sun6i_i2c_adap_init(void) {
 	// else{
 		// printk("eeprom init successed!\n");
 	// }
-	platform_device_register(&sun6i_twi0_device);
 	platform_device_register(&sun6i_twi1_device);
-#ifdef AW_ASIC_PLATFORM
-	platform_device_register(&sun6i_twi2_device);
-	platform_device_register(&sun6i_twi3_device);
-#endif
 #ifdef SUN6I_RTWI
 	platform_device_register(&sun6i_rtwi_device);
 #endif
@@ -1643,6 +1705,7 @@ static void __exit sun6i_i2c_adap_exit(void)
 {
 	platform_driver_unregister(&sun6i_i2c_driver);
 }
+#endif
 
 module_init(sun6i_i2c_adap_init);
 module_exit(sun6i_i2c_adap_exit);

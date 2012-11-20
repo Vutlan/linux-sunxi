@@ -33,6 +33,7 @@
 #include <mach/sys_config.h>
 #include <mach/gpio.h>
 #include <mach/spi.h>
+#include <mach/clock.h>
 
 #define SPI_INF(...)    printk(__VA_ARGS__)
 #define SPI_ERR(...)    do {printk("%s(Line%d) ", __FILE__, __LINE__); printk(__VA_ARGS__);} while(0)
@@ -66,7 +67,7 @@ struct sun6i_spi {
 	struct spi_master *master;/* kzalloc */
 	void __iomem *base_addr; /* register */
 
-#ifdef AW_ASIC_PLATFORM
+#ifdef CONFIG_AW_ASIC_EVB_PLATFORM
 	struct clk *hclk;  /* ahb spi gating bit */
 	struct clk *mclk;  /* ahb spi gating bit */
 	unsigned long gpio_hdle;
@@ -392,7 +393,7 @@ static void spi_set_dual_read(void *base_addr)
 	writel(reg_val, base_addr + SPI_BCC_REG);
 }
 
-#ifdef AW_ASIC_PLATFORM
+#ifdef CONFIG_AW_ASIC_EVB_PLATFORM
 static int sun6i_spi_get_cfg_csbitmap(int bus_num);
 #endif
 
@@ -668,7 +669,7 @@ static int sun6i_spi_xfer_setup(struct spi_device *spi, struct spi_transfer *t)
    	if(config->max_speed_hz > SPI_MAX_FREQUENCY) {
 	    return -EINVAL;
 	}
-#ifdef AW_ASIC_PLATFORM
+#ifdef CONFIG_AW_ASIC_EVB_PLATFORM
 	spi_set_clk(config->max_speed_hz, clk_get_rate(sspi->mclk), base_addr);
 #else
 	spi_set_clk(config->max_speed_hz, 24000000, base_addr);
@@ -1173,7 +1174,7 @@ static void sun6i_spi_cleanup(struct spi_device *spi)
 }
 
 
-#ifdef AW_ASIC_PLATFORM
+#ifdef CONFIG_AW_ASIC_EVB_PLATFORM
 static int sun6i_spi_set_gpio(struct sun6i_spi *sspi, bool on)
 {
     if(on) {
@@ -1219,6 +1220,8 @@ static int sun6i_spi_set_mclk(struct sun6i_spi *sspi, u32 mod_clk)
     char* name = NULL;
     u32 source = 1;
     int ret = 0;
+	long rate = 0;
+
     switch (source)
     {
         case 0:
@@ -1233,23 +1236,21 @@ static int sun6i_spi_set_mclk(struct sun6i_spi *sspi, u32 mod_clk)
             return -1;
     }
 
-    if (IS_ERR(source_clock))
-	{
+    if (!source_clock || IS_ERR(source_clock)) {
 		ret = PTR_ERR(source_clock);
 		SPI_ERR("Unable to get spi source clock resource\n");
 		return -1;
 	}
 
-    if (clk_set_parent(sspi->mclk, source_clock))
-    {
-        SPI_ERR("clk_set_parent failed\n");
+    if (clk_set_parent(sspi->mclk, source_clock)) {
+        SPI_ERR("spi clk_set_parent failed\n");
         ret = -1;
         goto out;
     }
 
-    if (clk_set_rate(sspi->mclk, mod_clk))
-    {
-        SPI_ERR("clk_set_rate failed\n");
+	rate = clk_round_rate(sspi->mclk, mod_clk);
+    if (clk_set_rate(sspi->mclk, rate)) {
+        SPI_ERR("spi clk_set_rate failed\n");
         ret = -1;
         goto out;
     }
@@ -1266,6 +1267,8 @@ static int sun6i_spi_set_mclk(struct sun6i_spi *sspi, u32 mod_clk)
 
 out:
     clk_put(source_clock);
+	source_clock = NULL;
+
     return ret;
 }
 
@@ -1273,16 +1276,19 @@ static int sun6i_spi_hw_init(struct sun6i_spi *sspi)
 {
 	void *base_addr = sspi->base_addr;
 	unsigned long sclk_freq = 0;
-	char* mclk_name[] = {"mod_spi0","mod_spi1","mod_spi2","mod_spi3"};
+	char* mclk_name[] = {CLK_MOD_SPI0, CLK_MOD_SPI1, CLK_MOD_SPI2, CLK_MOD_SPI3};
+
     sspi->mclk = clk_get(&sspi->pdev->dev, mclk_name[sspi->pdev->id]);
-	if (IS_ERR(sspi->mclk)) {
+	if (!sspi->mclk || IS_ERR(sspi->mclk)) {
 		SPI_ERR("Unable to acquire module clock 'spi'\n");
 		return -1;
 	}
+
     if (sun6i_spi_set_mclk(sspi, 100000000))
     {
         SPI_ERR("sun6i_spi_set_mclk 'spi'\n");
         clk_put(sspi->mclk);
+		sspi->mclk = NULL;
         return -1;
     }
 
@@ -1318,9 +1324,24 @@ static int sun6i_spi_hw_exit(struct sun6i_spi *sspi)
 {
 	/* disable the spi controller */
     spi_disable_bus(sspi->base_addr);
+
 	/* disable module clock */
-    clk_disable(sspi->mclk);
-    clk_put(sspi->mclk);
+	if(!sspi->mclk || IS_ERR(sspi->mclk)) {
+		printk("sspi mclk handle is invalid, just return!\n");
+	} else {
+		clk_disable(sspi->mclk);
+		clk_put(sspi->mclk);
+		sspi->mclk = NULL;
+	}
+
+	if(!sspi->hclk || IS_ERR(sspi->hclk)) {
+		printk("sspi hclk handle is invalid, just return!\n");
+	} else {
+		clk_disable(sspi->hclk);
+		clk_put(sspi->hclk);
+		sspi->hclk = NULL;
+	}
+
 	sun6i_spi_set_gpio(sspi, 0);
 
 	return 0;
@@ -1434,7 +1455,7 @@ static int __init sun6i_spi_probe(struct platform_device *pdev)
 	/* the spi->mode bits understood by this driver: */
 	master->mode_bits       = SPI_CPOL | SPI_CPHA | SPI_CS_HIGH| SPI_LSB_FIRST;
     /* update the cs bitmap */
-#ifdef AW_ASIC_PLATFORM
+#ifdef CONFIG_AW_ASIC_EVB_PLATFORM
     cs_bitmap = sun6i_spi_get_cfg_csbitmap(pdev->id);
 #else
 	cs_bitmap = 0x1;
@@ -1465,17 +1486,17 @@ static int __init sun6i_spi_probe(struct platform_device *pdev)
 		goto err2;
 	}
 
-#ifdef AW_ASIC_PLATFORM
+#ifdef CONFIG_AW_ASIC_EVB_PLATFORM
 	/* Setup clocks */
 	sspi->hclk = clk_get(&pdev->dev, pdata->clk_name);
-	if (IS_ERR(sspi->hclk)) {
-		SPI_ERR("Unable to acquire clock 'spi'\n");
+	if (!sspi->hclk || IS_ERR(sspi->hclk)) {
+		SPI_ERR("Unable to acquire clock 'ahb spi'\n");
 		ret = PTR_ERR(sspi->hclk);
 		goto err3;
 	}
 
 	if (clk_enable(sspi->hclk)) {
-		SPI_ERR("Couldn't enable clock 'spi'\n");
+		SPI_ERR("Couldn't enable clock 'ahb spi'\n");
 		ret = -EBUSY;
 		goto err4;
 	}
@@ -1491,9 +1512,12 @@ static int __init sun6i_spi_probe(struct platform_device *pdev)
     sspi->pdev = pdev;
 
 	/* Setup Deufult Mode */
-	sun6i_spi_hw_init(sspi);
+	if (sun6i_spi_hw_init(sspi)) {
+		SPI_ERR("spi hw init failed!\n");
+		goto err6;
+	}
 
-#ifdef AW_ASIC_PLATFORM
+#ifdef CONFIG_AW_ASIC_EVB_PLATFORM
 	sun6i_spi_set_gpio(sspi, 1);
 #endif
 
@@ -1505,20 +1529,33 @@ static int __init sun6i_spi_probe(struct platform_device *pdev)
 	if (spi_register_master(master)) {
 		SPI_ERR("cannot register SPI master\n");
 		ret = -EBUSY;
-		goto err6;
+		goto err7;
 	}
 
 	SPI_INF("allwinners SoC SPI Driver loaded for Bus SPI-%d with %d Slaves at most\n",
             pdev->id, master->num_chipselect);
 	SPI_INF("[spi-%d]: driver probe succeed, base %p, irq %d!\n", master->bus_num, sspi->base_addr, sspi->irq);
 	return 0;
+
+err7:
+#ifdef CONFIG_AW_ASIC_EVB_PLATFORM
+	if (sspi->mclk) {
+		clk_disable(sspi->mclk);
+		clk_put(sspi->mclk);
+		sspi->mclk = NULL;
+	}
+#endif
 err6:
 	destroy_workqueue(sspi->workqueue);
 err5:
-#ifdef AW_ASIC_PLATFORM
-	clk_disable(sspi->hclk);
+#ifdef CONFIG_AW_ASIC_EVB_PLATFORM
+	if (sspi->hclk)
+		clk_disable(sspi->hclk);
 err4:
-	clk_put(sspi->hclk);
+	if (sspi->hclk) {
+		clk_put(sspi->hclk);
+		sspi->hclk = NULL;
+	}
 err3:
 #endif
 	iounmap((void *)sspi->base_addr);
@@ -1551,9 +1588,6 @@ static int sun6i_spi_remove(struct platform_device *pdev)
 	spi_unregister_master(master);
 	destroy_workqueue(sspi->workqueue);
 
-	// clk_disable(sspi->hclk);
-	// clk_put(sspi->hclk);
-
 	iounmap((void *) sspi->base_addr);
 	mem_res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (mem_res != NULL)
@@ -1568,7 +1602,7 @@ static int sun6i_spi_remove(struct platform_device *pdev)
 #ifdef CONFIG_PM
 static int sun6i_spi_suspend(struct device *dev)
 {
-#ifdef AW_ASIC_PLATFORM
+#ifdef CONFIG_AW_ASIC_EVB_PLATFORM
 	struct platform_device *pdev = to_platform_device(dev);
 	struct spi_master *master = spi_master_get(platform_get_drvdata(pdev));
 	struct sun6i_spi *sspi = spi_master_get_devdata(master);
@@ -1581,16 +1615,33 @@ static int sun6i_spi_suspend(struct device *dev)
 	while (sspi->busy & SPI_BUSY)
 		msleep(10);
 
-	/* Disable the clock */
-	clk_disable(sspi->hclk);
+	/* disable spi bus */
+	spi_disable_bus(sspi->base_addr);
+
+	if (!sspi->mclk || IS_ERR(sspi->mclk)) {
+		printk("sspi mclk handle is invalid, just return!\n");
+		return -1;
+	} else {
+		clk_disable(sspi->mclk);
+	}
+
+	/* disable clk */
+	if (!sspi->hclk || IS_ERR(sspi->hclk)) {
+		printk("sspi hclk handle is invalid, just return!\n");
+		return -1;
+	} else {
+		clk_disable(sspi->hclk);
+	}
+
 	SPI_INF("[spi-%d]: suspend okay.. \n", master->bus_num);
 #endif
+
 	return 0;
 }
 
 static int sun6i_spi_resume(struct device *dev)
 {
-#ifdef AW_ASIC_PLATFORM
+#ifdef CONFIG_AW_ASIC_EVB_PLATFORM
 	struct platform_device *pdev = to_platform_device(dev);
 	struct spi_master *master = spi_master_get(platform_get_drvdata(pdev));
 	struct sun6i_spi  *sspi = spi_master_get_devdata(master);
@@ -1633,7 +1684,7 @@ static struct platform_driver sun6i_spi_driver = {
 struct sun6i_spi_platform_data sun6i_spi0_pdata = {
 	.cs_bitmap  = 0x1,
 	.num_cs		= 1,
-	.clk_name = "ahb_spi0",
+	.clk_name = CLK_AHB_SPI0,
 };
 
 static struct resource sun6i_spi0_resources[] = {
@@ -1659,11 +1710,10 @@ static struct platform_device sun6i_spi0_device = {
 	},
 };
 
-#ifdef AW_ASIC_PLATFORM
 struct sun6i_spi_platform_data sun6i_spi1_pdata = {
 	.cs_bitmap	= 0x3,
 	.num_cs		= 2,
-	.clk_name = "ahb_spi1",
+	.clk_name = CLK_AHB_SPI1,
 };
 
 static struct resource sun6i_spi1_resources[] = {
@@ -1705,7 +1755,7 @@ static struct resource sun6i_spi2_resources[] = {
 struct sun6i_spi_platform_data sun6i_spi2_pdata = {
 	.cs_bitmap	= 0x1,
 	.num_cs		= 1,
-	.clk_name = "ahb_spi2",
+	.clk_name = CLK_AHB_SPI2,
 };
 
 static struct platform_device sun6i_spi2_device = {
@@ -1734,7 +1784,7 @@ static struct resource sun6i_spi3_resources[] = {
 struct sun6i_spi_platform_data sun6i_spi3_pdata = {
 	.cs_bitmap	= 0x3,
 	.num_cs		= 2,
-	.clk_name = "ahb_spi3",
+	.clk_name = CLK_AHB_SPI3,
 };
 
 static struct platform_device sun6i_spi3_device = {
@@ -1746,10 +1796,9 @@ static struct platform_device sun6i_spi3_device = {
 		.platform_data = &sun6i_spi3_pdata,
 	},
 };
-#endif
 /* ---------------- spi resource and platform data end ----------------------- */
 
-#ifdef AW_ASIC_PLATFORM
+#ifdef CONFIG_AW_ASIC_EVB_PLATFORM
 static struct spi_board_info *spi_boards = NULL;
 int sun6i_spi_register_spidev(void)
 {
@@ -1849,7 +1898,7 @@ static int sun6i_spi_get_cfg_csbitmap(int bus_num)
 #define SPI1_USED_MASK 0x2
 #define SPI2_USED_MASK 0x4
 #define SPI3_USED_MASK 0x8
-static int spi_used = 0;
+static int spi_used_mask = 0;
 
 static int __init spi_sun6i_init(void)
 {
@@ -1857,7 +1906,6 @@ static int __init spi_sun6i_init(void)
     int i = 0;
     int ret = 0;
     char spi_para[16] = {0};
-    spi_used = 0;
 
     for (i=0; i<4; i++) {
         used = 0;
@@ -1870,26 +1918,26 @@ static int __init spi_sun6i_init(void)
         }
 
         if (used)
-            spi_used |= 1 << i;
+            spi_used_mask |= 1 << i;
     }
 
     ret = sun6i_spi_register_spidev();
     if (ret)
         SPI_ERR("register spi devices board info failed \n");
 
-    if (spi_used & SPI0_USED_MASK)
+    if (spi_used_mask & SPI0_USED_MASK)
         platform_device_register(&sun6i_spi0_device);
 
-    if (spi_used & SPI1_USED_MASK)
+    if (spi_used_mask & SPI1_USED_MASK)
         platform_device_register(&sun6i_spi1_device);
 
-    if (spi_used & SPI2_USED_MASK)
+    if (spi_used_mask & SPI2_USED_MASK)
         platform_device_register(&sun6i_spi2_device);
 
-    if (spi_used & SPI3_USED_MASK)
+    if (spi_used_mask & SPI3_USED_MASK)
         platform_device_register(&sun6i_spi3_device);
 
-    if (spi_used)
+    if (spi_used_mask)
         return platform_driver_register(&sun6i_spi_driver);
 
     SPI_INF("cannot find any using configuration for all spi controllers!\n");
@@ -1899,22 +1947,22 @@ static int __init spi_sun6i_init(void)
 
 static void __exit spi_sun6i_exit(void)
 {
-    if (spi_used)
+    if (spi_used_mask)
 	    platform_driver_unregister(&sun6i_spi_driver);
 }
 #else
-static struct spi_board_info test_spi_info[] __initdata = {
-	{
-		.modalias		= "spitest",
-		.bus_num		= 0,
-		.chip_select	= 0,
-		.max_speed_hz	= 8000000,
-	},
-};
+// static struct spi_board_info test_spi_info[] __initdata = {
+	// {
+		// .modalias		= "spitest",
+		// .bus_num		= 0,
+		// .chip_select	= 0,
+		// .max_speed_hz	= 8000000,
+	// },
+// };
 
 static int __init spi_sun6i_init(void)
 {
-	spi_register_board_info(test_spi_info, ARRAY_SIZE(test_spi_info));
+	// spi_register_board_info(test_spi_info, ARRAY_SIZE(test_spi_info));
 	platform_device_register(&sun6i_spi0_device);
 	platform_driver_register(&sun6i_spi_driver);
 
