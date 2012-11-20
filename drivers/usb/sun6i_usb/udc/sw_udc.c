@@ -32,6 +32,7 @@
 #include <linux/interrupt.h>
 #include <linux/platform_device.h>
 #include <linux/clk.h>
+#include <linux/dma-mapping.h>
 
 #include <linux/debugfs.h>
 #include <linux/seq_file.h>
@@ -73,6 +74,8 @@ static u8 is_udc_enable = 0;   /* is udc enable by gadget? */
 static struct platform_device *g_udc_pdev = NULL;
 #endif
 
+#define	DMA_ADDR_INVALID	(~(dma_addr_t)0)
+
 static u8 crq_bRequest = 0;
 static const unsigned char TestPkt[54] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xAA,
 		                                 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xEE, 0xEE, 0xEE,
@@ -85,23 +88,104 @@ static const unsigned char TestPkt[54] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x
 //  函数 定义
 //---------------------------------------------------------------
 
-/*满足DMA传输的条件如下:
- * 1、驱动支持DMA传输
- * 2、非ep0
- * 3、大于一个包
- */
-#define  is_sw_udc_dma_capable(len, maxpacket, epnum)		(is_udc_support_dma() \
-	                                                 	&& (len > maxpacket) \
-	                                                 	&& epnum)
-
 
 static void cfg_udc_command(enum sw_udc_cmd_e cmd);
 static void cfg_vbus_draw(unsigned int ma);
+
 
 static __u32 is_peripheral_active(void)
 {
 	return is_controller_alive;
 }
+/*满足DMA传输的条件如下:
+ * 1、驱动支持DMA传输
+ * 2、非ep0
+ * 3、大于一个包
+ */
+#define  is_sw_udc_dma_capable(req, ep)		(is_udc_support_dma() \
+                                                            && ((req->req.length - req->req.actual) > ep->ep.maxpacket) \
+                                                            && ep->num)
+
+#define is_buffer_mapped(req, ep) (is_sw_udc_dma_capable(req, ep) && (req->map_state != UN_MAPPED))
+
+/* Maps the buffer to dma  */
+static inline void sw_udc_map_dma_buffer(struct sw_udc_request *req, struct sw_udc *udc, struct sw_udc_ep *ep)
+{
+
+	DMSG_TEST("sw:%s:%d: 0x%x, 0x%x\n", __func__, __LINE__, req->req.dma, req->req.length);
+
+	if(!is_sw_udc_dma_capable(req, ep)){
+	    DMSG_PANIC("err: need not to dma map\n");
+        return;
+    }
+
+    req->map_state = UN_MAPPED;
+
+    if (req->req.dma == DMA_ADDR_INVALID) {
+		DMSG_TEST("%s:%d: \n", __func__, __LINE__);
+        req->req.dma = dma_map_single(
+                udc->controller,
+                req->req.buf,
+                req->req.length,
+                (is_tx_ep(ep) ? DMA_TO_DEVICE : DMA_FROM_DEVICE));
+        req->map_state = SW_UDC_USB_MAPPED;
+    } else {
+		DMSG_TEST("%s:%d: \n", __func__, __LINE__);
+        dma_sync_single_for_device(udc->controller,
+            req->req.dma,
+            req->req.length,
+            (is_tx_ep(ep) ? DMA_TO_DEVICE : DMA_FROM_DEVICE));
+        req->map_state = PRE_MAPPED;
+    }
+
+	DMSG_TEST("%s:%d: 0x%x, 0x%p\n", __func__, __LINE__, req->req.dma, req->req.buf);
+
+    return;
+}
+
+/* Unmap the buffer from dma and maps it back to cpu */
+static inline void sw_udc_unmap_dma_buffer(struct sw_udc_request *req, struct sw_udc *udc, struct sw_udc_ep *ep)
+{
+	DMSG_TEST("sw:%s:%d: 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%p, 0x%p\n", __func__, __LINE__,
+		req->map_state, req->req.length,
+		req->req.actual, ep->ep.maxpacket,
+		ep->num, is_udc_support_dma(),
+		req, ep);
+
+	if(!is_buffer_mapped(req, ep)){
+	    DMSG_PANIC("err: need not to dma ummap\n");
+		return;
+    }
+
+	if (req->req.dma == DMA_ADDR_INVALID) {
+		DMSG_PANIC("not unmapping a never mapped buffer\n");
+		return;
+	}
+
+	DMSG_TEST("sw:%s:%d: 0x%x\n", __func__, __LINE__, req->map_state);
+
+	if (req->map_state == SW_UDC_USB_MAPPED) {
+		dma_unmap_single(udc->controller,
+			req->req.dma,
+			req->req.length,
+			(is_tx_ep(ep) ? DMA_TO_DEVICE : DMA_FROM_DEVICE));
+
+		req->req.dma = DMA_ADDR_INVALID;
+	} else { /* PRE_MAPPED */
+		dma_sync_single_for_cpu(udc->controller,
+			req->req.dma,
+			req->req.length,
+			(is_tx_ep(ep) ? DMA_TO_DEVICE : DMA_FROM_DEVICE));
+	}
+
+	req->map_state = UN_MAPPED;
+
+	DMSG_TEST("%s:%d: 0x%x, 0x%p\n", __func__, __LINE__, req->req.dma, req->req.buf);
+
+
+	return;
+}
+
 
 /*
 **********************************************************
@@ -152,9 +236,8 @@ __acquires(ep->dev->lock)
 		         req, &(req->req), req->req.length, req->req.actual);
 
 	//DMSG_INFO("d: (0x%p, %d, %d)\n", &(req->req), req->req.length, req->req.actual);
-	//DMSG_INFO("d\n\n");
+//	DMSG_INFO("d:%d\n\n", req->req.actual);
 
-	//sw_udc_dequeue_req(ep, req);
 	list_del_init(&req->queue);
 
 	if (likely (req->req.status == -EINPROGRESS))
@@ -164,11 +247,14 @@ __acquires(ep->dev->lock)
 
 	ep->halted = 1;
 	spin_unlock(&ep->dev->lock);
+	if(is_sw_udc_dma_capable(req, ep)){
+	    sw_udc_unmap_dma_buffer(req, ep->dev, ep);
+	}
 	req->req.complete(&ep->ep, &req->req);
 	spin_lock(&ep->dev->lock);
 	ep->halted = halted;
 
-	//DMSG_INFO("de\n\n");
+	DMSG_TEST("de\n\n");
 }
 
 /*
@@ -317,6 +403,7 @@ static inline int sw_udc_write_packet(int fifo,
 *
 *******************************************************************************
 */
+#if 0
 static int pio_write_fifo(struct sw_udc_ep *ep, struct sw_udc_request *req)
 {
 	unsigned    count       = 0;
@@ -378,6 +465,79 @@ static int pio_write_fifo(struct sw_udc_ep *ep, struct sw_udc_request *req)
 
 	return is_last;
 }
+#else
+static int pio_write_fifo(struct sw_udc_ep *ep, struct sw_udc_request *req)
+{
+	unsigned    count       = 0;
+	int		    is_last     = 0;
+	u32		    idx         = 0;
+	int		    fifo_reg    = 0;
+	__s32 		ret 		= 0;
+	u8		old_ep_index 	= 0;
+
+	idx = ep->bEndpointAddress & 0x7F;
+
+	/* 填写数据 */
+
+    /* select ep */
+	old_ep_index = USBC_GetActiveEp(g_sw_udc_io.usb_bsp_hdle);
+	USBC_SelectActiveEp(g_sw_udc_io.usb_bsp_hdle, idx);
+
+    /* select fifo */
+    fifo_reg = USBC_SelectFIFO(g_sw_udc_io.usb_bsp_hdle, idx);
+
+	count = sw_udc_write_packet(fifo_reg, req, ep->ep.maxpacket);
+
+	/* 判断最后一个数据包 */
+
+	/* last packet is often short (sometimes a zlp) */
+	if(count != ep->ep.maxpacket){
+		is_last = 1;
+	}else if (req->req.length != req->req.actual || req->req.zero){
+		is_last = 0;
+	}else{
+	    is_last = 2;
+	}
+
+	DMSG_TEST("pw: ep(0x%p, %d), req(0x%p, 0x%p, %d, %d), cnt(%d, %d)\n",
+		         ep, ep->num,
+		         req, &(req->req), req->req.length, req->req.actual,
+		         count, is_last);
+
+	//DMSG_INFO("w: (0x%p, %d, %d)\n", &(req->req), req->req.length, req->req.actual);
+//	if(req->req.length == 13){
+//		DMSG_INFO("w: (0x%p, %d, %d)\n", &(req->req), req->req.length, req->req.actual);
+//	}
+
+	if(idx){  //ep1~4
+		ret = USBC_Dev_WriteDataStatus(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_TX, is_last);
+		if(ret != 0){
+			DMSG_PANIC("ERR: USBC_Dev_WriteDataStatus, failed\n");
+		    req->req.status = -EOVERFLOW;
+		}
+	}else{  //ep0
+		ret = USBC_Dev_WriteDataStatus(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_EP0, is_last);
+		if(ret != 0){
+			DMSG_PANIC("ERR: USBC_Dev_WriteDataStatus, failed\n");
+			req->req.status = -EOVERFLOW;
+		}
+	}
+
+	USBC_SelectActiveEp(g_sw_udc_io.usb_bsp_hdle, old_ep_index);
+
+	if(is_last){
+		if(!idx){  /* ep0 */
+			ep->dev->ep0state=EP0_IDLE;
+		}
+
+		sw_udc_done(ep,req, 0);
+		is_last = 1;
+	}
+
+	return is_last;
+}
+
+#endif
 
 /*
 *******************************************************************************
@@ -438,8 +598,8 @@ static int dma_write_fifo(struct sw_udc_ep *ep, struct sw_udc_request *req)
 	ep->dma_working	= 1;
 	ep->dma_transfer_len = left_len;
 
-	sw_udc_dma_set_config(ep, req, (__u32)req->req.buf, left_len);
-	sw_udc_dma_start(ep, fifo_reg, (__u32)req->req.buf, left_len);
+	sw_udc_dma_set_config(ep, req, (__u32)req->req.dma, left_len);
+	sw_udc_dma_start(ep, fifo_reg, (__u32)req->req.dma, left_len);
 
 	//DMSG_INFO("w: ep:0x%p, dev:0x%p, lock:0x%p", ep, ep->dev, &ep->dev->lock);
 
@@ -466,7 +626,7 @@ static int dma_write_fifo(struct sw_udc_ep *ep, struct sw_udc_request *req)
 */
 static int sw_udc_write_fifo(struct sw_udc_ep *ep, struct sw_udc_request *req)
 {
-	if(is_sw_udc_dma_capable((req->req.length - req->req.actual), ep->ep.maxpacket, ep->num)){
+	if(is_sw_udc_dma_capable(req, ep)){
 		return dma_write_fifo(ep, req);
 	}else{
 		return pio_write_fifo(ep, req);
@@ -670,8 +830,8 @@ static int dma_read_fifo(struct sw_udc_ep *ep, struct sw_udc_request *req)
 
 	ep->dma_working	= 1;
 	ep->dma_transfer_len = left_len;
-	sw_udc_dma_set_config(ep, req, (__u32)req->req.buf, left_len);
-	sw_udc_dma_start(ep, fifo_reg, (__u32)req->req.buf, left_len);
+	sw_udc_dma_set_config(ep, req, (__u32)req->req.dma, left_len);
+	sw_udc_dma_start(ep, fifo_reg, (__u32)req->req.dma, left_len);
 
 	return 0;
 }
@@ -696,7 +856,7 @@ static int dma_read_fifo(struct sw_udc_ep *ep, struct sw_udc_request *req)
 */
 static int sw_udc_read_fifo(struct sw_udc_ep *ep, struct sw_udc_request *req)
 {
-	if(is_sw_udc_dma_capable((req->req.length - req->req.actual), ep->ep.maxpacket, ep->num)){
+	if(is_sw_udc_dma_capable(req, ep)){
 		return dma_read_fifo(ep, req);
 	}else{
 		return pio_read_fifo(ep, req);
@@ -1214,6 +1374,7 @@ DMSG_DBG_UDC("sw_udc_handle_ep0--4--%d\n", dev->ep0state);
 *
 *******************************************************************************
 */
+#if 0
 static void sw_udc_handle_ep(struct sw_udc_ep *ep)
 {
 	struct sw_udc_request	*req = NULL;
@@ -1298,6 +1459,58 @@ end:
 
 	return;
 }
+#else
+static void sw_udc_handle_ep(struct sw_udc_ep *ep)
+{
+	struct sw_udc_request	*req = NULL;
+	int is_in   = ep->bEndpointAddress & USB_DIR_IN;
+	u32 idx     = 0;
+	u8 old_ep_index = 0;
+
+	/* see sw_udc_queue. */
+	if(likely (!list_empty(&ep->queue))){
+		req = list_entry(ep->queue.next, struct sw_udc_request, queue);
+	}else{
+		req = NULL;
+    }
+
+	idx = ep->bEndpointAddress & 0x7F;
+
+	old_ep_index = USBC_GetActiveEp(g_sw_udc_io.usb_bsp_hdle);
+    USBC_SelectActiveEp(g_sw_udc_io.usb_bsp_hdle, idx);
+
+	if (is_in) {
+		if (USBC_Dev_IsEpStall(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_TX)) {
+			DMSG_PANIC("ERR: tx ep(%d) is stall\n", idx);
+			USBC_Dev_EpClearStall(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_TX);
+		    goto end;
+		}
+	} else {
+		if (USBC_Dev_IsEpStall(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_RX)) {
+			DMSG_PANIC("ERR: rx ep(%d) is stall\n", idx);
+            USBC_Dev_EpClearStall(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_RX);
+		    goto end;
+		}
+	}
+
+	if(req){
+	    if(is_in){
+		    if(!USBC_Dev_IsWriteDataReady(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_TX)){
+			    sw_udc_write_fifo(ep, req);
+		    }
+	    }else{
+            if(USBC_Dev_IsReadDataReady(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_RX)){
+                sw_udc_read_fifo(ep,req);
+            }
+	    }
+	}
+
+end:
+	USBC_SelectActiveEp(g_sw_udc_io.usb_bsp_hdle, old_ep_index);
+
+	return;
+}
+#endif
 
 /*
 *******************************************************************************
@@ -1438,6 +1651,8 @@ void sw_udc_clean_dma_status(struct sw_udc_ep *ep)
 		}
 	}
 
+    ep->dma_working = 0;
+
 	return;
 }
 
@@ -1470,7 +1685,9 @@ static void sw_udc_stop_dma_work(struct sw_udc *dev)
 		if(sw_udc_dma_is_busy(ep)){
 			DMSG_PANIC("wrn: ep(%d) must stop working\n", i);
 
+			spin_unlock(&ep->dev->lock);
 			sw_udc_dma_stop(ep);
+			spin_lock(&ep->dev->lock);
 			sw_udc_clean_dma_status(ep);
 		}
 	}
@@ -1723,6 +1940,12 @@ void sw_udc_dma_completion(struct sw_udc *dev, struct sw_udc_ep *ep, struct sw_u
 		return;
 	}
 
+	if(!ep->dma_working){
+		DMSG_PANIC("ERR: dma is not work, can not callback\n");
+		return;
+	}
+
+    sw_udc_unmap_dma_buffer(req, dev, ep);
 
 	//DMSG_INFO("dma: ep:0x%p, dev:0x%p, lock:0x%p", ep, ep->dev, &ep->dev->lock);
 	spin_lock_irqsave(&dev->lock, flags);
@@ -2054,7 +2277,10 @@ static struct usb_request * sw_udc_alloc_request(struct usb_ep *_ep, gfp_t mem_f
 		return NULL;
 	}
 
+
     memset(req, 0, sizeof(struct sw_udc_request));
+
+	req->req.dma = DMA_ADDR_INVALID;
 
 	INIT_LIST_HEAD (&req->queue);
 
@@ -2161,15 +2387,20 @@ static int sw_udc_queue(struct usb_ep *_ep, struct usb_request *_req, gfp_t gfp_
 	}
 
 	spin_lock_irqsave(&ep->dev->lock, flags);
-
 	_req->status = -EINPROGRESS;
 	_req->actual = 0;
+	spin_unlock_irqrestore(&ep->dev->lock, flags);
+
+    if(is_sw_udc_dma_capable(req, ep)){
+        sw_udc_map_dma_buffer(req, dev, ep);
+    }
+
+	spin_lock_irqsave(&ep->dev->lock, flags);
 
 	list_add_tail(&req->queue, &ep->queue);
 
 	if(!is_peripheral_active()){
 		DMSG_PANIC("warn: peripheral is active\n");
-		//sw_udc_queue_req(ep, req);
 		goto end;
 	}
 
@@ -2177,8 +2408,10 @@ static int sw_udc_queue(struct usb_ep *_ep, struct usb_request *_req, gfp_t gfp_
 		      ep, ep->num,
 		      req, _req, _req->length, _req->actual);
 
-	//DMSG_INFO("\n\nq: (0x%p, %d, %d)\n", _req,_req->length, _req->actual);
-	//DMSG_INFO("\nq\n");
+	//DMSG_INFO("q: (0x%p, %d, %d)\n", _req,_req->length, _req->actual);
+//	DMSG_INFO("q:%d\n", _req->length);
+
+
 
 	old_ep_index = USBC_GetActiveEp(g_sw_udc_io.usb_bsp_hdle);
 	if (ep->bEndpointAddress) {
@@ -2186,8 +2419,6 @@ static int sw_udc_queue(struct usb_ep *_ep, struct usb_request *_req, gfp_t gfp_
 	} else {
 		USBC_SelectActiveEp(g_sw_udc_io.usb_bsp_hdle, 0);
 	}
-
-    //sw_udc_queue_req(ep, req);
 
 	/* 如果队列中只有一个,那么就被执行 */
 	if (!ep->halted && (&req->queue == ep->queue.next)) {
@@ -2229,20 +2460,9 @@ static int sw_udc_queue(struct usb_ep *_ep, struct usb_request *_req, gfp_t gfp_
 
 	USBC_SelectActiveEp(g_sw_udc_io.usb_bsp_hdle, old_ep_index);
 
-	/* 1. 请求没有被处理
-	 * 2.
-	 */
-/*
-	if(req && !is_req_queue(req)){
-		DMSG_TEST("queue: ep->queue have tow member\n");
-		sw_udc_queue_req(ep, req);
-	}
-*/
-
 end:
-	//DMSG_INFO("qe\n");
+	DMSG_TEST("qe\n");
 	spin_unlock_irqrestore(&ep->dev->lock, flags);
-	//DMSG_INFO("qe_1\n");
 
     return 0;
 }
@@ -2717,10 +2937,12 @@ static void sw_udc_enable(struct sw_udc *dev)
 	dev->gadget.speed = USB_SPEED_UNKNOWN;
 
 #ifdef	CONFIG_USB_GADGET_DUALSPEED
-	DMSG_INFO_UDC("CONFIG_USB_GADGET_DUALSPEED\n");
+	DMSG_INFO_UDC("CONFIG_USB_GADGET_DUALSPEED: USBC_TS_MODE_HS\n");
 
 	USBC_Dev_ConfigTransferMode(g_sw_udc_io.usb_bsp_hdle, USBC_TS_TYPE_BULK, USBC_TS_MODE_HS);
 #else
+	//DMSG_INFO_UDC("CONFIG_USB_GADGET_DUALSPEED: USBC_TS_MODE_FS\n");
+
 	USBC_Dev_ConfigTransferMode(g_sw_udc_io.usb_bsp_hdle, USBC_TS_TYPE_BULK, USBC_TS_MODE_FS);
 #endif
 
@@ -3067,6 +3289,7 @@ int sw_usb_device_enable(void)
 	strcpy((char *)udc->driver_name, gadget_name);
 	udc->irq_no	 = irq;
 	udc->pdev    = pdev;
+	udc->controller = &(pdev->dev);
 
 	if(is_udc_support_dma()){
 		retval = sw_udc_dma_probe(udc);
@@ -3086,10 +3309,9 @@ int sw_usb_device_enable(void)
 	}
 
 	printk("request sw_udc_irq no:%d is ok\n", irq);
-
 	//if(udc->driver && is_udc_enable){
 		sw_udc_enable(udc);
-	//	cfg_udc_command(SW_UDC_P_ENABLE);
+		//cfg_udc_command(SW_UDC_P_ENABLE);
 	//}
 
 	DMSG_INFO_UDC("sw_usb_device_enable end\n");
@@ -3098,9 +3320,7 @@ int sw_usb_device_enable(void)
 
 err:
 	if(is_udc_support_dma()){
-		if(udc->sw_udc_dma.dma_hdle >= 0){
-			sw_udc_dma_remove(udc);
-		}
+		sw_udc_dma_remove(udc);
 	}
 
     sw_udc_io_exit(usbd_port_no, pdev, &g_sw_udc_io);
@@ -3136,9 +3356,8 @@ __acquires(sw_udc.lock)
 	}
 
 	if(is_udc_support_dma()){
-		if(udc->sw_udc_dma.dma_hdle >= 0){
-			sw_udc_dma_remove(udc);
-		}
+	    sw_udc_stop_dma_work(udc);
+		sw_udc_dma_remove(udc);
 	}
 
 	free_irq(udc->irq_no, udc);
@@ -3319,9 +3538,7 @@ static int sw_udc_probe_device_only(struct platform_device *pdev)
 
 err:
 	if(is_udc_support_dma()){
-		if(udc->sw_udc_dma.dma_hdle >= 0){
-			sw_udc_dma_remove(udc);
-		}
+		sw_udc_dma_remove(udc);
 	}
 
     sw_udc_io_exit(usbd_port_no, pdev, &g_sw_udc_io);
@@ -3357,9 +3574,8 @@ static int sw_udc_remove_device_only(struct platform_device *pdev)
     }
 
 	if(is_udc_support_dma()){
-		if(udc->sw_udc_dma.dma_hdle >= 0){
-			sw_udc_dma_remove(udc);
-		}
+	    sw_udc_stop_dma_work(udc);
+		sw_udc_dma_remove(udc);
 	}
 
 	free_irq(udc->irq_no, udc);

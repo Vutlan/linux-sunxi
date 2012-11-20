@@ -53,6 +53,10 @@
 
 #include  "sw_hci_sun6i.h"
 
+#ifdef  CONFIG_SW_USB_3G
+#include  "sw_usb_3g.h"
+#endif
+
 #ifndef  SW_USB_FPGA
 static char* usbc_name[3] 			= {"usbc0", "usbc1", "usbc2"};
 static char* usbc_ahb_ehci_name[3]  = {"", "ahb_ehci0", "ahb_ehci1"};
@@ -103,10 +107,9 @@ static u32 usb3_enable_configure_cnt = 0;
 */
 static s32 get_usb_cfg(struct sw_hci_hcd *sw_hci)
 {
-#ifndef  SW_USB_FPGA
-
 	__s32 ret = 0;
 
+#ifndef  SW_USB_FPGA
 	/* usbc enable */
 	ret = script_parser_fetch(usbc_name[sw_hci->usbc_no], "usb_used", (int *)&sw_hci->used, 64);
 	if(ret != 0){
@@ -121,17 +124,66 @@ static s32 get_usb_cfg(struct sw_hci_hcd *sw_hci)
 		return -1;
 	}
 
+	if(sw_hci->drv_vbus_gpio_set.port){
+		sw_hci->drv_vbus_gpio_valid = 1;
+	}else{
+		DMSG_PANIC("ERR: %s(drv vbus) is invalid\n", sw_hci->hci_name);
+		sw_hci->drv_vbus_gpio_valid = 0;
+	}
+
 	/* host_init_state */
 	ret = script_parser_fetch(usbc_name[sw_hci->usbc_no], "usb_host_init_state", (int *)&(sw_hci->host_init_state), 64);
 	if(ret != 0){
 		DMSG_PANIC("ERR: script_parser_fetch host_init_state failed\n");
 		return -1;
 	}
+
 #else
 	sw_hci->used = 1;
 	sw_hci->host_init_state = 1;
 
 #endif
+
+#ifdef CONFIG_SW_USB_3G
+{
+    u32 usb_3g_used      = 0;
+    u32 usb_3g_usbc_num  = 0;
+    u32 usb_3g_usbc_type = 0;
+
+    /* 3g_used */
+    ret = script_parser_fetch("3g_para", "3g_used", (int *)&usb_3g_used, 64);
+    if(ret != 0){
+        DMSG_PANIC("ERR: get 3g_used failed\n");
+        //return -1;
+    }
+
+    if(usb_3g_used){
+        /* 3g_usbc_num */
+        ret = script_parser_fetch("3g_para", "3g_usbc_num", (int *)&usb_3g_usbc_num, 64);
+        if(ret != 0){
+            DMSG_PANIC("ERR: get 3g_usbc_num failed\n");
+            //return -1;
+        }
+
+        /* 3g_usbc_type */
+        ret = script_parser_fetch("3g_para", "3g_usbc_type", (int *)&usb_3g_usbc_type, 64);
+        if(ret != 0){
+            DMSG_PANIC("ERR: get 3g_usbc_type failed\n");
+            //return -1;
+        }
+
+        /* 只开3G使用的那个模组 */
+        if(sw_hci->usbc_no == usb_3g_usbc_num){
+            sw_hci->used = 0;
+
+            if(sw_hci->usbc_type == usb_3g_usbc_type){
+                sw_hci->used = 1;
+            }
+        }
+    }
+}
+#endif
+
 	return 0;
 }
 
@@ -1237,6 +1289,7 @@ static int init_sw_hci(struct sw_hci_hcd *sw_hci, u32 usbc_no, u32 ohci, const c
     memset(sw_hci, 0, sizeof(struct sw_hci_hcd));
 
     sw_hci->usbc_no         = usbc_no;
+    sw_hci->usbc_type = ohci ? SW_USB_OHCI : SW_USB_EHCI;
 
     if(ohci){
         sw_hci->irq_no = ohci_irq_no[sw_hci->usbc_no];
@@ -1369,6 +1422,9 @@ static int __init sw_hci_sun6i_init(void)
 
     sw_ohci2.drv_vbus_Handle = usb3_drv_vbus_Handle;
 
+#ifdef  CONFIG_SW_USB_3G
+	usb_3g_init();
+#endif
 
 #ifdef  CONFIG_USB_SW_SUN6I_EHCI0
     if(sw_ehci0.used){
@@ -1437,6 +1493,11 @@ failed0:
 */
 static void __exit sw_hci_sun6i_exit(void)
 {
+
+#ifdef  CONFIG_SW_USB_3G
+        usb_3g_exit();
+#endif
+
 #ifdef  CONFIG_USB_SW_SUN6I_EHCI0
     if(sw_ehci0.used){
     	platform_device_unregister(&sw_usb_ehci_device[0]);

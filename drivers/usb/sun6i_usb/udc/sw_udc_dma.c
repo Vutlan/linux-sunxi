@@ -45,13 +45,11 @@
 extern void sw_udc_dma_completion(struct sw_udc *dev, struct sw_udc_ep *ep, struct sw_udc_request *req);
 
 #ifdef  SW_USB_FPGA
-static sw_udc_dma_parg_t sw_udc_dma_para;
-static int is_start = 0;
 
-static void sw_udc_CleanFlushDCacheRegion(void *adr, __u32 bytes)
-{
-	__cpuc_flush_dcache_area(adr, bytes + (1 << 5) * 2 - 2);
-}
+//static void sw_udc_CleanFlushDCacheRegion(void *adr, __u32 bytes)
+//{
+//	__cpuc_flush_dcache_area(adr, bytes + (1 << 5) * 2 - 2);
+//}
 
 /*
 *******************************************************************************
@@ -163,6 +161,7 @@ void sw_udc_disable_dma_channel_irq(struct sw_udc_ep *ep)
 
     return;
 }
+
 void printk_dma(struct dma_config_t *pcfg){
 
 	DMSG_DBG_DMA("src_drq_type = 0x%x\n", pcfg->src_drq_type);
@@ -256,7 +255,8 @@ void sw_udc_dma_set_config(struct sw_udc_ep *ep, struct sw_udc_request *req, __u
 		DmaConfig.irq_spt = CHAN_IRQ_QD;
 
 		DmaConfig.src_addr = fifo_addr & 0xfffffff;
-		DmaConfig.dst_addr = (virt_to_phys)((void *)buff_addr);
+		//DmaConfig.dst_addr = (virt_to_phys)((void *)buff_addr);
+		DmaConfig.dst_addr = buff_addr;
 		DmaConfig.byte_cnt = len;
 
 		//DmaConfig.conti_mode = 1;
@@ -274,7 +274,8 @@ void sw_udc_dma_set_config(struct sw_udc_ep *ep, struct sw_udc_request *req, __u
 
 		DmaConfig.irq_spt = CHAN_IRQ_QD;
 
-		DmaConfig.src_addr = (virt_to_phys)((void *)buff_addr);
+		//DmaConfig.src_addr = (virt_to_phys)((void *)buff_addr);
+		DmaConfig.src_addr = buff_addr;
 		DmaConfig.dst_addr = fifo_addr & 0xfffffff;
 		DmaConfig.byte_cnt = len;
 
@@ -285,12 +286,7 @@ void sw_udc_dma_set_config(struct sw_udc_ep *ep, struct sw_udc_request *req, __u
 
     printk_dma(&DmaConfig);
 
-	sw_udc_dma_para.ep  = ep;
-	sw_udc_dma_para.req	= req;
-
-	sw_udc_CleanFlushDCacheRegion((void *)buff_addr, (size_t)len);
-
-	ret = sw_dma_config((dm_hdl_t)ep->dev->sw_udc_dma.dma_hdle, &DmaConfig, ENQUE_PHASE_NORMAL);
+	ret = sw_dma_config((dm_hdl_t)ep->dev->sw_udc_dma[ep->num].dma_hdle, &DmaConfig, ENQUE_PHASE_NORMAL);
 	if(ret  != 0) {
 		DMSG_PANIC("ERR: sw_dma_config failed\n");
 		return;
@@ -321,9 +317,9 @@ void sw_udc_dma_start(struct sw_udc_ep *ep, __u32 fifo, __u32 buffer, __u32 len)
 {
  	int ret = 0;
 
-	if(!is_start){
-		is_start = 1;
-	    ret = sw_dma_ctl((dm_hdl_t)ep->dev->sw_udc_dma.dma_hdle, DMA_OP_START, NULL);
+	if(!ep->dev->sw_udc_dma[ep->num].is_start){
+		ep->dev->sw_udc_dma[ep->num].is_start = 1;
+	    ret = sw_dma_ctl((dm_hdl_t)ep->dev->sw_udc_dma[ep->num].dma_hdle, DMA_OP_START, NULL);
 		if(ret != 0) {
 			DMSG_PANIC("ERR: sw_dma_ctl start  failed\n");
 			return;
@@ -358,28 +354,13 @@ void sw_udc_dma_stop(struct sw_udc_ep *ep)
  	int ret = 0;
 	DMSG_DBG_DMA("line:%d, %s\n", __LINE__, __func__);
 
-#if 0
-	DMSG_DBG_DMA("sw_udc_dma_stop\n");
-
-	sw_dma_ctrl(ep->dev->sw_udc_dma.dma_hdle, SW_DMAOP_STOP);
-
-	sw_udc_switch_bus_to_pio(ep, is_tx_ep(ep));
-
-	sw_udc_dma_para.ep    			= NULL;
-	sw_udc_dma_para.req				= NULL;
-#endif
-	ret = sw_dma_ctl((dm_hdl_t)ep->dev->sw_udc_dma.dma_hdle, DMA_OP_STOP, NULL);
+	ret = sw_dma_ctl((dm_hdl_t)ep->dev->sw_udc_dma[ep->num].dma_hdle, DMA_OP_STOP, NULL);
 	if(ret != 0) {
 		DMSG_PANIC("ERR: sw_dma_ctl stop  failed\n");
 		return;
 	}
 
-	is_start = 0;
-
-	sw_udc_dma_para.ep    			= NULL;
-	sw_udc_dma_para.req				= NULL;
-
-	ep->dma_working = 0;
+	ep->dev->sw_udc_dma[ep->num].is_start = 0;
 	ep->dma_transfer_len = 0;
 
     return;
@@ -487,20 +468,47 @@ __u32 sw_udc_dma_is_busy(struct sw_udc_ep *ep)
 */
 static u32 sw_udc_dma_callback(dm_hdl_t dma_hdl, void *parg, enum dma_cb_cause_e cause)
 {
-	struct sw_udc_ep *ep = sw_udc_dma_para.ep;
-	struct sw_udc_request *req = sw_udc_dma_para.req;
+	struct sw_udc *dev = NULL;
+	struct sw_udc_request *req = NULL;
+	struct sw_udc_ep *ep = NULL;
+	int i = 1;
 
-	DMSG_DBG_DMA("line:%d, %s, ep:0x%p,req:0x%p\n", __LINE__, __func__, ep, req);
+    /* DMA异常就直接退出 */
+	if(cause == DMA_CB_ABORT){
+		DMSG_PANIC("ERR: sw_udc_dma_callback, dma callback abort\n");
+		return 0;
+	}
 
-	if(sw_udc_dma_para.ep){
+	dev = (struct sw_udc *)parg;
+	if(dev == NULL) {
+		DMSG_PANIC("ERR: sw_udc_dma_callback failed\n");
+		return 0;
+	}
 
-		sw_udc_dma_para.ep = NULL;
-		sw_udc_dma_para.req = NULL;
-		sw_udc_dma_completion(sw_udc_dma_para.dev, ep, req);
+    /* find ep */
+	for(i = 1; i < (USBC_MAX_EP_NUM - 1); i++){
+		if((int)dma_hdl == dev->sw_udc_dma[i].dma_hdle){
+			ep = &dev->ep[i];
+			break;
+		}
+	}
 
+	if(ep){
+        /* find req */
+		if(likely (!list_empty(&ep->queue))){
+			req = list_entry(ep->queue.next, struct sw_udc_request, queue);
+		}else{
+			req = NULL;
+		}
+
+        /* call back */
+		if(req){
+		    sw_udc_dma_completion(dev, ep, req);
+		}
 	}else{
 		DMSG_PANIC("ERR: sw_udc_dma_callback: dma is remove, but dma irq is happened\n");
 	}
+
 	return 0;
 }
 
@@ -525,31 +533,35 @@ static u32 sw_udc_dma_callback(dm_hdl_t dma_hdl, void *parg, enum dma_cb_cause_e
 __s32 sw_udc_dma_probe(struct sw_udc *dev)
 {
 	int ret = 0;
+	int i = 0;
 	struct dma_cb_t done_cb;
 
-	memset(&sw_udc_dma_para, 0, sizeof(sw_udc_dma_parg_t));
-	sw_udc_dma_para.dev = dev;
+	for(i = 1; i <= (USBC_MAX_EP_NUM - 1); i++){
+		char* p = dev->sw_udc_dma[i].name;
+		strcpy(dev->sw_udc_dma[i].name, dev->driver_name);
+		strcat(dev->sw_udc_dma[i].name, "_dma_");
+		p[strlen(p) + 1] = 0;
+		p[strlen(p)] = i + '0';
 
-	strcpy(dev->sw_udc_dma.name, dev->driver_name);
-	strcat(dev->sw_udc_dma.name, "_dma");
-
-	dev->sw_udc_dma.dma_hdle = (int)sw_dma_request(dev->sw_udc_dma.name, DMA_WORK_MODE_SINGLE);
-	if(dev->sw_udc_dma.dma_hdle == 0) {
-		DMSG_PANIC("ERR: sw_dma_request failed\n");
-		return -1;
+		dev->sw_udc_dma[i].dma_hdle = (int)sw_dma_request(dev->sw_udc_dma[i].name, DMA_WORK_MODE_SINGLE);
+		if(dev->sw_udc_dma[i].dma_hdle == 0) {
+			DMSG_PANIC("ERR: sw_dma_request failed\n");
+			return -1;
+		}
+		DMSG_INFO("line:%d %s name:%s dma_hdle[%d] = 0x%x\n", __LINE__, __func__, dev->sw_udc_dma[i].name, i, dev->sw_udc_dma[i].dma_hdle);
 	}
-
-	DMSG_INFO("line:%d %s dma_hdle = 0x%x\n", __LINE__, __func__, dev->sw_udc_dma.dma_hdle);
-
 	/*set callback */
 	memset(&done_cb, 0, sizeof(done_cb));
 
 	done_cb.func = sw_udc_dma_callback;
-	done_cb.parg = NULL;
-	ret = sw_dma_ctl((dm_hdl_t)dev->sw_udc_dma.dma_hdle, DMA_OP_SET_QD_CB, (void *)&done_cb);
-	if(ret != 0){
-		DMSG_PANIC("ERR: set callback failed\n");
-		return -1;
+	done_cb.parg = dev;
+
+	for(i = 1; i <= (USBC_MAX_EP_NUM - 1); i++ ){
+		ret = sw_dma_ctl((dm_hdl_t)dev->sw_udc_dma[i].dma_hdle, DMA_OP_SET_QD_CB, (void *)&done_cb);
+		if(ret != 0){
+			DMSG_PANIC("ERR: set callback failed\n");
+			return -1;
+		}
 	}
 
     return 0;
@@ -576,6 +588,7 @@ __s32 sw_udc_dma_probe(struct sw_udc *dev)
 __s32 sw_udc_dma_remove(struct sw_udc *dev)
 {
  	int ret = 0;
+	int i = 0;
 #if 0
 	__u32 channel = 0;
 
@@ -594,24 +607,25 @@ __s32 sw_udc_dma_remove(struct sw_udc *dev)
 	memset(&sw_udc_dma_para, 0, sizeof(sw_udc_dma_parg_t));
 
 #endif
+	for(i = 1; i <= (USBC_MAX_EP_NUM - 1); i++){
+		if(dev->sw_udc_dma[i].dma_hdle != 0) {
+			ret = sw_dma_ctl((dm_hdl_t)dev->sw_udc_dma[i].dma_hdle, DMA_OP_STOP, NULL);
+			if(ret != 0) {
+				DMSG_PANIC("ERR: sw_udc_dma_remove: stop failed\n");
+			}
 
-	if(dev->sw_udc_dma.dma_hdle != 0) {
-		ret = sw_dma_ctl((dm_hdl_t)dev->sw_udc_dma.dma_hdle, DMA_OP_STOP, NULL);
-		if(ret != 0) {
-			DMSG_PANIC("ERR: sw_udc_dma_remove: stop failed\n");
+			ret = sw_dma_release((dm_hdl_t)dev->sw_udc_dma[i].dma_hdle);
+
+			if(ret != 0) {
+				DMSG_PANIC("sw_udc_dma_remove: sw_dma_release failed\n");
+			}
+
+			dev->sw_udc_dma[i].dma_hdle = 0;
+			dev->sw_udc_dma[i].is_start = 0;
+			dev->ep[i].dma_working = 0;
+			dev->ep[i].dma_transfer_len = 0;
 		}
-
-		ret = sw_dma_release((dm_hdl_t)dev->sw_udc_dma.dma_hdle);
-
-		if(ret != 0) {
-			DMSG_PANIC("sw_udc_dma_remove: sw_dma_release failed\n");
-		}
-		dev->sw_udc_dma.dma_hdle = 0;
 	}
-
-	is_start = 0;
-
-	memset(&sw_udc_dma_para, 0, sizeof(sw_udc_dma_parg_t));
 
 	return 0;
 }
