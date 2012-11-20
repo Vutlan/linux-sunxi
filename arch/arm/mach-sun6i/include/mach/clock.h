@@ -57,273 +57,195 @@ typedef enum __AW_CCU_CLK_RESET
 } __aw_ccu_clk_reset_e;
 
 
+/* define system clock name */
+#define CLK_SYS_LOSC        "sys_losc"
+#define CLK_SYS_HOSC        "sys_hosc"
+#define CLK_SYS_PLL1        "sys_pll1"
+#define CLK_SYS_PLL2        "sys_pll2"
+#define CLK_SYS_PLL3        "sys_pll3"
+#define CLK_SYS_PLL4        "sys_pll4"
+#define CLK_SYS_PLL5        "sys_pll5"
+#define CLK_SYS_PLL6        "sys_pll6"
+#define CLK_SYS_PLL7        "sys_pll7"
+#define CLK_SYS_PLL8        "sys_pll8"
+#define CLK_SYS_PLL9        "sys_pll9"
+#define CLK_SYS_PLL10       "sys_pll10"
+#define CLK_SYS_PLL2X8      "sys_pll2X8"
+#define CLK_SYS_PLL3X2      "sys_pll3X2"
+#define CLK_SYS_PLL6X2      "sys_pll6X2"
+#define CLK_SYS_PLL7X2      "sys_pll7X2"
+#define CLK_SYS_MIPI_PLL    "sys_mipi_pll"
+#define CLK_SYS_AC327       "sys_ac327"
+#define CLK_SYS_AR100       "sys_ar100"
+#define CLK_SYS_AXI         "sys_axi"
+#define CLK_SYS_AHB0        "sys_ahb0"
+#define CLK_SYS_AHB1        "sys_ahb1"
+#define CLK_SYS_APB0        "sys_apb0"
+#define CLK_SYS_APB1        "sys_apb1"
+#define CLK_SYS_APB2        "sys_apb2"
 
-/* define system clock id       */
-typedef enum __AW_CCU_CLK_ID
-{
-    AW_SYS_CLK_NONE=0,  /* invalid clock id                     */
+/* define module clock name */
+#define CLK_MOD_NAND0       "mod_nand0"
+#define CLK_MOD_NAND1       "mod_nand1"
+#define CLK_MOD_SDC0        "mod_sdc0"
+#define CLK_MOD_SDC1        "mod_sdc1"
+#define CLK_MOD_SDC2        "mod_sdc2"
+#define CLK_MOD_SDC3        "mod_sdc3"
+#define CLK_MOD_TS          "mod_ts"
+#define CLK_MOD_SS          "mod_ss"
+#define CLK_MOD_SPI0        "mod_spi0"
+#define CLK_MOD_SPI1        "mod_spi1"
+#define CLK_MOD_SPI2        "mod_spi2"
+#define CLK_MOD_SPI3        "mod_spi3"
+#define CLK_MOD_I2S0        "mod_i2s0"
+#define CLK_MOD_I2S1        "mod_i2s1"
+#define CLK_MOD_SPDIF       "mod_spdif"
+#define CLK_MOD_USBPHY0     "mod_usbphy0"
+#define CLK_MOD_USBPHY1     "mod_usbphy1"
+#define CLK_MOD_USBPHY2     "mod_usbphy2"
+#define CLK_MOD_USBEHCI0    "mod_usbehci0"
+#define CLK_MOD_USBEHCI1    "mod_usbehci1"
+#define CLK_MOD_USBOHCI0    "mod_usbohci0"
+#define CLK_MOD_USBOHCI1    "mod_usbohci1"
+#define CLK_MOD_USBOHCI2    "mod_usbohci2"
+#define CLK_MOD_USBOTG      "mod_usbotg"
+#define CLK_MOD_MDFS        "mod_mdfs"
+#define CLK_MOD_DEBE0       "mod_debe0"
+#define CLK_MOD_DEBE1       "mod_debe1"
+#define CLK_MOD_DEFE0       "mod_defe0"
+#define CLK_MOD_DEFE1       "mod_defe1"
+#define CLK_MOD_DEMP        "mod_demp"
+#define CLK_MOD_LCD0CH0     "mod_lcd0ch0"
+#define CLK_MOD_LCD0CH1     "mod_lcd0ch1"
+#define CLK_MOD_LCD1CH0     "mod_lcd1ch0"
+#define CLK_MOD_LCD1CH1     "mod_lcd1ch1"
+#define CLK_MOD_CSI0S       "mod_csi0s"
+#define CLK_MOD_CSI0M       "mod_csi0m"
+#define CLK_MOD_CSI1S       "mod_csi1s"
+#define CLK_MOD_CSI1M       "mod_csi1m"
+#define CLK_MOD_VE          "mod_ve"
+#define CLK_MOD_ADDA        "mod_adda"
+#define CLK_MOD_AVS         "mod_avs"
+#define CLK_MOD_HDMI        "mod_hdmi"
+#define CLK_MOD_PS          "mod_ps"
+#define CLK_MOD_MTCACC      "mod_mtcacc"
+#define CLK_MOD_MBUS0       "mod_mbus0"
+#define CLK_MOD_MBUS1       "mod_mbus1"
+#define CLK_MOD_DRAM        "mod_dram"
+#define CLK_MOD_MIPIDSIS    "mod_mipidsis"
+#define CLK_MOD_MIPIDSIP    "mod_mipidsip"
+#define CLK_MOD_MIPICSIS    "mod_mipicsis"
+#define CLK_MOD_MIPICSIP    "mod_mipicsip"
+#define CLK_MOD_IEPDRC0     "mod_iepdrc0"
+#define CLK_MOD_IEPDRC1     "mod_iepdrc1"
+#define CLK_MOD_IEPDEU0     "mod_iepdeu0"
+#define CLK_MOD_IEPDEU1     "mod_iepdeu1"
+#define CLK_MOD_GPUCORE     "mod_gpucore"
+#define CLK_MOD_GPUMEM      "mod_gpumem"
+#define CLK_MOD_GPUHYD      "mod_gpuhyd"
+#define CLK_MOD_TWI0        "mod_twi0"
+#define CLK_MOD_TWI1        "mod_twi1"
+#define CLK_MOD_TWI2        "mod_twi2"
+#define CLK_MOD_TWI3        "mod_twi3"
+#define CLK_MOD_UART0       "mod_uart0"
+#define CLK_MOD_UART1       "mod_uart1"
+#define CLK_MOD_UART2       "mod_uart2"
+#define CLK_MOD_UART3       "mod_uart3"
+#define CLK_MOD_UART4       "mod_uart4"
+#define CLK_MOD_UART5       "mod_uart5"
+#define CLK_MOD_GMAC        "mod_gmac"
+#define CLK_MOD_DMA         "mod_dma"
+#define CLK_MOD_HSTMR       "mod_hstmr"
+#define CLK_MOD_MSGBOX      "mod_msgbox"
+#define CLK_MOD_SPINLOCK    "mod_spinlock"
+#define CLK_MOD_LVDS        "mod_lvds"
+#define CLK_SMP_TWD         "smp_twd"
 
-    /* OSC */
-    AW_SYS_CLK_LOSC,    /* "sys_losc"   ,LOSC, 32768 hz clock   */
-    AW_SYS_CLK_HOSC,    /* "sys_hosc"   ,HOSC, 24Mhz clock      */
+/* define ahb module gatine clock */
+#define CLK_AHB_MIPICSI     "ahb_mipicsi"
+#define CLK_AHB_MIPIDSI     "ahb_mipidsi"
+#define CLK_AHB_SS          "ahb_ss"
+#define CLK_AHB_DMA         "ahb_dma"
+#define CLK_AHB_SDMMC0      "ahb_sdmmc0"
+#define CLK_AHB_SDMMC1      "ahb_sdmmc1"
+#define CLK_AHB_SDMMC2      "ahb_sdmmc2"
+#define CLK_AHB_SDMMC3      "ahb_sdmmc3"
+#define CLK_AHB_NAND1       "ahb_nand1"
+#define CLK_AHB_NAND0       "ahb_nand0"
+#define CLK_AHB_SDRAM       "ahb_sdram"
+#define CLK_AHB_GMAC        "ahb_gmac"
+#define CLK_AHB_TS          "ahb_ts"
+#define CLK_AHB_HSTMR       "ahb_hstmr"
+#define CLK_AHB_SPI0        "ahb_spi0"
+#define CLK_AHB_SPI1        "ahb_spi1"
+#define CLK_AHB_SPI2        "ahb_spi2"
+#define CLK_AHB_SPI3        "ahb_spi3"
+#define CLK_AHB_OTG         "ahb_otg"
+#define CLK_AHB_EHCI0       "ahb_ehci0"
+#define CLK_AHB_EHCI1       "ahb_ehci1"
+#define CLK_AHB_OHCI0       "ahb_ohci0"
+#define CLK_AHB_OHCI1       "ahb_ohci1"
+#define CLK_AHB_OHCI2       "ahb_ohci2"
+#define CLK_AHB_VE          "ahb_ve"
+#define CLK_AHB_LCD0        "ahb_lcd0"
+#define CLK_AHB_LCD1        "ahb_lcd1"
+#define CLK_AHB_CSI0        "ahb_csi0"
+#define CLK_AHB_CSI1        "ahb_csi1"
+#define CLK_AHB_HDMID       "ahb_hdmid"
+#define CLK_AHB_DEBE0       "ahb_debe0"
+#define CLK_AHB_DEBE1       "ahb_debe1"
+#define CLK_AHB_DEFE0       "ahb_defe0"
+#define CLK_AHB_DEFE1       "ahb_defe1"
+#define CLK_AHB_MP          "ahb_mp"
+#define CLK_AHB_GPU         "ahb_gpu"
+#define CLK_AHB_MSGBOX      "ahb_msgbox"
+#define CLK_AHB_SPINLOCK    "ahb_spinlock"
+#define CLK_AHB_DEU0        "ahb_deu0"
+#define CLK_AHB_DEU1        "ahb_deu1"
+#define CLK_AHB_DRC0        "ahb_drc0"
+#define CLK_AHB_DRC1        "ahb_drc1"
+#define CLK_AHB_MTCACC      "ahb_mtcacc"
 
-    /* PLL */
-    AW_SYS_CLK_PLL1,    /* "sys_pll1"   ,PLL1 clock             */
-    AW_SYS_CLK_PLL2,    /* "sys_pll2"   ,PLL2 clock             */
-    AW_SYS_CLK_PLL3,    /* "sys_pll3"   ,PLL3 clock             */
-    AW_SYS_CLK_PLL4,    /* "sys_pll4"   ,PLL4 clock             */
-    AW_SYS_CLK_PLL5,    /* "sys_pll5"   ,PLL5 clock             */
-    AW_SYS_CLK_PLL6,    /* "sys_pll6"   ,PLL6 clock,            */
-    AW_SYS_CLK_PLL7,    /* "sys_pll7"   ,PLL7 clock             */
-    AW_SYS_CLK_PLL8,    /* "sys_pll8"   ,PLL8 clock             */
-    AW_SYS_CLK_PLL9,    /* "sys_pll9"   ,PLL9 clock             */
-    AW_SYS_CLK_PLL10,   /* "sys_pll10"  ,PLL10 clock            */
+/* define apb module gatine clock */
+#define CLK_APB_ADDA        "apb_adda"
+#define CLK_APB_SPDIF       "apb_spdif"
+#define CLK_APB_PIO         "apb_pio"
+#define CLK_APB_I2S0        "apb_i2s0"
+#define CLK_APB_I2S1        "apb_i2s1"
+#define CLK_APB_TWI0        "apb_twi0"
+#define CLK_APB_TWI1        "apb_twi1"
+#define CLK_APB_TWI2        "apb_twi2"
+#define CLK_APB_TWI3        "apb_twi3"
+#define CLK_APB_UART0       "apb_uart0"
+#define CLK_APB_UART1       "apb_uart1"
+#define CLK_APB_UART2       "apb_uart2"
+#define CLK_APB_UART3       "apb_uart3"
+#define CLK_APB_UART4       "apb_uart4"
+#define CLK_APB_UART5       "apb_uart5"
 
-    /* related PLL */
-    AW_SYS_CLK_PLL2X8,  /* "sys_pll2X8"   ,PLL2 8X clock        */
-    AW_SYS_CLK_PLL3X2,  /* "sys_pll3X2"   ,PLL3 X2 clock        */
-    AW_SYS_CLK_PLL6x2,  /* "sys_pll6X2"   ,PLL6 X2 clock        */
-    AW_SYS_CLK_PLL7X2,  /* "sys_pll7X2"   ,PLL7 X2 clock        */
-    AW_SYS_CLK_MIPIPLL, /* "sys_mipi_pll" ,MIPI PLL clock       */
-
-    /* CPU & BUS */
-    AW_SYS_CLK_AC327,   /* "sys_ac327"  ,CPU clock              */
-    AW_SYS_CLK_AR100,   /* "sys_ar100"  ,CPU clock              */
-    AW_SYS_CLK_AXI,     /* "sys_axi"    ,AXI clock              */
-    AW_SYS_CLK_AHB0,    /* "sys_ahb0"   ,AHB0 clock             */
-    AW_SYS_CLK_AHB1,    /* "sys_ahb1"   ,AHB1 clock             */
-    AW_SYS_CLK_APB0,    /* "sys_apb0"   ,APB0 clock             */
-    AW_SYS_CLK_APB1,    /* "sys_apb1"   ,APB1 clock             */
-    AW_SYS_CLK_APB2,    /* "sys_apb2"   ,APB2 clock             */
-
-    AW_CCU_CLK_NULL,    /* null module clock id                 */
-
-    /* module clock */
-    AW_MOD_CLK_NAND0,       /* "mod_nand0"                      */
-    AW_MOD_CLK_NAND1,       /* "mod_nand1"                      */
-    AW_MOD_CLK_SDC0,        /* "mod_sdc0"                       */
-    AW_MOD_CLK_SDC1,        /* "mod_sdc1"                       */
-    AW_MOD_CLK_SDC2,        /* "mod_sdc2"                       */
-    AW_MOD_CLK_SDC3,        /* "mod_sdc3"                       */
-    AW_MOD_CLK_TS,          /* "mod_ts"                         */
-    AW_MOD_CLK_SS,          /* "mod_ss"                         */
-    AW_MOD_CLK_SPI0,        /* "mod_spi0"                       */
-    AW_MOD_CLK_SPI1,        /* "mod_spi1"                       */
-    AW_MOD_CLK_SPI2,        /* "mod_spi2"                       */
-    AW_MOD_CLK_SPI3,        /* "mod_spi3"                       */
-    AW_MOD_CLK_I2S0,        /* "mod_i2s0"                       */
-    AW_MOD_CLK_I2S1,        /* "mod_i2s1"                       */
-    AW_MOD_CLK_SPDIF,       /* "mod_spdif"                      */
-    AW_MOD_CLK_USBPHY0,     /* "mod_usbphy0"                    */
-    AW_MOD_CLK_USBPHY1,     /* "mod_usbphy1"                    */
-    AW_MOD_CLK_USBPHY2,     /* "mod_usbphy2"                    */
-    AW_MOD_CLK_USBEHCI0,    /* "mod_usbehci0"                   */
-    AW_MOD_CLK_USBEHCI1,    /* "mod_usbehci1"                   */
-    AW_MOD_CLK_USBOHCI0,    /* "mod_usbohci0"                   */
-    AW_MOD_CLK_USBOHCI1,    /* "mod_usbohci1"                   */
-    AW_MOD_CLK_USBOHCI2,    /* "mod_usbohci2"                   */
-    AW_MOD_CLK_USBOTG,      /* "mod_usbotg"                     */
-    AW_MOD_CLK_MDFS,        /* "mod_mdfs"                       */
-    AW_MOD_CLK_DEBE0,       /* "mod_debe0"                      */
-    AW_MOD_CLK_DEBE1,       /* "mod_debe1"                      */
-    AW_MOD_CLK_DEFE0,       /* "mod_defe0"                      */
-    AW_MOD_CLK_DEFE1,       /* "mod_defe1"                      */
-    AW_MOD_CLK_DEMIX,       /* "mod_demp"                       */
-    AW_MOD_CLK_LCD0CH0,     /* "mod_lcd0ch0"                    */
-    AW_MOD_CLK_LCD0CH1,     /* "mod_lcd0ch1"                    */
-    AW_MOD_CLK_LCD1CH0,     /* "mod_lcd1ch0"                    */
-    AW_MOD_CLK_LCD1CH1,     /* "mod_lcd1ch1"                    */
-    AW_MOD_CLK_CSI0S,       /* "mod_csi0s"                      */
-    AW_MOD_CLK_CSI0M,       /* "mod_csi0m"                      */
-    AW_MOD_CLK_CSI1S,       /* "mod_csi1s"                      */
-    AW_MOD_CLK_CSI1M,       /* "mod_csi1m"                      */
-    AW_MOD_CLK_VE,          /* "mod_ve"                         */
-    AW_MOD_CLK_ADDA,        /* "mod_adda"                       */
-    AW_MOD_CLK_AVS,         /* "mod_avs"                        */
-    AW_MOD_CLK_HDMI,        /* "mod_hdmi"                       */
-    AW_MOD_CLK_PS,          /* "mod_ps"                         */
-    AW_MOD_CLK_MTCACC,      /* "mod_mtcacc"                     */
-    AW_MOD_CLK_MBUS0,       /* "mod_mbus0"                      */
-    AW_MOD_CLK_MBUS1,       /* "mod_mbus1"                      */
-    AW_MOD_CLK_DRAM,        /* "mod_dram"                       */
-    AW_MOD_CLK_MIPIDSIS,    /* "mod_mipidsis"                   */
-    AW_MOD_CLK_MIPIDSIP,    /* "mod_mipidsip"                   */
-    AW_MOD_CLK_MIPICSIS,    /* "mod_mipicsis"                   */
-    AW_MOD_CLK_MIPICSIP,    /* "mod_mipicsip"                   */
-    AW_MOD_CLK_IEPDRC0,     /* "mod_iepdrc0"                    */
-    AW_MOD_CLK_IEPDRC1,     /* "mod_iepdrc1"                    */
-    AW_MOD_CLK_IEPDEU0,     /* "mod_iepdeu0"                    */
-    AW_MOD_CLK_IEPDEU1,     /* "mod_iepdeu1"                    */
-    AW_MOD_CLK_GPUCORE,     /* "mod_gpucore"                    */
-    AW_MOD_CLK_GPUMEM,      /* "mod_gpumem"                     */
-    AW_MOD_CLK_GPUHYD,      /* "mod_gpuhyd"                     */
-    AW_MOD_CLK_TWI0,        /* "mod_twi0"                       */
-    AW_MOD_CLK_TWI1,        /* "mod_twi1"                       */
-    AW_MOD_CLK_TWI2,        /* "mod_twi2"                       */
-    AW_MOD_CLK_TWI3,        /* "mod_twi3"                       */
-    AW_MOD_CLK_UART0,       /* "mod_uart0"                      */
-    AW_MOD_CLK_UART1,       /* "mod_uart1"                      */
-    AW_MOD_CLK_UART2,       /* "mod_uart2"                      */
-    AW_MOD_CLK_UART3,       /* "mod_uart3"                      */
-    AW_MOD_CLK_UART4,       /* "mod_uart4"                      */
-    AW_MOD_CLK_UART5,       /* "mod_uart5"                      */
-    AW_MOD_CLK_GMAC,        /* "mod_gmac"                       */
-    AW_MOD_CLK_DMA,         /* "mod_dma"                        */
-    AW_MOD_CLK_HSTMR,       /* "mod_hstmr"                      */
-    AW_MOD_CLK_MSGBOX,      /* "mod_msgbox"                     */
-    AW_MOD_CLK_SPINLOCK,    /* "mod_spinlock"                   */
-    AW_MOD_CLK_LVDS,        /* "mod_lvds"                       */
-    AW_MOD_CLK_SMPTWD,      /* "smp_twd"                        */
-
-    /* axi module gating */
-    AW_AXI_CLK_DRAM,        /* "axi_dram"                       */
-
-    /* ahb module gating */
-    AW_AHB_CLK_MIPICSI,     /* "ahb_mipicsi"                    */
-    AW_AHB_CLK_MIPIDSI,     /* "ahb_mipidsi"                    */
-    AW_AHB_CLK_SS,          /* "ahb_ss"                         */
-    AW_AHB_CLK_DMA,         /* "ahb_dma"                        */
-    AW_AHB_CLK_SDMMC0,      /* "ahb_sdmmc0"                     */
-    AW_AHB_CLK_SDMMC1,      /* "ahb_sdmmc1"                     */
-    AW_AHB_CLK_SDMMC2,      /* "ahb_sdmmc2"                     */
-    AW_AHB_CLK_SDMMC3,      /* "ahb_sdmmc3"                     */
-    AW_AHB_CLK_NAND1,       /* "ahb_nand1"                      */
-    AW_AHB_CLK_NAND0,       /* "ahb_nand0"                      */
-    AW_AHB_CLK_SDRAM,       /* "ahb_sdram"                      */
-    AW_AHB_CLK_GMAC,        /* "ahb_gmac"                       */
-    AW_AHB_CLK_TS,          /* "ahb_ts"                         */
-    AW_AHB_CLK_HSTMR,       /* "ahb_hstmr"                      */
-    AW_AHB_CLK_SPI0,        /* "ahb_spi0"                       */
-    AW_AHB_CLK_SPI1,        /* "ahb_spi1"                       */
-    AW_AHB_CLK_SPI2,        /* "ahb_spi2"                       */
-    AW_AHB_CLK_SPI3,        /* "ahb_spi3"                       */
-    AW_AHB_CLK_OTG,         /* "ahb_otg"                        */
-    AW_AHB_CLK_EHCI0,       /* "ahb_ehci0"                      */
-    AW_AHB_CLK_EHCI1,       /* "ahb_ehci1"                      */
-    AW_AHB_CLK_OHCI0,       /* "ahb_ohci0"                      */
-    AW_AHB_CLK_OHCI1,       /* "ahb_ohci1"                      */
-    AW_AHB_CLK_OHCI2,       /* "ahb_ohci2"                      */
-    AW_AHB_CLK_VE,          /* "ahb_ve"                         */
-    AW_AHB_CLK_LCD0,        /* "ahb_lcd0"                       */
-    AW_AHB_CLK_LCD1,        /* "ahb_lcd1"                       */
-    AW_AHB_CLK_CSI0,        /* "ahb_csi0"                       */
-    AW_AHB_CLK_CSI1,        /* "ahb_csi1"                       */
-    AW_AHB_CLK_HDMID,       /* "ahb_hdmid"                      */
-    AW_AHB_CLK_DEBE0,       /* "ahb_debe0"                      */
-    AW_AHB_CLK_DEBE1,       /* "ahb_debe1"                      */
-    AW_AHB_CLK_DEFE0,       /* "ahb_defe0"                      */
-    AW_AHB_CLK_DEFE1,       /* "ahb_defe1"                      */
-    AW_AHB_CLK_MP,          /* "ahb_mp"                         */
-    AW_AHB_CLK_GPU,         /* "ahb_gpu"                        */
-    AW_AHB_CLK_MSGBOX,      /* "ahb_msgbox"                     */
-    AW_AHB_CLK_SPINLOCK,    /* "ahb_spinlock"                   */
-    AW_AHB_CLK_DEU0,        /* "ahb_deu0"                       */
-    AW_AHB_CLK_DEU1,        /* "ahb_deu1"                       */
-    AW_AHB_CLK_DRC0,        /* "ahb_drc0"                       */
-    AW_AHB_CLK_DRC1,        /* "ahb_drc1"                       */
-    AW_AHB_CLK_MTCACC,      /* "ahb_mtcacc"                     */
-
-    /* apb module gating */
-    AW_APB_CLK_ADDA,        /* "apb_adda"                       */
-    AW_APB_CLK_SPDIF,       /* "apb_spdif"                      */
-    AW_APB_CLK_PIO,         /* "apb_pio"                        */
-    AW_APB_CLK_I2S0,        /* "apb_i2s0"                       */
-    AW_APB_CLK_I2S1,        /* "apb_i2s1"                       */
-    AW_APB_CLK_TWI0,        /* "apb_twi0"                       */
-    AW_APB_CLK_TWI1,        /* "apb_twi1"                       */
-    AW_APB_CLK_TWI2,        /* "apb_twi2"                       */
-    AW_APB_CLK_TWI3,        /* "apb_twi3"                       */
-    AW_APB_CLK_UART0,       /* "apb_uart0"                      */
-    AW_APB_CLK_UART1,       /* "apb_uart1"                      */
-    AW_APB_CLK_UART2,       /* "apb_uart2"                      */
-    AW_APB_CLK_UART3,       /* "apb_uart3"                      */
-    AW_APB_CLK_UART4,       /* "apb_uart4"                      */
-    AW_APB_CLK_UART5,       /* "apb_uart5"                      */
-
-    /* dram module gating */
-    AW_DRAM_CLK_VE,         /* "dram_ve"                        */
-    AW_DRAM_CLK_CSI0,       /* "dram_csi0"                      */
-    AW_DRAM_CLK_CSI1,       /* "dram_csi1"                      */
-    AW_DRAM_CLK_TS,         /* "dram_ts"                        */
-    AW_DRAM_CLK_DRC0,       /* "dram_drc0"                      */
-    AW_DRAM_CLK_DRC1,       /* "dram_drc1"                      */
-    AW_DRAM_CLK_DEU0,       /* "dram_deu0"                      */
-    AW_DRAM_CLK_DEU1,       /* "dram_deu1"                      */
-    AW_DRAM_CLK_DEFE0,      /* "dram_defe0"                     */
-    AW_DRAM_CLK_DEFE1,      /* "dram_defe1"                     */
-    AW_DRAM_CLK_DEBE0,      /* "dram_debe0"                     */
-    AW_DRAM_CLK_DEBE1,      /* "dram_debe1"                     */
-    AW_DRAM_CLK_MP,         /* "dram_mp"                        */
-
-    AW_CCU_CLK_CNT          /* invalid id, for calc count       */
-
-} __aw_ccu_clk_id_e;
+/* define dram module gating clock */
+#define CLK_DRAM_VE         "dram_ve"
+#define CLK_DRAM_CSI0       "dram_csi0"
+#define CLK_DRAM_CSI1       "dram_csi1"
+#define CLK_DRAM_TS         "dram_ts"
+#define CLK_DRAM_DRC0       "dram_drc0"
+#define CLK_DRAM_DRC1       "dram_drc1"
+#define CLK_DRAM_DEU0       "dram_deu0"
+#define CLK_DRAM_DEU1       "dram_deu1"
+#define CLK_DRAM_DEFE0      "dram_defe0"
+#define CLK_DRAM_DEFE1      "dram_defe1"
+#define CLK_DRAM_DEBE0      "dram_debe0"
+#define CLK_DRAM_DEBE1      "dram_debe1"
+#define CLK_DRAM_MP         "dram_mp"
 
 
-/* define handle for moduel clock   */
-typedef struct __AW_CCU_CLK
-{
-    __aw_ccu_clk_id_e       id;     /* clock id         */
-    __aw_ccu_clk_id_e       parent; /* parent clock id  */
-    char                    *name;  /* clock name       */
-    __aw_ccu_clk_onff_e     onoff;  /* on/off status    */
-    __aw_ccu_clk_reset_e    reset;  /* reset status     */
-    __u64                   rate;   /* clock rate, frequency for system clock, division for module clock */
-    __s32                   hash;   /* hash value, for fast search without string compare   */
-
-}__aw_ccu_clk_t;
-
-
-typedef struct clk_ops
-{
-    int     (*set_status)(__aw_ccu_clk_id_e id, __aw_ccu_clk_onff_e status);
-    __aw_ccu_clk_onff_e (*get_status)(__aw_ccu_clk_id_e id);
-    int     (*set_parent)(__aw_ccu_clk_id_e id, __aw_ccu_clk_id_e parent);
-    __aw_ccu_clk_id_e (*get_parent)(__aw_ccu_clk_id_e id);
-    int     (*set_rate)(__aw_ccu_clk_id_e id, __u64 rate);
-    __u64   (*round_rate)(__aw_ccu_clk_id_e id, __u64 rate);
-    __u64   (*get_rate)(__aw_ccu_clk_id_e id);
-    int     (*set_reset)(__aw_ccu_clk_id_e id, __aw_ccu_clk_reset_e);
-    __aw_ccu_clk_reset_e (*get_reset)(__aw_ccu_clk_id_e id);
-
-} __clk_ops_t;
-
-
-/*
-*********************************************************************************************************
-*                           mod_clk_calc_hash
-*
-*Description: calculate hash value of a string;
-*
-*Arguments  : string    string whose hash value need be calculate;
-*
-*Return     : hash value
-*
-*Notes      :
-*
-*********************************************************************************************************
-*/
-static inline __s32 ccu_clk_calc_hash(char *string)
-{
-    __s32   tmpLen, i, tmpHash = 0;
-
-    if(!string) {
-        return 0;
-    }
-
-    tmpLen = strlen(string);
-    for(i=0; i<tmpLen; i++) {
-        tmpHash += string[i];
-    }
-
-    return tmpHash;
-}
-
+struct __AW_CCU_CLK;
+struct clk_ops;
 
 typedef struct clk
 {
-    __aw_ccu_clk_t  *aw_clk;    /* clock handle from ccu csp                            */
-    __clk_ops_t     *ops;       /* clock operation handle                               */
+    struct __AW_CCU_CLK *aw_clk;    /* clock handle from ccu csp                            */
+    struct clk_ops      *ops;       /* clock operation handle                               */
     int             enable;     /* enable count, when it down to 0, it will be disalbe  */
 #ifdef CCU_LOCK_LIUGANG_20120930
     spinlock_t      lock;	/* to synchronize the clock setting */
