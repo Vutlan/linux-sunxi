@@ -52,6 +52,8 @@
 extern void sunximmc_rescan_card(unsigned id, unsigned insert);
 extern int mmc_pm_get_mod_type(void);
 extern int mmc_pm_gpio_ctrl(char* name, int level);
+extern void mmc_pm_power(int mode, int* updown);
+
 /*
 *	rtl8189es_shdn	= port:PH09<1><default><default><0>
 *	rtl8189es_wakeup	= port:PH10<1><default><default><1>
@@ -61,19 +63,27 @@ extern int mmc_pm_gpio_ctrl(char* name, int level);
 
 int rtl8189es_sdio_powerup(void)
 {
-	mmc_pm_gpio_ctrl("rtl8189es_vdd_en", 1);   
-	udelay(100);   
-	mmc_pm_gpio_ctrl("rtl8189es_vcc_en", 1);    
-	udelay(50);    
-	mmc_pm_gpio_ctrl("rtl8189es_shdn", 1);        
-	return 0;
+		int power = 1;
+		int *updown = &power;
+		mmc_pm_power(1, updown);
+    mmc_pm_gpio_ctrl("rtl8189es_vdd_en", 1);
+    udelay(100);
+    mmc_pm_gpio_ctrl("rtl8189es_vcc_en", 1);
+    udelay(50);
+    mmc_pm_gpio_ctrl("rtl8189es_shdn", 1);
+    
+    return 0;
 }
 int rtl8189es_sdio_poweroff(void)
-{    
-	mmc_pm_gpio_ctrl("rtl8189es_shdn", 0);    
-	mmc_pm_gpio_ctrl("rtl8189es_vcc_en", 0);   
-	mmc_pm_gpio_ctrl("rtl8189es_vdd_en", 0);            
-	return 0;
+{
+		int power = 0;
+		int *updown = &power;
+		mmc_pm_power(1, updown);	
+    mmc_pm_gpio_ctrl("rtl8189es_shdn", 0);
+    mmc_pm_gpio_ctrl("rtl8189es_vcc_en", 0);
+    mmc_pm_gpio_ctrl("rtl8189es_vdd_en", 0);    
+    
+    return 0;
 }
 #endif //defined(CONFIG_MMC_SUNXI_POWER_CONTROL)
 #endif //CONFIG_PLATFORM_ARM_SUNxI
