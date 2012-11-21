@@ -38,12 +38,11 @@
 #define  KEY_DEBUG_LEVEL2
 #define  PRINT_SUSPEND_INFO
 
-#define FPGA_SIM
 //just for test 
-#ifdef FPGA_SIM
+#ifdef CONFIG_AW_FPGA_V4_PLATRORM
 #define SW_INT_IRQNO_LRADC (11 + 32)
 #else
-#define SW_INT_IRQNO_LRADC (12 + 32)
+#define SW_INT_IRQNO_LRADC (62)
 #endif
 
 #define INPUT_DEV_NAME	("sw-keyboard")

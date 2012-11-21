@@ -20,17 +20,27 @@
 #include <mach/irqs.h>
 #include <mach/hardware.h>
 #include <linux/clk.h>
+#include <mach/gpio.h>
 #ifdef CONFIG_HAS_EARLYSUSPEND
     #include <linux/pm.h>
     #include <linux/earlysuspend.h>
 #endif
 
 #include "ir-keymap.h"
-//main macro
-//#define SYS_GPIO_CFG_EN
-#define CONFIG_SUN6I_FPGA
+
 //#define DEBUG_IR
 #define PRINT_SUSPEND_INFO
+
+#ifdef CONFIG_AW_FPGA_V4_PLATRORM
+#define FPGA_SIM_CONFIG            //input clk is 24M
+#define SW_INT_IRQNO_IR0 (16+32)
+//#define SYS_CLK_CFG_EN
+#else
+//#define FPGA_SIM_CONFIG            //input clk is 24M
+#define SYS_GPIO_CFG_EN
+#define SYS_CLK_CFG_EN
+#define SW_INT_IRQNO_IR0 (69)
+#endif
 
 #ifdef SYS_GPIO_CFG_EN
 //#include <mach/sys_config.h>
@@ -40,15 +50,6 @@ static struct clk *ir_clk;
 static u32 ir_gpio_hdle;
 #endif
 
-#ifdef CONFIG_SUN6I_FPGA
-#define FPGA_SIM_CONFIG            //input clk is 24M
-#define SW_INT_IRQNO_IR0 (16+32)
-//#define SYS_CLK_CFG_EN
-#else
-//#define FPGA_SIM_CONFIG            //input clk is 24M
-#define SYS_CLK_CFG_EN
-#define SW_INT_IRQNO_IR0 (69)
-#endif
 
 #ifdef DEBUG_IR
 #define DEBUG_IR_LEVEL0
@@ -247,7 +248,7 @@ static void ir_clk_uncfg(void)
 static void ir_sys_cfg(void)
 {
 #ifdef SYS_GPIO_CFG_EN
-        if(0 == (ir_gpio_hdle = gpio_request_ex("ir_para", "ir0_rx"))){
+        if(0 == (ir_gpio_hdle = sw_gpio_request_ex("ir_para", "ir0_rx"))){
 	printk("try to request ir_para gpio failed. \n");
         }
         
@@ -271,7 +272,7 @@ static void ir_sys_uncfg(void)
 	
 
 #ifdef SYS_GPIO_CFG_EN
-        gpio_release(ir_gpio_hdle, 2);
+        sw_gpio_release(ir_gpio_hdle, 2);
 #else
 #endif
 
