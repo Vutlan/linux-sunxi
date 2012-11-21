@@ -289,7 +289,7 @@ PVRSRV_ERROR SysInitialise(IMG_VOID)
 #if !defined(SGX_DYNAMIC_TIMING_INFO)
 	SGX_TIMING_INFORMATION*	psTimingInfo;
 #endif
-    printk("===zchmin, pvr android DDK==irq %d!===\n",SYS_SUNXI_SGX_IRQ);
+    printk("===zchmin, pvr android DDK==irq %d!=== modify clock\n",SYS_SUNXI_SGX_IRQ);
 	gpsSysData = &gsSysData;
 	OSMemSet(gpsSysData, 0, sizeof(SYS_DATA));
 

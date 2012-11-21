@@ -63,8 +63,6 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define	ONE_MHZ	1000000
 #define	HZ_TO_MHZ(m) ((m) / ONE_MHZ)
 
-#define SGX_PARENT_CLOCK "core_ck"
-
 struct clk *h_ahb_gpu, *h_gpu_coreclk, *h_gpu_hydclk, *h_gpu_memclk, *h_gpu_hydpll, *h_gpu_corepll;
 
 #if defined(LDM_PLATFORM) 
@@ -181,25 +179,20 @@ PVRSRV_ERROR EnableSGXClocks(SYS_DATA *psSysData)
 	PVR_DPF((PVR_DBG_MESSAGE, "EnableSGXClocks: Enabling SGX Clocks"));
 
 	/*open clock*/
-	if(clk_enable(h_ahb_gpu))			
-	{				 
-		printk(("try to enable mali ahb failed!\n"));
+	if(clk_enable(h_ahb_gpu)){
+		printk(("try to enable gpu ahb clk failed!\n"));
 	}
-	if(clk_enable(h_gpu_coreclk))			
-	{				 
-		printk(("try to enable mali core failed!\n"));
+	if(clk_enable(h_gpu_coreclk)){
+		printk(("try to enable gpu core clk failed!\n"));
 	}
-	if(clk_enable(h_gpu_hydclk))			
-	{
-		printk(("try to enable mali hyd failed!\n"));
+	if(clk_enable(h_gpu_hydclk)){
+		printk(("try to enable gpu hyd clk failed!\n"));
 	}
-	if(clk_enable(h_gpu_memclk))			
-	{
-		printk(("try to enable mali mem failed!\n"));
+	if(clk_enable(h_gpu_memclk)){
+		printk(("try to enable gpu mem clkfailed!\n"));
 	}
-	if(clk_reset(h_gpu_coreclk,AW_CCU_CLK_NRESET))
-	{
-		printk(("try to reset release failed!\n"));
+	if(clk_reset(h_gpu_coreclk,AW_CCU_CLK_NRESET)){
+		printk(("try to NRESET gpu_clk failed!\n"));
 	}
 	
 #if defined(LDM_PLATFORM)
@@ -254,14 +247,29 @@ IMG_VOID DisableSGXClocks(SYS_DATA *psSysData)
 
 	SysDisableSGXInterrupts(psSysData);
 
-	/*cloce clock*/
-	clk_disable(h_ahb_gpu);
-	clk_disable(h_gpu_coreclk);
-	clk_disable(h_gpu_hydclk);
-	clk_disable(h_gpu_memclk);
-	if(clk_reset(h_gpu_coreclk,AW_CCU_CLK_RESET))
-	{
-		printk(("try to reset release failed!\n"));
+	/*close clock*/
+	if(NULL == h_ahb_gpu || IS_ERR(h_ahb_gpu)){
+		printk("gpu ahb clk handle is invalid, just return\n");
+	}else{
+		clk_disable(h_ahb_gpu);
+	}
+	if(NULL == h_gpu_coreclk || IS_ERR(h_gpu_coreclk)){
+		printk("gpu core clk handle is invalid, just return\n");
+	}else{
+		clk_disable(h_gpu_coreclk);
+	}
+	if(NULL == h_gpu_hydclk || IS_ERR(h_gpu_hydclk)){
+		printk("gpu hyd clk handle is invalid, just return\n");
+	}else{
+		clk_disable(h_gpu_hydclk);
+	}
+	if(NULL == h_gpu_memclk || IS_ERR(h_gpu_memclk)){
+		printk("gpu mem clk handle is invalid, just return\n");
+	}else{
+		clk_disable(h_gpu_memclk);
+	}
+	if(clk_reset(h_gpu_coreclk,AW_CCU_CLK_RESET)){
+		printk(("try to RESET gpu clk failed!\n"));
 	}
 	
 #if defined(LDM_PLATFORM)
@@ -311,25 +319,57 @@ PVRSRV_ERROR EnableSystemClocks(SYS_DATA *psSysData)
 	if (!psSysSpecData->bSysClocksOneTimeInit)
 	{
 		/*set up pll and clock parents*/	
-		h_gpu_hydpll = clk_get(NULL,"sys_pll8");
-		h_gpu_corepll = clk_get(NULL,"sys_pll7");
-		h_ahb_gpu = clk_get(NULL, "ahb_gpu");
-		h_gpu_coreclk = clk_get(NULL, "mod_gpucore");
-		h_gpu_hydclk = clk_get(NULL, "mod_gpumem");
-		h_gpu_memclk = clk_get(NULL, "mod_gpuhyd");
+		h_gpu_hydpll = clk_get(NULL,CLK_SYS_PLL8);
+		if(!h_gpu_hydpll || IS_ERR(h_gpu_hydpll)){
+			printk("try to get sys_pll8 failed!\n");
+		}
+		h_gpu_corepll = clk_get(NULL,CLK_SYS_PLL9);
+		if(!h_gpu_corepll || IS_ERR(h_gpu_corepll)){
+			printk("try to get sys_pll9 failed!\n");
+		}
+		h_ahb_gpu = clk_get(NULL, CLK_AHB_GPU);
+		if(!h_ahb_gpu || IS_ERR(h_ahb_gpu)){
+			printk("try to get adb_gpu failed!\n");
+		}
+		h_gpu_coreclk = clk_get(NULL, CLK_MOD_GPUCORE);
+		if(!h_gpu_coreclk || IS_ERR(h_gpu_coreclk)){
+			printk("try to get mod_gpucore failed!\n");
+		}
+		h_gpu_memclk = clk_get(NULL, CLK_MOD_GPUMEM);
+		if(!h_gpu_memclk || IS_ERR(h_gpu_memclk)){
+			printk("try to get mod_gpumem failed!\n");
+		}
+		h_gpu_hydclk = clk_get(NULL, CLK_MOD_GPUHYD);
+		if(!h_gpu_hydclk || IS_ERR(h_gpu_hydclk)){
+			printk("try to get mod_gouhyd failed!\n");
+		}
 
 		/*set pll frequency*/
-		clk_set_rate(h_gpu_hydpll, SYS_SGX_CORE_CLOCK_SPEED);
-		clk_set_rate(h_gpu_corepll, SYS_SGX_CORE_CLOCK_SPEED);
+		if(clk_set_rate(h_gpu_hydpll, SYS_SGX_CORE_CLOCK_SPEED)){
+			printk("try to set gpu_hydpll rate %d failed!\n",SYS_SGX_CORE_CLOCK_SPEED);
+		}
+		if(clk_set_rate(h_gpu_corepll, SYS_SGX_CORE_CLOCK_SPEED)){
+			printk("try to set gpu_corepll rate %d failed!\n",SYS_SGX_CORE_CLOCK_SPEED);
+		}
 		
 		/*set clocks parents */
-		clk_set_parent(h_gpu_hydclk, h_gpu_hydpll);
-		clk_set_parent(h_gpu_memclk, h_gpu_hydpll);
-		clk_set_parent(h_gpu_coreclk, h_gpu_corepll);
+		if(clk_set_parent(h_gpu_hydclk, h_gpu_hydpll)){
+			printk("set gpu_hydclk parent to gpu_hydpll failed!\n");
+		}
+		if(clk_set_parent(h_gpu_memclk, h_gpu_hydpll)){
+			printk("set gpu_memclk parent to gpu_hydpll failed!\n");
+		}
+		if(clk_set_parent(h_gpu_coreclk, h_gpu_corepll)){
+			printk("set gpu_coreclk parent to gpu_corepll failed!\n");
+		}
 
 		/*open pll, in EnableSystemClocks temporarily*/
-		clk_enable(h_gpu_hydpll);
-		clk_enable(h_gpu_corepll);
+		if(clk_enable(h_gpu_hydpll)){
+			printk("try to enable gpu_hydpll output failed!\n");
+		}
+		if(clk_enable(h_gpu_corepll)){
+			printk("try to enable gpu_corepll output failed!\n");
+		}
 			
 		mutex_init(&psSysSpecData->sPowerLock);
 
@@ -364,8 +404,16 @@ IMG_VOID DisableSystemClocks(SYS_DATA *psSysData)
 	DisableSGXClocks(psSysData);
 	
 	/*disable pll, in DisableSystemClocks temporarily*/
-	clk_disable(h_gpu_hydpll);
-	clk_disable(h_gpu_corepll);
+	if(NULL == h_gpu_hydpll || IS_ERR(h_gpu_hydpll)){
+		printk("gpu hydpll is invalid, just return!\n");
+	}else{
+		clk_disable(h_gpu_hydpll);
+	}
+	if(NULL == h_gpu_corepll || IS_ERR(h_gpu_corepll)){
+		printk("gpu corepll is invalid, just return!\n");
+	}else{
+		clk_disable(h_gpu_corepll);
+	}
 
 	ReleaseGPTimer(psSysSpecData);
 }

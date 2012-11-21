@@ -594,8 +594,8 @@ static PVRSRV_ERROR CreateDCSwapChain(IMG_HANDLE hDevice,
 	eError = PVRSRV_OK;
 	goto ExitUnLock;
 
-ErrorDestroySwapQueue:
-	SUNXILFBDestroySwapQueue(psSwapChain);
+//ErrorDestroySwapQueue:
+//	SUNXILFBDestroySwapQueue(psSwapChain);
 ErrorFreeBuffers:
 	SUNXILFBFreeKernelMem(psBuffer);
 ErrorFreeSwapChain:
