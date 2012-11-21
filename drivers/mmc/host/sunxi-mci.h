@@ -15,7 +15,7 @@
 #ifndef _SW_HOST_OP_H_
 #define _SW_HOST_OP_H_ "host_op.h"
 
-#if defined CONFIG_AW_FPGA_V4_PLATRORM || defined CONFIG_AW_FPGA_V7_PLATRORM
+#if defined CONFIG_AW_FPGA_V4_PLATFORM || defined CONFIG_AW_FPGA_V7_PLATFORM
 #define MMC_FPGA
 #endif
 
