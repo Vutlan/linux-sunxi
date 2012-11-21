@@ -1568,6 +1568,11 @@ static int lsm303d_mag_get_data(struct lsm303d_status *stat, int *xyz)
 
 static void lsm303d_acc_report_values(struct lsm303d_status *stat, int *xyz)
 {
+
+	xyz[0] /= 1000;
+	xyz[1] /= 1000;
+	xyz[2] /= 1000;
+
 	input_report_abs(stat->input_dev_acc, ABS_X, xyz[0]);
 	input_report_abs(stat->input_dev_acc, ABS_Y, xyz[1]);
 	input_report_abs(stat->input_dev_acc, ABS_Z, xyz[2]);
@@ -1578,6 +1583,11 @@ static void lsm303d_acc_report_values(struct lsm303d_status *stat, int *xyz)
 
 static void lsm303d_mag_report_values(struct lsm303d_status *stat, int *xyz)
 {
+
+	xyz[0] /= 1000;
+	xyz[1] /= 1000;
+	xyz[2] /= 1000;
+
 	input_report_abs(stat->input_dev_mag, ABS_X, xyz[0]);
 	input_report_abs(stat->input_dev_mag, ABS_Y, xyz[1]);
 	input_report_abs(stat->input_dev_mag, ABS_Z, xyz[2]);

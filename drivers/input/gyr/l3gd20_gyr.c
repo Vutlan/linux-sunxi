@@ -764,6 +764,11 @@ static void l3gd20_report_values(struct l3gd20_data *gyr,
 						struct l3gd20_triple *data)
 {
 	struct input_dev *input = gyr->input_poll_dev->input;
+
+	data->x /= 1000;
+	data->y /= 1000;
+	data->z /= 1000;
+	
 	input_report_abs(input, ABS_X, data->x);
 	input_report_abs(input, ABS_Y, data->y);
 	input_report_abs(input, ABS_Z, data->z);
