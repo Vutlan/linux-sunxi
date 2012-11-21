@@ -15,7 +15,9 @@
 #ifndef _SW_HOST_OP_H_
 #define _SW_HOST_OP_H_ "host_op.h"
 
+#if defined CONFIG_AW_FPGA_V4_PLATRORM || defined CONFIG_AW_FPGA_V7_PLATRORM
 #define MMC_FPGA
+#endif
 
 #define DRIVER_NAME "sunxi-mmc"
 #define DRIVER_RIVISION "Rev3.0"
@@ -28,8 +30,8 @@
 #define REG_FIFO_OS	(0x200)
 #define SMC_IRQNO(x)	(AW_IRQ_MMC0 + (x))
 
-#define MMC_SRCCLK_HOSC   "sys_hosc"
-#define MMC_SRCCLK_PLL6   "sys_pll6"
+#define MMC_SRCCLK_HOSC   CLK_SYS_HOSC
+#define MMC_SRCCLK_PLL6   CLK_SYS_PLL6
 #define MMC_AHBCLK_PREFIX "ahb_sdmmc"
 #define MMC_MODCLK_PREFIX "mod_sdc"
 #define MMC3_DMA_TL       (0x2007000f)

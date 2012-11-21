@@ -580,6 +580,8 @@ static int sw_mci_set_clk(struct sunxi_mmc_host* smc_host, u32 clk)
 	u32 oclk_dly = 3;
 	u32 sclk_dly = 4;
 	struct sw_mmc_clk_dly* dly = NULL;
+	s32 err;
+	u32 rate;
 
 	if (clk <= 400000) {
 		mod_clk = 24000000;
@@ -592,8 +594,20 @@ static int sw_mci_set_clk(struct sunxi_mmc_host* smc_host, u32 clk)
 		SMC_ERR(smc_host, "Error to get source clock for clk %dHz\n", clk);
 		return -1;
 	}
-	clk_set_parent(smc_host->mclk, sclk);
-	clk_set_rate(smc_host->mclk, mod_clk);
+	err = clk_set_parent(smc_host->mclk, sclk);
+	if (err) {
+		SMC_ERR(smc_host, "SDC%d set mclk parent error\n", smc_host->pdev->id);
+		clk_put(sclk);
+		return -1;
+	}
+	rate = clk_round_rate(smc_host->mclk, mod_clk);
+	err = clk_set_rate(smc_host->mclk, rate);
+	if (err) {
+		SMC_ERR(smc_host, "SDC%d set mclk rate error, rate %dHz\n",
+						smc_host->pdev->id, rate);
+		clk_put(sclk);
+		return -1;
+	}
 	clk_put(sclk);
 
 	/* set internal divider */
@@ -709,8 +723,10 @@ static int sw_mci_resource_request(struct sunxi_mmc_host *smc_host)
 	goto out;
 free_mclk:
 	clk_put(smc_host->mclk);
+	smc_host->mclk = NULL;
 free_hclk:
 	clk_put(smc_host->hclk);
+	smc_host->hclk = NULL;
 iounmap:
 	iounmap(smc_host->reg_base);
 free_mem_region:
@@ -733,7 +749,9 @@ static int sw_mci_resource_release(struct sunxi_mmc_host *smc_host)
 	}
 
 	clk_put(smc_host->hclk);
+	smc_host->hclk = NULL;
 	clk_put(smc_host->mclk);
+	smc_host->mclk = NULL;
 
 	iounmap(smc_host->reg_base);
 	release_mem_region(SMC_BASE(smc_host->pdev->id), SMC_BASE_OS);
@@ -1005,15 +1023,18 @@ static void sw_mci_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 				sw_mci_restore_io(smc_host);
 				err = clk_enable(smc_host->hclk);
 				if (err) {
-					SMC_ERR(smc_host, "Failed to enable sdc%d hclk\n", smc_host->pdev->id);
+					SMC_ERR(smc_host, "Failed to enable sdc%d hclk\n",
+								smc_host->pdev->id);
 				}
 				err = clk_enable(smc_host->mclk);
 				if (err) {
-					SMC_ERR(smc_host, "Failed to enable sdc%d mclk\n", smc_host->pdev->id);
+					SMC_ERR(smc_host, "Failed to enable sdc%d mclk\n",
+								smc_host->pdev->id);
 				}
 				err = clk_reset(smc_host->mclk, AW_CCU_CLK_NRESET);
 				if (err) {
-					SMC_ERR(smc_host, "Failed to release sdc%d reset\n", smc_host->pdev->id);
+					SMC_ERR(smc_host, "Failed to release sdc%d reset\n",
+								smc_host->pdev->id);
 				}
 				sw_mci_init_host(smc_host);
 				sw_mci_update_clk(smc_host);
@@ -1028,7 +1049,8 @@ static void sw_mci_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 				sw_mci_exit_host(smc_host);
 				err = clk_reset(smc_host->mclk, AW_CCU_CLK_RESET);
 				if (err) {
-					SMC_ERR(smc_host, "Failed to set sdc%d reset\n", smc_host->pdev->id);
+					SMC_ERR(smc_host, "Failed to set sdc%d reset\n",
+								smc_host->pdev->id);
 				}
 				clk_disable(smc_host->mclk);
 				clk_disable(smc_host->hclk);
