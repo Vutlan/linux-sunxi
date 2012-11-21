@@ -1,14 +1,14 @@
 #ifndef __INC_HAL8723U_FW_IMG_H
 #define __INC_HAL8723U_FW_IMG_H
 
-/*Created on  2011/12/ 6, 13: 8*/
+/*Created on  2012/06/29, 13:57*/
 
 //FW v16 enable usb interrupt
 #define Rtl8723UImgArrayLength 22172
 extern u8 Rtl8723UFwImgArray[Rtl8723UImgArrayLength];
 #define Rtl8723UBTImgArrayLength 1
 extern u8 Rtl8723UFwBTImgArray[Rtl8723UBTImgArrayLength];
-#define Rtl8723UUMCBCutImgArrayLength 22232
+#define Rtl8723UUMCBCutImgArrayLength 23722
 extern u8 Rtl8723UFwUMCBCutImgArray[Rtl8723UUMCBCutImgArrayLength];
 
 #ifndef CONFIG_PHY_SETTING_WITH_ODM
@@ -61,3 +61,4 @@ extern u32 Rtl8723UPHY_REG_Array_MP[Rtl8723UPHY_REG_Array_MPLength];
 #endif //#if MP_DRIVER == 1
 
 #endif //#ifndef __INC_HAL8723U_FW_IMG_H
+

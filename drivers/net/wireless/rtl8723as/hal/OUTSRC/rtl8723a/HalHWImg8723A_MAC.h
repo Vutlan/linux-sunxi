@@ -22,8 +22,6 @@
 #ifndef __INC_MAC_8723A_HW_IMG_H
 #define __INC_MAC_8723A_HW_IMG_H
 
-static BOOLEAN CheckCondition(const u4Byte Condition, const u4Byte Hex);
-
 /******************************************************************************
 *                           MAC_REG.TXT
 ******************************************************************************/
@@ -35,3 +33,4 @@ ODM_ReadAndConfig_MAC_REG_8723A(
 
 #endif
 #endif // end of HWIMG_SUPPORT
+

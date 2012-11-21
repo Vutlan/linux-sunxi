@@ -17,7 +17,7 @@
  *
  *
  ******************************************************************************/
-#define _RTL8723A_CMD_C_
+#define _RTL8188E_CMD_C_
 
 #include <drv_conf.h>
 #include <osdep_service.h>
@@ -353,6 +353,10 @@ void rtl8188e_Add_RateATid(PADAPTER pAdapter, u32 bitmap, u8 arg)
 	raid = (bitmap>>28) & 0x0f;
 
 	bitmap &= 0x0fffffff;
+	
+	DBG_871X("%s=> mac_id:%d , raid:%d , ra_bitmap=0x%x, shortGIrate=0x%02x\n", 
+			__FUNCTION__,macid ,raid ,bitmap, shortGIrate);
+
 
 #if(RATE_ADAPTIVE_SUPPORT == 1)
 	ODM_RA_UpdateRateInfo_8188E(
@@ -834,7 +838,7 @@ static void SetFwRsvdPagePkt(PADAPTER padapter, BOOLEAN bDLFinished)
 	pattrib->pktlen = pattrib->last_txcmdsz = TotalPacketLen - TXDESC_OFFSET;
 	_rtw_memcpy(pmgntframe->buf_addr, ReservedPagePacket, TotalPacketLen);
 
-	padapter->HalFunc.mgnt_xmit(padapter, pmgntframe);
+	rtw_hal_mgnt_xmit(padapter, pmgntframe);
 
 	DBG_871X("%s: Set RSVD page location to Fw\n", __FUNCTION__);
 	FillH2CCmd_88E(padapter, H2C_COM_RSVD_PAGE, sizeof(RsvdPageLoc), (u8*)&RsvdPageLoc);
@@ -850,8 +854,9 @@ void rtl8188e_set_FwJoinBssReport_cmd(PADAPTER padapter, u8 mstatus)
 	struct mlme_ext_priv	*pmlmeext = &(padapter->mlmeextpriv);
 	struct mlme_ext_info	*pmlmeinfo = &(pmlmeext->mlmext_info);
 	BOOLEAN		bSendBeacon=_FALSE;
-	u8		BcnValidReg;
-	u8		count=0, DLBcnCount=0;
+	BOOLEAN		bcn_valid = _FALSE;
+	u8	DLBcnCount=0;
+	u32 poll = 0;
 
 _func_enter_;
 
@@ -887,66 +892,72 @@ _func_enter_;
 		// Set FWHW_TXQ_CTRL 0x422[6]=0 to tell Hw the packet is not a real beacon frame.
 		rtw_write8(padapter, REG_FWHW_TXQ_CTRL+2, (pHalData->RegFwHwTxQCtrl&(~BIT6)));
 		pHalData->RegFwHwTxQCtrl &= (~BIT6);
-		
+
+		// Clear beacon valid check bit.
+		rtw_hal_set_hwreg(padapter, HW_VAR_BCN_VALID, NULL);
+		DLBcnCount = 0;
+		poll = 0;
 		do
 		{
-			// Clear beacon valid check bit.
-			BcnValidReg = rtw_read8(padapter, REG_TDECTRL+2);
-			rtw_write8(padapter, REG_TDECTRL+2, (BcnValidReg|BIT0));
-
 			// download rsvd page.
 			SetFwRsvdPagePkt(padapter, _FALSE);
-		
-			// check rsvd page download OK.
-			BcnValidReg = rtw_read8(padapter, REG_TDECTRL+2);
-			count=0;
-			while(!(BcnValidReg & BIT0) && count <20)
-			{
-				count++;
-				rtw_mdelay_os(10);
-				BcnValidReg = rtw_read8(padapter, REG_TDECTRL+2);
-			}
 			DLBcnCount++;
-		}while(!(BcnValidReg&BIT0) && DLBcnCount<5);
+			do
+			{
+				rtw_yield_os();
+				//rtw_mdelay_os(10);
+				// check rsvd page download OK.
+				rtw_hal_get_hwreg(padapter, HW_VAR_BCN_VALID, (u8*)(&bcn_valid));
+				poll++;
+			} while(!bcn_valid && (poll%10)!=0 && !padapter->bSurpriseRemoved && !padapter->bDriverStopped);
+			
+		}while(!bcn_valid && DLBcnCount<=100 && !padapter->bSurpriseRemoved && !padapter->bDriverStopped);
 		
-		//RT_ASSERT((BcnValidReg&BIT0), ("HalDownloadRSVDPage88ES(): 1 Download RSVD page failed!\n"));
-		if(!(BcnValidReg&BIT0))
-			DBG_871X("HalDownloadRSVDPage(): 1 Download RSVD page failed!\n");
-
+		//RT_ASSERT(bcn_valid, ("HalDownloadRSVDPage88ES(): 1 Download RSVD page failed!\n"));
+		if(padapter->bSurpriseRemoved || padapter->bDriverStopped)
+		{
+		}
+		else if(!bcn_valid)
+			DBG_871X("%s: 1 Download RSVD page failed! DLBcnCount:%u, poll:%u\n", __FUNCTION__ ,DLBcnCount, poll);
+		else
+			DBG_871X("%s: 1 Download RSVD success! DLBcnCount:%u, poll:%u\n", __FUNCTION__, DLBcnCount, poll);
 		//
 		// We just can send the reserved page twice during the time that Tx thread is stopped (e.g. pnpsetpower)
 		// becuase we need to free the Tx BCN Desc which is used by the first reserved page packet.
 		// At run time, we cannot get the Tx Desc until it is released in TxHandleInterrupt() so we will return
 		// the beacon TCB in the following code. 2011.11.23. by tynli.
 		//
-		//if((BcnValidReg & BIT0) && padapter->bEnterPnpSleep)
+		//if(bcn_valid && padapter->bEnterPnpSleep)
 		if(0)
 		{
-			rtw_write8(padapter, REG_TDECTRL+2, (BcnValidReg|BIT0)); // W1C bit0
 			if(bSendBeacon)
 			{
+				rtw_hal_set_hwreg(padapter, HW_VAR_BCN_VALID, NULL);
 				DLBcnCount = 0;
+				poll = 0;
 				do
 				{
-					rtw_write8(padapter, REG_TDECTRL+2, (BcnValidReg|BIT0)); // W1C bit0
-
 					SetFwRsvdPagePkt(padapter, _TRUE);
-		
-					// check rsvd page download OK.
-					BcnValidReg = rtw_read8(padapter, REG_TDECTRL+2);
-					count=0;
-					while(!(BcnValidReg & BIT0) && count <20)
-					{
-						count++;
-						rtw_udelay_os(10);
-						BcnValidReg = rtw_read8(padapter, REG_TDECTRL+2);
-					}
 					DLBcnCount++;
-				}while(!(BcnValidReg&BIT0) && DLBcnCount<5);
+					
+					do
+					{
+						rtw_yield_os();
+						//rtw_mdelay_os(10);
+						// check rsvd page download OK.
+						rtw_hal_get_hwreg(padapter, HW_VAR_BCN_VALID, (u8*)(&bcn_valid));
+						poll++;
+					} while(!bcn_valid && (poll%10)!=0 && !padapter->bSurpriseRemoved && !padapter->bDriverStopped);
+				}while(!bcn_valid && DLBcnCount<=100 && !padapter->bSurpriseRemoved && !padapter->bDriverStopped);
 				
-				//RT_ASSERT((BcnValidReg&BIT0), ("HalDownloadRSVDPage(): 2 Download RSVD page failed!\n"));
-				if(!(BcnValidReg&BIT0))
-					DBG_871X("HalDownloadRSVDPage(): 2 Download RSVD page failed!\n");
+				//RT_ASSERT(bcn_valid, ("HalDownloadRSVDPage(): 2 Download RSVD page failed!\n"));
+				if(padapter->bSurpriseRemoved || padapter->bDriverStopped)
+				{
+				}
+				else if(!bcn_valid)
+					DBG_871X("%s: 2 Download RSVD page failed! DLBcnCount:%u, poll:%u\n", __FUNCTION__ ,DLBcnCount, poll);
+				else
+					DBG_871X("%s: 2 Download RSVD success! DLBcnCount:%u, poll:%u\n", __FUNCTION__, DLBcnCount, poll);
 			}
 		}
 
@@ -968,9 +979,9 @@ _func_enter_;
 		//
 		// Update RSVD page location H2C to Fw.
 		//
-		if(BcnValidReg&BIT0)
+		if(bcn_valid)
 		{
-			rtw_write8(padapter, REG_TDECTRL+2, (BcnValidReg|BIT0)); // W1C bit0
+			rtw_hal_set_hwreg(padapter, HW_VAR_BCN_VALID, NULL);
 			DBG_871X("Set RSVD page location to Fw.\n");
 			//FillH2CCmd88E(Adapter, H2C_88E_RSVDPAGE, H2C_RSVDPAGE_LOC_LENGTH, pMgntInfo->u1RsvdPageLoc);
 		}
@@ -1119,7 +1130,7 @@ int rtl8192c_IOL_exec_cmds_sync(ADAPTER *adapter, struct xmit_frame *xmit_frame,
 	if (rtw_IOL_append_END_cmd(xmit_frame) != _SUCCESS)
 		goto exit;
 	
-	//adapter->HalFunc.mgnt_xmit(adapter, xmit_frame);
+	//rtw_hal_mgnt_xmit(adapter, xmit_frame);
 	rtw_dump_xframe_sync(adapter, xmit_frame);
 
 	IoOffloadLoc.LocCmd = 0;

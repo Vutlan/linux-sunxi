@@ -1490,9 +1490,9 @@ ODM_ResetIQKResult(
 	IN PDM_ODM_T	pDM_Odm 
 )
 {
+	u1Byte		i;
 #if (DM_ODM_SUPPORT_TYPE == ODM_MP || DM_ODM_SUPPORT_TYPE == ODM_CE)
 	PADAPTER	Adapter = pDM_Odm->Adapter;
-	u1Byte		i;
 
 	if (!IS_HARDWARE_TYPE_8192D(Adapter))
 		return;
@@ -1519,6 +1519,7 @@ ODM_ResetIQKResult(
 	}
 
 }
+#if !(DM_ODM_SUPPORT_TYPE & ODM_AP)
 u1Byte ODM_GetRightChnlPlaceforIQK(u1Byte chnl)
 {
 	u1Byte	channel_all[ODM_TARGET_CHNL_NUM_2G_5G] = 
@@ -1539,3 +1540,5 @@ u1Byte ODM_GetRightChnlPlaceforIQK(u1Byte chnl)
 	return 0;
 
 }
+#endif
+

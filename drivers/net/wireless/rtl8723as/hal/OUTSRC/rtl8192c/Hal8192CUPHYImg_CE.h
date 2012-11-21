@@ -78,3 +78,4 @@ extern u4Byte Rtl8192CUAGCTAB_1T_HPArray[Rtl8192CUAGCTAB_1T_HPArrayLength];
 
 
 #endif //__INC_HAL8192CU_FW_IMG_H
+

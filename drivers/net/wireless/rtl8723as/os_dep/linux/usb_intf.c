@@ -24,7 +24,7 @@
 #include <drv_types.h>
 #include <recv_osdep.h>
 #include <xmit_osdep.h>
-#include <hal_init.h>
+#include <hal_intf.h>
 #include <rtw_version.h>
 
 #ifndef CONFIG_USB_HCI
@@ -180,6 +180,8 @@ static struct usb_device_id rtw_usb_id_tbl[] ={
 #endif
 #ifdef CONFIG_RTL8723A
 	{USB_DEVICE_AND_INTERFACE_INFO(USB_VENDER_ID_REALTEK, 0x8724,0xff,0xff,0xff)}, //8723AU 1*1
+	{USB_DEVICE_AND_INTERFACE_INFO(USB_VENDER_ID_REALTEK, 0x1724,0xff,0xff,0xff)}, //8723AU 1*1
+	{USB_DEVICE_AND_INTERFACE_INFO(USB_VENDER_ID_REALTEK, 0x0724,0xff,0xff,0xff)}, //8723AU 1*1
 #endif
 #ifdef CONFIG_RTL8188E
 	/*=== Realtek demoboard ===*/		
@@ -425,8 +427,7 @@ _func_enter_;
 			DBG_871X("bDescriptorType=%x\n",pendp_desc->bDescriptorType);
 			DBG_871X("bEndpointAddress=%x\n",pendp_desc->bEndpointAddress);
 			//DBG_871X("bmAttributes=%x\n",pendp_desc->bmAttributes);
-			//DBG_871X("wMaxPacketSize=%x\n",pendp_desc->wMaxPacketSize);
-			DBG_871X("wMaxPacketSize=%x\n",le16_to_cpu(pendp_desc->wMaxPacketSize));
+			DBG_871X("wMaxPacketSize=%d\n",le16_to_cpu(pendp_desc->wMaxPacketSize));
 			DBG_871X("bInterval=%x\n",pendp_desc->bInterval);
 			//DBG_871X("bRefresh=%x\n",pendp_desc->bRefresh);
 			//DBG_871X("bSynchAddress=%x\n",pendp_desc->bSynchAddress);
@@ -479,10 +480,10 @@ _func_enter_;
 	//.3 misc
 	_rtw_init_sema(&(padapter->dvobjpriv.usb_suspend_sema), 0);	
 
-	intf_read_chip_version(padapter);
+	rtw_hal_read_chip_version(padapter);
 
 	//.4 usb endpoint mapping
-	intf_chip_configure(padapter);
+	rtw_hal_chip_configure(padapter);
 
 	rtw_reset_continual_urb_error(pdvobjpriv);
 	
@@ -562,16 +563,9 @@ static void decide_chip_type_by_usb_device_id(_adapter *padapter, const struct u
 static void usb_intf_start(_adapter *padapter)
 {
 
-	RT_TRACE(_module_hci_intfs_c_,_drv_err_,("+usb_intf_start\n"));
-
-	if(padapter->HalFunc.inirp_init == NULL)
-	{
-		RT_TRACE(_module_os_intfs_c_,_drv_err_,("Initialize dvobjpriv.inirp_init error!!!\n"));
-	}
-	else
-	{	
-		padapter->HalFunc.inirp_init(padapter);
-	}			
+	RT_TRACE(_module_hci_intfs_c_,_drv_err_,("+usb_intf_start\n"));	
+	
+	rtw_hal_inirp_init(padapter);
 
 	RT_TRACE(_module_hci_intfs_c_,_drv_err_,("-usb_intf_start\n"));
 
@@ -591,10 +585,7 @@ static void usb_intf_stop(_adapter *padapter)
 	}
 
 	//cancel in irp
-	if(padapter->HalFunc.inirp_deinit !=NULL)
-	{
-		padapter->HalFunc.inirp_deinit(padapter);
-	}
+	rtw_hal_inirp_deinit(padapter);	
 
 	//cancel out irp
 	rtw_write_port_cancel(padapter);
@@ -725,7 +716,7 @@ int rtw_hw_suspend(_adapter *padapter )
 		if(pnetdev)
 		{
 			netif_carrier_off(pnetdev);
-			netif_stop_queue(pnetdev);
+			rtw_netif_stop_queue(pnetdev);
 		}
 
 		//s2.
@@ -874,7 +865,7 @@ static int rtw_suspend(struct usb_interface *pusb_intf, pm_message_t message)
 		if(pnetdev)
 		{
 			netif_carrier_off(pnetdev);
-			netif_stop_queue(pnetdev);
+			rtw_netif_stop_queue(pnetdev);
 		}
 #ifdef CONFIG_WOWLAN
 		padapter->pwrctrlpriv.bSupportWakeOnWlan=_TRUE;
@@ -1145,6 +1136,14 @@ error_exit:
 extern void rtd2885_wlan_netlink_sendMsg(char *action_string, char *name);
 #endif
 
+#ifdef CONFIG_PLATFORM_ARM_SUN4I
+#include <mach/sys_config.h>
+extern int sw_usb_disable_hcd(__u32 usbc_no);
+extern int sw_usb_enable_hcd(__u32 usbc_no);
+static int usb_wifi_host = 2;
+#endif
+
+
 extern char* ifname;
 /*
  * drv_init() - a device potentially for us
@@ -1234,7 +1233,7 @@ static int rtw_drv_init(struct usb_interface *pusb_intf, const struct usb_device
 	}
 
 	//step 4. read efuse/eeprom data and get mac_addr
-	intf_read_chip_info(padapter);	
+	rtw_hal_read_chip_info(padapter);	
 
 	//step 5.
 	status = rtw_init_drv_sw(padapter);
@@ -1273,7 +1272,7 @@ static int rtw_drv_init(struct usb_interface *pusb_intf, const struct usb_device
 			padapter->dvobjpriv.pusbdev->autosuspend_disabled = 0;//autosuspend disabled by the user
 			#endif
 
-			usb_autopm_get_interface(padapter->dvobjpriv.pusbintf );//init pm_usage_cnt ,let it start from 1
+			//usb_autopm_get_interface(padapter->dvobjpriv.pusbintf );//init pm_usage_cnt ,let it start from 1
 
 			#if (LINUX_VERSION_CODE>=KERNEL_VERSION(2,6,32))
 			DBG_871X("%s...pm_usage_cnt(%d).....\n",__FUNCTION__,atomic_read(&(pdvobjpriv->pusbintf ->pm_usage_cnt)));
@@ -1283,11 +1282,12 @@ static int rtw_drv_init(struct usb_interface *pusb_intf, const struct usb_device
 		}
 	}	
 #endif
+	//2012-07-11 Move here to prevent the 8723AS-VAU BT auto suspend influence	
+	usb_autopm_get_interface(padapter->dvobjpriv.pusbintf );//init pm_usage_cnt ,let it start from 1	// alloc dev name after read efuse.
+	
 	// alloc dev name after read efuse.
 	rtw_init_netdev_name(pnetdev, ifname);
-
 	rtw_macaddr_cfg(padapter->eeprompriv.mac_addr);
-
 	_rtw_memcpy(pnetdev->dev_addr, padapter->eeprompriv.mac_addr, ETH_ALEN);
 	DBG_871X("MAC Address from pnetdev->dev_addr= " MAC_FMT "\n", MAC_ARG(pnetdev->dev_addr));	
 
@@ -1337,7 +1337,7 @@ static int rtw_drv_init(struct usb_interface *pusb_intf, const struct usb_device
 
 
 #ifdef CONFIG_CONCURRENT_MODE
-	if(rtw_drv_if2_init(padapter)==_FAIL)
+	if(rtw_drv_if2_init(padapter, NULL)==NULL)
 	{
 		goto error;
 	}	
@@ -1447,9 +1447,10 @@ _func_enter_;
 
 		DBG_871X("+r871xu_dev_remove, hw_init_completed=%d\n", padapter->hw_init_completed);
 
+		//Modify condition for 8723AS-VAU 2012.06.19	
 		//Modify condition for 92DU DMDP 2010.11.18, by Thomas
 		//move code to here, avoid access null pointer. 2011.05.25.
-		if((pdvobjpriv->NumInterfaces != 2) || (pdvobjpriv->InterfaceNumber == 1))
+		if(((pdvobjpriv->NumInterfaces != 2)&&(pdvobjpriv->NumInterfaces != 3))  || (pdvobjpriv->InterfaceNumber == 1))
 			bResetDevice = _TRUE;
 
 		//s6.
@@ -1514,12 +1515,26 @@ static int __init rtw_drv_entry(void)
 	tmp |= 0x55;
 	writel(tmp,(volatile unsigned int*)0xb801a608);//write dummy register for 1055
 #endif
-
+#ifdef CONFIG_PLATFORM_ARM_SUN4I
+#ifndef CONFIG_RTL8723A
+	int ret = 0;
+	/* ----------get usb_wifi_usbc_num------------- */	
+	ret = script_parser_fetch("usb_wifi_para", "usb_wifi_usbc_num", (int *)&usb_wifi_host, 64);	
+	if(ret != 0){		
+		printk("ERR: script_parser_fetch usb_wifi_usbc_num failed\n");		
+		ret = -ENOMEM;		
+		return ret;	
+	}	
+	printk("sw_usb_enable_hcd: usbc_num = %d\n", usb_wifi_host);	
+	sw_usb_enable_hcd(usb_wifi_host);
+#endif //CONFIG_RTL8723A	
+#endif //CONFIG_PLATFORM_ARM_SUN4I
 
 	RT_TRACE(_module_hci_intfs_c_,_drv_err_,("+rtw_drv_entry\n"));
 
-	DBG_871X("rtw driver version=%s \n", DRIVERVERSION);
-	DBG_871X("Build at: %s %s\n", __DATE__, __TIME__);
+	DBG_871X(DRV_NAME " driver version=%s\n", DRIVERVERSION);
+	DBG_871X("build time: %s %s\n", __DATE__, __TIME__);
+	
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24)) 
 	//console_suspend_enabled=0;
 #endif
@@ -1556,6 +1571,13 @@ static void __exit rtw_drv_halt(void)
 #endif
 
 	DBG_871X("-rtw_drv_halt\n");
+
+#ifdef CONFIG_PLATFORM_ARM_SUN4I
+#ifndef CONFIG_RTL8723A
+	printk("sw_usb_disable_hcd: usbc_num = %d\n", usb_wifi_host);
+	sw_usb_disable_hcd(usb_wifi_host);
+#endif //ifndef CONFIG_RTL8723A	
+#endif	//CONFIG_PLATFORM_ARM_SUN4I
 }
 
 

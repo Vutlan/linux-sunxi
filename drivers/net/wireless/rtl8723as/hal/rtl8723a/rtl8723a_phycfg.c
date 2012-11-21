@@ -1522,7 +1522,7 @@ phy_BB8723a_Config_ParaFile(
 	//
 #ifdef CONFIG_EMBEDDED_FWIMG
 	#ifdef CONFIG_PHY_SETTING_WITH_ODM
-	if(HAL_STATUS_FAILURE ==ODM_ConfigBBWithHeaderFile(&pHalData->odmpriv, ODM_BaseBand_Config_PHY_REG))
+	if(HAL_STATUS_FAILURE ==ODM_ConfigBBWithHeaderFile(&pHalData->odmpriv, CONFIG_BB_PHY_REG))
 		rtStatus = _FAIL;
 	#else
 	rtStatus = phy_ConfigBBWithHeaderFile(Adapter, BaseBand_Config_PHY_REG);
@@ -1590,7 +1590,7 @@ phy_BB8723a_Config_ParaFile(
 	//
 #ifdef CONFIG_EMBEDDED_FWIMG
 	#ifdef CONFIG_PHY_SETTING_WITH_ODM	
-	if(HAL_STATUS_FAILURE ==ODM_ConfigBBWithHeaderFile(&pHalData->odmpriv,  BaseBand_Config_AGC_TAB))
+	if(HAL_STATUS_FAILURE ==ODM_ConfigBBWithHeaderFile(&pHalData->odmpriv,  CONFIG_BB_AGC_TAB))
 		rtStatus = _FAIL;
 	#else
 	rtStatus = phy_ConfigBBWithHeaderFile(Adapter, BaseBand_Config_AGC_TAB);
@@ -2560,13 +2560,13 @@ PHY_ScanOperationBackup8192C(
 		{
 			case SCAN_OPT_BACKUP:
 				IoType = IO_CMD_PAUSE_DM_BY_SCAN;
-				Adapter->HalFunc.SetHwRegHandler(Adapter,HW_VAR_IO_CMD,  (pu1Byte)&IoType);
+				rtw_hal_set_hwreg(Adapter,HW_VAR_IO_CMD,  (pu1Byte)&IoType);
 
 				break;
 
 			case SCAN_OPT_RESTORE:
 				IoType = IO_CMD_RESUME_DM_BY_SCAN;
-				Adapter->HalFunc.SetHwRegHandler(Adapter,HW_VAR_IO_CMD,  (pu1Byte)&IoType);
+				rtw_hal_set_hwreg(Adapter,HW_VAR_IO_CMD,  (pu1Byte)&IoType);
 				break;
 
 			default:
@@ -2636,7 +2636,7 @@ _PHY_SetBWMode92C(
 
 	regBwOpMode = rtw_read8(Adapter, REG_BWOPMODE);
 	regRRSR_RSC = rtw_read8(Adapter, REG_RRSR+2);
-	//regBwOpMode = Adapter->HalFunc.GetHwRegHandler(Adapter,HW_VAR_BWMODE,(pu1Byte)&regBwOpMode);
+	//regBwOpMode = rtw_hal_get_hwreg(Adapter,HW_VAR_BWMODE,(pu1Byte)&regBwOpMode);
 
 	switch(pHalData->CurrentChannelBW)
 	{
@@ -3229,7 +3229,7 @@ PHY_SetMonitorMode8192C(
 
 		pHalData->bInMonitorMode = TRUE;
 		pAdapter->HalFunc.AllowAllDestAddrHandler(pAdapter, TRUE, TRUE);
-		pAdapter->HalFunc.SetHwRegHandler(pAdapter, HW_VAR_CHECK_BSSID, (pu1Byte)&bFilterOutNonAssociatedBSSID);
+		rtw_hal_set_hwreg(pAdapter, HW_VAR_CHECK_BSSID, (pu1Byte)&bFilterOutNonAssociatedBSSID);
 	}
 	else
 	{
@@ -3238,7 +3238,7 @@ PHY_SetMonitorMode8192C(
 
 		pAdapter->HalFunc.AllowAllDestAddrHandler(pAdapter, FALSE, TRUE);
 		pHalData->bInMonitorMode = FALSE;
-		pAdapter->HalFunc.SetHwRegHandler(pAdapter, HW_VAR_CHECK_BSSID, (pu1Byte)&bFilterOutNonAssociatedBSSID);
+		rtw_hal_set_hwreg(pAdapter, HW_VAR_CHECK_BSSID, (pu1Byte)&bFilterOutNonAssociatedBSSID);
 	}
 #endif
 }

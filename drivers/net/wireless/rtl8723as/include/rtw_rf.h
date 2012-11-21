@@ -42,6 +42,8 @@
 // {1,2,3,4,5,6,7,8,9,10,11,12,13,14}
 // 5G, total 24 chnls
 // {36,40,44,48,52,56,60,64,100,104,108,112,116,120,124,128,132,136,140,149,153,157,161,165}
+#define	MAX_CHANNEL_NUM_2G				14
+#define	MAX_CHANNEL_NUM_5G				24
 #define	MAX_CHANNEL_NUM					38//14+24
 
 //#define NUM_REGULATORYS	21
@@ -99,6 +101,14 @@ enum _RTL8712_RF_MIMO_CONFIG_{
  RTL8712_RFCONFIG_2T2R=0x22
 };
 
+
+typedef enum _RF90_RADIO_PATH{
+	RF90_PATH_A = 0,			//Radio Path A
+	RF90_PATH_B = 1,			//Radio Path B
+	RF90_PATH_C = 2,			//Radio Path C
+	RF90_PATH_D = 3 		//Radio Path D
+	//RF90_PATH_MAX 			//Max RF number 90 support
+}RF90_RADIO_PATH_E, *PRF90_RADIO_PATH_E;
 
 // Bandwidth Offset
 #define HAL_PRIME_CHNL_OFFSET_DONT_CARE	0

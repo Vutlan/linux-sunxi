@@ -374,3 +374,4 @@ void update_recvframe_phyinfo(
 		rtl8192c_process_phy_info(padapter, precvframe);             
 	}
 }
+

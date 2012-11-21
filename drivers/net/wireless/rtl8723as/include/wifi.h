@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright(c) 2007 - 2011 Realtek Corporation. All rights reserved.
+ * Copyright(c) 2007 - 2012 Realtek Corporation. All rights reserved.
  *                                        
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of version 2 of the GNU General Public License as
@@ -564,6 +564,7 @@ __inline static int IsFrameTypeCtrl(unsigned char *pframe)
 #define _HT_CAPABILITY_IE_			45
 #define _FTIE_						55
 #define _TIMEOUT_ITVL_IE_			56
+#define _SRC_IE_				59
 #define _HT_EXTRA_INFO_IE_			61
 #define _HT_ADD_INFO_IE_			61 //_HT_EXTRA_INFO_IE_
 
@@ -638,13 +639,6 @@ __inline static int IsFrameTypeCtrl(unsigned char *pframe)
 /*-----------------------------------------------------------------------------
 				Below is the definition for 802.11n 
 ------------------------------------------------------------------------------*/
-
-/* block-ack parameters */
-#define IEEE80211_ADDBA_PARAM_POLICY_MASK 0x0002
-#define IEEE80211_ADDBA_PARAM_TID_MASK 0x003C
-#define RTW_IEEE80211_ADDBA_PARAM_BUF_SIZE_MASK 0xFFA0
-#define IEEE80211_DELBA_PARAM_TID_MASK 0xF000
-#define IEEE80211_DELBA_PARAM_INITIATOR_MASK 0x0800
 
 //#ifdef CONFIG_80211N_HT
 
@@ -880,7 +874,7 @@ typedef enum _HT_CAP_AMPDU_FACTOR {
 /* block-ack parameters */
 #define IEEE80211_ADDBA_PARAM_POLICY_MASK 0x0002
 #define IEEE80211_ADDBA_PARAM_TID_MASK 0x003C
-#define RTW_IEEE80211_ADDBA_PARAM_BUF_SIZE_MASK 0xFFA0
+#define RTW_IEEE80211_ADDBA_PARAM_BUF_SIZE_MASK 0xFFC0
 #define IEEE80211_DELBA_PARAM_TID_MASK 0xF000
 #define IEEE80211_DELBA_PARAM_INITIATOR_MASK 0x0800
 
@@ -1059,6 +1053,11 @@ typedef enum _HT_CAP_AMPDU_FACTOR {
 //	Value of Inviation Flags Attribute
 #define	P2P_INVITATION_FLAGS_PERSISTENT			BIT(0)
 
+#define	DMP_P2P_DEVCAP_SUPPORT	(P2P_DEVCAP_SERVICE_DISCOVERY | \
+									P2P_DEVCAP_CLIENT_DISCOVERABILITY | \
+									P2P_DEVCAP_CONCURRENT_OPERATION | \
+									P2P_DEVCAP_INVITATION_PROC)
+#define	DMP_P2P_GRPCAP_SUPPORT	(P2P_GRPCAP_PERSISTENT_GROUP | 	P2P_GRPCAP_INTRABSS)
 
 //	Value of Device Capability Bitmap
 #define	P2P_DEVCAP_SERVICE_DISCOVERY		BIT(0)
@@ -1103,11 +1102,20 @@ typedef enum _HT_CAP_AMPDU_FACTOR {
 #define	P2P_PROVISIONING_SCAN_CNT			3
 
 #define	P2P_WILDCARD_SSID_LEN				7
-#define	P2P_FINDPHASE_EX_CNT					3
+
+#define	P2P_FINDPHASE_EX_NONE				0	// default value, used when: (1)p2p disabed or (2)p2p enabled but only do 1 scan phase
+#define	P2P_FINDPHASE_EX_FULL				1	// used when p2p enabled and want to do 1 scan phase and P2P_FINDPHASE_EX_MAX-1 find phase
+#define	P2P_FINDPHASE_EX_SOCIAL_FIRST		(P2P_FINDPHASE_EX_FULL+1) 
+#define	P2P_FINDPHASE_EX_MAX					4
+#define	P2P_FINDPHASE_EX_SOCIAL_LAST		P2P_FINDPHASE_EX_MAX
 
 #define	P2P_PROVISION_TIMEOUT				5000	//	5 seconds timeout for sending the provision discovery request
+#define	P2P_CONCURRENT_PROVISION_TIMEOUT	3000	//	3 seconds timeout for sending the provision discovery request under concurrent mode
 #define	P2P_GO_NEGO_TIMEOUT					5000	//	5 seconds timeout for receiving the group negotation response
+#define	P2P_CONCURRENT_GO_NEGO_TIMEOUT		3000	//	3 seconds timeout for sending the negotiation request under concurrent mode
 #define	P2P_TX_PRESCAN_TIMEOUT				100		//	100ms
+#define	P2P_INVITE_TIMEOUT					5000	//	5 seconds timeout for sending the invitation request
+#define	P2P_CONCURRENT_INVITE_TIMEOUT		3000	//	3 seconds timeout for sending the invitation request under concurrent mode
 
 #define	P2P_MAX_INTENT						15
 
@@ -1135,21 +1143,26 @@ enum P2P_ROLE {
 };
 
 enum P2P_STATE {
-	P2P_STATE_NONE = 0,					//	P2P disable
-	P2P_STATE_IDLE = 1,						//	P2P had enabled and do nothing
-	P2P_STATE_LISTEN = 2,					//	In pure listen state
-	P2P_STATE_SCAN = 3,					//	In scan phase
-	P2P_STATE_FIND_PHASE_LISTEN = 4,		//	In the listen state of find phase
-	P2P_STATE_FIND_PHASE_SEARCH = 5,		//	In the search state of find phase
-	P2P_STATE_TX_PROVISION_DIS_REQ = 6,	//	In P2P provisioning discovery
+	P2P_STATE_NONE = 0,							//	P2P disable
+	P2P_STATE_IDLE = 1,								//	P2P had enabled and do nothing
+	P2P_STATE_LISTEN = 2,							//	In pure listen state
+	P2P_STATE_SCAN = 3,							//	In scan phase
+	P2P_STATE_FIND_PHASE_LISTEN = 4,				//	In the listen state of find phase
+	P2P_STATE_FIND_PHASE_SEARCH = 5,				//	In the search state of find phase
+	P2P_STATE_TX_PROVISION_DIS_REQ = 6,			//	In P2P provisioning discovery
 	P2P_STATE_RX_PROVISION_DIS_RSP = 7,
 	P2P_STATE_RX_PROVISION_DIS_REQ = 8,	
-	P2P_STATE_GONEGO_ING = 9,				//	Doing the group owner negoitation handshake
-	P2P_STATE_GONEGO_OK = 10,				//	finish the group negoitation handshake with success
-	P2P_STATE_GONEGO_FAIL = 11,			//	finish the group negoitation handshake with failure
-	P2P_STATE_RECV_INVITE_REQ = 12,		//	receiving the P2P Inviation request
-	P2P_STATE_PROVISIONING_ING = 13,		//	Doing the P2P WPS
-	P2P_STATE_PROVISIONING_DONE = 14,	//	Finish the P2P WPS
+	P2P_STATE_GONEGO_ING = 9,						//	Doing the group owner negoitation handshake
+	P2P_STATE_GONEGO_OK = 10,						//	finish the group negoitation handshake with success
+	P2P_STATE_GONEGO_FAIL = 11,					//	finish the group negoitation handshake with failure
+	P2P_STATE_RECV_INVITE_REQ_MATCH = 12,		//	receiving the P2P Inviation request and match with the profile.
+	P2P_STATE_PROVISIONING_ING = 13,				//	Doing the P2P WPS
+	P2P_STATE_PROVISIONING_DONE = 14,			//	Finish the P2P WPS
+	P2P_STATE_TX_INVITE_REQ = 15,					//	Transmit the P2P Invitation request
+	P2P_STATE_RX_INVITE_RESP = 16,				//	Receiving the P2P Invitation response
+	P2P_STATE_RECV_INVITE_REQ_DISMATCH = 17,	//	receiving the P2P Inviation request and dismatch with the profile.
+	P2P_STATE_RECV_INVITE_REQ_GO = 18,			//	receiving the P2P Inviation request and this wifi is GO.
+	P2P_STATE_RECV_INVITE_REQ_JOIN = 19,			//	receiving the P2P Inviation request to join an existing P2P Group.
 };
 
 enum P2P_WPSINFO {
@@ -1167,8 +1180,9 @@ enum P2P_PROTO_WK_ID
 	P2P_RESTORE_STATE_WK = 1,
 	P2P_PRE_TX_PROVDISC_PROCESS_WK = 2,
 	P2P_PRE_TX_NEGOREQ_PROCESS_WK = 3,	
-	P2P_AP_P2P_CH_SWITCH_PROCESS_WK =4,
-	P2P_RO_CH_WK = 5,
+	P2P_PRE_TX_INVITEREQ_PROCESS_WK = 4,
+	P2P_AP_P2P_CH_SWITCH_PROCESS_WK =5,
+	P2P_RO_CH_WK = 6,
 };
 
 enum P2P_PS
@@ -1185,16 +1199,19 @@ enum P2P_PS
 #define	WFD_ATTR_DEVICE_INFO			0x00
 #define	WFD_ATTR_ASSOC_BSSID			0x01
 #define	WFD_ATTR_COUPLED_SINK_INFO	0x06
+#define	WFD_ATTR_LOCAL_IP_ADDR		0x08
 #define	WFD_ATTR_SESSION_INFO		0x09
+#define	WFD_ATTR_ALTER_MAC			0x0a
 
 //	For WFD Device Information Attribute
-#define	WFD_DEVINFO_SOURCE					0
-#define	WFD_DEVINFO_PRIARY_SINK				1
-#define	WFD_DEVINFO_SECARY_SINK				2
-#define	WFD_DEVINFO_SOURCE_PRIARY_SINK		3
+#define	WFD_DEVINFO_SOURCE					0x0000
+#define	WFD_DEVINFO_PSINK					0x0001
+#define	WFD_DEVINFO_SSINK					0x0002
 
-#define	WFD_DEVINFO_NO_COUPLED_SINK		0
-#define	WFD_DEVINFO_COUPLED_SINK			4
+#define	WFD_DEVINFO_SESSION_AVAIL			0x0010
+#define	WFD_DEVINFO_WSD						0x0040
+#define	WFD_DEVINFO_PC_TDLS					0x0080
+
 
 #ifdef  CONFIG_TX_MCAST2UNI
 #define IP_MCAST_MAC(mac)		((mac[0]==0x01)&&(mac[1]==0x00)&&(mac[2]==0x5e))

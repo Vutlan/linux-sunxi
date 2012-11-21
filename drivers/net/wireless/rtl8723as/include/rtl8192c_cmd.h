@@ -38,6 +38,7 @@ enum cmd_msg_element_id
 	H2C_92C_IO_OFFLOAD=44,
 	H2C_92C_TSF_SYNC=67,
 	H2C_92C_DISABLE_BCN_FUNC=68,
+	H2C_92C_RESET_TSF = 75,
 	H2C_92C_CMD_MAX
 };
 
@@ -106,10 +107,10 @@ int rtl8192c_IOL_exec_cmds_sync(ADAPTER *adapter, struct xmit_frame *xmit_frame,
 u8 rtl8192c_dis_beacon_fun_cmd(_adapter* padapter);
 #endif  // CONFIG_BEACON_DISABLE_OFFLOAD
 
-#ifdef CONFIG_TSF_SYNC_OFFLOAD
-// bcn0 will sync to bcn1 with TSFTF_SYNC_OFFSET
-u8 rtl8192c_sync_tsf_cmd(_adapter* padapter, u64 tsf);
-#endif	// CONFIG_TSF_SYNC_OFFLOAD
+
+#ifdef CONFIG_TSF_RESET_OFFLOAD
+u8 rtl8192c_reset_tsf(_adapter *padapter, u8 reset_port);
+#endif	// CONFIG_TSF_RESET_OFFLOAD
 
 #endif	// __RTL8192C_CMD_H_
 

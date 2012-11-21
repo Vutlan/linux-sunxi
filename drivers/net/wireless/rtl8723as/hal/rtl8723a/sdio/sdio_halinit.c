@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright(c) 2007 - 2011 Realtek Corporation. All rights reserved.
+ * Copyright(c) 2007 - 2012 Realtek Corporation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of version 2 of the GNU General Public License as
@@ -49,7 +49,7 @@ static u8 CardEnable(PADAPTER padapter)
 	u8 ret;
 
 
-	padapter->HalFunc.GetHwRegHandler(padapter, HW_VAR_APFM_ON_MAC, &bMacPwrCtrlOn);
+	rtw_hal_get_hwreg(padapter, HW_VAR_APFM_ON_MAC, &bMacPwrCtrlOn);
 	if (bMacPwrCtrlOn == _FALSE)
 	{
 		// RSV_CTRL 0x1C[7:0] = 0x00
@@ -59,7 +59,7 @@ static u8 CardEnable(PADAPTER padapter)
 		ret = HalPwrSeqCmdParsing(padapter, PWR_CUT_ALL_MSK, PWR_FAB_ALL_MSK, PWR_INTF_SDIO_MSK, rtl8723A_card_enable_flow);
 		if (ret == _SUCCESS) {
 			u8 bMacPwrCtrlOn = _TRUE;
-			padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_APFM_ON_MAC, &bMacPwrCtrlOn);
+			rtw_hal_set_hwreg(padapter, HW_VAR_APFM_ON_MAC, &bMacPwrCtrlOn);
 		}
 	} else
 		ret = _SUCCESS;
@@ -99,7 +99,7 @@ u8 _InitPowerOn(PADAPTER padapter)
 
 	// Enable CMD53 R/W Operation
 //	bMacPwrCtrlOn = _TRUE;
-//	padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_APFM_ON_MAC, &bMacPwrCtrlOn);
+//	rtw_hal_set_hwreg(padapter, HW_VAR_APFM_ON_MAC, &bMacPwrCtrlOn);
 
 	// Enable MAC DMA/WMAC/SCHEDULE/SEC block
 	value16 = rtw_read16(padapter, REG_CR);
@@ -722,6 +722,13 @@ void _InitInterrupt(PADAPTER padapter)
 	// Initialize and enable SDIO Host Interrupt.
 	//
 	InitInterrupt8723ASdio(padapter);
+
+	//
+	// Initialize and enable system Host Interrupt.
+	//
+	InitSysInterrupt8723ASdio(padapter);
+
+	EnableInterrupt8723ASdio(padapter);
 }
 
 void _InitRDGSetting(PADAPTER padapter)
@@ -998,7 +1005,7 @@ static u32 rtl8723as_hal_init(PADAPTER padapter)
 	is92C = IS_92C_SERIAL(pHalData->VersionID);
 
 	// Disable Interrupt first.
-//	padapter->HalFunc.disable_interrupt(padapter);
+//	rtw_hal_disable_interrupt(padapter);
 
 	ret = _InitPowerOn(padapter);
 	if (_FAIL == ret) {
@@ -1094,8 +1101,8 @@ static u32 rtl8723as_hal_init(PADAPTER padapter)
 
 #if (MP_DRIVER == 1)
 	_InitRxSetting(padapter);
-	RT_TRACE(_module_hci_hal_init_c_, _drv_info_, ("%s: Don't Download Firmware!!\n", __FUNCTION__));
-	padapter->bFWReady = _FALSE;
+	//RT_TRACE(_module_hci_hal_init_c_, _drv_info_, ("%s: Don't Download Firmware!!\n", __FUNCTION__));
+	//padapter->bFWReady = _FALSE;
 #else
 	ret = rtl8723a_FirmwareDownload(padapter);
 	if (ret != _SUCCESS) {
@@ -1318,8 +1325,6 @@ static u32 rtl8723as_hal_init(PADAPTER padapter)
 	}
 #endif
 
-	// 2010/12/17 MH For TX power level OID modification from UI.
-//	padapter->HalFunc.GetTxPowerLevelHandler( padapter, &pHalData->DefaultTxPwrDbm );
 	//DbgPrint("pHalData->DefaultTxPwrDbm = %d\n", pHalData->DefaultTxPwrDbm);
 
 //	if(pHalData->SwBeaconType < HAL92CSDIO_DEFAULT_BEACON_TYPE) // The lowest Beacon Type that HW can support
@@ -1335,7 +1340,7 @@ static u32 rtl8723as_hal_init(PADAPTER padapter)
 	u1bTmp |= (MACTXEN | MACRXEN);
 	rtw_write8(padapter, REG_CR, u1bTmp);
 
-	padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_NAV_UPPER, (u8*)&NavUpper);
+	rtw_hal_set_hwreg(padapter, HW_VAR_NAV_UPPER, (u8*)&NavUpper);
 
 //	pHalData->PreRpwmVal = SdioLocalCmd52Read1Byte(padapter, SDIO_REG_HRPWM1) & 0x80;
 
@@ -1479,7 +1484,7 @@ static void CardDisableRTL8723ASdio(PADAPTER padapter)
 
 	// Power down.
 	bMacPwrCtrlOn = _FALSE;	// Disable CMD53 R/W
-	padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_APFM_ON_MAC, &bMacPwrCtrlOn);
+	rtw_hal_set_hwreg(padapter, HW_VAR_APFM_ON_MAC, &bMacPwrCtrlOn);
 	ret = HalPwrSeqCmdParsing(padapter, PWR_CUT_ALL_MSK, PWR_FAB_ALL_MSK, PWR_INTF_SDIO_MSK, rtl8723A_card_disable_flow);
 	if (ret == _FALSE) {
 		printk(KERN_ERR "%s: run CARD DISABLE flow fail!\n", __func__);
@@ -1500,9 +1505,17 @@ static void CardDisableRTL8723ASdio(PADAPTER padapter)
 
 static u32 rtl8723as_hal_deinit(PADAPTER padapter)
 {
+#ifdef CONFIG_MP_INCLUDED
+	MPT_DeInitAdapter(padapter);
+#endif
+
+#ifdef CONFIG_BT_COEXIST
+	BT_HaltProcess(padapter);
+#endif
+
 	if (padapter->hw_init_completed == _TRUE)
 		CardDisableRTL8723ASdio(padapter);
-	
+
 	return _SUCCESS;
 }
 
@@ -1531,32 +1544,11 @@ static u32 rtl8723as_inirp_deinit(PADAPTER padapter)
 static void rtl8723as_init_default_value(PADAPTER padapter)
 {
 	PHAL_DATA_TYPE pHalData;
-	struct pwrctrl_priv *pwrctrlpriv;
-	struct dm_priv *pdmpriv;
-	u8 i;
 
 
 	pHalData = GET_HAL_DATA(padapter);
-	pwrctrlpriv = &padapter->pwrctrlpriv;
-	pdmpriv = &pHalData->dmpriv;
 
-	// init default value
-	pHalData->fw_ractrl = _FALSE;
-	pHalData->bIQKInitialized = _FALSE;
-	if (!pwrctrlpriv->bkeepfwalive)
-		pHalData->LastHMEBoxNum = 0;
-
-	pHalData->bIQKInitialized = _FALSE;
-
-	// init dm default value
-	pdmpriv->TM_Trigger = 0;//for IQK
-//	pdmpriv->binitialized = _FALSE;
-//	pdmpriv->prv_traffic_idx = 3;
-//	pdmpriv->initialize = 0;
-
-	pdmpriv->ThermalValue_HP_index = 0;
-	for(i = 0; i < HP_THERMAL_NUM; i++)
-		pdmpriv->ThermalValue_HP[i] = 0;
+	rtl8723a_init_default_value(padapter);
 
 	// interface related variable
 	pHalData->SdioRxFIFOCnt = 0;
@@ -1949,7 +1941,7 @@ readAdapterInfo(
 	Hal_EfuseParseTxPowerInfo_8723A(padapter, hwinfo, pEEPROM->bautoload_fail_flag);
 	Hal_EfuseParseBTCoexistInfo_8723A(padapter, hwinfo, pEEPROM->bautoload_fail_flag);
 	Hal_EfuseParseEEPROMVer(padapter, hwinfo, pEEPROM->bautoload_fail_flag);
-	Hal_EfuseParseChnlPlan(padapter, hwinfo, pEEPROM->bautoload_fail_flag);
+	rtl8723a_EfuseParseChnlPlan(padapter, hwinfo, pEEPROM->bautoload_fail_flag);
 	Hal_EfuseParseCustomerID(padapter, hwinfo, pEEPROM->bautoload_fail_flag);
 	Hal_EfuseParseAntennaDiversity(padapter, hwinfo, pEEPROM->bautoload_fail_flag);
 	Hal_EfuseParseRateIndicationOption(padapter, hwinfo, pEEPROM->bautoload_fail_flag);
@@ -2103,7 +2095,7 @@ GetHalDefVar8723ASDIO(
 	)
 {
 	HAL_DATA_TYPE	*pHalData = GET_HAL_DATA(Adapter);
-	u8			bResult = _TRUE;
+	u8			bResult = _SUCCESS;
 
 	switch(eVariable)
 	{
@@ -2111,14 +2103,14 @@ GetHalDefVar8723ASDIO(
 			*((int *)pValue) = pHalData->dmpriv.UndecoratedSmoothedPWDB;
 			break;
 		case HAL_DEF_IS_SUPPORT_ANT_DIV:
-			#ifdef CONFIG_ANTENNA_DIVERSITY
+#ifdef CONFIG_ANTENNA_DIVERSITY
 			*((u8 *)pValue) = (IS_92C_SERIAL(pHalData->VersionID) ||(pHalData->AntDivCfg==0))?_FALSE:_TRUE;
-			#endif
+#endif
 			break;
 		case HAL_DEF_CURRENT_ANTENNA:
-			#ifdef CONFIG_ANTENNA_DIVERSITY
+#ifdef CONFIG_ANTENNA_DIVERSITY
 			*(( u8*)pValue) = pHalData->CurAntenna;
-			#endif
+#endif
 			break;
 		case HAL_DEF_DBG_DUMP_RXPKT:
 			*(( u8*)pValue) = pHalData->bDumpRxPkt;
@@ -2131,7 +2123,7 @@ GetHalDefVar8723ASDIO(
 			break;	
 		default:
 			//RT_TRACE(COMP_INIT, DBG_WARNING, ("GetHalDefVar8723ASDIO(): Unkown variable: %d!\n", eVariable));
-			bResult = _FALSE;
+			bResult = _FAIL;
 			break;
 	}
 
@@ -2150,7 +2142,7 @@ SetHalDefVar8723ASDIO(
 	)
 {
 	PHAL_DATA_TYPE	pHalData = GET_HAL_DATA(Adapter);
-	u8			bResult = _TRUE;
+	u8			bResult = _SUCCESS;
 
 	switch(eVariable)
 	{
@@ -2198,19 +2190,19 @@ SetHalDefVar8723ASDIO(
 			break;
 		default:
 			//RT_TRACE(COMP_INIT, DBG_TRACE, ("SetHalDefVar819xUsb(): Unkown variable: %d!\n", eVariable));
-			bResult = _FALSE;
+			bResult = _FAIL;
 			break;
 	}
 
 	return bResult;
 }
 
-void UpdateHalRAMask8192CUsb(PADAPTER padapter, u32 mac_id)
+void UpdateHalRAMask8192CUsb(PADAPTER padapter, u32 mac_id, u8 rssi_level)
 {
 	//volatile unsigned int result;
 	u8	init_rate=0;
 	u8	networkType, raid;
-	u32	mask;
+	u32	mask,rate_bitmap;
 	u8	shortGIrate = _FALSE;
 	int	supportRateNum = 0;
 	struct sta_info	*psta;
@@ -2241,8 +2233,7 @@ void UpdateHalRAMask8192CUsb(PADAPTER padapter, u32 mac_id)
 			raid = networktype_to_raid(networkType);
 
 			mask = update_supported_rate(cur_network->SupportedRates, supportRateNum);
-			mask |= (pmlmeinfo->HT_enable)? update_MSC_rate(&(pmlmeinfo->HT_caps)): 0;
-			mask |= ((raid<<28)&0xf0000000);
+			mask |= (pmlmeinfo->HT_enable)? update_MSC_rate(&(pmlmeinfo->HT_caps)): 0;			
 
 			if (support_short_GI(padapter, &(pmlmeinfo->HT_caps)))
 			{
@@ -2259,8 +2250,7 @@ void UpdateHalRAMask8192CUsb(PADAPTER padapter, u32 mac_id)
 				networkType = WIRELESS_11G;
 			raid = networktype_to_raid(networkType);
 
-			mask = update_basic_rate(cur_network->SupportedRates, supportRateNum);
-			mask |= ((raid<<28)&0xf0000000);
+			mask = update_basic_rate(cur_network->SupportedRates, supportRateNum);		
 
 			break;
 
@@ -2270,14 +2260,24 @@ void UpdateHalRAMask8192CUsb(PADAPTER padapter, u32 mac_id)
 			//pmlmeext->cur_wireless_mode = networkType;
 			raid = networktype_to_raid(networkType);
 
-			mask = update_supported_rate(cur_network->SupportedRates, supportRateNum);
-			mask |= ((raid<<28)&0xf0000000);
+			mask = update_supported_rate(cur_network->SupportedRates, supportRateNum);			
 
 			//todo: support HT in IBSS
 
 			break;
 	}
-	mask &=0xffffffff;
+	//mask &=0x0fffffff;
+	rate_bitmap = 0x0fffffff;	
+#ifdef	CONFIG_ODM_REFRESH_RAMASK
+	{				
+		rate_bitmap = ODM_Get_Rate_Bitmap(&pHalData->odmpriv,mask,rssi_level);
+		printk("%s => mac_id:%d, networkType:0x%02x, mask:0x%08x\n\t ==> rssi_level:%d, rate_bitmap:0x%08x\n",
+			__FUNCTION__,mac_id,networkType,mask,rssi_level,rate_bitmap);
+	}
+#endif
+	mask &= rate_bitmap; 
+	mask |= ((raid<<28)&0xf0000000);
+	
 	init_rate = get_highest_rate_idx(mask)&0x3f;
 
 	if(pHalData->fw_ractrl == _TRUE)
@@ -2320,6 +2320,15 @@ void rtl8723as_set_hal_ops(PADAPTER padapter)
 
 _func_enter_;
 
+	//set hardware operation functions
+	padapter->HalData = rtw_zmalloc(sizeof(HAL_DATA_TYPE));
+	if (padapter->HalData == NULL) {
+		RT_TRACE(_module_hci_hal_init_c_, _drv_err_,
+			 ("can't alloc memory for HAL DATA\n"));		
+	}
+	
+	padapter->hal_data_sz = sizeof(HAL_DATA_TYPE);
+	
 	rtl8723a_set_hal_ops(pHalFunc);
 
 	pHalFunc->hal_init = &rtl8723as_hal_init;
@@ -2346,9 +2355,7 @@ _func_enter_;
 
 	pHalFunc->SetHwRegHandler = &SetHwReg8723AS;
 	pHalFunc->GetHwRegHandler = &GetHwReg8723AS;
-//	pHalFunc->GetHalDefVarHandler = &GetHalDefVar8723ASdio;
 	pHalFunc->GetHalDefVarHandler = &GetHalDefVar8723ASDIO;
-//	pHalFunc->SetHalDefVarHandler = &SetHalDefVar8723ASdio;
  	pHalFunc->SetHalDefVarHandler = &SetHalDefVar8723ASDIO;
 
 //	pHalFunc->UpdateRAMaskHandler = &UpdateHalRAMask8723ASdio;

@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright(c) 2007 - 2011 Realtek Corporation. All rights reserved.
+ * Copyright(c) 2007 - 2012 Realtek Corporation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of version 2 of the GNU General Public License as
@@ -78,14 +78,14 @@ dm_CheckStatistics(
 		return;
 
 	//2008.12.10 tynli Add for getting Current_Tx_Rate_Reg flexibly.
-	Adapter->HalFunc.GetHwRegHandler( Adapter, HW_VAR_INIT_TX_RATE, (pu1Byte)(&Adapter->TxStats.CurrentInitTxRate) );
+	rtw_hal_get_hwreg( Adapter, HW_VAR_INIT_TX_RATE, (pu1Byte)(&Adapter->TxStats.CurrentInitTxRate) );
 
 	// Calculate current Tx Rate(Successful transmited!!)
 
 	// Calculate current Rx Rate(Successful received!!)
 
 	//for tx tx retry count
-	Adapter->HalFunc.GetHwRegHandler( Adapter, HW_VAR_RETRY_COUNT, (pu1Byte)(&Adapter->TxStats.NumTxRetryCount) );
+	rtw_hal_get_hwreg( Adapter, HW_VAR_RETRY_COUNT, (pu1Byte)(&Adapter->TxStats.NumTxRetryCount) );
 #endif
 }
 
@@ -298,6 +298,7 @@ static void Init_ODM_ComInfo_8723a(PADAPTER	Adapter)
 	}
 	ODM_CmnInfoInit(pDM_Odm,ODM_CMNINFO_FAB_VER,fab_ver);		
 	ODM_CmnInfoInit(pDM_Odm,ODM_CMNINFO_CUT_VER,cut_ver);
+	ODM_CmnInfoInit(pDM_Odm,ODM_CMNINFO_MP_TEST_CHIP,IS_NORMAL_CHIP(pHalData->VersionID));
 	
 #ifdef CONFIG_USB_HCI	
 	ODM_CmnInfoInit(pDM_Odm,ODM_CMNINFO_BOARD_TYPE,pHalData->BoardType);
@@ -332,7 +333,9 @@ static void Update_ODM_ComInfo_8723a(PADAPTER	Adapter)
 	struct dm_priv	*pdmpriv = &pHalData->dmpriv;	
 	int i;	
 	pdmpriv->InitODMFlag =	ODM_BB_DIG				|
+#ifdef	CONFIG_ODM_REFRESH_RAMASK
 							ODM_BB_RA_MASK			|
+#endif
 							ODM_BB_DYNAMIC_TXPWR	|
 							ODM_BB_FA_CNT			|
 							ODM_BB_RSSI_MONITOR	|
@@ -362,6 +365,7 @@ static void Update_ODM_ComInfo_8723a(PADAPTER	Adapter)
 	ODM_CmnInfoHook(pDM_Odm,ODM_CMNINFO_SEC_MODE,&(Adapter->securitypriv.dot11PrivacyAlgrthm));
 	ODM_CmnInfoHook(pDM_Odm,ODM_CMNINFO_BW,&(pHalData->CurrentChannelBW ));
 	ODM_CmnInfoHook(pDM_Odm,ODM_CMNINFO_CHNL,&( pHalData->CurrentChannel));
+	ODM_CmnInfoHook(pDM_Odm,ODM_CMNINFO_NET_CLOSED,&( Adapter->net_closed));
 
 	//================= only for 8192D   =================
 	/*
@@ -521,7 +525,7 @@ rtl8723a_HalDmWatchDog(
 
 #ifdef CONFIG_LPS
 	bFwCurrentInPSMode = Adapter->pwrctrlpriv.bFwCurrentInPSMode;
-	Adapter->HalFunc.GetHwRegHandler(Adapter, HW_VAR_FWLPS_RF_ON, (u8 *)(&bFwPSAwake));
+	rtw_hal_get_hwreg(Adapter, HW_VAR_FWLPS_RF_ON, (u8 *)(&bFwPSAwake));
 #endif
 
 #ifdef CONFIG_P2P
@@ -531,16 +535,7 @@ rtl8723a_HalDmWatchDog(
 		bFwPSAwake = _FALSE;
 #endif //CONFIG_P2P
 
-	// Stop dynamic mechanism when:
-	// 1. RF is OFF. (No need to do DM.)
-	// 2. Fw is under power saving mode for FwLPS. (Prevent from SW/FW I/O racing.)
-	// 3. IPS workitem is scheduled. (Prevent from IPS sequence to be swapped with DM.
-	//     Sometimes DM execution time is longer than 100ms such that the assertion
-	//     in MgntActSet_RF_State() called by InactivePsWorkItem will be triggered by
-	//     wating to long for RFChangeInProgress.)
-	// 4. RFChangeInProgress is TRUE. (Prevent from broken by IPS/HW/SW Rf off.)
-	// Noted by tynli. 2010.06.01.
-	//if(rfState == eRfOn)
+
 	if( (Adapter->hw_init_completed == _TRUE)
 		&& ((!bFwCurrentInPSMode) && bFwPSAwake))
 	{
@@ -590,38 +585,6 @@ rtl8723a_HalDmWatchDog(
 		//if(Adapter->HalFunc.TxCheckStuckHandler(Adapter))
 		//	PlatformScheduleWorkItem(&(GET_HAL_DATA(Adapter)->HalResetWorkItem));
 #endif
-		{
-			struct mlme_priv	*pmlmepriv = &Adapter->mlmepriv;
-			u8	bLinked=_FALSE;
-			
-			if(	(check_fwstate(pmlmepriv, WIFI_AP_STATE) == _TRUE) ||
-				(check_fwstate(pmlmepriv, WIFI_ADHOC_STATE|WIFI_ADHOC_MASTER_STATE) == _TRUE))
-			{				
-				if(Adapter->stapriv.asoc_sta_count > 2)
-					bLinked = _TRUE;
-			}
-			else{//Station mode
-				if(check_fwstate(pmlmepriv, _FW_LINKED)== _TRUE)
-					bLinked = _TRUE;
-			}
-
-			ODM_CmnInfoUpdate(&pHalData->odmpriv ,ODM_CMNINFO_LINK, bLinked);
-
-			FindMinimumRSSI_8723a(Adapter);
-			ODM_CmnInfoUpdate(&pHalData->odmpriv ,ODM_CMNINFO_RSSI_MIN, pdmpriv->MinUndecoratedPWDBForDM);
-
-				
-			ODM_DMWatchdog(&pHalData->odmpriv);
-
-		}
-
-#ifdef CONFIG_BT_COEXIST
-		//
-		//BT-Coexist
-		//
-		BT_CoexistMechanism(Adapter);
-#endif
-
 _record_initrate:
 
 		// Read REG_INIDATA_RATE_SEL value for TXDESC.
@@ -638,6 +601,34 @@ _record_initrate:
 			}
 		}
 	}
+	
+	//ODM
+	if (Adapter->hw_init_completed == _TRUE)
+	{
+		struct mlme_priv	*pmlmepriv = &Adapter->mlmepriv;
+		u8	bLinked=_FALSE;
+			
+		if(	(check_fwstate(pmlmepriv, WIFI_AP_STATE) == _TRUE) ||
+			(check_fwstate(pmlmepriv, WIFI_ADHOC_STATE|WIFI_ADHOC_MASTER_STATE) == _TRUE))
+		{				
+			if(Adapter->stapriv.asoc_sta_count > 2)
+				bLinked = _TRUE;
+		}
+		else{//Station mode
+			if(check_fwstate(pmlmepriv, _FW_LINKED)== _TRUE)
+				bLinked = _TRUE;
+		}
+
+		ODM_CmnInfoUpdate(&pHalData->odmpriv ,ODM_CMNINFO_LINK, bLinked);
+
+		FindMinimumRSSI_8723a(Adapter);
+		ODM_CmnInfoUpdate(&pHalData->odmpriv ,ODM_CMNINFO_RSSI_MIN, pdmpriv->MinUndecoratedPWDBForDM);
+
+				
+		ODM_DMWatchdog(&pHalData->odmpriv);
+
+	}
+
 
 	// Check GPIO to determine current RF on/off and Pbc status.
 	// Check Hardware Radio ON/OFF or not

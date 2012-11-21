@@ -19,14 +19,14 @@
  ******************************************************************************/
 #define _RTL8723A_SRESET_C_
 
-#include <rtl8192c_sreset.h>
+#include <rtl8723a_sreset.h>
 #include <rtl8723a_hal.h>
 
 
 #ifdef DBG_CONFIG_ERROR_DETECT
 extern void rtw_cancel_all_timer(_adapter *padapter);
 
-void rtl8192c_sreset_init_value(_adapter *padapter)
+void rtl8723a_sreset_init_value(_adapter *padapter)
 {
 	HAL_DATA_TYPE	*pHalData = GET_HAL_DATA(padapter);
 	struct sreset_priv *psrtpriv = &pHalData->srestpriv;
@@ -37,7 +37,7 @@ void rtl8192c_sreset_init_value(_adapter *padapter)
 	psrtpriv->last_tx_time =0;
 	psrtpriv->last_tx_complete_time =0;
 }
-void rtl8192c_sreset_reset_value(_adapter *padapter)
+void rtl8723a_sreset_reset_value(_adapter *padapter)
 {
 	HAL_DATA_TYPE	*pHalData = GET_HAL_DATA(padapter);
 	struct sreset_priv *psrtpriv = &pHalData->srestpriv;
@@ -141,9 +141,9 @@ static void _restore_network_status(_adapter *padapter)
 	//Switch_DM_Func(padapter, DYNAMIC_FUNC_DISABLE, _FALSE);
 #endif
 
-	padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_BSSID, pmlmeinfo->network.MacAddress);
+	rtw_hal_set_hwreg(padapter, HW_VAR_BSSID, pmlmeinfo->network.MacAddress);
 	join_type = 0;
-	padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_MLME_JOIN, (u8 *)(&join_type));
+	rtw_hal_set_hwreg(padapter, HW_VAR_MLME_JOIN, (u8 *)(&join_type));
 
 	Set_MSR(padapter, (pmlmeinfo->state & 0x3));
 
@@ -152,7 +152,7 @@ static void _restore_network_status(_adapter *padapter)
 	rtw_write8(padapter,0x4dc,padapter->xmitpriv.nqos_ssn);
 }
 
-void rtl8192c_silentreset_for_specific_platform(_adapter *padapter)
+void rtl8723a_silentreset_for_specific_platform(_adapter *padapter)
 {
 	HAL_DATA_TYPE	*pHalData = GET_HAL_DATA(padapter);
 	struct sreset_priv *psrtpriv = &pHalData->srestpriv;
@@ -168,8 +168,8 @@ void rtl8192c_silentreset_for_specific_platform(_adapter *padapter)
 
 	psrtpriv->Wifi_Error_Status = WIFI_STATUS_SUCCESS;
 
-	if (!netif_queue_stopped(padapter->pnetdev))
-		netif_stop_queue(padapter->pnetdev);
+	if (!rtw_netif_queue_stopped(padapter->pnetdev))
+		rtw_netif_stop_queue(padapter->pnetdev);
 
 	rtw_cancel_all_timer(padapter);	
 	tasklet_kill(&pxmitpriv->xmit_tasklet);
@@ -200,7 +200,7 @@ void rtl8192c_silentreset_for_specific_platform(_adapter *padapter)
 #endif
 }
 
-void rtl8192c_sreset_xmit_status_check(_adapter *padapter)
+void rtl8723a_sreset_xmit_status_check(_adapter *padapter)
 {
 	HAL_DATA_TYPE	*pHalData = GET_HAL_DATA(padapter);
 	struct sreset_priv *psrtpriv = &pHalData->srestpriv;
@@ -209,9 +209,11 @@ void rtl8192c_sreset_xmit_status_check(_adapter *padapter)
 	struct xmit_priv	*pxmitpriv = &padapter->xmitpriv;
 	unsigned int diff_time;
 	u32 txdma_status;
+
+	
 	if( (txdma_status=rtw_read32(padapter, REG_TXDMA_STATUS)) !=0x00){
 		DBG_871X("%s REG_TXDMA_STATUS:0x%08x\n", __FUNCTION__, txdma_status);
-		rtl8192c_silentreset_for_specific_platform(padapter);
+		rtl8723a_silentreset_for_specific_platform(padapter);
 	}
 
 	//total xmit irp = 4
@@ -231,15 +233,16 @@ void rtl8192c_sreset_xmit_status_check(_adapter *padapter)
 				if(diff_time > 4000){
 					//padapter->Wifi_Error_Status = WIFI_TX_HANG;
 					DBG_8192C("%s tx hang\n", __FUNCTION__);
-					rtl8192c_silentreset_for_specific_platform(padapter);
+					rtl8723a_silentreset_for_specific_platform(padapter);
 				}
 			}
 		}
 	}
 }
 
-void rtl8192c_sreset_linked_status_check(_adapter *padapter)
+void rtl8723a_sreset_linked_status_check(_adapter *padapter)
 {
+#if 0
 	u32 regc50,regc58,reg824,reg800;
 	regc50 = rtw_read32(padapter,0xc50);
 	regc58 = rtw_read32(padapter,0xc58);
@@ -252,12 +255,13 @@ void rtl8192c_sreset_linked_status_check(_adapter *padapter)
 	{
 		DBG_8192C("%s regc50:0x%08x, regc58:0x%08x, reg824:0x%08x, reg800:0x%08x,\n", __FUNCTION__,
 			regc50, regc58, reg824, reg800);
-		rtl8192c_silentreset_for_specific_platform(padapter);
+		rtl8723a_silentreset_for_specific_platform(padapter);
 	}
+#endif
 }
 
 #ifdef DBG_CONFIG_ERROR_DETECT
-u8 rtl8192c_sreset_get_wifi_status(_adapter *padapter)
+u8 rtl8723a_sreset_get_wifi_status(_adapter *padapter)
 {
 	HAL_DATA_TYPE	*pHalData = GET_HAL_DATA(padapter);
 	struct sreset_priv *psrtpriv = &pHalData->srestpriv;

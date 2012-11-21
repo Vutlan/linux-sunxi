@@ -195,6 +195,18 @@
 #define		rCCK0_RxReport            		0xa54  //0xa57
 #define		rCCK0_FACounterLower      	0xa5c  //0xa5b
 #define		rCCK0_FACounterUpper      	0xa58  //0xa5c
+//
+// PageB(0xB00)
+//
+#define		rPdp_AntA      				0xb00  
+#define		rPdp_AntA_4    				0xb04
+#define		rConfig_Pmpd_AntA 			0xb28
+#define		rConfig_AntA 				0xb68
+#define		rConfig_AntB 				0xb6c
+#define		rPdp_AntB 					0xb70
+#define		rPdp_AntB_4 				0xb74
+#define		rConfig_Pmpd_AntB			0xb98
+#define		rAPK						0xbd8
 
 //
 // 6. PageC(0xC00)

@@ -583,7 +583,7 @@ static int mgnt_xmit_entry(struct sk_buff *skb, struct net_device *pnetdev)
 
 	//DBG_871X("%s\n", __FUNCTION__);
 
-	return padapter->HalFunc.hostap_mgnt_xmit_entry(padapter, skb);
+	return rtw_hal_hostap_mgnt_xmit_entry(padapter, skb);
 }
 
 static int mgnt_netdev_open(struct net_device *pnetdev)
@@ -595,10 +595,10 @@ static int mgnt_netdev_open(struct net_device *pnetdev)
 
 	init_usb_anchor(&phostapdpriv->anchored);
 	
- 	if(!netif_queue_stopped(pnetdev))
-      		netif_start_queue(pnetdev);
+	if(!rtw_netif_queue_stopped(pnetdev))
+		rtw_netif_start_queue(pnetdev);
 	else
-		netif_wake_queue(pnetdev);
+		rtw_netif_wake_queue(pnetdev);
 
 
 	netif_carrier_on(pnetdev);
@@ -617,8 +617,8 @@ static int mgnt_netdev_close(struct net_device *pnetdev)
 
 	netif_carrier_off(pnetdev);
 
-	if (!netif_queue_stopped(pnetdev))
-		netif_stop_queue(pnetdev);
+	if (!rtw_netif_queue_stopped(pnetdev))
+		rtw_netif_stop_queue(pnetdev);
 	
 	//rtw_write16(phostapdpriv->padapter, 0x0116, 0x3f3f);
 	

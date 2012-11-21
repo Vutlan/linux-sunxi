@@ -171,6 +171,7 @@ void rtw_wep_encrypt(_adapter *padapter, u8 *pxmitframe)
 
 	u8	*pframe, *payload,*iv;    //,*wepkey
 	u8	wepkey[16];
+	u8   hw_hdr_offset=0;
 	struct	pkt_attrib	 *pattrib = &((struct xmit_frame*)pxmitframe)->attrib;
 	struct 	security_priv	*psecuritypriv=&padapter->securitypriv;
 	struct	xmit_priv		*pxmitpriv=&padapter->xmitpriv;
@@ -182,11 +183,17 @@ _func_enter_;
 		return;
 
 #ifdef CONFIG_USB_TX_AGGREGATION
-	pframe = ((struct xmit_frame*)pxmitframe)->buf_addr + TXDESC_SIZE +
-		 (((struct xmit_frame*)pxmitframe)->pkt_offset * PACKET_OFFSET_SZ);
+	hw_hdr_offset = TXDESC_SIZE +
+		 (((struct xmit_frame*)pxmitframe)->pkt_offset * PACKET_OFFSET_SZ);	
 #else
-	pframe = ((struct xmit_frame*)pxmitframe)->buf_addr + TXDESC_OFFSET;
+	#ifdef CONFIG_TX_EARLY_MODE
+	hw_hdr_offset = TXDESC_OFFSET+EARLY_MODE_INFO_SIZE;
+	#else
+	hw_hdr_offset = TXDESC_OFFSET;
+	#endif
 #endif
+
+	pframe = ((struct xmit_frame*)pxmitframe)->buf_addr + hw_hdr_offset;
 	
 	//start to encrypt each fragment
 	if((pattrib->encrypt==_WEP40_)||(pattrib->encrypt==_WEP104_))
@@ -648,6 +655,7 @@ u32	rtw_tkip_encrypt(_adapter *padapter, u8 *pxmitframe)
 	u8	rc4key[16];
 	u8   ttkey[16];
 	u8	crc[4];
+	u8   hw_hdr_offset = 0;
 	struct arc4context mycontext;
 	sint 			curfragnum,length;
 	u32	prwskeylen;
@@ -665,12 +673,17 @@ _func_enter_;
 		return _FAIL;
 
 #ifdef CONFIG_USB_TX_AGGREGATION
-	pframe = ((struct xmit_frame*)pxmitframe)->buf_addr + TXDESC_SIZE +
-		 (((struct xmit_frame*)pxmitframe)->pkt_offset * PACKET_OFFSET_SZ);
+	hw_hdr_offset = TXDESC_SIZE +
+		 (((struct xmit_frame*)pxmitframe)->pkt_offset * PACKET_OFFSET_SZ);	
 #else
-	pframe = ((struct xmit_frame*)pxmitframe)->buf_addr + TXDESC_OFFSET;
+	#ifdef CONFIG_TX_EARLY_MODE
+	hw_hdr_offset = TXDESC_OFFSET+EARLY_MODE_INFO_SIZE;
+	#else
+	hw_hdr_offset = TXDESC_OFFSET;
+	#endif
 #endif
 
+	pframe = ((struct xmit_frame*)pxmitframe)->buf_addr + hw_hdr_offset;
 	//4 start to encrypt each fragment
 	if(pattrib->encrypt==_TKIP_){
 
@@ -779,6 +792,12 @@ _func_enter_;
 
 			if(IS_MCAST(prxattrib->ra))
 			{
+				if(psecuritypriv->binstallGrpkey==_FALSE)
+				{
+					res=_FAIL;				
+					DBG_8192C("%s:rx bc/mc packets,but didn't install group key!!!!!!!!!!\n",__FUNCTION__);
+					goto exit;
+				}
 				//DBG_871X("rx bc/mc packets, to perform sw rtw_tkip_decrypt\n");
 				//prwskey = psecuritypriv->dot118021XGrpKey[psecuritypriv->dot118021XGrpKeyid].skey;
 				prwskey = psecuritypriv->dot118021XGrpKey[prxattrib->key_index].skey;
@@ -826,6 +845,7 @@ _func_enter_;
 						
 	}
 _func_exit_;	
+exit:
 	return res;
 				
 }
@@ -1488,6 +1508,7 @@ _func_exit_;
 
 
 
+
 u32	rtw_aes_encrypt(_adapter *padapter, u8 *pxmitframe)
 {	// exclude ICV
 
@@ -1499,6 +1520,7 @@ u32	rtw_aes_encrypt(_adapter *padapter, u8 *pxmitframe)
 	sint 	curfragnum,length;
 	u32	prwskeylen;
 	u8	*pframe,*prwskey;	//, *payload,*iv
+	u8   hw_hdr_offset = 0;
 	struct	sta_info		*stainfo;
 	struct	pkt_attrib	 *pattrib = &((struct xmit_frame *)pxmitframe)->attrib;
 	struct 	security_priv	*psecuritypriv=&padapter->securitypriv;
@@ -1512,11 +1534,17 @@ _func_enter_;
 		return _FAIL;
 
 #ifdef CONFIG_USB_TX_AGGREGATION
-	pframe = ((struct xmit_frame*)pxmitframe)->buf_addr + TXDESC_SIZE +
+	hw_hdr_offset = TXDESC_SIZE +
 		 (((struct xmit_frame*)pxmitframe)->pkt_offset * PACKET_OFFSET_SZ);
 #else
-	pframe = ((struct xmit_frame*)pxmitframe)->buf_addr + TXDESC_OFFSET;
+	#ifdef CONFIG_TX_EARLY_MODE
+	hw_hdr_offset = TXDESC_OFFSET+EARLY_MODE_INFO_SIZE;
+	#else
+	hw_hdr_offset = TXDESC_OFFSET;
+	#endif	
 #endif
+
+	pframe = ((struct xmit_frame*)pxmitframe)->buf_addr + hw_hdr_offset;
 
 	//4 start to encrypt each fragment
 	if((pattrib->encrypt==_AES_)){
@@ -1541,6 +1569,18 @@ _func_enter_;
 			{
 				prwskey=&stainfo->dot118021x_UncstKey.skey[0];
 			}
+
+#ifdef CONFIG_TDLS	//swencryption
+			{
+				struct	sta_info		*ptdls_sta;
+				ptdls_sta=rtw_get_stainfo(&padapter->stapriv ,&pattrib->dst[0] );
+				if((ptdls_sta != NULL) && (ptdls_sta->tdls_sta_state & TDLS_LINKED_STATE) )
+				{
+					DBG_871X("[%s] for tdls link\n", __FUNCTION__);
+					prwskey=&ptdls_sta->tpk.tk[0];
+				}
+			}
+#endif //CONFIG_TDLS
 
 			prwskeylen=16;
 	
@@ -1582,7 +1622,7 @@ static sint aes_decipher(u8 *key, uint	hdrlen,
 	static u8	message[MAX_MSG_SIZE];
 	uint	qc_exists, a4_exists, i, j, payload_remainder,
 			num_blocks, payload_index;
-
+	sint res = _SUCCESS;
 	u8 pn_vector[6];
 	u8 mic_iv[16];
 	u8 mic_header1[16];
@@ -1699,8 +1739,8 @@ _func_enter_;
     }
 
 	//start to calculate the mic	
-
-	_rtw_memcpy((void *)message, pframe, (hdrlen +plen+8)); //8 is for ext iv len
+	if((hdrlen +plen+8) <= MAX_MSG_SIZE)
+		_rtw_memcpy((void *)message, pframe, (hdrlen +plen+8)); //8 is for ext iv len
 
 
 	pn_vector[0]=pframe[hdrlen];
@@ -1831,11 +1871,16 @@ _func_enter_;
 	//compare the mic
 	for(i=0;i<8;i++){
 		if(pframe[hdrlen+8+plen-8+i] != message[hdrlen+8+plen-8+i])
+		{
 			RT_TRACE(_module_rtl871x_security_c_,_drv_err_,("aes_decipher:mic check error mic[%d]: pframe(%x) != message(%x) \n",
 						i,pframe[hdrlen+8+plen-8+i],message[hdrlen+8+plen-8+i]));
+			DBG_871X("aes_decipher:mic check error mic[%d]: pframe(%x) != message(%x) \n",
+						i,pframe[hdrlen+8+plen-8+i],message[hdrlen+8+plen-8+i]);
+			res = _FAIL;
+		}
 	}
 _func_exit_;	
-	return _SUCCESS;
+	return res;
 }
 
 u32	rtw_aes_decrypt(_adapter *padapter, u8 *precvframe)
@@ -1871,6 +1916,12 @@ _func_enter_;
 				//in concurrent we should use sw descrypt in group key, so we remove this message			
 				//DBG_871X("rx bc/mc packets, to perform sw rtw_aes_decrypt\n");
 				//prwskey = psecuritypriv->dot118021XGrpKey[psecuritypriv->dot118021XGrpKeyid].skey;
+				if(psecuritypriv->binstallGrpkey==_FALSE)
+				{
+					res=_FAIL;				
+					DBG_8192C("%s:rx bc/mc packets,but didn't install group key!!!!!!!!!!\n",__FUNCTION__);
+					goto exit;
+				}
 				prwskey = psecuritypriv->dot118021XGrpKey[prxattrib->key_index].skey;
 				prwskeylen=16;
 			}
@@ -1882,7 +1933,7 @@ _func_enter_;
 	
 			length= ((union recv_frame *)precvframe)->u.hdr.len-prxattrib->hdrlen-prxattrib->iv_len;
 				
-			aes_decipher(prwskey,prxattrib->hdrlen,pframe, length);
+			res= aes_decipher(prwskey,prxattrib->hdrlen,pframe, length);
 
 
 		}
@@ -1892,7 +1943,8 @@ _func_enter_;
 		}
 						
 	}
-_func_exit_;		
+_func_exit_;	
+exit:
 	return res;
 }
 #ifndef PLATFORM_FREEBSD
@@ -2727,7 +2779,6 @@ int tdls_verify_mic(u8 *kck, u8 trans_seq,
 
 	if (lnkid == NULL || rsnie == NULL ||
 	    timeoutie == NULL || ftie == NULL){
-		DBG_871X("pointer fail\n");    
 		return 0;
 	}
 	
@@ -2769,10 +2820,10 @@ int tdls_verify_mic(u8 *kck, u8 trans_seq,
 	rx_ftie = ftie+4;
 
 	if (os_memcmp(mic, rx_ftie, 16) == 0) {
-	//Valid MIC
-	DBG_871X( "[%s] Valid MIC\n", __FUNCTION__);
+		//Valid MIC
 		return 1;
 	}
+
 	//Invalid MIC
 	DBG_871X( "[%s] Invalid MIC\n", __FUNCTION__);
 	return 0;

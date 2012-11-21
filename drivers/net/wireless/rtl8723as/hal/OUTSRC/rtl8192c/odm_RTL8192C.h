@@ -61,30 +61,16 @@ odm_TXPowerTrackingCallback_ThermalMeter_92C(
 	IN PADAPTER	Adapter
 	);
 
+VOID
+odm_TXPowerTrackingCallback_ThermalMeter_8723A(
+    IN PADAPTER	Adapter
+    );
+
 //
 // ==================================================
 // Tx power tracking relative code.
 // ==================================================
 //
-
-
-VOID
-_PHY_ReloadAFERegisters(
-	IN	PDM_ODM_T	pDM_Odm,
-	IN	pu4Byte		AFEReg,
-	IN	pu4Byte		AFEBackup,
-	IN	u4Byte		RegiesterNum
-	);
-
-
-VOID
-_PHY_SaveAFERegisters(
-	IN	PDM_ODM_T	pDM_Odm,
-	IN	pu4Byte		AFEReg,
-	IN	pu4Byte		AFEBackup,
-	IN	u4Byte		RegisterNum
-	);
-
 
 void
 ODM_RF_Saving_8188E(

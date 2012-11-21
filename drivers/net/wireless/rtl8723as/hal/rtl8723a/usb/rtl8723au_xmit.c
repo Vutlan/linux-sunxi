@@ -625,6 +625,88 @@ static s32 update_txdesc(struct xmit_frame *pxmitframe, u8 *pmem, s32 sz)
 		
 }
 
+#ifdef CONFIG_XMIT_THREAD_MODE
+/*
+ * Description
+ *	Transmit xmitbuf to hardware tx fifo
+ *
+ * Return
+ *	_SUCCESS	ok
+ *	_FAIL		something error
+ */
+s32 rtl8723au_xmit_buf_handler(PADAPTER padapter)
+{
+	PHAL_DATA_TYPE phal;
+	struct xmit_priv *pxmitpriv;
+	struct xmit_buf *pxmitbuf;
+	s32 ret;
+
+
+	phal = GET_HAL_DATA(padapter);
+	pxmitpriv = &padapter->xmitpriv;
+
+	ret = _rtw_down_sema(&pxmitpriv->xmit_sema);
+	if (_FAIL == ret) {
+		RT_TRACE(_module_hal_xmit_c_, _drv_emerg_,
+				 ("%s: down SdioXmitBufSema fail!\n", __FUNCTION__));
+		return _FAIL;
+	}
+
+	ret = (padapter->bDriverStopped == _TRUE) || (padapter->bSurpriseRemoved == _TRUE);
+	if (ret) {
+		RT_TRACE(_module_hal_xmit_c_, _drv_notice_,
+				 ("%s: bDriverStopped(%d) bSurpriseRemoved(%d)!\n",
+				  __FUNCTION__, padapter->bDriverStopped, padapter->bSurpriseRemoved));
+		return _FAIL;
+	}
+
+	if(check_pending_xmitbuf(pxmitpriv) == _FALSE)
+		return _SUCCESS;
+
+#ifdef CONFIG_LPS_LCLK
+	ret = rtw_register_tx_alive(padapter);
+	if (ret != _SUCCESS) {
+		RT_TRACE(_module_hal_xmit_c_, _drv_notice_,
+				 ("%s: wait to leave LPS_LCLK\n", __FUNCTION__));
+		return _SUCCESS;
+	}
+#endif
+
+	do {
+		pxmitbuf = dequeue_pending_xmitbuf(pxmitpriv);
+		if (pxmitbuf == NULL) break;
+
+		ret = (padapter->bDriverStopped == _TRUE) || (padapter->bSurpriseRemoved == _TRUE);
+		if (ret) {
+			RT_TRACE(_module_hal_xmit_c_, _drv_notice_,
+					 ("%s: bDriverStopped(%d) bSurpriseRemoved(%d)!\n",
+					  __FUNCTION__, padapter->bDriverStopped, padapter->bSurpriseRemoved));
+			pxmitbuf->priv_data = NULL;
+			rtw_free_xmitbuf(pxmitpriv, pxmitbuf);
+			continue;
+		}
+
+		if(pxmitbuf->isSync)
+		{
+			rtw_write_port_sync(padapter, pxmitbuf->ff_hwaddr, pxmitbuf->len, (unsigned char*)pxmitbuf);
+		}
+		else
+		{
+			rtw_write_port(padapter, pxmitbuf->ff_hwaddr, pxmitbuf->len, (unsigned char*)pxmitbuf);
+			rtw_yield_os();
+		}
+
+	} while (1);
+
+#ifdef CONFIG_LPS_LCLK
+	rtw_unregister_tx_alive(padapter);
+#endif
+
+	return _SUCCESS;
+}
+#endif
+
+
 static void _rtw_dump_xframe(_adapter *padapter, struct xmit_frame *pxmitframe, u8 sync)
 {
 	int t, sz, w_sz, pull=0;
@@ -678,12 +760,21 @@ static void _rtw_dump_xframe(_adapter *padapter, struct xmit_frame *pxmitframe, 
 		}	
 
 		ff_hwaddr = rtw_get_ff_hwaddr(pxmitframe);
-		
+#ifdef CONFIG_XMIT_THREAD_MODE
+		pxmitbuf->len = w_sz;
+		pxmitbuf->ff_hwaddr = ff_hwaddr;
+		if(sync == _TRUE)
+			pxmitbuf->isSync = _TRUE;
+		else
+			pxmitbuf->isSync = _FALSE;
+		enqueue_pending_xmitbuf(pxmitpriv, pxmitbuf);
+#else
+	
 		if(sync == _TRUE)
 			rtw_write_port_sync(padapter, ff_hwaddr, w_sz, (unsigned char*)pxmitbuf);
 		else
 			rtw_write_port(padapter, ff_hwaddr, w_sz, (unsigned char*)pxmitbuf);
-
+#endif
 		rtw_count_tx_stats(padapter, pxmitframe, sz);
 
 
@@ -737,7 +828,7 @@ s32 rtl8192cu_xmitframe_complete(_adapter *padapter, struct xmit_priv *pxmitpriv
 	struct xmit_frame *pfirstframe = NULL;
 
 	// aggregate variable
-//	struct hw_xmit *phwxmit;
+	struct hw_xmit *phwxmit;
 	struct sta_info *psta = NULL;
 	struct tx_servq *ptxservq = NULL;
 
@@ -846,26 +937,26 @@ s32 rtl8192cu_xmitframe_complete(_adapter *padapter, struct xmit_priv *pxmitpriv
 		case 1:
 		case 2:
 			ptxservq = &(psta->sta_xmitpriv.bk_q);
-//			phwxmit = pxmitpriv->hwxmits + 3;
+			phwxmit = pxmitpriv->hwxmits + 3;
 			break;
 
 		case 4:
 		case 5:
 			ptxservq = &(psta->sta_xmitpriv.vi_q);
-//			phwxmit = pxmitpriv->hwxmits + 1;
+			phwxmit = pxmitpriv->hwxmits + 1;
 			break;
 
 		case 6:
 		case 7:
 			ptxservq = &(psta->sta_xmitpriv.vo_q);
-//			phwxmit = pxmitpriv->hwxmits;
+			phwxmit = pxmitpriv->hwxmits;
 			break;
 
 		case 0:
 		case 3:
 		default:
 			ptxservq = &(psta->sta_xmitpriv.be_q);
-//			phwxmit = pxmitpriv->hwxmits + 2;
+			phwxmit = pxmitpriv->hwxmits + 2;
 			break;
 	}
 
@@ -894,6 +985,7 @@ s32 rtl8192cu_xmitframe_complete(_adapter *padapter, struct xmit_priv *pxmitpriv
 
 		rtw_list_delete(&pxmitframe->list);
 		ptxservq->qcnt--;
+		phwxmit->accnt--;
 
 #ifndef IDEA_CONDITION
 		// suppose only data frames would be in queue

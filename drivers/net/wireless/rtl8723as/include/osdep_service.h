@@ -787,6 +787,7 @@ __inline static void _set_workitem(_workitem *pwork)
 	#include <linux/delay.h>
 	#include <linux/proc_fs.h>	// Necessary because we use the proc fs
 	#include <linux/interrupt.h>	// for struct tasklet_struct
+	#include <linux/ip.h>
 
 #ifdef CONFIG_IOCTL_CFG80211	
 //	#include <linux/ieee80211.h>        
@@ -796,7 +797,6 @@ __inline static void _set_workitem(_workitem *pwork)
 
 #ifdef CONFIG_TCP_CSUM_OFFLOAD_TX
 	#include <linux/in.h>
-	#include <linux/ip.h>
 	#include <linux/udp.h>
 #endif
 
@@ -993,6 +993,45 @@ __inline static void _set_workitem(_workitem *pwork)
 #define RELEASE_GLOBAL_MUTEX(_MutexCounter)                              \
 {                                                               \
 	atomic_dec((atomic_t *)&(_MutexCounter));        \
+}
+
+static inline int rtw_netif_queue_stopped(struct net_device *pnetdev)
+{
+#if (LINUX_VERSION_CODE>=KERNEL_VERSION(2,6,35))
+	return (netif_tx_queue_stopped(netdev_get_tx_queue(pnetdev, 0)) &&
+		netif_tx_queue_stopped(netdev_get_tx_queue(pnetdev, 1)) &&
+		netif_tx_queue_stopped(netdev_get_tx_queue(pnetdev, 2)) &&
+		netif_tx_queue_stopped(netdev_get_tx_queue(pnetdev, 3)) );
+#else
+	return netif_queue_stopped(pnetdev);
+#endif
+}
+
+static inline void rtw_netif_wake_queue(struct net_device *pnetdev)
+{
+#if (LINUX_VERSION_CODE>=KERNEL_VERSION(2,6,35))
+	netif_tx_wake_all_queues(pnetdev);
+#else
+	netif_wake_queue(pnetdev);
+#endif
+}
+
+static inline void rtw_netif_start_queue(struct net_device *pnetdev)
+{
+#if (LINUX_VERSION_CODE>=KERNEL_VERSION(2,6,35))
+	netif_tx_start_all_queues(pnetdev);
+#else
+	netif_start_queue(pnetdev);
+#endif
+}
+
+static inline void rtw_netif_stop_queue(struct net_device *pnetdev)
+{
+#if (LINUX_VERSION_CODE>=KERNEL_VERSION(2,6,35))
+	netif_tx_stop_all_queues(pnetdev);
+#else
+	netif_stop_queue(pnetdev);
+#endif
 }
 
 #endif	// PLATFORM_LINUX
@@ -1204,6 +1243,10 @@ __inline static void _set_workitem(_workitem *pwork)
 #define BIT30	0x40000000
 #define BIT31	0x80000000
 #define BIT32	0x0100000000
+#define BIT33	0x0200000000
+#define BIT34	0x0400000000
+#define BIT35	0x0800000000
+#define BIT36	0x1000000000
 
 extern int RTW_STATUS_CODE(int error_code);
 
@@ -1269,6 +1312,9 @@ extern void	_rtw_mfree(u8 *pbuf, u32 sz);
 #define rtw_zmalloc(sz)			_rtw_zmalloc((sz))
 #define rtw_mfree(pbuf, sz)		_rtw_mfree((pbuf), (sz))
 #endif
+
+extern void*	rtw_malloc2d(int h, int w, int size);
+extern void	rtw_mfree2d(void *pbuf, int h, int w, int size);
 
 extern void	_rtw_memcpy(void* dec, void* sour, u32 sz);
 extern int	_rtw_memcmp(void *dst, void *src, u32 sz);
@@ -1341,21 +1387,21 @@ __inline static unsigned char _cancel_timer_ex(_timer *ptimer)
 	return bcancelled;
 #endif
 }
+
 #ifdef PLATFORM_FREEBSD
-static __inline void thread_enter(void *context);
+static __inline void thread_enter(char *name);
 #endif //PLATFORM_FREEBSD
-static __inline void thread_enter(void *context)
+static __inline void thread_enter(char *name)
 {
 #ifdef PLATFORM_LINUX
-	//struct net_device *pnetdev = (struct net_device *)context;
-	//daemonize("%s", pnetdev->name);
-	daemonize("%s", "RTKTHREAD");
+	daemonize("%s", name);
 	allow_signal(SIGTERM);
 #endif
 #ifdef PLATFORM_FREEBSD
 	printf("%s", "RTKTHREAD_enter");
 #endif
 }
+
 #ifdef PLATFORM_FREEBSD
 #define thread_exit() do{printf("%s", "RTKTHREAD_exit");}while(0)
 #endif //PLATFORM_FREEBSD

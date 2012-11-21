@@ -724,7 +724,7 @@ u8 *rtw_get_wps_ie(u8 *in_ie, uint in_len, u8 *wps_ie, uint *wps_ielen)
  *
  * Returns: the address of the specific WPS attribute found, or NULL
  */
-u8 *rtw_get_wps_attr(u8 *wps_ie, uint wps_ielen, u16 target_attr_id ,u8 *buf_attr, u16 *len_attr)
+u8 *rtw_get_wps_attr(u8 *wps_ie, uint wps_ielen, u16 target_attr_id ,u8 *buf_attr, u32 *len_attr)
 {
 	u8 *attr_ptr = NULL;
 	u8 * target_attr_ptr = NULL;
@@ -785,7 +785,7 @@ u8 *rtw_get_wps_attr(u8 *wps_ie, uint wps_ielen, u16 target_attr_id ,u8 *buf_att
 u8 *rtw_get_wps_attr_content(u8 *wps_ie, uint wps_ielen, u16 target_attr_id ,u8 *buf_content, uint *len_content)
 {
 	u8 *attr_ptr;
-	u16 attr_len;
+	u32 attr_len;
 
 	if(len_content)
 		*len_content = 0;
@@ -1063,6 +1063,11 @@ u8 key_2char2num(u8 hch, u8 lch)
     return ((key_char2num(hch) << 4) | key_char2num(lch));
 }
 
+u8 convert_ip_addr(u8 hch, u8 mch, u8 lch)
+{
+    return ((key_char2num(hch) * 100) + (key_char2num(mch) * 10 ) + key_char2num(lch));
+}
+
 extern char* rtw_initmac;
 void rtw_macaddr_cfg(u8 *mac_addr)
 {
@@ -1229,7 +1234,7 @@ u8 *rtw_get_p2p_ie(u8 *in_ie, uint in_len, u8 *p2p_ie, uint *p2p_ielen)
  *
  * Returns: the address of the specific WPS attribute found, or NULL
  */
-u8 *rtw_get_p2p_attr(u8 *p2p_ie, uint p2p_ielen, u8 target_attr_id ,u8 *buf_attr, u16 *len_attr)
+u8 *rtw_get_p2p_attr(u8 *p2p_ie, uint p2p_ielen, u8 target_attr_id ,u8 *buf_attr, u32 *len_attr)
 {
 	u8 *attr_ptr = NULL;
 	u8 *target_attr_ptr = NULL;
@@ -1290,7 +1295,7 @@ u8 *rtw_get_p2p_attr(u8 *p2p_ie, uint p2p_ielen, u8 target_attr_id ,u8 *buf_attr
 u8 *rtw_get_p2p_attr_content(u8 *p2p_ie, uint p2p_ielen, u8 target_attr_id ,u8 *buf_content, uint *len_content)
 {
 	u8 *attr_ptr;
-	u16 attr_len;
+	u32 attr_len;
 
 	if(len_content)
 		*len_content = 0;
@@ -1331,7 +1336,7 @@ u32 rtw_set_p2p_attr_content(u8 *pbuf, u8 attr_id, u16 attr_len, u8 *pdata_attr)
 static uint rtw_p2p_attr_remove(u8 *ie, uint ielen_ori, u8 attr_id)
 {
 	u8 *target_attr;
-	u16 target_attr_len;
+	u32 target_attr_len;
 	uint ielen = ielen_ori;
 	int index=0;
 
@@ -1355,7 +1360,7 @@ static uint rtw_p2p_attr_remove(u8 *ie, uint ielen_ori, u8 attr_id)
 
 			_rtw_memset(target_attr, 0, target_attr_len);
 			_rtw_memcpy(target_attr, next_attr, remain_len);
-			_rtw_memset(target_attr+remain_len, 0, ielen-(target_attr_len));
+			_rtw_memset(target_attr+remain_len, 0, target_attr_len);
 			*(ie+1) -= target_attr_len;
 			ielen-=target_attr_len;
 		}
@@ -1393,7 +1398,7 @@ void rtw_WLAN_BSSID_EX_remove_p2p_attr(WLAN_BSSID_EX *bss_ex, u8 attr_id)
 			uint remain_len = bss_ex->IELength-(next_ie_ori-bss_ex->IEs);
 
 			_rtw_memcpy(next_ie, next_ie_ori, remain_len);
-			_rtw_memset(next_ie+remain_len, 0, bss_ex->IELength-(p2p_ielen_ori-p2p_ielen));
+			_rtw_memset(next_ie+remain_len, 0, p2p_ielen_ori-p2p_ielen);
 			bss_ex->IELength -= p2p_ielen_ori-p2p_ielen;
 
 			#if 0
@@ -1404,8 +1409,10 @@ void rtw_WLAN_BSSID_EX_remove_p2p_attr(WLAN_BSSID_EX *bss_ex, u8 attr_id)
 	}
 }
 
+#endif //CONFIG_P2P
+
 #ifdef CONFIG_WFD
-int rtw_get_wfd_ie(u8 *in_ie, uint in_len, u8 *wfd_ie, uint *wfd_ielen)
+int rtw_get_wfd_ie(u8 *in_ie, int in_len, u8 *wfd_ie, uint *wfd_ielen)
 {
 	int match;
 	uint cnt = 0;	
@@ -1413,6 +1420,12 @@ int rtw_get_wfd_ie(u8 *in_ie, uint in_len, u8 *wfd_ie, uint *wfd_ielen)
 
 
 	match=_FALSE;
+
+	if ( in_len < 0 )
+	{
+		return match;
+	}
+
 	while(cnt<in_len)
 	{
 		eid = in_ie[cnt];
@@ -1505,7 +1518,6 @@ int rtw_get_wfd_attr_content(u8 *wfd_ie, uint wfd_ielen, u8 target_attr_id ,u8 *
 
 }
 #endif // CONFIG_WFD
-#endif //CONFIG_P2P
 
 //Baron adds to avoid FreeBSD warning
 int ieee80211_is_empty_essid(const char *essid, int essid_len)
@@ -1549,5 +1561,73 @@ int ieee80211_get_hdrlen(u16 fc)
 	}
 
 	return hdrlen;
+}
+
+//show MCS rate, unit: 100Kbps
+u16 rtw_mcs_rate(u8 rf_type, u8 bw_40MHz, u8 short_GI_20, u8 short_GI_40, unsigned char * MCS_rate)
+{
+	u16 max_rate = 0;
+	
+	if(rf_type == RF_1T1R)
+	{
+		if(MCS_rate[0] & BIT(7))
+			max_rate = (bw_40MHz) ? ((short_GI_40)?1500:1350):((short_GI_20)?722:650);
+		else if(MCS_rate[0] & BIT(6))
+			max_rate = (bw_40MHz) ? ((short_GI_40)?1350:1215):((short_GI_20)?650:585);
+		else if(MCS_rate[0] & BIT(5))
+			max_rate = (bw_40MHz) ? ((short_GI_40)?1200:1080):((short_GI_20)?578:520);
+		else if(MCS_rate[0] & BIT(4))
+			max_rate = (bw_40MHz) ? ((short_GI_40)?900:810):((short_GI_20)?433:390);
+		else if(MCS_rate[0] & BIT(3))
+			max_rate = (bw_40MHz) ? ((short_GI_40)?600:540):((short_GI_20)?289:260);
+		else if(MCS_rate[0] & BIT(2))
+			max_rate = (bw_40MHz) ? ((short_GI_40)?450:405):((short_GI_20)?217:195);
+		else if(MCS_rate[0] & BIT(1))
+			max_rate = (bw_40MHz) ? ((short_GI_40)?300:270):((short_GI_20)?144:130);
+		else if(MCS_rate[0] & BIT(0))
+			max_rate = (bw_40MHz) ? ((short_GI_40)?150:135):((short_GI_20)?72:65);
+	}
+	else
+	{
+		if(MCS_rate[1])
+		{
+			if(MCS_rate[1] & BIT(7))
+				max_rate = (bw_40MHz) ? ((short_GI_40)?3000:2700):((short_GI_20)?1444:1300);
+			else if(MCS_rate[1] & BIT(6))
+				max_rate = (bw_40MHz) ? ((short_GI_40)?2700:2430):((short_GI_20)?1300:1170);
+			else if(MCS_rate[1] & BIT(5))
+				max_rate = (bw_40MHz) ? ((short_GI_40)?2400:2160):((short_GI_20)?1156:1040);
+			else if(MCS_rate[1] & BIT(4))
+				max_rate = (bw_40MHz) ? ((short_GI_40)?1800:1620):((short_GI_20)?867:780);
+			else if(MCS_rate[1] & BIT(3))
+				max_rate = (bw_40MHz) ? ((short_GI_40)?1200:1080):((short_GI_20)?578:520);
+			else if(MCS_rate[1] & BIT(2))
+				max_rate = (bw_40MHz) ? ((short_GI_40)?900:810):((short_GI_20)?433:390);
+			else if(MCS_rate[1] & BIT(1))
+				max_rate = (bw_40MHz) ? ((short_GI_40)?600:540):((short_GI_20)?289:260);
+			else if(MCS_rate[1] & BIT(0))
+				max_rate = (bw_40MHz) ? ((short_GI_40)?300:270):((short_GI_20)?144:130);
+		}
+		else
+		{
+			if(MCS_rate[0] & BIT(7))
+				max_rate = (bw_40MHz) ? ((short_GI_40)?1500:1350):((short_GI_20)?722:650);
+			else if(MCS_rate[0] & BIT(6))
+				max_rate = (bw_40MHz) ? ((short_GI_40)?1350:1215):((short_GI_20)?650:585);
+			else if(MCS_rate[0] & BIT(5))
+				max_rate = (bw_40MHz) ? ((short_GI_40)?1200:1080):((short_GI_20)?578:520);
+			else if(MCS_rate[0] & BIT(4))
+				max_rate = (bw_40MHz) ? ((short_GI_40)?900:810):((short_GI_20)?433:390);
+			else if(MCS_rate[0] & BIT(3))
+				max_rate = (bw_40MHz) ? ((short_GI_40)?600:540):((short_GI_20)?289:260);
+			else if(MCS_rate[0] & BIT(2))
+				max_rate = (bw_40MHz) ? ((short_GI_40)?450:405):((short_GI_20)?217:195);
+			else if(MCS_rate[0] & BIT(1))
+				max_rate = (bw_40MHz) ? ((short_GI_40)?300:270):((short_GI_20)?144:130);
+			else if(MCS_rate[0] & BIT(0))
+				max_rate = (bw_40MHz) ? ((short_GI_40)?150:135):((short_GI_20)?72:65);
+		}
+	}
+	return max_rate;
 }
 

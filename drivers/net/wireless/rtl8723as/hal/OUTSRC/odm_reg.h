@@ -103,6 +103,9 @@
 //PSD Init
 #define	ODM_PSDREG					0x808
 
+//92D Path Div
+#define	PATHDIV_REG					0xB30
+#define	PATHDIV_TRI					0xBA0
 
 
 //
@@ -114,3 +117,4 @@
 
 
 #endif
+

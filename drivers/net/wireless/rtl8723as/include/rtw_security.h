@@ -408,7 +408,7 @@ int wpa_tdls_ftie_mic(u8 *kck, u8 trans_seq,
 						u8 *mic);
 int tdls_verify_mic(u8 *kck, u8 trans_seq, 
 						u8 *lnkid, u8 *rsnie, u8 *timeoutie, u8 *ftie);
-#endif
+#endif //CONFIG_TDLS
 
 #ifdef PLATFORM_WINDOWS
 void rtw_use_tkipkey_handler (

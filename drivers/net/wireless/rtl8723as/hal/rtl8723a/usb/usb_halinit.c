@@ -29,9 +29,6 @@
 #include <Hal8723PwrSeq.h>
 #include <rtl8723a_hal.h>
 #include <rtl8723a_led.h>
-#ifdef DBG_CONFIG_ERROR_DETECT
-#include "rtl8192c_sreset.h"
-#endif
 
 #ifdef CONFIG_IOL
 #include <rtw_iol.h>
@@ -1828,13 +1825,13 @@ u32 rtl8723au_hal_init(PADAPTER Adapter)
 	enum HAL_INIT_STAGES {
 		HAL_INIT_STAGES_BEGIN = 0,
 		HAL_INIT_STAGES_INIT_PW_ON,
+		HAL_INIT_STAGES_INIT_LLTT,
 		HAL_INIT_STAGES_MISC01,
 		HAL_INIT_STAGES_DOWNLOAD_FW,
-		HAL_INIT_STAGES_INIT_LLTT,
 		HAL_INIT_STAGES_MAC,
-		HAL_INIT_STAGES_MISC02,
 		HAL_INIT_STAGES_BB,
 		HAL_INIT_STAGES_RF,
+		HAL_INIT_STAGES_MISC02,
 		HAL_INIT_STAGES_TURN_ON_BLOCK,
 		HAL_INIT_STAGES_INIT_SECURITY,
 		HAL_INIT_STAGES_MISC11,
@@ -1843,8 +1840,10 @@ u32 rtl8723au_hal_init(PADAPTER Adapter)
 		HAL_INIT_STAGES_PW_TRACK,
 		HAL_INIT_STAGES_LCK,
 		HAL_INIT_STAGES_MISC21,
-		HAL_INIT_STAGES_INIT_PABIAS,
+		//HAL_INIT_STAGES_INIT_PABIAS,
+		#ifdef CONFIG_BT_COEXIST
 		HAL_INIT_STAGES_BT_COEXIST,
+		#endif
 		//HAL_INIT_STAGES_ANTENNA_SEL,
 		HAL_INIT_STAGES_INIT_HAL_DM,
 		HAL_INIT_STAGES_MISC31,
@@ -1855,13 +1854,13 @@ u32 rtl8723au_hal_init(PADAPTER Adapter)
 	char * hal_init_stages_str[] = {
 		"HAL_INIT_STAGES_BEGIN",
 		"HAL_INIT_STAGES_INIT_PW_ON",
+		"HAL_INIT_STAGES_INIT_LLTT",
 		"HAL_INIT_STAGES_MISC01",
 		"HAL_INIT_STAGES_DOWNLOAD_FW",
-		"HAL_INIT_STAGES_INIT_LLTT",
 		"HAL_INIT_STAGES_MAC",
-		"HAL_INIT_STAGES_MISC02",
 		"HAL_INIT_STAGES_BB",
 		"HAL_INIT_STAGES_RF",
+		"HAL_INIT_STAGES_MISC02",
 		"HAL_INIT_STAGES_TURN_ON_BLOCK",
 		"HAL_INIT_STAGES_INIT_SECURITY",
 		"HAL_INIT_STAGES_MISC11",
@@ -1870,8 +1869,10 @@ u32 rtl8723au_hal_init(PADAPTER Adapter)
 		"HAL_INIT_STAGES_PW_TRACK",
 		"HAL_INIT_STAGES_LCK",
 		"HAL_INIT_STAGES_MISC21",
-		"HAL_INIT_STAGES_INIT_PABIAS",
+		//"HAL_INIT_STAGES_INIT_PABIAS",
+		#ifdef CONFIG_BT_COEXIST
 		"HAL_INIT_STAGES_BT_COEXIST",
+		#endif
 		//"HAL_INIT_STAGES_ANTENNA_SEL",
 		"HAL_INIT_STAGES_INIT_HAL_DM",
 		"HAL_INIT_STAGES_MISC31",
@@ -1941,7 +1942,7 @@ HAL_INIT_PROFILE_TAG(HAL_INIT_STAGES_BEGIN);
 				(pMgntInfo->PowerSaveControl.WoWLANLPSLevel > 0))
 			{
 				RT_TRACE(COMP_POWER, DBG_LOUD, ("FwLPS: Active!!\n"));	
-				Adapter->HalFunc.SetHwRegHandler(Adapter, HW_VAR_H2C_FW_PWRMODE, (pu1Byte)(&FwPwrMode));
+				rtw_hal_set_hwreg(Adapter, HW_VAR_H2C_FW_PWRMODE, (pu1Byte)(&FwPwrMode));
 			}
 			
 			HalSetFWWoWlanMode92C(Adapter, FALSE);
@@ -2330,7 +2331,7 @@ HAL_INIT_PROFILE_TAG(HAL_INIT_STAGES_INIT_HAL_DM);
 #endif
 
 HAL_INIT_PROFILE_TAG(HAL_INIT_STAGES_MISC31);
-	Adapter->HalFunc.SetHwRegHandler(Adapter, HW_VAR_NAV_UPPER, (u8*)&NavUpper);
+	rtw_hal_set_hwreg(Adapter, HW_VAR_NAV_UPPER, (u8*)&NavUpper);
 
 	// 2011/03/09 MH debug only, UMC-B cut pass 2500 S5 test, but we need to fin root cause. 
 	if (!IS_HARDWARE_TYPE_8192DU(Adapter) && ((rtw_read32(Adapter, rFPGA0_RFMOD) & 0xFF000000) != 0x83000000)) 
@@ -2497,8 +2498,7 @@ phy_SsPwrSwitch92CU(
 
 					// Enable TX
 					rtw_write8(Adapter, REG_TXPAUSE, 0x0);
-				}
-				//Adapter->HalFunc.InitializeAdapterHandler(Adapter, Adapter->MgntInfo.dot11CurrentChannelNumber);
+				}				
 				//CardSelectiveSuspendLeave(Adapter);
 			}
 
@@ -3139,18 +3139,24 @@ CardDisableRTL8723U(
 }
 
 
-u32 rtl8723au_hal_deinit(PADAPTER Adapter)
- {
+u32 rtl8723au_hal_deinit(PADAPTER padapter)
+{
+	PHAL_DATA_TYPE	pHalData = GET_HAL_DATA(padapter);
 
-	HAL_DATA_TYPE	*pHalData = GET_HAL_DATA(Adapter);
-   	DBG_8192C("==> %s \n",__FUNCTION__);
+
+	DBG_8192C("==> %s\n", __FUNCTION__);
+
+#ifdef CONFIG_BT_COEXIST
+	BT_HaltProcess(padapter);
+#endif
+
 	// 2011/02/18 To Fix RU LNA  power leakage problem. We need to execute below below in
 	// Adapter init and halt sequence. Accordingto EEchou's opinion, we can enable the ability for all
 	// IC. Accord to johnny's opinion, only RU need the support.
-	CardDisableRTL8723U(Adapter);
-	
+	CardDisableRTL8723U(padapter);
+
 	return _SUCCESS;
- }
+}
 
 
 unsigned int rtl8723au_inirp_init(PADAPTER Adapter)
@@ -3669,7 +3675,7 @@ readAdapterInfo(
 	_ReadBoardType(padapter, hwinfo, pEEPROM->bautoload_fail_flag);
 	Hal_EfuseParseBTCoexistInfo_8723A(padapter, hwinfo, pEEPROM->bautoload_fail_flag);
 
-	Hal_EfuseParseChnlPlan(padapter, hwinfo, pEEPROM->bautoload_fail_flag);
+	rtl8723a_EfuseParseChnlPlan(padapter, hwinfo, pEEPROM->bautoload_fail_flag);
 //	_ReadThermalMeter(Adapter, PROMContent, pEEPROM->bautoload_fail_flag);
 //	_ReadLEDSetting(Adapter, PROMContent, pEEPROM->bautoload_fail_flag);	
 //	_ReadRFSetting(Adapter, PROMContent, pEEPROM->bautoload_fail_flag);
@@ -3846,7 +3852,6 @@ static int _ReadAdapterInfo8723AU(PADAPTER	Adapter)
 static void ReadAdapterInfo8723AU(PADAPTER Adapter)
 {
 	// Read EEPROM size before call any EEPROM function
-	//Adapter->EepromAddressSize=Adapter->HalFunc.GetEEPROMSizeHandler(Adapter);
 	Adapter->EepromAddressSize = GetEEPROMSize8723A(Adapter);
 	
 	_ReadAdapterInfo8723AU(Adapter);
@@ -3940,7 +3945,7 @@ GetHalDefVar8192CUsb(
 	)
 {
 	HAL_DATA_TYPE	*pHalData = GET_HAL_DATA(Adapter);
-	u8			bResult = _TRUE;
+	u8			bResult = _SUCCESS;
 
 	switch(eVariable)
 	{
@@ -3977,7 +3982,7 @@ GetHalDefVar8192CUsb(
 			break;
 		default:
 			//RT_TRACE(COMP_INIT, DBG_WARNING, ("GetHalDefVar8192CUsb(): Unkown variable: %d!\n", eVariable));
-			bResult = _FALSE;
+			bResult = _FAIL;
 			break;
 	}
 
@@ -3999,7 +4004,7 @@ SetHalDefVar8192CUsb(
 	)
 {
 	HAL_DATA_TYPE	*pHalData = GET_HAL_DATA(Adapter);
-	u8			bResult = _TRUE;
+	u8			bResult = _SUCCESS;
 
 	switch(eVariable)
 	{
@@ -4047,7 +4052,7 @@ SetHalDefVar8192CUsb(
 			break;
 		default:
 			//RT_TRACE(COMP_INIT, DBG_TRACE, ("SetHalDefVar819xUsb(): Unkown variable: %d!\n", eVariable));
-			bResult = _FALSE;
+			bResult = _FAIL;
 			break;
 	}
 
@@ -4087,12 +4092,12 @@ void _update_response_rate(_adapter *padapter,unsigned int mask)
 	rtw_write8(padapter, REG_INIRTS_RATE_SEL, RateIndex);
 }
 
-void UpdateHalRAMask8192CUsb(PADAPTER padapter, u32 mac_id)
+void UpdateHalRAMask8192CUsb(PADAPTER padapter, u32 mac_id,u8 rssi_level )
 {
 	//volatile unsigned int result;
 	u8	init_rate=0;
 	u8	networkType, raid;	
-	u32	mask;
+	u32	mask,rate_bitmap;
 	u8	shortGIrate = _FALSE;
 	int	supportRateNum = 0;
 	struct sta_info	*psta;
@@ -4126,7 +4131,7 @@ void UpdateHalRAMask8192CUsb(PADAPTER padapter, u32 mac_id)
 						
 			mask = update_supported_rate(cur_network->SupportedRates, supportRateNum);
 			mask |= (pmlmeinfo->HT_enable)? update_MSC_rate(&(pmlmeinfo->HT_caps)): 0;
-			mask |= ((raid<<28)&0xf0000000);
+			
 			
 			if (support_short_GI(padapter, &(pmlmeinfo->HT_caps)))
 			{
@@ -4144,8 +4149,7 @@ void UpdateHalRAMask8192CUsb(PADAPTER padapter, u32 mac_id)
 			raid = networktype_to_raid(networkType);
 
 			mask = update_basic_rate(cur_network->SupportedRates, supportRateNum);
-			mask |= ((raid<<28)&0xf0000000);
-
+			
 			break;
 
 		default: //for each sta in IBSS
@@ -4155,14 +4159,26 @@ void UpdateHalRAMask8192CUsb(PADAPTER padapter, u32 mac_id)
 			raid = networktype_to_raid(networkType);
 			
 			mask = update_supported_rate(cur_network->SupportedRates, supportRateNum);
-			mask |= ((raid<<28)&0xf0000000);
+			
 
 			//todo: support HT in IBSS
 			
 			break;
 	}
 	
-	mask &=0xffffffff;
+	//mask &=0x0fffffff;
+	rate_bitmap = 0x0fffffff;	
+#ifdef	CONFIG_ODM_REFRESH_RAMASK
+	{				
+		rate_bitmap = ODM_Get_Rate_Bitmap(&pHalData->odmpriv,mask,rssi_level);
+		printk("%s => mac_id:%d, networkType:0x%02x, mask:0x%08x\n\t ==> rssi_level:%d, rate_bitmap:0x%08x\n",
+			__FUNCTION__,mac_id,networkType,mask,rssi_level,rate_bitmap);
+	}
+#endif
+	
+	mask &= rate_bitmap;
+	mask |= ((raid<<28)&0xf0000000);
+
 	
 	init_rate = get_highest_rate_idx(mask)&0x3f;
 	
@@ -4200,34 +4216,9 @@ void UpdateHalRAMask8192CUsb(PADAPTER padapter, u32 mac_id)
 	pdmpriv->INIDATA_RATE[mac_id] = init_rate;
 }
 
-static void rtl8723au_init_default_value(_adapter * padapter)
+static void rtl8723au_init_default_value(PADAPTER padapter)
 {
-	PHAL_DATA_TYPE pHalData;
-	struct pwrctrl_priv *pwrctrlpriv;
-	struct dm_priv *pdmpriv;
-	u8 i;
-
-	pHalData = GET_HAL_DATA(padapter);
-	pwrctrlpriv = &padapter->pwrctrlpriv;
-	pdmpriv = &pHalData->dmpriv;
-
-
-	//init default value
-	pHalData->fw_ractrl = _FALSE;	
-	pHalData->bIQKInitialized = _FALSE;
-	if(!pwrctrlpriv->bkeepfwalive)
-		pHalData->LastHMEBoxNum = 0;
-	
-	pHalData->bIQKInitialized = _FALSE;
-	//init dm default value
-	pdmpriv->TM_Trigger = 0;//for IQK
-	//pdmpriv->binitialized = _FALSE;
-//	pdmpriv->prv_traffic_idx = 3;
-//	pdmpriv->initialize = 0;
-
-	pdmpriv->ThermalValue_HP_index = 0;
-	for(i = 0; i < HP_THERMAL_NUM; i++)
-		pdmpriv->ThermalValue_HP[i] = 0;
+	rtl8723a_init_default_value(padapter);
 }
 
 static u8 rtl8192cu_ps_func(PADAPTER Adapter,HAL_INTF_PS_FUNC efunc_id, u8 *val)
@@ -4300,20 +4291,8 @@ _func_enter_;
 
 	pHalFunc->UpdateRAMaskHandler = &UpdateHalRAMask8192CUsb;
 
-	//pHalFunc->Add_RateATid = &rtl8192c_Add_RateATid;
-
-//#ifdef CONFIG_SW_ANTENNA_DIVERSITY
-	//pHalFunc->SwAntDivBeforeLinkHandler = &SwAntDivBeforeLink8192C;
-	//pHalFunc->SwAntDivCompareHandler = &SwAntDivCompare8192C;
-//#endif
-
 	pHalFunc->hal_xmit = &rtl8192cu_hal_xmit;
 	pHalFunc->mgnt_xmit = &rtl8192cu_mgnt_xmit;
-
-	//pHalFunc->read_bbreg = &rtl8192c_PHY_QueryBBReg;
-	//pHalFunc->write_bbreg = &rtl8192c_PHY_SetBBReg;
-	//pHalFunc->read_rfreg = &rtl8192c_PHY_QueryRFReg;
-	//pHalFunc->write_rfreg = &rtl8192c_PHY_SetRFReg;
 
 #ifdef CONFIG_HOSTAPD_MLME
 	pHalFunc->hostap_mgnt_xmit_entry = &rtl8192cu_hostap_mgnt_xmit_entry;

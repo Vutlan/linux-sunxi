@@ -22,8 +22,6 @@
 #ifndef __INC_RF_8723A_HW_IMG_H
 #define __INC_RF_8723A_HW_IMG_H
 
-static BOOLEAN CheckCondition(const u4Byte Condition, const u4Byte Hex);
-
 /******************************************************************************
 *                           RadioA_1T.TXT
 ******************************************************************************/
@@ -44,3 +42,4 @@ ODM_ReadAndConfig_RadioB_1T_8723A(
 
 #endif
 #endif // end of HWIMG_SUPPORT
+

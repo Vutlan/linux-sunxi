@@ -628,7 +628,7 @@ void odm_SwAntDivResetBeforeLink8192C(IN PDM_ODM_T pDM_Odm)
 }
 
 // Compare RSSI for deciding antenna
-void	odm_SwAntDivCompare8192C(PADAPTER Adapter, WLAN_BSSID_EX *dst, WLAN_BSSID_EX *src)
+void	odm_AntDivCompare8192C(PADAPTER Adapter, WLAN_BSSID_EX *dst, WLAN_BSSID_EX *src)
 {
 	//PADAPTER Adapter = pDM_Odm->Adapter ;
 	
@@ -648,7 +648,7 @@ void	odm_SwAntDivCompare8192C(PADAPTER Adapter, WLAN_BSSID_EX *dst, WLAN_BSSID_E
 }
 
 // Add new function to reset the state of antenna diversity before link.
-u8 odm_SwAntDivBeforeLink8192C(PADAPTER Adapter )
+u8 odm_AntDivBeforeLink8192C(PADAPTER Adapter )
 {
 	
 	HAL_DATA_TYPE	*pHalData = GET_HAL_DATA(Adapter);	
@@ -659,7 +659,7 @@ u8 odm_SwAntDivBeforeLink8192C(PADAPTER Adapter )
 	// Condition that does not need to use antenna diversity.
 	if(IS_92C_SERIAL(pHalData->VersionID) ||(pHalData->AntDivCfg==0))
 	{
-		//DBG_8192C("odm_SwAntDivBeforeLink8192C(): No AntDiv Mechanism.\n");
+		//DBG_8192C("odm_AntDivBeforeLink8192C(): No AntDiv Mechanism.\n");
 		return _FALSE;
 	}
 
@@ -2575,6 +2575,12 @@ rtl8192c_PHY_IQCalibrate(
 	}
 
 	_PHY_SaveADDARegisters(pAdapter, IQK_BB_REG, pdmpriv->IQK_BB_backup_recover, 9);
+
+	#ifdef RTL8192C_RECONFIG_TO_1T1R
+	if(IS_92C_SERIAL(pHalData->VersionID))
+		//path B to standby mode
+		PHY_SetBBReg(pAdapter, 0x844, bMaskDWord, 0x00010000);
+	#endif
 
 }
 

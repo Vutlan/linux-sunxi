@@ -34,6 +34,8 @@ u32 build_beacon_wfd_ie(struct wifidirect_info *pwdinfo, u8 *pbuf);
 u32 build_nego_req_wfd_ie(struct wifidirect_info *pwdinfo, u8 *pbuf);
 u32 build_nego_resp_wfd_ie(struct wifidirect_info *pwdinfo, u8 *pbuf);
 u32 build_nego_confirm_wfd_ie(struct wifidirect_info *pwdinfo, u8 *pbuf);
+u32 build_invitation_req_wfd_ie(struct wifidirect_info *pwdinfo, u8 *pbuf);
+u32 build_invitation_resp_wfd_ie(struct wifidirect_info *pwdinfo, u8 *pbuf);
 u32 build_assoc_req_wfd_ie(struct wifidirect_info *pwdinfo, u8 *pbuf);
 u32 build_assoc_resp_wfd_ie(struct wifidirect_info *pwdinfo, u8 *pbuf);
 u32 build_provdisc_req_wfd_ie(struct wifidirect_info *pwdinfo, u8 *pbuf);
@@ -61,6 +63,7 @@ void rtw_init_cfg80211_wifidirect_info( _adapter*	padapter);
 int rtw_p2p_check_frames(_adapter *padapter, const u8 *buf, u32 len, u8 tx);
 #endif //CONFIG_IOCTL_CFG80211
 
+void reset_global_wifidirect_info( _adapter* padapter );
 void init_wifidirect_info( _adapter* padapter, enum P2P_ROLE role);
 int rtw_p2p_enable(_adapter *padapter, enum P2P_ROLE role);
 
@@ -134,6 +137,18 @@ void dbg_rtw_p2p_set_role(struct wifidirect_info *wdinfo, enum P2P_ROLE role, co
 #define rtw_p2p_role(wdinfo) _rtw_p2p_role(wdinfo)
 #define rtw_p2p_chk_state(wdinfo, state) _rtw_p2p_chk_state(wdinfo, state)
 #define rtw_p2p_chk_role(wdinfo, role) _rtw_p2p_chk_role(wdinfo, role)
+
+#define rtw_p2p_findphase_ex_set(wdinfo, value) \
+	(wdinfo)->find_phase_state_exchange_cnt = (value)
+
+//is this find phase exchange for social channel scan?
+#define rtw_p2p_findphase_ex_is_social(wdinfo)   \
+	(wdinfo)->find_phase_state_exchange_cnt >= P2P_FINDPHASE_EX_SOCIAL_FIRST
+
+//should we need find phase exchange anymore?
+#define rtw_p2p_findphase_ex_is_needed(wdinfo) \
+	((wdinfo)->find_phase_state_exchange_cnt < P2P_FINDPHASE_EX_MAX && \
+	(wdinfo)->find_phase_state_exchange_cnt != P2P_FINDPHASE_EX_NONE)
 
 #endif
 

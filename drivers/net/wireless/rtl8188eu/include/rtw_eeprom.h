@@ -159,3 +159,4 @@ extern int retriveAdaptorInfoFile(char *path, struct eeprom_priv * eeprom_priv);
 #endif //PLATFORM_LINUX
 
 #endif  //__RTL871X_EEPROM_H__
+

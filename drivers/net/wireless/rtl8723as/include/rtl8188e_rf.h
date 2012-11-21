@@ -17,10 +17,14 @@
  *
  *
  ******************************************************************************/
-#ifndef __RTL8723A_RF_H__
-#define __RTL8723A_RF_H__
+#ifndef __RTL8188E_RF_H__
+#define __RTL8188E_RF_H__
 
-#include "rtl8192c_rf.h"
+#define		RF6052_MAX_TX_PWR			0x3F
+#define		RF6052_MAX_REG				0x3F
+#define		RF6052_MAX_PATH				2
+
+
 int	PHY_RF6052_Config8188E(	IN	PADAPTER		Adapter	);
 void		rtl8188e_RF_ChangeTxPath(	IN	PADAPTER	Adapter, 
 										IN	u16		DataRate);
@@ -31,8 +35,11 @@ VOID	rtl8188e_PHY_RF6052SetCckTxPower(
 										IN	PADAPTER	Adapter,
 										IN	u8*		pPowerlevel);
 VOID	rtl8188e_PHY_RF6052SetOFDMTxPower(
-										IN	PADAPTER	Adapter,
-										IN	u8*		pPowerLevel,
-										IN	u8		Channel);
+											IN	PADAPTER	Adapter,
+											IN	u8*		pPowerLevelOFDM,
+											IN	u8*		pPowerLevelBW20,
+											IN	u8*		pPowerLevelBW40,	
+											IN	u8		Channel);
 
-#endif
+#endif//__RTL8188E_RF_H__
+

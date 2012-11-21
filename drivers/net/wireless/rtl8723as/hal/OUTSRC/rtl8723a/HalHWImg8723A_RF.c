@@ -28,7 +28,7 @@ CheckCondition(
     )
 {
     u4Byte board = Hex & 0xFF;
-    u4Byte interface = Hex & 0xFF00;
+    u4Byte interface4Byte = Hex & 0xFF00;
     u4Byte platform = Hex & 0xFF0000;
     u4Byte cond = Condition;
 
@@ -38,7 +38,7 @@ CheckCondition(
 
     cond = Condition & 0xFF00;
     cond = cond >> 8;
-    if ( (interface & cond) == 0 && cond != 0x07)
+    if ( (interface4Byte & cond) == 0 && cond != 0x07)
         return FALSE;
 
     cond = Condition & 0xFF0000;
@@ -223,17 +223,15 @@ ODM_ReadAndConfig_RadioA_1T_8723A(
 {
 	u4Byte     hex         = 0;
 	u4Byte     i           = 0;
-	u2Byte     count       = 0;
-	pu4Byte    ptr_array   = NULL;
 	u1Byte     platform    = pDM_Odm->SupportPlatform;
-	u1Byte     interface   = pDM_Odm->SupportInterface;
+	u1Byte     interface1Byte   = pDM_Odm->SupportInterface;
 	u1Byte     board       = pDM_Odm->BoardType;  
 	u4Byte     ArrayLen    = sizeof(Array_RadioA_1T_8723A)/sizeof(u4Byte);
 	pu4Byte    Array       = Array_RadioA_1T_8723A;
 
 
 	hex += board;
-	hex += interface << 8;
+	hex += interface1Byte << 8;
 	hex += platform << 16;
 	hex += 0xFF000000;
 	for (i = 0; i < ArrayLen; i += 2 )
@@ -284,17 +282,15 @@ ODM_ReadAndConfig_RadioB_1T_8723A(
 {
 	u4Byte     hex         = 0;
 	u4Byte     i           = 0;
-	u2Byte     count       = 0;
-	pu4Byte    ptr_array   = NULL;
 	u1Byte     platform    = pDM_Odm->SupportPlatform;
-	u1Byte     interface   = pDM_Odm->SupportInterface;
+	u1Byte     interface1Byte   = pDM_Odm->SupportInterface;
 	u1Byte     board       = pDM_Odm->BoardType;  
 	u4Byte     ArrayLen    = sizeof(Array_RadioB_1T_8723A)/sizeof(u4Byte);
 	pu4Byte    Array       = Array_RadioB_1T_8723A;
 
 
 	hex += board;
-	hex += interface << 8;
+	hex += interface1Byte << 8;
 	hex += platform << 16;
 	hex += 0xFF000000;
 	for (i = 0; i < ArrayLen; i += 2 )
@@ -330,3 +326,4 @@ ODM_ReadAndConfig_RadioB_1T_8723A(
 }
 
 #endif // end of HWIMG_SUPPORT
+

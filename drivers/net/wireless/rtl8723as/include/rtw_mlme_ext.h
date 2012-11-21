@@ -113,6 +113,7 @@
 // 
 typedef enum _RT_CHANNEL_DOMAIN
 {
+	//===== old channel plan mapping =====//
 	RT_CHANNEL_DOMAIN_FCC = 0x00,
 	RT_CHANNEL_DOMAIN_IC = 0x01,
 	RT_CHANNEL_DOMAIN_ETSI = 0x02,
@@ -134,19 +135,97 @@ typedef enum _RT_CHANNEL_DOMAIN
 	RT_CHANNEL_DOMAIN_JAPAN_NO_DFS = 0x12,
 	RT_CHANNEL_DOMAIN_WORLD_WIDE_5G = 0x13,
 	RT_CHANNEL_DOMAIN_TAIWAN_NO_DFS = 0x14,
+
+	//===== new channel plan mapping, (2GDOMAIN_5GDOMAIN) =====//
+	RT_CHANNEL_DOMAIN_WORLD_NULL = 0x20,
+	RT_CHANNEL_DOMAIN_ETSI1_NULL = 0x21,
+	RT_CHANNEL_DOMAIN_FCC1_NULL = 0x22,
+	RT_CHANNEL_DOMAIN_MKK1_NULL = 0x23,
+	RT_CHANNEL_DOMAIN_ETSI2_NULL = 0x24,
+	RT_CHANNEL_DOMAIN_FCC1_FCC1 = 0x25,
+	RT_CHANNEL_DOMAIN_WORLD_ETSI1 = 0x26,
+	RT_CHANNEL_DOMAIN_MKK1_MKK1 = 0x27,
+	RT_CHANNEL_DOMAIN_WORLD_KCC1 = 0x28,
+	RT_CHANNEL_DOMAIN_WORLD_FCC2 = 0x29,
+	RT_CHANNEL_DOMAIN_WORLD_FCC3 = 0x30,
+	RT_CHANNEL_DOMAIN_WORLD_FCC4 = 0x31,
+	RT_CHANNEL_DOMAIN_WORLD_FCC5 = 0x32,
+	RT_CHANNEL_DOMAIN_WORLD_FCC6 = 0x33,
+	RT_CHANNEL_DOMAIN_FCC1_FCC7 = 0x34,
+	RT_CHANNEL_DOMAIN_WORLD_ETSI2 = 0x35,
+	RT_CHANNEL_DOMAIN_WORLD_ETSI3 = 0x36,
+	RT_CHANNEL_DOMAIN_MKK1_MKK2 = 0x37,
+	RT_CHANNEL_DOMAIN_MKK1_MKK3 = 0x38,
+	RT_CHANNEL_DOMAIN_FCC1_NCC1 = 0x39,
+	RT_CHANNEL_DOMAIN_FCC1_NCC2 = 0x40,
+
 	//===== Add new channel plan above this line===============//
 	RT_CHANNEL_DOMAIN_MAX,
+	RT_CHANNEL_DOMAIN_REALTEK_DEFINE = 0x7F,
 }RT_CHANNEL_DOMAIN, *PRT_CHANNEL_DOMAIN;
 
-#define rtw_is_channel_plan_valid(chplan) (chplan<RT_CHANNEL_DOMAIN_MAX)
+typedef enum _RT_CHANNEL_DOMAIN_2G
+{
+	RT_CHANNEL_DOMAIN_2G_WORLD = 0x00,		//Worldwird 13
+	RT_CHANNEL_DOMAIN_2G_ETSI1 = 0x01,		//Europe
+	RT_CHANNEL_DOMAIN_2G_FCC1 = 0x02,		//US
+	RT_CHANNEL_DOMAIN_2G_MKK1 = 0x03,		//Japan
+	RT_CHANNEL_DOMAIN_2G_ETSI2 = 0x04,		//France
+	//===== Add new channel plan above this line===============//
+	RT_CHANNEL_DOMAIN_2G_MAX,
+}RT_CHANNEL_DOMAIN_2G, *PRT_CHANNEL_DOMAIN_2G;
 
-#define	MAX_SCAN_CHANNEL_NUM			54
+typedef enum _RT_CHANNEL_DOMAIN_5G
+{
+	RT_CHANNEL_DOMAIN_5G_NULL = 0x00,
+	RT_CHANNEL_DOMAIN_5G_ETSI1 = 0x01,		//Europe
+	RT_CHANNEL_DOMAIN_5G_ETSI2 = 0x02,		//Australia, New Zealand
+	RT_CHANNEL_DOMAIN_5G_ETSI3 = 0x03,		//Russia
+	RT_CHANNEL_DOMAIN_5G_FCC1 = 0x04,		//US
+	RT_CHANNEL_DOMAIN_5G_FCC2 = 0x05,		//FCC o/w DFS Channels
+	RT_CHANNEL_DOMAIN_5G_FCC3 = 0x06,		//India, Mexico
+	RT_CHANNEL_DOMAIN_5G_FCC4 = 0x07,		//Venezuela
+	RT_CHANNEL_DOMAIN_5G_FCC5 = 0x08,		//China
+	RT_CHANNEL_DOMAIN_5G_FCC6 = 0x09,		//Israel
+	RT_CHANNEL_DOMAIN_5G_FCC7_IC1 = 0x0A,	//US, Canada
+	RT_CHANNEL_DOMAIN_5G_KCC1 = 0x0B,		//Korea
+	RT_CHANNEL_DOMAIN_5G_MKK1 = 0x0C,		//Japan
+	RT_CHANNEL_DOMAIN_5G_MKK2 = 0x0D,		//Japan (W52, W53)
+	RT_CHANNEL_DOMAIN_5G_MKK3 = 0x0E,		//Japan (W56)
+	RT_CHANNEL_DOMAIN_5G_NCC1 = 0x0F,		//Taiwan
+	RT_CHANNEL_DOMAIN_5G_NCC2 = 0x10,		//Taiwan o/w DFS
+	//===== Add new channel plan above this line===============//
+	//===== Driver Self Defined =====//
+	RT_CHANNEL_DOMAIN_5G_FCC = 0x11,
+	RT_CHANNEL_DOMAIN_5G_JAPAN_NO_DFS = 0x12,
+	RT_CHANNEL_DOMAIN_5G_MAX,
+}RT_CHANNEL_DOMAIN_5G, *PRT_CHANNEL_DOMAIN_5G;
+
+#define rtw_is_channel_plan_valid(chplan) (chplan<RT_CHANNEL_DOMAIN_MAX || chplan == RT_CHANNEL_DOMAIN_REALTEK_DEFINE)
 
 typedef struct _RT_CHANNEL_PLAN
 {
 	unsigned char	Channel[MAX_CHANNEL_NUM];
 	unsigned char	Len;
 }RT_CHANNEL_PLAN, *PRT_CHANNEL_PLAN;
+
+typedef struct _RT_CHANNEL_PLAN_2G
+{
+	unsigned char	Channel[MAX_CHANNEL_NUM_2G];
+	unsigned char	Len;
+}RT_CHANNEL_PLAN_2G, *PRT_CHANNEL_PLAN_2G;
+
+typedef struct _RT_CHANNEL_PLAN_5G
+{
+	unsigned char	Channel[MAX_CHANNEL_NUM_5G];
+	unsigned char	Len;
+}RT_CHANNEL_PLAN_5G, *PRT_CHANNEL_PLAN_5G;
+
+typedef struct _RT_CHANNEL_PLAN_MAP
+{
+	unsigned char	Index2G;
+	unsigned char	Index5G;
+}RT_CHANNEL_PLAN_MAP, *PRT_CHANNEL_PLAN_MAP;
 
 enum Associated_AP
 {
@@ -234,33 +313,6 @@ struct	ss_res
 #define	WIFI_FW_LINKING_STATE		(WIFI_FW_AUTH_NULL | WIFI_FW_AUTH_STATE | WIFI_FW_AUTH_SUCCESS |WIFI_FW_ASSOC_STATE)
 
 #ifdef CONFIG_TDLS
-/* TDLS STA state */
-#define	UN_TDLS_STATE					0x00000000	//default state
-#define	TDLS_INITIATOR_STATE			0x10000000
-#define	TDLS_RESPONDER_STATE			0x20000000
-#define	TDLS_LINKED_STATE				0x40000000
-#define	TDLS_CH_SWITCH_ON_STATE		0x01000000
-#define	TDLS_PEER_AT_OFF_STATE		0x02000000	//could send pkt on target ch
-#define	TDLS_AT_OFF_CH_STATE			0x04000000
-#define	TDLS_CH_SW_INITIATOR_STATE	0x08000000	//avoiding duplicated or unconditional ch. switch rsp.
-#define	TDLS_APSD_CHSW_STATE		0x00100000	//in APSD and want to setup channel switch
-#define	TDLS_PEER_SLEEP_STATE		0x00200000	//peer sta is sleeping
-#define	TDLS_SW_OFF_STATE			0x00400000	//terminate channel swithcing
-#define	TDLS_ALIVE_STATE				0x00010000	//Check if peer sta is alived.
-
-#define	TPK_RESEND_COUNT				301
-#define 	CH_SWITCH_TIME				10
-#define 	CH_SWITCH_TIMEOUT			30
-#define	TDLS_STAY_TIME				500
-#define	TDLS_SIGNAL_THRESH			0x20
-#define	TDLS_WATCHDOG_PERIOD		10	//Periodically sending tdls discovery request in TDLS_WATCHDOG_PERIOD * 2 sec
-#define	TDLS_ALIVE_TIMER_PH1			5000
-#define	TDLS_ALIVE_TIMER_PH2			2000
-#define	TDLS_STAY_TIME				500
-#define	TDLS_HANDSHAKE_TIME			5000
-#define	TDLS_ALIVE_COUNT				3
-#define	TDLS_INI_CAM_ENTRY			6
-
 // 1: Write RCR DATA BIT
 // 2: Issue peer traffic indication
 // 3: Go back to the channel linked with AP, terminating channel switch procedure
@@ -272,6 +324,8 @@ struct	ss_res
 // 9: Set channel back to off channel
 // 10: Restore RCR DATA BIT
 // 11: Check alive
+// 12: Check alive
+// 13: Free TDLS sta
 enum TDLS_option
 {
 	TDLS_WRCR			= 	1,
@@ -337,6 +391,7 @@ struct mlme_ext_info
 	// Accept ADDBA Request
 	BOOLEAN bAcceptAddbaReq;
 	u8	bwmode_updated;
+	u8	hidden_ssid_mode;
 
 	struct ADDBA_request		ADDBA_req;
 	struct WMM_para_element	WMM_param;
@@ -389,7 +444,6 @@ struct mlme_ext_priv
 
 	u8 scan_abort;
 
-	u32	linked_to;//linked timeout
 	u32	retry; //retry for issue probereq
 	
 	u64 TSFValue;
@@ -410,18 +464,12 @@ int init_hw_mlme_ext(_adapter *padapter);
 void free_mlme_ext_priv (struct mlme_ext_priv *pmlmeext);
 extern void init_mlme_ext_timer(_adapter *padapter);
 extern void init_addba_retry_timer(_adapter *padapter, struct sta_info *psta);
-
-#ifdef CONFIG_TDLS
-int rtw_init_tdls_info(_adapter* padapter);
-void rtw_free_tdls_info(struct tdls_info *ptdlsinfo);
-#endif //CONFIG_TDLS
-
 extern struct xmit_frame *alloc_mgtxmitframe(struct xmit_priv *pxmitpriv);
 
 //void fill_fwpriv(_adapter * padapter, struct fw_priv *pfwpriv);
 
 unsigned char networktype_to_raid(unsigned char network_type);
-int judge_network_type(_adapter *padapter, unsigned char *rate, int ratelen);
+u8 judge_network_type(_adapter *padapter, unsigned char *rate, int ratelen);
 void get_rate_set(_adapter *padapter, unsigned char *pbssrate, int *bssrate_len);
 
 void Save_DM_Func_Flag(_adapter *padapter);
@@ -515,32 +563,12 @@ void dump_mgntframe(_adapter *padapter, struct xmit_frame *pmgntframe);
 
 #ifdef CONFIG_P2P
 void issue_probersp_p2p(_adapter *padapter, unsigned char *da);
-void issue_p2p_provision_request( _adapter *padapter, u8* pinterface_raddr, u8* pssid, u8 ussidlen, u8* pdev_raddr);
+void issue_p2p_provision_request( _adapter *padapter, u8* pssid, u8 ussidlen, u8* pdev_raddr);
 void issue_p2p_GO_request(_adapter *padapter, u8* raddr);
 void issue_probereq_p2p(_adapter *padapter);
 void issue_p2p_invitation_response(_adapter *padapter, u8* raddr, u8 dialogToken, u8 success);
 void issue_p2p_invitation_request(_adapter *padapter, u8* raddr );
 #endif //CONFIG_P2P
-#ifdef CONFIG_TDLS
-void issue_nulldata_to_TDLS_peer_STA(_adapter *padapter, struct sta_info *ptdls_sta, unsigned int power_mode);
-void init_TPK_timer(_adapter *padapter, struct sta_info *psta);
-void init_ch_switch_timer(_adapter *padapter, struct sta_info *psta);
-void init_base_ch_timer(_adapter *padapter, struct sta_info *psta);
-void init_off_ch_timer(_adapter *padapter, struct sta_info *psta);
-void init_tdls_alive_timer(_adapter *padapter, struct sta_info *psta);
-void init_handshake_timer(_adapter *padapter, struct sta_info *psta);
-void free_tdls_sta(_adapter *padapter, struct sta_info *ptdls_sta);
-void issue_tdls_dis_req(_adapter *padapter, u8 *mac_addr);
-void issue_tdls_setup_req(_adapter *padapter, u8 *mac_addr);
-void issue_tdls_setup_rsp(_adapter *padapter, union recv_frame *precv_frame);
-void issue_tdls_setup_cfm(_adapter *padapter, union recv_frame *precv_frame);
-void issue_tdls_dis_rsp(_adapter * padapter, union recv_frame * precv_frame, u8 dialog);
-void issue_tdls_teardown(_adapter *padapter, u8 *mac_addr);
-void issue_tdls_peer_traffic_indication(_adapter *padapter, struct sta_info *psta);
-void issue_tdls_ch_switch_req(_adapter *padapter, u8 *mac_addr);
-void issue_tdls_ch_switch_rsp(_adapter *padapter, u8 *mac_addr);
-sint On_TDLS_Dis_Rsp(_adapter *adapter, union recv_frame *precv_frame);
-#endif //CONFIG_TDLS
 void issue_beacon(_adapter *padapter);
 void issue_probersp(_adapter *padapter, unsigned char *da, u8 is_valid_p2p_probereq);
 void issue_assocreq(_adapter *padapter);
@@ -636,6 +664,13 @@ void start_ap_mode(_adapter *padapter);
 void stop_ap_mode(_adapter *padapter);
 #endif
 #endif //end of CONFIG_AP_MODE
+
+
+#ifdef CONFIG_CONCURRENT_MODE
+ sint check_buddy_mlmeinfo_state(_adapter *padapter, u32 state);
+int concurrent_chk_start_clnt_join(_adapter *padapter);
+void concurrent_chk_joinbss_done(_adapter *padapter, int join_res);
+#endif //CONFIG_CONCURRENT_MODE
 
 #ifdef CONFIG_DUALMAC_CONCURRENT
 void	dc_SelectChannel(_adapter *padapter, unsigned char channel);

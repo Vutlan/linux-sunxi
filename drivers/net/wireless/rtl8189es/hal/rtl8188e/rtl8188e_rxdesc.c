@@ -202,35 +202,35 @@ void update_recvframe_attrib_88e(
 	pattrib = &precvframe->u.hdr.attrib;
 	_rtw_memset(pattrib, 0, sizeof(struct rx_pkt_attrib));
 
-	pattrib->crc_err = (u8)prxreport->crc32;	
+	pattrib->crc_err = (u8)((report.rxdw0 >> 14) & 0x1);;//(u8)prxreport->crc32;	
 	
 	// update rx report to recv_frame attribute
-	pattrib->pkt_rpt_type = prxreport->rpt_sel;
+	pattrib->pkt_rpt_type = (u8)((report.rxdw3 >> 14) & 0x3);//prxreport->rpt_sel;
 	
 	if(pattrib->pkt_rpt_type == NORMAL_RX)//Normal rx packet	
 	{
-		pattrib->pkt_len = (u16)prxreport->pktlen;
-		pattrib->drvinfo_sz = (u8)(prxreport->drvinfosize << 3);
+		pattrib->pkt_len = (u16)(report.rxdw0 &0x00003fff);//(u16)prxreport->pktlen;
+		pattrib->drvinfo_sz = (u8)((report.rxdw0 >> 16) & 0xf) * 8;//(u8)(prxreport->drvinfosize << 3);
 			
-		pattrib->physt = (u8)prxreport->physt;	
+		pattrib->physt =  (u8)((report.rxdw0 >> 26) & 0x1);//(u8)prxreport->physt;	
 
-		pattrib->bdecrypted = (u8)(prxreport->swdec ? 0 : 1);
-		pattrib->encrypt = (u8)prxreport->security;
+		pattrib->bdecrypted = (report.rxdw0 & BIT(27))? 0:1;//(u8)(prxreport->swdec ? 0 : 1);
+		pattrib->encrypt = (u8)((report.rxdw0 >> 20) & 0x7);//(u8)prxreport->security;
 
-		pattrib->qos = (u8)prxreport->qos;
-		pattrib->priority = (u8)prxreport->tid;
+		pattrib->qos = (u8)((report.rxdw0 >> 23) & 0x1);//(u8)prxreport->qos;
+		pattrib->priority = (u8)((report.rxdw1 >> 8) & 0xf);//(u8)prxreport->tid;
 
-		pattrib->amsdu = (u8)prxreport->amsdu;
+		pattrib->amsdu = (u8)((report.rxdw1 >> 13) & 0x1);//(u8)prxreport->amsdu;
 
-		pattrib->seq_num = (u16)prxreport->seq;
-		pattrib->frag_num = (u8)prxreport->frag;
-		pattrib->mfrag = (u8)prxreport->mf;
-		pattrib->mdata = (u8)prxreport->md;
+		pattrib->seq_num = (u16)(report.rxdw2 & 0x00000fff);//(u16)prxreport->seq;
+		pattrib->frag_num = (u8)((report.rxdw2 >> 12) & 0xf);//(u8)prxreport->frag;
+		pattrib->mfrag = (u8)((report.rxdw1 >> 27) & 0x1);//(u8)prxreport->mf;
+		pattrib->mdata = (u8)((report.rxdw1 >> 26) & 0x1);//(u8)prxreport->md;
 
-		pattrib->mcs_rate = (u8)prxreport->rxmcs;
-		pattrib->rxht = (u8)prxreport->rxht;
+		pattrib->mcs_rate = (u8)(report.rxdw3 & 0x3f);//(u8)prxreport->rxmcs;
+		pattrib->rxht = (u8)((report.rxdw3 >> 6) & 0x1);//(u8)prxreport->rxht;
 		
-		pattrib->icv_err = (u8)prxreport->icverr;
+		pattrib->icv_err = (u8)((report.rxdw0 >> 15) & 0x1);//(u8)prxreport->icverr;
 		//pattrib->shift_sz = (u8)prxreport->shift;
 	
 	}
@@ -253,7 +253,7 @@ void update_recvframe_attrib_88e(
 	}
 	else if(pattrib->pkt_rpt_type == HIS_REPORT)// USB HISR RPT
 	{
-		pattrib->pkt_len = (u16)prxreport->pktlen;
+		pattrib->pkt_len = (u16)(report.rxdw0 &0x00003fff);//(u16)prxreport->pktlen;
 	}	
 	
 }

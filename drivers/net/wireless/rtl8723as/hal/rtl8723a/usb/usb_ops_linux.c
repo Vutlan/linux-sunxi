@@ -803,7 +803,7 @@ InterruptRecognized8723AU(
 	u8 *			buffer = (u8 *)pContent;
 //	RT_PRINT_DATA(COMP_RECV, DBG_LOUD, ("InterruptRecognized8723AU Interrupt buffer \n"), buffer, MAX_RECEIVE_INTERRUPT_BUFFER_SIZE(Adapter));			
 	if(buffer[0]!= 0){
-		_rtw_memcpy(&(pHalData->C2hArray[0]), &(buffer[0]), 16);
+		_rtw_memcpy(&(pHalData->C2hArray[0]), &(buffer[0]), 16);		
 	}
 
 	_rtw_memcpy(&(pHalData->IntArray[0]), &(buffer[USB_INTR_CONTENT_HISR_OFFSET]), 4);
@@ -827,7 +827,8 @@ InterruptRecognized8723AU(
 #ifdef CONFIG_LPS_LCLK
 		if( ((pHalData->IntArray[0])&UHIMR_CPWM)){
 //			DBG_8192C("%s HIMR=0x%x\n",__func__,pHalData->IntArray[0]);
-			cpwm_int_hdl(Adapter, &report);
+			//cpwm_int_hdl(Adapter, &report);
+			_set_workitem(&Adapter->pwrctrlpriv.cpwm_event);
 			pHalData->IntArray[0]&= ~UHIMR_CPWM;
 //			DBG_8192C("%s HIMR=0x%x\n",__func__,pHalData->IntArray[0]);
 		}
@@ -847,8 +848,8 @@ static void usb_read_interrupt_complete(struct urb *purb, struct pt_regs *regs)
 	
 	if(padapter->bSurpriseRemoved || padapter->bDriverStopped||padapter->bReadPortCancel)
 	{
-		RT_TRACE(_module_hci_ops_os_c_,_drv_err_,("usb_read_port_complete:bDriverStopped(%d) OR bSurpriseRemoved(%d)\n", padapter->bDriverStopped, padapter->bSurpriseRemoved));		
-
+		DBG_8192C("%s() RX Warning! bDriverStopped(%d) OR bSurpriseRemoved(%d) bReadPortCancel(%d)\n", 
+		__FUNCTION__,padapter->bDriverStopped, padapter->bSurpriseRemoved,padapter->bReadPortCancel);
 		return;
 	}
 
@@ -860,7 +861,9 @@ static void usb_read_interrupt_complete(struct urb *purb, struct pt_regs *regs)
 		}
 		if (InterruptRecognized8723AU(padapter, purb->transfer_buffer, purb->actual_length)){
 			// Need to handle the interrupt
-			rtw_c2h_wk_cmd(padapter);
+			HAL_DATA_TYPE	*pHalData=GET_HAL_DATA(padapter);
+			if(pHalData->C2hArray[0] !=0)
+				rtw_c2h_wk_cmd(padapter);
 		}
 
 		err = usb_submit_urb(purb, GFP_ATOMIC);
@@ -1594,11 +1597,19 @@ static int recvbuf2recvframe(_adapter *padapter, _pkt *pskb)
 		}
 		else
 		{
+			if((pattrib->mfrag == 1)&&(pattrib->frag_num == 0))
+			{				
+				DBG_8192C("recvbuf2recvframe: alloc_skb fail , drop frag frame \n");
+				rtw_free_recvframe(precvframe, pfree_recv_queue);
+				goto _exit_recvbuf2recvframe;
+			}
+			
 			precvframe->u.hdr.pkt = skb_clone(pskb, GFP_ATOMIC);
-			if(pkt_copy)
+			if(precvframe->u.hdr.pkt)
 			{
-				precvframe->u.hdr.rx_head = precvframe->u.hdr.rx_data = precvframe->u.hdr.rx_tail = pbuf;
-				precvframe->u.hdr.rx_end = pbuf + alloc_sz;
+				precvframe->u.hdr.rx_head = precvframe->u.hdr.rx_data = precvframe->u.hdr.rx_tail 
+					= pbuf+ pattrib->drvinfo_sz + RXDESC_SIZE;
+				precvframe->u.hdr.rx_end =  pbuf +pattrib->drvinfo_sz + RXDESC_SIZE+ alloc_sz;
 			}
 			else
 			{
@@ -1606,6 +1617,7 @@ static int recvbuf2recvframe(_adapter *padapter, _pkt *pskb)
 				rtw_free_recvframe(precvframe, pfree_recv_queue);
 				goto _exit_recvbuf2recvframe;
 			}
+			
 		}
 
 		recvframe_put(precvframe, skb_len);
@@ -2447,5 +2459,5 @@ void rtl8723au_set_hw_type(_adapter *padapter)
 {
 	padapter->chip_type = RTL8723A;
 	padapter->HardwareType = HARDWARE_TYPE_RTL8723AU;
-	DBG_871X("CHIP TYPE: RTL8188C_8192C\n");
+	DBG_871X("CHIP TYPE: RTL8723A\n");
 }

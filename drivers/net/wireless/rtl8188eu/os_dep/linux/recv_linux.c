@@ -87,7 +87,7 @@ int rtw_os_recvbuf_resource_alloc(_adapter *padapter, struct recv_buf *precvbuf)
 	precvbuf->len = 0;
 
 	#ifdef CONFIG_USE_USB_BUFFER_ALLOC_RX
-	precvbuf->pallocated_buf = rtw_usb_buffer_alloc(pusbd, (size_t)precvbuf->alloc_sz, GFP_ATOMIC, &precvbuf->dma_transfer_addr);
+	precvbuf->pallocated_buf = rtw_usb_buffer_alloc(pusbd, (size_t)precvbuf->alloc_sz, &precvbuf->dma_transfer_addr);
 	precvbuf->pbuf = precvbuf->pallocated_buf;
 	if(precvbuf->pallocated_buf == NULL)
 		return _FAIL;
@@ -398,9 +398,6 @@ _recv_indicatepkt_drop:
 	 //enqueue back to free_recv_queue
 	 if(precv_frame)
 		 rtw_free_recvframe(precv_frame, pfree_recv_queue);
-
-
- 	 precvpriv->rx_drop++;
 
 	 return _FAIL;
 

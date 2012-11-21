@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright(c) 2007 - 2011 Realtek Corporation. All rights reserved.
+ * Copyright(c) 2007 - 2012 Realtek Corporation. All rights reserved.
  *                                        
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of version 2 of the GNU General Public License as
@@ -17,8 +17,8 @@
  *
  *
  ******************************************************************************/
+#define CONFIG_ODM_REFRESH_RAMASK
 #define CONFIG_PHY_SETTING_WITH_ODM
-#define CONFIG_CHIP_VER_INTEGRATION
 
 /*
  * Public  General Config
@@ -47,18 +47,58 @@
 
 #define SUPPORT_HW_RFOFF_DETECTED	1
 
+//#define CONFIG_IOCTL_CFG80211 1
+#ifdef CONFIG_PLATFORM_ARM_SUN4I
+	#ifndef CONFIG_IOCTL_CFG80211 
+		#define CONFIG_IOCTL_CFG80211 1
+	#endif
+#endif
+
+#ifdef CONFIG_IOCTL_CFG80211
+	#define CONFIG_CFG80211_FORCE_COMPATIBLE_2_6_37_UNDER
+	//#define CONFIG_DEBUG_CFG80211 1
+#endif
+
 #define CONFIG_AP_MODE	1
-#define CONFIG_NATIVEAP_MLME	1
+#ifdef CONFIG_AP_MODE
+	#define CONFIG_NATIVEAP_MLME 1
+	#ifndef CONFIG_NATIVEAP_MLME
+		#define CONFIG_HOSTAPD_MLME	1
+	#endif			
+	//#define CONFIG_FIND_BEST_CHANNEL	1
+	//#define CONFIG_NO_WIRELESS_HANDLERS	1
+#endif
 
+#define CONFIG_P2P	1
+#ifdef CONFIG_P2P
+	//Added by Albert 20110812
+	//The CONFIG_WFD is for supporting the Wi-Fi display
+	//#define CONFIG_WFD	1
 
-//#define CONFIG_P2P	1
+	//Unmarked if there is low p2p scanned ratio; Kurt
+	//#define CONFIG_P2P_AGAINST_NOISE	1
+	
+	#define CONFIG_P2P_REMOVE_GROUP_INFO
+	//#define CONFIG_DBG_P2P
+#endif
 
-//#define CONFIG_IOCTL_CFG80211 1	// enable this will disable wext ioctl support
-
-
+//	Added by Kurt 20110511
 //#define CONFIG_TDLS	1
+#ifdef CONFIG_TDLS
+//	#ifndef CONFIG_WFD
+//		#define CONFIG_WFD	1
+//	#endif
+//	#define CONFIG_TDLS_AUTOSETUP			1
+//	#define CONFIG_TDLS_AUTOCHECKALIVE		1
+#endif
+
+#define CONFIG_LAYER2_ROAMING
+#define CONFIG_LAYER2_ROAMING_RESUME
 
 //#define CONFIG_CONCURRENT_MODE 1
+#ifdef CONFIG_CONCURRENT_MODE
+	#define CONFIG_TSF_RESET_OFFLOAD 1			// For 2 PORT TSF SYNC.
+#endif	// CONFIG_CONCURRENT_MODE
 
 #define CONFIG_SKB_COPY	1//for amsdu
 
@@ -95,15 +135,6 @@
 //#define CONFIG_HW_ANTENNA_DIVERSITY	
 #endif
 
-	
-#ifdef CONFIG_AP_MODE
-	#ifndef CONFIG_NATIVEAP_MLME
-		#define CONFIG_HOSTAPD_MLME	1
-	#endif			
-	#define CONFIG_FIND_BEST_CHANNEL	1
-//#define CONFIG_NO_WIRELESS_HANDLERS	1
-#endif
-
 
 #ifdef CONFIG_LED
 	#define CONFIG_SW_LED
@@ -116,24 +147,12 @@
 
 #define CONFIG_IPS		1
 #define CONFIG_LPS		1
-#define CONFIG_LPS_LCLK		1
+//#define CONFIG_LPS_LCLK		1
 #endif // #ifdef CONFIG_POWER_SAVING
 
-
-
-#ifdef CONFIG_IOCTL_CFG80211
-
-#define CONFIG_AP_MODE 1
-#define CONFIG_NATIVEAP_MLME 1
-#ifdef CONFIG_HOSTAPD_MLME
-	#undef CONFIG_HOSTAPD_MLME
+#ifdef CONFIG_LPS_LCLK
+#define CONFIG_XMIT_THREAD_MODE
 #endif
-
-#define CONFIG_P2P 1
-
-#endif // CONFIG_IOCTL_CFG80211
-
-
 
 //#define CONFIG_BR_EXT	1	// Enable NAT2.5 support for STA mode interface with a L2 Bridge
 #ifdef CONFIG_BR_EXT
@@ -162,8 +181,14 @@
 /* 
  * CONFIG_USE_USB_BUFFER_ALLOC_XX uses Linux USB Buffer alloc API and is for Linux platform only now!
  */
-#define CONFIG_USE_USB_BUFFER_ALLOC_TX 1	// Trade-off: For TX path, improve stability on some platforms, but may cause performance degrade on other platforms.
+//#define CONFIG_USE_USB_BUFFER_ALLOC_TX 1	// Trade-off: For TX path, improve stability on some platforms, but may cause performance degrade on other platforms.
 //#define CONFIG_USE_USB_BUFFER_ALLOC_RX 1	// For RX path
+
+#ifdef CONFIG_PLATFORM_ARM_SUN4I
+	#ifndef 	CONFIG_USE_USB_BUFFER_ALLOC_TX 
+		#define CONFIG_USE_USB_BUFFER_ALLOC_TX
+	#endif
+#endif
 
 /* 
  * USB VENDOR REQ BUFFER ALLOCATION METHOD
@@ -256,7 +281,7 @@
 #define RTL8188EU_SUPPORT				0
 #define RTL8188ES_SUPPORT				0
 #define RTL8188E_SUPPORT				(RTL8188EE_SUPPORT|RTL8188EU_SUPPORT|RTL8188ES_SUPPORT)
-
+#define RTL8188E_FOR_TEST_CHIP			0
 //#if (RTL8188E_SUPPORT==1)
 #define RATE_ADAPTIVE_SUPPORT 			0
 #define POWER_TRAINING_ACTIVE			0

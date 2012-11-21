@@ -43,6 +43,8 @@
 #define MGMT_QUEUE_NUM 5
 
 #define ETH_ALEN	6
+#define ETH_TYPE_LEN		2
+#define PAYLOAD_TYPE_LEN	1
 
 #ifdef CONFIG_AP_MODE
 
@@ -70,6 +72,7 @@ enum {
 	RTL871X_HOSTAPD_SET_WPS_BEACON = 17,
 	RTL871X_HOSTAPD_SET_WPS_PROBE_RESP = 18,
 	RTL871X_HOSTAPD_SET_WPS_ASSOC_RESP = 19,
+	RTL871X_HOSTAPD_SET_HIDDEN_SSID = 20,
 };
 
 /* STA flags */
@@ -156,6 +159,17 @@ extern u8 RSN_CIPHER_SUITE_WRAP[];
 extern u8 RSN_CIPHER_SUITE_CCMP[];
 extern u8 RSN_CIPHER_SUITE_WEP104[];
 
+typedef enum _RATR_TABLE_MODE{
+	RATR_INX_WIRELESS_NGB = 0,	// BGN 40 Mhz 2SS 1SS
+	RATR_INX_WIRELESS_NG = 1,		// GN or N
+	RATR_INX_WIRELESS_NB = 2,		// BGN 20 Mhz 2SS 1SS  or BN
+	RATR_INX_WIRELESS_N = 3,
+	RATR_INX_WIRELESS_GB = 4,
+	RATR_INX_WIRELESS_G = 5,
+	RATR_INX_WIRELESS_B = 6,
+	RATR_INX_WIRELESS_MC = 7,
+	RATR_INX_WIRELESS_AC_N = 8,
+}RATR_TABLE_MODE, *PRATR_TABLE_MODE;
 
 enum NETWORK_TYPE
 {
@@ -850,52 +864,6 @@ struct ieee80211_info_element {
 } __attribute__ ((packed));
 #endif
 
-#ifdef CONFIG_TDLS
-/* TDLS */
-#define TDLS_MIC_LEN 16
-#define WPA_NONCE_LEN 32
-#define TDLS_TIMEOUT_LEN 4
-
-struct wpa_tdls_ftie {
-	u8 ie_type; /* FTIE */
-	u8 ie_len;
-	u8 mic_ctrl[2];
-	u8 mic[TDLS_MIC_LEN];
-	u8 Anonce[WPA_NONCE_LEN]; /* Responder Nonce in TDLS */
-	u8 Snonce[WPA_NONCE_LEN]; /* Initiator Nonce in TDLS */
-	/* followed by optional elements */
-} ;
-
-struct wpa_tdls_timeoutie {
-	u8 ie_type; /* Timeout IE */
-	u8 ie_len;
-	u8 interval_type;
-	u8 value[TDLS_TIMEOUT_LEN];
-} ;
-
-struct wpa_tdls_lnkid {
-	u8 ie_type; /* Link Identifier IE */
-	u8 ie_len;
-	u8 bssid[ETH_ALEN];
-	u8 init_sta[ETH_ALEN];
-	u8 resp_sta[ETH_ALEN];
-} ;
-
-static u8 TDLS_RSNIE[]={	0x01, 0x00,	//version shall be set to 1
-						0x00, 0x0f, 0xac, 0x07,	//group sipher suite
-						0x01, 0x00,	//pairwise cipher suite count
-						0x00, 0x0f, 0xac, 0x04,	//pairwise cipher suite list; CCMP only
-						0x01, 0x00,	//AKM suite count
-						0x00, 0x0f, 0xac, 0x07,	//TPK Handshake
-						0x00, 0x02,
-						//PMKID shall not be present
-						};
-
-static u8 TDLS_WMMIE[]={0x00, 0x50, 0xf2, 0x02, 0x00, 0x01, 0x00};	//Qos info all set zero
-
-static u8 TDLS_EXT_CAPIE[] = {0x00, 0x00, 0x00, 0x50, 0x20};	//bit(28), bit(30), bit(37)
-#endif //CONFIG_TDLS
-
 #ifdef PLATFORM_WINDOWS
 
 #pragma pack(1)
@@ -1269,6 +1237,9 @@ enum TDLS_ACTION_FIELD{
 	TDLS_DISCOVERY_REQUEST = 10,
 	TDLS_DISCOVERY_RESPONSE = 14,	//it's used in public action frame
 };
+
+#define	TUNNELED_PROBE_REQ	15
+#define	TUNNELED_PROBE_RSP	16
 #endif //CONFIG_TDLS
 
 /* BACK action code */
@@ -1398,22 +1369,23 @@ int rtw_get_sec_ie(u8 *in_ie,uint in_len,u8 *rsn_ie,u16 *rsn_len,u8 *wpa_ie,u16 
 
 u8 rtw_is_wps_ie(u8 *ie_ptr, uint *wps_ielen);
 u8 *rtw_get_wps_ie(u8 *in_ie, uint in_len, u8 *wps_ie, uint *wps_ielen);
-u8 *rtw_get_wps_attr(u8 *wps_ie, uint wps_ielen, u16 target_attr_id ,u8 *buf_attr, u16 *len_attr);
+u8 *rtw_get_wps_attr(u8 *wps_ie, uint wps_ielen, u16 target_attr_id ,u8 *buf_attr, u32 *len_attr);
 u8 *rtw_get_wps_attr_content(u8 *wps_ie, uint wps_ielen, u16 target_attr_id ,u8 *buf_content, uint *len_content);
-
-u8 *rtw_get_p2p_ie(u8 *in_ie, uint in_len, u8 *p2p_ie, uint *p2p_ielen);
-u8 *rtw_get_p2p_attr(u8 *p2p_ie, uint p2p_ielen, u8 target_attr_id ,u8 *buf_attr, u16 *len_attr);
-u8 *rtw_get_p2p_attr_content(u8 *p2p_ie, uint p2p_ielen, u8 target_attr_id ,u8 *buf_content, uint *len_content);
-u32 rtw_set_p2p_attr_content(u8 *pbuf, u8 attr_id, u16 attr_len, u8 *pdata_attr);
 
 void dump_ies(u8 *buf, u32 buf_len);
 void dump_wps_ie(u8 *ie, u32 ie_len);
+
 #ifdef CONFIG_P2P
 void dump_p2p_ie(u8 *ie, u32 ie_len);
+u8 *rtw_get_p2p_ie(u8 *in_ie, uint in_len, u8 *p2p_ie, uint *p2p_ielen);
+u8 *rtw_get_p2p_attr(u8 *p2p_ie, uint p2p_ielen, u8 target_attr_id ,u8 *buf_attr, u32 *len_attr);
+u8 *rtw_get_p2p_attr_content(u8 *p2p_ie, uint p2p_ielen, u8 target_attr_id ,u8 *buf_content, uint *len_content);
+u32 rtw_set_p2p_attr_content(u8 *pbuf, u8 attr_id, u16 attr_len, u8 *pdata_attr);
 void rtw_WLAN_BSSID_EX_remove_p2p_attr(WLAN_BSSID_EX *bss_ex, u8 attr_id);
 #endif
+
 #ifdef CONFIG_WFD
-int rtw_get_wfd_ie(u8 *in_ie, uint in_len, u8 *wfd_ie, uint *wfd_ielen);
+int rtw_get_wfd_ie(u8 *in_ie, int in_len, u8 *wfd_ie, uint *wfd_ielen);
 int rtw_get_wfd_attr_content(u8 *wfd_ie, uint wfd_ielen, u8 target_attr_id ,u8 *attr_content, uint *attr_contentlen);
 #endif // CONFIG_WFD
 
@@ -1432,5 +1404,7 @@ uint	rtw_is_cckratesonly_included(u8 *rate);
 int rtw_check_network_type(unsigned char *rate, int ratelen, int channel);
 
 void rtw_macaddr_cfg(u8 *mac_addr);
+
+u16 rtw_mcs_rate(u8 rf_type, u8 bw_40MHz, u8 short_GI_20, u8 short_GI_40, unsigned char * MCS_rate);
 #endif /* IEEE80211_H */
 

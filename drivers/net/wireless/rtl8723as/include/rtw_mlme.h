@@ -149,9 +149,14 @@ struct profile_info {
 
 struct tx_invite_req_info{
 	u8					token;
-	u8					ssid[ WLAN_SSID_MAXLEN ];
+	u8					benable;
+	u8					go_ssid[ WLAN_SSID_MAXLEN ];
 	u8					ssidlen;
-	u8					peer_operation_ch;
+	u8					go_bssid[ ETH_ALEN ];
+	u8					peer_macaddr[ ETH_ALEN ];
+	u8					operating_ch;	//	This information will be set by using the p2p_set op_ch=x
+	u8					peer_ch;		//	The listen channel for peer P2P device
+
 };
 
 struct tx_invite_resp_info{
@@ -164,6 +169,15 @@ struct wifi_display_info{
 	u16					rtsp_ctrlport;		//	TCP port number at which the this WFD device listens for RTSP messages
 	u16					peer_rtsp_ctrlport;	//	TCP port number at which the peer WFD device listens for RTSP messages
 											//	This filed should be filled when receiving the gropu negotiation request
+
+	u8					wfd_session_avail;	//	WFD session is available or not for the peer wfd device.
+											//	This variable will be set when sending the provisioning discovery request to peer WFD device.
+											//	And this variable will be reset when it is read by using the iwpriv p2p_get wfd_sa command.
+	u8					ip_address[4];
+	u8					peer_ip_address[4];
+	u8					wfd_pc;				//	WFD preferred connection
+											//	0 -> Prefer to use the P2P for WFD connection on peer side.
+											//	1 -> Prefer to use the TDLS for WFD connection on peer side.
 };
 #endif //CONFIG_WFD
 
@@ -239,6 +253,7 @@ struct wifidirect_info{
 	u8						p2p_wildcard_ssid[P2P_WILDCARD_SSID_LEN];
 	u8						intent;		//	should only include the intent value.
 	u8						p2p_peer_interface_addr[ ETH_ALEN ];
+	u8						p2p_peer_device_addr[ ETH_ALEN ];
 	u8						peer_intent;	//	Included the intent value and tie breaker value.
 	u8						device_name[ WPS_MAX_DEVICE_NAME_LEN ];	//	Device name for displaying on searching device screen
 	u8						device_name_len;
@@ -251,13 +266,31 @@ struct wifidirect_info{
 	u8						nego_ssidlen;
 	u8 						p2p_group_ssid[WLAN_SSID_MAXLEN];
 	u8 						p2p_group_ssid_len;
+	u8						persistent_supported;		//	Flag to know the persistent function should be supported or not.
+														//	In the Sigma test, the Sigma will provide this enable from the sta_set_p2p CAPI.
+														//	0: disable
+														//	1: enable
+	u8						session_available;			//	Flag to set the WFD session available to enable or disable "by Sigma"
+														//	In the Sigma test, the Sigma will disable the session available by using the sta_preset CAPI.
+														//	0: disable
+														//	1: enable
 
-	enum	P2P_WPSINFO		ui_got_wps_info;	//	This field will store the WPS value (PIN value or PBC) that UI had got from the user.
-	u16						supported_wps_cm;	//	This field describes the WPS config method which this driver supported.
-												//	The value should be the combination of config method defined in page104 of WPS v2.0 spec.												
-	u8						channel_cnt;		//	This field is the count number for P2P Channel List attribute of group negotitation response frame.
-	u8						channel_list[13];		//	This field will contain the channel number of P2P Channel List attribute of group negotitation response frame.
-												//	We will use the channel_cnt and channel_list fields when constructing the group negotitation confirm frame.
+	u8						wfd_tdls_enable;			//	Flag to enable or disable the TDLS by WFD Sigma
+														//	0: disable
+														//	1: enable
+	u8						wfd_tdls_weaksec;			//	Flag to enable or disable the weak security function for TDLS by WFD Sigma
+														//	0: disable
+														//	In this case, the driver can't issue the tdsl setup request frame.
+														//	1: enable
+														//	In this case, the driver can issue the tdls setup request frame
+														//	even the current security is weak security.
+
+	enum	P2P_WPSINFO		ui_got_wps_info;			//	This field will store the WPS value (PIN value or PBC) that UI had got from the user.
+	u16						supported_wps_cm;			//	This field describes the WPS config method which this driver supported.
+														//	The value should be the combination of config method defined in page104 of WPS v2.0 spec.	
+	uint						channel_list_attr_len;		//	This field will contain the length of body of P2P Channel List attribute of group negotitation response frame.
+	u8						channel_list_attr[100];		//	This field will contain the body of P2P Channel List attribute of group negotitation response frame.
+														//	We will use the channel_cnt and channel_list fields when constructing the group negotitation confirm frame.
 #ifdef CONFIG_CONCURRENT_MODE
 	u16						ext_listen_interval;	//	The interval to be available with legacy AP (ms)
 	u16						ext_listen_period;	//	The time period to be available for P2P listen state (ms)
@@ -286,16 +319,20 @@ struct tdls_info{
 	u8					sta_cnt;
 	u8					sta_maximum;	// 1:tdls sta is equal (NUM_STA-1), reach max direct link number; 0: else;
 	struct tdls_ss_record	ss_record;
-	u8					cam_entry_to_write;	//cam entry that is empty to write
-	u8					cam_entry_to_clear;	//cam entry that is trying to clear, using in direct link teardown
+	u8					macid_index;	//macid entry that is ready to write
+	u8					clear_cam;	//cam entry that is trying to clear, using it in direct link teardown
 	u8					ch_sensing;
 	u8					cur_channel;
 	u8					candidate_ch;
 	u8					collect_pkt_num[MAX_CHANNEL_NUM];
 	_lock				cmd_lock;
 	_lock				hdl_lock;
-	_lock				timer_lock;
 	u8					watchdog_count;
+	u8					dev_discovered;		//WFD_TDLS: for sigma test
+	u8					enable;
+#ifdef CONFIG_WFD
+	struct wifi_display_info		wfd_info;
+#endif		
 };
 
 struct mlme_priv {
@@ -363,8 +400,10 @@ struct mlme_priv {
 	u8	ChannelPlan;
 	RT_SCAN_TYPE 	scan_mode; // active: 1, passive: 0
 
-	u8 probereq_wpsie[MAX_WPS_IE_LEN];//added in probe req	
-	int probereq_wpsie_len;
+	//u8 probereq_wpsie[MAX_WPS_IE_LEN];//added in probe req	
+	//int probereq_wpsie_len;
+	u8 *wps_probe_req_ie;
+	u32 wps_probe_req_ie_len;
 
 #if defined (CONFIG_AP_MODE) && defined (CONFIG_NATIVEAP_MLME)
 	/* Number of associated Non-ERP stations (i.e., stations using 802.11b
@@ -396,12 +435,12 @@ struct mlme_priv {
 #endif /* CONFIG_80211N_HT */	
 
 	u8 *wps_beacon_ie;	
-	u8 *wps_probe_req_ie;
+	//u8 *wps_probe_req_ie;
 	u8 *wps_probe_resp_ie;
 	u8 *wps_assoc_resp_ie; // for CONFIG_IOCTL_CFG80211, this IE could include p2p ie
 
 	u32 wps_beacon_ie_len;
-	u32 wps_probe_req_ie_len;
+	//u32 wps_probe_req_ie_len;
 	u32 wps_probe_resp_ie_len;
 	u32 wps_assoc_resp_ie_len;
 	
@@ -592,6 +631,11 @@ __inline static void up_scanned_network(struct mlme_priv *pmlmepriv)
 	pmlmepriv->num_of_scanned++;
 	_exit_critical_bh(&pmlmepriv->lock, &irqL);
 }
+
+#ifdef CONFIG_CONCURRENT_MODE
+sint rtw_buddy_adapter_up(_adapter *padapter);
+sint check_buddy_fwstate(_adapter *padapter, sint state);
+#endif //CONFIG_CONCURRENT_MODE
 
 __inline static void down_scanned_network(struct mlme_priv *pmlmepriv)
 {
