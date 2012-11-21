@@ -31,7 +31,7 @@
 //#define DEBUG_IR
 #define PRINT_SUSPEND_INFO
 
-#ifdef CONFIG_AW_FPGA_V4_PLATRORM
+#ifdef CONFIG_AW_FPGA_V4_PLATFORM
 #define FPGA_SIM_CONFIG            //input clk is 24M
 #define SW_INT_IRQNO_IR0 (16+32)
 //#define SYS_CLK_CFG_EN

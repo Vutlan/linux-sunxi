@@ -39,7 +39,7 @@
 #define  PRINT_SUSPEND_INFO
 
 //just for test 
-#ifdef CONFIG_AW_FPGA_V4_PLATRORM
+#ifdef CONFIG_AW_FPGA_V4_PLATFORM
 #define SW_INT_IRQNO_LRADC (11 + 32)
 #else
 #define SW_INT_IRQNO_LRADC (62)
