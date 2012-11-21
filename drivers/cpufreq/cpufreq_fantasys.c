@@ -926,10 +926,10 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
     unsigned int cpu, freq_target;
     struct cpufreq_policy *policy;
     int num_hist = hotplug_history->num_hist;
-    int max_hotplug_rate = max(dbs_tuners_ins.cpu_up_rate, dbs_tuners_ins.cpu_down_rate);
+    int max_hotplug_rate = max((int)dbs_tuners_ins.cpu_up_rate, (int)dbs_tuners_ins.cpu_down_rate);
 
-    max_hotplug_rate = max(max_hotplug_rate, dbs_tuners_ins.freq_up_rate);
-    max_hotplug_rate = max(max_hotplug_rate, dbs_tuners_ins.freq_down_rate);
+    max_hotplug_rate = max(max_hotplug_rate, (int)dbs_tuners_ins.freq_up_rate);
+    max_hotplug_rate = max(max_hotplug_rate, (int)dbs_tuners_ins.freq_down_rate);
 
     policy = this_dbs_info->cur_policy;
 
