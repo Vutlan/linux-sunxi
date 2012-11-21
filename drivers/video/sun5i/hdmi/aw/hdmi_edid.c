@@ -1,5 +1,7 @@
-
+#include "hdmi_cec.h"
 #include "hdmi_core.h"
+extern __u32 cec_phy_addr;
+
 void DDC_Init(void)
 {    
     __inf("DDC_Init\n");
@@ -322,6 +324,8 @@ __s32 Parse_HDMI_VSDB(__u8 * pbuf,__u8 size)
 		return 0;
 	}
 	
+    __inf("my phy addr is %x, %x\n", pbuf[3], pbuf[4]);
+    cec_phy_addr = (((__u32)pbuf[3]) << 8) | pbuf[4];
 	if(size <=8)
 		return 0;
 

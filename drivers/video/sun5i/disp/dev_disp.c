@@ -1,6 +1,6 @@
 #include "dev_disp.h"
 #include "linux/pm.h"
-
+#include "../hdmi/aw/hdmi_cec.h"
 #ifdef CONFIG_HAS_EARLYSUSPEND
 #include <linux/earlysuspend.h>
 #endif
@@ -529,7 +529,8 @@ static int disp_remove(struct platform_device *pdev)
 void backlight_early_suspend(struct early_suspend *h)
 {
     int i = 0;
-
+    cec_standby=1;
+    cec_count=30;
     pr_info("==display early suspend enter\n");
 
     for(i=0; i<2; i++)
@@ -562,7 +563,8 @@ void backlight_early_suspend(struct early_suspend *h)
 void backlight_late_resume(struct early_suspend *h)
 {
     int i = 0;
-
+    cec_standby=0;
+    cec_count=30;
     pr_info("==display late resume enter\n");
 
     if(suspend_prestep != 2)
