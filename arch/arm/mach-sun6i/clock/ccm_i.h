@@ -127,6 +127,7 @@ typedef enum __AW_CCU_CLK_ID
     AW_MOD_CLK_ADDA,        /* "mod_adda"                       */
     AW_MOD_CLK_AVS,         /* "mod_avs"                        */
     AW_MOD_CLK_HDMI,        /* "mod_hdmi"                       */
+    AW_MOD_CLK_HDMI_DDC,    /* "mod_hdmi_ddc"                   */
     AW_MOD_CLK_PS,          /* "mod_ps"                         */
     AW_MOD_CLK_MTCACC,      /* "mod_mtcacc"                     */
     AW_MOD_CLK_MBUS0,       /* "mod_mbus0"                      */
@@ -194,7 +195,7 @@ typedef enum __AW_CCU_CLK_ID
     AW_AHB_CLK_LCD1,        /* "ahb_lcd1"                       */
     AW_AHB_CLK_CSI0,        /* "ahb_csi0"                       */
     AW_AHB_CLK_CSI1,        /* "ahb_csi1"                       */
-    AW_AHB_CLK_HDMID,       /* "ahb_hdmid"                      */
+    AW_AHB_CLK_HDMI,        /* "ahb_hdmi"                       */
     AW_AHB_CLK_DEBE0,       /* "ahb_debe0"                      */
     AW_AHB_CLK_DEBE1,       /* "ahb_debe1"                      */
     AW_AHB_CLK_DEFE0,       /* "ahb_defe0"                      */

@@ -700,6 +700,8 @@ static __aw_ccu_clk_onff_e mod_clk_get_status(__aw_ccu_clk_id_e id)
             return GET_CLK_STATUS(&aw_ccu_reg->Avs);
         case AW_MOD_CLK_HDMI:
             return GET_CLK_STATUS(&aw_ccu_reg->Hdmi);
+        case AW_MOD_CLK_HDMI_DDC:
+            return aw_ccu_reg->Hdmi.DDCGate? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
         case AW_MOD_CLK_PS:
             return GET_CLK_STATUS(&aw_ccu_reg->Ps);
         case AW_MOD_CLK_MTCACC:
@@ -790,7 +792,7 @@ static __aw_ccu_clk_onff_e mod_clk_get_status(__aw_ccu_clk_id_e id)
             return aw_ccu_reg->AhbGate1.Csi0? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
         case AW_AHB_CLK_CSI1:
             return aw_ccu_reg->AhbGate1.Csi1? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
-        case AW_AHB_CLK_HDMID:
+        case AW_AHB_CLK_HDMI:
             return aw_ccu_reg->AhbGate1.Hdmi? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
         case AW_AHB_CLK_DEBE0:
             return aw_ccu_reg->AhbGate1.Be0? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
@@ -1462,6 +1464,8 @@ static __s32 mod_clk_set_status(__aw_ccu_clk_id_e id, __aw_ccu_clk_onff_e status
             aw_ccu_reg->Avs.ClkGate = STATUS_BIT(status); break;
         case AW_MOD_CLK_HDMI:
             aw_ccu_reg->Hdmi.ClkGate = STATUS_BIT(status); break;
+        case AW_MOD_CLK_HDMI_DDC:
+            return aw_ccu_reg->Hdmi.DDCGate = STATUS_BIT(status); break;
         case AW_MOD_CLK_PS:
             aw_ccu_reg->Ps.ClkGate = STATUS_BIT(status); break;
         case AW_MOD_CLK_MTCACC:
@@ -1552,7 +1556,7 @@ static __s32 mod_clk_set_status(__aw_ccu_clk_id_e id, __aw_ccu_clk_onff_e status
             aw_ccu_reg->AhbGate1.Csi0 = STATUS_BIT(status); break;
         case AW_AHB_CLK_CSI1:
             aw_ccu_reg->AhbGate1.Csi1 = STATUS_BIT(status); break;
-        case AW_AHB_CLK_HDMID:
+        case AW_AHB_CLK_HDMI:
             aw_ccu_reg->AhbGate1.Hdmi = STATUS_BIT(status); break;
         case AW_AHB_CLK_DEBE0:
             aw_ccu_reg->AhbGate1.Be0 = STATUS_BIT(status); break;
@@ -1773,10 +1777,15 @@ static __s32 mod_clk_set_rate(__aw_ccu_clk_id_e id, __s64 rate)
 */
 static __u64 mod_clk_get_rate_hz(__aw_ccu_clk_id_e id)
 {
-    __u64   rate = sys_clk_ops.get_rate(mod_clk_get_parent(id));
+    __u64   parent_rate = sys_clk_ops.get_rate(mod_clk_get_parent(id));
+    __u64   div = mod_clk_get_rate(id);
 
-    do_div(rate, mod_clk_get_rate(id));
-    return rate;
+    if(!div) {
+        div = 1;
+    }
+
+    do_div(parent_rate, div);
+    return parent_rate;
 }
 
 
@@ -1800,11 +1809,13 @@ static __u64 mod_clk_get_rate_hz(__aw_ccu_clk_id_e id)
 static int mod_clk_set_rate_hz(__aw_ccu_clk_id_e id, __u64 rate)
 {
     __u64   parent_rate = sys_clk_ops.get_rate(mod_clk_get_parent(id));
-    __u32   rem = 0;
 
-    rem = do_div(parent_rate, rate);
-    if(0 != rem) /* for no-dividable rate, increase div by 1, liugang, 2012-9-14 */
-	parent_rate += 1;
+    if(!rate) {
+        return -1;
+    }
+
+    parent_rate += rate - 1;
+    do_div(parent_rate, rate);
     return mod_clk_set_rate(id, parent_rate);
 }
 
@@ -2143,6 +2154,10 @@ static __s32 mod_clk_set_reset(__aw_ccu_clk_id_e id, __aw_ccu_clk_reset_e reset)
 */
 static __u64 mod_clk_round_rate(__aw_ccu_clk_id_e id, __u64 rate)
 {
+    if(!rate) {
+        rate = 1;
+    }
+
     switch(id)
     {
         case AW_MOD_CLK_NAND0:
