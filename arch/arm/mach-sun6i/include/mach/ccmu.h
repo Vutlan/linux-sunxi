@@ -669,7 +669,7 @@ typedef struct __CCMU_REG_LIST
 #define AR100_CLKSRC_LOSC       (0)
 #define AR100_CLKSRC_HOSC       (1)
 #define AR100_CLKSRC_PLL6       (2)
-typedef struct __CCMU_CPU0_CFG
+typedef struct __CCMU_CPUS_CFG
 {
     __u32   reserved0:4;        //bit0,  reserved
     __u32   Div:2;              //bit4,  cpu0 clock divide ratio, 1/2/4/8
@@ -679,7 +679,7 @@ typedef struct __CCMU_CPU0_CFG
     __u32   ClkSrc:2;           //bit16, cpu0 clock source, 00:LOSC, 01:HOSC, 10/11:PLL6/PDIV,
     __u32   reserved:14;        //bit18, reserved
 
-} __ccmu_cpu0_cfg_t;
+} __ccmu_cpus_cfg_t;
 
 
 typedef struct __CCMU_APB0_RATIO
@@ -801,7 +801,7 @@ typedef struct __CCMU_CPU_PWRCLAMP
 
 typedef struct __CCMU_REG_CPU0_LIST
 {
-    volatile __ccmu_cpu0_cfg_t               Cpu0Cfg;       //0x0000, cpu0 clock configuration
+    volatile __ccmu_cpus_cfg_t               Cpu0Cfg;       //0x0000, cpu0 clock configuration
     volatile __u32                           reserved0[2];  //0x0004, reserved
     volatile __ccmu_apb0_ratio_t             Apb0Div;       //0x000c, apb0 clock divide ratio
     volatile __ccmu_cpuneon_clk_t            Cpu1En;        //0x0010, cpu1/neon clock enable

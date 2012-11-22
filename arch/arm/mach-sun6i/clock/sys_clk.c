@@ -69,7 +69,7 @@ static __aw_ccu_clk_id_e sys_clk_get_parent(__aw_ccu_clk_id_e id)
                     return AW_SYS_CLK_PLL1;
             }
         case AW_SYS_CLK_AR100:
-            switch(aw_cpu0_reg->Cpu0Cfg.ClkSrc)
+            switch(aw_cpus_reg->Cpu0Cfg.ClkSrc)
             {
                 case AR100_CLKSRC_LOSC:
                     return AW_SYS_CLK_LOSC;
@@ -395,13 +395,13 @@ static __s32 sys_clk_set_parent(__aw_ccu_clk_id_e id, __aw_ccu_clk_id_e parent)
             switch(parent)
             {
                 case AW_SYS_CLK_LOSC:
-                    aw_cpu0_reg->Cpu0Cfg.ClkSrc = AR100_CLKSRC_LOSC;
+                    aw_cpus_reg->Cpu0Cfg.ClkSrc = AR100_CLKSRC_LOSC;
                     return 0;
                 case AW_SYS_CLK_HOSC:
-                    aw_cpu0_reg->Cpu0Cfg.ClkSrc = AR100_CLKSRC_HOSC;
+                    aw_cpus_reg->Cpu0Cfg.ClkSrc = AR100_CLKSRC_HOSC;
                     return 0;
                 case AW_SYS_CLK_PLL1:
-                    aw_cpu0_reg->Cpu0Cfg.ClkSrc = AR100_CLKSRC_PLL6;
+                    aw_cpus_reg->Cpu0Cfg.ClkSrc = AR100_CLKSRC_PLL6;
                     return 0;
                 default:
                     CCU_ERR("ar100 clock source is ivalid!\n");

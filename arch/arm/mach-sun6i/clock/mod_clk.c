@@ -595,6 +595,36 @@ static __aw_ccu_clk_id_e mod_clk_get_parent(__aw_ccu_clk_id_e id)
         case AW_MOD_CLK_UART5:
             return AW_SYS_CLK_APB2;
 
+        case AW_MOD_CLK_R_1WIRE:
+        {
+            if(aw_cpus_reg->OneWire.ClkSrc == 0) {
+                return AW_SYS_CLK_LOSC;
+            } else if(aw_cpus_reg->OneWire.ClkSrc == 1) {
+                return AW_SYS_CLK_HOSC;
+            } else {
+                aw_cpus_reg->OneWire.ClkSrc = 0;
+                return AW_SYS_CLK_LOSC;
+            }
+        }
+        case AW_MOD_CLK_R_CIR:
+        {
+            if(aw_cpus_reg->Cir.ClkSrc == 0) {
+                return AW_SYS_CLK_LOSC;
+            } else if(aw_cpus_reg->Cir.ClkSrc == 1) {
+                return AW_SYS_CLK_HOSC;
+            } else {
+                aw_cpus_reg->Cir.ClkSrc = 0;
+                return AW_SYS_CLK_LOSC;
+            }
+        }
+
+        case AW_MOD_CLK_R_TWI:
+        case AW_MOD_CLK_R_UART:
+        case AW_MOD_CLK_R_P2WI:
+        case AW_MOD_CLK_R_TMR:
+        case AW_MOD_CLK_R_PIO:
+            return AW_SYS_CLK_APB0;
+
         default:
             return AW_SYS_CLK_NONE;
     }
@@ -876,6 +906,24 @@ static __aw_ccu_clk_onff_e mod_clk_get_status(__aw_ccu_clk_id_e id)
             return aw_ccu_reg->DramGate.Be1? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
         case AW_DRAM_CLK_MP:
             return aw_ccu_reg->DramGate.Mp? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
+
+        case AW_MOD_CLK_R_1WIRE:
+            return (aw_cpus_reg->Apb0Gate.OneWire && aw_cpus_reg->OneWire.ClkGate)? \
+                        AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
+        case AW_MOD_CLK_R_CIR:
+            return (aw_cpus_reg->Apb0Gate.Cir && aw_cpus_reg->Cir.ClkGate)?     \
+                        AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
+        case AW_MOD_CLK_R_TWI:
+            return aw_cpus_reg->Apb0Gate.Twi? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
+        case AW_MOD_CLK_R_UART:
+            return aw_cpus_reg->Apb0Gate.Uart? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
+        case AW_MOD_CLK_R_P2WI:
+            return aw_cpus_reg->Apb0Gate.P2wi? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
+        case AW_MOD_CLK_R_TMR:
+            return aw_cpus_reg->Apb0Gate.Tmr? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
+        case AW_MOD_CLK_R_PIO:
+            return aw_cpus_reg->Apb0Gate.Pio? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
+
         default:
             return AW_CCU_CLK_ON;
     }
@@ -982,6 +1030,11 @@ static __s64 mod_clk_get_rate(__aw_ccu_clk_id_e id)
             return _get_module0_clk_rate(&aw_ccu_reg->GpuMem);
         case AW_MOD_CLK_GPUHYD:
             return _get_module0_clk_rate(&aw_ccu_reg->GpuHyd);
+
+        case AW_MOD_CLK_R_1WIRE:
+            return _get_module0_clk_rate(&aw_cpus_reg->OneWire);
+        case AW_MOD_CLK_R_CIR:
+            return _get_module0_clk_rate(&aw_cpus_reg->Cir);
 
         default:
             return 1;
@@ -1358,6 +1411,42 @@ static __s32 mod_clk_set_parent(__aw_ccu_clk_id_e id, __aw_ccu_clk_id_e parent)
                 return -1;
             return 0;
 
+        case AW_MOD_CLK_R_1WIRE:
+        {
+            if(parent == AW_SYS_CLK_LOSC) {
+                aw_cpus_reg->OneWire.ClkSrc = 0;
+            } else if(parent == AW_SYS_CLK_HOSC) {
+                aw_cpus_reg->OneWire.ClkSrc = 1;
+            } else {
+                return -1;
+            }
+            return 0;
+        }
+        case AW_MOD_CLK_R_CIR:
+        {
+            if(parent == AW_SYS_CLK_LOSC) {
+                aw_cpus_reg->Cir.ClkSrc = 0;
+            } else if(parent == AW_SYS_CLK_HOSC) {
+                aw_cpus_reg->Cir.ClkSrc = 1;
+            } else {
+                return -1;
+            }
+            return 0;
+        }
+
+        case AW_MOD_CLK_R_TWI:
+        case AW_MOD_CLK_R_UART:
+        case AW_MOD_CLK_R_P2WI:
+        case AW_MOD_CLK_R_TMR:
+        case AW_MOD_CLK_R_PIO:
+        {
+            if(parent == AW_SYS_CLK_APB0){
+                return 0;
+            }
+
+            return -1;
+        }
+
         default:
             return 0;
     }
@@ -1640,6 +1729,30 @@ static __s32 mod_clk_set_status(__aw_ccu_clk_id_e id, __aw_ccu_clk_onff_e status
             aw_ccu_reg->DramGate.Be1 = STATUS_BIT(status); break;
         case AW_DRAM_CLK_MP:
             aw_ccu_reg->DramGate.Mp = STATUS_BIT(status); break;
+
+        case AW_MOD_CLK_R_1WIRE:
+        {
+            aw_cpus_reg->Apb0Gate.OneWire = STATUS_BIT(status);
+            aw_cpus_reg->OneWire.ClkGate = STATUS_BIT(status);
+            break;
+        }
+        case AW_MOD_CLK_R_CIR:
+        {
+            aw_cpus_reg->Apb0Gate.Cir = STATUS_BIT(status);
+            aw_cpus_reg->Cir.ClkGate = STATUS_BIT(status);
+            break;
+        }
+        case AW_MOD_CLK_R_TWI:
+            aw_cpus_reg->Apb0Gate.Twi = STATUS_BIT(status); break;
+        case AW_MOD_CLK_R_UART:
+            aw_cpus_reg->Apb0Gate.Uart = STATUS_BIT(status); break;
+        case AW_MOD_CLK_R_P2WI:
+            aw_cpus_reg->Apb0Gate.P2wi = STATUS_BIT(status); break;
+        case AW_MOD_CLK_R_TMR:
+            aw_cpus_reg->Apb0Gate.Tmr = STATUS_BIT(status); break;
+        case AW_MOD_CLK_R_PIO:
+            aw_cpus_reg->Apb0Gate.Pio = STATUS_BIT(status); break;
+
         default:
             break;
     }
@@ -1751,6 +1864,11 @@ static __s32 mod_clk_set_rate(__aw_ccu_clk_id_e id, __s64 rate)
             return _set_module0_clk_rate(&aw_ccu_reg->GpuMem, rate);
         case AW_MOD_CLK_GPUHYD:
             return _set_module0_clk_rate(&aw_ccu_reg->GpuHyd, rate);
+
+        case AW_MOD_CLK_R_1WIRE:
+            return _set_module0_clk_rate(&aw_cpus_reg->OneWire, rate);
+        case AW_MOD_CLK_R_CIR:
+            return _set_module0_clk_rate(&aw_cpus_reg->Cir, rate);
 
         default:
             return 0;
@@ -1971,6 +2089,20 @@ static __aw_ccu_clk_reset_e mod_clk_get_reset(__aw_ccu_clk_id_e id)
             return GET_RESET(aw_ccu_reg->AhbReset1.SpinLock);
         case AW_MOD_CLK_LVDS:
             return GET_RESET(aw_ccu_reg->AhbReset2.Lvds);
+
+        case AW_MOD_CLK_R_1WIRE:
+            return GET_RESET(aw_cpus_reg->ModReset.OneWire);
+        case AW_MOD_CLK_R_CIR:
+            return GET_RESET(aw_cpus_reg->ModReset.Cir);
+        case AW_MOD_CLK_R_TWI:
+            return GET_RESET(aw_cpus_reg->ModReset.Twi);
+        case AW_MOD_CLK_R_UART:
+            return GET_RESET(aw_cpus_reg->ModReset.Uart);
+        case AW_MOD_CLK_R_P2WI:
+            return GET_RESET(aw_cpus_reg->ModReset.P2wi);
+        case AW_MOD_CLK_R_TMR:
+            return GET_RESET(aw_cpus_reg->ModReset.Tmr);
+
         default:
             return AW_CCU_CLK_NRESET;
     }
@@ -2129,6 +2261,20 @@ static __s32 mod_clk_set_reset(__aw_ccu_clk_id_e id, __aw_ccu_clk_reset_e reset)
             SET_RESET(aw_ccu_reg->AhbReset1.SpinLock,reset);break;
         case AW_MOD_CLK_LVDS:
             SET_RESET(aw_ccu_reg->AhbReset2.Lvds, reset);   break;
+
+        case AW_MOD_CLK_R_1WIRE:
+            SET_RESET(aw_cpus_reg->ModReset.OneWire, reset);    break;
+        case AW_MOD_CLK_R_CIR:
+            SET_RESET(aw_cpus_reg->ModReset.Cir, reset);    break;
+        case AW_MOD_CLK_R_TWI:
+            SET_RESET(aw_cpus_reg->ModReset.Twi, reset);    break;
+        case AW_MOD_CLK_R_UART:
+            SET_RESET(aw_cpus_reg->ModReset.Uart, reset);    break;
+        case AW_MOD_CLK_R_P2WI:
+            SET_RESET(aw_cpus_reg->ModReset.P2wi, reset);    break;
+        case AW_MOD_CLK_R_TMR:
+            SET_RESET(aw_cpus_reg->ModReset.Tmr, reset);    break;
+
         default:
             break;
     }

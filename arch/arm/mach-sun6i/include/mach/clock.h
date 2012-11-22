@@ -161,6 +161,13 @@ typedef enum __AW_CCU_CLK_RESET
 #define CLK_MOD_SPINLOCK    "mod_spinlock"
 #define CLK_MOD_LVDS        "mod_lvds"
 #define CLK_SMP_TWD         "smp_twd"
+#define CLK_MOD_R_TWI       "mod_r_twi"
+#define CLK_MOD_R_1WIRE     "mod_r_1wire"
+#define CLK_MOD_R_UART      "mod_r_uart"
+#define CLK_MOD_R_P2WI      "mod_r_p2wi"
+#define CLK_MOD_R_TMR       "mod_r_tmr"
+#define CLK_MOD_R_CIR       "mod_r_cir"
+#define CLK_MOD_R_PIO       "mod_r_pio"
 
 /* define ahb module gatine clock */
 #define CLK_AHB_MIPICSI     "ahb_mipicsi"
@@ -238,6 +245,8 @@ typedef enum __AW_CCU_CLK_RESET
 #define CLK_DRAM_DEBE0      "dram_debe0"
 #define CLK_DRAM_DEBE1      "dram_debe1"
 #define CLK_DRAM_MP         "dram_mp"
+
+
 
 
 struct __AW_CCU_CLK;
