@@ -24,31 +24,6 @@ restore_sp:
     mov r13, r0
     mov pc,lr
 
-
-    .text
-    .globl mem_flush_tlb
-mem_flush_tlb:
-    push    {r0-r3}
-    DSB
-    mov r0, #0
-    /* invalid un-locked data and instruction tlb */
-    mcr p15, 0, r0, c8, c7, 0
-    /*Write to @CP15_FLUSH_BRANCH_TARGET_CACHE*/
-    MCR p15,#0x0,r0,c7,c5,#6
-    DSB      
-    ISB
-    ldr r0, =0x0
-    /* Write D-TLB Lockdown Register */
-    MCR p15,0,r0,c10,c0,0  
-    ldr r0, =0x0
-    /* Write I-TLB Lockdown Register*/
-    MCR p15,0,r0,c10,c0,1 
-    DSB      
-    ISB
-    
-    pop     {r0-r3}
-    mov pc,lr
-
     .text
     .globl flush_dcache
 flush_dcache:

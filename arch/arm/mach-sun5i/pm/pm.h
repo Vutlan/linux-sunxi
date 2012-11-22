@@ -105,5 +105,6 @@ static inline __u32 raw_lib_udiv(__u32 dividend, __u32 divisior)
     return tmpQuot;
 }
 
+extern void mem_flush_tlb(void);
 
 #endif /*_PM_H*/
