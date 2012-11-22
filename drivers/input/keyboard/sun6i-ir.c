@@ -144,7 +144,7 @@ static inline void ir_write_rawbuffer(unsigned char data)
 	if (ir_rawbuf.dcnt < IR_RAW_BUF_SIZE) 
 		ir_rawbuf.buf[ir_rawbuf.dcnt++] = data;
 	else
-		printk(KERN_DEBUG, "ir_write_rawbuffer: IR Rx Buffer Full!!\n");
+		printk(KERN_DEBUG "ir_write_rawbuffer: IR Rx Buffer Full!!\n");
 }
 
 static inline unsigned char ir_read_rawbuffer(void)
@@ -630,7 +630,7 @@ static int __init ir_init(void)
 	s_timer = kmalloc(sizeof(struct timer_list), GFP_KERNEL);
 	if (!s_timer) {
 		ret =  - ENOMEM;
-		printk(KERN_DEBUG, " IR FAIL TO  Request Time\n");
+		printk(KERN_DEBUG " IR FAIL TO  Request Time\n");
 		goto fail3;
 	}
 	init_timer(s_timer);
