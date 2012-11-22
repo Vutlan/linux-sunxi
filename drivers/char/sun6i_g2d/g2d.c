@@ -4,7 +4,10 @@
 #include <mach/clock.h>
 #include "g2d_driver_i.h"
 
-struct clk *g2d_ahbclk,*g2d_dramclk,*g2d_mclk,*g2d_src;
+static struct clk *g2d_ahbclk = NULL;
+static struct clk *g2d_dramclk = NULL;
+static struct clk *g2d_mclk = NULL;
+static struct clk *g2d_src = NULL;
 extern __g2d_drv_t	 g2d_ext_hd;
 
 int g2d_openclk(void)
@@ -12,55 +15,149 @@ int g2d_openclk(void)
 	__u32 ret;
 	
 	/* ahb g2d gating */
-	g2d_ahbclk = clk_get(NULL,"ahb_de_mix");
+	g2d_ahbclk = clk_get(NULL,"ahb_mp");
+	if(NULL == g2d_ahbclk || IS_ERR(g2d_ahbclk))
+	{
+		printk("%s err: clk_get %s failed\n", __func__, "ahb_mp");
+		return -EPERM;
+	}
 	
 	/* sdram g2d gating */
-	g2d_dramclk = clk_get(NULL,"sdram_de_mix");
+	g2d_dramclk = clk_get(NULL,"dram_mp");
+	if(NULL == g2d_dramclk || IS_ERR(g2d_dramclk))
+	{
+		printk("%s err: clk_get %s failed\n", __func__, "dram_mp");
+		return -EPERM;
+	}
 	
 	/* g2d gating */
-	g2d_mclk = clk_get(NULL,"de_mix");
-		
+	g2d_mclk = clk_get(NULL,"mod_demp");
+	if(NULL == g2d_mclk || IS_ERR(g2d_mclk))
+	{
+		printk("%s err: clk_get %s failed\n", __func__, "mod_demp");
+		return -EPERM;
+	}
+
 	/*disable mp clk reset*/
-	clk_reset(g2d_mclk,0);
+	if(clk_reset(g2d_mclk,AW_CCU_CLK_NRESET))
+	{
+		printk("%s err: clk_reset failed, line %d\n", __func__, __LINE__);
+		return -EPERM;
+	}
 	
 	/* set g2d clk value */
-	g2d_src = clk_get(NULL,"sdram_pll_p");//video_pll0
-	ret = clk_set_parent(g2d_mclk, g2d_src);
-	clk_put(g2d_src);
-	
+	g2d_src = clk_get(NULL,"sys_pll5");//sys_pll3 sys_pll5
+	if(NULL == g2d_src || IS_ERR(g2d_src))
+	{
+		printk("%s err: clk_get %s failed\n", __func__, "sys_pll5");
+		return -EPERM;
+	}
+
+	if(clk_set_parent(g2d_mclk, g2d_src))
+	{
+		printk("%s:set g2d_mclk parent to sdram_pll failed!\n",__func__);
+	}
 	ret = clk_get_rate(g2d_src);
-	clk_set_rate(g2d_mclk,ret/2);
+	if(clk_set_rate(g2d_mclk,ret/2))
+		printk("%s:set g2d_mclk rate to %dHZ failed!\n",__func__,ret/2);
+	clk_put(g2d_src);
 		
 	return 0;
 }
 
 int g2d_closeclk(void)/* used once when g2d driver exit */
 {	
-	clk_disable(g2d_ahbclk);
-	clk_disable(g2d_dramclk);
-	clk_disable(g2d_mclk);
-	
-	clk_put(g2d_ahbclk);
-	clk_put(g2d_dramclk);
-	clk_put(g2d_mclk);
+	if(NULL == g2d_mclk || IS_ERR(g2d_mclk))
+	{
+		printk("g2d_mclk handle is invalid,just return!\n");
+		return 0;
+	}
+	else
+	{
+		clk_disable(g2d_mclk);
+		clk_put(g2d_mclk);
+		g2d_mclk = NULL;
+	}
+
+	if(NULL == g2d_dramclk || IS_ERR(g2d_dramclk))
+	{
+		printk("g2d_dramclk handle is invalid,just return!\n");
+		return 0;
+	}
+	else
+	{
+		clk_disable(g2d_dramclk);
+		clk_put(g2d_dramclk);
+		g2d_dramclk = NULL;
+	}
+
+	if(NULL == g2d_ahbclk || IS_ERR(g2d_ahbclk))
+	{
+		printk("g2d_ahbclk handle is invalid,just return!\n");
+		return 0;
+	}
+	else
+	{
+		clk_disable(g2d_ahbclk);
+		clk_put(g2d_ahbclk);
+		g2d_ahbclk = NULL;
+	}
 
 	return 0;
 }
 
 int g2d_clk_on(void)/* used in request */
 {	
-	clk_enable(g2d_ahbclk);
-	clk_enable(g2d_dramclk);
-	clk_enable(g2d_mclk);
-	
+	if(0 != clk_enable(g2d_ahbclk))
+	{
+		printk("%s err: clk_enable failed, line %d\n", __func__, __LINE__);
+		return -EPERM;
+	}
+	if(0 != clk_enable(g2d_dramclk))
+	{
+		printk("%s err: clk_enable failed, line %d\n", __func__, __LINE__);
+		return -EPERM;
+	}
+	if(0 != clk_enable(g2d_mclk))
+	{
+		printk("%s err: clk_enable failed, line %d\n", __func__, __LINE__);
+		return -EPERM;
+	}
+
 	return  0;
 }
 
 int g2d_clk_off(void)/* used in release */
 {
-	clk_disable(g2d_ahbclk);
-	clk_disable(g2d_dramclk);
-	clk_disable(g2d_mclk);
+	if(NULL == g2d_mclk || IS_ERR(g2d_mclk))
+	{
+		printk("g2d_mclk handle is invalid,just return!\n");
+		return 0;
+	}
+	else
+	{
+		clk_disable(g2d_mclk);
+	}
+
+	if(NULL == g2d_dramclk || IS_ERR(g2d_dramclk))
+	{
+		printk("g2d_dramclk handle is invalid,just return!\n");
+		return 0;
+	}
+	else
+	{
+		clk_disable(g2d_dramclk);
+	}
+
+	if(NULL == g2d_ahbclk || IS_ERR(g2d_ahbclk))
+	{
+		printk("g2d_ahbclk handle is invalid,just return!\n");
+		return 0;
+	}
+	else
+	{
+		clk_disable(g2d_ahbclk);
+	}
 	
 	return  0;
 }
