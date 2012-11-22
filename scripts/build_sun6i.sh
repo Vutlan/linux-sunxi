@@ -68,7 +68,6 @@ copy_nand_mod()
 {
 
     cd $LICHEE_KDIR
-    echo _________________cpio build____________________________
     if [ -x "./scripts/build_rootfs.sh" ]; then
         ./scripts/build_rootfs.sh e rootfs.cpio.gz >/dev/null
     else
@@ -116,7 +115,6 @@ build_kernel()
 	cp bImage output/
 	cp -vf arch/arm/boot/[zu]Image output/
 	cp .config output/
-	cp output/uImage output/boot.img
 
 	for file in $(find drivers sound crypto block fs security net -name "*.ko"); do
 		cp $file ${LICHEE_MOD_DIR}
@@ -182,13 +180,13 @@ build_modules()
 
 build_ramfs()
 {
-#		cp rootfs.cpio.gz output/
-#		mkbootimg	--kernel output/bImage \
-#					--ramdisk output/rootfs.cpio.gz \
-#					--board 'a31' \
-#					--base 0x40000000 \
-#					-o output/boot.img
-#		rm  rootfs.cpio.gz
+		cp rootfs.cpio.gz output/
+		mkbootimg	--kernel output/bImage \
+					--ramdisk output/rootfs.cpio.gz \
+					--board 'a31' \
+					--base 0x40000000 \
+					-o output/boot.img
+		rm  rootfs.cpio.gz
 		echo build_ramfs
 }
 
