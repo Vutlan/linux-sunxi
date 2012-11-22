@@ -455,7 +455,14 @@ __s32 audio_config(void)
     }else  if(audio_info.channel_num == 2)
     {
           HDMI_WUINT32(0x044,0x00000000);             	//audio fifo rst and select ddma, 2 ch 16bit pcm 
-          HDMI_WUINT32(0x048,0x00000001);				//ddma,pcm layout0 2ch
+          if(audio_info.data_raw == 0)
+          {
+				HDMI_WUINT32(0x048,0x00000001);				//ddma,pcm layout0 2ch
+          }
+          else
+          {
+				HDMI_WUINT32(0x048,0x01000001);				//ddma,raw layout0 2ch
+          }
           HDMI_WUINT32(0x04c,0x76543210);
 		  
           HDMI_WUINT32(0x0A0,0x710a0184);             	//audio infoframe head 

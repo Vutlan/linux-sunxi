@@ -22,15 +22,4 @@ struct sun4i_dma_params {
 	dma_addr_t dma_addr;
 	int dma_size;			
 };
-
-enum sun4i_dma_buffresult {
-	SUN4I_RES_OK,
-	SUN4I_RES_ERR,
-	SUN4I_RES_ABORT
-};
-
-/* platform data */
-extern int sw_dma_enqueue(unsigned int channel, void *id,
-			dma_addr_t data, int size);
-			
 #endif //SUN4I_HDMIPCM_H_

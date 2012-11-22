@@ -76,6 +76,15 @@ __s32 Hdmi_hal_set_audio_para(hdmi_audio_t * audio_para)
 
     	__inf("channel_num:%d in Hdmi_hal_set_audio_para\n", audio_info.channel_num);
     }
+    if(audio_para->data_raw != audio_info.data_raw)
+    {
+    	if(hdmi_state >= HDMI_State_Audio_config)
+    		hdmi_state 				= HDMI_State_Audio_config;
+    	audio_info.data_raw 	= audio_para->data_raw;
+
+
+    	__inf("data_raw:%d in Hdmi_hal_set_audio_para\n", audio_info.data_raw);
+    }
 
     return 0;
 }

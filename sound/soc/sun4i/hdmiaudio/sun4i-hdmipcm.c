@@ -29,7 +29,6 @@
 #include <mach/hardware.h>
 #include <mach/dma.h>
 
-#include "sun4i-hdmiaudio.h"
 #include "sun4i-hdmipcm.h"
 
 static volatile unsigned int dmasrc = 0;
@@ -220,14 +219,12 @@ static int sun4i_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 	case SNDRV_PCM_TRIGGER_START:
 	case SNDRV_PCM_TRIGGER_RESUME:
 	case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
-		printk("[HDMI-AUDIO] PCM trigger start...\n");
 		sw_dma_ctrl(prtd->params->channel, SW_DMAOP_START);
 		break;
 		
 	case SNDRV_PCM_TRIGGER_SUSPEND:
 	case SNDRV_PCM_TRIGGER_STOP:
 	case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
-		printk("[HDMI-AUDIO] PCM trigger stop...\n");
 		sw_dma_ctrl(prtd->params->channel, SW_DMAOP_STOP);
 		break;
 
