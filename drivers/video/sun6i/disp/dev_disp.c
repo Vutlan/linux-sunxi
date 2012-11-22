@@ -478,7 +478,7 @@ int disp_mem_release(int sel)
 	if(g_disp_mm[sel].info_base == 0)
 		return -EINVAL;
     
-    __inf("disp_mem_release, mem_id=%d, phy_addr=0x%x\n", sel, (long unsigned int)g_disp_mm[sel].mem_start);
+    __inf("disp_mem_release, mem_id=%d, phy_addr=0x%x\n", sel, (unsigned int)g_disp_mm[sel].mem_start);
     disp_free((void *)g_disp_mm[sel].info_base, (void*)g_disp_mm[sel].mem_start);
     memset(&g_disp_mm[sel],0,sizeof(struct info_mm));
 #endif

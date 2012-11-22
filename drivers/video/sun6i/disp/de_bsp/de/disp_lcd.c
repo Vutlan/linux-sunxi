@@ -961,13 +961,20 @@ __s32 pwm_set_para(__u32 channel, __pwm_info_t * pwm_info)
 
 //    __inf("pwm_set_para, chn:%d, en:%d, active_state:%d, duty_ns:%d, period_ns:%d, mode:%d \n",
 //        channel, pwm_info->enable, pwm_info->active_state, pwm_info->duty_ns, pwm_info->period_ns,pwm_info->mode);
-    
-    freq = 1000000 / pwm_info->period_ns;
 
-    if(freq > 200000)//todo ?
+    if(pwm_info->period_ns != 0)
     {
-        DE_WRN("pwm preq is large then 200khz, fix to 200khz\n");
-        freq = 200000;
+        freq = 1000000 / pwm_info->period_ns;
+    }else
+    {
+        DE_WRN("pwm%d period_ns is ZERO\n", channel);
+        freq = 1000;
+    }
+
+    if(freq > 24000000)
+    {
+        DE_WRN("pwm preq is large then 24mhz, fix to 24mhz\n");
+        freq = 24000000;
     }
     entire_cycle = 24000000 / freq;
 
@@ -980,7 +987,7 @@ __s32 pwm_set_para(__u32 channel, __pwm_info_t * pwm_info)
     if(pre_scal_id > 6)
     {
         pre_scal_id = 6;
-        DE_WRN("pwm preq is too small, may be unexact!\n");
+        DE_WRN("pwm preq is too small, may be imprecise!\n");
     }
 
     active_cycle = (pwm_info->duty_ns * entire_cycle + (pwm_info->period_ns/2)) / pwm_info->period_ns;
@@ -992,8 +999,7 @@ __s32 pwm_set_para(__u32 channel, __pwm_info_t * pwm_info)
     gdisp.pwm[channel].duty_ns = pwm_info->duty_ns;
     gdisp.pwm[channel].period_ns = pwm_info->period_ns;
     gdisp.pwm[channel].entire_cycle = entire_cycle;
-    gdisp.pwm[channel].active_cycle = active_cycle;
-    gdisp.pwm[channel].mode = pwm_info->mode;
+    gdisp.pwm[channel].active_cycle = active_cycle; 
 #if 0
     __inf("freq = %d, pre_scal=%d, active_state=%d, duty_ns=%d,period_ns=%d, entire_cycle=%d, active_cycle=%d, mode=%d \n",
     gdisp.pwm[channel].freq,  gdisp.pwm[channel].pre_scal, 
@@ -1015,8 +1021,7 @@ __s32 pwm_get_para(__u32 channel, __pwm_info_t * pwm_info)
     pwm_info->enable = gdisp.pwm[channel].enable;
     pwm_info->active_state = gdisp.pwm[channel].active_state;
     pwm_info->duty_ns = gdisp.pwm[channel].duty_ns;
-    pwm_info->period_ns = gdisp.pwm[channel].period_ns;
-    pwm_info->mode = gdisp.pwm[channel].mode;
+    pwm_info->period_ns = gdisp.pwm[channel].period_ns; 
 
     return 0;
 }
@@ -1380,8 +1385,14 @@ __s32 Disp_lcdc_init(__u32 sel)
 
             pwm_info.enable = 0;
             pwm_info.active_state = 1;
-            pwm_info.period_ns = 1000000 / gpanel_info[sel].lcd_pwm_freq;
-            pwm_info.mode = 0; //single mode
+            if(gpanel_info[sel].lcd_pwm_freq != 0)
+            {
+                pwm_info.period_ns = 1000000 / gpanel_info[sel].lcd_pwm_freq;
+            }else
+            {
+                DE_WRN("lcd%d.lcd_pwm_freq is ZERO\n");
+                pwm_info.period_ns = 1000000 / 1000;  //default 1khz
+            } 
             if(gpanel_info[sel].lcd_pwm_pol == 0)
             {
                 pwm_info.duty_ns = (gdisp.screen[sel].lcd_cfg.backlight_bright * pwm_info.period_ns) / 256;

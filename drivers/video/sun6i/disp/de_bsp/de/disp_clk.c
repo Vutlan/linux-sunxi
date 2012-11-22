@@ -31,10 +31,10 @@
 #define CLK_TVENC1_AHB_ON	0x02000000	
 #define CLK_HDMI_AHB_ON     0x10000000
 #define CLK_HDMI_MOD_ON 	0x20000000
+#define CLK_HDMI_MOD_DDC_ON 0x00000008
 #define CLK_DSI_AHB_ON      0x40000000
 #define CLK_DSI_MOD_ON      0x80000000
-//#define CLK_LVDS_MOD_ON
-	
+ 	
 #define CLK_DEBE0_AHB_OFF	(~(CLK_DEBE0_AHB_ON	    ))												
 #define CLK_DEBE0_MOD_OFF 	(~(CLK_DEBE0_MOD_ON 	))												
 #define CLK_DEBE0_DRAM_OFF	(~(CLK_DEBE0_DRAM_ON	))												
@@ -72,7 +72,7 @@ __hdle h_lcd0ahbclk,h_lcd0ch0mclk0,h_lcd0ch1mclk1;
 __hdle h_lcd1ahbclk,h_lcd1ch0mclk0,h_lcd1ch1mclk1;
 __hdle h_lvdsmclk;	//only for reset
 __hdle h_dsiahbclk,h_dsimclk_s,h_dsimclk_p;
-__hdle h_hdmiahbclk,h_hdmimclk;
+__hdle h_hdmiahbclk,h_hdmimclk,h_hdmimclk_ddc;
 
 __u32 g_clk_status = 0x0;
 	
@@ -549,8 +549,9 @@ __s32 tve_clk_off(__u32 sel)
 
 __s32 hdmi_clk_init(void)
 {
-	h_hdmiahbclk = OSAL_CCMU_OpenMclk(AHB_CLK_HDMID);
+	h_hdmiahbclk = OSAL_CCMU_OpenMclk(AHB_CLK_HDMI);
 	h_hdmimclk   = OSAL_CCMU_OpenMclk(MOD_CLK_HDMI);
+    h_hdmimclk_ddc = OSAL_CCMU_OpenMclk(MOD_CLK_HDMI_DDC);
 #ifdef RESET_OSAL
 	OSAL_CCMU_MclkReset(h_hdmimclk, RST_INVAILD);
 #endif	
@@ -558,7 +559,8 @@ __s32 hdmi_clk_init(void)
 	OSAL_CCMU_SetMclkDiv(h_hdmimclk, 1);
 
 	OSAL_CCMU_MclkOnOff(h_hdmiahbclk, CLK_ON);
-	g_clk_status |= CLK_HDMI_AHB_ON;
+    OSAL_CCMU_MclkOnOff(h_hdmimclk_ddc, CLK_ON);
+	g_clk_status |= CLK_HDMI_AHB_ON | CLK_HDMI_MOD_DDC_ON;
 
 	return DIS_SUCCESS;
 }
