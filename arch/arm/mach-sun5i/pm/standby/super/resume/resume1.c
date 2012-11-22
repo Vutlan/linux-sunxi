@@ -5,7 +5,6 @@
 extern unsigned int save_sp(void);
 extern int jump_to_resume(void* pointer, __u32 *addr);
 extern void restore_mmu_state(struct mmu_state *saved_mmu_state);
-extern void mem_flush_tlb(void);
 extern void flush_icache(void);
 extern void flush_dcache(void);
 extern void invalidate_dcache(void);

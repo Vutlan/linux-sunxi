@@ -11,7 +11,6 @@
  #include "./../super_i.h"
 
 extern unsigned int save_sp_nommu(void);
-extern void mem_flush_tlb(void);
 extern void flush_icache(void);
 extern void flush_dcache(void);
 extern void enable_icache(void);

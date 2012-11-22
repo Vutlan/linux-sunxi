@@ -16,7 +16,6 @@ extern char *__bss_end;
 static int retry = RETRY_TIMES;
 static struct aw_mem_para mem_para_info;
 
-extern void mem_flush_tlb(void);
 extern void flush_icache(void);
 extern void flush_dcache(void);
 extern void invalidate_dcache(void);
@@ -24,7 +23,6 @@ extern void invalidate_dcache(void);
 extern unsigned int save_sp(void);
 extern void restore_sp(unsigned int sp);
 extern int jump_to_resume0(void* pointer);
-extern void mem_flush_tlb(void);
 extern void mem_preload_tlb(void);
 void disable_cache_invalidate(void);
 void disable_mmu(void);
