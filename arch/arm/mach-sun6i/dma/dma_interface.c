@@ -20,6 +20,11 @@
  */
 void __iomem *g_dma_reg_vbase = 0;
 
+#ifdef TEMP_FOR_XJF_20121121
+u32 index_get = 0, index_put = 0;
+u32 v_addr = 0, p_addr = 0;
+#endif /* TEMP_FOR_XJF_20121121 */
+
 /*
  * dma manager
  */
@@ -512,6 +517,15 @@ dm_hdl_t sw_dma_request(char * name, enum dma_work_mode_e work_mode)
 		}
 	} else if(DMA_WORK_MODE_SINGLE == work_mode) {
 		INIT_LIST_HEAD(&pchan->buf_list_head);
+#ifdef TEMP_FOR_XJF_20121121
+	v_addr = (u32)dma_alloc_coherent(NULL, TEMP_DES_CNT * sizeof(struct des_item_t), (dma_addr_t *)&p_addr, GFP_KERNEL);
+	if(0 == v_addr)
+		printk("%s err, dma_alloc_coherent failed, line %d\n", __FUNCTION__, __LINE__);
+	else
+		printk("%s: dma_alloc_coherent return v_addr 0x%08x, p_addr 0x%08x\n", __FUNCTION__, v_addr, p_addr);
+	index_get = 0;
+	index_put = 0;
+#endif /* TEMP_FOR_XJF_20121121 */
 	}
 	pchan->used = 1;
 	if(NULL != name)

@@ -70,7 +70,15 @@ u32 __dma_free_buflist(struct dma_channel_t *pchan)
 		pdes_item = list_entry(pchan->buf_list_head.next, struct des_item_t, list);
 		utemp = pdes_item->paddr;
 		list_del(&pdes_item->list);
+#ifndef TEMP_FOR_XJF_20121121
 		dma_pool_free(g_pool_sg, pdes_item, utemp);
+#else
+		index_put++;
+		if(index_put >= TEMP_DES_CNT)
+			index_put = 0;
+		//if(index_put > index_get)
+		//	printk("%s err: index_put %d > index_get %d", __func__, index_put, index_get);
+#endif /* TEMP_FOR_XJF_20121121 */
 	}
 	return 0;
 }
@@ -82,7 +90,15 @@ u32 __dma_free_allbuf(struct dma_channel_t *pchan)
 
 	if(NULL != pchan->pcur_des) {
 		utemp = pchan->pcur_des->paddr;
+#ifndef TEMP_FOR_XJF_20121121
 		dma_pool_free(g_pool_sg, pchan->pcur_des, utemp);
+#else
+		index_put++;
+		if(index_put >= TEMP_DES_CNT)
+			index_put = 0;
+		//if(index_put > index_get)
+		//	printk("%s err: index_put %d > index_get %d", __func__, index_put, index_get);
+#endif /* TEMP_FOR_XJF_20121121 */
 		pchan->pcur_des = NULL;
 	}
 
@@ -244,11 +260,23 @@ u32 __dma_enqueue(dm_hdl_t dma_hdl, struct cofig_des_t *pdes, enum dma_enque_pha
 	struct dma_channel_t 	*pchan = (struct dma_channel_t *)dma_hdl;
 	struct des_item_t	*pdes_itm = NULL;
 
+#ifdef TEMP_FOR_XJF_20121121
+	u32 offset = 0;
+	offset = sizeof(struct des_item_t) * index_get;
+	pdes_itm = (struct des_item_t *)(v_addr + offset);
+	utemp = p_addr + offset;
+	index_get++;
+	if(index_get >= TEMP_DES_CNT)
+		index_get = 0;
+	if(index_get == index_put)
+		printk("%s err: des buffer full, to check!", __func__);
+#else
 	pdes_itm = (struct des_item_t *)dma_pool_alloc(g_pool_sg, GFP_ATOMIC, &utemp);
 	if (NULL == pdes_itm) {
 		uret = __LINE__;
 		goto End;
 	}
+#endif /* TEMP_FOR_XJF_20121121 */
 	pdes_itm->des = *pdes;
 	pdes_itm->paddr = utemp;
 
@@ -329,7 +357,15 @@ u32 __handle_qd_sgmd(struct dma_channel_t *pchan)
 		/* for no-continue mode, free cur buf and start the next buf in chain */
 		DMA_ASSERT(NULL != pchan->pcur_des);
 		utemp = pchan->pcur_des->paddr;
+#ifndef TEMP_FOR_XJF_20121121
 		dma_pool_free(g_pool_sg, pchan->pcur_des, utemp);
+#else
+		index_put++;
+		if(index_put >= TEMP_DES_CNT)
+			index_put = 0;
+		//if(index_put == index_get)
+		//	printk("%s err: index_put %d > index_get %d", __func__, index_put, index_get);
+#endif /* TEMP_FOR_XJF_20121121 */
 		pchan->pcur_des = NULL;
 
 		/* start next if there is, or change to last done */

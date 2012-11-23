@@ -32,6 +32,7 @@
 #include <linux/clk.h>
 
 #define USE_UNCACHED_FOR_DESMGR /* use uncached for des manager, 2012-6-20 */
+//#define TEMP_FOR_XJF_20121121 	/* alloc des buf in request, temp for xujinfeng, 2012-11-21 */
 
 #include <mach/dma.h>
 #include <mach/clock.h>
@@ -45,6 +46,11 @@
 #include "dma_irq_hd.h"
 #include "dma_single.h"
 
+#ifdef TEMP_FOR_XJF_20121121
+#define TEMP_DES_CNT	20
+extern u32 index_get, index_put;
+extern u32 v_addr, p_addr;
+#endif /* TEMP_FOR_XJF_20121121 */
 
 #ifdef DBG_DMA
 #include <linux/delay.h>

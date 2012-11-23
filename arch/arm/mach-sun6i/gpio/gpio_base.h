@@ -35,10 +35,8 @@ static inline int gpiochip_match(struct gpio_chip * chip, void * data)
 #endif /* DBG_GPIO */
 
 	num = *(u32 *)data;
-	if(num >= chip->base && num < chip->base + chip->ngpio) {
+	if(num >= chip->base && num < chip->base + chip->ngpio)
 		return 1;
-	}
-
 	return 0;
 }
 

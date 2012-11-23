@@ -135,7 +135,5 @@ obj-$(CONFIG_HYPERV)		+= hv/
 
 obj-$(CONFIG_PM_DEVFREQ)	+= devfreq/
 
-obj-$(CONFIG_NEW_GPIO)	+= sunxi_gpio/
-
 # for test
 obj-y				+= test/

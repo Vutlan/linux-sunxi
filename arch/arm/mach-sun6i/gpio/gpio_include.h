@@ -36,7 +36,6 @@
 
 #include "gpio_common.h"
 #include "gpio_eint.h"
-#include "gpio_script.h"
 #include "gpio_init.h"
 #include "gpio_multi_func.h"
 #include "gpio_base.h"

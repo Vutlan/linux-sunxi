@@ -42,6 +42,7 @@
 #include <linux/kthread.h>
 #include <linux/delay.h>
 
+#include <mach/sys_config.h>
 #include <mach/gpio.h> /* how to search arch/arm/mach-sun6i/include/mach/gpio.h? */
 
 /*
@@ -52,9 +53,8 @@ enum gpio_test_case_e {
 	GTC_MAX
 };
 
-#define PIO_DBG_FUN_LINE_TODO	printk("[GPIO_TEST]%s, line %d, todo############\n", __FUNCTION__, __LINE__)
-#define PIO_DBG_FUN_LINE 	printk("[GPIO_TEST]%s, line %d\n", __FUNCTION__, __LINE__)
-#define PIO_ERR_FUN_LINE 	printk("[GPIO_TEST]%s err, line %d\n", __FUNCTION__, __LINE__)
+#define PIOTEST_DBG_FUN_LINE_TODO	printk("[GPIO_TEST]%s, line %d, todo############\n", __func__, __LINE__)
+#define PIOTEST_DBG_FUN_LINE 		printk("[GPIO_TEST]%s, line %d\n", __func__, __LINE__)
 #define PIO_CHECK_RST(x, ret, pos)	if(!(x)) {ret = __LINE__; goto pos;}
 
 #endif /* __SUN6I_GPIO_TEST_H */

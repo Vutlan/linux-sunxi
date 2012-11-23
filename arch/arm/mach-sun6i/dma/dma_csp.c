@@ -15,9 +15,6 @@
 
 #include "dma_include.h"
 
-#define DMA_MOD_CLK_NAME		"mod_dma"
-#define DMA_AHB_CLK_NAME		"ahb_dma"
-
 static struct clk 	*g_dma_ahb_clk = NULL;
 static struct clk 	*g_dma_mod_clk = NULL;
 
@@ -29,10 +26,10 @@ u32 dma_clk_init(void)
 	}
 
 	/* config dma module clock */
-	g_dma_mod_clk = clk_get(NULL, DMA_MOD_CLK_NAME);
+	g_dma_mod_clk = clk_get(NULL, CLK_MOD_DMA);
 	DMA_DBG("%s: get g_dma_mod_clk 0x%08x\n", __func__, (u32)g_dma_mod_clk);
 	if(NULL == g_dma_mod_clk || IS_ERR(g_dma_mod_clk)) {
-		DMA_ERR("%s err: clk_get %s failed\n", __func__, DMA_MOD_CLK_NAME);
+		DMA_ERR("%s err: clk_get %s failed\n", __func__, CLK_MOD_DMA);
 		return -EPERM;
 	} else {
 		if(0 != clk_enable(g_dma_mod_clk)) {
@@ -49,10 +46,10 @@ u32 dma_clk_init(void)
 	}
 
 	/* config dma ahb clock */
-	g_dma_ahb_clk = clk_get(NULL, DMA_AHB_CLK_NAME);
+	g_dma_ahb_clk = clk_get(NULL, CLK_AHB_DMA);
 	DMA_DBG("%s: get g_dma_ahb_clk 0x%08x\n", __func__, (u32)g_dma_ahb_clk);
 	if(NULL == g_dma_ahb_clk || IS_ERR(g_dma_ahb_clk)) {
-		printk("%s err: clk_get %s failed\n", __func__, DMA_AHB_CLK_NAME);
+		printk("%s err: clk_get %s failed\n", __func__, CLK_AHB_DMA);
 		return -EPERM;
 	} else {
 		if(0 != clk_enable(g_dma_ahb_clk)) {

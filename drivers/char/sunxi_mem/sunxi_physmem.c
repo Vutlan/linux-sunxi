@@ -244,7 +244,7 @@ bool sunxi_allocate(struct sunxi_mem_allocator *this, const u32 size_to_alloc,
 		u32* const pvirt_adr, u32* const pphy_adr)
 {
 	u32 	size;
-	struct mem_list *	pnode = NULL;
+	struct mem_list *pnode = NULL;
 
 	size = (size_to_alloc + (MEMORY_GAP_MIN - 1)) & (~(MEMORY_GAP_MIN - 1));
 	pnode = this->find_free_block(this, size);
@@ -334,8 +334,7 @@ u32 sunxi_mem_alloc(u32 size)
 			SXM_ERR("%s err, line %d, allocate failed!\n", __func__, __LINE__);
 			ptemp = 0;
 		}
-	}
-	else
+	} else
 		SXM_ERR("%s err, line %d, g_allocator not initailized yet!\n", __func__, __LINE__);
 	spin_unlock_irqrestore(&sunxi_memlock, flags);
 

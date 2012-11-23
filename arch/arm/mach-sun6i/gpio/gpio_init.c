@@ -15,8 +15,6 @@
 
 #include "gpio_include.h"
 
-#define PIO_CLK_NAME		"apb_pio"
-
 static struct clk *g_apb_pio_clk = NULL;
 
 /**
@@ -217,10 +215,10 @@ u32 gpio_clk_init(void)
 		PIO_INF("%s maybe err: g_apb_pio_clk not NULL, line %d\n", __func__, __LINE__);
 	}
 
-	g_apb_pio_clk = clk_get(NULL, PIO_CLK_NAME);
+	g_apb_pio_clk = clk_get(NULL, CLK_APB_PIO);
 	PIO_DBG("%s: get g_apb_pio_clk 0x%08x\n", __func__, (u32)g_apb_pio_clk);
 	if(NULL == g_apb_pio_clk || IS_ERR(g_apb_pio_clk)) {
-		PIO_ERR("%s err: clk_get %s failed\n", __func__, PIO_CLK_NAME);
+		PIO_ERR("%s err: clk_get %s failed\n", __func__, CLK_APB_PIO);
 		return -EPERM;
 	} else {
 		if(0 != clk_enable(g_apb_pio_clk)) {
@@ -260,6 +258,80 @@ u32 gpio_clk_deinit(void)
 	return 0;
 }
 
+#ifdef ADD_AXP_PIN_20121117
+extern int axp_gpio_set_io(int gpio, int io_state);
+extern int axp_gpio_get_io(int gpio, int *io_state);
+extern int axp_gpio_set_value(int gpio, int value);
+extern int axp_gpio_get_value(int gpio, int *value);
+static int __axp_gpio_input(struct gpio_chip *chip, unsigned offset)
+{
+	u32  index = chip->base + offset;
+
+	if(GPIO_AXP(0) == index)
+		return axp_gpio_set_io(0, 0);
+	else if(GPIO_AXP(1) == index)
+		return axp_gpio_set_io(1, 0);
+	else
+		return -EINVAL;
+}
+static int __axp_gpio_output(struct gpio_chip *chip, unsigned offset, int value)
+{
+	u32  index = chip->base + offset;
+	int  ret = 0;
+
+	if(GPIO_AXP(0) == index) {
+		ret = axp_gpio_set_io(0, 1); /* set to output */
+		if(ret)
+			return ret;
+		return axp_gpio_set_value(0, value); /* set value */
+	} else if(GPIO_AXP(1) == index) {
+		ret = axp_gpio_set_io(1, 1); /* set to output */
+		if(ret)
+			return ret;
+		return axp_gpio_set_value(1, value); /* set value */
+	}
+	else
+		return -EINVAL;
+}
+static void __axp_gpio_set(struct gpio_chip *chip, unsigned offset, int value)
+{
+	u32  index = chip->base + offset;
+
+	if(GPIO_AXP(0) == index)
+		axp_gpio_set_value(0, value);
+	else if(GPIO_AXP(1) == index)
+		axp_gpio_set_value(1, value);
+	else
+		WARN_ON(1);
+}
+static int __axp_gpio_get(struct gpio_chip *chip, unsigned offset)
+{
+	u32  index = chip->base + offset;
+	int  value = 0;
+
+	if(GPIO_AXP(0) == index) {
+		WARN_ON(0 != axp_gpio_get_value(0, &value));
+		return value;
+	} else if(GPIO_AXP(1) == index) {
+		WARN_ON(0 != axp_gpio_get_value(1, &value));
+		return value;
+	} else {
+		printk("%s err: line %d\n", __func__, __LINE__);;
+		return 0;
+	}
+}
+
+struct gpio_chip axp_gpio_chip = {
+	.base	= AXP_NR_BASE,
+	.ngpio	= AXP_NR,
+	.label	= "axp_pin",
+	.direction_input = __axp_gpio_input,
+	.direction_output = __axp_gpio_output,
+	.set	= __axp_gpio_set,
+	.get	= __axp_gpio_get,
+};
+#endif /* ADD_AXP_PIN_20121117 */
+
 /**
  * aw_gpio_init - gpio driver init function
  *
@@ -270,20 +342,24 @@ static __init int aw_gpio_init(void)
 	u32	uret = 0;
 	u32 	i = 0;
 
+	/* init gpio clock */
 	if(0 != gpio_clk_init()) {
 		PIO_ERR("%s err: line %d\n", __func__, __LINE__);
 	}
-
+	/* register gpio chips */
 	for(i = 0; i < ARRAY_SIZE(gpio_chips); i++) {
-		/* lock init */
 		PIO_CHIP_LOCK_INIT(&gpio_chips[i].lock);
-
 		/* register gpio_chip */
 		if(0 != aw_gpiochip_add(&gpio_chips[i].chip)) {
 			uret = __LINE__;
 			goto End;
 		}
 	}
+#ifdef ADD_AXP_PIN_20121117
+	/* register axp gpio chip */
+	if(0 != gpiochip_add(&axp_gpio_chip))
+		printk("%s err, line %d\n", __func__, __LINE__);
+#endif /* ADD_AXP_PIN_20121117 */
 
 End:
 	if(0 != uret) {
@@ -292,6 +368,5 @@ End:
 
 	return uret;
 }
-
 subsys_initcall(aw_gpio_init);
 

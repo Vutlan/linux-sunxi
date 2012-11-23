@@ -174,12 +174,7 @@ bool is_gpio_requested(u32 gpio)
 	struct gpio_chip *pchip = NULL;
 
 	pchip = to_gpiochip(gpio);
-	if(NULL == pchip) {
-		PIO_ERR("%s err: gpio 0x%08x not bound to gpio_chip\n", __func__, gpio);
-		return false;
-	}
-
-	if(NULL == gpiochip_is_requested(pchip, gpio - pchip->base))
+	if(NULL == pchip || NULL == gpiochip_is_requested(pchip, gpio - pchip->base))
 		return false;
 	else
 		return true;
@@ -195,42 +190,23 @@ bool is_gpio_requested(u32 gpio)
  */
 u32 sw_gpio_setcfg(u32 gpio, u32 val)
 {
-	u32 	uret = 0;
 	u32 	offset = 0;
 	unsigned long flags = 0;
 	struct aw_gpio_chip *pchip = NULL;
 
-#ifdef DBG_GPIO
-	if(false == is_gpio_requested(gpio)) {
-		PIO_INF("%s to check: gpio %d not requested, line %d\n", __func__, gpio, __LINE__);
-	}
-#endif /* DBG_GPIO */
-
 	pchip = gpio_to_aw_gpiochip(gpio);
-	if(NULL == pchip) {
-		PIO_ERR("%s err: line %d, gpio_to_aw_gpiochip(%d) return NULL\n",
-			__func__, __LINE__, gpio);
+	if(NULL == pchip || NULL == pchip->cfg || NULL == pchip->cfg->set_cfg) {
+		printk("%s err: line %d, gpio %d\n", __func__, __LINE__, gpio);
 		return __LINE__;
 	}
 
-	PIO_CHIP_LOCK(&pchip->lock, flags);
-	if(NULL == pchip->cfg || NULL == pchip->cfg->set_cfg) {
-		uret = __LINE__;
-		goto End;
-	}
-
+	WARN(0 != gpio_request(gpio, NULL), "%s err, line %d\n", __func__, __LINE__);
 	offset = gpio - pchip->chip.base;
-	if(0 != pchip->cfg->set_cfg(pchip, offset, val)) {
-		uret = __LINE__;
-		goto End;
-	}
-
-End:
+	PIO_CHIP_LOCK(&pchip->lock, flags);
+	WARN_ON(0 != pchip->cfg->set_cfg(pchip, offset, val));
 	PIO_CHIP_UNLOCK(&pchip->lock, flags);
-	if(0 != uret)
-		PIO_ERR("%s err, line %d\n", __func__, uret);
-
-	return uret;
+	gpio_free(gpio);
+	return 0;
 }
 EXPORT_SYMBOL(sw_gpio_setcfg);
 
@@ -242,41 +218,23 @@ EXPORT_SYMBOL(sw_gpio_setcfg);
  */
 u32 sw_gpio_getcfg(u32 gpio)
 {
-	u32 	usign = 0;
 	u32 	uret = 0;
 	u32 	offset = 0;
 	unsigned long flags = 0;
 	struct aw_gpio_chip *pchip = NULL;
 
-#ifdef DBG_GPIO
-	if(false == is_gpio_requested(gpio)) {
-		PIO_INF("%s to check: gpio %d not requested, line %d\n", __func__, gpio, __LINE__);
-	}
-#endif /* DBG_GPIO */
-
 	pchip = gpio_to_aw_gpiochip(gpio);
-	if(NULL == pchip) {
-		PIO_ERR("%s err: line %d, gpio_to_aw_gpiochip(%d) return NULL\n",
-			__func__, __LINE__, gpio);
+	if(NULL == pchip || NULL == pchip->cfg || NULL == pchip->cfg->get_cfg) {
+		printk("%s err: line %d, gpio %d\n", __func__, __LINE__, gpio);
 		return GPIO_CFG_INVALID;
 	}
 
+	WARN(0 != gpio_request(gpio, NULL), "%s err, line %d\n", __func__, __LINE__);
 	PIO_CHIP_LOCK(&pchip->lock, flags);
-	if(NULL == pchip->cfg || NULL == pchip->cfg->get_cfg) {
-		usign = __LINE__;
-		goto End;
-	}
-
 	offset = gpio - pchip->chip.base;
 	uret = pchip->cfg->get_cfg(pchip, offset);
-
-End:
 	PIO_CHIP_UNLOCK(&pchip->lock, flags);
-	if(0 != usign) {
-		PIO_ERR("%s err, line %d\n", __func__, usign);
-		return GPIO_CFG_INVALID;
-	}
-
+	gpio_free(gpio);
 	return uret;
 }
 EXPORT_SYMBOL(sw_gpio_getcfg);
@@ -290,42 +248,23 @@ EXPORT_SYMBOL(sw_gpio_getcfg);
  */
 u32 sw_gpio_setpull(u32 gpio, u32 val)
 {
-	u32 	uret = 0;
 	u32 	offset = 0;
 	unsigned long flags = 0;
 	struct aw_gpio_chip *pchip = NULL;
 
-#ifdef DBG_GPIO
-	if(false == is_gpio_requested(gpio)) {
-		PIO_INF("%s to check: gpio %d not requested, line %d\n", __func__, gpio, __LINE__);
-	}
-#endif /* DBG_GPIO */
-
 	pchip = gpio_to_aw_gpiochip(gpio);
-	if(NULL == pchip) {
-		PIO_ERR("%s err: line %d, gpio_to_aw_gpiochip(%d) return NULL\n",
-			__func__, __LINE__, gpio);
+	if(NULL == pchip || NULL == pchip->cfg || NULL == pchip->cfg->set_pull) {
+		printk("%s err: line %d, gpio %d\n", __func__, __LINE__, gpio);
 		return __LINE__;
 	}
 
+	WARN(0 != gpio_request(gpio, NULL), "%s err, line %d\n", __func__, __LINE__);
 	PIO_CHIP_LOCK(&pchip->lock, flags);
-	if(NULL == pchip->cfg || NULL == pchip->cfg->set_pull) {
-		uret = __LINE__;
-		goto End;
-	}
-
 	offset = gpio - pchip->chip.base;
-	if(0 != pchip->cfg->set_pull(pchip, offset, val)) {
-		uret = __LINE__;
-		goto End;
-	}
-
-End:
+	WARN_ON(0 != pchip->cfg->set_pull(pchip, offset, val));
 	PIO_CHIP_UNLOCK(&pchip->lock, flags);
-	if(0 != uret)
-		PIO_ERR("%s err, line %d\n", __func__, uret);
-
-	return uret;
+	gpio_free(gpio);
+	return 0;
 }
 EXPORT_SYMBOL(sw_gpio_setpull);
 
@@ -337,41 +276,23 @@ EXPORT_SYMBOL(sw_gpio_setpull);
  */
 u32 sw_gpio_getpull(u32 gpio)
 {
-	u32 	usign = 0;
 	u32 	uret = 0;
 	u32 	offset = 0;
 	unsigned long flags = 0;
 	struct aw_gpio_chip *pchip = NULL;
 
-#ifdef DBG_GPIO
-	if(false == is_gpio_requested(gpio)) {
-		PIO_INF("%s to check: gpio %d not requested, line %d\n", __func__, gpio, __LINE__);
-	}
-#endif /* DBG_GPIO */
-
 	pchip = gpio_to_aw_gpiochip(gpio);
-	if(NULL == pchip) {
-		PIO_ERR("%s err: line %d, gpio_to_aw_gpiochip(%d) return NULL\n",
-			__func__, __LINE__, gpio);
+	if(NULL == pchip || NULL == pchip->cfg || NULL == pchip->cfg->get_pull) {
+		printk("%s err: line %d, gpio %d\n", __func__, __LINE__, gpio);
 		return GPIO_PULL_INVALID;
 	}
 
+	WARN(0 != gpio_request(gpio, NULL), "%s err, line %d\n", __func__, __LINE__);
 	PIO_CHIP_LOCK(&pchip->lock, flags);
-	if(NULL == pchip->cfg || NULL == pchip->cfg->get_pull) {
-		usign = __LINE__;
-		goto End;
-	}
-
 	offset = gpio - pchip->chip.base;
 	uret = pchip->cfg->get_pull(pchip, offset);
-
-End:
 	PIO_CHIP_UNLOCK(&pchip->lock, flags);
-	if(0 != usign) {
-		PIO_ERR("%s err, line %d\n", __func__, usign);
-		return GPIO_PULL_INVALID;
-	}
-
+	gpio_free(gpio);
 	return uret;
 }
 EXPORT_SYMBOL(sw_gpio_getpull);
@@ -385,42 +306,23 @@ EXPORT_SYMBOL(sw_gpio_getpull);
  */
 u32 sw_gpio_setdrvlevel(u32 gpio, u32 val)
 {
-	u32 	uret = 0;
 	u32 	offset = 0;
 	unsigned long flags = 0;
 	struct aw_gpio_chip *pchip = NULL;
 
-#ifdef DBG_GPIO
-	if(false == is_gpio_requested(gpio)) {
-		PIO_INF("%s to check: gpio %d not requested, line %d\n", __func__, gpio, __LINE__);
-	}
-#endif /* DBG_GPIO */
-
 	pchip = gpio_to_aw_gpiochip(gpio);
-	if(NULL == pchip) {
-		PIO_ERR("%s err: line %d, gpio_to_aw_gpiochip(%d) return NULL\n",
-			__func__, __LINE__, gpio);
+	if(NULL == pchip || NULL == pchip->cfg || NULL == pchip->cfg->set_drvlevel) {
+		printk("%s err: line %d, gpio %d\n", __func__, __LINE__, gpio);
 		return __LINE__;
 	}
 
+	WARN(0 != gpio_request(gpio, NULL), "%s err, line %d\n", __func__, __LINE__);
 	PIO_CHIP_LOCK(&pchip->lock, flags);
-	if(NULL == pchip->cfg || NULL == pchip->cfg->set_drvlevel) {
-		uret = __LINE__;
-		goto End;
-	}
-
 	offset = gpio - pchip->chip.base;
-	if(0 != pchip->cfg->set_drvlevel(pchip, offset, val)) {
-		uret = __LINE__;
-		goto End;
-	}
-
-End:
+	WARN_ON(0 != pchip->cfg->set_drvlevel(pchip, offset, val));
 	PIO_CHIP_UNLOCK(&pchip->lock, flags);
-	if(0 != uret)
-		PIO_ERR("%s err, line %d\n", __func__, uret);
-
-	return uret;
+	gpio_free(gpio);
+	return 0;
 }
 EXPORT_SYMBOL(sw_gpio_setdrvlevel);
 
@@ -432,41 +334,23 @@ EXPORT_SYMBOL(sw_gpio_setdrvlevel);
  */
 u32 sw_gpio_getdrvlevel(u32 gpio)
 {
-	u32 	usign = 0;
 	u32 	uret = 0;
 	u32 	offset = 0;
 	unsigned long flags = 0;
 	struct aw_gpio_chip *pchip = NULL;
 
-#ifdef DBG_GPIO
-	if(false == is_gpio_requested(gpio)) {
-		PIO_INF("%s to check: gpio %d not requested, line %d\n", __func__, gpio, __LINE__);
-	}
-#endif /* DBG_GPIO */
-
 	pchip = gpio_to_aw_gpiochip(gpio);
-	if(NULL == pchip) {
-		PIO_ERR("%s err: line %d, gpio_to_aw_gpiochip(%d) return NULL\n",
-			__func__, __LINE__, gpio);
+	if(NULL == pchip || NULL == pchip->cfg || NULL == pchip->cfg->get_drvlevel) {
+		printk("%s err: line %d, gpio %d\n", __func__, __LINE__, gpio);
 		return GPIO_DRVLVL_INVALID;
 	}
 
+	WARN(0 != gpio_request(gpio, NULL), "%s err, line %d\n", __func__, __LINE__);
 	PIO_CHIP_LOCK(&pchip->lock, flags);
-	if(NULL == pchip->cfg || NULL == pchip->cfg->get_drvlevel) {
-		usign = __LINE__;
-		goto End;
-	}
-
 	offset = gpio - pchip->chip.base;
 	uret = pchip->cfg->get_drvlevel(pchip, offset);
-
-End:
 	PIO_CHIP_UNLOCK(&pchip->lock, flags);
-	if(0 != usign) {
-		PIO_ERR("%s err, line %d\n", __func__, usign);
-		return GPIO_DRVLVL_INVALID;
-	}
-
+	gpio_free(gpio);
 	return uret;
 }
 EXPORT_SYMBOL(sw_gpio_getdrvlevel);
@@ -486,28 +370,23 @@ u32 sw_gpio_setall_range(struct gpio_config *pcfg, u32 cfg_num)
 	struct aw_gpio_chip *pchip = NULL;
 
 	for(i = 0; i < cfg_num; i++, pcfg++) {
-#ifdef DBG_GPIO
-		if(false == is_gpio_requested(pcfg->gpio)) {
-			PIO_INF("%s to check: gpio %d not requested, line %d\n", __func__, pcfg->gpio, __LINE__);
-		}
-#endif /* DBG_GPIO */
 		pchip = gpio_to_aw_gpiochip(pcfg->gpio);
-		if(NULL == pchip) {
-			PIO_ERR("%s err: line %d, gpio_to_aw_gpiochip(%d) return NULL\n",
-				__func__, __LINE__, pcfg->gpio);
-			return __LINE__;
+		if(!pchip || !pchip->cfg->set_cfg || !pchip->cfg->set_pull || !pchip->cfg->set_drvlevel) {
+			printk("%s err: line %d, gpio %d\n", __func__, __LINE__, pcfg->gpio);
+			continue;
 		}
 
+		WARN(0 != gpio_request(pcfg->gpio, NULL), "%s err, line %d\n", __func__, __LINE__);
 		PIO_CHIP_LOCK(&pchip->lock, flags);
-
 		offset = pcfg->gpio - pchip->chip.base;
 		PIO_ASSERT(0 == pchip->cfg->set_cfg(pchip, offset, pcfg->mul_sel));
 		PIO_ASSERT(0 == pchip->cfg->set_pull(pchip, offset, pcfg->pull));
 		PIO_ASSERT(0 == pchip->cfg->set_drvlevel(pchip, offset, pcfg->drv_level));
-
 		PIO_CHIP_UNLOCK(&pchip->lock, flags);
+		if(GPIO_CFG_OUTPUT == pcfg->mul_sel)
+			__gpio_set_value(pcfg->gpio, (pcfg->data ? 1 : 0));
+		gpio_free(pcfg->gpio);
 	}
-
 	return 0;
 }
 EXPORT_SYMBOL(sw_gpio_setall_range);
@@ -528,28 +407,23 @@ u32 sw_gpio_getall_range(struct gpio_config *pcfg, u32 cfg_num)
 	struct aw_gpio_chip *pchip = NULL;
 
 	for(i = 0; i < cfg_num; i++, pcfg++) {
-#ifdef DBG_GPIO
-		if(false == is_gpio_requested(pcfg->gpio)) {
-			PIO_INF("%s to check: gpio %d not requested, line %d\n", __func__, pcfg->gpio, __LINE__);
-		}
-#endif /* DBG_GPIO */
 		pchip = gpio_to_aw_gpiochip(pcfg->gpio);
-		if(NULL == pchip) {
-			PIO_ERR("%s err: line %d, gpio_to_aw_gpiochip(%d) return NULL\n",
-				__func__, __LINE__, pcfg->gpio);
-			return __LINE__;
+		if(!pchip || !pchip->cfg->get_cfg || !pchip->cfg->get_pull || !pchip->cfg->get_drvlevel) {
+			printk("%s err: line %d, gpio %d\n", __func__, __LINE__, pcfg->gpio);
+			continue;
 		}
 
+		WARN(0 != gpio_request(pcfg->gpio, NULL), "%s err, line %d\n", __func__, __LINE__);
 		PIO_CHIP_LOCK(&pchip->lock, flags);
-
 		offset = pcfg->gpio - pchip->chip.base;
 		pcfg->mul_sel = pchip->cfg->get_cfg(pchip, offset);
 		pcfg->pull = pchip->cfg->get_pull(pchip, offset);
 		pcfg->drv_level = pchip->cfg->get_drvlevel(pchip, offset);
-
 		PIO_CHIP_UNLOCK(&pchip->lock, flags);
+		if(GPIO_CFG_OUTPUT == pcfg->mul_sel || GPIO_CFG_INPUT == pcfg->mul_sel)
+			pcfg->data = __gpio_get_value(pcfg->gpio);
+		gpio_free(pcfg->gpio);
 	}
-
 	return 0;
 }
 EXPORT_SYMBOL(sw_gpio_getall_range);
@@ -563,12 +437,16 @@ void sw_gpio_dump_config(struct gpio_config *pcfg, u32 cfg_num)
 {
 	u32 	i = 0;
 
-	PIO_DBG("+++++++++++%s+++++++++++\n", __func__);
-	PIO_DBG("  port    mul_sel    pull    drvlevl\n");
+	if(NULL == pcfg || 0 == cfg_num)
+		return;
+
+	printk("+++++++++++%s+++++++++++\n", __func__);
+	printk("  port    mul_sel    pull    drvlevl data\n");
 	for(i = 0; i < cfg_num; i++, pcfg++) {
-		PIO_DBG("  %4d    %7d    %4d    %7d\n", pcfg->gpio, pcfg->mul_sel, pcfg->pull, pcfg->drv_level);
+		printk("  %4d    %7d    %4d    %-8d%d\n", pcfg->gpio, pcfg->mul_sel,
+			pcfg->pull, pcfg->drv_level, pcfg->data);
 	}
-	PIO_DBG("-----------%s-----------\n", __func__);
+	printk("-----------%s-----------\n", __func__);
 }
 EXPORT_SYMBOL(sw_gpio_dump_config);
 
@@ -579,27 +457,8 @@ EXPORT_SYMBOL(sw_gpio_dump_config);
  */
 u32 sw_gpio_suspend(void)
 {
-	u32	uret = 0;
-
-	PIO_DBG_FUN_LINE_TOCHECK;
-	//PIO_CHIP_LOCK(&pchip->lock, flags);
-#if 0
-	for(i = 0; i < ARRAY_SIZE(gpio_chips); i++) {
-		if(NULL != gpio_chips[i].pm->save) {
-			if(0 != gpio_chips[i].pm->save(&gpio_chips[i])) {
-				uret = __LINE__;
-				goto End;
-			}
-		}
-	}
-
-End:
-	if(0 != uret) {
-		PIO_ERR("%s err, line %d, i %d\n", __func__, uret, i);
-	}
-
-#endif
-	return uret;
+	PIO_INF("%s: NOT implement yet, line %d\n", __func__, __LINE__);
+	return 0;
 }
 EXPORT_SYMBOL(sw_gpio_suspend);
 
@@ -610,29 +469,12 @@ EXPORT_SYMBOL(sw_gpio_suspend);
  */
 u32 sw_gpio_resume(void)
 {
-	u32	uret = 0;
-
-	PIO_DBG_FUN_LINE_TOCHECK;
-#if 0
-	//PIO_CHIP_LOCK(&pchip->lock, flags);
-
-	for(i = 0; i < ARRAY_SIZE(gpio_chips); i++) {
-		if(NULL != gpio_chips[i].pm->resume) {
-			if(0 != gpio_chips[i].pm->resume(&gpio_chips[i])) {
-				uret = __LINE__;
-				goto End;
-			}
-		}
-	}
-
-End:
-	if(0 != uret) {
-		PIO_ERR("%s err, line %d, i %d\n", __func__, uret, i);
-	}
-
-#endif
-	return uret;
+	PIO_INF("%s: NOT implement yet, line %d\n", __func__, __LINE__);
+	return 0;
 }
 EXPORT_SYMBOL(sw_gpio_resume);
 
-
+#ifdef RESERVE_OLD_SCRIPT_GPIO_20121122
+#include "./old/sys_config.c"
+#include "./old/gpio_script.c"
+#endif /* RESERVE_OLD_SCRIPT_GPIO_20121122 */

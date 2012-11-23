@@ -13,8 +13,6 @@
  *
  */
 
-#include "gpio_include.h"
-
 /*
  * old gpio api(base on script) realize
  */
