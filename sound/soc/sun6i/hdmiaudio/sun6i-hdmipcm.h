@@ -2,7 +2,7 @@
  * sound\soc\sun6i\hdmiaudio\sun6i-hdmipcm.h
  * (C) Copyright 2010-2016
  * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
- * chenpailin <chenpailin@Reuuimllatech.com>
+ * huangxin <huangxin@Reuuimllatech.com>
  *
  * some simple description for this code
  *
@@ -16,11 +16,11 @@
 #ifndef SUN6I_HDMIPCM_H_
 #define SUN6I_HDMIPCM_H_
 
-#define SUN6I_HDMIBASE 0x01c16000
-
+#define SUN6I_HDMIBASE 		0x01c16000
 #define SUN6I_HDMIAUDIO_TX	0x400
+
 struct sun6i_dma_params {
 	char *name;
 	dma_addr_t dma_addr;
 };
-#endif //SUN6I_HDMIPCM_H_
+#endif /*SUN6I_HDMIPCM_H_*/
