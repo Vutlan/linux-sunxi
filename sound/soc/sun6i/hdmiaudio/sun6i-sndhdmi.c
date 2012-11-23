@@ -2,7 +2,7 @@
  * sound\soc\sun6i\hdmiaudio\sun6i-sndhdmi.c
  * (C) Copyright 2010-2016
  * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
- * chenpailin <chenpailin@Reuuimllatech.com>
+ * huangxin <huangxin@Reuuimllatech.com>
  *
  * some simple description for this code
  *
@@ -30,16 +30,16 @@ static int sun6i_sndhdmi_hw_params(struct snd_pcm_substream *substream,
 {
 	int ret = 0;
 	struct snd_soc_pcm_runtime *rtd = NULL;
-	struct snd_soc_dai *codec_dai = NULL;
-	struct snd_soc_dai *cpu_dai = NULL;
+	struct snd_soc_dai *codec_dai 	= NULL;
+	struct snd_soc_dai *cpu_dai 	= NULL;
 	
 	if (!substream) {
 		printk("error:%s,line:%d\n", __func__, __LINE__);
 		return -EAGAIN;
 	}
-	rtd = substream->private_data;
-	codec_dai = rtd->codec_dai;
-	cpu_dai = rtd->cpu_dai;
+	rtd 		= substream->private_data;
+	codec_dai 	= rtd->codec_dai;
+	cpu_dai 	= rtd->cpu_dai;
 	
 	ret = snd_soc_dai_set_fmt(codec_dai, 0);
 	if (ret < 0)
@@ -81,8 +81,9 @@ static int __init sun6i_sndhdmi_init(void)
 
 	sun6i_sndhdmi_device = platform_device_alloc("soc-audio", 0);
 		
-	if(!sun6i_sndhdmi_device)
+	if (!sun6i_sndhdmi_device) {
 		return -ENOMEM;
+	}
 
 	platform_set_drvdata(sun6i_sndhdmi_device, &snd_soc_sun6i_sndhdmi);
 	ret = platform_device_add(sun6i_sndhdmi_device);		
@@ -102,6 +103,6 @@ static void __exit sun6i_sndhdmi_exit(void)
 module_init(sun6i_sndhdmi_init);
 module_exit(sun6i_sndhdmi_exit);
 
-MODULE_AUTHOR("chenpailin");
+MODULE_AUTHOR("huangxin");
 MODULE_DESCRIPTION("SUN6I_SNDHDMI ALSA SoC audio driver");
 MODULE_LICENSE("GPL");

@@ -89,7 +89,7 @@ static __mclk_set_inf  MCLK_INF[] =
     { 32000, 128,  6, 0}, { 32000, 192,  6, 0}, { 32000, 384,  6, 0},
     { 32000, 768,  6, 0},
 
-#ifdef AW_ASIC_PLATFORM
+#ifdef CONFIG_AW_ASIC_EVB_PLATFORM
      /* 48K bitrate   3.072 Mbit/s   16/4 = 4*/
     { 48000, 128,  4, 0}, { 48000, 256,  4, 0}, { 48000, 512, 4, 0},   
 #else 
@@ -100,7 +100,7 @@ static __mclk_set_inf  MCLK_INF[] =
 
     /*192k bitrate   12.288  Mbit/s  4/4 = 1*/
     {192000, 128,  1, 0},
-#ifdef AW_ASIC_PLATFORM
+#ifdef CONFIG_AW_ASIC_EVB_PLATFORM
     /*44.1k bitrate  2.8224  Mbit/s   16/4 = 4*/
     { 44100, 128,  4, 1}, { 44100, 256,  4, 1}, { 44100, 512,  4, 1},
 #else

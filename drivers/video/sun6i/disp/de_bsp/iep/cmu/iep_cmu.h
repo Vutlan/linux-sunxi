@@ -563,10 +563,11 @@ __s32 IEP_CMU_Set_Window(__u8 sel, __disp_rect_t *window);
 __s32 IEP_CMU_Set_Imgsize(__u8 sel, __u32 width, __u32 height);
 __s32 IEP_CMU_Set_Par(__u8 sel, __u32 hue, __u32 saturaion, __u32 brightness, __u32 mode);
 __s32 IEP_CMU_Operation_In_Vblanking(__u32 sel);
-__s32 IEP_CMU_Early_Suspend(__u32 sel);
-__s32 IEP_CMU_Suspend(__u32 sel);
-__s32 IEP_CMU_Resume(__u32 sel);
-__s32 IEP_CMU_Late_Resume(__u32 sel);
+__s32 iep_cmu_early_suspend(__u32 sel);
+__s32 iep_cmu_suspend(__u32 sel);
+__s32 iep_cmu_resume(__u32 sel);
+__s32 iep_cmu_late_resume(__u32 sel);
+
 
 //------------------------------------------------------------------------------
 // 

@@ -643,12 +643,12 @@ __s32 IEP_Drc_Early_Suspend(__u32 sel)//close clk
 	return DIS_SUCCESS;
 }
 
-__s32 IEP_Drc_suspend(__u32 sel)//save register
+__s32 iep_drc_suspend(__u32 sel)//save register
 {
 	return DIS_SUCCESS;
 }
 
-__s32 IEP_Drc_Resume (__u32 sel)//restore register
+__s32 iep_drc_resume (__u32 sel)//restore register
 {
 	return DIS_SUCCESS;
 }

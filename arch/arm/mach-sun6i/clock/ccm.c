@@ -24,7 +24,7 @@
 
 #define make_aw_clk_inf(clk_id, clk_name)   {.id = clk_id, .name = clk_name}
 __ccmu_reg_list_t       *aw_ccu_reg;
-__ccmu_reg_cpu0_list_t  *aw_cpu0_reg;
+__ccmu_reg_cpu0_list_t  *aw_cpus_reg;
 
 //static __aw_ccu_clk_t aw_ccu_clk_tbl[] =
 __aw_ccu_clk_t aw_ccu_clk_tbl[] = /* liugang, for ccu test */
@@ -132,6 +132,13 @@ __aw_ccu_clk_t aw_ccu_clk_tbl[] = /* liugang, for ccu test */
     make_aw_clk_inf(AW_MOD_CLK_SPINLOCK,    CLK_MOD_SPINLOCK    ),
     make_aw_clk_inf(AW_MOD_CLK_LVDS,        CLK_MOD_LVDS        ),
     make_aw_clk_inf(AW_MOD_CLK_SMPTWD,      CLK_SMP_TWD         ),
+    make_aw_clk_inf(AW_MOD_CLK_R_TWI,       CLK_MOD_R_TWI       ),
+    make_aw_clk_inf(AW_MOD_CLK_R_1WIRE,     CLK_MOD_R_1WIRE     ),
+    make_aw_clk_inf(AW_MOD_CLK_R_UART,      CLK_MOD_R_UART      ),
+    make_aw_clk_inf(AW_MOD_CLK_R_P2WI,      CLK_MOD_R_P2WI      ),
+    make_aw_clk_inf(AW_MOD_CLK_R_TMR,       CLK_MOD_R_TMR       ),
+    make_aw_clk_inf(AW_MOD_CLK_R_CIR,       CLK_MOD_R_CIR       ),
+    make_aw_clk_inf(AW_MOD_CLK_R_PIO,       CLK_MOD_R_PIO       ),
     make_aw_clk_inf(AW_AXI_CLK_DRAM,        "axi_dram"          ),
     make_aw_clk_inf(AW_AHB_CLK_MIPICSI,     CLK_AHB_MIPICSI     ),
     make_aw_clk_inf(AW_AHB_CLK_MIPIDSI,     CLK_AHB_MIPIDSI     ),
@@ -230,7 +237,7 @@ int aw_ccu_init(void)
 
     /* initialise the CCU io base */
     aw_ccu_reg = (__ccmu_reg_list_t *)ioremap_nocache(AW_CCM_BASE, 0x400);
-    aw_cpu0_reg = (__ccmu_reg_cpu0_list_t *)ioremap_nocache(AW_R_CPUCFG_BASE, 0x200);
+    aw_cpus_reg = (__ccmu_reg_cpu0_list_t *)ioremap_nocache(AW_R_CPUCFG_BASE, 0x200);
     return 0;
 }
 
@@ -255,7 +262,7 @@ int aw_ccu_exit(void)
 {
     CCU_DBG("%s\n", __func__);
     aw_ccu_reg = NULL;
-    aw_cpu0_reg = NULL;
+    aw_cpus_reg = NULL;
 
     return 0;
 }

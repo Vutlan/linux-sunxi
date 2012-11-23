@@ -382,6 +382,7 @@ __s32 IEP_Deu_Init(__u32 sel)
 __s32 IEP_Deu_Exit(__u32 sel)
 {
 	deu_clk_exit(sel);
+    kfree((void*)g_strtab_addr);
 	
 	return DIS_SUCCESS;
 
@@ -409,9 +410,16 @@ __s32 IEP_Deu_Operation_In_Vblanking(__u32 sel)
 
 __s32 IEP_Deu_Early_Suspend(__u32 sel);//close clk
 
-__s32 IEP_Deu_suspend(__u32 sel);//save register
+__s32 iep_deu_suspend(__u32 sel)//save register
+{
+    return DIS_SUCCESS;
+}
 
-__s32 IEP_Deu_Resume (__u32 sel);//restore register
+__s32 iep_deu_resume (__u32 sel)//restore register
+{
+    return DIS_SUCCESS;
+}
+
 
 __s32 IEP_Deu_Late_Resume(__u32 sel);//open clk
 

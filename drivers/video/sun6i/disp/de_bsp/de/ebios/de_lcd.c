@@ -261,7 +261,7 @@ __s32 tcon0_cfg_mode_auto(__u32 sel, __panel_para_t * panel)
 		start_delay = 1;
     else if(start_delay>31)
 		start_delay = 31;
-#ifdef __FPGA_DEBUG__
+#if !defined(CONFIG_AW_ASIC_EVB_PLATFORM)
     start_delay = (start_delay < 10)? 10: start_delay;
 #endif
 	lcd_dev[sel]->tcon0_ctl.bits.start_delay = start_delay;
@@ -569,12 +569,14 @@ __u32 tcon0_get_dclk_div(__u32 sel)
 __s32 tcon1_open(__u32 sel)
 {
 	lcd_dev[sel]->tcon1_ctl.bits.tcon1_en = 1;
+	tcon_irq_enable(sel,LCD_IRQ_TCON1_VBLK);
 	return 0;
 }
 
 __s32 tcon1_close(__u32 sel)
 {
 	lcd_dev[sel]->tcon1_ctl.bits.tcon1_en = 0;
+	tcon_irq_disable(sel,LCD_IRQ_TCON0_VBLK);
 	return 0;
 }
 
@@ -599,6 +601,8 @@ __disp_timing_t tv_timing_tbl[30]	= {
 
 __s32 tcon1_cfg(__u32 sel,__disp_timing_t* timing)
 {
+	__u32 start_delay;
+	
 	lcd_dev[sel]->tcon1_basic0.bits.x = timing->hor_pixels-1;
 	lcd_dev[sel]->tcon1_basic0.bits.y = timing->ver_pixels/(timing->interlace+1)-1;
 	lcd_dev[sel]->tcon1_basic1.bits.ls_xo = timing->hor_pixels-1;
@@ -614,6 +618,9 @@ __s32 tcon1_cfg(__u32 sel,__disp_timing_t* timing)
 	lcd_dev[sel]->tcon1_io_pol.bits.io0_inv = timing->ver_sync_polarity;
 	lcd_dev[sel]->tcon1_io_pol.bits.io1_inv = timing->hor_sync_polarity;
 	lcd_dev[sel]->tcon1_ctl.bits.interlace_en = timing->interlace;
+	start_delay = timing->ver_total_time - timing->ver_pixels - 5;
+	start_delay = (start_delay > 31)? 31:start_delay;
+	lcd_dev[sel]->tcon1_ctl.bits.start_delay = start_delay;
 	return 0;
 }
 

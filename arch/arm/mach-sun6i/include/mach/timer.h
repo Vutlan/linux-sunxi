@@ -17,7 +17,7 @@
 #define __AW_TIMER_H__
 #include <mach/irqs-sun6i.h>
 
-#ifdef AW_ASIC_PLATFORM
+#ifdef CONFIG_AW_ASIC_EVB_PLATFORM
 
 #define AW_CLOCK_SRC (24000000)
 

@@ -161,6 +161,13 @@ typedef enum __AW_CCU_CLK_ID
     AW_MOD_CLK_SPINLOCK,    /* "mod_spinlock"                   */
     AW_MOD_CLK_LVDS,        /* "mod_lvds"                       */
     AW_MOD_CLK_SMPTWD,      /* "smp_twd"                        */
+    AW_MOD_CLK_R_TWI,       /* "mod_r_twi"                      */
+    AW_MOD_CLK_R_1WIRE,     /* "mod_r_1wire"                    */
+    AW_MOD_CLK_R_UART,      /* "mod_r_uart"                     */
+    AW_MOD_CLK_R_P2WI,      /* "mod_r_p2wi"                     */
+    AW_MOD_CLK_R_TMR,       /* "mod_r_tmr"                      */
+    AW_MOD_CLK_R_CIR,       /* "mod_r_cir"                      */
+    AW_MOD_CLK_R_PIO,       /* "mod_r_pio"                      */
 
     /* axi module gating */
     AW_AXI_CLK_DRAM,        /* "axi_dram"                       */
@@ -363,7 +370,7 @@ static inline __s32 ccu_clk_calc_hash(char *string)
 #define AXI_CLK_DIV     (aw_ccu_reg->SysClkDiv.AXIClkDiv+1)
 #define AHB0_CLK_DIV    (1)
 #define AHB1_CLK_DIV    ((aw_ccu_reg->Ahb1Div.Ahb1PreDiv + 1)*(1<<aw_ccu_reg->Ahb1Div.Ahb1Div))
-#define APB0_CLK_DIV    (aw_cpu0_reg->Apb0Div.Div? (1<<aw_cpu0_reg->Apb0Div.Div) : 2)
+#define APB0_CLK_DIV    (aw_cpus_reg->Apb0Div.Div? (1<<aw_cpus_reg->Apb0Div.Div) : 2)
 #define APB1_CLK_DIV    (aw_ccu_reg->Ahb1Div.Apb1Div? (1<<aw_ccu_reg->Ahb1Div.Apb1Div) : 2)
 #define APB2_CLK_DIV    ((aw_ccu_reg->Apb2Div.DivM+1)*(1<<aw_ccu_reg->Apb2Div.DivN))
 
@@ -373,7 +380,7 @@ extern __aw_ccu_clk_t aw_ccu_clk_tbl[];
 extern __ccu_clk_t    aw_clock[];
 
 extern __ccmu_reg_list_t   *aw_ccu_reg;
-extern __ccmu_reg_cpu0_list_t  *aw_cpu0_reg;
+extern __ccmu_reg_cpu0_list_t  *aw_cpus_reg;
 extern __clk_ops_t sys_clk_ops;
 extern __clk_ops_t mod_clk_ops;
 

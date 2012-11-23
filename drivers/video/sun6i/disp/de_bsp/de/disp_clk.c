@@ -31,10 +31,10 @@
 #define CLK_TVENC1_AHB_ON	0x02000000	
 #define CLK_HDMI_AHB_ON     0x10000000
 #define CLK_HDMI_MOD_ON 	0x20000000
+#define CLK_HDMI_MOD_DDC_ON 0x00000008
 #define CLK_DSI_AHB_ON      0x40000000
 #define CLK_DSI_MOD_ON      0x80000000
-//#define CLK_LVDS_MOD_ON
-	
+ 	
 #define CLK_DEBE0_AHB_OFF	(~(CLK_DEBE0_AHB_ON	    ))												
 #define CLK_DEBE0_MOD_OFF 	(~(CLK_DEBE0_MOD_ON 	))												
 #define CLK_DEBE0_DRAM_OFF	(~(CLK_DEBE0_DRAM_ON	))												
@@ -72,7 +72,7 @@ __hdle h_lcd0ahbclk,h_lcd0ch0mclk0,h_lcd0ch1mclk1;
 __hdle h_lcd1ahbclk,h_lcd1ch0mclk0,h_lcd1ch1mclk1;
 __hdle h_lvdsmclk;	//only for reset
 __hdle h_dsiahbclk,h_dsimclk_s,h_dsimclk_p;
-__hdle h_hdmiahbclk,h_hdmimclk;
+__hdle h_hdmiahbclk,h_hdmimclk,h_hdmimclk_ddc;
 
 __u32 g_clk_status = 0x0;
 	
@@ -502,14 +502,14 @@ __s32 tve_clk_init(__u32 sel)
 {
 	if(sel == 0)
 	{
-		h_tvenc0ahbclk = OSAL_CCMU_OpenMclk(MOD_CLK_AHB_TVE0);
+		h_tvenc0ahbclk = OSAL_CCMU_OpenMclk(AHB_CLK_TVE0);
 		OSAL_CCMU_MclkOnOff(h_tvenc0ahbclk, CLK_ON);
 
 		g_clk_status |= CLK_TVENC0_AHB_ON;
 	}
 	else if(sel == 1)
 	{
-		h_tvenc1ahbclk = OSAL_CCMU_OpenMclk(MOD_CLK_AHB_TVE1);
+		h_tvenc1ahbclk = OSAL_CCMU_OpenMclk(AHB_CLK_TVE1);
 		OSAL_CCMU_MclkOnOff(h_tvenc1ahbclk, CLK_ON);
 
 		g_clk_status |= CLK_TVENC1_AHB_ON;
@@ -549,8 +549,9 @@ __s32 tve_clk_off(__u32 sel)
 
 __s32 hdmi_clk_init(void)
 {
-	h_hdmiahbclk = OSAL_CCMU_OpenMclk(AHB_CLK_HDMID);
+	h_hdmiahbclk = OSAL_CCMU_OpenMclk(AHB_CLK_HDMI);
 	h_hdmimclk   = OSAL_CCMU_OpenMclk(MOD_CLK_HDMI);
+    h_hdmimclk_ddc = OSAL_CCMU_OpenMclk(MOD_CLK_HDMI_DDC);
 #ifdef RESET_OSAL
 	OSAL_CCMU_MclkReset(h_hdmimclk, RST_INVAILD);
 #endif	
@@ -558,7 +559,8 @@ __s32 hdmi_clk_init(void)
 	OSAL_CCMU_SetMclkDiv(h_hdmimclk, 1);
 
 	OSAL_CCMU_MclkOnOff(h_hdmiahbclk, CLK_ON);
-	g_clk_status |= CLK_HDMI_AHB_ON;
+    OSAL_CCMU_MclkOnOff(h_hdmimclk_ddc, CLK_ON);
+	g_clk_status |= CLK_HDMI_AHB_ON | CLK_HDMI_MOD_DDC_ON;
 
 	return DIS_SUCCESS;
 }
@@ -1017,9 +1019,8 @@ __s32 disp_clk_cfg(__u32 sel, __u32 type, __u8 mode)
 
 	if ( (videopll_sel = disp_pll_assign(sel, pll_freq)) == -1)
 	{
-#ifndef __FPGA_DEBUG__
+	    DE_WRN("===pll assign fail====\n");
 		return DIS_FAIL;
-#endif
 	}
 	
 	disp_pll_set(sel, videopll_sel, pll_freq, tve_freq, pre_scale, lcd_clk_div, hdmi_freq, pll_2x, type);
@@ -1070,6 +1071,10 @@ __s32 BSP_disp_clk_on(__u32 type)
     	if((g_clk_status & CLK_HDMI_AHB_ON) == CLK_HDMI_AHB_ON)	
     	{
     		OSAL_CCMU_MclkOnOff(h_hdmiahbclk, CLK_ON);
+    	}
+        if((g_clk_status & CLK_DSI_AHB_ON) == CLK_DSI_AHB_ON)	
+    	{
+    		OSAL_CCMU_MclkOnOff(h_dsiahbclk, CLK_ON);
     	}
     	//OSAL_CCMU_MclkOnOff(h_tveahbclk, CLK_ON);
 
@@ -1133,6 +1138,15 @@ __s32 BSP_disp_clk_on(__u32 type)
     	{
     		OSAL_CCMU_MclkOnOff(h_hdmimclk, CLK_ON);
     	}
+    	if((g_clk_status & CLK_HDMI_MOD_DDC_ON) == CLK_HDMI_MOD_DDC_ON)
+    	{
+    		OSAL_CCMU_MclkOnOff(h_hdmimclk_ddc, CLK_ON);
+    	}
+    	if((g_clk_status & CLK_DSI_MOD_ON) == CLK_DSI_MOD_ON)
+    	{
+    		OSAL_CCMU_MclkOnOff(h_dsimclk_s, CLK_ON);
+            OSAL_CCMU_MclkOnOff(h_dsimclk_p, CLK_ON);
+    	}
     }
     
     if(type == 2)
@@ -1185,6 +1199,10 @@ __s32 BSP_disp_clk_off(__u32 type)
     	if((g_clk_status & CLK_HDMI_AHB_ON) == CLK_HDMI_AHB_ON)	
     	{
     		OSAL_CCMU_MclkOnOff(h_hdmiahbclk, CLK_OFF);
+    	}
+    	if((g_clk_status & CLK_DSI_AHB_ON) == CLK_DSI_AHB_ON)	
+    	{
+    		OSAL_CCMU_MclkOnOff(h_dsiahbclk, CLK_OFF);
     	}
     	//OSAL_CCMU_MclkOnOff(h_tveahbclk, CLK_OFF);
 
@@ -1247,6 +1265,15 @@ __s32 BSP_disp_clk_off(__u32 type)
     	if((g_clk_status & CLK_HDMI_MOD_ON) == CLK_HDMI_MOD_ON)
     	{
     		OSAL_CCMU_MclkOnOff(h_hdmimclk, CLK_OFF);
+    	}
+    	if((g_clk_status & CLK_HDMI_MOD_DDC_ON) == CLK_HDMI_MOD_DDC_ON)
+    	{
+    		OSAL_CCMU_MclkOnOff(h_hdmimclk_ddc, CLK_OFF);
+    	}
+    	if((g_clk_status & CLK_DSI_MOD_ON) == CLK_DSI_MOD_ON)
+    	{
+    		OSAL_CCMU_MclkOnOff(h_dsimclk_s, CLK_OFF);
+            OSAL_CCMU_MclkOnOff(h_dsimclk_p, CLK_OFF);
     	}
     }
 

@@ -60,6 +60,27 @@ __s32 iep_exit(__u32 sel)
     //IEP_CMU_Exit(sel);
     return DIS_SUCCESS;
 }
+
+__s32 Bsp_disp_iep_suspend(__u32 sel)
+{
+#if 1
+    iep_cmu_suspend(sel);
+    iep_deu_suspend(sel);
+    iep_drc_suspend(sel);
+#endif    
+    return DIS_SUCCESS;
+}
+
+__s32 Bsp_disp_iep_resume(__u32 sel)
+{
+#if 1
+    iep_cmu_resume(sel);
+    iep_deu_resume(sel);
+    iep_drc_resume(sel);
+#endif
+    return DIS_SUCCESS;
+}
+
 #define ____SEPARATOR_DRC____
 //todo : csc->set_mode   or set_mode->csc?
 __s32 BSP_disp_drc_enable(__u32 sel, __u32 en)
@@ -548,9 +569,27 @@ __s32 disp_deu_output_select(__u32 sel, __u32 hid, __u32 ch)
 
 #define ____SEPARATOR_CMU____
 
+
+__s32 __disp_cmu_get_adjust_value(__disp_enhance_mode_t mode, __u32 value)
+{
+    if(mode != DISP_ENHANCE_MODE_STANDARD) //adjust to 30percent
+    {
+        if(value > 50)
+        {
+            value = 50 + (value-50)*30/100;
+        }
+        else
+        {
+            value = 50 - (50-value)*30/100;
+        }
+    }
+
+    return value;
+}
 __s32 BSP_disp_cmu_layer_enable(__u32 sel,__u32 hid, __bool en)
 {
 	__layer_man_t * layer_man;
+    __u32 layer_bright, layer_saturation, layer_hue, layer_mode;
     
     hid= HANDTOID(hid);
     HLID_ASSERT(hid, gdisp.screen[sel].max_layers);
@@ -560,10 +599,13 @@ __s32 BSP_disp_cmu_layer_enable(__u32 sel,__u32 hid, __bool en)
 	{
 	    if(en && !(gdisp.screen[sel].cmu.status & CMU_SCREEN_EN))
         {
+            layer_mode = gdisp.screen[sel].cmu.layer_mode;
+            layer_bright = __disp_cmu_get_adjust_value(layer_mode, gdisp.screen[sel].cmu.layer_bright);
+            layer_saturation = __disp_cmu_get_adjust_value(layer_mode, gdisp.screen[sel].cmu.layer_saturation);
+            layer_hue = __disp_cmu_get_adjust_value(layer_mode, gdisp.screen[sel].cmu.layer_hue);
             BSP_disp_cfg_start(sel);
             IEP_CMU_Set_Imgsize(sel,layer_man->para.scn_win.width, layer_man->para.scn_win.height);
-            IEP_CMU_Set_Par(sel,gdisp.screen[sel].cmu.layer_hue,gdisp.screen[sel].cmu.layer_saturation,
-                gdisp.screen[sel].cmu.layer_bright,gdisp.screen[sel].cmu.layer_mode);
+            IEP_CMU_Set_Par(sel, layer_hue, layer_saturation, layer_bright, layer_mode);
             IEP_CMU_Set_Data_Flow(sel,layer_man->scaler_index+1);//fe0 : 1, fe1 :2
             IEP_CMU_Set_Window(sel,&gdisp.screen[sel].cmu.layer_rect);
             IEP_CMU_Enable(sel, TRUE);
@@ -650,6 +692,7 @@ __s32 BSP_disp_cmu_layer_get_window(__u32 sel, __u32 hid, __disp_rect_t *rect)
 __s32 BSP_disp_cmu_layer_set_bright(__u32 sel, __u32 hid, __u32 bright)
 {
     __layer_man_t * layer_man;
+    __u32 layer_bright, layer_saturation, layer_hue, layer_mode;
     
     hid= HANDTOID(hid);
     HLID_ASSERT(hid, gdisp.screen[sel].max_layers);
@@ -659,10 +702,13 @@ __s32 BSP_disp_cmu_layer_set_bright(__u32 sel, __u32 hid, __u32 bright)
     {
       
         gdisp.screen[sel].cmu.layer_bright = bright;
+        layer_mode = gdisp.screen[sel].cmu.layer_mode;
+        layer_bright = __disp_cmu_get_adjust_value(layer_mode, gdisp.screen[sel].cmu.layer_bright);
+        layer_saturation = __disp_cmu_get_adjust_value(layer_mode, gdisp.screen[sel].cmu.layer_saturation);
+        layer_hue = __disp_cmu_get_adjust_value(layer_mode, gdisp.screen[sel].cmu.layer_hue);
         if(gdisp.screen[sel].cmu.status & CMU_LAYER_EN)
         {
-            IEP_CMU_Set_Par(sel,gdisp.screen[sel].cmu.layer_hue,gdisp.screen[sel].cmu.layer_saturation,
-                gdisp.screen[sel].cmu.layer_bright,gdisp.screen[sel].cmu.layer_mode);
+            IEP_CMU_Set_Par(sel, layer_hue, layer_saturation, layer_bright, layer_mode);
         }
         return DIS_SUCCESS;
     }
@@ -688,6 +734,7 @@ __s32 BSP_disp_cmu_layer_get_bright(__u32 sel, __u32 hid)
 __s32 BSP_disp_cmu_layer_set_saturation(__u32 sel, __u32 hid, __u32 saturation)
 {
     __layer_man_t * layer_man;
+    __u32 layer_bright, layer_saturation, layer_hue,layer_mode;
     
     hid= HANDTOID(hid);
     HLID_ASSERT(hid, gdisp.screen[sel].max_layers);
@@ -697,10 +744,13 @@ __s32 BSP_disp_cmu_layer_set_saturation(__u32 sel, __u32 hid, __u32 saturation)
     {
       
         gdisp.screen[sel].cmu.layer_saturation= saturation;
+        layer_mode = gdisp.screen[sel].cmu.layer_mode;
+        layer_bright = __disp_cmu_get_adjust_value(layer_mode, gdisp.screen[sel].cmu.layer_bright);
+        layer_saturation = __disp_cmu_get_adjust_value(layer_mode, gdisp.screen[sel].cmu.layer_saturation);
+        layer_hue = __disp_cmu_get_adjust_value(layer_mode, gdisp.screen[sel].cmu.layer_hue);
         if(gdisp.screen[sel].cmu.status & CMU_LAYER_EN)
         {
-            IEP_CMU_Set_Par(sel,gdisp.screen[sel].cmu.layer_hue,gdisp.screen[sel].cmu.layer_saturation,
-                gdisp.screen[sel].cmu.layer_bright,gdisp.screen[sel].cmu.layer_mode);
+            IEP_CMU_Set_Par(sel, layer_hue, layer_saturation, layer_bright,layer_mode);
         }
         return DIS_SUCCESS;
     }
@@ -726,6 +776,7 @@ __s32 BSP_disp_cmu_layer_get_saturation(__u32 sel, __u32 hid)
 __s32 BSP_disp_cmu_layer_set_hue(__u32 sel, __u32 hid, __u32 hue)
 {
     __layer_man_t * layer_man;
+    __u32 layer_bright, layer_saturation, layer_hue,layer_mode;
     
     hid= HANDTOID(hid);
     HLID_ASSERT(hid, gdisp.screen[sel].max_layers);
@@ -735,10 +786,13 @@ __s32 BSP_disp_cmu_layer_set_hue(__u32 sel, __u32 hid, __u32 hue)
     {
       
         gdisp.screen[sel].cmu.layer_hue = hue;
+        layer_mode = gdisp.screen[sel].cmu.layer_mode;
+        layer_bright = __disp_cmu_get_adjust_value(layer_mode, gdisp.screen[sel].cmu.layer_bright);
+        layer_saturation = __disp_cmu_get_adjust_value(layer_mode, gdisp.screen[sel].cmu.layer_saturation);
+        layer_hue = __disp_cmu_get_adjust_value(layer_mode, gdisp.screen[sel].cmu.layer_hue);
         if(gdisp.screen[sel].cmu.status & CMU_LAYER_EN)
         {
-            IEP_CMU_Set_Par(sel,gdisp.screen[sel].cmu.layer_hue,gdisp.screen[sel].cmu.layer_saturation,
-                gdisp.screen[sel].cmu.layer_bright,gdisp.screen[sel].cmu.layer_mode);
+            IEP_CMU_Set_Par(sel, layer_hue, layer_saturation, layer_bright, layer_mode);
         }
         return DIS_SUCCESS;
     }
@@ -795,6 +849,7 @@ __s32 BSP_disp_cmu_layer_get_contrast(__u32 sel, __u32 hid)
 __s32 BSP_disp_cmu_layer_set_mode(__u32 sel, __u32 hid, __u32 mode)
 {
     __layer_man_t * layer_man;
+    __u32 layer_bright, layer_saturation, layer_hue,layer_mode;
     
     hid= HANDTOID(hid);
     HLID_ASSERT(hid, gdisp.screen[sel].max_layers);
@@ -802,12 +857,14 @@ __s32 BSP_disp_cmu_layer_set_mode(__u32 sel, __u32 hid, __u32 mode)
     layer_man = &gdisp.screen[sel].layer_manage[hid];
     if((layer_man->status & LAYER_USED) && (layer_man->para.mode == DISP_LAYER_WORK_MODE_SCALER))
     {
-      
         gdisp.screen[sel].cmu.layer_mode = mode;
+        layer_mode = gdisp.screen[sel].cmu.layer_mode;
+        layer_bright = __disp_cmu_get_adjust_value(layer_mode, gdisp.screen[sel].cmu.layer_bright);
+        layer_saturation = __disp_cmu_get_adjust_value(layer_mode, gdisp.screen[sel].cmu.layer_saturation);
+        layer_hue = __disp_cmu_get_adjust_value(layer_mode, gdisp.screen[sel].cmu.layer_hue);
         if(gdisp.screen[sel].cmu.status & CMU_LAYER_EN)
         {
-            IEP_CMU_Set_Par(sel,gdisp.screen[sel].cmu.layer_hue,gdisp.screen[sel].cmu.layer_saturation,
-                gdisp.screen[sel].cmu.layer_bright,gdisp.screen[sel].cmu.layer_mode);
+            IEP_CMU_Set_Par(sel, layer_hue, layer_saturation, layer_bright, layer_mode);
         }
         return DIS_SUCCESS;
     }
@@ -832,12 +889,18 @@ __s32 BSP_disp_cmu_layer_get_mode(__u32 sel, __u32 hid)
 
 __s32 BSP_disp_cmu_enable(__u32 sel,__bool en)
 {
+    __u32 screen_bright, screen_saturation, screen_hue, screen_mode;
+
     if(en)
     {
         if(!(gdisp.screen[sel].cmu.status & CMU_LAYER_EN))
         {
+            screen_mode = gdisp.screen[sel].cmu.screen_mode;
+            screen_bright = __disp_cmu_get_adjust_value(screen_mode, gdisp.screen[sel].cmu.screen_bright);
+            screen_saturation = __disp_cmu_get_adjust_value(screen_mode, gdisp.screen[sel].cmu.screen_saturation);
+            screen_hue = __disp_cmu_get_adjust_value(screen_mode, gdisp.screen[sel].cmu.screen_hue);
             IEP_CMU_Set_Imgsize(sel,BSP_disp_get_screen_width(sel), BSP_disp_get_screen_height(sel));
-            IEP_CMU_Set_Par(sel,gdisp.screen[sel].cmu.screen_hue,gdisp.screen[sel].cmu.screen_saturation,gdisp.screen[sel].cmu.screen_bright,gdisp.screen[sel].cmu.screen_mode);
+            IEP_CMU_Set_Par(sel, screen_hue, screen_saturation, screen_bright, screen_mode);
             IEP_CMU_Set_Data_Flow(sel,0);
             IEP_CMU_Set_Window(sel,&gdisp.screen[sel].cmu.screen_rect);
             IEP_CMU_Enable(sel, TRUE);
@@ -848,7 +911,7 @@ __s32 BSP_disp_cmu_enable(__u32 sel,__bool en)
         IEP_CMU_Enable(sel, FALSE);
         gdisp.screen[sel].cmu.status &= CMU_SCREEN_EN_MASK;
     }
-    
+
 	return DIS_SUCCESS;
 	
 }
@@ -877,11 +940,16 @@ __s32 BSP_disp_cmu_get_window(__u32 sel, __disp_rect_t *rect)
 
 __s32 BSP_disp_cmu_set_bright(__u32 sel, __u32 bright)
 {
+    __u32 screen_bright, screen_saturation, screen_hue, screen_mode;
+
     gdisp.screen[sel].cmu.screen_bright = bright;
     if(gdisp.screen[sel].cmu.status & CMU_SCREEN_EN)
-    {
-        IEP_CMU_Set_Par(sel,gdisp.screen[sel].cmu.screen_hue,gdisp.screen[sel].cmu.screen_saturation,
-            gdisp.screen[sel].cmu.screen_bright,gdisp.screen[sel].cmu.screen_mode);
+    {  
+        screen_mode = gdisp.screen[sel].cmu.screen_mode;
+        screen_bright = __disp_cmu_get_adjust_value(screen_mode, gdisp.screen[sel].cmu.screen_bright);
+        screen_saturation = __disp_cmu_get_adjust_value(screen_mode, gdisp.screen[sel].cmu.screen_saturation);
+        screen_hue = __disp_cmu_get_adjust_value(screen_mode, gdisp.screen[sel].cmu.screen_hue);
+        IEP_CMU_Set_Par(sel, screen_hue, screen_saturation, screen_bright, screen_mode);
     }
     return DIS_SUCCESS;
 }
@@ -894,11 +962,16 @@ __s32 BSP_disp_cmu_get_bright(__u32 sel)
 
 __s32 BSP_disp_cmu_set_saturation(__u32 sel,__u32 saturation)
 {
+    __u32 screen_bright, screen_saturation, screen_hue, screen_mode;
+
     gdisp.screen[sel].cmu.screen_saturation= saturation;
     if(gdisp.screen[sel].cmu.status & CMU_SCREEN_EN)
     {
-        IEP_CMU_Set_Par(sel,gdisp.screen[sel].cmu.screen_hue,gdisp.screen[sel].cmu.screen_saturation,
-            gdisp.screen[sel].cmu.screen_bright,gdisp.screen[sel].cmu.screen_mode);
+        screen_mode = gdisp.screen[sel].cmu.screen_mode;
+        screen_bright = __disp_cmu_get_adjust_value(screen_mode, gdisp.screen[sel].cmu.screen_bright);
+        screen_saturation = __disp_cmu_get_adjust_value(screen_mode, gdisp.screen[sel].cmu.screen_saturation);
+        screen_hue = __disp_cmu_get_adjust_value(screen_mode, gdisp.screen[sel].cmu.screen_hue);
+        IEP_CMU_Set_Par(sel, screen_hue, screen_saturation, screen_bright, screen_mode);
     }
     return DIS_SUCCESS;
 
@@ -911,11 +984,16 @@ __s32 BSP_disp_cmu_get_saturation(__u32 sel)
 
 __s32 BSP_disp_cmu_set_hue(__u32 sel, __u32 hue)
 {
+    __u32 screen_bright, screen_saturation, screen_hue, screen_mode;
+
     gdisp.screen[sel].cmu.screen_hue = hue;
     if(gdisp.screen[sel].cmu.status & CMU_SCREEN_EN)
     {
-        IEP_CMU_Set_Par(sel,gdisp.screen[sel].cmu.screen_hue,gdisp.screen[sel].cmu.screen_saturation,
-            gdisp.screen[sel].cmu.screen_bright,gdisp.screen[sel].cmu.screen_mode);
+        screen_mode = gdisp.screen[sel].cmu.screen_mode;
+        screen_bright = __disp_cmu_get_adjust_value(screen_mode, gdisp.screen[sel].cmu.screen_bright);
+        screen_saturation = __disp_cmu_get_adjust_value(screen_mode, gdisp.screen[sel].cmu.screen_saturation);
+        screen_hue = __disp_cmu_get_adjust_value(screen_mode, gdisp.screen[sel].cmu.screen_hue);
+        IEP_CMU_Set_Par(sel, screen_hue, screen_saturation, screen_bright, screen_mode);
     }
     return DIS_SUCCESS;
 
@@ -941,11 +1019,16 @@ __s32 BSP_disp_cmu_get_contrast(__u32 sel)
 
 __s32 BSP_disp_cmu_set_mode(__u32 sel,__u32 mode)
 {
+    __u32 screen_bright, screen_saturation, screen_hue, screen_mode;
+
     gdisp.screen[sel].cmu.screen_mode= mode;
     if(gdisp.screen[sel].cmu.status & CMU_SCREEN_EN)
     {
-        IEP_CMU_Set_Par(sel,gdisp.screen[sel].cmu.screen_hue,gdisp.screen[sel].cmu.screen_saturation,
-            gdisp.screen[sel].cmu.screen_bright,gdisp.screen[sel].cmu.screen_mode);
+        screen_mode = gdisp.screen[sel].cmu.screen_mode;
+        screen_bright = __disp_cmu_get_adjust_value(screen_mode, gdisp.screen[sel].cmu.screen_bright);
+        screen_saturation = __disp_cmu_get_adjust_value(screen_mode, gdisp.screen[sel].cmu.screen_saturation);
+        screen_hue = __disp_cmu_get_adjust_value(screen_mode, gdisp.screen[sel].cmu.screen_hue);
+        IEP_CMU_Set_Par(sel, screen_hue, screen_saturation, screen_bright, screen_mode);
     }
     return DIS_SUCCESS;
 

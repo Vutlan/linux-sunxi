@@ -1710,6 +1710,7 @@ static struct platform_device sun6i_spi0_device = {
 	},
 };
 
+#ifdef CONFIG_AW_ASIC_EVB_PLATFORM
 struct sun6i_spi_platform_data sun6i_spi1_pdata = {
 	.cs_bitmap	= 0x3,
 	.num_cs		= 2,
@@ -1796,6 +1797,7 @@ static struct platform_device sun6i_spi3_device = {
 		.platform_data = &sun6i_spi3_pdata,
 	},
 };
+#endif
 /* ---------------- spi resource and platform data end ----------------------- */
 
 #ifdef CONFIG_AW_ASIC_EVB_PLATFORM

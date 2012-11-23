@@ -146,7 +146,7 @@ void __init sun6i_timer_init(void)
     writel(TIMER0_VALUE, timer_cpu_base + AW_TMR0_INTV_VALUE_REG);
     
     ctrl = readl(timer_cpu_base + AW_TMR0_CTRL_REG);
-#ifdef AW_ASIC_PLATFORM
+#ifdef CONFIG_AW_ASIC_EVB_PLATFORM
 	/*OSC24m*/
 	printk("asic,%s,line:%d\n", __func__, __LINE__);
     ctrl |= (1<<2);

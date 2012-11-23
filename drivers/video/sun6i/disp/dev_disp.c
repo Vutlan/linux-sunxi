@@ -478,7 +478,7 @@ int disp_mem_release(int sel)
 	if(g_disp_mm[sel].info_base == 0)
 		return -EINVAL;
     
-    __inf("disp_mem_release, mem_id=%d, phy_addr=0x%x\n", sel, (long unsigned int)g_disp_mm[sel].mem_start);
+    __inf("disp_mem_release, mem_id=%d, phy_addr=0x%x\n", sel, (unsigned int)g_disp_mm[sel].mem_start);
     disp_free((void *)g_disp_mm[sel].info_base, (void*)g_disp_mm[sel].mem_start);
     memset(&g_disp_mm[sel],0,sizeof(struct info_mm));
 #endif
@@ -735,6 +735,8 @@ int disp_suspend(struct platform_device *pdev, pm_message_t state)
      }
 
     BSP_disp_hdmi_suspend();
+    Bsp_disp_iep_suspend(0);
+    Bsp_disp_iep_suspend(1);
 
     BSP_disp_clk_off(1);
     BSP_disp_clk_off(2);
@@ -770,6 +772,8 @@ int disp_resume(struct platform_device *pdev)
     }
 
     BSP_disp_hdmi_resume();
+    Bsp_disp_iep_resume(0);
+    Bsp_disp_iep_resume(1);
 #ifndef CONFIG_HAS_EARLYSUSPEND
 
     pr_info("disp_resume call\n");

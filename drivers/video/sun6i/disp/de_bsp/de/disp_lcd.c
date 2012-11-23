@@ -961,13 +961,20 @@ __s32 pwm_set_para(__u32 channel, __pwm_info_t * pwm_info)
 
 //    __inf("pwm_set_para, chn:%d, en:%d, active_state:%d, duty_ns:%d, period_ns:%d, mode:%d \n",
 //        channel, pwm_info->enable, pwm_info->active_state, pwm_info->duty_ns, pwm_info->period_ns,pwm_info->mode);
-    
-    freq = 1000000 / pwm_info->period_ns;
 
-    if(freq > 200000)//todo ?
+    if(pwm_info->period_ns != 0)
     {
-        DE_WRN("pwm preq is large then 200khz, fix to 200khz\n");
-        freq = 200000;
+        freq = 1000000 / pwm_info->period_ns;
+    }else
+    {
+        DE_WRN("pwm%d period_ns is ZERO\n", channel);
+        freq = 1000;
+    }
+
+    if(freq > 24000000)
+    {
+        DE_WRN("pwm preq is large then 24mhz, fix to 24mhz\n");
+        freq = 24000000;
     }
     entire_cycle = 24000000 / freq;
 
@@ -980,7 +987,7 @@ __s32 pwm_set_para(__u32 channel, __pwm_info_t * pwm_info)
     if(pre_scal_id > 6)
     {
         pre_scal_id = 6;
-        DE_WRN("pwm preq is too small, may be unexact!\n");
+        DE_WRN("pwm preq is too small, may be imprecise!\n");
     }
 
     active_cycle = (pwm_info->duty_ns * entire_cycle + (pwm_info->period_ns/2)) / pwm_info->period_ns;
@@ -992,8 +999,7 @@ __s32 pwm_set_para(__u32 channel, __pwm_info_t * pwm_info)
     gdisp.pwm[channel].duty_ns = pwm_info->duty_ns;
     gdisp.pwm[channel].period_ns = pwm_info->period_ns;
     gdisp.pwm[channel].entire_cycle = entire_cycle;
-    gdisp.pwm[channel].active_cycle = active_cycle;
-    gdisp.pwm[channel].mode = pwm_info->mode;
+    gdisp.pwm[channel].active_cycle = active_cycle; 
 #if 0
     __inf("freq = %d, pre_scal=%d, active_state=%d, duty_ns=%d,period_ns=%d, entire_cycle=%d, active_cycle=%d, mode=%d \n",
     gdisp.pwm[channel].freq,  gdisp.pwm[channel].pre_scal, 
@@ -1015,8 +1021,7 @@ __s32 pwm_get_para(__u32 channel, __pwm_info_t * pwm_info)
     pwm_info->enable = gdisp.pwm[channel].enable;
     pwm_info->active_state = gdisp.pwm[channel].active_state;
     pwm_info->duty_ns = gdisp.pwm[channel].duty_ns;
-    pwm_info->period_ns = gdisp.pwm[channel].period_ns;
-    pwm_info->mode = gdisp.pwm[channel].mode;
+    pwm_info->period_ns = gdisp.pwm[channel].period_ns; 
 
     return 0;
 }
@@ -1100,7 +1105,7 @@ __s32 LCD_POWER_EN(__u32 sel, __bool b_en)
         OSAL_GPIO_Release(hdl, 2);
     }
 
-#ifdef __FPGA_DEBUG__
+#if !defined(CONFIG_AW_ASIC_EVB_PLATFORM)
     //pwr pd29
     if(b_en==0)
 		*(volatile __u32*)(0xf1c20800 + 0x7c) = (*(volatile __u32*)(0xf1c20800 + 0x7c)) & (~(1<<29));
@@ -1193,7 +1198,7 @@ __s32 Disp_lcdc_pin_cfg(__u32 sel, __disp_output_type_t out_type, __u32 bon)
         __hdle lcd_pin_hdl;
         int  i;
 
-#ifdef __FPGA_DEBUG__
+#if !defined(CONFIG_AW_ASIC_EVB_PLATFORM)
         if(!bon)
         {        //pd28, pwm0 pin_cfg
                 //*(volatile __u32*)(0xf1c20800 + 0x78) = (*(volatile __u32*)(0xf1c20800 +  0x78)) & (~0x00020000);
@@ -1355,14 +1360,6 @@ __s32 Disp_lcdc_init(__u32 sel)
         OSAL_InterruptEnable(INTC_IRQNO_LCDC1);
 #endif
     }
-#if 0//#ifdef __FPGA_DEBUG__
-    if(sel == 0)
-    {
-        gdisp.screen[sel].lcd_cfg.lcd_used = 1;
-        gdisp.screen[sel].lcd_cfg.backlight_bright = 197;
-        gdisp.screen[sel].lcd_cfg.lcd_pwm_used = 1;
-    }
-#endif
     if(gdisp.screen[sel].lcd_cfg.lcd_used)
     {
         if(lcd_panel_fun[sel].cfg_panel_info)
@@ -1380,8 +1377,14 @@ __s32 Disp_lcdc_init(__u32 sel)
 
             pwm_info.enable = 0;
             pwm_info.active_state = 1;
-            pwm_info.period_ns = 1000000 / gpanel_info[sel].lcd_pwm_freq;
-            pwm_info.mode = 0; //single mode
+            if(gpanel_info[sel].lcd_pwm_freq != 0)
+            {
+                pwm_info.period_ns = 1000000 / gpanel_info[sel].lcd_pwm_freq;
+            }else
+            {
+                DE_WRN("lcd%d.lcd_pwm_freq is ZERO\n", sel);
+                pwm_info.period_ns = 1000000 / 1000;  //default 1khz
+            } 
             if(gpanel_info[sel].lcd_pwm_pol == 0)
             {
                 pwm_info.duty_ns = (gdisp.screen[sel].lcd_cfg.backlight_bright * pwm_info.period_ns) / 256;

@@ -85,10 +85,10 @@ __s32 IEP_Drc_Set_Reg_Base(__u32 sel, __u32 base);
 __s32 IEP_Drc_Get_Reg_Base(__u32 sel);
 __s32 IEP_Drc_Set_Winodw(__u32 sel, __disp_rect_t window);//full screen for default
 __s32 IEP_Drc_Set_Mode(__u32 sel, __iep_drc_mode_t mode);
-__s32 IEP_Drc_Early_Suspend(__u32 sel);//close clk
-__s32 IEP_Drc_suspend(__u32 sel);//save register
-__s32 IEP_Drc_Resume (__u32 sel);//restore register
-__s32 IEP_Drc_Late_Resume(__u32 sel);//open clk
+__s32 iep_drc_early_suspend(__u32 sel);//close clk
+__s32 iep_drc_suspend(__u32 sel);//save register
+__s32 iep_drc_resume (__u32 sel);//restore register
+__s32 iep_drc_late_resume(__u32 sel);//open clk
 __s32 IEP_Drc_Set_Imgsize(__u32 sel, __u32 width, __u32 height);
 
 

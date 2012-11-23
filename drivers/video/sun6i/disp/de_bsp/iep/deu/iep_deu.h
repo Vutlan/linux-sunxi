@@ -55,10 +55,10 @@ __s32 IEP_Deu_Output_Select(__u32 sel, __u32 be_ch);
 __s32 IEP_Deu_Init(__u32 sel); 
 __s32 IEP_Deu_Exit(__u32 sel);
 __s32 IEP_Deu_Operation_In_Vblanking(__u32 sel);
-__s32 IEP_Deu_Early_Suspend(__u32 sel);//close clk
-__s32 IEP_Deu_suspend(__u32 sel);//save register
-__s32 IEP_Deu_Resume (__u32 sel);//restore register
-__s32 IEP_Deu_Late_Resume(__u32 sel);//open clk
+__s32 iep_deu_early_suspend(__u32 sel);//close clk
+__s32 iep_deu_suspend(__u32 sel);//save register
+__s32 iep_deu_resume (__u32 sel);//restore register
+__s32 iep_deu_late_resume(__u32 sel);//open clk
 __s32 IEP_Deu_Set_frameinfo(__u32 sel, __disp_frame_info_t frameinfo);
 
 #endif
