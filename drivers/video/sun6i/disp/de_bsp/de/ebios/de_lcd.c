@@ -261,7 +261,7 @@ __s32 tcon0_cfg_mode_auto(__u32 sel, __panel_para_t * panel)
 		start_delay = 1;
     else if(start_delay>31)
 		start_delay = 31;
-#ifdef __FPGA_DEBUG__
+#if !defined(CONFIG_AW_ASIC_EVB_PLATFORM)
     start_delay = (start_delay < 10)? 10: start_delay;
 #endif
 	lcd_dev[sel]->tcon0_ctl.bits.start_delay = start_delay;

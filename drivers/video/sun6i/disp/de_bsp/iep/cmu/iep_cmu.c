@@ -273,42 +273,51 @@ __s32 IEP_CMU_Disable(__u32 sel)
 	return 0;
 }
 
-__s32 IEP_CMU_Early_Suspend(__u32 sel)
+__s32 iep_cmu_early_suspend(__u32 sel)
 {
 	//close clk
 
 	return 0;
 }
 
-__s32 IEP_CMU_Suspend(__u32 sel)
+__s32 iep_cmu_suspend(__u32 sel)
 {
 	__u32 i,reg_val;
-
+#if defined(__LINUX_OSAL__)
 	cmu_mem = kmalloc(sizeof(__u32)*0x100,GFP_KERNEL | __GFP_ZERO);
-    for(i=0; i<0x100; i+=4)
+#endif
+    if(cmu_mem)
     {
-    	//save register
-        reg_val = CMU_RUINT32(sel,IMGEHC_CMU_CTL_REG_OFF +i);
-        put_wvalue(cmu_mem, reg_val);
+        for(i=0; i<0x100; i+=4)
+        {
+        	//save register
+            reg_val = CMU_RUINT32(sel,IMGEHC_CMU_CTL_REG_OFF +i);
+            put_wvalue(cmu_mem, reg_val);
+        }
     }
 
 	return 0;
 }
 
-__s32 IEP_CMU_Resume(__u32 sel)
+__s32 iep_cmu_resume(__u32 sel)
 {
 	__u32 i,reg_val;
 
 	IEP_CMU_Reg_Init(sel);
-    for(i=4; i<0x100; i+=4)
+    if(cmu_mem)
     {
-    	//restore register
-        reg_val = get_wvalue(cmu_mem +i);
-        CMU_WUINT32(sel,IMGEHC_CMU_CTL_REG_OFF +i,reg_val);
+        for(i=4; i<0x100; i+=4)
+        {
+        	//restore register
+            reg_val = get_wvalue(cmu_mem +i);
+            CMU_WUINT32(sel,IMGEHC_CMU_CTL_REG_OFF +i,reg_val);
+        }
+        reg_val = get_wvalue(cmu_mem);
+        CMU_WUINT32(sel,IMGEHC_CMU_CTL_REG_OFF,reg_val);
+#if defined(__LINUX_OSAL__)
+    	kfree(cmu_mem);
+#endif
     }
-    reg_val = get_wvalue(cmu_mem);
-    CMU_WUINT32(sel,IMGEHC_CMU_CTL_REG_OFF,reg_val);
-	kfree(cmu_mem);
 	
 	return 0;
 }

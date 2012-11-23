@@ -3,9 +3,6 @@
 
 #include "disp_display_i.h"
 
-#define  MOD_CLK_AHB_TVE0  0
-#define  MOD_CLK_AHB_TVE1  0
-
 typedef struct
 {
 	__u32 tve_clk;	//required clock frequency for LCDx_ch1_clk2, for tv output used ,Hz

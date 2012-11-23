@@ -302,9 +302,6 @@ __s32 Scaler_Init(__u32 sel)
     if(sel == 0)
     {
         OSAL_RegISR(INTC_IRQNO_SCALER0,0,Scaler_event_proc, (void *)sel,0,0);
-#ifdef __FPGA_DEBUG__
-        OSAL_RegISR(INTC_IRQNO_SCALER0+1,0,Scaler_event_proc, (void *)sel,0,0);//BE INT
-#endif
 #ifndef __LINUX_OSAL__
         OSAL_InterruptEnable(INTC_IRQNO_SCALER0);
 #endif

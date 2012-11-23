@@ -801,7 +801,7 @@ typedef struct __CCMU_CPU_PWRCLAMP
 
 typedef struct __CCMU_REG_CPU0_LIST
 {
-    volatile __ccmu_cpus_cfg_t               Cpu0Cfg;       //0x0000, cpu0 clock configuration
+    volatile __ccmu_cpus_cfg_t               CpusCfg;       //0x0000, cpu0 clock configuration
     volatile __u32                           reserved0[2];  //0x0004, reserved
     volatile __ccmu_apb0_ratio_t             Apb0Div;       //0x000c, apb0 clock divide ratio
     volatile __ccmu_cpuneon_clk_t            Cpu1En;        //0x0010, cpu1/neon clock enable

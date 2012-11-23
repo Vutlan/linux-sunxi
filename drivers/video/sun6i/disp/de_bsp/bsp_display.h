@@ -322,6 +322,8 @@ extern __s32 BSP_disp_drc_set_window(__u32 sel, __disp_rect_t *rect);
 extern __s32 BSP_disp_drc_get_window(__u32 sel, __disp_rect_t *rect);
 extern __s32 BSP_disp_drc_set_mode(__u32 sel, __u32 mode);
 extern __s32 BSP_disp_drc_get_mode(__u32 sel);
+extern __s32 Bsp_disp_iep_suspend(__u32 sel);
+extern __s32 Bsp_disp_iep_resume(__u32 sel);
 
 extern __u32 Disp_get_screen_scan_mode(__disp_tv_mode_t tv_mode);
 

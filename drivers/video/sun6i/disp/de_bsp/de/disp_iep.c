@@ -60,6 +60,27 @@ __s32 iep_exit(__u32 sel)
     //IEP_CMU_Exit(sel);
     return DIS_SUCCESS;
 }
+
+__s32 Bsp_disp_iep_suspend(__u32 sel)
+{
+#if 1
+    iep_cmu_suspend(sel);
+    iep_deu_suspend(sel);
+    iep_drc_suspend(sel);
+#endif    
+    return DIS_SUCCESS;
+}
+
+__s32 Bsp_disp_iep_resume(__u32 sel)
+{
+#if 1
+    iep_cmu_resume(sel);
+    iep_deu_resume(sel);
+    iep_drc_resume(sel);
+#endif
+    return DIS_SUCCESS;
+}
+
 #define ____SEPARATOR_DRC____
 //todo : csc->set_mode   or set_mode->csc?
 __s32 BSP_disp_drc_enable(__u32 sel, __u32 en)
