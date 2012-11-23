@@ -69,7 +69,7 @@ static __aw_ccu_clk_id_e sys_clk_get_parent(__aw_ccu_clk_id_e id)
                     return AW_SYS_CLK_PLL1;
             }
         case AW_SYS_CLK_AR100:
-            switch(aw_cpus_reg->Cpu0Cfg.ClkSrc)
+            switch(aw_cpus_reg->CpusCfg.ClkSrc)
             {
                 case AR100_CLKSRC_LOSC:
                     return AW_SYS_CLK_LOSC;
@@ -395,13 +395,13 @@ static __s32 sys_clk_set_parent(__aw_ccu_clk_id_e id, __aw_ccu_clk_id_e parent)
             switch(parent)
             {
                 case AW_SYS_CLK_LOSC:
-                    aw_cpus_reg->Cpu0Cfg.ClkSrc = AR100_CLKSRC_LOSC;
+                    aw_cpus_reg->CpusCfg.ClkSrc = AR100_CLKSRC_LOSC;
                     return 0;
                 case AW_SYS_CLK_HOSC:
-                    aw_cpus_reg->Cpu0Cfg.ClkSrc = AR100_CLKSRC_HOSC;
+                    aw_cpus_reg->CpusCfg.ClkSrc = AR100_CLKSRC_HOSC;
                     return 0;
                 case AW_SYS_CLK_PLL1:
-                    aw_cpus_reg->Cpu0Cfg.ClkSrc = AR100_CLKSRC_PLL6;
+                    aw_cpus_reg->CpusCfg.ClkSrc = AR100_CLKSRC_PLL6;
                     return 0;
                 default:
                     CCU_ERR("ar100 clock source is ivalid!\n");
@@ -718,8 +718,6 @@ static __s32 sys_clk_set_rate(__aw_ccu_clk_id_e id, __u64 rate)
             return -1;
         case AW_SYS_CLK_AC327:
             return rate == sys_clk_get_rate(sys_clk_get_parent(id))? 0 : -1;
-        case AW_SYS_CLK_AR100:
-            return -1;
         case AW_SYS_CLK_AXI:
         {
             __u64   tmp_rate;
@@ -728,12 +726,142 @@ static __s32 sys_clk_set_rate(__aw_ccu_clk_id_e id, __u64 rate)
             aw_ccu_reg->SysClkDiv.AXIClkDiv = tmp_rate;
             return 0;
         }
+
+        case AW_SYS_CLK_AR100:
+        {
+            __u64   tmp_rate;
+
+            tmp_rate = sys_clk_get_rate(sys_clk_get_parent(id));
+            do_div(tmp_rate, rate);
+            if(tmp_rate > 32*8) {
+                return -1;
+            } else if(tmp_rate > 32*4) {
+                aw_cpus_reg->CpusCfg.Div = 3;
+                aw_cpus_reg->CpusCfg.Div = do_div(tmp_rate, 8);
+            } else if(tmp_rate > 32*2) {
+                aw_cpus_reg->CpusCfg.Div = 2;
+                aw_cpus_reg->CpusCfg.Div = do_div(tmp_rate, 4);
+            } else if(tmp_rate > 32*1) {
+                aw_cpus_reg->CpusCfg.Div = 1;
+                aw_cpus_reg->CpusCfg.Div = do_div(tmp_rate, 2);
+            } else {
+                aw_cpus_reg->CpusCfg.Div = 0;
+                aw_cpus_reg->CpusCfg.Div = tmp_rate;
+            }
+            return 0;
+        }
         case AW_SYS_CLK_AHB0:
-            return -1;
-        case AW_SYS_CLK_AHB1:
+            return rate == sys_clk_get_rate(sys_clk_get_parent(id))? 0 : -1;
         case AW_SYS_CLK_APB0:
+        {
+            __u64   tmp_rate;
+
+            tmp_rate = sys_clk_get_rate(sys_clk_get_parent(id));
+            do_div(tmp_rate, rate);
+
+            if(tmp_rate > 8) {
+                return -1;
+            } else if(tmp_rate > 4) {
+                aw_cpus_reg->Apb0Div.Div = 3;
+            } else if(tmp_rate > 2) {
+                aw_cpus_reg->Apb0Div.Div = 2;
+            } else {
+                aw_cpus_reg->Apb0Div.Div = 0;
+            }
+
+            return 0;
+        }
+
+        case AW_SYS_CLK_AHB1:
+        {
+            __u64   tmp_rate;
+            __aw_ccu_clk_id_e   parent;
+
+            parent = sys_clk_get_parent(id);
+            tmp_rate = sys_clk_get_rate(parent);
+            do_div(tmp_rate, rate);
+
+            if(parent == AW_SYS_CLK_PLL6) {
+                int     i;
+                static __u32 ahb1_div_tbl[10] = {
+                    (1<<16) |(0<<0)|(0<<0),
+                    (2<<16) |(0<<0)|(1<<0),
+                    (3<<16) |(2<<0)|(0<<0),
+                    (4<<16) |(3<<0)|(0<<0),
+                    (6<<16) |(2<<0)|(1<<0),
+                    (8<<16) |(3<<0)|(1<<0),
+                    (12<<16)|(2<<0)|(2<<0),
+                    (16<16) |(3<<0)|(2<<0),
+                    (24<<16)|(2<<0)|(3<<0),
+                    (32<<16)|(3<<0)|(3<<0),
+                    };
+                for(i=0; i<10; i++) {
+                    if(tmp_rate <= ((ahb1_div_tbl[i]>>16) & 0xff)) {
+                        aw_ccu_reg->Ahb1Div.Ahb1PreDiv = (ahb1_div_tbl[i]>>8) & 0xff;
+                        aw_ccu_reg->Ahb1Div.Ahb1Div = (ahb1_div_tbl[i]>>0) & 0xff;
+                        return 0;
+                    }
+                }
+                return -1;
+            } else {
+                if(tmp_rate > 8) {
+                    return -1;
+                } else if (tmp_rate > 4) {
+                    aw_ccu_reg->Ahb1Div.Ahb1Div = 3;
+                } else if (tmp_rate > 2) {
+                    aw_ccu_reg->Ahb1Div.Ahb1Div = 2;
+                } else if (tmp_rate > 1) {
+                    aw_ccu_reg->Ahb1Div.Ahb1Div = 1;
+                } else {
+                    aw_ccu_reg->Ahb1Div.Ahb1Div = 0;
+                }
+            }
+        }
+
         case AW_SYS_CLK_APB1:
+        {
+            __u64   tmp_rate;
+
+            tmp_rate = sys_clk_get_rate(sys_clk_get_parent(id));
+            do_div(tmp_rate, rate);
+
+            if(tmp_rate > 8) {
+                return -1;
+            } else if(tmp_rate > 4) {
+                aw_ccu_reg->Ahb1Div.Apb1Div = 3;
+            } else if(tmp_rate > 2) {
+                aw_ccu_reg->Ahb1Div.Apb1Div = 2;
+            } else {
+                aw_ccu_reg->Ahb1Div.Apb1Div = 0;
+            }
+
+            return 0;
+        }
         case AW_SYS_CLK_APB2:
+        {
+            __u64   tmp_rate;
+
+            tmp_rate = sys_clk_get_rate(sys_clk_get_parent(id));
+            do_div(tmp_rate, rate);
+            if(tmp_rate < 32) {
+                aw_ccu_reg->Apb2Div.DivN = 0;
+                aw_ccu_reg->Apb2Div.DivM = tmp_rate;
+           } else if(tmp_rate < 32*2) {
+                aw_ccu_reg->Apb2Div.DivN = 1;
+                aw_ccu_reg->Apb2Div.DivM = tmp_rate>>1;
+            } else if(tmp_rate < 32*4) {
+                aw_ccu_reg->Apb2Div.DivN = 2;
+                aw_ccu_reg->Apb2Div.DivM = tmp_rate>>2;
+            } else if(tmp_rate < 32*8) {
+                aw_ccu_reg->Apb2Div.DivN = 3;
+                aw_ccu_reg->Apb2Div.DivM = tmp_rate>>3;
+            } else {
+                return -1;
+            }
+
+            return 0;
+
+        }
 
         default:
         {
