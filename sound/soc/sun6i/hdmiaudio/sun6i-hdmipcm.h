@@ -16,11 +16,11 @@
 #ifndef SUN6I_HDMIPCM_H_
 #define SUN6I_HDMIPCM_H_
 
+#define SUN6I_HDMIBASE 0x01c16000
+
+#define SUN6I_HDMIAUDIO_TX	0x400
 struct sun6i_dma_params {
-	struct sw_dma_client *client;	
-	int channel;				
+	char *name;
 	dma_addr_t dma_addr;
-	int dma_size;
-	char *name;				
 };
 #endif //SUN6I_HDMIPCM_H_

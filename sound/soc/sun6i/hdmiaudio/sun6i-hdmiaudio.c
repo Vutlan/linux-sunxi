@@ -37,8 +37,7 @@
 
 static struct sun6i_dma_params sun6i_hdmiaudio_pcm_stereo_out = {
 	.name 			= "hdmiaudio_play",
-	.dma_addr 	=	0,
-	.dma_size 	=   4,               /* dma transfer 32bits */
+	.dma_addr 	=	SUN6I_HDMIBASE + SUN6I_HDMIAUDIO_TX,
 };
 
 static int sun6i_hdmiaudio_set_fmt(struct snd_soc_dai *cpu_dai, unsigned int fmt)
