@@ -735,6 +735,8 @@ int disp_suspend(struct platform_device *pdev, pm_message_t state)
      }
 
     BSP_disp_hdmi_suspend();
+    Bsp_disp_iep_suspend(0);
+    Bsp_disp_iep_suspend(1);
 
     BSP_disp_clk_off(1);
     BSP_disp_clk_off(2);
@@ -770,6 +772,8 @@ int disp_resume(struct platform_device *pdev)
     }
 
     BSP_disp_hdmi_resume();
+    Bsp_disp_iep_resume(0);
+    Bsp_disp_iep_resume(1);
 #ifndef CONFIG_HAS_EARLYSUSPEND
 
     pr_info("disp_resume call\n");

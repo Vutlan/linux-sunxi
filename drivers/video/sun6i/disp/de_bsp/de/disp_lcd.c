@@ -1105,7 +1105,7 @@ __s32 LCD_POWER_EN(__u32 sel, __bool b_en)
         OSAL_GPIO_Release(hdl, 2);
     }
 
-#ifdef __FPGA_DEBUG__
+#if !defined(CONFIG_AW_ASIC_EVB_PLATFORM)
     //pwr pd29
     if(b_en==0)
 		*(volatile __u32*)(0xf1c20800 + 0x7c) = (*(volatile __u32*)(0xf1c20800 + 0x7c)) & (~(1<<29));
@@ -1198,7 +1198,7 @@ __s32 Disp_lcdc_pin_cfg(__u32 sel, __disp_output_type_t out_type, __u32 bon)
         __hdle lcd_pin_hdl;
         int  i;
 
-#ifdef __FPGA_DEBUG__
+#if !defined(CONFIG_AW_ASIC_EVB_PLATFORM)
         if(!bon)
         {        //pd28, pwm0 pin_cfg
                 //*(volatile __u32*)(0xf1c20800 + 0x78) = (*(volatile __u32*)(0xf1c20800 +  0x78)) & (~0x00020000);
@@ -1360,14 +1360,6 @@ __s32 Disp_lcdc_init(__u32 sel)
         OSAL_InterruptEnable(INTC_IRQNO_LCDC1);
 #endif
     }
-#if 0//#ifdef __FPGA_DEBUG__
-    if(sel == 0)
-    {
-        gdisp.screen[sel].lcd_cfg.lcd_used = 1;
-        gdisp.screen[sel].lcd_cfg.backlight_bright = 197;
-        gdisp.screen[sel].lcd_cfg.lcd_pwm_used = 1;
-    }
-#endif
     if(gdisp.screen[sel].lcd_cfg.lcd_used)
     {
         if(lcd_panel_fun[sel].cfg_panel_info)
@@ -1390,7 +1382,7 @@ __s32 Disp_lcdc_init(__u32 sel)
                 pwm_info.period_ns = 1000000 / gpanel_info[sel].lcd_pwm_freq;
             }else
             {
-                DE_WRN("lcd%d.lcd_pwm_freq is ZERO\n");
+                DE_WRN("lcd%d.lcd_pwm_freq is ZERO\n", sel);
                 pwm_info.period_ns = 1000000 / 1000;  //default 1khz
             } 
             if(gpanel_info[sel].lcd_pwm_pol == 0)

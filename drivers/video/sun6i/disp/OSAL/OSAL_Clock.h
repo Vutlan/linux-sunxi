@@ -70,6 +70,8 @@ typedef enum
     AHB_CLK_DEU1,
     AHB_CLK_DRC0,
     AHB_CLK_DRC1,
+    AHB_CLK_TVE0, //not exist in a31
+    AHB_CLK_TVE1, //not exist in a31
     
     DRAM_CLK_DRC0,
     DRAM_CLK_DRC1,
