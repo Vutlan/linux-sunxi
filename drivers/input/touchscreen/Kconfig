@@ -789,5 +789,22 @@ config  TOUCHSCREEN_SW_TS
        tristate  "softwinnner (sw-ts) touchscreen driver"
        help
            sw-ts touchscreen driver
+         
+config TOUCHSCREEN_FT5X_TS
+       tristate  "ft5x touchscreen driver"
+       default m
+       help
+         ft5x touchscreen driver   
+         
+config  TOUCHSCREEN_GSLX680
+       tristate  "gslx680 touchscreen driver"
+       default m
+       help
+         gslx680 touchscreen driver      
+         
+config  TOUCHSCREEN_GT82X
+       tristate  "gt82x touchscreen driver"
+       help
+         gt82x touchscreen driver 
            
 endif

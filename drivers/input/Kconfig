@@ -169,6 +169,12 @@ config INPUT_KEYRESET
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called keyreset.
+	  
+config  INPUT_INIT_CTP
+       tristate  "init_ctp touchscreen driver"
+       default y
+       help
+         init_ctp touchscreen driver
 
 comment "Input Device Drivers"
 
