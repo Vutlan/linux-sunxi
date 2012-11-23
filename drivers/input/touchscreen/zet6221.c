@@ -76,7 +76,7 @@
 #include <linux/errno.h>
 
 //#include "zet6221_fw.h"
-#include "zet6221_fw_nz758B.h"
+#include "zet6221.h"
 //#include "zet6221_fw_dianchu.h"
 //#include "zet6221-fw-czy.h"
 //#include "zet6221-fw-xdc.h"
@@ -1181,7 +1181,7 @@ static void zet6221_ts_work(struct work_struct *_work)
 			f_up_cnt++;
 			if(f_up_cnt>=5)
 			{
-				printk("==finger up==\n");
+				//printk("==finger up==\n");
 				f_up_cnt = 0;
 				input_report_abs(ts->input, ABS_MT_TOUCH_MAJOR, 0);
 				input_mt_sync(ts->input);
