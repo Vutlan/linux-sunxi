@@ -263,6 +263,15 @@ static __u64 sys_clk_get_rate(__aw_ccu_clk_id_e id)
             {
                 tmp_rate = (__u64)24000000*(tmp_reg->FactorN+1);
                 do_div(tmp_rate, tmp_reg->FactorM+1);
+                if(tmp_rate == 297000000) {
+                    /* set pll to frac mode */
+                    tmp_reg->ModeSel = 0;
+                    tmp_reg->FracMod = 1;
+                } else if(tmp_rate == 270000000) {
+                    /* set pll to frac mode */
+                    tmp_reg->ModeSel = 0;
+                    tmp_reg->FracMod = 0;
+                }
                 return tmp_rate;
             }
         }
