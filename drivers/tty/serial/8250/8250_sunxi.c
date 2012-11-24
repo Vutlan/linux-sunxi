@@ -39,7 +39,7 @@
 #define UART_MSG(fmt...)	do { } while (0)
 #endif
 /* Register base define */
-#define UART_BASE       (0x01C28000)
+#define UART_BASE       (AW_UART0_BASE)
 #define UART_BASE_OS    (0x400)
 #define UARTx_BASE(x)   (UART_BASE + (x) * UART_BASE_OS)
 #define RESSIZE(res)    (((res)->end - (res)->start)+1)
