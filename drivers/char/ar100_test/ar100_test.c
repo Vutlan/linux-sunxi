@@ -29,7 +29,7 @@ void __ar100_dvfs_test(void)
 	};
 	for (i = 0; i < sizeof(freq_table) / sizeof(unsigned int); i++) {
 		printk("dvfs request freq: %d\n", freq_table[i]);
-		ar100_dvfs_set_cpufreq(freq_table[i], AR100_DVFS_SYN, 0);
+		ar100_dvfs_set_cpufreq(freq_table[i], AR100_DVFS_SYN, NULL, NULL);
 	}
 	/* test succeeded */
 	printk("dvfs test succeeded\n");
@@ -93,31 +93,12 @@ static void __ar100_axp_test(void)
 	}
 	printk("test axp read regs succeeded\n");
 	
-	/* test axp set battery */
-	printk("test axp set battery begin...\n");
-	if(ar100_axp_set_battery(NULL)) {
-		printk("test axp set battery failed\n");
-	}
-	printk("test axp set battery succeeded\n");
-	
-	/* test axp get battery */
-	printk("test axp get battery begin...\n");
-	if(ar100_axp_get_battery(NULL)) {
-		printk("test axp get battery failed\n");
-	}
-	printk("test axp get battery succeeded\n");
-	
 	/* test axp interrupt call-back */
 	printk("test axp call-back begin...\n");
 	if(ar100_axp_cb_register(__ar100_axp_cb, NULL)) {
 		printk("test axp reg cb failed\n");
 	}
 	printk("test axp call-back succeeded\n");
-	
-	/* test power off */
-	printk("test axp power off....\n");
-	ar100_axp_power_off();
-	//if runing on SOC-CHIP, the system die already.
 	
 	printk("axp test succeeded\n");
 }
@@ -140,7 +121,6 @@ static int __ar100_test_thread(void * arg)
 	__ar100_axp_test();
 	printk("axp test end....\n");
 	
-	
 	return 0;
 }
 
@@ -159,7 +139,6 @@ static int __init sw_ar100_test_init(void)
 	printk("ar100 test driver test finished\n");
 	return 0;
 }
-late_initcall(sw_ar100_test_init);
 
 /**
  * sw_ar100_test_exit - exit the dma test module
@@ -169,6 +148,9 @@ static void __exit sw_ar100_test_exit(void)
 	printk("sw_ar100_test_exit: enter\n");
 }
 
-MODULE_LICENSE ("GPL");
-MODULE_AUTHOR ("sunny");
+module_init(sw_ar100_test_init);
+module_exit(sw_ar100_test_exit);
+MODULE_LICENSE     ("GPL");
+MODULE_AUTHOR      ("sunny");
 MODULE_DESCRIPTION ("sun6i ar100 test driver code");
+
