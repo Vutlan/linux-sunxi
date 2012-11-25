@@ -56,7 +56,7 @@ static struct saved_context default_copro_value = {
 #elif defined(CORTEX_A9)
 #elif defined(CORTEX_A7)
 	.cr = 0x00C50878,		/* Control */
-	.acr = 0x00006040,		/* Auxiliary Control Register*/	
+	.acr = 0x00006040,		/* Auxiliary Control Register: needed for smp*/	
 	.cacr = 0x00000000,		/* Coprocessor Access Control */
 	.sccfgr = 0x00000000,		/* Secure Config Register*/	
 	.scdbgenblr = 0x00000000,	/* Secure Debug Enable Register*/

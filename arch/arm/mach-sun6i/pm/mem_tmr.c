@@ -76,9 +76,9 @@ __s32 mem_tmr_init(void)
 	/* set timer register base */
 	TmrReg = (__mem_tmr_reg_t *)(IO_ADDRESS(AW_TIMER_BASE));
 	
-	WatchDog1_Config_Reg_Bak = *(volatile __u32 *)(TmrReg->WDog1_Cfg_Reg);
-	WatchDog1_Mod_Reg_Bak = *(volatile __u32 *)(TmrReg->WDog1_Mode_Reg);
-	WatchDog1_Irq_En_Bak = *(volatile __u32 *)(TmrReg->WDog1_Irq_En);
+	WatchDog1_Config_Reg_Bak = (TmrReg->WDog1_Cfg_Reg);
+	WatchDog1_Mod_Reg_Bak = (TmrReg->WDog1_Mode_Reg);
+	WatchDog1_Irq_En_Bak = (TmrReg->WDog1_Irq_En);
 
 	return 0;
 }
@@ -97,9 +97,9 @@ __s32 mem_tmr_init(void)
 */
 __s32 mem_tmr_exit(void)
 {
-	*(volatile __u32 *)(TmrReg->WDog1_Cfg_Reg) = WatchDog1_Config_Reg_Bak;
-	*(volatile __u32 *)(TmrReg->WDog1_Mode_Reg) = WatchDog1_Mod_Reg_Bak;
-	*(volatile __u32 *)(TmrReg->WDog1_Irq_En) = WatchDog1_Irq_En_Bak;
+	(TmrReg->WDog1_Cfg_Reg) = WatchDog1_Config_Reg_Bak;
+	(TmrReg->WDog1_Mode_Reg) = WatchDog1_Mod_Reg_Bak;
+	(TmrReg->WDog1_Irq_En) = WatchDog1_Irq_En_Bak;
 
 	return 0;
 }
@@ -123,16 +123,16 @@ void mem_tmr_enable_watchdog(void)
 {
 
 	/* set watch-dog reset to whole system*/ 
-	*(volatile __u32 *)(TmrReg->WDog1_Cfg_Reg) &= ~(0x3);
-	*(volatile __u32 *)(TmrReg->WDog1_Cfg_Reg) |= 0x1;
+	(TmrReg->WDog1_Cfg_Reg) &= ~(0x3);
+	(TmrReg->WDog1_Cfg_Reg) |= 0x1;
 	/*  timeout is 2 seconds */
-	*(volatile __u32 *)(TmrReg->WDog1_Mode_Reg) = (2<<4);
+	(TmrReg->WDog1_Mode_Reg) = (2<<4);
 	
 	/* enable watch-dog interrupt*/
-	*(volatile __u32 *)(TmrReg->WDog1_Irq_En) |= (1<<0);
+	(TmrReg->WDog1_Irq_En) |= (1<<0);
 	
 	/* enable watch-dog */
-	*(volatile __u32 *)(TmrReg->WDog1_Mode_Reg) |= (1<<0);
+	(TmrReg->WDog1_Mode_Reg) |= (1<<0);
 
 	return;
 }
@@ -155,11 +155,11 @@ void mem_tmr_enable_watchdog(void)
 void mem_tmr_disable_watchdog(void)
 {
 	/* disable watch-dog reset: only intterupt */
-	*(volatile __u32 *)(TmrReg->WDog1_Cfg_Reg) &= ~(0x3);
-	*(volatile __u32 *)(TmrReg->WDog1_Cfg_Reg) |= 0x2;
+	(TmrReg->WDog1_Cfg_Reg) &= ~(0x3);
+	(TmrReg->WDog1_Cfg_Reg) |= 0x2;
 	
 	/* disable watch-dog intterupt */
-	*(volatile __u32 *)(TmrReg->WDog1_Irq_En) &= ~(1<<0);
+	(TmrReg->WDog1_Irq_En) &= ~(1<<0);
 	
 	/* disable watch-dog */
 	TmrReg->WDog1_Mode_Reg &= ~(1<<0);

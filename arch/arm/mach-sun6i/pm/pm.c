@@ -497,12 +497,14 @@ static int aw_super_standby(suspend_state_t state)
 mem_enter:
 	if( 1 == mem_para_info.mem_flag){
 		save_mem_status(BEFORE_LATE_RESUME |0x1);
+		//print_call_info();
 		invalidate_branch_predictor();
+		//print_call_info();
 		//must be called to invalidate I-cache inner shareable?
 		// I+BTB cache invalidate
 		__cpuc_flush_icache_all();
 		save_mem_status(BEFORE_LATE_RESUME |0x2);
-
+		//print_call_info();
 		//disable 0x0000 <---> 0x0000 mapping
 		save_mem_status(BEFORE_LATE_RESUME |0x3);
 		restore_processor_state();
@@ -632,7 +634,7 @@ static int aw_pm_enter(suspend_state_t state)
 		standby(&standby_info);
 
 	}else if(SUPER_STANDBY == standby_type){
-			aw_super_standby(state);
+		aw_super_standby(state);
 	}
 	
 	return 0;
