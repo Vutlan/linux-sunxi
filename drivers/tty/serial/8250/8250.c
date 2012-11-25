@@ -1068,7 +1068,7 @@ static void autoconfig(struct uart_8250_port *up, unsigned int probeflags)
 		return;
 
 	DEBUG_AUTOCONF("ttyS%d: autoconf (0x%04lx, 0x%p  0x%04lx): ",
-		       serial_index(&up->port), up->port.iobase, up->port.membase,up->port.mapbase);
+		       serial_index(&up->port), up->port.iobase, up->port.membase,(long unsigned int)up->port.mapbase);
 
 	/*
 	 * We really do need global IRQs disabled here - we're going to

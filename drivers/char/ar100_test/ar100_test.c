@@ -29,7 +29,7 @@ void __ar100_dvfs_test(void)
 	};
 	for (i = 0; i < sizeof(freq_table) / sizeof(unsigned int); i++) {
 		printk("dvfs request freq: %d\n", freq_table[i]);
-		ar100_dvfs_set_cpufreq(freq_table[i], AR100_DVFS_SYN, NULL, NULL);
+		ar100_dvfs_set_cpufreq(freq_table[i], AR100_DVFS_SYN, NULL);
 	}
 	/* test succeeded */
 	printk("dvfs test succeeded\n");
