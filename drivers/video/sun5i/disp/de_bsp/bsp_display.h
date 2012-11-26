@@ -299,6 +299,9 @@ extern __s32 BSP_disp_iep_get_deflicker_enable(__u32 sel);
 extern __s32 BSP_disp_iep_drc_enable(__u32 sel, __bool en);
 extern __s32 BSP_disp_iep_get_drc_enable(__u32 sel);
 extern __s32 BSP_disp_iep_set_demo_win(__u32 sel, __u32 mode, __disp_rect_t *regn)	;
+extern __s32 BSP_disp_store_iep_reg(__u32 sel, __u32 addr);
+extern __s32 BSP_disp_restore_iep_reg(__u32 sel, __u32 addr);
+
 #ifdef __LINUX_OSAL__
 __s32 Display_set_fb_timming(__u32 sel);
 #endif

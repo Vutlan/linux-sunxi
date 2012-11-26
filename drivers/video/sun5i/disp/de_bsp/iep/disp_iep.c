@@ -313,6 +313,58 @@ __s32 BSP_disp_iep_set_demo_win(__u32 sel, __u32 mode, __disp_rect_t *regn)
 	return DIS_SUCCESS;
 }
 
+__s32 BSP_disp_store_iep_reg(__u32 sel, __u32 addr)
+{
+    __u32 i = 0;
+    __u32 value = 0;
+    __u32 reg_base = 0;
+
+    if(sel == 0)
+    {
+        reg_base = gdisp.init_para.base_iep;
+    }
+	else
+	{
+		return DIS_NOT_SUPPORT;
+	}
+
+    for(i=0; i<0x200; i+=4)
+    {
+        value = sys_get_wvalue(reg_base + i);
+        sys_put_wvalue(addr + i, value);
+    }
+    
+    return 0;
+}
+
+__s32 BSP_disp_restore_iep_reg(__u32 sel, __u32 addr)
+{
+    __u32 i = 0;
+    __u32 value = 0;
+    __u32 reg_base = 0;
+
+    if(sel == 0)
+    {
+        reg_base = gdisp.init_para.base_iep;
+    }
+	else
+	{
+		return DIS_NOT_SUPPORT;
+	}
+
+    for(i=4; i<0x200; i+=4)
+    {
+        value = sys_get_wvalue(addr + i);
+        sys_put_wvalue(reg_base + i,value);
+    }
+
+    value = sys_get_wvalue(addr);
+    sys_put_wvalue(reg_base,value);
+    
+    return 0;
+}
+
+
 #define ____SEPARATOR_IEP_MAIN_TASK____
 
 //en : 0-close when vbi
@@ -659,7 +711,7 @@ __s32 Disp_iep_init(__u32 sel)
 	if(sel == 0)
 	{
 		iep_clk_init(sel);
-        pttab = kmalloc(sizeof(pwrsv_lgc_tab), GFP_KERNEL | __GFP_ZERO);
+        pttab = kmalloc(IEP_LGC_TAB_SIZE, GFP_KERNEL | __GFP_ZERO);
 
 		sprintf(primary_key, "lcd%d_para", sel);
 
@@ -683,7 +735,7 @@ __s32 Disp_iep_init(__u32 sel)
 	        }
 	    }		
 
-        memcpy(pttab, pwrsv_lgc_tab[128*lcdgamma], sizeof(pwrsv_lgc_tab));
+        memcpy(pttab, pwrsv_lgc_tab[128*lcdgamma], IEP_LGC_TAB_SIZE);
         
 #ifdef DRC_DEFAULT_ENABLE
 #ifdef DRC_DEMO
