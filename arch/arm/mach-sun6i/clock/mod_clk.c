@@ -215,16 +215,15 @@ static inline __s32 _set_module0_clk_rate(volatile __ccmu_module0_clk_t *reg, __
     low = 0;
     high = sizeof(module0_clk_div_tbl)/sizeof(struct module0_div_tbl) - 1;
 
-    while(low<high){
+    while(low<=high){
         if(module0_clk_div_tbl[(low+high)/2].Div < rate) {
             low = (low+high)/2+1;
         } else if(module0_clk_div_tbl[(low+high)/2].Div > rate) {
             high = (low+high)/2-1;
-        }
-        else {
+        } else {
             low = (low+high)/2;
-            reg->DivM = module0_clk_div_tbl[(low+high)/2].FactorM;
-            reg->DivN = module0_clk_div_tbl[(low+high)/2].FactorN;
+            reg->DivM = module0_clk_div_tbl[low].FactorM;
+            reg->DivN = module0_clk_div_tbl[low].FactorN;
             return 0;
         }
     }
