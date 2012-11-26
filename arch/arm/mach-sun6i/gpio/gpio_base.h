@@ -27,13 +27,8 @@ static inline int gpiochip_match(struct gpio_chip * chip, void * data)
 {
 	u32 	num = 0;
 
-#ifdef DBG_GPIO
-	if(NULL == data) {
-		PIO_ERR_FUN_LINE;
+	if(NULL == chip || NULL == data)
 		return 0;
-	}
-#endif /* DBG_GPIO */
-
 	num = *(u32 *)data;
 	if(num >= chip->base && num < chip->base + chip->ngpio)
 		return 1;
@@ -53,7 +48,7 @@ static inline struct gpio_chip *to_gpiochip(u32 gpio)
 
 	pchip = gpiochip_find((void *)&num, gpiochip_match);
 	if(NULL == pchip) {
-		PIO_ERR_FUN_LINE;
+		printk("%s err, line %d\n", __func__, __LINE__);
 		return NULL;
 	}
 
@@ -81,12 +76,15 @@ static inline struct aw_gpio_chip *gpio_to_aw_gpiochip(u32 gpio)
 {
 	struct gpio_chip *pchip = NULL;
 
-	pchip = to_gpiochip(gpio);
-	if(NULL == pchip) {
-		PIO_ERR_FUN_LINE;
+	if(GPIO_INDEX_INVALID == gpio) {
+		printk("%s err, line %d, invalid gpio index\n", __func__, __LINE__);
 		return NULL;
 	}
-
+	pchip = to_gpiochip(gpio);
+	if(NULL == pchip) {
+		printk("%s err, line %d, gpio 0x%x\n", __func__, __LINE__, gpio);
+		return NULL;
+	}
 	return to_aw_gpiochip(pchip);
 }
 

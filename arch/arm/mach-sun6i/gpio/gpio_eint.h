@@ -37,6 +37,7 @@ u32 gpio_eint_get_irqpd_sta(struct aw_gpio_chip *pchip, u32 offset);
 u32 gpio_eint_clr_irqpd_sta(struct aw_gpio_chip *pchip, u32 offset);
 u32 gpio_eint_set_debounce(struct aw_gpio_chip *pchip, struct gpio_eint_debounce val);
 u32 gpio_eint_get_debounce(struct aw_gpio_chip *pchip, struct gpio_eint_debounce *pval);
+bool is_gpio_canbe_eint(u32 gpio);
 
 #endif /* __GPIO_EINT_H */
 

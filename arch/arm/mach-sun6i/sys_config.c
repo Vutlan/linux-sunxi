@@ -261,7 +261,6 @@ u32 port_to_index(u32 port, u32 port_num)
 		{PM_NR_BASE,         PM_NR}
 	};
 
-#ifdef ADD_AXP_PIN_20121117
 	/* check power pin */
 	if(AXP_PORT_VAL == port && (0 == port_num || 1 == port_num))
 		return (AXP_NR_BASE + port_num);
@@ -271,12 +270,6 @@ u32 port_to_index(u32 port, u32 port_num)
 			&& port_num < gpio_trans_tbl[port - 1].nr)
 			return (gpio_trans_tbl[port - 1].base + port_num);
 	}
-#else
-	if(port - 1 < ARRAY_SIZE(gpio_trans_tbl)
-		&& GPIO_INDEX_INVALID != gpio_trans_tbl[port - 1].base
-		&& port_num < gpio_trans_tbl[port - 1].nr)
-		return (gpio_trans_tbl[port - 1].base + port_num);
-#endif /* ADD_AXP_PIN_20121117 */
 	printk(KERN_ERR "%s err: port %d, port_num %d, please check sys_config.fex\n", __func__, port, port_num);
 	return GPIO_INDEX_INVALID;
 }
@@ -487,10 +480,10 @@ static int __init script_init(void)
 		if(GPIO_INDEX_INVALID == gpio_tmp)
 			printk(KERN_ERR "%s:%s->%s gpio cfg invalid, please check sys_config.fex!\n",__func__,main_key->name,sub_key[j].name);
                 sub_val[j].gpio.gpio = gpio_tmp;
-                sub_val[j].gpio.mul_sel = origin_gpio->mul_sel;
-                sub_val[j].gpio.pull = origin_gpio->pull;
-                sub_val[j].gpio.drv_level = origin_gpio->drv_level;
-		sub_val[j].gpio.data = origin_gpio->data;
+                sub_val[j].gpio.mul_sel = (u32)origin_gpio->mul_sel;
+                sub_val[j].gpio.pull = (u32)origin_gpio->pull;
+                sub_val[j].gpio.drv_level = (u32)origin_gpio->drv_level;
+		sub_val[j].gpio.data = (u32)origin_gpio->data;
                 sub_key[j].type = SCIRPT_ITEM_VALUE_TYPE_PIO;
             } else {
                 sub_key[j].type = SCIRPT_ITEM_VALUE_TYPE_INVALID;

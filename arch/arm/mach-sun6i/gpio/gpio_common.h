@@ -37,12 +37,6 @@
 	#define PIO_ERR(format,args...)   printk("[gpio-err] "format,##args)
 #endif
 
-#define PIO_DBG_FUN_LINE   		PIO_DBG("%s(%d)\n", __func__, __LINE__)
-#define PIO_ERR_FUN_LINE   		PIO_ERR("%s(%d)\n", __func__, __LINE__)
-#define PIO_DBG_FUN_LINE_TODO  		PIO_DBG("%s(%d) - todo########\n", __func__, __LINE__)
-#define PIO_DBG_FUN_LINE_TOCHECK 	PIO_DBG("%s(%d) - tocheck########\n", __func__, __LINE__)
-#define PIO_ASSERT(x)			if(!(x)) {PIO_ERR("%s err, line %d\n", __func__, __LINE__);}
-
 /*
  * pull state
  */

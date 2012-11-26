@@ -158,7 +158,7 @@ u32 sw_gpio_request(user_gpio_set_t *gpio_list, u32 group_count_max)
 		port     = tmp_user_gpio_data->port;                         //读出端口数值
 		port_num = tmp_user_gpio_data->port_num;                     //读出端口中的某一个GPIO
 		if(!port) {
-			PIO_DBG_FUN_LINE;
+			printk("%s err, line %d\n", __func__, __LINE__);
 			continue;
 		}
 
@@ -180,7 +180,7 @@ u32 sw_gpio_request(user_gpio_set_t *gpio_list, u32 group_count_max)
 		break;
 	}
 	if(first_port >= group_count_max) { //找不到有效port, 则返回
-		PIO_DBG_FUN_LINE;
+		printk("%s err, line %d\n", __func__, __LINE__);
 		return 0;
 	}
 
@@ -991,7 +991,7 @@ s32  sw_gpio_set_one_pin_io_status(u32 p_handler, u32 if_set_to_output_status, c
 	/* set cfg */
 	ucfg = (if_set_to_output_status ? 1 : 0);
 	if(0 != sw_gpio_setcfg(pio_index, ucfg)) {
-		PIO_ERR_FUN_LINE;
+		printk("%s err, line %d\n", __func__, __LINE__);
 		return EGPIO_FAIL;
 	}
 #else
@@ -1064,7 +1064,7 @@ s32  sw_gpio_set_one_pin_pull(u32 p_handler, u32 set_pull_status, const char *gp
 	}
 
 	if(0 != sw_gpio_setpull(pio_index, set_pull_status)) {
-		PIO_ERR_FUN_LINE;
+		printk("%s err, line %d\n", __func__, __LINE__);
 		return EGPIO_FAIL;
 	}
 #else
@@ -1138,7 +1138,7 @@ s32  sw_gpio_set_one_pin_driver_level(u32 p_handler, u32 set_driver_level, const
 	}
 
 	if(0 != sw_gpio_setdrvlevel(pio_index, set_driver_level)) {
-		PIO_ERR_FUN_LINE;
+		printk("%s err, line %d\n", __func__, __LINE__);
 		return EGPIO_FAIL;
 	}
 #else
@@ -1225,7 +1225,7 @@ s32  sw_gpio_read_one_pin_value(u32 p_handler, const char *gpio_name)
 	}
 #endif
 
-	PIO_ERR_FUN_LINE;
+	printk("%s err, line %d\n", __func__, __LINE__);
 	return EGPIO_FAIL;
 }
 EXPORT_SYMBOL(sw_gpio_read_one_pin_value);

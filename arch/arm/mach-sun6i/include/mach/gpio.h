@@ -20,8 +20,6 @@
 
 #define RESERVE_OLD_SCRIPT_GPIO_20121122 /* remain old script and gpio api, eg: script_parser_fetch_ex, sw_gpio_request */
 
-//#define ADD_AXP_PIN_20121117	/* add axp pin to gpio driver, liugang, 2012-11-17 09:50 */
-
 /* pio/rpio base */
 #define PIO_VBASE(n) 		(0xf1c20800 + ((n) << 5) + ((n) << 2)) /* pio(PA ~ PF), 0xf1c20800 + n * 0x24 */
 #define RPIO_VBASE(n) 		(0xf1f02c00 + ((n) << 5) + ((n) << 2)) /* r-pio(PL ~ PM), 0xf1f02c00 + n * 0x24 */
@@ -47,9 +45,7 @@
 #define PL_NR			9
 #define PM_NR			9 /* spec: "Pin MultiPlex" is 8 while "PM Configure Register 1" is 9 */
 /* for axp power PIO */
-#ifdef ADD_AXP_PIN_20121117
 #define AXP_NR			2
-#endif /* ADD_AXP_PIN_20121117 */
 
 /*
  * base index for each pio
@@ -69,14 +65,10 @@ enum sun6i_gpio_number {
 	/* for R-PORT PIO */
 	PL_NR_BASE = AW_GPIO_NEXT(PH), /* last is PH */
 	PM_NR_BASE = AW_GPIO_NEXT(PL),
-
-#ifdef ADD_AXP_PIN_20121117
 	/* for axp power PIO */
 	AXP_NR_BASE = AW_GPIO_NEXT(PM), /* last is PM */
+
 	GPIO_INDEX_END = AW_GPIO_NEXT(AXP), /* last is AXP */
-#else
-	GPIO_INDEX_END = AW_GPIO_NEXT(PM), /* last is PM */
-#endif /* ADD_AXP_PIN_20121117 */
 };
 
 /* pio index definition */
@@ -90,20 +82,19 @@ enum sun6i_gpio_number {
 #define GPIOH(n)		(PH_NR_BASE + (n))
 #define GPIOL(n)		(PL_NR_BASE + (n))
 #define GPIOM(n)		(PM_NR_BASE + (n))
-
-#ifdef ADD_AXP_PIN_20121117
+/* for axp power PIO */
 #define GPIO_AXP(n)		(AXP_NR_BASE + (n))
-#endif /* ADD_AXP_PIN_20121117 */
 
 /* pio default macro */
-#define GPIO_PULL_DEFAULT	(1               )
-#define GPIO_DRVLVL_DEFAULT	(1               )
+#define GPIO_PULL_DEFAULT	((u32)-1         )
+#define GPIO_DRVLVL_DEFAULT	((u32)-1         )
+#define GPIO_DATA_DEFAULT	((u32)-1         )
 
 /* pio end, invalid macro */
 #define GPIO_INDEX_INVALID	(0xFFFFFFF0      )
-#define GPIO_CFG_INVALID	(0xFFFFFFFF      )
-#define GPIO_PULL_INVALID	(0xFFFFFFFF      )
-#define GPIO_DRVLVL_INVALID	(0xFFFFFFFF      )
+#define GPIO_CFG_INVALID	(0xEEEEEEEE      )
+#define GPIO_PULL_INVALID	(0xDDDDDDDD      )
+#define GPIO_DRVLVL_INVALID	(0xCCCCCCCC      )
 #define IRQ_NUM_INVALID		(0xFFFFFFFF      )
 #define AXP_PORT_VAL		(0x0000FFFF      ) /* port val for axp pin in sys_config.fex */
 

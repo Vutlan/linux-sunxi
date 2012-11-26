@@ -161,7 +161,7 @@ int aw_gpiochip_add(struct gpio_chip *chip)
 
 	/* register chip to gpiolib */
 	if(0 != gpiochip_add(chip)) {
-		PIO_ERR_FUN_LINE;
+		printk("%s err, line %d\n", __func__, __LINE__);
 		return __LINE__;
 	}
 	return 0;
@@ -182,13 +182,9 @@ int __pio_to_irq(struct gpio_chip *chip, unsigned offset)
 	PIO_DBG("%s: chip 0x%08x, offset %d, aw chip 0x%08x\n", __func__,
 		(u32)chip, offset, (u32)pchip);
 #endif
-	/* for r-pio-L, only PL5 ~ PL8 can be configured as einit */
-	if(AW_IRQ_EINTL == pchip->irq_num) {
-		if(!(offset >= 5 && offset <= 8)) {
-			PIO_ERR_FUN_LINE;
-			return IRQ_NUM_INVALID;
-		}
-	}
-	return pchip->irq_num;
+	if(is_gpio_canbe_eint(chip->base + offset))
+		return pchip->irq_num;
+	printk("%s err: line %d\n", __func__, __LINE__);
+	return IRQ_NUM_INVALID;
 }
 

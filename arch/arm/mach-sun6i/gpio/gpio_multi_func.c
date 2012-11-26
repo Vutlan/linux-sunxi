@@ -257,6 +257,10 @@ u32 sw_gpio_setpull(u32 gpio, u32 val)
 	unsigned long flags = 0;
 	struct aw_gpio_chip *pchip = NULL;
 
+	if(GPIO_PULL_DEFAULT == val) {
+		printk("%s err: line %d, not need to set, gpio %d\n", __func__, __LINE__, gpio);
+		return __LINE__;
+	}
 	pchip = gpio_to_aw_gpiochip(gpio);
 	if(NULL == pchip || NULL == pchip->cfg || NULL == pchip->cfg->set_pull) {
 		printk("%s err: line %d, gpio %d\n", __func__, __LINE__, gpio);
@@ -319,6 +323,10 @@ u32 sw_gpio_setdrvlevel(u32 gpio, u32 val)
 	unsigned long flags = 0;
 	struct aw_gpio_chip *pchip = NULL;
 
+	if(GPIO_DRVLVL_DEFAULT == val) {
+		printk("%s err: line %d, not need to set, gpio %d\n", __func__, __LINE__, gpio);
+		return __LINE__;
+	}
 	pchip = gpio_to_aw_gpiochip(gpio);
 	if(NULL == pchip || NULL == pchip->cfg || NULL == pchip->cfg->set_drvlevel) {
 		printk("%s err: line %d, gpio %d\n", __func__, __LINE__, gpio);
@@ -392,11 +400,13 @@ u32 sw_gpio_setall_range(struct gpio_config *pcfg, u32 cfg_num)
 		req_success = (0 == gpio_request(pcfg->gpio, NULL));
 		PIO_CHIP_LOCK(&pchip->lock, flags);
 		offset = pcfg->gpio - pchip->chip.base;
-		PIO_ASSERT(0 == pchip->cfg->set_cfg(pchip, offset, pcfg->mul_sel));
-		PIO_ASSERT(0 == pchip->cfg->set_pull(pchip, offset, pcfg->pull));
-		PIO_ASSERT(0 == pchip->cfg->set_drvlevel(pchip, offset, pcfg->drv_level));
+		WARN_ON(0 != pchip->cfg->set_cfg(pchip, offset, pcfg->mul_sel));
+		if(GPIO_PULL_DEFAULT != pcfg->pull)
+			WARN_ON(0 != pchip->cfg->set_pull(pchip, offset, pcfg->pull));
+		if(GPIO_DRVLVL_DEFAULT != pcfg->drv_level)
+			WARN_ON(0 != pchip->cfg->set_drvlevel(pchip, offset, pcfg->drv_level));
 		PIO_CHIP_UNLOCK(&pchip->lock, flags);
-		if(GPIO_CFG_OUTPUT == pcfg->mul_sel)
+		if(GPIO_CFG_OUTPUT == pcfg->mul_sel && GPIO_DATA_DEFAULT != pcfg->data)
 			__gpio_set_value(pcfg->gpio, (pcfg->data ? 1 : 0));
 		if(req_success)
 			gpio_free(pcfg->gpio);
