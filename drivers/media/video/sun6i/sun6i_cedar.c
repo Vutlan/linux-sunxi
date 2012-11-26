@@ -81,7 +81,7 @@ static unsigned long pll4clk_rate = 960000000;
 
 extern unsigned long ve_start;
 extern unsigned long ve_size;
-extern int flush_clean_user_range(long start, long end);
+
 struct iomap_para{
 	volatile char* regs_macc;
 	#ifdef CHIP_VERSION_F33
@@ -300,8 +300,10 @@ int disable_cedar_hw_clk(void)
 
 	spin_lock_irqsave(&cedar_spin_lock, flags);		
 	
-	if (clk_status == 0)
+	if (clk_status == 0) {
+		res = 0;
 		goto out;
+	}
 	clk_status = 0;
 	if ((NULL == dram_veclk)||(IS_ERR(dram_veclk))) {
 		printk("dram_veclk is invalid, just return!\n");
@@ -320,7 +322,7 @@ int disable_cedar_hw_clk(void)
 	}
 	if ((NULL == avs_moduleclk)||(IS_ERR(avs_moduleclk))) {
 		printk("avs_moduleclk is invalid, just return!\n");
-	} else {	
+	} else {
 		clk_disable(avs_moduleclk);
 	}
 	#ifdef CEDAR_DEBUG
@@ -796,15 +798,6 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			}
             writel(reg_para.value, reg_para.addr);
             break;
-        }
-        case IOCTL_FLUSH_CACHE:
-        {
-        	struct cedarv_cache_range cache_range;
-    		if(copy_from_user(&cache_range, (void __user*)arg, sizeof(struct cedarv_cache_range))){
-				printk("IOCTL_FLUSH_CACHE copy_from_user fail\n");
-				return -EFAULT;
-			}
-			flush_clean_user_range(cache_range.start, cache_range.end);
         }
         break;
         case IOCTL_SET_REFCOUNT:
