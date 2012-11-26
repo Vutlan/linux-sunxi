@@ -178,25 +178,25 @@ static void ir_clk_cfg(void)
 #ifdef SYS_CLK_CFG_EN
 	apb_ir_clk = clk_get(NULL, "apb_ir0");		
 	if (!apb_ir_clk) {
-		printk(KERN_DEBUG, "try to get apb_ir0 clock failed!\n");
+		printk(KERN_DEBUG "try to get apb_ir0 clock failed!\n");
 		return;
 	}
 
 	ir_clk = clk_get(NULL, "ir0");		
 	if (!ir_clk) {
-		printk(KERN_DEBUG, "try to get ir0 clock failed!\n");
+		printk(KERN_DEBUG "try to get ir0 clock failed!\n");
 		return;
 	}
 
 	if (clk_set_rate(ir_clk, rate)) {
-		printk(KERN_DEBUG, "set ir0 clock freq to 3M failed!\n");
+		printk(KERN_DEBUG "set ir0 clock freq to 3M failed!\n");
 	}
 		
 	if (clk_enable(apb_ir_clk)) {
-		printk(KERN_DEBUG, "try to enable apb_ir_clk failed!\n");	
+		printk(KERN_DEBUG "try to enable apb_ir_clk failed!\n");	
 	}
 	if (clk_enable(ir_clk)) {
-		printk(KERN_DEBUG, "try to enable apb_ir_clk failed!\n");	
+		printk(KERN_DEBUG "try to enable apb_ir_clk failed!\n");	
 	}
 		
 #else	
