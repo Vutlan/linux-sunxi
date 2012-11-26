@@ -258,7 +258,7 @@ __s32 dsi_dphy_cfg(__u32 sel,__panel_para_t * panel)
 	};	
 
 	dphy_dev[sel]->dphy_gctl.bits.module_en = 0;
-	dphy_dev[sel]->dphy_gctl.bits.lane_num = dsi_lane_den[panel->lcd_dsi_lane];
+	dphy_dev[sel]->dphy_gctl.bits.lane_num = dsi_lane_den[panel->lcd_dsi_lane-1];
 
 	dphy_dev[sel]->dphy_tx_ctl.bits.hstx_clk_cont = 1;
 
@@ -296,9 +296,9 @@ __s32 dsi_dphy_cfg(__u32 sel,__panel_para_t * panel)
 __u32 dsi_io_open(__u32 sel,__panel_para_t * panel)
 {
 	dphy_dev[sel]->dphy_ana0.bits.reg_dmpc = 1;
-	dphy_dev[sel]->dphy_ana0.bits.reg_dmpd = panel->lcd_dsi_lane;
+	dphy_dev[sel]->dphy_ana0.bits.reg_dmpd = panel->lcd_dsi_lane-1;
 	dphy_dev[sel]->dphy_ana0.bits.reg_slv = 0x7;
-	dphy_dev[sel]->dphy_ana0.bits.reg_den = dsi_lane_den[panel->lcd_dsi_lane];
+	dphy_dev[sel]->dphy_ana0.bits.reg_den = dsi_lane_den[panel->lcd_dsi_lane-1];
 	dphy_dev[sel]->dphy_ana2.bits.enck_cpu = 1;
 	dphy_dev[sel]->dphy_ana3.bits.endiv = 1;
 	dphy_dev[sel]->dphy_ana4.bits.reg_ckdv = 0x1;
@@ -314,7 +314,7 @@ __u32 dsi_io_open(__u32 sel,__panel_para_t * panel)
 	dphy_dev[sel]->dphy_ana3.bits.enldoc = 1;
 	dphy_dev[sel]->dphy_ana3.bits.enldod = 1;
 	dphy_dev[sel]->dphy_ana3.bits.envttc = 1;
-	dphy_dev[sel]->dphy_ana3.bits.envttd = dsi_lane_den[panel->lcd_dsi_lane];
+	dphy_dev[sel]->dphy_ana3.bits.envttd = dsi_lane_den[panel->lcd_dsi_lane-1];
 	return 0;	
 }
 
@@ -373,7 +373,7 @@ __s32 dsi_basic_cfg(__u32 sel,__panel_para_t * panel)
 	}
 	dsi_dev[sel]->dsi_inst_func[DSI_INST_ID_LP11].bits.instru_mode		= DSI_INST_MODE_STOP;
 	dsi_dev[sel]->dsi_inst_func[DSI_INST_ID_LP11].bits.lane_cen			= 1;
-	dsi_dev[sel]->dsi_inst_func[DSI_INST_ID_LP11].bits.lane_den			= dsi_lane_den[panel->lcd_dsi_lane];
+	dsi_dev[sel]->dsi_inst_func[DSI_INST_ID_LP11].bits.lane_den			= dsi_lane_den[panel->lcd_dsi_lane-1];
 	dsi_dev[sel]->dsi_inst_func[DSI_INST_ID_TBA].bits.instru_mode		= DSI_INST_MODE_TBA;
 	dsi_dev[sel]->dsi_inst_func[DSI_INST_ID_TBA].bits.lane_cen			= 0;
 	dsi_dev[sel]->dsi_inst_func[DSI_INST_ID_TBA].bits.lane_den			= 0x1;
@@ -384,7 +384,7 @@ __s32 dsi_basic_cfg(__u32 sel,__panel_para_t * panel)
 	dsi_dev[sel]->dsi_inst_func[DSI_INST_ID_HSD].bits.instru_mode		= DSI_INST_MODE_HS;
 	dsi_dev[sel]->dsi_inst_func[DSI_INST_ID_HSD].bits.trans_packet		= DSI_INST_PACK_PIXEL;
 	dsi_dev[sel]->dsi_inst_func[DSI_INST_ID_HSD].bits.lane_cen			= 0;
-	dsi_dev[sel]->dsi_inst_func[DSI_INST_ID_HSD].bits.lane_den			= dsi_lane_den[panel->lcd_dsi_lane];
+	dsi_dev[sel]->dsi_inst_func[DSI_INST_ID_HSD].bits.lane_den			= dsi_lane_den[panel->lcd_dsi_lane-1];
 	dsi_dev[sel]->dsi_inst_func[DSI_INST_ID_LPDT].bits.instru_mode		= DSI_INST_MODE_ESCAPE;
 	dsi_dev[sel]->dsi_inst_func[DSI_INST_ID_LPDT].bits.escape_enrty		= DSI_INST_ESCA_LPDT;
 	dsi_dev[sel]->dsi_inst_func[DSI_INST_ID_LPDT].bits.trans_packet		= DSI_INST_PACK_COMMAND;
@@ -395,10 +395,10 @@ __s32 dsi_basic_cfg(__u32 sel,__panel_para_t * panel)
 	dsi_dev[sel]->dsi_inst_func[DSI_INST_ID_HSCEXIT].bits.lane_den		= 0;
 	dsi_dev[sel]->dsi_inst_func[DSI_INST_ID_NOP].bits.instru_mode		= DSI_INST_MODE_NOP;
 	dsi_dev[sel]->dsi_inst_func[DSI_INST_ID_NOP].bits.lane_cen			= 1;
-	dsi_dev[sel]->dsi_inst_func[DSI_INST_ID_NOP].bits.lane_den			= dsi_lane_den[panel->lcd_dsi_lane];
+	dsi_dev[sel]->dsi_inst_func[DSI_INST_ID_NOP].bits.lane_den			= dsi_lane_den[panel->lcd_dsi_lane-1];
 	dsi_dev[sel]->dsi_inst_func[DSI_INST_ID_DLY].bits.instru_mode		= DSI_INST_MODE_NOP;
 	dsi_dev[sel]->dsi_inst_func[DSI_INST_ID_DLY].bits.lane_cen			= 1;
-	dsi_dev[sel]->dsi_inst_func[DSI_INST_ID_DLY].bits.lane_den			= dsi_lane_den[panel->lcd_dsi_lane];
+	dsi_dev[sel]->dsi_inst_func[DSI_INST_ID_DLY].bits.lane_den			= dsi_lane_den[panel->lcd_dsi_lane-1];
 	dsi_dev[sel]->dsi_inst_loop_sel.dwval = 2<<(4*DSI_INST_ID_LP11)
 										  | 3<<(4*DSI_INST_ID_DLY);
 	dsi_dev[sel]->dsi_inst_loop_num.bits.loop_n0 = 50;

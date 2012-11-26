@@ -374,7 +374,6 @@ __s32 DRV_DISP_Init(void)
     para.base_tvec0      = (__u32)g_fbi.base_tvec0;
     para.base_tvec1      = (__u32)g_fbi.base_tvec1;
     para.base_ccmu      = (__u32)g_fbi.base_ccmu;
-    para.base_sdram     = (__u32)g_fbi.base_sdram;
     para.base_pioc      = (__u32)g_fbi.base_pioc;
     para.base_pwm       = (__u32)g_fbi.base_pwm;
     para.base_cmu0       = (__u32)g_fbi.base_cmu0;
@@ -531,23 +530,22 @@ static int __init disp_probe(struct platform_device *pdev)//called when platform
 	info->dev = &pdev->dev;
 	platform_set_drvdata(pdev,info);
 
-	info->base_image0   = 0xf1e60000;
-	info->base_image1   = 0xf1e40000;
-	info->base_scaler0  = 0xf1e00000;
-	info->base_scaler1  = 0xf1e20000;
-	info->base_lcdc0    = 0xf1c0c000;
-	info->base_lcdc1    = 0xf1c0d000;
-    info->base_deu0     = 0xf1eb0000;
-    info->base_deu1     = 0xf1ea0000;
-    info->base_drc0     = 0xf1e70000;
-    info->base_drc1     = 0xf1e50000;
-    info->base_cmu0     = 0xf1e60000;
-    info->base_cmu1     = 0xf1e40000;
-    info->base_dsi0     = 0xf1ca0000;
-	info->base_ccmu     = 0xf1c20000;
-	info->base_sdram    = 0xf1c01000;
-	info->base_pioc     = 0xf1c20800;
-	info->base_pwm      = 0xf1c21400;
+	info->base_image0   = AW_VIR_DE_BE0_BASE;
+	info->base_image1   = AW_VIR_DE_BE1_BASE;
+	info->base_scaler0  = AW_VIR_DE_FE0_BASE;
+	info->base_scaler1  = AW_VIR_DE_FE1_BASE;
+	info->base_lcdc0    = AW_VIR_LCD0_BASE;
+	info->base_lcdc1    = AW_VIR_LCD1_BASE;
+    info->base_deu0     = AW_VIR_DEU0_BASE;
+    info->base_deu1     = AW_VIR_DEU1_BASE;
+    info->base_drc0     = AW_VIR_DRC0_BASE;
+    info->base_drc1     = AW_VIR_DRC1_BASE;
+    info->base_cmu0     = AW_VIR_DE_BE0_BASE;
+    info->base_cmu1     = AW_VIR_DE_BE1_BASE;
+    info->base_dsi0     = AW_VIR_MIPI_DSI0_BASE;
+	info->base_ccmu     = AW_VIR_CCM_BASE;
+	info->base_pioc     = AW_VIR_PIO_BASE;
+	info->base_pwm      = AW_VIR_PWM_BASE;
     
 
 	__inf("SCALER0 base 0x%08x\n", info->base_scaler0);
@@ -564,7 +562,6 @@ static int __init disp_probe(struct platform_device *pdev)//called when platform
     __inf("CMU1 base 0x%08x\n", info->base_cmu1);
     __inf("DSI0 base 0x%08x\n", info->base_dsi0);
 	__inf("CCMU base 0x%08x\n", info->base_ccmu);
-	__inf("SDRAM base 0x%08x\n", info->base_sdram);
 	__inf("PIO base 0x%08x\n", info->base_pioc);
 	__inf("PWM base 0x%08x\n", info->base_pwm);
 
@@ -587,7 +584,7 @@ void backlight_early_suspend(struct early_suspend *h)
 {
     int i = 0;
 
-    printk("display early suspend: %s\n", __func__);
+    printk("[DISP]display early suspend==\n");
 
     for(i=0; i<2; i++)
     {
@@ -620,7 +617,7 @@ void backlight_late_resume(struct early_suspend *h)
 {
     int i = 0;
 
-    pr_info("display late resume enter: %s\n", __func__);
+    pr_info("[DISP]display late resume enter\n");
 
     if(suspend_prestep != 2)
     {
@@ -666,7 +663,7 @@ void backlight_late_resume(struct early_suspend *h)
     suspend_status &= (~1);
     suspend_prestep = 3;
 
-    pr_info("display late resume done: %s\n", __func__);
+    pr_info("[DISP]display late resume done==\n");
 }
 
 static struct early_suspend backlight_early_suspend_handler =
@@ -686,7 +683,7 @@ int disp_suspend(struct platform_device *pdev, pm_message_t state)
 #ifndef CONFIG_HAS_EARLYSUSPEND
     int i = 0;
 
-    pr_info("disp_suspend call\n");
+    pr_info("[DISP]disp_suspend call==\n");
 
     for(i=0; i<2; i++)
     {
@@ -721,7 +718,7 @@ int disp_suspend(struct platform_device *pdev, pm_message_t state)
     }
      if(SUPER_STANDBY == standby_type)
      {
-        pr_info("==disp super standby enter\n");
+        pr_info("[DISP]==disp super standby enter==\n");
 
         image0_reg_bak = (__u32)kmalloc(0xe00 - 0x800, GFP_KERNEL | __GFP_ZERO);
         scaler0_reg_bak = (__u32)kmalloc(0xa18, GFP_KERNEL | __GFP_ZERO);
@@ -756,7 +753,7 @@ int disp_resume(struct platform_device *pdev)
     if(SUPER_STANDBY == standby_type)
     {
 
-        pr_info("==disp super standby exit\n");
+        pr_info("[DISP]==disp super standby exit==\n");
 
         BSP_disp_restore_scaler_reg(0, scaler0_reg_bak);
         BSP_disp_restore_image_reg(0, image0_reg_bak);
@@ -776,7 +773,7 @@ int disp_resume(struct platform_device *pdev)
     Bsp_disp_iep_resume(1);
 #ifndef CONFIG_HAS_EARLYSUSPEND
 
-    pr_info("disp_resume call\n");
+    pr_info("[DIS[]disp_resume call==\n");
 
     for(i=0; i<2; i++)
     {

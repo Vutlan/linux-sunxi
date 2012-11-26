@@ -23,11 +23,11 @@
 __disp_clk_t disp_clk_tbl[] =
 {
     disp_clk_inf(SYS_CLK_PLL3,        CLK_SYS_PLL3      ),
-    disp_clk_inf(SYS_CLK_PLL7,        CLK_SYS_PLL6      ),
-    disp_clk_inf(SYS_CLK_PLL9,        CLK_SYS_PLL7      ),
-    disp_clk_inf(SYS_CLK_PLL10,       CLK_SYS_PLL9      ),
-    disp_clk_inf(SYS_CLK_PLL3X2,      CLK_SYS_PLL10     ),
-    disp_clk_inf(SYS_CLK_PLL6,        CLK_SYS_PLL3X2    ),
+    disp_clk_inf(SYS_CLK_PLL7,        CLK_SYS_PLL7      ),
+    disp_clk_inf(SYS_CLK_PLL9,        CLK_SYS_PLL9      ),
+    disp_clk_inf(SYS_CLK_PLL10,       CLK_SYS_PLL10     ),
+    disp_clk_inf(SYS_CLK_PLL3X2,      CLK_SYS_PLL3X2    ),
+    disp_clk_inf(SYS_CLK_PLL6,        CLK_SYS_PLL6      ),
     disp_clk_inf(SYS_CLK_PLL6x2,      CLK_SYS_PLL6X2    ),
     disp_clk_inf(SYS_CLK_PLL7X2,      CLK_SYS_PLL7X2    ),
     disp_clk_inf(SYS_CLK_MIPIPLL,     CLK_SYS_MIPI_PLL  ),
@@ -54,7 +54,7 @@ __disp_clk_t disp_clk_tbl[] =
     disp_clk_inf(AHB_CLK_MIPIDSI,     CLK_AHB_MIPIDSI   ),
     disp_clk_inf(AHB_CLK_LCD0,        CLK_AHB_LCD0      ),
     disp_clk_inf(AHB_CLK_LCD1,        CLK_AHB_LCD1      ),
-    disp_clk_inf(AHB_CLK_HDMI,       CLK_AHB_HDMI     ),
+    disp_clk_inf(AHB_CLK_HDMI,        CLK_AHB_HDMI      ),
     disp_clk_inf(AHB_CLK_DEBE0,       CLK_AHB_DEBE0     ),
     disp_clk_inf(AHB_CLK_DEBE1,       CLK_AHB_DEBE1     ),
     disp_clk_inf(AHB_CLK_DEFE0,       CLK_AHB_DEFE0     ),
@@ -172,7 +172,7 @@ __hdle OSAL_CCMU_OpenMclk( __s32 nMclkNo )
     
     hModClk = clk_get(NULL, clk_name);
 
-    __inf("OSAL_CCMU_SetSrcFreq,  clk_name[%d]=%s, hdl=0x%x\n", nMclkNo,clk_name, (unsigned int)hModClk);
+    __inf("OSAL_CCMU_OpenMclk,  clk_name[%d]=%s, hdl=0x%x\n", nMclkNo,clk_name, (unsigned int)hModClk);
     
     return (__hdle)hModClk;
 }
@@ -209,6 +209,7 @@ __s32 OSAL_CCMU_SetMclkSrc( __hdle hMclk, __u32 nSclkNo )
         __wrn("Fail to get clk name from clk id [%d].\n", nSclkNo);
         return -1;
     }
+    
     __inf("OSAL_CCMU_SetMclkSrc,  clk_name[%d]=%s\n", nSclkNo,clk_name);
     
     hSysClk = clk_get(NULL, clk_name);
@@ -277,6 +278,8 @@ __s32 OSAL_CCMU_SetMclkDiv( __hdle hMclk, __s32 nDiv )
         return -1;
     }
 
+    __inf("OSAL_CCMU_SetMclkDiv<0x%0x,%d>\n",(unsigned int)hModClk, nDiv);
+
     hParentClk  = clk_get_parent(hModClk);
     if(!hParentClk || IS_ERR(hParentClk))
     {
@@ -305,6 +308,8 @@ __u32 OSAL_CCMU_GetMclkDiv( __hdle hMclk )
         __wrn("NULL hdle\n");
         return -1;
     }
+    
+    __inf("OSAL_CCMU_GetMclkDiv of clk 0x%0x\n",(unsigned int)hModClk);
 
     hParentClk  = clk_get_parent(hModClk);
     if(!hParentClk || IS_ERR(hParentClk))
@@ -328,7 +333,6 @@ __s32 OSAL_CCMU_MclkOnOff( __hdle hMclk, __s32 bOnOff )
     struct clk* hModClk = (struct clk*)hMclk;
     __s32 ret = 0;
 
-    //__inf("OSAL_CCMU_MclkOnOff<%s,%d>\n",hModClk->aw_clk->name,bOnOff);
 
     if(!hModClk || IS_ERR(hModClk))
     {
@@ -336,6 +340,8 @@ __s32 OSAL_CCMU_MclkOnOff( __hdle hMclk, __s32 bOnOff )
         return -1;
     }
     
+    __inf("OSAL_CCMU_MclkOnOff<0x%0x,%d>\n",(unsigned int)hModClk,bOnOff);
+
     if(bOnOff)
     {
         if(!hModClk->enable)

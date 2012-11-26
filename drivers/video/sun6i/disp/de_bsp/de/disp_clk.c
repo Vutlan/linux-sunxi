@@ -132,8 +132,9 @@ __disp_clk_tab clk_tab = //record tv/vga/hdmi mode clock requirement
 
 __s32 image_clk_init(__u32 sel)
 {
-	__u32 dram_pll;
-	
+	__u32 pll_freq;
+
+    DE_INF("image%d clk_init\n", sel);
 	if(sel == 0)
 	{
 		h_debe0ahbclk = OSAL_CCMU_OpenMclk(AHB_CLK_DEBE0);
@@ -144,10 +145,10 @@ __s32 image_clk_init(__u32 sel)
 #ifdef RESET_OSAL
 		OSAL_CCMU_MclkReset(h_debe0mclk, RST_INVAILD);
 #endif	
-		OSAL_CCMU_SetMclkSrc(h_debe0mclk, SYS_CLK_PLL6);
+		OSAL_CCMU_SetMclkSrc(h_debe0mclk, SYS_CLK_PLL9);
 
-		dram_pll = OSAL_CCMU_GetSrcFreq(SYS_CLK_PLL6);
-		if(dram_pll < 300000000)
+		pll_freq = OSAL_CCMU_GetSrcFreq(SYS_CLK_PLL9);
+		if(pll_freq < 300000000)
 		{
 			OSAL_CCMU_SetMclkDiv(h_debe0mclk, 1);
 		}
@@ -171,10 +172,10 @@ __s32 image_clk_init(__u32 sel)
 	
         OSAL_CCMU_MclkReset(h_debe1mclk, RST_INVAILD);
 #endif 
-        OSAL_CCMU_SetMclkSrc(h_debe1mclk, SYS_CLK_PLL6);//AW_SYS_CLK_PLL5P);	//FIX CONNECT TO DRAM PLL
+        OSAL_CCMU_SetMclkSrc(h_debe1mclk, SYS_CLK_PLL9);//FIX CONNECT TO PLL9
 
-		dram_pll = OSAL_CCMU_GetSrcFreq(SYS_CLK_PLL6);//AW_SYS_CLK_PLL5P);
-		if(dram_pll < 300000000)
+		pll_freq = OSAL_CCMU_GetSrcFreq(SYS_CLK_PLL9);
+		if(pll_freq < 300000000)
 		{
 			OSAL_CCMU_SetMclkDiv(h_debe1mclk, 1);
 		}
@@ -262,6 +263,7 @@ __s32 image_clk_off(__u32 sel)
 
 __s32 scaler_clk_init(__u32 sel)
 {
+    DE_INF("scaler %d clk init\n", sel);
 	if(sel == 0)
 	{
 		h_defe0ahbclk = OSAL_CCMU_OpenMclk(AHB_CLK_DEFE0);
@@ -271,7 +273,7 @@ __s32 scaler_clk_init(__u32 sel)
 		OSAL_CCMU_MclkReset(h_defe0mclk, RST_INVAILD);
 #endif
 	
-		OSAL_CCMU_SetMclkSrc(h_defe0mclk, SYS_CLK_PLL7);	//FIX CONNECT TO VIDEO PLL1
+		OSAL_CCMU_SetMclkSrc(h_defe0mclk, SYS_CLK_PLL9);	//FIX CONNECT TO  PLL9
 		OSAL_CCMU_SetMclkDiv(h_defe0mclk, 1);
 	
 		OSAL_CCMU_MclkOnOff(h_defe0ahbclk, CLK_ON);
@@ -290,7 +292,7 @@ __s32 scaler_clk_init(__u32 sel)
 #ifdef RESET_OSAL
 		OSAL_CCMU_MclkReset(h_defe1mclk, RST_INVAILD);
 #endif	
-		OSAL_CCMU_SetMclkSrc(h_defe1mclk, SYS_CLK_PLL7);	//FIX CONNECT TO VIDEO PLL1
+		OSAL_CCMU_SetMclkSrc(h_defe1mclk, SYS_CLK_PLL9);	//FIX CONNECT PLL9
 		OSAL_CCMU_SetMclkDiv(h_defe1mclk, 1);
 	
 		OSAL_CCMU_MclkOnOff(h_defe1ahbclk, CLK_ON);
@@ -381,14 +383,15 @@ __s32 scaler_clk_off(__u32 sel)
 
 __s32 lcdc_clk_init(__u32 sel)
 {
+    DE_INF("lcd %d clk init\n", sel);
 	if(sel == 0)
 	{
 		h_lcd0ahbclk   = OSAL_CCMU_OpenMclk(AHB_CLK_LCD0);
 		h_lcd0ch0mclk0 = OSAL_CCMU_OpenMclk(MOD_CLK_LCD0CH0);
 		h_lcd0ch1mclk1 = OSAL_CCMU_OpenMclk(MOD_CLK_LCD0CH1);
 	
-		OSAL_CCMU_SetMclkSrc(h_lcd0ch0mclk0, SYS_CLK_PLL7);	//Default to Video Pll0
-		OSAL_CCMU_SetMclkSrc(h_lcd0ch1mclk1, SYS_CLK_PLL7);	//Default to Video Pll0
+		OSAL_CCMU_SetMclkSrc(h_lcd0ch0mclk0, SYS_CLK_PLL3);	//Default to Video Pll0
+		OSAL_CCMU_SetMclkSrc(h_lcd0ch1mclk1, SYS_CLK_PLL7);	//Default to Video  Pll1
 		OSAL_CCMU_SetMclkDiv(h_lcd0ch1mclk1, 10);
 #ifdef RESET_OSAL
 		OSAL_CCMU_MclkReset(h_lcd0ch0mclk0, RST_INVAILD);
@@ -407,8 +410,8 @@ __s32 lcdc_clk_init(__u32 sel)
 		h_lcd1ch0mclk0 = OSAL_CCMU_OpenMclk(MOD_CLK_LCD1CH0);
 		h_lcd1ch1mclk1 = OSAL_CCMU_OpenMclk(MOD_CLK_LCD1CH1);
 
-		OSAL_CCMU_SetMclkSrc(h_lcd1ch0mclk0, SYS_CLK_PLL7);	//Default to Video Pll0
-		OSAL_CCMU_SetMclkSrc(h_lcd1ch1mclk1, SYS_CLK_PLL7);	//Default to Video Pll0
+		OSAL_CCMU_SetMclkSrc(h_lcd1ch0mclk0, SYS_CLK_PLL3);	//Default to Video Pll0
+		OSAL_CCMU_SetMclkSrc(h_lcd1ch1mclk1, SYS_CLK_PLL7);	//Default to Video  Pll1
 		OSAL_CCMU_SetMclkDiv(h_lcd1ch1mclk1, 10);
 #ifdef RESET_OSAL
 		OSAL_CCMU_MclkReset(h_lcd1ch0mclk0, RST_INVAILD);
@@ -500,7 +503,8 @@ __s32 lcdc_clk_off(__u32 sel)
 
 __s32 tve_clk_init(__u32 sel)
 {
-	if(sel == 0)
+	DE_INF("tve %d clk init\n",sel);
+    if(sel == 0)
 	{
 		h_tvenc0ahbclk = OSAL_CCMU_OpenMclk(AHB_CLK_TVE0);
 		OSAL_CCMU_MclkOnOff(h_tvenc0ahbclk, CLK_ON);
@@ -549,7 +553,8 @@ __s32 tve_clk_off(__u32 sel)
 
 __s32 hdmi_clk_init(void)
 {
-	h_hdmiahbclk = OSAL_CCMU_OpenMclk(AHB_CLK_HDMI);
+	DE_INF("hdmi clk init\n");
+    h_hdmiahbclk = OSAL_CCMU_OpenMclk(AHB_CLK_HDMI);
 	h_hdmimclk   = OSAL_CCMU_OpenMclk(MOD_CLK_HDMI);
     h_hdmimclk_ddc = OSAL_CCMU_OpenMclk(MOD_CLK_HDMI_DDC);
 #ifdef RESET_OSAL
@@ -600,7 +605,8 @@ __s32 hdmi_clk_off(void)
 
 __s32 lvds_clk_init(void)
 {
-	h_lvdsmclk = OSAL_CCMU_OpenMclk(MOD_CLK_LVDS);
+	DE_INF("lvds clk init \n");
+    h_lvdsmclk = OSAL_CCMU_OpenMclk(MOD_CLK_LVDS);
 #ifdef RESET_OSAL
 	OSAL_CCMU_MclkReset(h_lvdsmclk, RST_INVAILD);
 #endif			
@@ -629,14 +635,18 @@ __s32 lvds_clk_off(void)
 
 __s32 dsi_clk_init(void)
 {
+    DE_INF("dsi clk init\n");
     h_dsiahbclk= OSAL_CCMU_OpenMclk(AHB_CLK_MIPIDSI);
     h_dsimclk_s= OSAL_CCMU_OpenMclk(MOD_CLK_MIPIDSIS);
     h_dsimclk_p = OSAL_CCMU_OpenMclk(MOD_CLK_MIPIDSIP);
 
     OSAL_CCMU_SetMclkSrc(h_dsimclk_s, SYS_CLK_PLL3);  //Default to Video Pll1
     OSAL_CCMU_SetMclkDiv(h_dsimclk_s, 1);
+    OSAL_CCMU_SetMclkSrc(h_dsimclk_p, SYS_CLK_PLL3);  //Default to Video Pll1
+    OSAL_CCMU_SetMclkDiv(h_dsimclk_p, 1);
 #ifdef RESET_OSAL
     OSAL_CCMU_MclkReset(h_dsimclk_s, RST_INVAILD);
+    OSAL_CCMU_MclkReset(h_dsimclk_p, RST_INVAILD);
 #endif
     OSAL_CCMU_MclkOnOff(h_dsiahbclk, CLK_ON);
     OSAL_CCMU_MclkOnOff(h_dsimclk_s, CLK_ON);
@@ -658,7 +668,7 @@ __s32 dsi_clk_exit(void)
     OSAL_CCMU_MclkOnOff(h_dsimclk_s, CLK_OFF);
     OSAL_CCMU_MclkOnOff(h_dsimclk_p, CLK_OFF);
     OSAL_CCMU_CloseMclk(h_dsiahbclk);
-    OSAL_CCMU_CloseMclk(h_dsimclk_s);        
+    OSAL_CCMU_CloseMclk(h_dsimclk_s);
     OSAL_CCMU_CloseMclk(h_dsimclk_p);
 
     g_clk_status &= (CLK_DSI_AHB_OFF & CLK_DSI_MOD_OFF);
@@ -690,6 +700,7 @@ __s32 disp_pll_init(void)
 {
 	OSAL_CCMU_SetSrcFreq(SYS_CLK_PLL3, 297000000);	
 	OSAL_CCMU_SetSrcFreq(SYS_CLK_PLL7, 297000000);
+    OSAL_CCMU_SetSrcFreq(SYS_CLK_PLL9, 297000000);
 
 	return DIS_SUCCESS;
 }
@@ -759,27 +770,27 @@ static __s32 LCD_PLL_Calc(__u32 sel, __panel_para_t * info, __u32 *divider)
 	}
 	else if(info->lcd_if == LCD_IF_DSI)//todo ?
 	{
-		__u32 lane;
-		switch(info->lcd_dsi_lane)
-		{
-			case LCD_DSI_1LANE:
-				lane = 1;
-				break;
-			case LCD_DSI_2LANE:
-				lane = 2;
-				break;
-			case LCD_DSI_3LANE:
-				lane = 3;
-				break;
-			case LCD_DSI_4LANE:
-				lane = 4;
-				break;
-			default:
-				lane = 1;
-				break;
-		}
+		__u32 lane = info->lcd_dsi_lane;
+        __u32 bitwidth = 0;
 
-		*divider = info->lcd_dsi_format/lane;
+        switch(info->lcd_dsi_format)
+        {
+            case LCD_DSI_FORMAT_RGB888:
+                bitwidth = 24;
+                break;
+            case LCD_DSI_FORMAT_RGB666:
+                bitwidth = 18;
+                break;
+            case LCD_DSI_FORMAT_RGB565:
+                bitwidth = 16;
+                break;
+            case LCD_DSI_FORMAT_RGB666P://todo?
+                bitwidth = 18;
+                break;
+        }
+
+		*divider = bitwidth/lane;
+        pll_freq = lcd_dclk_freq * (*divider);
 	}
 	return pll_freq;
 }
@@ -835,6 +846,12 @@ static __s32 disp_pll_assign(__u32 sel, __u32 pll_clk)
 			ret = 1;
 		}
     }
+#if 0
+    else if(pll_clk <= (600000000 * 4))
+    {
+        ret = 2; //MIPI PLL
+    }
+#endif
 
     if(ret == -1)
     {
@@ -882,15 +899,15 @@ static __s32 disp_pll_set(__u32 sel, __s32 videopll_sel, __u32 pll_freq, __u32 t
 	
 	if(type == DISP_OUTPUT_TYPE_LCD)	//lcd panel
 	{		
-	    if(videopll_sel == 2)//sata pll, fix to 960M
+	    if(videopll_sel == 2)//mipi pll
 	    {
-	        videopll = SYS_CLK_PLL7X2;
+	        videopll = SYS_CLK_MIPIPLL;
 	        //pll_freq = ((pll_freq + 12000000)/ 24000000) * 24000000;
 	        //OSAL_CCMU_SetSrcFreq(AW_SYS_CLK_PLL6, pll_freq);
 	    }
 	    else//video pll0 or video pll1
 	    {
-    		pll_2x_req = (pll_freq>381000000)?1:0;
+    		pll_2x_req = (pll_freq>600000000)?1:0;
     		if(pll_2x_req)
     		{
     		    pll_freq /= 2;
@@ -913,6 +930,13 @@ static __s32 disp_pll_set(__u32 sel, __s32 videopll_sel, __u32 pll_freq, __u32 t
 			h_lcdmclk0 = (sel == 0)?h_lcd0ch0mclk0 : h_lcd1ch0mclk0;
 			OSAL_CCMU_SetMclkSrc(h_lcdmclk0, videopll);
 			tcon0_set_dclk_div(sel,lcd_clk_div);
+            if(gpanel_info[sel].lcd_if == LCD_IF_DSI)//todo?  --dphy clk fix to 297/2M
+            {
+                OSAL_CCMU_SetMclkSrc(h_dsimclk_s, videopll);
+                OSAL_CCMU_SetMclkDiv(h_dsimclk_s, 1);
+                OSAL_CCMU_SetMclkSrc(h_dsimclk_p, SYS_CLK_PLL7);
+                OSAL_CCMU_SetMclkDiv(h_dsimclk_p, 1);
+            }
 		}
 		else									//tcon1 drive lcd panel
 		{

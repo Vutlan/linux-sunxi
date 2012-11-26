@@ -113,6 +113,78 @@ static ssize_t disp_reg_dump_store(struct device *dev,
 static DEVICE_ATTR(reg_dump, S_IRUGO|S_IWUSR|S_IWGRP,
 		disp_reg_dump_show, disp_reg_dump_store);
 
+#define ____SEPARATOR_LCD____
+static ssize_t disp_lcd_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%s", "there is nothing here!");
+}
+
+static ssize_t disp_lcd_store(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+	int err;
+    unsigned long val;
+    
+	err = strict_strtoul(buf, 10, &val);
+	if (err) {
+		printk("Invalid size\n");
+		return err;
+	}
+
+    if((val==0))
+    {
+        DRV_lcd_close(sel);
+    }else
+    {
+        BSP_disp_hdmi_close(sel);
+        DRV_lcd_open(sel);
+	}
+    
+	return count;
+}
+
+static DEVICE_ATTR(lcd, S_IRUGO|S_IWUSR|S_IWGRP,
+		disp_lcd_show, disp_lcd_store);
+
+
+#define ____SEPARATOR_HDMI____
+static ssize_t disp_hdmi_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%s", "there is nothing here!");
+}
+
+static ssize_t disp_hdmi_store(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+	int err;
+    unsigned long val;
+    
+	err = strict_strtoul(buf, 10, &val);
+	if (err) {
+		printk("Invalid size\n");
+		return err;
+	}
+
+    if((val==0))
+    {
+        BSP_disp_hdmi_close(sel);
+    }else
+    {
+        BSP_disp_hdmi_close(sel);
+        BSP_disp_hdmi_set_mode(sel,(__disp_tv_mode_t)val);
+        BSP_disp_hdmi_open(sel);
+	}
+    
+	return count;
+}
+
+static DEVICE_ATTR(hdmi, S_IRUGO|S_IWUSR|S_IWGRP,
+		disp_hdmi_show, disp_hdmi_store);
+
 
 #define ____SEPARATOR_VSYNC_EVENT____
 static ssize_t disp_vsync_event_enable_show(struct device *dev,
@@ -906,6 +978,8 @@ static struct attribute *disp_attributes[] = {
     &dev_attr_reg_dump.attr,
     &dev_attr_layer_mode.attr,
     &dev_attr_vsync_event_enable.attr,
+    &dev_attr_lcd.attr,
+    &dev_attr_hdmi.attr,
 	NULL
 };
 

@@ -96,7 +96,6 @@ typedef struct
 	__u32 base_tvec0;
 	__u32 base_tvec1;
 	__u32 base_pioc;
-	__u32 base_sdram;
 	__u32 base_ccmu;
 	__u32 base_pwm;
     __u32 base_cmu0;

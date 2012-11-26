@@ -1337,8 +1337,28 @@ __s32 Disp_lcdc_init(__u32 sel)
 {
     LCD_get_sys_config(sel, &(gdisp.screen[sel].lcd_cfg));
 
+    if(gdisp.screen[sel].lcd_cfg.lcd_used)
+    {
+        if(lcd_panel_fun[sel].cfg_panel_info)
+        {
+            lcd_panel_fun[sel].cfg_panel_info(&gpanel_info[sel]);
+        }
+        else
+        {
+            LCD_get_panel_para(sel, &gpanel_info[sel]);
+        }
+        gpanel_info[sel].tcon_index = 0;
+    }
+    
     lcdc_clk_init(sel);
-    lvds_clk_init();
+    if(gpanel_info[sel].lcd_if == LCD_IF_LVDS)
+    {
+        lvds_clk_init();
+    }
+    else if(gpanel_info[sel].lcd_if == LCD_IF_DSI)
+    {
+        dsi_clk_init();
+    }
     lcdc_clk_on(sel);	//??need to be open
     tcon_init(sel);
     lcdc_clk_off(sel);
@@ -1362,15 +1382,6 @@ __s32 Disp_lcdc_init(__u32 sel)
     }
     if(gdisp.screen[sel].lcd_cfg.lcd_used)
     {
-        if(lcd_panel_fun[sel].cfg_panel_info)
-        {
-            lcd_panel_fun[sel].cfg_panel_info(&gpanel_info[sel]);
-        }
-        else
-        {
-            LCD_get_panel_para(sel, &gpanel_info[sel]);
-        }
-        gpanel_info[sel].tcon_index = 0;
         if(gdisp.screen[sel].lcd_cfg.lcd_pwm_used == 1)
         {
             __pwm_info_t pwm_info;
@@ -1787,6 +1798,14 @@ __s32 BSP_disp_lcd_open_before(__u32 sel)
 {    
     disp_clk_cfg(sel, DISP_OUTPUT_TYPE_LCD, DIS_NULL);
     lcdc_clk_on(sel);
+    if(gpanel_info[sel].lcd_if == LCD_IF_LVDS)
+    {
+        lvds_clk_on();
+    }
+    else if(gpanel_info[sel].lcd_if == LCD_IF_DSI)
+    {
+        dsi_clk_on();
+    }
     image_clk_on(sel);
     Image_open(sel);//set image normal channel start bit , because every de_clk_off( )will reset this bit
     Disp_lcdc_pin_cfg(sel, DISP_OUTPUT_TYPE_LCD, 1);
@@ -1853,6 +1872,14 @@ __s32 BSP_disp_lcd_close_after(__u32 sel)
     Disp_lcdc_pin_cfg(sel, DISP_OUTPUT_TYPE_LCD, 0);
 	image_clk_off(sel);
 	lcdc_clk_off(sel);
+    if(gpanel_info[sel].lcd_if == LCD_IF_LVDS)
+    {
+        lvds_clk_off();
+    }
+    else if(gpanel_info[sel].lcd_if == LCD_IF_DSI)
+    {
+        dsi_clk_off();
+    }
 
 	gdisp.screen[sel].pll_use_status &= ((gdisp.screen[sel].pll_use_status == VIDEO_PLL0_USED)? VIDEO_PLL0_USED_MASK : VIDEO_PLL1_USED_MASK);
 	

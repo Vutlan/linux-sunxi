@@ -29,7 +29,6 @@ typedef struct
 	__u32                   base_tvec1;
 	__u32                   base_hdmi;
 	__u32                   base_ccmu;
-	__u32                   base_sdram;
     __u32                   base_pioc;
 	__u32                   base_pwm;
     __u32                   base_deu0;
@@ -51,6 +50,9 @@ typedef struct
 	wait_queue_head_t       wait[2];
 	unsigned long           wait_count[2];
     struct timer_list      disp_timer[2];
+    struct work_struct      vsync_work[2];
+    ktime_t                 vsync_timestamp
+[2];
 }fb_info_t;
 
 typedef struct
