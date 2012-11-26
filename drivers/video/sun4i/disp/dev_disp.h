@@ -43,6 +43,8 @@ typedef struct
     __disp_fb_create_para_t fb_para[FB_MAX];
 	wait_queue_head_t       wait[2];
 	unsigned long           wait_count[2];
+	struct work_struct      vsync_work[2];
+	ktime_t                 vsync_timestamp[2];
 }fb_info_t;
 
 typedef struct

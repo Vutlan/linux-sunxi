@@ -1,8 +1,9 @@
 #include "drv_disp_i.h"
 #include "dev_disp.h"
 
-
 extern fb_info_t g_fbi;
+struct sock *nl_sk = NULL;
+#define MAX_MSGSIZE 256
 
 
 #define FBHANDTOID(handle)  ((handle) - 100)
@@ -980,14 +981,32 @@ __s32 DRV_disp_int_process(__u32 sel)
 }
 
 __s32 DRV_disp_vsync_event(__u32 sel)
-{    	
-    char *envp[2];
-
-    envp[0] = "vsync";
-    envp[1] = NULL;
-    kobject_uevent_env(&g_fbi.dev->kobj, KOBJ_CHANGE, envp);
-
+{
+    g_fbi.vsync_timestamp[sel] = ktime_get();
+    schedule_work(&g_fbi.vsync_work[sel]);
     return 0;
+}
+
+static void send_vsync_work_0(struct work_struct *work)
+{
+	char buf[64];
+	char *envp[2];
+
+	snprintf(buf, sizeof(buf), "VSYNC0=%llu",ktime_to_ns(g_fbi.vsync_timestamp[0]));
+	envp[0] = buf;
+	envp[1] = NULL;
+	kobject_uevent_env(&g_fbi.dev->kobj, KOBJ_CHANGE, envp);
+}
+
+static void send_vsync_work_1(struct work_struct *work)
+{
+	char buf[64];
+	char *envp[2];
+
+	snprintf(buf, sizeof(buf), "VSYNC1=%llu",ktime_to_ns(g_fbi.vsync_timestamp[1]));
+	envp[0] = buf;
+	envp[1] = NULL;
+	kobject_uevent_env(&g_fbi.dev->kobj, KOBJ_CHANGE, envp);
 }
 
 static int Fb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
@@ -1486,6 +1505,9 @@ __s32 Fb_Init(__u32 from)
         BSP_disp_print_reg(0, DISP_REG_PIOC); 
     }
 
+    INIT_WORK(&g_fbi.vsync_work[0], send_vsync_work_0);
+    INIT_WORK(&g_fbi.vsync_work[1], send_vsync_work_1);
+    
 	return 0;
 }
 
