@@ -621,6 +621,7 @@ static struct early_suspend backlight_early_suspend_handler =
 #endif
 
 static __u32 image0_reg_bak,scaler0_reg_bak;
+static __u32 iep_reg_bak;
 int disp_suspend(struct platform_device *pdev, pm_message_t state)
 {
     int i = 0;
@@ -669,6 +670,8 @@ int disp_suspend(struct platform_device *pdev, pm_message_t state)
 
         image0_reg_bak = (__u32)disp_malloc(0xe00 - 0x800);
         scaler0_reg_bak = (__u32)disp_malloc(0xa18);
+        iep_reg_bak = (__u32)disp_malloc(0x200);
+		BSP_disp_store_iep_reg(0, iep_reg_bak);
         BSP_disp_store_image_reg(0, image0_reg_bak);
         BSP_disp_store_scaler_reg(0, scaler0_reg_bak);
      }
@@ -701,10 +704,12 @@ int disp_resume(struct platform_device *pdev)
         
         BSP_disp_restore_scaler_reg(0, scaler0_reg_bak);
         BSP_disp_restore_image_reg(0, image0_reg_bak);
+        BSP_disp_restore_iep_reg(0, iep_reg_bak);
         BSP_disp_restore_lcdc_reg(0);
         BSP_disp_restore_tvec_reg(0);
         disp_free((void*)scaler0_reg_bak);
-        disp_free((void*)image0_reg_bak);         
+        disp_free((void*)image0_reg_bak);
+        disp_free((void*)iep_reg_bak);
     }
 
 	

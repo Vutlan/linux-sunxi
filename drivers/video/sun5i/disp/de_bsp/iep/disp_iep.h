@@ -28,7 +28,7 @@
 
 //for power saving mode alg0
 #define IEP_LH_PWRSV_NUM 24
-
+#define IEP_LGC_TAB_SIZE 65536
 typedef struct 
 {
 	__u32 			mod;
