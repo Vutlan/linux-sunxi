@@ -1689,7 +1689,7 @@ static s32 get_android_config(struct android_usb_config *config)
     //----------------------------------------
     //  usb_feature
     //----------------------------------------
-#ifndef SW_USB_FPGA
+#if 0
     /* vendor_id */
     ret = script_parser_fetch("usb_feature", "vendor_id", (int *)&(config->vendor_id), 64);
 	if(ret != 0){
