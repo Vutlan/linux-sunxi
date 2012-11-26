@@ -69,3 +69,4 @@ obj-$(CONFIG_TOUCHSCREEN_SW_TS)         += sw-ts.o
 obj-$(CONFIG_TOUCHSCREEN_FT5X_TS)       += ft5x_ts.o
 obj-$(CONFIG_TOUCHSCREEN_GSLX680)       += gslX680.o
 obj-$(CONFIG_TOUCHSCREEN_GT82X)          += gt82x.o
+obj-$(CONFIG_TOUCHSCREEN_SUN6I_TS)      += sun6i-ts.o

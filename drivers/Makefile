@@ -135,5 +135,7 @@ obj-$(CONFIG_HYPERV)		+= hv/
 
 obj-$(CONFIG_PM_DEVFREQ)	+= devfreq/
 
+obj-$(CONFIG_GSENSOR)	+= gsensor/
+
 # for test
 obj-y				+= test/
