@@ -215,11 +215,11 @@ void __test_script_api(void)
 	PIOTEST_DBG_FUN_LINE;
 	WARN_ON(gpio_cnt_get != gpio_cnt_cmp);
 	PIOTEST_DBG_FUN_LINE;
-	WARN_ON(0 != sw_gpio_setall_range(&list_get->gpio, gpio_cnt_get));
+	WARN_ON(0 != sw_gpio_setall_range(&list_get[0].gpio, gpio_cnt_get));
 	PIOTEST_DBG_FUN_LINE;
-	WARN_ON(0 != sw_gpio_getall_range((struct gpio_config *)&card0_gpio, gpio_cnt_get));
+	WARN_ON(0 != sw_gpio_getall_range((struct gpio_config *)card0_gpio, gpio_cnt_get));
 	PIOTEST_DBG_FUN_LINE;
-	sw_gpio_dump_config((struct gpio_config *)&card0_gpio, gpio_cnt_get);
+	sw_gpio_dump_config((struct gpio_config *)card0_gpio, gpio_cnt_get);
 	PIOTEST_DBG_FUN_LINE;
 
 	/* test for gpio config api */
@@ -230,11 +230,11 @@ void __test_script_api(void)
 	PIOTEST_DBG_FUN_LINE;
 	WARN_ON(gpio_cnt_get != gpio_cnt_cmp);
 	PIOTEST_DBG_FUN_LINE;
-	WARN_ON(0 != sw_gpio_setall_range(&list_get->gpio, gpio_cnt_get));
+	WARN_ON(0 != sw_gpio_setall_range(&list_get[0].gpio, gpio_cnt_get));
 	PIOTEST_DBG_FUN_LINE;
-	WARN_ON(0 != sw_gpio_getall_range((struct gpio_config *)&csi0_gpio, gpio_cnt_get));
+	WARN_ON(0 != sw_gpio_getall_range((struct gpio_config *)csi0_gpio, gpio_cnt_get));
 	PIOTEST_DBG_FUN_LINE;
-	sw_gpio_dump_config((struct gpio_config *)&csi0_gpio, gpio_cnt_get);
+	sw_gpio_dump_config((struct gpio_config *)csi0_gpio, gpio_cnt_get);
 
 	/* test for axp pin */
 	strcpy(main_key, "lcd0_para");
@@ -577,7 +577,7 @@ u32 __gtc_api(void)
 {
 	u32 	uret = 0;
 
-	/* wait for boot complete */
+	/* wait for request and free */
 	msleep(4000);
 
 	/*

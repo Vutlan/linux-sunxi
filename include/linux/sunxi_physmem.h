@@ -29,8 +29,8 @@ struct sunmm_cache_range{
 };
 
 //bool sunxi_mem_alloc(u32 size, u32* phymem);
-u32 sunxi_mem_alloc(u32 size);
-void sunxi_mem_free(u32 phymem);
-u32 sunxi_mem_get_rest_size(void);
+unsigned int sunxi_mem_alloc(unsigned int size);
+void sunxi_mem_free(unsigned int phymem);
+unsigned int sunxi_mem_get_rest_size(void);
 
 #endif /* __SUNXI_PHYSMEM_H */

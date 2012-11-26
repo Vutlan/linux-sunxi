@@ -323,7 +323,7 @@ int __init sunxi_mem_allocator_init(void)
 arch_initcall(sunxi_mem_allocator_init);
 
 //bool sunxi_mem_alloc(u32 size, u32* virmem, u32* phymem)
-u32 sunxi_mem_alloc(u32 size)
+unsigned int sunxi_mem_alloc(unsigned int size)
 {
 	u32	vtemp = 0, ptemp = 0;
 	unsigned long	flags;
@@ -344,7 +344,7 @@ u32 sunxi_mem_alloc(u32 size)
 EXPORT_SYMBOL(sunxi_mem_alloc);
 
 //void sunxi_mem_free(u32 virmem, u32 phymem)
-void sunxi_mem_free(u32 phymem)
+void sunxi_mem_free(unsigned int phymem)
 {
 	u32	vtemp = phymem; /* to check */
 	unsigned long	flags;

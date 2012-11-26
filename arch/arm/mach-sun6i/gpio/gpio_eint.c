@@ -772,7 +772,10 @@ irqreturn_t gpio_irq_hdl(int irq, void *dev)
 		return IRQ_NONE;
 
 	sw_gpio_eint_clr_irqpd_sta(pdev_id->gpio);
-	PIO_ASSERT(0 == pdev_id->handler(pdev_id->parg));
+	if(NULL != pdev_id->handler) {
+		if(0 != pdev_id->handler(pdev_id->parg))
+			printk("%s err, line %d, handler failed\n", __func__, __LINE__);
+	}
 	return IRQ_HANDLED;
 }
 
@@ -798,7 +801,8 @@ u32 sw_gpio_irq_request(u32 gpio, enum gpio_eint_trigtype trig_type,
 		gpio, trig_type, (u32)handle, (u32)para);
 
 	/* request gpio */
-	WARN(0 != gpio_request(gpio, NULL), "%s err, line %d\n", __func__, __LINE__);
+	WARN(0 != gpio_request(gpio, NULL), "%s err, request gpio %d failed!\n", __func__, gpio);
+	WARN(NULL == handle, "%s err, handle is NULL!\n", __func__);
 	if(false == is_gpio_canbe_eint(gpio)) {
 		usign = __LINE__;
 		goto End;
