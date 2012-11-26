@@ -290,7 +290,7 @@ EXPORT_SYMBOL(sw_gpio_eint_set_trigtype);
  * @gpio:	the global gpio index
  * @pval:	the trig type got
  *
- * Returns 0 if sucess, the err line number if failed.
+ * Returns the trig type if sucess, TRIG_INALID if failed.
  */
 u32 sw_gpio_eint_get_trigtype(u32 gpio, enum gpio_eint_trigtype *pval)
 {
@@ -431,12 +431,12 @@ u32 sw_gpio_eint_get_irqpd_sta(u32 gpio)
 
 	if(false == is_gpio_canbe_eint(gpio)) {
 		uret = __LINE__;
-		goto end;
+		goto err;
 	}
 	pchip = gpio_to_aw_gpiochip(gpio);
 	if(!pchip || !pchip->cfg_eint || !pchip->cfg_eint->eint_get_irqpd_sta) {
-		printk("%s err, line %d, gpio_to_aw_gpiochip failed\n", __func__, __LINE__);
-		return 0; /* note here */
+		uret = __LINE__;
+		goto err;
 	}
 
 	if(unlikely(__is_r_pl(gpio)))
@@ -449,10 +449,10 @@ u32 sw_gpio_eint_get_irqpd_sta(u32 gpio)
 	PIO_CHIP_UNLOCK(&pchip->lock, flags);
 	if(req_success)
 		gpio_free(gpio);
-end:
-	if(0 != uret)
-		printk("%s err, line %d\n", __func__, uret);
 	return uret;
+err:
+	printk("%s err, line %d\n", __func__, uret);
+	return 0; /* note here */
 }
 EXPORT_SYMBOL(sw_gpio_eint_get_irqpd_sta);
 
