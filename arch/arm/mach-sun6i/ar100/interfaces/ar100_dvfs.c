@@ -1,5 +1,5 @@
 /*
- *  arch/arm/mach-sun6i/ar100/ar100_dvfs.c
+ *  arch/arm/mach-sun6i/ar100/interface/ar100_dvfs.c
  *
  * Copyright (c) 2012 Allwinner.
  * sunny (sunny@allwinnertech.com)
@@ -19,36 +19,45 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "..//ar100_i.h"
+#include "../ar100_i.h"
 
 /*
  * set target frequency.
- * freq:  target frequency to be set, based on KHZ.
- * return: result, 0 - set frequency successed, !0 - set frequency failed;
+ * @freq:    target frequency to be set, based on KHZ;
+ * @mode:    the attribute of message, whether syn or asyn;
+ * @cb:      callback handler;
+ * @cb_arg:  callback handler arguments;
+ *
+ * return: result, 0 - set frequency successed,
+ *                !0 - set frequency failed;
  */
-int ar100_dvfs_set_cpufreq(unsigned long freq, unsigned long mode, ar100_cb_t cb)
+int ar100_dvfs_set_cpufreq(unsigned int freq, unsigned long mode, ar100_cb_t cb, void *cb_arg)
 {
-	unsigned int          msg_attr;
+	unsigned int          msg_attr = 0;
 	struct ar100_message *pmessage;
 	
-	msg_attr = 0;
 	if (mode & AR100_DVFS_SYN) {
 		msg_attr |= AR100_MESSAGE_ATTR_HARDSYN;
 	}
-	//allocate a message frame
+	
+	/* allocate a message frame */
 	pmessage = ar100_message_allocate(msg_attr);
 	if (pmessage == NULL) {
 		AR100_WRN("allocate message failed\n");
 		return -ENOMEM;
 	}
-	//initialize message
-	pmessage->type     = AR100_CPUX_DVFS_REQ;
-	pmessage->attr     = (unsigned char)msg_attr;
-	pmessage->paras[0] = freq;
-	pmessage->state    = AR100_MESSAGE_INITIALIZED;
+	
+	/* initialize message */
+	pmessage->type       = AR100_CPUX_DVFS_REQ;
+	pmessage->attr       = (unsigned char)msg_attr;
+	pmessage->paras[0]   = freq;
+	pmessage->state      = AR100_MESSAGE_INITIALIZED;
+	pmessage->cb.handler = cb;
+	pmessage->cb.arg     = cb_arg;
+	
 	ar100_hwmsgbox_send_message(pmessage, AR100_SEND_MSG_TIMEOUT);
 	
-	//dvfs mode : syn or not.
+	/* dvfs mode : syn or not */
 	if (mode & AR100_DVFS_SYN) {
 		ar100_message_free(pmessage);
 	}

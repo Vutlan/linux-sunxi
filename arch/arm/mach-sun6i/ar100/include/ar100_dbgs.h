@@ -1,5 +1,5 @@
 /*
- *  arch/arm/mach-sun6i/ar100/include/ar100_bgs.h
+ *  arch/arm/mach-sun6i/ar100/include/ar100_dbgs.h
  *
  * Copyright (c) 2012 Allwinner.
  * sunny (sunny@allwinnertech.com)
@@ -19,34 +19,48 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef	__AR100_DBGS_H__
-#define	__AR100_DBGS_H__
+#ifndef	__AR100_DBGS_H
+#define	__AR100_DBGS_H
 
-//debug level define,
-//level 0 : dump debug information--none;
-//level 1 : dump debug information--error;
-//level 2 : dump debug information--error+warning;
-//level 3 : dump debug information--error+warning+information;
-//extern void printk(const char *, ...);
-#if		(AR100_DEBUG_LEVEL == 0)
+extern int g_ar100_debug_level;
+/* 
+ * debug level define,
+ * level 0 : dump debug information--none;
+ * level 1 : dump debug information--error;
+ * level 2 : dump debug information--error+warning;
+ * level 3 : dump debug information--error+warning+information;
+ * extern void printk(const char *, ...);
+ */
+
+#ifdef AR100_DEBUG_ON
+/* debug levels */
+#define DEBUG_LEVEL_INF    ((u32)1 << 0)
+#define DEBUG_LEVEL_WRN    ((u32)1 << 1) 
+#define DEBUG_LEVEL_ERR    ((u32)1 << 2) 
+#define DEBUG_LEVEL_LOG    ((u32)1 << 3)
+
+#define	AR100_INF(...)							\
+	if(DEBUG_LEVEL_INF & (0xf0 >> (g_ar100_debug_level +1))) 	\
+	printk(__VA_ARGS__)
+
+#define	AR100_WRN(...)							\
+	if(DEBUG_LEVEL_WRN & (0xf0 >> (g_ar100_debug_level +1)))	\
+	printk(__VA_ARGS__)
+
+#define	AR100_ERR(...)							\
+	if(DEBUG_LEVEL_ERR & (0xf0 >> (g_ar100_debug_level +1)))	\
+	printk(__VA_ARGS__)
+
+#define	AR100_LOG(...)							\
+	if(DEBUG_LEVEL_LOG & (0xf0 >> (g_ar100_debug_level +1)))	\
+	printk(__VA_ARGS__)
+
+#else /* AR100_DEBUG_ON */
 #define	AR100_INF(...)
 #define	AR100_WRN(...)
 #define	AR100_ERR(...)
-#elif 	(AR100_DEBUG_LEVEL == 1)
-#define	AR100_INF(...)
-#define	AR100_WRN(...)
-#define	AR100_ERR(...)		printk(__VA_ARGS__)
-#elif 	(AR100_DEBUG_LEVEL == 2)
-#define	AR100_INF(...)
-#define	AR100_WRN(...)		printk(__VA_ARGS__)
-#define	AR100_ERR(...)		printk(__VA_ARGS__)
-#elif 	(AR100_DEBUG_LEVEL == 3)
-#define	AR100_INF(...)		printk(__VA_ARGS__)
-#define	AR100_WRN(...)		printk(__VA_ARGS__)
-#define	AR100_ERR(...)		printk(__VA_ARGS__)
-#endif	//AR100_DEBUG_LEVEL
+#define	AR100_LOG(...)
 
-//LOG dump debug information always
-#define	AR100_LOG(...)	    printk(__VA_ARGS__)
+#endif /* AR100_DEBUG_ON */
 
-#endif	//__AR100_DBGS_H__
+#endif /* __AR100_DBGS_H */

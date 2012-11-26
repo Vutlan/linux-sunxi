@@ -19,64 +19,44 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef	__AR100_HWMSGBOX_H__
-#define	__AR100_HWMSGBOX_H__
+#ifndef	__AR100_HWMSGBOX_H
+#define	__AR100_HWMSGBOX_H
 
-/*
-*********************************************************************************************************
-*                                       	INITIALIZE HWMSGBOX
-*
-* Description: 	initialize hwmsgbox.
-*
-* Arguments  : 	none.
-*
-* Returns    : 	OK if initialize hwmsgbox succeeded, others if failed.
-*********************************************************************************************************
-*/
+/**
+ * initialize hwmsgbox.
+ * @para:  none.
+ *
+ * returns:  OK if initialize hwmsgbox succeeded, others if failed.
+ */
 int ar100_hwmsgbox_init(void);
 
-/*
-*********************************************************************************************************
-*                                       	EXIT HWMSGBOX
-*
-* Description: 	exit hwmsgbox.
-*
-* Arguments  : 	none.
-*
-* Returns    : 	OK if exit hwmsgbox succeeded, others if failed.
-*********************************************************************************************************
-*/
+/**
+ * exit hwmsgbox.
+ * @para:  none.
+ *
+ * returns:  OK if exit hwmsgbox succeeded, others if failed.
+ */
 int ar100_hwmsgbox_exit(void);
 
-/*
-*********************************************************************************************************
-*                                       SEND MESSAGE BY HWMSGBOX
-*
-* Description: 	send one message to another processor by hwmsgbox.
-*
-* Arguments  : 	pmessage 	: the pointer of sended message frame.
-*				timeout		: the wait time limit when message fifo is full,
-*							  it is valid only when parameter mode = SEND_MESSAGE_WAIT_TIMEOUT.
-*
-* Returns    : 	OK if send message succeeded, other if failed.
-*********************************************************************************************************
-*/
+/**
+ * send one message to another processor by hwmsgbox.
+ * @pmessage:  the pointer of sended message frame.
+ * @timeout:   the wait time limit when message fifo is full,
+ * it is valid only when parameter mode = SEND_MESSAGE_WAIT_TIMEOUT.
+ *
+ * returns:  OK if send message succeeded, other if failed.
+ */
 int ar100_hwmsgbox_send_message(struct ar100_message *pmessage, unsigned int timeout);
 
-/*
-*********************************************************************************************************
-*                                        QUERY MESSAGE
-*
-* Description: 	query message of hwmsgbox by hand, mainly for.
-*
-* Arguments  : 	none.
-*
-* Returns    : 	the point of message, NULL if timeout.
-*********************************************************************************************************
-*/
+/**
+ * Description: 	query message of hwmsgbox by hand, mainly for.
+ * @para:  none.
+ *
+ * returns:  the point of message, NULL if timeout.
+ */
 struct ar100_message *ar100_hwmsgbox_query_message(void);
 
 int ar100_hwmsgbox_enable_receiver_int(int queue, int user);
 int ar100_hwmsgbox_feedback_message(struct ar100_message *pmessage, unsigned int timeout);
 
-#endif	//__AR100_HWMSGBOX_H__
+#endif	/* __AR100_HWMSGBOX_H */

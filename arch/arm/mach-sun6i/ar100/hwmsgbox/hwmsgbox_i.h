@@ -19,12 +19,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef	__AR100_HWMSGBOX_I_H__
-#define	__AR100_HWMSGBOX_I_H__
+#ifndef	__AR100_HWMSGBOX_I_H
+#define	__AR100_HWMSGBOX_I_H
 
 #include "../include/ar100_includes.h"
 
-//local functions
+/* local functions */
 irqreturn_t ar100_hwmsgbox_int_handler(int irq, void *dev);
 int ar100_hwmsgbox_clear_receiver_pending(int queue, int user);
 int ar100_hwmsgbox_query_receiver_pending(int queue, int user);
@@ -35,4 +35,4 @@ int ar100_hwmsgbox_wait_message_feedback(struct ar100_message *pmessage);
 int ar100_hwmsgbox_message_feedback(struct ar100_message *pmessage);
 int ar100_message_valid(struct ar100_message *pmessage);
 
-#endif	//__AR100_HWMSGBOX_I_H__
+#endif	/* __AR100_HWMSGBOX_I_H */

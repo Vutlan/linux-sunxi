@@ -19,83 +19,60 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef	__AR100_MESSAGE_MANAGER_H__
-#define	__AR100_MESSAGE_MANAGER_H__
+#ifndef	__AR100_MESSAGE_MANAGER_H
+#define	__AR100_MESSAGE_MANAGER_H
 
-//the strcuture of message queue,
-//main for messages management.
+/*
+ * the strcuture of message queue,
+ * main for messages management.
+ */
 typedef struct ar100_message_queue
 {
-	struct ar100_message *head;		//the head message of this queue.
-	struct ar100_message *tail;		//the tail message of this queue.
-	unsigned int		  number;		//the total message number of this queue.
+	struct ar100_message *head;    /* the head message of this queue         */
+	struct ar100_message *tail;    /* the tail message of this queue         */
+	unsigned int	      number;  /* the total message number of this queue */
 } ar100_message_queue_t;
 
-/*
-*********************************************************************************************************
-*                                       INIT MESSAGE MANAGER
-*
-* Description: 	initialize message manager.
-*
-* Arguments  : 	none.
-*
-* Returns    : 	OK if initialize succeeded, others if failed.
-*********************************************************************************************************
-*/
+/**
+ * initialize message manager.
+ * @para:  none.
+ *
+ * returns:  OK if initialize succeeded, others if failed.
+ */
 int ar100_message_manager_init(void);
 
-/*
-*********************************************************************************************************
-*                                       EXIT MESSAGE MANAGER
-*
-* Description: 	exit message manager.
-*
-* Arguments  : 	none.
-*
-* Returns    : 	OK if exit succeeded, others if failed.
-*********************************************************************************************************
-*/
+/**
+ * exit message manager.
+ * para:  none.
+ *
+ * returns:  OK if exit succeeded, others if failed.
+ */
 int ar100_message_manager_exit(void);
 
-/*
-*********************************************************************************************************
-*                                       ALLOCATE MESSAGE FRAME
-*
-* Description: 	allocate one message frame. mainly use for send message by message-box,
-*			   	the message frame allocate form messages pool shared memory area.
-*
-* Arguments  : 	none.
-*
-* Returns    : 	the pointer of allocated message frame, NULL if failed;
-*********************************************************************************************************
-*/
+/**
+ * allocate one message frame. mainly use for send message by message-box,
+ * the message frame allocate form messages pool shared memory area.
+ * @para:  none.
+ *
+ * returns:  the pointer of allocated message frame, NULL if failed;
+ */
 struct ar100_message *ar100_message_allocate(unsigned int msg_attr);
 
-/*
-*********************************************************************************************************
-*                                       FREE MESSAGE FRAME
-*
-* Description: 	free one message frame. mainly use for process message finished, 
-*			   	free it to messages pool or add to free message queue.
-*
-* Arguments  : 	pmessage : the pointer of free message frame.
-*
-* Returns    : 	none.
-*********************************************************************************************************
-*/
+/**
+ * free one message frame. mainly use for process message finished, 
+ * free it to messages pool or add to free message queue.
+ * @pmessage:  the pointer of free message frame.
+ *
+ * returns:  none.
+ */
 void ar100_message_free(struct ar100_message *pmessage);
 
-/*
-*********************************************************************************************************
-*                                       NOTIFY MESSAGE COMING
-*
-* Description: 	notify system that one message coming.
-*
-* Arguments  : 	pmessage : the pointer of coming message frame.
-*
-* Returns    : 	OK if notify succeeded, other if failed.
-*********************************************************************************************************
-*/
+/**
+ * notify system that one message coming.
+ * @pmessage : the pointer of coming message frame.
+ *
+ * returns:  OK if notify succeeded, other if failed.
+ */
 int ar100_message_coming_notify(struct ar100_message *pmessage);
 
-#endif	//__MESSAGE_MANAGER_H__
+#endif	/* __MESSAGE_MANAGER_H */

@@ -19,62 +19,42 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef	__AR100_HW_SPINLOCK_H__
-#define	__AR100_HW_SPINLOCK_H__
+#ifndef	__AR100_HW_SPINLOCK_H
+#define	__AR100_HW_SPINLOCK_H
 
-//the max number of hardware spinlock
+/* the max number of hardware spinlock */
 #define	AR100_HW_SPINLOCK_NUM		(32)
 
-/*
-*********************************************************************************************************
-*                                       INITIALIZE HWSPINLOCK
-*
-* Description: 	initialize hwspinlock.
-*
-* Arguments  : 	none.
-*
-* Returns    : 	OK if initialize hwspinlock succeeded, others if failed.
-*********************************************************************************************************
-*/
+/**
+ * initialize hwspinlock.
+ * @para:  none.
+ *
+ * returns:  OK if initialize hwspinlock succeeded, others if failed.
+ */
 int ar100_hwspinlock_init(void);
 
-/*
-*********************************************************************************************************
-*                                       	EXIT HWSPINLOCK
-*
-* Description: 	exit hwspinlock.
-*
-* Arguments  : 	none.
-*
-* Returns    : 	OK if exit hwspinlock succeeded, others if failed.
-*********************************************************************************************************
-*/
+/**
+ * exit hwspinlock.
+ * @para:  none.
+ *
+ * returns:  OK if exit hwspinlock succeeded, others if failed.
+ */
 int ar100_hwspinlock_exit(void);
 
-/*
-*********************************************************************************************************
-*                                       	LOCK HWSPINLOCK WITH TIMEOUT
-*
-* Description:	lock an hwspinlock with timeout limit.
-*
-* Arguments  : 	hwid : an hwspinlock id which we want to lock.
-*
-* Returns    : 	OK if lock hwspinlock succeeded, other if failed.
-*********************************************************************************************************
-*/
+/**
+ * lock an hwspinlock with timeout limit.
+ * @hwid : an hwspinlock id which we want to lock.
+ *
+ * returns:  OK if lock hwspinlock succeeded, other if failed.
+ */
 int ar100_hwspin_lock_timeout(int hwid, unsigned int timeout);
 
-/*
-*********************************************************************************************************
-*                                       	UNLOCK HWSPINLOCK
-*
-* Description:	unlock a specific hwspinlock.
-*
-* Arguments  : 	hwid : an hwspinlock id which we want to unlock.
-*
-* Returns    : 	OK if unlock hwspinlock succeeded, other if failed.
-*********************************************************************************************************
-*/
+/**
+ * unlock a specific hwspinlock.
+ * @hwid : an hwspinlock id which we want to unlock.
+ *
+ * returns:  OK if unlock hwspinlock succeeded, other if failed.
+ */
 int ar100_hwspin_unlock(int hwid);
 
-#endif	//__AR100_HW_SPINLOCK_H__
+#endif	/* __AR100_HW_SPINLOCK_H */

@@ -27,42 +27,17 @@ typedef struct axp_isr
 	void        *arg;
 } axp_isr_t;
 
-//pmu isr node, record current pmu interrupt handler and argument
+/* pmu isr node, record current pmu interrupt handler and argument */
 axp_isr_t axp_isr_node;
 
-/*
- * axp power off.
- * para:  none;
- * return: result, 0 - power off successed, !0 - power off failed;
- */
-int ar100_axp_power_off(void)
-{
-	struct ar100_message *pmessage;
-	
-	//allocate a message frame
-	pmessage = ar100_message_allocate(0);
-	if (pmessage == NULL) {
-		AR100_ERR("allocate message for power-off request failed\n");
-		return -ENOMEM;
-	}
-	//initialize message
-	pmessage->type     = AR100_AXP_POWEROFF_REQ;
-	pmessage->attr     = 0;
-	pmessage->state    = AR100_MESSAGE_INITIALIZED;
-	
-	//send power-off request to ar100
-	ar100_hwmsgbox_send_message(pmessage, AR100_SEND_MSG_TIMEOUT);
-	
-	return 0;
-}
-EXPORT_SYMBOL(ar100_axp_power_off);
-
-/*
+/**
  * read axp register data.
- * addr: point of registers address;
- * data: point of registers data;
- * len : number of read registers;
- * return: result, 0 - read register successed, !0 - read register failed;
+ * @addr:    point of registers address;
+ * @data:    point of registers data;
+ * @len :    number of read registers, max len:8;
+ *
+ * return: result, 0 - read register successed, 
+ *                !0 - read register failed or the len more then max len;
  */
 int ar100_axp_read_reg(unsigned char *addr, unsigned char *data, unsigned long len)
 {
@@ -74,39 +49,47 @@ int ar100_axp_read_reg(unsigned char *addr, unsigned char *data, unsigned long l
 		return -EINVAL;
 	}
 	
-	//allocate a message frame
+	/* allocate a message frame */
 	pmessage = ar100_message_allocate(AR100_MESSAGE_ATTR_SOFTSYN);
 	if (pmessage == NULL) {
 		AR100_WRN("allocate message failed\n");
 		return -ENOMEM;
 	}
-	//initialize message
-	pmessage->type     = AR100_AXP_READ_REGS;
-	pmessage->attr     = AR100_MESSAGE_ATTR_SOFTSYN;
-	pmessage->state    = AR100_MESSAGE_INITIALIZED;
 	
-	//package address and data to message->paras,
-	//message->paras data layout: 
-	//|para[0]|para[1]|para[2]|para[3]|para[4]|
-	//|addr0~3|addr4~7|data0~3|data4~7|  len  |
+	/* initialize message */
+	pmessage->type       = AR100_AXP_READ_REGS;
+	pmessage->attr       = AR100_MESSAGE_ATTR_SOFTSYN;
+	pmessage->state      = AR100_MESSAGE_INITIALIZED;
+	pmessage->cb.handler = NULL;
+	pmessage->cb.arg     = NULL;
+
+	/*
+	 * package address and data to message->paras,
+	 * message->paras data layout: 
+	 * |para[0]|para[1]|para[2]|para[3]|para[4]|
+	 * |addr0~3|addr4~7|data0~3|data4~7|  len  |
+	 */
 	pmessage->paras[0] = 0;
 	pmessage->paras[1] = 0;
 	pmessage->paras[2] = 0;
 	pmessage->paras[3] = 0;
+	//memset(pmessage->paras, 0, sizeof(pmessage->paras));
+	//memset(pmessage->paras, 0, sizeof(unsigned int) * 4);
 	pmessage->paras[4] = len;
 	for (i = 0; i < len; i++) {
 		if (i < 4) {
-			//pack 8bit addr0~addr3 into 32bit paras[0]
+			/* pack 8bit addr0~addr3 into 32bit paras[0] */
 			pmessage->paras[0] |= (addr[i] << (i * 8));
 		} else {
-			//pack 8bit addr4~addr7 into 32bit paras[1]
+			/* pack 8bit addr4~addr7 into 32bit paras[1] */
 			pmessage->paras[1] |= (addr[i] << ((i - 4) * 8));
 		}
 	}
-	//send message use hwmsgbox
+	
+	/* send message use hwmsgbox */
 	ar100_hwmsgbox_send_message(pmessage, AR100_SEND_MSG_TIMEOUT);
 	
-	//copy message readout data to user data buffer
+	/* copy message readout data to user data buffer */
 	for (i = 0; i < len; i++) {
 		if (i < 4) {
 			data[i] = ((pmessage->paras[2]) >> (i * 8)) & 0xff;
@@ -115,7 +98,7 @@ int ar100_axp_read_reg(unsigned char *addr, unsigned char *data, unsigned long l
 		}
 	}
 	
-	//free message
+	/* free message */
 	ar100_message_free(pmessage);
 	
 	return 0;
@@ -123,12 +106,14 @@ int ar100_axp_read_reg(unsigned char *addr, unsigned char *data, unsigned long l
 EXPORT_SYMBOL(ar100_axp_read_reg);
 
 
-/*
+/**
  * write axp register data.
- * addr: point of registers address;
- * data: point of registers data;
- * len : number of write registers;
- * return: result, 0 - write register successed, !0 - write register failed;
+ * addr:     point of registers address;
+ * data:     point of registers data;
+ * len :     number of write registers, max len:8;
+ *
+ * return: result, 0 - write register successed, 
+ *                !0 - write register failedor the len more then max len;
  */
 int ar100_axp_write_reg(unsigned char *addr, unsigned char *data, unsigned long len)
 {
@@ -140,127 +125,77 @@ int ar100_axp_write_reg(unsigned char *addr, unsigned char *data, unsigned long 
 		return -EINVAL;
 	}
 	
-	//allocate a message frame
+	/* allocate a message frame */
 	pmessage = ar100_message_allocate(AR100_MESSAGE_ATTR_SOFTSYN);
 	if (pmessage == NULL) {
 		AR100_WRN("allocate message failed\n");
 		return -ENOMEM;
 	}
-	//initialize message
-	pmessage->type  = AR100_AXP_WRITE_REGS;
-	pmessage->attr  = AR100_MESSAGE_ATTR_SOFTSYN;
-	pmessage->state = AR100_MESSAGE_INITIALIZED;
+	/* initialize message */
+	pmessage->type       = AR100_AXP_WRITE_REGS;
+	pmessage->attr       = AR100_MESSAGE_ATTR_SOFTSYN;
+	pmessage->state      = AR100_MESSAGE_INITIALIZED;
+	pmessage->cb.handler = NULL;
+	pmessage->cb.arg     = NULL;
 	
-	//package address and data to message->paras,
-	//message->paras data layout: 
-	//|para[0]|para[1]|para[2]|para[3]|para[4]|
-	//|addr0~3|addr4~7|data0~3|data4~7|  len  |
+	/*
+	 * package address and data to message->paras,
+	 * message->paras data layout: 
+	 * |para[0]|para[1]|para[2]|para[3]|para[4]|
+	 * |addr0~3|addr4~7|data0~3|data4~7|  len  |
+	 */
 	pmessage->paras[0] = 0;
 	pmessage->paras[1] = 0;
 	pmessage->paras[2] = 0;
 	pmessage->paras[3] = 0;
+	//memset(pmessage->paras, 0, sizeof(pmessage->paras));
+	//memset(pmessage->paras, 0, sizeof(unsigned int) * 4);
 	pmessage->paras[4] = len;
 	for (i = 0; i < len; i++) {
 		if (i < 4) {
-			//pack 8bit addr0~addr3 into 32bit paras[0]
+			/* pack 8bit addr0~addr3 into 32bit paras[0] */
 			pmessage->paras[0] |= (addr[i] << (i * 8));
 			
-			//pack 8bit data0~data3 into 32bit paras[2]
+			/* pack 8bit data0~data3 into 32bit paras[2] */
 			pmessage->paras[2] |= (data[i] << (i * 8));
 		} else {
-			//pack 8bit addr4~addr7 into 32bit paras[1]
+			/* pack 8bit addr4~addr7 into 32bit paras[1] */
 			pmessage->paras[1] |= (addr[i] << ((i - 4) * 8));
 			
-			//pack 8bit data4~data7 into 32bit paras[3]
+			/* pack 8bit data4~data7 into 32bit paras[3] */
 			pmessage->paras[3] |= (data[i] << ((i - 4) * 8));
 		}
 	}
-	//send message use hwmsgbox
+	/* send message use hwmsgbox */
 	ar100_hwmsgbox_send_message(pmessage, AR100_SEND_MSG_TIMEOUT);
 	
-	//free message
+	/* free message */
 	ar100_message_free(pmessage);
 	
 	return 0;
 }
 EXPORT_SYMBOL(ar100_axp_write_reg);
 
-
-/*
- * axp get battery paramter.
- * para:  battery parameter;
- * return: result, 0 - get battery successed, !0 - get battery failed;
- */
-int ar100_axp_get_battery(void *para)
-{
-	struct ar100_message *pmessage;
-	
-	//allocate a message frame
-	pmessage = ar100_message_allocate(AR100_MESSAGE_ATTR_SOFTSYN);
-	if (pmessage == NULL) {
-		AR100_ERR("allocate message for get battery request failed\n");
-		return -ENOMEM;
-	}
-	//initialize message
-	pmessage->type  = AR100_AXP_GET_BATTERY;
-	pmessage->attr  = AR100_MESSAGE_ATTR_SOFTSYN;
-	pmessage->state = AR100_MESSAGE_INITIALIZED;
-	
-	//send set battery request to ar100
-	ar100_hwmsgbox_send_message(pmessage, AR100_SEND_MSG_TIMEOUT);
-	
-	//syn message, free message
-	ar100_message_free(pmessage);
-	
-	return 0;
-}
-EXPORT_SYMBOL(ar100_axp_get_battery);
-
-
-/*
- * axp set battery paramter.
- * para:  battery parameter;
- * return: result, 0 - set battery successed, !0 - set battery failed;
- */
-int ar100_axp_set_battery(void *para)
-{
-	struct ar100_message *pmessage;
-	
-	//allocate a message frame
-	pmessage = ar100_message_allocate(AR100_MESSAGE_ATTR_SOFTSYN);
-	if (pmessage == NULL) {
-		AR100_ERR("allocate message for set battery request failed\n");
-		return -ENOMEM;
-	}
-	//initialize message
-	pmessage->type  = AR100_AXP_SET_BATTERY;
-	pmessage->attr  = AR100_MESSAGE_ATTR_SOFTSYN;
-	pmessage->state = AR100_MESSAGE_INITIALIZED;
-	
-	//send set battery request to ar100
-	ar100_hwmsgbox_send_message(pmessage, AR100_SEND_MSG_TIMEOUT);
-	
-	//syn message, free message
-	ar100_message_free(pmessage);
-	
-	return 0;
-}
-EXPORT_SYMBOL(ar100_axp_set_battery);
-
-
-/*
+/**
  * register call-back function, call-back function is for ar100 notify some event to ac327,
- * axp interrupt for ex.
- * func:  call-back function;
- * para:  parameter for call-back function;
- * return: result, 0 - register call-back function successed;
- *                !0 - register call-back function failed;
+ * axp interrupt for external interrupt NMI.
+ * @func:  call-back function;
+ * @para:  parameter for call-back function;
+ *
+ * @return: result, 0 - register call-back function successed;
+ *                 !0 - register call-back function failed;
  * NOTE: the function is like "int callback(void *para)";
  */
 int ar100_axp_cb_register(ar100_cb_t func, void *para)
 {
-	if (axp_isr_node.handler) {
-		//just output warning message, overlay handler.
+	if (axp_isr_node.handler) 
+	{
+		if(func == axp_isr_node.handler)
+		{
+			AR100_WRN("pmu interrupt handler register already\n");
+			return 0;
+		}
+		/* just output warning message, overlay handler */
 		AR100_WRN("pmu interrupt handler register already\n");
 		return -EINVAL;
 	}
@@ -272,14 +207,14 @@ int ar100_axp_cb_register(ar100_cb_t func, void *para)
 EXPORT_SYMBOL(ar100_axp_cb_register);
 
 
-/*
+/**
  * unregister call-back function.
- * func:  call-back function which need be unregister;
+ * @func:  call-back function which need be unregister;
  */
 void ar100_axp_cb_unregister(ar100_cb_t func)
 {
 	if ((u32)(axp_isr_node.handler) != (u32)(func)) {
-		//invalid handler.
+		/* invalid handler */
 		AR100_WRN("invalid handler for unreg\n\n");
 		return ;
 	}
@@ -291,10 +226,26 @@ EXPORT_SYMBOL(ar100_axp_cb_unregister);
 
 int ar100_axp_int_notify(struct ar100_message *pmessage)
 {
+	unsigned int  i;
+	unsigned char status[5];
+	/* 
+	 * copy message readout data to user data buffer
+	 * the status[5] is the PMU int status
+	 */
+	for (i = 0; i < 5; i++) {
+		if (i < 4) {
+			status[i] = ((pmessage->paras[0]) >> (i * 8)) & 0xff;
+		} else {
+			status[i] = ((pmessage->paras[1]) >> ((i - 4) * 8)) & 0xff;
+		}
+	}
+	axp_isr_node.arg = status;
+		
 	if (axp_isr_node.handler == NULL) {
 		AR100_WRN("pmu isr not install\n");
 		return -EINVAL;
 	}
-	//call pmu interrupt handler
+	
+	/* call pmu interrupt handler */
 	return (*(axp_isr_node.handler))(axp_isr_node.arg);
 }

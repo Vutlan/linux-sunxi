@@ -23,56 +23,68 @@
 #ifndef	__AR100_MESSAGES_H__
 #define	__AR100_MESSAGES_H__
 
-//message attributes(only use 8bit)
-#define	AR100_MESSAGE_ATTR_SOFTSYN		(1<<0)	//need soft syn with another cpu
-#define	AR100_MESSAGE_ATTR_HARDSYN		(1<<1)	//need hard syn with another cpu
+#include <mach/ar100.h>
 
-//message states
-#define	AR100_MESSAGE_FREED			(0x0)	//freed state
-#define	AR100_MESSAGE_ALLOCATED		(0x1)	//allocated state
-#define AR100_MESSAGE_INITIALIZED	(0x2)	//initialized state
-#define	AR100_MESSAGE_RECEIVED		(0x3)	//received state
-#define	AR100_MESSAGE_PROCESSING	(0x4)	//processing state
-#define	AR100_MESSAGE_PROCESSED		(0x5)	//processed state
-#define	AR100_MESSAGE_FEEDBACKED	(0x6)	//feedback state
+/* message attributes(only use 8bit) */
+#define	AR100_MESSAGE_ATTR_SOFTSYN		(1<<0)	/* need soft syn with another cpu */
+#define	AR100_MESSAGE_ATTR_HARDSYN		(1<<1)	/* need hard syn with another cpu */
 
-//the structure of message frame,
-//this structure will transfer between ar100 and ac327.
-//sizeof(struct message) : 64Byte.
+/* message states */
+#define	AR100_MESSAGE_FREED             (0x0)	/* freed state       */
+#define	AR100_MESSAGE_ALLOCATED		(0x1)	/* allocated state   */
+#define AR100_MESSAGE_INITIALIZED	(0x2)	/* initialized state */
+#define	AR100_MESSAGE_RECEIVED		(0x3)	/* received state    */
+#define	AR100_MESSAGE_PROCESSING	(0x4)	/* processing state  */
+#define	AR100_MESSAGE_PROCESSED		(0x5)	/* processed state   */
+#define	AR100_MESSAGE_FEEDBACKED	(0x6)	/* feedback state    */
+
+/* call back struct */
+typedef struct ar100_msg_cb
+{
+	ar100_cb_t   handler;
+	void        *arg;
+} ar100_msg_cb_t;
+
+/*
+ * the structure of message frame,
+ * this structure will transfer between ar100 and ac327.
+ * sizeof(struct message) : 64Byte.
+ */
 typedef struct ar100_message
 {
-	unsigned char   		state;		//identify the used status of message frame
-	unsigned char   		attr;		//message attribute : SYN OR ASYN
-	unsigned char   		type;		//message type : DVFS_REQ
-	unsigned char   		result;		//message process result
-	struct ar100_message 	*next;		//pointer of next message frame
-	void    	   			*private;	//message private data
-	unsigned int   			 paras[13];	//the parameters of message
+	unsigned char   		 state;		/* identify the used status of message frame */
+	unsigned char   		 attr;		/* message attribute : SYN OR ASYN           */
+	unsigned char   		 type;		/* message type : DVFS_REQ                   */
+	unsigned char   		 result;	/* message process result                    */
+	struct ar100_message	*next;		/* pointer of next message frame             */
+	struct ar100_msg_cb		 cb;		/* the callback function and arg of message  */
+	void    	   			*private;	/* message private data                      */
+	unsigned int   			 paras[11];	/* the parameters of message                 */
 } ar100_message_t;
 
-//the base of messages
+/* the base of messages */
 #define	AR100_MESSAGE_BASE		 	(0x10)
 
-//standby commands
-#define	AR100_SSTANDBY_ENTER_REQ	 	   (AR100_MESSAGE_BASE + 0x00)  //request to enter(ac327 to ar100)
-#define	AR100_SSTANDBY_RESTORE_NOTIFY      (AR100_MESSAGE_BASE + 0x01)  //restore finished(ac327 to ar100)
-#define	AR100_NSTANDBY_ENTER_REQ	 	   (AR100_MESSAGE_BASE + 0x02)  //request to enter(ac327 to ar100)
-#define	AR100_NSTANDBY_WAKEUP_NOTIFY       (AR100_MESSAGE_BASE + 0x03)  //wakeup notify   (ar100 to ac327)
-#define	AR100_NSTANDBY_RESTORE_REQ         (AR100_MESSAGE_BASE + 0x04)  //request to restore    (ac327 to ar100)
-#define	AR100_NSTANDBY_RESTORE_COMPLETE    (AR100_MESSAGE_BASE + 0x05)  //ar100 restore complete(ar100 to ac327)
+/* standby commands */
+#define	AR100_SSTANDBY_ENTER_REQ	 (AR100_MESSAGE_BASE + 0x00)  /* request to enter       (ac327 to ar100) */
+#define	AR100_SSTANDBY_RESTORE_NOTIFY    (AR100_MESSAGE_BASE + 0x01)  /* restore finished       (ac327 to ar100) */
+#define	AR100_NSTANDBY_ENTER_REQ	 (AR100_MESSAGE_BASE + 0x02)  /* request to enter       (ac327 to ar100) */
+#define	AR100_NSTANDBY_WAKEUP_NOTIFY     (AR100_MESSAGE_BASE + 0x03)  /* wakeup notify          (ar100 to ac327) */
+#define	AR100_NSTANDBY_RESTORE_REQ       (AR100_MESSAGE_BASE + 0x04)  /* request to restore     (ac327 to ar100) */
+#define	AR100_NSTANDBY_RESTORE_COMPLETE  (AR100_MESSAGE_BASE + 0x05)  /* ar100 restore complete (ar100 to ac327) */
 
-//dvfs commands
-#define	AR100_CPUX_DVFS_REQ		 	(AR100_MESSAGE_BASE + 0x20)  //request dvfs    (ac327 to ar100)
+/* dvfs commands */
+#define	AR100_CPUX_DVFS_REQ		 (AR100_MESSAGE_BASE + 0x20)  /* request dvfs           (ac327 to ar100) */
 
-//pmu commands                                      
-#define	AR100_AXP_POWEROFF_REQ	 	(AR100_MESSAGE_BASE + 0x40)  //request power-off(ac327 to ar100)
-#define	AR100_AXP_READ_REGS		 	(AR100_MESSAGE_BASE + 0x41)  //read registers	(ac327 to ar100)
-#define	AR100_AXP_WRITE_REGS		(AR100_MESSAGE_BASE + 0x42)  //write registers  (ac327 to ar100)
-#define AR100_AXP_SET_BATTERY		(AR100_MESSAGE_BASE + 0x43)  //set battery 		(ac327 to ar100)
-#define AR100_AXP_GET_BATTERY		(AR100_MESSAGE_BASE + 0x44)  //get battery 		(ac327 to ar100)
-#define AR100_AXP_INT_COMING_NOTIFY (AR100_MESSAGE_BASE + 0x45)  //interrupt coming notify(ar100 to ac327)
+/* pmu commands */                                     
+#define	AR100_AXP_READ_REGS		 (AR100_MESSAGE_BASE + 0x41)  /* read registers	        (ac327 to ar100) */
+#define	AR100_AXP_WRITE_REGS		 (AR100_MESSAGE_BASE + 0x42)  /* write registers        (ac327 to ar100) */
+#define AR100_AXP_INT_COMING_NOTIFY      (AR100_MESSAGE_BASE + 0x45)  /* interrupt coming notify(ar100 to ac327) */
 
-//ar100 initialize state notify commands
-#define AR100_STARTUP_NOTIFY	 	(AR100_MESSAGE_BASE + 0x80)  //ar100 init state notify(ar100 to ac327)
+/* set ar100 debug level commands */
+#define AR100_SET_DEBUG_LEVEL		 (AR100_MESSAGE_BASE + 0x50)  /* set ar100 debug level  (ac327 to ar100) */
 
-#endif	//__AR100_MESSAGES_H__
+/* ar100 initialize state notify commands */
+#define AR100_STARTUP_NOTIFY	 	 (AR100_MESSAGE_BASE + 0x80)  /* ar100 init state notify(ar100 to ac327) */
+
+#endif	/* __AR100_MESSAGES_H */

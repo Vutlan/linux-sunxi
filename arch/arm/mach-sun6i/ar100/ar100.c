@@ -21,47 +21,86 @@
 
 #include "ar100_i.h"
 
-//local functions
-static int __ar100_wait_ready(unsigned int timeout);
+/* local functions */
+static int     ar100_wait_ready(unsigned int timeout);
+static ssize_t ar100_debug_level_store(struct kobject *kobject,struct attribute *attr, const char *buf, size_t count);
+static ssize_t ar100_debug_level_show(struct kobject *kobject,struct attribute *attr, char *buf);
+static void    ar100_obj_release(struct kobject *kobject);
+
+/* external vars */
+extern char *ar100_binary_start;
+extern char *ar100_binary_end;
 
 unsigned long ar100_sram_a2_vbase = (unsigned long)IO_ADDRESS(AW_SRAM_A2_BASE);
 
-extern char *ar100_binary_start;
-extern char *ar100_binary_end;
+struct attribute ar100_attr = {
+	.name = "ar100_debug_level",
+	.mode = S_IRWXUGO
+};
+
+static struct attribute *ar100_def_attrs[] = {
+	&ar100_attr,
+	NULL
+};
+
+struct sysfs_ops ar100_obj_sysops = {
+	.show =  ar100_debug_level_show,
+	.store = ar100_debug_level_store
+};
+
+struct kobj_type ar100_ktype = {
+	.release       = ar100_obj_release,
+	.sysfs_ops     = &ar100_obj_sysops,
+	.default_attrs = ar100_def_attrs
+};
+
+static struct kobject ar100_kobj;
 
 int ar100_init(void)
 {
 	int binary_len;
+	int ret;
 	
 	AR100_INF("ar100 initialize\n");
 	
-	//remap sram_a2 space
-	//ar100_sram_a2_vbase = (unsigned long)ioremap(AW_SRAM_A2_BASE, AW_SRAM_A2_SIZE);
-	if (ar100_sram_a2_vbase == 0) {
-		AR100_ERR("ioremap sram a2 space failed\n");
-		return -ENOMEM;
-	}
-	AR100_INF("ioremap sram a2 space to vaddr(%x)\n", (unsigned int)ar100_sram_a2_vbase);
+	/* 
+	 * request ar100 resources:
+	 * p2wi gpio/...
+	 */
+	//if (gpio_request(GPIOL(0), "p2wi_sck") != 0) {
+	//	AR100_ERR("request p2wi sck gpio failed\n");
+	//	return -EINVAL;
+	//}
+	//if (gpio_request(GPIOL(1), "p2wi_sda") != 0) {
+	//	AR100_ERR("request p2wi sda gpio failed\n");
+	//	gpio_free(GPIOL(0));
+	//	return -EINVAL;
+	//}
+	/* config PL0 and PL1 as p2wi use */
+	sw_gpio_setcfg(GPIOL(0), 3);
+	sw_gpio_setcfg(GPIOL(1), 3);
 	
-	//load ar100 system binary data to sram_a2
+	AR100_INF("sram_a2 vaddr(%x)\n", (unsigned int)ar100_sram_a2_vbase);
+	
+	/* load ar100 system binary data to sram_a2 */
 	binary_len = (int)(&ar100_binary_end) - (int)(&ar100_binary_start);
 	memcpy((void *)ar100_sram_a2_vbase, (void *)(&ar100_binary_start), binary_len);
 	AR100_INF("move ar100 binary data [addr = %x, len = %x] to sram_a2 finished\n", 
 	         (unsigned int)(&ar100_binary_start), (unsigned int)binary_len);
 	
-	//initialize hwspinlock
+	/* initialize hwspinlock */
 	AR100_INF("hwspinlock initialize\n");
 	ar100_hwspinlock_init();
 	
-	//initialize hwmsgbox
+	/* initialize hwmsgbox */
 	AR100_INF("hwmsgbox initialize\n");
 	ar100_hwmsgbox_init();
 	
-	//initialize message manager
+	/* initialize message manager */
 	AR100_INF("message manager initialize\n");
 	ar100_message_manager_init();
 	
-	//set ar100 cpu reset to de-assert state
+	/* set ar100 cpu reset to de-assert state */
 	AR100_INF("set ar100 reset to de-assert state\n");
 	{
 		volatile unsigned long value;
@@ -70,70 +109,110 @@ int ar100_init(void)
 		writel(value, (IO_ADDRESS(AW_R_CPUCFG_BASE) + 0x0));
 	}
 	
-	//wait ar100 ready
+	/* wait ar100 ready */
 	AR100_INF("wait ar100 ready....\n");
-	if (__ar100_wait_ready(500)) {
+	if (ar100_wait_ready(500)) {
 		AR100_LOG("ar100 startup failed\n");
 	}
 	
-	AR100_INF("ar100 startup succeeded\n");
-	
-	//enable ar100 asyn tx interrupt.
+	/* enable ar100 asyn tx interrupt */
 	ar100_hwmsgbox_enable_receiver_int(AR100_HWMSGBOX_AR100_ASYN_TX_CH, AW_HWMSG_QUEUE_USER_AC327);
 	
-	//enable ar100 syn tx interrupt.
+	/* enable ar100 syn tx interrupt */
 	ar100_hwmsgbox_enable_receiver_int(AR100_HWMSGBOX_AR100_SYN_TX_CH, AW_HWMSG_QUEUE_USER_AC327);
+	
+	/* register ar100 debug device node */
+	ret = kobject_init_and_add(&ar100_kobj, &ar100_ktype, NULL, "ar100");
+	if (ret) {
+		AR100_WRN("add ar100 kobject failed\n");
+	}
+	
+	/* ar100 initialize succeeded */
+	AR100_INF("ar100 startup succeeded, driver version : %d\n", AR100_VERSIONS);
 	
 	return 0;
 }
 device_initcall(ar100_init);
 
-static int __ar100_wait_ready(unsigned int timeout)
+static int ar100_wait_ready(unsigned int timeout)
 {
 	unsigned long          expire;
 	
 	expire = msecs_to_jiffies(timeout) + jiffies;
 	
-	//wait ar100 startup ready.
+	/* wait ar100 startup ready */
 	while (1) {
-		//linux cpu interrupt is disable now, 
-		//we should query message by hand.
+		/*
+		 * linux cpu interrupt is disable now, 
+		 * we should query message by hand.
+		 */
 		struct ar100_message *pmessage = ar100_hwmsgbox_query_message();
 		if (pmessage == NULL) {
 			if (time_is_before_eq_jiffies(expire)) {
 				return -ETIMEDOUT;
 			}
-			//try to query again
+			/* try to query again */
 			continue;
 		}
-		//query valid message
+		/* query valid message */
 		if (pmessage->type == AR100_STARTUP_NOTIFY) {
-			//received ar100 startup ready message.
+			/* check ar100 software and driver version match or not */
+			if (pmessage->paras[0] != AR100_VERSIONS) {
+				AR100_ERR("ar100 firmware and driver version not matched\n");
+				return -EINVAL;
+			}
+			/* received ar100 startup ready message */
 			AR100_INF("ar100 startup ready\n");
 			if ((pmessage->attr & AR100_MESSAGE_ATTR_SOFTSYN) ||
 				(pmessage->attr & AR100_MESSAGE_ATTR_HARDSYN)) {
-				//synchronous message, just feedback it.
+				/* synchronous message, just feedback it */
 				AR100_INF("ar100 startup notify message feedback\n");
 				ar100_hwmsgbox_feedback_message(pmessage, AR100_SEND_MSG_TIMEOUT);
 			} else {
-				//asyn message, free message directly.
+				/* asyn message, free message directly */
 				AR100_INF("ar100 startup notify message free directly\n");
 				ar100_message_free(pmessage);
 			}
 			break;
 		}
-		//invalid message detected, ignore it.
-		//by sunny at 2012-7-6 18:34:38.
+		/* 
+		 * invalid message detected, ignore it.
+		 * by sunny at 2012-7-6 18:34:38.
+		 */
 		AR100_WRN("ar100 startup waiting ignore message\n");
 		if ((pmessage->attr & AR100_MESSAGE_ATTR_SOFTSYN) ||
 			(pmessage->attr & AR100_MESSAGE_ATTR_HARDSYN)) {
-			//synchronous message, just feedback it.
+			/* synchronous message, just feedback it */
 			ar100_hwmsgbox_send_message(pmessage, AR100_SEND_MSG_TIMEOUT);
 		} else {
-			//asyn message, free message directly.
+			/* asyn message, free message directly */
 			ar100_message_free(pmessage);
 		}
-		//we need waiting continue.
+		/* we need waiting continue */
 	}
 	return 0;
 }
+
+static ssize_t ar100_debug_level_store(struct kobject *kobject,struct attribute *attr, const char *buf, size_t count)
+{
+	sscanf(buf, "%i", &g_ar100_debug_level);
+	ar100_set_debug_level(g_ar100_debug_level);
+
+	return count;
+}
+
+static ssize_t ar100_debug_level_show(struct kobject *kobject,struct attribute *attr, char *buf)
+{
+	ssize_t count = 0;
+	
+	count = sprintf(buf, "%i\n", g_ar100_debug_level);
+	
+	return count;
+}
+
+static void ar100_obj_release(struct kobject *kobject)
+{
+	printk("ar100 obj release\n");
+}
+
+module_param(g_ar100_debug_level, int, S_IRWXU);

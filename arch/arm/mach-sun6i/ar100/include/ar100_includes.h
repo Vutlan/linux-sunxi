@@ -19,8 +19,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef	__AR100_INCLUDES_H__
-#define __AR100_INCLUDES_H__
+#ifndef	__AR100_INCLUDES_H
+#define __AR100_INCLUDES_H
 
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -38,22 +38,24 @@
 #include <mach/hardware.h>
 #include <mach/platform.h>
 
-//configure and debugger
+/* configure and debugger */
 #include "./ar100_cfgs.h"
 #include "./ar100_dbgs.h"
 
-//messages define
+/* messages define */
 #include "./ar100_messages.h"
 #include "./ar100_message_manager.h"
 
-//driver headers
+/* driver headers */
 #include "./ar100_hwmsgbox.h"
 #include "./ar100_hwspinlock.h"
 
-//global functions
+/* global functions */
 extern int ar100_axp_int_notify(struct ar100_message *pmessage);
+extern int ar100_dvfs_cb(struct ar100_message *pmessage);
+extern int ar100_set_debug_level(unsigned int level);
 
-//global vars
+/* global vars */
 extern unsigned long ar100_sram_a2_vbase;
 
-#endif //__AR100_INCLUDES_H__
+#endif /* __AR100_INCLUDES_H */

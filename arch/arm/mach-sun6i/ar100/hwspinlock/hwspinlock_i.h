@@ -19,19 +19,19 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef	__HW_SPINLOCK_I_H__
-#define	__HW_SPINLOCK_I_H__
+#ifndef	__HW_SPINLOCK_I_H
+#define	__HW_SPINLOCK_I_H
 
 #include "../include/ar100_includes.h"
 
-//the used state of spinlock
+/* the used state of spinlock */
 #define SPINLOCK_FREE		(0)
 #define SPINLOCK_USED		(1)
 
 typedef struct ar100_hwspinlock
 {
 	unsigned long flags;
-	spinlock_t	  lock;
+	spinlock_t    lock;
 } ar100_hwspinlock_t;
 
-#endif	//__HW_SPINLOCK_I_H__
+#endif	/* __HW_SPINLOCK_I_H */

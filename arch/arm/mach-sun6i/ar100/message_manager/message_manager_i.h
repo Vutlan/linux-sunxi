@@ -19,9 +19,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef	__AR100_MESSAGE_MANAGER_I_H__
-#define	__AR100_MESSAGE_MANAGER_I_H__
+#ifndef	__AR100_MESSAGE_MANAGER_I_H
+#define	__AR100_MESSAGE_MANAGER_I_H
 
 #include "../include/ar100_includes.h"
 
-#endif	//__AR100_MESSAGE_MANAGER_I_H__
+#endif	/* __AR100_MESSAGE_MANAGER_I_H */

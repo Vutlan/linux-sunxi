@@ -23,53 +23,39 @@
 
 struct ar100_hwspinlock ar100_hwspinlocks[AR100_HW_SPINLOCK_NUM];
 
-/*
-*********************************************************************************************************
-*                                       INITIALIZE HWSPINLOCK
-*
-* Description: 	initialize hwspinlock.
-*
-* Arguments  : 	none.
-*
-* Returns    : 	0 if initialize hwspinlock succeeded, others if failed.
-*********************************************************************************************************
-*/
+/**
+ * initialize hwspinlock.
+ * @para:  none.
+ *
+ * returns:  0 if initialize hwspinlock succeeded, others if failed.
+ */
 int ar100_hwspinlock_init(void)
 {
 	int index;
-	for (index = 0; index < AR100_HW_SPINLOCK_NUM; index++) {
+	
+	for (index = 0; index < AR100_HW_SPINLOCK_NUM; index++)
 		spin_lock_init(&(ar100_hwspinlocks[index].lock));
-	}
+	
 	return 0;
 }
 
-/*
-*********************************************************************************************************
-*                                       	EXIT HWSPINLOCK
-*
-* Description: 	exit hwspinlock.
-*
-* Arguments  : 	none.
-*
-* Returns    : 	0 if exit hwspinlock succeeded, others if failed.
-*********************************************************************************************************
-*/
+/**
+ * exit hwspinlock.
+ * @para:none.
+ *
+ * returns:  0 if exit hwspinlock succeeded, others if failed.
+ */
 int ar100_hwspinlock_exit(void)
 {
 	return 0;
 }
 
-/*
-*********************************************************************************************************
-*                                       	LOCK HWSPINLOCK WITH TIMEOUT
-*
-* Description:	lock an hwspinlock with timeout limit.
-*
-* Arguments  : 	hwid : an hwspinlock id which we want to lock.
-*
-* Returns    : 	0 if lock hwspinlock succeeded, other if failed.
-*********************************************************************************************************
-*/
+/**
+ * lock an hwspinlock with timeout limit.
+ * @hwid: an hwspinlock id which we want to lock.
+ *
+ * returns:  0 if lock hwspinlock succeeded, other if failed.
+ */
 int ar100_hwspin_lock_timeout(int hwid, unsigned int timeout)
 {
 	ar100_hwspinlock_t *spinlock;
@@ -88,7 +74,7 @@ int ar100_hwspin_lock_timeout(int hwid, unsigned int timeout)
 		return -EBUSY;
 	}
 	
-	//try to take spinlock
+	/* try to take spinlock */
 	while (readl(IO_ADDRESS(AW_SPINLOCK_LOCK_REG(hwid))) == AW_SPINLOCK_TAKEN) {
 		/*
 		 * The lock is already taken, let's check if the user wants
@@ -102,17 +88,12 @@ int ar100_hwspin_lock_timeout(int hwid, unsigned int timeout)
 	return 0;
 }
 
-/*
-*********************************************************************************************************
-*                                       	UNLOCK HWSPINLOCK
-*
-* Description:	unlock a specific hwspinlock.
-*
-* Arguments  : 	hwid : an hwspinlock id which we want to unlock.
-*
-* Returns    : 	0 if unlock hwspinlock succeeded, other if failed.
-*********************************************************************************************************
-*/
+/**
+ * unlock a specific hwspinlock.
+ * hwid:  an hwspinlock id which we want to unlock.
+ *
+ * returns:  0 if unlock hwspinlock succeeded, other if failed.
+ */
 int ar100_hwspin_unlock(int hwid)
 {
 	ar100_hwspinlock_t *spinlock;
@@ -123,7 +104,7 @@ int ar100_hwspin_unlock(int hwid)
 	}
 	spinlock = &(ar100_hwspinlocks[hwid]);
 	
-	//untaken the spinlock
+	/* untaken the spinlock */
 	writel(0x0, IO_ADDRESS(AW_SPINLOCK_LOCK_REG(hwid)));
 	
 	spin_unlock_irqrestore(&(spinlock->lock), spinlock->flags);

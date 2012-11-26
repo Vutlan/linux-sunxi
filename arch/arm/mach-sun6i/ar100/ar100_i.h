@@ -24,5 +24,10 @@
 
 #include "./include/ar100_includes.h"
 #include <mach/ar100.h>
+//add by superm
+#include <linux/sysfs.h>
+#include <linux/device.h>
+#include <linux/sched.h>
+#include <linux/gpio.h>
 
 #endif	//__AR100_I_H__

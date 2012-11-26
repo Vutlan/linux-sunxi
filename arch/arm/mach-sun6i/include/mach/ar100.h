@@ -16,93 +16,79 @@
 
 #include <linux/power/aw_pm.h>
 
-//the modes of ar100 dvfs
+/* the modes of ar100 dvfs */
 #define	AR100_DVFS_SYN		(1<<0)
 
-//axp driver interfaces
-#define AXP_TRANS_BYTE_MAX	(8)
+/* axp driver interfaces */
+#define AXP_TRANS_BYTE_MAX	(5)
 
-//ar100 call-back
+/* ar100 call-back */
 typedef int (*ar100_cb_t)(void *arg);
 
-/*
+/**
  * set target frequency.
- * freq:  target frequency to be set, based on HZ.
+ * @freq:    target frequency to be set, based on HZ.
+ * @cb:      callback handler
+ * @cb_arg:  arguments of callback handler
+ *
  * return: result, 0 - set frequency successed, !0 - set frequency failed;
  */
-int ar100_dvfs_set_cpufreq(unsigned long freq, unsigned long mode, ar100_cb_t cb);
+int ar100_dvfs_set_cpufreq(unsigned int freq, unsigned long mode, ar100_cb_t cb, void *cb_arg);
 
-/* 
- * ar100_standby_super
- * function: enter super standby.
- * para:  parameter for enter super standby.
+/**
+ * enter super standby.
+ * @para:  parameter for enter normal standby.
+ *
  * return: result, 0 - super standby successed, !0 - super standby failed;
  */
 int ar100_standby_super(struct super_standby_para *para);
 
-/*
+/**
  * query super-standby wakeup source.
- * para:  point of buffer to store wakeup event informations.
+ * @para:  point of buffer to store wakeup event informations.
+ *
  * return: result, 0 - query successed, !0 - query failed;
  */
 int ar100_query_wakeup_source(unsigned long *event);
 
 
-/*
+/**
  * notify ar100 cpux restored.
- * para:  none.
+ * @para:  none.
+ *
  * return: result, 0 - notify successed, !0 - notify failed;
  */
 int ar100_cpux_ready_notify(void);
 
 
-/*
+/**
  * read axp register data.
- * addr: point of registers address;
- * data: point of registers data;
- * len : number of read registers;
- * return: result, 0 - read register successed, !0 - read register failed;
+ * @addr:    point of registers address;
+ * @data:    point of registers data;
+ * @len :    number of read registers, max len:8;
+ *
+ * return: result, 0 - read register successed, 
+ *                !0 - read register failed or the len more then max len;
  */
 int ar100_axp_read_reg(unsigned char *addr, unsigned char *data, unsigned long len);
 
-
-/*
+/**
  * write axp register data.
- * addr: point of registers address;
- * data: point of registers data;
- * len : number of write registers;
- * return: result, 0 - write register successed, !0 - write register failed;
+ * addr:     point of registers address;
+ * data:     point of registers data;
+ * len :     number of write registers, max len:8;
+ *
+ * return: result, 0 - write register successed, 
+ *                !0 - write register failedor the len more then max len;
  */
 int ar100_axp_write_reg(unsigned char *addr, unsigned char *data, unsigned long len);
 
-
-/*
- * axp get battery paramter.
- * para:  battery parameter;
- * return: result, 0 - get battery successed, !0 - get battery failed;
- */
-int ar100_axp_get_battery(void *para);
-
-
-/*
- * axp set battery paramter.
- * para:  battery parameter;
- * return: result, 0 - set battery successed, !0 - set battery failed;
- */
-int ar100_axp_set_battery(void *para);
-
-/*
- * axp power off.
- * para:  none;
- * return: result, 0 - power off successed, !0 - power off failed;
- */
-int ar100_axp_power_off(void);
-
-/*
+/**
  * register call-back function, call-back function is for ar100 notify some event to ac327,
  * axp interrupt for ex.
  * func:  call-back function;
  * para:  parameter for call-back function;
+ *
  * return: result, 0 - register call-back function successed;
  *                !0 - register call-back function failed;
  * NOTE: the function is like "int callback(void *para)";
@@ -110,11 +96,10 @@ int ar100_axp_power_off(void);
 int ar100_axp_cb_register(ar100_cb_t func, void *para);
 
 
-/*
+/**
  * unregister call-back function.
- * func:  call-back function which need be unregister;
+ * @func:  call-back function which need be unregister;
  */
 void ar100_axp_cb_unregister(ar100_cb_t func);
 
-
-#endif	//__ASM_ARCH_A100_H
+#endif	/* __ASM_ARCH_A100_H */
