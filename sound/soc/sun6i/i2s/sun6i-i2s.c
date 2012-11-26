@@ -33,6 +33,7 @@
 #include <mach/dma.h>
 #include <mach/sys_config.h>
 #include <mach/gpio.h>
+#include <linux/gpio.h>
 
 #include "sun6i-i2sdma.h"
 #include "sun6i-i2s.h"
@@ -56,7 +57,6 @@ unsigned long rx_data_mode 		= 0;		/*0: 16bit linear PCM; 1: 8bit linear PCM; 2:
 
 static int regsave[8];
 static int i2s_used = 0;
-static u32 i2s_handle = 0;
 static struct sun6i_dma_params sun6i_i2s_pcm_stereo_out = {
 	.name		= "i2s_play",	
 	.dma_addr	= SUN6I_IISBASE + SUN6I_IISTXFIFO,/*send data address	*/
@@ -847,7 +847,6 @@ static int __devexit sun6i_i2s_dev_remove(struct platform_device *pdev)
 			/*release apbclk*/
 			clk_put(i2s_apbclk);
 		}
-		sw_gpio_release(i2s_handle, 2);		
 		snd_soc_unregister_dai(&pdev->dev);
 		platform_set_drvdata(pdev, NULL);
 	}
@@ -872,25 +871,52 @@ static struct platform_driver sun6i_i2s_driver = {
 static int __init sun6i_i2s_init(void)
 {	
 	int err = 0;
-	int ret = 0;
+	int cnt = 0;
+	int i 	= 0;
+	script_item_u val;
+	script_item_u *list = NULL;
+	script_item_value_type_e  type;
 
-	ret = script_parser_fetch("i2s_para","i2s_used", &i2s_used, sizeof(int));
-	if (ret) {
-        printk("[I2S]sndi2s_init fetch i2s using configuration failed\n");
+	type = script_get_item("i2s_para", "i2s_used", &val);
+	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+        printk("[I2S] type err!\n");
     }
 
+	i2s_used = val.val;
  	if (i2s_used) {
- 		i2s_handle = sw_gpio_request_ex("i2s_para", NULL);
+		/* get gpio list */
+		cnt = script_get_pio_list("i2s_para", &list);
+		if (0 == cnt) {
+			printk("get i2s_para gpio list failed\n");
+			return -EFAULT;
+		}
+	/* req gpio */
+	for (i = 0; i < cnt; i++) {
+		if (0 != gpio_request(list[i].gpio.gpio, NULL)) {
+			printk("[i2s] request some gpio fail\n");
+			goto end;
+		}
+	}
+	/* config gpio list */
+	if (0 != sw_gpio_setall_range(&list[0].gpio, cnt)) {
+		printk("sw_gpio_setall_range failed\n");
+	}
 
-		if((err = platform_device_register(&sun6i_i2s_device)) < 0)
-			return err;
-	
-		if ((err = platform_driver_register(&sun6i_i2s_driver)) < 0)
+	if((err = platform_device_register(&sun6i_i2s_device)) < 0)
+		return err;
+
+	if ((err = platform_driver_register(&sun6i_i2s_driver)) < 0)
 			return err;	
 	} else {
         printk("[I2S]sun6i-i2s cannot find any using configuration for controllers, return directly!\n");
         return 0;
     }
+
+end:
+	/* release gpio */
+	while(i--)
+		gpio_free(list[i].gpio.gpio);
+
 	return 0;
 }
 module_init(sun6i_i2s_init);

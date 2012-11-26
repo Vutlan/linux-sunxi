@@ -166,13 +166,15 @@ static struct platform_driver sndi2s_codec_driver = {
 static int __init sndi2s_codec_init(void)
 {	
 	int err = 0;
-	int ret = 0;
+	script_item_u val;
+	script_item_value_type_e  type;
 
-	ret = script_parser_fetch("i2s_para","i2s_used", &i2s_used, sizeof(int));
-	if (ret) {
-        printk("[I2S]sndi2s_init fetch i2s using configuration failed\n");
+	type = script_get_item("i2s_para", "i2s_used", &val);
+	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+        printk("[I2S] type err!\n");
     }
 
+	i2s_used = val.val;
 	if (i2s_used) {
 		if((err = platform_device_register(&sndi2s_codec_device)) < 0)
 			return err;

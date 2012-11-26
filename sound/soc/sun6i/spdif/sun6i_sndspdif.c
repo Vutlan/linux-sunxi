@@ -212,13 +212,16 @@ static struct platform_device *sun6i_sndspdif_device;
 static int __init sun6i_sndspdif_init(void)
 {
 	int ret = 0;
+	static script_item_u val;
+	script_item_value_type_e  type;
 
- 	ret = script_parser_fetch("spdif_para","spdif_used", &spdif_used, sizeof(int));
-	if (ret) {
-		return -1;
-        printk("[SPDIF]sndspdif_init fetch spdif using configuration failed\n");
+	type = script_get_item("spdif_para", "spdif_used", &val);
+	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+        printk("[SPDIF] type err!\n");
+        return -EINVAL;
     }
-     
+
+    spdif_used = val.val;
     if (spdif_used) {
 		sun6i_sndspdif_device = platform_device_alloc("soc-audio", 1);
 		
@@ -227,7 +230,7 @@ static int __init sun6i_sndspdif_init(void)
 			
 		platform_set_drvdata(sun6i_sndspdif_device, &snd_soc_sun6i_sndspdif);
 		
-		ret = platform_device_add(sun6i_sndspdif_device);				
+		ret = platform_device_add(sun6i_sndspdif_device);
 		if (ret) {			
 			platform_device_put(sun6i_sndspdif_device);
 		}

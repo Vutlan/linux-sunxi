@@ -33,6 +33,7 @@
 #include <mach/dma.h>
 #include <mach/sys_config.h>
 #include <mach/gpio.h>
+#include <linux/gpio.h>
 
 #include "sun6i-pcmdma.h"
 #include "sun6i-pcm.h"
@@ -55,7 +56,6 @@ static unsigned long rx_data_mode = 0;				/*0: 16bit linear PCM; 1: 8bit linear 
 
 static int regsave[8];
 static int pcm_used = 0;
-static u32 pcm_handle = 0;
 static struct sun6i_dma_params sun6i_pcm_pcm_stereo_out = {
 	.name		= "pcm_play",	
 	.dma_addr	= SUN6I_PCMBASE + SUN6I_PCMTXFIFO,/*send data address	*/
@@ -832,7 +832,6 @@ static int __devexit sun6i_pcm_dev_remove(struct platform_device *pdev)
 			/*release apbclk*/
 			clk_put(pcm_apbclk);
 		}	
-		sw_gpio_release(pcm_handle, 2);		
 		snd_soc_unregister_dai(&pdev->dev);
 		platform_set_drvdata(pdev, NULL);
 	}
@@ -856,14 +855,38 @@ static struct platform_driver sun6i_pcm_driver = {
 
 static int __init sun6i_pcm_init(void)
 {	
-	int err = 0;	
-	int ret = 0;
+	int err = 0;
+	int cnt = 0;
+	int i 	= 0;
+	script_item_u val;
+	script_item_u *list = NULL;
+	script_item_value_type_e  type;
 
-	ret = script_parser_fetch("pcm_para","pcm_used", &pcm_used, sizeof(int));
-	if (ret) {
-        printk("[PCM]sndpcm_init fetch pcm using configuration failed\n");
+	type = script_get_item("pcm_para", "pcm_used", &val);
+	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+        printk("[PCM] type err!\n");
     }
- 	if (pcm_used) {		
+
+	pcm_used = val.val;
+	if (pcm_used) {
+		/* get gpio list */
+		cnt = script_get_pio_list("pcm_para", &list);
+		if (0 == cnt) {
+			printk("get pcm_para gpio list failed\n");
+			return -EFAULT;
+		}
+		/* req gpio */
+		for (i = 0; i < cnt; i++) {
+			if (0 != gpio_request(list[i].gpio.gpio, NULL)) {
+				printk("[pcm] request some gpio fail\n");
+				goto end;
+			}
+		}
+		/* config gpio list */
+		if (0 != sw_gpio_setall_range(&list[0].gpio, cnt)) {
+			printk("[pcm]sw_gpio_setall_range failed\n");
+		}
+
 		if((err = platform_device_register(&sun6i_pcm_device)) < 0)
 			return err;
 	
@@ -873,6 +896,12 @@ static int __init sun6i_pcm_init(void)
         printk("[PCM]sun6i-pcm cannot find any using configuration for controllers, return directly!\n");
         return 0;
     }
+
+end:
+	/* release gpio */
+	while(i--)
+		gpio_free(list[i].gpio.gpio);
+
 	return 0;
 }
 module_init(sun6i_pcm_init);

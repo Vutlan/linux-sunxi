@@ -144,19 +144,23 @@ static struct platform_device *sun6i_sndi2s_device;
 
 static int __init sun6i_sndi2s_init(void)
 {
-	int ret;
-	ret = script_parser_fetch("i2s_para","i2s_used", &i2s_used, sizeof(int));
-	if (ret) {
-        printk("[I2S]sndi2s_init fetch i2s using configuration failed\n");
+	int ret = 0;
+	script_item_u val;
+	script_item_value_type_e  type;
+
+	type = script_get_item("i2s_para", "i2s_used", &val);
+	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+        printk("[I2S] type err!\n");
     }
 
+	i2s_used = val.val;
     if (i2s_used) {
 		sun6i_sndi2s_device = platform_device_alloc("soc-audio", 2);
 		if(!sun6i_sndi2s_device)
 			return -ENOMEM;
 		platform_set_drvdata(sun6i_sndi2s_device, &snd_soc_sun6i_sndi2s);
-		ret = platform_device_add(sun6i_sndi2s_device);		
-		if (ret) {			
+		ret = platform_device_add(sun6i_sndi2s_device);
+		if (ret) {
 			platform_device_put(sun6i_sndi2s_device);
 		}
 	}else{

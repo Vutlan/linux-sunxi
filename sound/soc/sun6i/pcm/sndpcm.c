@@ -118,7 +118,7 @@ static int sndpcm_soc_probe(struct snd_soc_codec *codec)
 	sndpcm = kzalloc(sizeof(struct sndpcm_priv), GFP_KERNEL);
 	if(sndpcm == NULL){		
 		return -ENOMEM;
-	}		
+	}
 	snd_soc_codec_set_drvdata(codec, sndpcm);
 
 	return 0;
@@ -167,13 +167,15 @@ static struct platform_driver sndpcm_codec_driver = {
 static int __init sndpcm_codec_init(void)
 {	
 	int err = 0;	
-	int ret = 0;
+	script_item_u val;
+	script_item_value_type_e  type;
 
-	ret = script_parser_fetch("pcm_para","pcm_used", &pcm_used, sizeof(int));
-	if (ret) {
-        printk("[PCM]sndpcm_init fetch pcm using configuration failed\n");
+	type = script_get_item("pcm_para", "pcm_used", &val);
+	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+        printk("[PCM] type err!\n");
     }
 
+	pcm_used = val.val;
 	if (pcm_used) {
 		if((err = platform_device_register(&sndpcm_codec_device)) < 0)
 			return err;

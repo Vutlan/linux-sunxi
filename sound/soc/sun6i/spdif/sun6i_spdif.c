@@ -33,20 +33,20 @@
 #include <mach/dma.h>
 #include <mach/sys_config.h>
 #include <mach/gpio.h>
+#include <linux/gpio.h>
 
 #include "sun6i_spdma.h"
 #include "sun6i_spdif.h"
 
 static int regsave[9];
 static int spdif_used = 0;
-static u32 spdif_handle = 0;
 struct sun6i_spdif_info sun6i_spdif;
 static struct clk *spdif_apbclk 	= NULL;
 static struct clk *spdif_pll2clk	= NULL;
 static struct clk *spdif_pllx8		= NULL;
 static struct clk *spdif_moduleclk	= NULL;
 
-static struct sun6i_dma_params sun6i_spdif_stereo_out = {	
+static struct sun6i_dma_params sun6i_spdif_stereo_out = {
 	.name		= "spdif_out",	
 	.dma_addr 	=	SUN6I_SPDIFBASE + SUN6I_SPDIF_TXFIFO,	
 };
@@ -744,7 +744,6 @@ static int __devexit sun6i_spdif_dev_remove(struct platform_device *pdev)
 			/*release apbclk*/
 			clk_put(spdif_apbclk);
 		}
-		sw_gpio_release(spdif_handle, 2);
 		snd_soc_unregister_dai(&pdev->dev);
 		platform_set_drvdata(pdev, NULL);
 	}
@@ -768,16 +767,38 @@ static struct platform_driver sun6i_spdif_driver = {
 static int __init sun6i_spdif_init(void)
 {
 	int err = 0;
- 	int ret = 0;
- 	ret = script_parser_fetch("spdif_para","spdif_used", &spdif_used, sizeof(int));
-	if (ret) {
-		return -1;
-        printk("[SPDIF]sndspdif_init fetch spdif using configuration failed\n");
-    } 
-    
+	int req_status;
+	script_item_u val;
+	script_item_u item;
+	script_item_value_type_e  type;
+
+	type = script_get_item("spdif_para", "spdif_used", &val);
+	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+        printk("[SPDIF] type err!\n");
+    }
+
+	spdif_used = val.val;
  	if (spdif_used) {
- 		spdif_handle = sw_gpio_request_ex("spdif_para", NULL);
-		
+		type = script_get_item("spdif_para", "spdif_dout", &item);
+		if (SCIRPT_ITEM_VALUE_TYPE_PIO != type) {
+			printk("script_get_item return type err\n");
+			return -EFAULT;
+		}
+
+		/*request gpio*/
+		req_status = gpio_request(item.gpio.gpio, NULL);
+		if (0!=req_status) {
+			printk("request gpio failed!\n");
+		}
+		/*config gpio info of spdif_dout*/
+		if (0 != sw_gpio_setall_range(&item.gpio, 1)) {
+			printk("sw_gpio_setall_range failed\n");
+		}
+		/*while set the pgio value, release gpio handle*/
+		if (0 == req_status) {
+			gpio_free(item.gpio.gpio);
+		}
+
 		if((platform_device_register(&sun6i_spdif_device))<0)
 			return err;
 

@@ -110,12 +110,16 @@ static struct platform_device *sun6i_sndpcm_device;
 
 static int __init sun6i_sndpcm_init(void)
 {
-	int ret;
-	ret = script_parser_fetch("pcm_para","pcm_used", &pcm_used, sizeof(int));
-	if (ret) {
-        printk("[PCM]sndpcm_init fetch pcm using configuration failed\n");
+	int ret = 0;
+	script_item_u val;
+	script_item_value_type_e  type;
+
+	type = script_get_item("pcm_para", "pcm_used", &val);
+	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+        printk("[PCM] type err!\n");
     }
 
+	pcm_used = val.val;
     if (pcm_used) {
 		sun6i_sndpcm_device = platform_device_alloc("soc-audio", 3);
 		if(!sun6i_sndpcm_device)
@@ -129,6 +133,7 @@ static int __init sun6i_sndpcm_init(void)
 		printk("[PCM]sun6i_sndpcm cannot find any using configuration for controllers, return directly!\n");
         return 0;
 	}
+
 	return ret;
 }
 

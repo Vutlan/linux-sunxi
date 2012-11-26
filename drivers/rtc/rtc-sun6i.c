@@ -1,8 +1,8 @@
 /*
  * drivers\rtc\rtc-sun6i.c
  * (C) Copyright 2010-2016
- * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
- * huangxin <huangxin@allwinnertech.com>
+ * ruinerwinner Technology Co., Ltd. <www.reuuimllatech.com>
+ * huangxin <huangxin@reuuimllatech.com>
  *
  * some simple description for this code
  *
@@ -622,7 +622,7 @@ static void __exit sun6i_rtc_exit(void)
 module_init(sun6i_rtc_init);
 module_exit(sun6i_rtc_exit);
 
-MODULE_DESCRIPTION("allwinner RTC Driver");
+MODULE_DESCRIPTION("ruinerwinner RTC Driver");
 MODULE_AUTHOR("huangxin");
 MODULE_LICENSE("GPL");
 MODULE_ALIAS("platform:sun6i-rtc");
