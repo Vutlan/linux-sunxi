@@ -22,6 +22,7 @@
 #include <linux/err.h>
 #include <linux/clk.h>
 #include <linux/spi/spi.h>
+#include <linux/gpio.h>
 #include <linux/platform_device.h>
 #include <linux/spi/spi.h>
 #include <linux/spi/spi_bitbang.h>
@@ -1175,43 +1176,34 @@ static void sun6i_spi_cleanup(struct spi_device *spi)
 
 
 #ifdef CONFIG_AW_ASIC_EVB_PLATFORM
-static int sun6i_spi_set_gpio(struct sun6i_spi *sspi, bool on)
-{
-    if(on) {
-        if(sspi->master->bus_num == 0) {
-            sspi->gpio_hdle = sw_gpio_request_ex("spi0_para", NULL);
-            if(!sspi->gpio_hdle) {
-                SPI_ERR("spi0 request gpio fail!\n");
-                return -1;
-            }
-        }
-        else if(sspi->master->bus_num == 1) {
-            sspi->gpio_hdle = sw_gpio_request_ex("spi1_para", NULL);
-            if(!sspi->gpio_hdle) {
-                SPI_ERR("spi1 request gpio fail!\n");
-                return -1;
-            }
-        }
-        else if(sspi->master->bus_num == 2) {
-            sspi->gpio_hdle = sw_gpio_request_ex("spi2_para", NULL);
-            if(!sspi->gpio_hdle) {
-                SPI_ERR("spi2 request gpio fail!\n");
-                return -1;
-            }
-        }
-		else if(sspi->master->bus_num == 3) {
-            sspi->gpio_hdle = sw_gpio_request_ex("spi3_para", NULL);
-            if(!sspi->gpio_hdle) {
-                SPI_ERR("spi3 request gpio fail!\n");
-                return -1;
-            }
-        }
-    }
-    else {
-		sw_gpio_release(sspi->gpio_hdle, 0);
-    }
 
-	return 0;
+static void sun6i_spi_set_gpio_sysconfig(struct sun6i_spi *sspi)
+{
+	int	cnt, i;
+	char spi_para[16] = {0};
+	script_item_u *list = NULL;
+
+	sprintf(spi_para, "spi%d_para", sspi->master->bus_num);
+	/* ªÒ»°gpio list */
+	cnt = script_get_pio_list(spi_para, &list);
+	if (0 == cnt) {
+		SPI_ERR("[spi-%d] get gpio list failed\n", sspi->master->bus_num);
+		return;
+	}
+
+	/* …Í«Îgpio */
+	for (i = 0; i < cnt; i++)
+		if (0 != gpio_request(list[i].gpio.gpio, NULL))
+			goto end;
+
+	/* ≈‰÷√gpio list */
+	if (0 != sw_gpio_setall_range(&list[0].gpio, cnt))
+		SPI_ERR("[spi-%d] sw_gpio_setall_range failed\n", sspi->master->bus_num);
+
+end:
+	/*  Õ∑≈gpio */
+	while (i--)
+		gpio_free(list[i].gpio.gpio);
 }
 
 static int sun6i_spi_set_mclk(struct sun6i_spi *sspi, u32 mod_clk)
@@ -1341,8 +1333,6 @@ static int sun6i_spi_hw_exit(struct sun6i_spi *sspi)
 		clk_put(sspi->hclk);
 		sspi->hclk = NULL;
 	}
-
-	sun6i_spi_set_gpio(sspi, 0);
 
 	return 0;
 }
@@ -1518,7 +1508,7 @@ static int __init sun6i_spi_probe(struct platform_device *pdev)
 	}
 
 #ifdef CONFIG_AW_ASIC_EVB_PLATFORM
-	sun6i_spi_set_gpio(sspi, 1);
+	sun6i_spi_set_gpio_sysconfig(sspi);
 #endif
 
 	spin_lock_init(&sspi->lock);
@@ -1804,65 +1794,75 @@ static struct platform_device sun6i_spi3_device = {
 static struct spi_board_info *spi_boards = NULL;
 int sun6i_spi_register_spidev(void)
 {
-    int spi_dev_num = 0;
-    int ret = 0;
-    int i = 0;
+    script_item_u spi_dev_num, temp_info;
+    script_item_value_type_e type;
+    int i, spidev_num;
     char spi_board_name[32] = {0};
     struct spi_board_info* board;
 
-    ret = script_parser_fetch("spi_devices", "spi_dev_num", &spi_dev_num, sizeof(int));
-    if(ret != SCRIPT_PARSER_OK){
+	type = script_get_item("spi_devices", "spi_dev_num", &spi_dev_num);
+    if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
         SPI_ERR("Get spi devices number failed\n");
         return -1;
     }
-    SPI_INF("[spi]: Found %d spi devices in config files\n", spi_dev_num);
+	spidev_num = spi_dev_num.val;
+
+    SPI_INF("[spi]: Found %d spi devices in config files\n", spidev_num);
 
     /* alloc spidev board information structure */
-    spi_boards = (struct spi_board_info*)kzalloc(sizeof(struct spi_board_info) * spi_dev_num, GFP_KERNEL);
-    if (spi_boards == NULL)
-    {
+    spi_boards = (struct spi_board_info*)kzalloc(sizeof(struct spi_board_info) * spidev_num, GFP_KERNEL);
+    if (spi_boards == NULL) {
         SPI_ERR("Alloc spi board information failed \n");
         return -1;
     }
 
     SPI_INF("%-16s %-16s %-16s %-8s %-4s %-4s\n", "boards_num", "modalias", "max_spd_hz", "bus_num", "cs", "mode");
-    for (i=0; i<spi_dev_num; i++)
-    {
+
+    for (i=0; i<spidev_num; i++) {
         board = &spi_boards[i];
         sprintf(spi_board_name, "spi_board%d", i);
-        ret = script_parser_fetch(spi_board_name, "modalias", (void*)board->modalias, sizeof(char*));
-        if(ret != SCRIPT_PARSER_OK) {
-            SPI_ERR("Get spi devices modalias failed\n");
+
+		type = script_get_item(spi_board_name, "modalias", &temp_info);
+		if (SCIRPT_ITEM_VALUE_TYPE_STR != type) {
+			SPI_ERR("Get spi devices modalias failed\n");
             goto fail;
-        }
-        ret = script_parser_fetch(spi_board_name, "max_speed_hz", (void*)&board->max_speed_hz, sizeof(int));
-        if(ret != SCRIPT_PARSER_OK) {
-            SPI_ERR("Get spi devices max_speed_hz failed\n");
+		}
+		sprintf(board->modalias, "%s", temp_info.str);
+
+		type = script_get_item(spi_board_name, "max_speed_hz", &temp_info);
+		if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+			SPI_ERR("Get spi devices max_speed_hz failed\n");
             goto fail;
-        }
-        ret = script_parser_fetch(spi_board_name, "bus_num", (void*)&board->bus_num, sizeof(u16));
-        if(ret != SCRIPT_PARSER_OK) {
-            SPI_ERR("Get spi devices bus_num failed\n");
+		}
+		board->max_speed_hz = temp_info.val;
+
+		type = script_get_item(spi_board_name, "bus_num", &temp_info);
+		if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+			SPI_ERR("Get spi devices bus_num failed\n");
             goto fail;
-        }
-        ret = script_parser_fetch(spi_board_name, "chip_select", (void*)&board->chip_select, sizeof(u16));
-        if(ret != SCRIPT_PARSER_OK) {
-            SPI_ERR("Get spi devices chip_select failed\n");
+		}
+		board->bus_num = temp_info.val;
+
+		type = script_get_item(spi_board_name, "chip_select", &temp_info);
+		if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+			SPI_ERR("Get spi devices chip_select failed\n");
             goto fail;
-        }
-        ret = script_parser_fetch(spi_board_name, "mode", (void*)&board->mode, sizeof(u8));
-        if(ret != SCRIPT_PARSER_OK) {
-            SPI_ERR("Get spi devices mode failed\n");
+		}
+		board->chip_select = temp_info.val;
+
+		type = script_get_item(spi_board_name, "mode", &temp_info);
+		if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+			SPI_ERR("Get spi devices mode failed\n");
             goto fail;
-        }
+		}
+		board->mode = temp_info.val;
+
         SPI_INF("%-16d %-16s %-16d %-8d %-4d %-4d\n", i, board->modalias, board->max_speed_hz,
                 board->bus_num, board->chip_select, board->mode);
     }
 
     /* register boards */
-    ret = spi_register_board_info(spi_boards, spi_dev_num);
-    if (ret)
-    {
+    if (spi_register_board_info(spi_boards, spidev_num)) {
         SPI_ERR("Register board information failed\n");
         goto fail;
     }
@@ -1904,22 +1904,21 @@ static int spi_used_mask = 0;
 
 static int __init spi_sun6i_init(void)
 {
-    int used = 0;
-    int i = 0;
-    int ret = 0;
+    script_item_u used;
+    script_item_value_type_e type;
+    int i, ret = 0;
     char spi_para[16] = {0};
 
     for (i=0; i<4; i++) {
-        used = 0;
         sprintf(spi_para, "spi%d_para", i);
 
-        ret = script_parser_fetch(spi_para, "spi_used", &used, sizeof(int));
-        if (ret) {
-            SPI_ERR("spi init fetch spi%d uning configuration failed\n", i);
-            continue;
-        }
+		type = script_get_item(spi_para, "spi_used", &used);
+		if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+			SPI_ERR("[spi-%d] fetch para from sysconfig failed\n", i);
+			continue;
+		}
 
-        if (used)
+        if (used.val)
             spi_used_mask |= 1 << i;
     }
 

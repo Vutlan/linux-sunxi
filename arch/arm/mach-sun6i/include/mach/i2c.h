@@ -11,6 +11,7 @@
  * published by the Free Software Foundation; either version 2 of
  * the License, or (at your option) any later version.
  */
+#include <mach/platform.h>
 
 #ifndef _SUN6I_I2C_H_
 #define _SUN6I_I2C_H_
@@ -168,18 +169,18 @@ Foscl is clock SCL;standard mode:100KHz or fast mode:400KHz
 
 #define SUN6I_TWI_ADDR_SIZE		0x3FF
 
-#define TWI0_BASE_ADDR_START  (0x01C2AC00)
+#define TWI0_BASE_ADDR_START  (AW_TWI0_BASE)
 #define TWI0_BASE_ADDR_END    (TWI0_BASE_ADDR_START + SUN6I_TWI_ADDR_SIZE)
-#define TWI1_BASE_ADDR_START  (0x01C2B000)
+#define TWI1_BASE_ADDR_START  (AW_TWI1_BASE)
 #define TWI1_BASE_ADDR_END    (TWI1_BASE_ADDR_START + SUN6I_TWI_ADDR_SIZE)
-#define TWI2_BASE_ADDR_START  (0x01C2B400)
+#define TWI2_BASE_ADDR_START  (AW_TWI2_BASE)
 #define TWI2_BASE_ADDR_END    (TWI2_BASE_ADDR_START + SUN6I_TWI_ADDR_SIZE)
-#define TWI3_BASE_ADDR_START  (0x01C2B800)
+#define TWI3_BASE_ADDR_START  (AW_TWI3_BASE)
 #define TWI3_BASE_ADDR_END    (TWI3_BASE_ADDR_START + SUN6I_TWI_ADDR_SIZE)
 
 #undef SUN6I_RTWI
 #ifdef SUN6I_RTWI
-#define RTWI_BASE_ADDR_START  (0x01F02400)
+#define RTWI_BASE_ADDR_START  (AW_R_TWI_BASE)
 #define RTWI_BASE_ADDR_END    (RTWI_BASE_ADDR_START + SUN6I_TWI_ADDR_SIZE)
 #endif
 

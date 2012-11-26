@@ -26,10 +26,12 @@
 #include <linux/clk.h>
 #include <linux/slab.h>
 #include <linux/io.h>
+#include <linux/gpio.h>
 #include <asm/irq.h>
 
 #include <mach/gpio.h>
 #include <mach/irqs-sun6i.h>
+#include <mach/sys_config.h>
 #include <mach/clock.h>
 #include <mach/i2c.h>
 
@@ -334,10 +336,39 @@ static int sun6i_i2c_xfer_complete(struct sun6i_i2c *i2c, int code);
 static int sun6i_i2c_do_xfer(struct sun6i_i2c *i2c, struct i2c_msg *msgs, int num);
 
 #ifdef CONFIG_AW_ASIC_EVB_PLATFORM
+static void twi_set_gpio_sysconfig(struct sun6i_i2c *i2c)
+{
+	int	cnt, i;
+	char twi_para[16] = {0};
+	script_item_u *list = NULL;
+
+	sprintf(twi_para, "twi%d_para", i2c->bus_num);
+	/* ªÒ»°gpio list */
+	cnt = script_get_pio_list(twi_para, &list);
+	if (0 == cnt) {
+		I2C_ERR("[i2c%d] get gpio list failed\n", i2c->bus_num);
+		return;
+	}
+
+	/* …Í«Îgpio */
+	for (i = 0; i < cnt; i++)
+		if (0 != gpio_request(list[i].gpio.gpio, NULL))
+			goto end;
+
+	/* ≈‰÷√gpio list */
+	if (0 != sw_gpio_setall_range(&list[0].gpio, cnt))
+		I2C_ERR("[i2c%d] sw_gpio_setall_range failed\n", i2c->bus_num);
+
+end:
+	/*  Õ∑≈gpio */
+	while (i--)
+		gpio_free(list[i].gpio.gpio);
+}
+
 static int twi_request_gpio(struct sun6i_i2c *i2c)
 {
 #ifndef SYS_I2C_PIN
-	if(i2c->bus_num == 0) {
+	if (i2c->bus_num == 0) {
 	    /* configuration register */
 	    unsigned int  reg_val = readl(_Pn_CFG1(7));
 	    reg_val &= ~(0x77000000);/* PH14-PH15 TWI0 SCK,SDA */
@@ -356,7 +387,7 @@ static int twi_request_gpio(struct sun6i_i2c *i2c)
 	    reg_val |= 0x50000000;
 	    writel(reg_val, _Pn_DRV0(7));
 	}
-	else if(i2c->bus_num == 1) {
+	else if (i2c->bus_num == 1) {
 	    /* configuration register */
 	    unsigned int  reg_val = readl(_Pn_CFG2(7));
 	    reg_val &= ~(0x77);/* PH16-PH17 TWI1 SCK,SDA */
@@ -375,7 +406,7 @@ static int twi_request_gpio(struct sun6i_i2c *i2c)
 	    reg_val |= 0x5;
 	    writel(reg_val, _Pn_DRV1(7));
 	}
-	else if(i2c->bus_num == 2) {
+	else if (i2c->bus_num == 2) {
 	    /* configuration register */
 	    unsigned int  reg_val = readl(_Pn_CFG2(7));
 	    reg_val &= ~(0x7700);/* PH18-PH19 TWI2 SCK,SDA */
@@ -394,7 +425,7 @@ static int twi_request_gpio(struct sun6i_i2c *i2c)
 	    reg_val |= 0x50;
 	    writel(reg_val, _Pn_DRV1(7));
 	}
-	else if(i2c->bus_num == 3) {
+	else if (i2c->bus_num == 3) {
 		/* configuration register */
 		unsigned int  reg_val = readl(_Pn_CFG1(6));
 	    reg_val &= ~(0x7700);/* PG10-PG11 TWI3 SCK,SDA */
@@ -414,7 +445,7 @@ static int twi_request_gpio(struct sun6i_i2c *i2c)
 	    writel(reg_val, _Pn_DRV0(6));
 	}
 #ifdef SUN6I_RTWI
-	else if(i2c->bus_num == 4) {
+	else if (i2c->bus_num == 4) {
 		/* configuration register */
 		unsigned int  reg_val = readl(_R_Pn_CFG0(0));
 	    reg_val &= ~(0x77);/* PL0-PL1 R_TWI SCK,SDA */
@@ -435,48 +466,7 @@ static int twi_request_gpio(struct sun6i_i2c *i2c)
 	}
 #endif
 #else
-	if(i2c->bus_num == 0) {
-		/* PH14-PH15 TWI0 SCK,SDA */
-		i2c->gpio_hdle = sw_gpio_request_ex("twi0_para", NULL);
-		if(!i2c->gpio_hdle) {
-			pr_warning("twi0 request gpio fail!\n");
-			return -1;
-		}
-	}
-	else if(i2c->bus_num == 1) {
-		/* PH16-PH17 TWI1 SCK,SDA */
-		i2c->gpio_hdle = sw_gpio_request_ex("twi1_para", NULL);
-		if(!i2c->gpio_hdle) {
-			pr_warning("twi1 request gpio fail!\n");
-			return -1;
-		}
-	}
-	else if(i2c->bus_num == 2) {
-		/* PH18-PH19 TWI2 SCK,SDA */
-		i2c->gpio_hdle = sw_gpio_request_ex("twi2_para", NULL);
-		if(!i2c->gpio_hdle) {
-			pr_warning("twi2 request gpio fail!\n");
-			return -1;
-		}
-	}
-	else if(i2c->bus_num == 3) {
-		/* PG10-PG11 TWI3 SCK,SDA */
-		i2c->gpio_hdle = sw_gpio_request_ex("twi3_para", NULL);
-		if(!i2c->gpio_hdle) {
-			pr_warning("twi3 request gpio fail!\n");
-			return -1;
-		}
-	}
-#ifdef SUN6I_RTWI
-	else if(i2c->bus_num == 4) {
-		/* PL0-PL1 R_TWI SCK,SDA */
-		i2c->gpio_hdle = sw_gpio_request_ex("r_twi_para", NULL);
-		if(!i2c->gpio_hdle) {
-			pr_warning("r_twi request gpio fail!\n");
-			return -1;
-		}
-	}
-#endif
+	twi_set_gpio_sysconfig(i2c);
 #endif
 
 	return 0;
@@ -485,7 +475,7 @@ static int twi_request_gpio(struct sun6i_i2c *i2c)
 static void twi_release_gpio(struct sun6i_i2c *i2c)
 {
 #ifndef SYS_I2C_PIN
-	if(i2c->bus_num == 0) {
+	if (i2c->bus_num == 0) {
 	    /* config reigster */
 	    unsigned int  reg_val = readl(_Pn_CFG1(7));
 	    reg_val &= ~(0x77000000);/* PH14-PH15 TWI0 SCK,SDA */
@@ -503,7 +493,7 @@ static void twi_release_gpio(struct sun6i_i2c *i2c)
 	    reg_val |= 0x50000000;
 	    writel(reg_val, _Pn_PUL0(7));
 	}
-	else if(i2c->bus_num == 1){
+	else if (i2c->bus_num == 1) {
 	    /* config reigster */
 	    unsigned int  reg_val = readl(_Pn_CFG2(7));
 	    reg_val &= ~(0x77);/* PH16-PH17 TWI1 SCK,SDA */
@@ -521,7 +511,7 @@ static void twi_release_gpio(struct sun6i_i2c *i2c)
 	    reg_val |= 0x5;
 	    writel(reg_val, _Pn_PUL1(7));
 	}
-	else if(i2c->bus_num == 2){
+	else if (i2c->bus_num == 2) {
 	    /* config reigster */
 	    unsigned int  reg_val = readl(_Pn_CFG2(7));
 	    reg_val &= ~(0x7700);/* PH18-PH19 TWI2 SCK,SDA */
@@ -539,7 +529,7 @@ static void twi_release_gpio(struct sun6i_i2c *i2c)
 	    reg_val |= 0x50;
 	    writel(reg_val, _Pn_PUL1(7));
 	}
-	else if(i2c->bus_num == 3){
+	else if (i2c->bus_num == 3) {
 		/* config reigster */
 		unsigned int  reg_val = readl(_Pn_CFG1(6));
 	    reg_val &= ~(0x7700);/* PG10-PG11 TWI3 SCK,SDA */
@@ -558,7 +548,7 @@ static void twi_release_gpio(struct sun6i_i2c *i2c)
 	    writel(reg_val, _Pn_PUL0(6));
 	}
 #ifdef SUN6I_RTWI
-	else if(i2c->bus_num == 4){
+	else if (i2c->bus_num == 4) {
 		/* config reigster */
 		unsigned int  reg_val = readl(_R_Pn_CFG0(0));
 	    reg_val &= ~(0x77);/* PL0-PL1 R_TWI SCK,SDA */
@@ -577,8 +567,6 @@ static void twi_release_gpio(struct sun6i_i2c *i2c)
 	    writel(reg_val, _R_Pn_PUL0(0));
 	}
 #endif
-#else
-	sw_gpio_release(i2c->gpio_hdle, 0);
 #endif
 }
 #endif
@@ -666,7 +654,7 @@ static void twi_enable_lcr(void *base_addr, unsigned int sda_scl)
 {
     unsigned int reg_val = readl(base_addr + TWI_LCR_REG);
     sda_scl &= 0x01;
-    if(sda_scl)
+    if (sda_scl)
         reg_val |= TWI_LCR_SCL_EN;/* enable scl line control */
     else
         reg_val |= TWI_LCR_SDA_EN;/* enable sda line control */
@@ -679,7 +667,7 @@ static void twi_disable_lcr(void *base_addr, unsigned int sda_scl)
 {
     unsigned int reg_val = readl(base_addr + TWI_LCR_REG);
     sda_scl &= 0x01;
-    if(sda_scl)
+    if (sda_scl)
         reg_val &= ~TWI_LCR_SCL_EN;/* disable scl line control */
     else
         reg_val &= ~TWI_LCR_SDA_EN;/* disable sda line control */
@@ -698,7 +686,7 @@ static int twi_send_clk_9pulse(void *base_addr, int bus_num)
     /* enable scl control */
     twi_enable_lcr(base_addr, twi_scl);
 
-    while(cycle < 10)
+    while (cycle < 10)
     {
         if (twi_get_sda(base_addr)
             && twi_get_sda(base_addr)
@@ -750,7 +738,7 @@ static void sun6i_i2c_addr_byte(struct sun6i_i2c *i2c)
 	unsigned char addr = 0;
 	unsigned char tmp  = 0;
 
-	if(i2c->msg[i2c->msg_idx].flags & I2C_M_TEN) {
+	if (i2c->msg[i2c->msg_idx].flags & I2C_M_TEN) {
 		/* 0111_10xx,ten bits address--9:8bits */
 		tmp = 0x78 | ( ( (i2c->msg[i2c->msg_idx].addr)>>8 ) & 0x03);
 		addr = tmp << 1;//1111_0xx0
@@ -767,12 +755,12 @@ static void sun6i_i2c_addr_byte(struct sun6i_i2c *i2c)
 	}
 
 #ifdef CONFIG_SUN6I_I2C_PRINT_TRANSFER_INFO
-	 if(i2c->bus_num == CONFIG_SUN6I_I2C_PRINT_TRANSFER_INFO_WITH_BUS_NUM){
-		if(i2c->msg[i2c->msg_idx].flags & I2C_M_TEN) {
+	if (i2c->bus_num == CONFIG_SUN6I_I2C_PRINT_TRANSFER_INFO_WITH_BUS_NUM) {
+		if (i2c->msg[i2c->msg_idx].flags & I2C_M_TEN) {
 			I2C_DBG("[i2c%d] first part of 10bits = 0x%x\n", i2c->bus_num, addr);
 		}
 		I2C_DBG("[i2c%d] 7bits+r/w = 0x%x\n", i2c->bus_num, addr);
-	 }
+	}
 #endif
 	/* send 7bits+r/w or the first part of 10bits */
 	twi_put_byte(i2c->base_addr, &addr);
@@ -790,18 +778,18 @@ static int sun6i_i2c_core_process(struct sun6i_i2c *i2c)
 	state = twi_query_irq_status(base_addr);
 
 #ifdef CONFIG_SUN6I_I2C_PRINT_TRANSFER_INFO
-	if(i2c->bus_num == CONFIG_SUN6I_I2C_PRINT_TRANSFER_INFO_WITH_BUS_NUM){
+	if (i2c->bus_num == CONFIG_SUN6I_I2C_PRINT_TRANSFER_INFO_WITH_BUS_NUM) {
 		I2C_DBG("[i2c%d][slave address = (0x%x), state = (0x%x)]\n", i2c->bus_num, i2c->msg->addr, state);
 	}
 #endif
 
-    if(i2c->msg == NULL) {
+    if (i2c->msg == NULL) {
         I2C_ERR("[i2c%d] i2c message is NULL, err_code = 0xfe\n", i2c->bus_num);
         err_code = 0xfe;
         goto msg_null;
     }
 
-	switch(state) {
+	switch (state) {
 	case 0xf8: /* On reset or stop the bus is idle, use only at poll method */
 		err_code = 0xf8;
 		goto err_out;
@@ -815,7 +803,7 @@ static int sun6i_i2c_core_process(struct sun6i_i2c *i2c)
 		goto err_out;
 	case 0x18: /* SLA+W has been transmitted; ACK has been received */
 		/* if any, send second part of 10 bits addr */
-		if(i2c->msg[i2c->msg_idx].flags & I2C_M_TEN) {
+		if (i2c->msg[i2c->msg_idx].flags & I2C_M_TEN) {
 			tmp = i2c->msg[i2c->msg_idx].addr & 0xff;  /* the remaining 8 bits of address */
 			twi_put_byte(base_addr, &tmp); /* case 0xd0: */
 			break;
@@ -824,7 +812,7 @@ static int sun6i_i2c_core_process(struct sun6i_i2c *i2c)
 	case 0xd0: /* second addr has transmitted,ACK received!     */
 	case 0x28: /* Data byte in DATA REG has been transmitted; ACK has been received */
 		/* after send register address then START send write data  */
-		if(i2c->msg_ptr < i2c->msg[i2c->msg_idx].len) {
+		if (i2c->msg_ptr < i2c->msg[i2c->msg_idx].len) {
 			twi_put_byte(base_addr, &(i2c->msg[i2c->msg_idx].buf[i2c->msg_ptr]));
 			i2c->msg_ptr++;
 			break;
@@ -836,9 +824,9 @@ static int sun6i_i2c_core_process(struct sun6i_i2c *i2c)
 			err_code = SUN6I_I2C_OK;/* Success,wakeup */
 			goto ok_out;
 		}
-		else if(i2c->msg_idx < i2c->msg_num) {/* for restart pattern */
+		else if (i2c->msg_idx < i2c->msg_num) {/* for restart pattern */
 			ret = twi_restart(base_addr, i2c->bus_num);/* read spec, two msgs */
-			if(ret == SUN6I_I2C_FAIL) {
+			if (ret == SUN6I_I2C_FAIL) {
 				err_code = SUN6I_I2C_SFAIL;
 				goto err_out;/* START can't sendout */
 			}
@@ -857,12 +845,12 @@ static int sun6i_i2c_core_process(struct sun6i_i2c *i2c)
 	case 0x40: /* SLA+R has been transmitted; ACK has been received */
 		/* with Restart,needn't to send second part of 10 bits addr,refer-"I2C-SPEC v2.1" */
 		/* enable A_ACK need it(receive data len) more than 1. */
-		if(i2c->msg[i2c->msg_idx].len > 1) {
+		if (i2c->msg[i2c->msg_idx].len > 1) {
 			/* send register addr complete,then enable the A_ACK and get ready for receiving data */
 			twi_enable_ack(base_addr);
 			twi_clear_irq_flag(base_addr);/* jump to case 0x50 */
 		}
-		else if(i2c->msg[i2c->msg_idx].len == 1) {
+		else if (i2c->msg[i2c->msg_idx].len == 1) {
 			twi_clear_irq_flag(base_addr);/* jump to case 0x58 */
 		}
 		break;
@@ -873,7 +861,7 @@ static int sun6i_i2c_core_process(struct sun6i_i2c *i2c)
 		/* receive first data byte */
 		if (i2c->msg_ptr < i2c->msg[i2c->msg_idx].len) {
 			/* more than 2 bytes, the last byte need not to send ACK */
-			if( (i2c->msg_ptr + 2) == i2c->msg[i2c->msg_idx].len ) {
+			if ((i2c->msg_ptr + 2) == i2c->msg[i2c->msg_idx].len ) {
 				twi_disable_ack(base_addr);/* last byte no ACK */
 			}
 			/* get data then clear flag,then next data comming */
@@ -894,7 +882,7 @@ static int sun6i_i2c_core_process(struct sun6i_i2c *i2c)
 				err_code = SUN6I_I2C_OK; // succeed,wakeup the thread
 				goto ok_out;
 			}
-			else if(i2c->msg_idx < i2c->msg_num) {
+			else if (i2c->msg_idx < i2c->msg_num) {
 				/* repeat start */
 				ret = twi_restart(base_addr, i2c->bus_num);
 				if(ret == SUN6I_I2C_FAIL) {/* START fail */
@@ -920,7 +908,7 @@ static int sun6i_i2c_core_process(struct sun6i_i2c *i2c)
 
 ok_out:
 err_out:
-	if(SUN6I_I2C_TFAIL == twi_stop(base_addr, i2c->bus_num)) {
+	if (SUN6I_I2C_TFAIL == twi_stop(base_addr, i2c->bus_num)) {
 		I2C_ERR("[i2c%d] STOP failed!\n", i2c->bus_num);
 	}
 
@@ -935,7 +923,7 @@ static irqreturn_t sun6i_i2c_handler(int this_irq, void * dev_id)
 	struct sun6i_i2c *i2c = (struct sun6i_i2c *)dev_id;
 	int ret = SUN6I_I2C_FAIL;
 
-	if(!twi_query_irq_flag(i2c->base_addr)) {
+	if (!twi_query_irq_flag(i2c->base_addr)) {
 		I2C_ERR("unknown interrupt!");
 		return ret;
 	}
@@ -947,7 +935,7 @@ static irqreturn_t sun6i_i2c_handler(int this_irq, void * dev_id)
 	ret = sun6i_i2c_core_process(i2c);
 
 	/* enable irq only when twi is transfering, otherwise disable irq */
-	if(i2c->status != I2C_XFER_IDLE) {
+	if (i2c->status != I2C_XFER_IDLE) {
 		twi_enable_irq(i2c->base_addr);
 	}
 
@@ -964,12 +952,12 @@ static int sun6i_i2c_xfer_complete(struct sun6i_i2c *i2c, int code)
 	i2c->status  = I2C_XFER_IDLE;
 
 	/* i2c->msg_idx  store the information */
-	if(code == SUN6I_I2C_FAIL) {
+	if (code == SUN6I_I2C_FAIL) {
 		I2C_ERR("[i2c%d] Maybe Logic Error, debug it!\n", i2c->bus_num);
 		i2c->msg_idx = code;
 		ret = SUN6I_I2C_FAIL;
 	}
-	else if(code != SUN6I_I2C_OK) {
+	else if (code != SUN6I_I2C_OK) {
 		i2c->msg_idx = code;
 		ret = SUN6I_I2C_FAIL;
 	}
@@ -985,15 +973,15 @@ static int sun6i_i2c_xfer(struct i2c_adapter *adap, struct i2c_msg *msgs, int nu
 	int ret = SUN6I_I2C_FAIL;
 	int i   = 0;
 
-	if(i2c->suspended) {
+	if (i2c->suspended) {
 		I2C_ERR("[i2c%d] has already suspend, dev addr:0x%x!\n", i2c->adap.nr, msgs->addr);
 		return -ENODEV;
 	}
 
-	for(i = adap->retries; i >= 0; i--) {
+	for (i = adap->retries; i >= 0; i--) {
 		ret = sun6i_i2c_do_xfer(i2c, msgs, num);
 
-		if(ret != SUN6I_I2C_RETRY) {
+		if (ret != SUN6I_I2C_RETRY) {
 			goto out;
 		}
 
@@ -1016,7 +1004,7 @@ static int sun6i_i2c_do_xfer(struct sun6i_i2c *i2c, struct i2c_msg *msgs, int nu
 	udelay(100);
 
 	/* test the bus is free,already protect by the semaphore at DEV layer */
-	while(TWI_STAT_IDLE != twi_query_irq_status(i2c->base_addr)&&
+	while (TWI_STAT_IDLE != twi_query_irq_status(i2c->base_addr)&&
 	       TWI_STAT_BUS_ERR != twi_query_irq_status(i2c->base_addr) &&
 	       TWI_STAT_ARBLOST_SLAR_ACK != twi_query_irq_status(i2c->base_addr)) {
 		I2C_DBG("[i2c%d] bus is busy, status = %x\n", i2c->bus_num, twi_query_irq_status(i2c->base_addr));
@@ -1052,7 +1040,7 @@ static int sun6i_i2c_do_xfer(struct sun6i_i2c *i2c, struct i2c_msg *msgs, int nu
 
 	/* START signal, needn't clear int flag */
 	ret = twi_start(i2c->base_addr, i2c->bus_num);
-	if(ret == SUN6I_I2C_FAIL) {
+	if (ret == SUN6I_I2C_FAIL) {
 		twi_soft_reset(i2c->base_addr);
 		twi_disable_irq(i2c->base_addr);  /* disable irq */
 		i2c->status  = I2C_XFER_IDLE;
@@ -1066,11 +1054,11 @@ static int sun6i_i2c_do_xfer(struct sun6i_i2c *i2c, struct i2c_msg *msgs, int nu
 	/* return code,if(msg_idx == num) succeed */
 	ret = i2c->msg_idx;
 
-	if (timeout == 0){
+	if (timeout == 0) {
 		I2C_ERR("[i2c%d] xfer timeout\n", i2c->bus_num);
 		ret = -ETIME;
 	}
-	else if (ret != num){
+	else if (ret != num) {
 		I2C_ERR("[i2c%d] incomplete xfer (status: 0x%x)\n", i2c->bus_num, ret);
 		ret = -ECOMM;
 	}
@@ -1109,7 +1097,7 @@ static int sun6i_i2c_clk_init(struct sun6i_i2c *i2c)
 
 	/* set twi module clock */
 	apb_clk  =  clk_get_rate(i2c->mclk);
-	if(apb_clk == 0){
+	if (apb_clk == 0) {
 		I2C_ERR("[i2c%d] get i2c source clock frequency failed!\n", i2c->bus_num);
 		return -1;
 	}
@@ -1200,7 +1188,7 @@ static int sun6i_i2c_probe(struct platform_device *pdev)
 	int irq;
 
 	pdata = pdev->dev.platform_data;
-	if(pdata == NULL) {
+	if (pdata == NULL) {
 		return -ENODEV;
 	}
 
@@ -1236,14 +1224,14 @@ static int sun6i_i2c_probe(struct platform_device *pdev)
 
 #ifdef CONFIG_AW_ASIC_EVB_PLATFORM
 	i2c->pclk = clk_get(NULL, i2c_pclk[i2c->adap.nr]);
-	if(!i2c->pclk || IS_ERR(i2c->pclk)){
+	if (!i2c->pclk || IS_ERR(i2c->pclk)) {
 		I2C_ERR("[i2c%d] request apb_twi clock failed\n", i2c->bus_num);
 		ret = -EIO;
 		goto eremap;
 	}
 
 	i2c->mclk = clk_get(NULL, i2c_mclk[i2c->adap.nr]);
-	if(!i2c->mclk || IS_ERR(i2c->mclk)){
+	if (!i2c->mclk || IS_ERR(i2c->mclk)) {
 		I2C_ERR("[i2c%d] request mod_twi clock failed\n", i2c->bus_num);
 		ret = -EIO;
 		goto eremap;
@@ -1260,13 +1248,13 @@ static int sun6i_i2c_probe(struct platform_device *pdev)
 
 #ifndef SYS_I2C_PIN
 	gpio_addr = ioremap(_PIO_BASE_ADDRESS, 0x400);
-	if(!gpio_addr) {
+	if (!gpio_addr) {
 	    ret = -EIO;
 	    goto ereqirq;
 	}
 
 	r_gpio_addr = ioremap(_R_PIO_BASE_ADDRESS, 0x400);
-	if(!r_gpio_addr) {
+	if (!r_gpio_addr) {
 	    ret = -EIO;
 	    goto ereqirq;
 	}
@@ -1401,18 +1389,18 @@ static int sun6i_i2c_suspend(struct device *dev)
 	 * r_twi is for power, it will be accessed by axp driver
 	 * before twi resume, so, don't suspend r_twi
 	 */
-	if(4 == i2c->bus_num) {
+	if (4 == i2c->bus_num) {
 		i2c->suspended = 0;
 		return 0;
 	}
 
-	while((i2c->status != I2C_XFER_IDLE) && (count-- > 0)) {
+	while ((i2c->status != I2C_XFER_IDLE) && (count-- > 0)) {
 		I2C_ERR("[i2c%d] suspend while xfer,dev addr = 0x%x\n",
 			i2c->adap.nr, i2c->msg? i2c->msg->addr : 0xff);
 		msleep(100);
 	}
 
-	if(sun6i_i2c_clk_exit(i2c)) {
+	if (sun6i_i2c_clk_exit(i2c)) {
 		I2C_ERR("[i2c%d] suspend failed.. \n", i2c->bus_num);
 		i2c->suspended = 0;
 		return -1;
@@ -1431,11 +1419,11 @@ static int sun6i_i2c_resume(struct device *dev)
 
 	i2c->suspended = 0;
 
-	if(4 == i2c->bus_num) {
+	if (4 == i2c->bus_num) {
 		return 0;
 	}
 
-	if(sun6i_i2c_clk_init(i2c)) {
+	if (sun6i_i2c_clk_init(i2c)) {
 		I2C_ERR("[i2c%d] resume failed.. \n", i2c->bus_num);
 		return -1;
 	}
@@ -1632,22 +1620,20 @@ static int twi_used_mask = 0;
 
 static int __init sun6i_i2c_adap_init(void)
 {
-    int used = 0;
-    int i = 0;
-    int ret = 0;
+    script_item_u used;
+    script_item_value_type_e type;
+	int i = 0;
     char twi_para[16] = {0};
 
     for (i=0; i<4; i++) {
-        used = 0;
         sprintf(twi_para, "twi%d_para", i);
+		type = script_get_item(twi_para, "twi_used", &used);
+		if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+			I2C_ERR("[i2c%d] fetch para from sysconfig failed\n", i);
+			continue;
+		}
 
-        ret = script_parser_fetch(twi_para, "twi_used", &used, sizeof(int));
-        if (ret) {
-            I2C_ERR("[i2c%d] fetch para from sysconfig failed\n", i);
-            continue;
-        }
-
-        if (used)
+        if (used.val)
             twi_used_mask |= 1 << i;
     }
 
