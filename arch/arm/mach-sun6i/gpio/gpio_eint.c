@@ -797,25 +797,25 @@ u32 sw_gpio_irq_request(u32 gpio, enum gpio_eint_trigtype trig_type,
 	WARN(NULL == handle, "%s err, handle is NULL!\n", __func__);
 	if(false == is_gpio_canbe_eint(gpio)) {
 		usign = __LINE__;
-		goto End;
+		goto end;
 	}
 
-	/* config to eint, enable the eint, and set pull, drivel level, trig type */
+	/* config to eint, and set pull, drivel level, trig type */
 	cfg.gpio 	= gpio;
 	cfg.pull 	= GPIO_PULL_DEFAULT;
 	cfg.drvlvl 	= GPIO_DRVLVL_DEFAULT;
-	cfg.enabled	= 1;
+	cfg.enabled	= 0;
 	cfg.trig_type	= trig_type;
 	if(0 != sw_gpio_eint_setall_range(&cfg, 1)) {
 		usign = __LINE__;
-		goto End;
+		goto end;
 	}
 
 	/* request irq */
 	pdev_id = (struct gpio_irq_handle *)kmalloc(sizeof(struct gpio_irq_handle), GFP_KERNEL);
 	if(NULL == pdev_id) {
 		usign = __LINE__;
-		goto End;
+		goto end;
 	}
 	pdev_id->gpio = gpio;
 	pdev_id->handler = handle;
@@ -825,9 +825,15 @@ u32 sw_gpio_irq_request(u32 gpio, enum gpio_eint_trigtype trig_type,
 	req_ret = request_irq(irq_no, gpio_irq_hdl, IRQF_DISABLED | IRQF_SHARED, "gpio_irq", (void *)pdev_id);
 	if(req_ret) {
 		usign = __LINE__;
-		goto End;
+		goto end;
 	}
-End:
+
+	/* enable the eint */
+	if(0 != sw_gpio_eint_set_enable(gpio, 1)) {
+		usign = __LINE__;
+		goto end;
+	}
+end:
 	if(0 != usign) {
 		printk("%s err, line %d\n", __func__, usign);
 		if(0 == req_ret && NULL != pdev_id)
