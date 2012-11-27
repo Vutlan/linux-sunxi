@@ -21,6 +21,7 @@
 #include <asm/string.h>
 #include <linux/clk.h>
 #include <linux/serial_reg.h>
+#include <linux/gpio.h>
 
 #include <mach/clock.h>
 #include <mach/sys_config.h>
@@ -104,7 +105,8 @@ static char	*apb_clock_name[]={
 static int sw_serial_get_resource(struct sw_serial_port *sport)
 {
     char uart_para[16];
-    int ret;
+    int cnt,i,ret;
+	script_item_u *list = NULL;
 
     /* get register base */
     sport->mmres = platform_get_resource(sport->pdev, IORESOURCE_MEM, 0);
@@ -132,7 +134,7 @@ static int sw_serial_get_resource(struct sw_serial_port *sport)
     }
 	clk_enable(sport->bus_clk);
     clk_enable(sport->mod_clk);
-
+	clk_reset(sport->mod_clk,AW_CCU_CLK_NRESET);
     /* get irq */
     sport->irq = platform_get_irq(sport->pdev, 0);
     if (sport->irq == 0) {
@@ -143,11 +145,21 @@ static int sw_serial_get_resource(struct sw_serial_port *sport)
 
     /* get gpio resource */
     sprintf(uart_para, "uart_para%d", sport->port_no);
-    sport->pio_hdle = sw_gpio_request_ex(uart_para, NULL);
-    if (!sport->pio_hdle) {
-        ret = -EINVAL;
-        goto free_pclk;
-    }
+    cnt = script_get_pio_list(uart_para, &list);
+	if(!cnt){
+		ret = -EINVAL;
+		goto free_pclk;
+	}
+
+	for(i=0;i<cnt;i++)
+		if(gpio_request(list[i].gpio.gpio, NULL)){
+			ret = -EINVAL;
+			goto free_pclk;
+		}
+	if(sw_gpio_setall_range(&list[0].gpio, cnt)){
+		printk(KERN_ERR "set value err!\n");
+		goto free_pclk;
+	}
     return 0;
 
 free_pclk:
@@ -160,6 +172,7 @@ err_out:
 
 static int sw_serial_put_resource(struct sw_serial_port *sport)
 {
+	clk_reset(sport->mod_clk,AW_CCU_CLK_RESET);
     clk_disable(sport->mod_clk);
 	clk_disable(sport->bus_clk);
     clk_put(sport->mod_clk);
@@ -171,18 +184,22 @@ static int sw_serial_put_resource(struct sw_serial_port *sport)
 static int sw_serial_get_config(struct sw_serial_port *sport, u32 uart_id)
 {
     char uart_para[16] = {0};
-    int ret;
+	script_item_u   val;
+	script_item_value_type_e  type;
 
-    sprintf(uart_para, "uart_para%d", uart_id);
-    ret = script_parser_fetch(uart_para, "uart_port", &sport->port_no, sizeof(int));
-    if (ret)
+	type = script_get_item(uart_para, "uart_port", &val);
+	if(SCIRPT_ITEM_VALUE_TYPE_INT != type)
         return -1;
+	sport->port_no	= val.val;
     if (sport->port_no != uart_id)
         return -1;
-    ret = script_parser_fetch(uart_para, "uart_type", &sport->pin_num, sizeof(int));
-    if (ret)
-        return -1;
 
+	type = script_get_item(uart_para, "uart_type", &val);
+	if(SCIRPT_ITEM_VALUE_TYPE_INT != type)
+		return -1;
+	sport->pin_num	= val.val;
+
+	UART_MSG("uart_port %d  uart_type %d\n",sport->port_no,sport->pin_num);
     return 0;
 }
 
@@ -195,7 +212,9 @@ sw_serial_pm(struct uart_port *port, unsigned int state,
     if (!state){
         clk_enable(up->bus_clk);
 		clk_enable(up->mod_clk);
+		clk_reset(up->mod_clk,AW_CCU_CLK_NRESET);
 	}else{
+		clk_reset(up->mod_clk,AW_CCU_CLK_RESET);
 		clk_disable(up->mod_clk);
         clk_disable(up->bus_clk);
 	}
@@ -375,6 +394,7 @@ static int sw_serial_suspend(struct platform_device *dev, pm_message_t state)
 		if ((port->type != PORT_UNKNOWN)&& (port->dev == &dev->dev)){
 			sunxi_8250_backup_reg(i,port);
 			serial8250_suspend_port(i);
+
 		}
 	}
 
@@ -471,7 +491,7 @@ static int __init sw_serial_init(void)
     //memset(sw_serial, 0, sizeof(sw_serial));
     //uart_used = 0;
 	uart_used = 0;
-	for (i=0; i<MAX_PORTS; i++, used=0) {
+	for (i=1; i<MAX_PORTS; i++, used=0) {
         sprintf(uart_para, "uart_para%d", i);
         ret = script_parser_fetch(uart_para, "uart_used", &used, sizeof(int));
         if (ret)

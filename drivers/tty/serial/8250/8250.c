@@ -838,7 +838,7 @@ static void autoconfig_has_efr(struct uart_8250_port *up)
 	else
 		up->port.type = PORT_16650V2;
 }
-
+#ifndef	CONFIG_SERIAL_8250_SUNXI
 /*
  * We detected a chip without a FIFO.  Only two fall into
  * this category - the original 8250 and the 16450.  The
@@ -861,6 +861,7 @@ static void autoconfig_8250(struct uart_8250_port *up)
 		up->port.type = PORT_16450;
 }
 
+#endif
 static int broken_efr(struct uart_8250_port *up)
 {
 	/*
@@ -1151,6 +1152,9 @@ static void autoconfig(struct uart_8250_port *up, unsigned int probeflags)
 	 * We also initialise the EFR (if any) to zero for later.  The
 	 * EFR occupies the same register location as the FCR and IIR.
 	 */
+#ifdef CONFIG_SERIAL_8250_SUNXI
+	autoconfig_16550a(up);
+#else
 	serial_outp(up, UART_LCR, UART_LCR_CONF_MODE_B);
 	serial_outp(up, UART_EFR, 0);
 	serial_outp(up, UART_LCR, 0);
@@ -1159,7 +1163,6 @@ static void autoconfig(struct uart_8250_port *up, unsigned int probeflags)
 	scratch = serial_in(up, UART_IIR) >> 6;
 
 	DEBUG_AUTOCONF("iir=%d ", scratch);
-
 	switch (scratch) {
 	case 0:
 		autoconfig_8250(up);
@@ -1174,7 +1177,6 @@ static void autoconfig(struct uart_8250_port *up, unsigned int probeflags)
 		autoconfig_16550a(up);
 		break;
 	}
-
 #ifdef CONFIG_SERIAL_8250_RSA
 	/*
 	 * Only probe for RSA ports if we got the region.
@@ -1190,10 +1192,11 @@ static void autoconfig(struct uart_8250_port *up, unsigned int probeflags)
 			}
 		}
 	}
-#endif
+#endif/*CONFIG_SERIAL_8250_RSA*/
 
 	serial_outp(up, UART_LCR, save_lcr);
 
+#endif/*CONFIG_SERIAL_8250_SUNXI*/
 	if (up->capabilities != uart_config[up->port.type].flags) {
 		printk(KERN_WARNING
 		       "ttyS%d: detected caps %08x should be %08x\n",
