@@ -194,19 +194,30 @@ static int gsensor_fetch_sysconfig_para(void)
 {
 	int ret = -1;
 	int device_used = -1;
+	script_item_u	val;
+	script_item_value_type_e  type;
+	
 		
 	dprintk(DEBUG_BASE_LEVEL0, "========%s===================\n", __func__);
-	 
-	if (SCRIPT_PARSER_OK != (ret = script_parser_fetch("gsensor_para", 
-		"gsensor_used", &device_used, 1))) {
-		pr_err("%s: script_parser_fetch err.ret = %d. \n", __func__, ret);
+
+	
+	type = script_get_item("gsensor_para", "gsensor_used", &val);
+	
+	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+		pr_err("%s: type err device_used = %d. \n", __func__, val.val);
 		goto script_parser_fetch_err;
 	}
+
+	device_used = val.val;
+	
 	if (1 == device_used) {
-		if(SCRIPT_PARSER_OK != script_parser_fetch("gsensor_para", "gsensor_twi_id", &twi_id, 1)){
-			pr_err("%s: script_parser_fetch err. \n", __func__);
+		type = script_get_item("gsensor_para", "gsensor_twi_id", &val);	
+		if(SCIRPT_ITEM_VALUE_TYPE_INT != type){
+			pr_err("%s: type err twi_id = %d. \n", __func__, val.val);
 			goto script_parser_fetch_err;
 		}
+		twi_id = val.val;
+		
 		dprintk(DEBUG_BASE_LEVEL0, "%s: twi_id is %d. \n", __func__, twi_id);
 		ret = 0;
 		

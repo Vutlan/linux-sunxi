@@ -260,43 +260,59 @@ static int gsensor_fetch_sysconfig_para(void)
 	int device_used = -1;
 	__u32 twi_addr = 0;
 	char name[I2C_NAME_SIZE];
-	script_parser_value_type_t type = SCIRPT_PARSER_VALUE_TYPE_STRING;
+	script_item_u	val;
+	script_item_value_type_e  type;
+	
 		
 	dprintk(DEBUG_BASE_LEVEL0, "========%s===================\n", __func__);
-	 
-	if(SCRIPT_PARSER_OK != (ret = script_parser_fetch("gsensor_para", "gsensor_used", &device_used, 1))){
-	                pr_err("%s: script_parser_fetch err.ret = %d. \n", __func__, ret);
+
+	
+	type = script_get_item("gsensor_para", "gsensor_used", &val);
+ 
+	if (SCIRPT_ITEM_VALUE_TYPE_INT  != type) {
+	                pr_err("%s: type err  device_used = %d. \n", __func__, val.val);
 	                goto script_parser_fetch_err;
 	}
-	if(1 == device_used){
-		if(SCRIPT_PARSER_OK != script_parser_fetch_ex("gsensor_para", "gsensor_name", (int *)(&name), &type, sizeof(name)/sizeof(int))){
-			pr_err("%s: line: %d script_parser_fetch err. \n", __func__, __LINE__);
+	device_used = val.val;
+	
+	if (1 == device_used) {
+		
+		type = script_get_item("gsensor_para", "gsensor_name", &val);
+		if (SCIRPT_ITEM_VALUE_TYPE_STR  != type) {
+			pr_err("%s: type err  gsensor_name = %s. \n", __func__, val.str);
 			goto script_parser_fetch_err;
 		}
-		if(strcmp(SENSOR_NAME, name)){
+		strcpy(&name, val.str);
+		if (strcmp(SENSOR_NAME, name)) {
 			pr_err("%s: name %s does not match SENSOR_NAME. \n", __func__, name);
 			pr_err(SENSOR_NAME);
-			
 			return ret;
 		}
-		if(SCRIPT_PARSER_OK != script_parser_fetch("gsensor_para", "gsensor_twi_addr", &twi_addr, sizeof(twi_addr)/sizeof(__u32))){
-			pr_err("%s: line: %d: script_parser_fetch err. \n", name, __LINE__);
-			goto script_parser_fetch_err;
+
+		type = script_get_item("gsensor_para", "gsensor_twi_addr", &val);	
+		if (SCIRPT_ITEM_VALUE_TYPE_INT  != type) {
+	                pr_err("%s: type err  twi_addr = %d. \n", __func__, val.val);
+	                goto script_parser_fetch_err;
 		}
+		twi_addr = val.val;
+		
 		u_i2c_addr.dirty_addr_buf[0] = twi_addr;
 		u_i2c_addr.dirty_addr_buf[1] = I2C_CLIENT_END;
 		dprintk(DEBUG_BASE_LEVEL0, "%s: after: gsensor_twi_addr is 0x%x, dirty_addr_buf: 0x%hx. dirty_addr_buf[1]: 0x%hx \n", \
 			__func__, twi_addr, u_i2c_addr.dirty_addr_buf[0], u_i2c_addr.dirty_addr_buf[1]);
 
-		if(SCRIPT_PARSER_OK != script_parser_fetch("gsensor_para", "gsensor_twi_id", &twi_id, 1)){
-			pr_err("%s: script_parser_fetch err. \n", name);
+		type = script_get_item("gsensor_para", "gsensor_twi_id", &val);	
+		if(SCIRPT_ITEM_VALUE_TYPE_INT != type){
+			pr_err("%s: type err twi_id = %d. \n", __func__, val.val);
 			goto script_parser_fetch_err;
 		}
-		dprintk(DEBUG_BASE_LEVEL0, "%s: twi_id is %d. \n", __func__, twi_id);
+		twi_id = val.val;
 		
+		dprintk(DEBUG_BASE_LEVEL0, "%s: twi_id is %d. \n", __func__, twi_id);
+
 		ret = 0;
 		
-	}else{
+	} else {
 		pr_err("%s: gsensor_unused. \n",  __func__);
 		ret = -1;
 	}
@@ -306,7 +322,6 @@ static int gsensor_fetch_sysconfig_para(void)
 script_parser_fetch_err:
 	pr_notice("=========script_parser_fetch_err============\n");
 	return ret;
-
 }
 
 /**

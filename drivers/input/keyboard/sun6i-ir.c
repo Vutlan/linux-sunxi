@@ -16,6 +16,8 @@
 #include <linux/slab.h>
 #include <linux/timer.h> 
 #include <mach/clock.h>
+#include <linux/gpio.h>
+#include <mach/sys_config.h>
 
 #include <mach/irqs.h>
 #include <mach/hardware.h>
@@ -42,7 +44,10 @@
 //#include <mach/system.h>
 static struct clk *apb_ir_clk;
 static struct clk *ir_clk;
-static u32 ir_gpio_hdle;
+static struct gpio_hdle {
+	script_item_u	val;
+	script_item_value_type_e  type;		
+}ir_gpio_hdle;
 #endif
 
 /* Registers */
@@ -231,9 +236,21 @@ static void ir_clk_uncfg(void)
 static void ir_sys_cfg(void)
 {
 #ifdef SYS_GPIO_CFG_EN
-	if (0 == (ir_gpio_hdle = sw_gpio_request_ex("ir_para", "ir0_rx"))) {
-		printk(KERN_DEBUG, "try to request ir_para gpio failed. \n");
-        }
+	ir_gpio_hdle.type = script_get_item("ir_para", "ir0_rx", &(ir_gpio_hdle.val));
+	
+	if(SCIRPT_ITEM_VALUE_TYPE_PIO != ir_gpio_hdle.type)
+		printk("IR gpio type err! \n");
+	
+	dprintk(DEBUG_BASE_LEVEL0, "value is: gpio %d, mul_sel %d, pull %d, drv_level %d, data %d\n", 
+		ir_gpio_hdle.val.gpio.gpio, ir_gpio_hdle.val.gpio.mul_sel, ir_gpio_hdle.val.gpio.pull,  
+		ir_gpio_hdle.val.gpio.drv_level, ir_gpio_hdle.val.gpio.data);
+	 
+	if(0 != gpio_request(ir_gpio_hdle.val.gpio.gpio, NULL))
+		goto end;
+
+	
+	if (0 != sw_gpio_setall_range(&ir_gpio_hdle.val.gpio, 1))
+		printk("IR gpio set err!");
         
 #else
 	unsigned long tmp;
@@ -247,12 +264,18 @@ static void ir_sys_cfg(void)
 	ir_clk_cfg();
 
 	return;	
+#ifdef SYS_GPIO_CFG_EN
+end:
+	gpio_free(ir_gpio_hdle.val.gpio.gpio);
+	return;
+#endif
+	
 }
 
 static void ir_sys_uncfg(void)
 {
 #ifdef SYS_GPIO_CFG_EN
-	sw_gpio_release(ir_gpio_hdle, 2);
+	gpio_free(ir_gpio_hdle.val.gpio.gpio);
 #else
 #endif
 
