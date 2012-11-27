@@ -487,16 +487,23 @@ static int __init sw_serial_init(void)
     int i;
     int used = 0;
     char uart_para[16];
+	script_item_u   val;
+	script_item_value_type_e  type;
 
-    //memset(sw_serial, 0, sizeof(sw_serial));
+	//memset(sw_serial, 0, sizeof(sw_serial));
     //uart_used = 0;
 	uart_used = 0;
 	for (i=1; i<MAX_PORTS; i++, used=0) {
         sprintf(uart_para, "uart_para%d", i);
-        ret = script_parser_fetch(uart_para, "uart_used", &used, sizeof(int));
-        if (ret)
-            UART_MSG("failed to get uart%d's used information\n", i);
-        if (used) {
+ 
+		type = script_get_item(uart_para, "uart_used", &val);
+		if(SCIRPT_ITEM_VALUE_TYPE_INT != type){
+		    UART_MSG("failed to get uart%d's used information\n", i);
+			return -1;
+		}
+		used	= val.val;
+
+		if (used) {
             uart_used |= 1 << i;
             platform_device_register(&sw_uart_dev[i]);
         }
