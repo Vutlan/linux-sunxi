@@ -290,7 +290,7 @@ EXPORT_SYMBOL(sw_gpio_eint_set_trigtype);
  * @gpio:	the global gpio index
  * @pval:	the trig type got
  *
- * Returns the trig type if sucess, TRIG_INALID if failed.
+ * Returns 0 if sucess, the err line number if failed.
  */
 u32 sw_gpio_eint_get_trigtype(u32 gpio, enum gpio_eint_trigtype *pval)
 {

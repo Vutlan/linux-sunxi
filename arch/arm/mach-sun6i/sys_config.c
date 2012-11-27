@@ -15,9 +15,18 @@
 #include <linux/string.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
-#include <linux/vmalloc.h>
 #include <mach/sys_config.h>
 #include <mach/gpio.h>
+
+#if 0
+#include <linux/vmalloc.h>
+#define SCRIPT_MALLOC(x)	vmalloc(x)
+#define SCRIPT_FREE(x)		vfree(x)
+#else
+#include <linux/slab.h>
+#define SCRIPT_MALLOC(x)	kzalloc((x), GFP_KERNEL)
+#define SCRIPT_FREE(x)		kfree(x)
+#endif
 
 /*
  * define origin main key data structure in cript buffer
@@ -429,12 +438,12 @@ static int __init script_init(void)
     }
 
     /* alloc memory for main keys */
-    g_script = vmalloc(script_hdr->main_cnt*sizeof(script_main_key_t));
+    g_script = SCRIPT_MALLOC(script_hdr->main_cnt*sizeof(script_main_key_t));
     if(!g_script) {
         printk(KERN_ERR "try to alloc memory for main keys!\n");
         return -1;
     }
-    memset(g_script, 0, script_hdr->main_cnt*sizeof(script_main_key_t));
+    //memset(g_script, 0, script_hdr->main_cnt*sizeof(script_main_key_t));
 
     origin_main = &script_hdr->main_key;
     for(i=0; i<script_hdr->main_cnt; i++) {
@@ -446,14 +455,14 @@ static int __init script_init(void)
         main_key->hash = hash(main_key->name);
 
         /* allock memory for sub-keys */
-        main_key->subkey = vmalloc(origin_main[i].sub_cnt*sizeof(script_sub_key_t));
-        main_key->subkey_val = vmalloc(origin_main[i].sub_cnt*sizeof(script_item_u));
+        main_key->subkey = SCRIPT_MALLOC(origin_main[i].sub_cnt*sizeof(script_sub_key_t));
+        main_key->subkey_val = SCRIPT_MALLOC(origin_main[i].sub_cnt*sizeof(script_item_u));
         if(!main_key->subkey || !main_key->subkey_val) {
             printk(KERN_ERR "try alloc memory for sub keys failed!\n");
             goto err_out;
         }
-        memset(main_key->subkey, 0, origin_main[i].sub_cnt*sizeof(script_sub_key_t));
-        memset(main_key->subkey_val, 0, origin_main[i].sub_cnt*sizeof(script_item_u));
+        //memset(main_key->subkey, 0, origin_main[i].sub_cnt*sizeof(script_sub_key_t));
+        //memset(main_key->subkey_val, 0, origin_main[i].sub_cnt*sizeof(script_item_u));
 
         sub_key = main_key->subkey;
         sub_val = main_key->subkey_val;
@@ -469,8 +478,8 @@ static int __init script_init(void)
                 sub_val[j].val = *(int *)((unsigned int)script_hdr + (origin_sub[j].offset<<2));
                 sub_key[j].type = SCIRPT_ITEM_VALUE_TYPE_INT;
             } else if(origin_sub[j].pattern.type == SCIRPT_PARSER_VALUE_TYPE_STRING) {
-                sub_val[j].str = vmalloc((origin_sub[j].pattern.cnt<<2) + 1);
-		memset(sub_val[j].str, 0, (origin_sub[j].pattern.cnt<<2) + 1);
+                sub_val[j].str = SCRIPT_MALLOC((origin_sub[j].pattern.cnt<<2) + 1);
+		//memset(sub_val[j].str, 0, (origin_sub[j].pattern.cnt<<2) + 1);
                 memcpy(sub_val[j].str, (char *)((unsigned int)script_hdr + (origin_sub[j].offset<<2)), origin_sub[j].pattern.cnt<<2);
                 sub_key[j].type = SCIRPT_ITEM_VALUE_TYPE_STR;
             } else if(origin_sub[j].pattern.type == SCIRPT_PARSER_VALUE_TYPE_GPIO_WORD) {
@@ -542,22 +551,22 @@ err_out:
             if(main_key->subkey_val) {
                 for(j=0; j<origin_main[i].sub_cnt; j++) {
                     if(main_key->subkey[j].type == SCIRPT_ITEM_VALUE_TYPE_STR) {
-                        vfree(main_key->subkey_val[j].str);
+                        SCRIPT_FREE(main_key->subkey_val[j].str);
                     }
                 }
 
-                vfree(main_key->subkey_val);
+                SCRIPT_FREE(main_key->subkey_val);
             }
             if(main_key->subkey) {
-                vfree(main_key->subkey);
+                SCRIPT_FREE(main_key->subkey);
             }
         }
 
-        vfree(g_script);
+        SCRIPT_FREE(g_script);
         g_script = 0;
     }
 
     return -1;
 }
-fs_initcall(script_init);
+core_initcall(script_init);
 
