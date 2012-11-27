@@ -643,6 +643,9 @@ static int portpm_suspend(struct device *dev)
 static int portpm_resume(struct device *dev)
 {
     printk("portpm_resume\n");
+    cnt_1a = BOUNCE_THRESHOLD;
+    cnt_500ma = BOUNCE_THRESHOLD;
+    cnt_on = BOUNCE_THRESHOLD;
     thread_suspend_flag = 0;
     return 0;
 }
