@@ -258,8 +258,8 @@ u32 sw_gpio_setpull(u32 gpio, u32 val)
 	struct aw_gpio_chip *pchip = NULL;
 
 	if(GPIO_PULL_DEFAULT == val) {
-		printk("%s err: line %d, not need to set, gpio %d\n", __func__, __LINE__, gpio);
-		return __LINE__;
+		PIO_INF("%s err: line %d, not need to set, gpio %d\n", __func__, __LINE__, gpio);
+		return 0;
 	}
 	pchip = gpio_to_aw_gpiochip(gpio);
 	if(NULL == pchip || NULL == pchip->cfg || NULL == pchip->cfg->set_pull) {
@@ -324,8 +324,8 @@ u32 sw_gpio_setdrvlevel(u32 gpio, u32 val)
 	struct aw_gpio_chip *pchip = NULL;
 
 	if(GPIO_DRVLVL_DEFAULT == val) {
-		printk("%s err: line %d, not need to set, gpio %d\n", __func__, __LINE__, gpio);
-		return __LINE__;
+		PIO_INF("%s err: line %d, not need to set, gpio %d\n", __func__, __LINE__, gpio);
+		return 0;
 	}
 	pchip = gpio_to_aw_gpiochip(gpio);
 	if(NULL == pchip || NULL == pchip->cfg || NULL == pchip->cfg->set_drvlevel) {
