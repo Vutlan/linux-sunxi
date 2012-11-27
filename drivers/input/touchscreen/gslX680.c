@@ -182,8 +182,8 @@ static u16 y_new = 0;
 
 ///////////////////////////////////////////////
 //specific tp related macro: need be configured for specific tp
-#define CTP_IRQ_NO			(GPIOA(3))
 
+#define CTP_IRQ_NUMBER                  (config_info.irq_gpio_number)
 #define CTP_IRQ_MODE			(TRIG_EDGE_NEGATIVE)
 #define CTP_NAME			GSLX680_I2C_NAME
 #define TS_RESET_LOW_PERIOD		(15)
@@ -208,37 +208,6 @@ extern struct ctp_config_info config_info;
 /* Addresses to scan */
 static const unsigned short normal_i2c[2] = {0x40,I2C_CLIENT_END};
 
-
-//Function as i2c_master_send, and return 1 if operation is successful. 
-static int i2c_write_bytes(struct i2c_client *client, uint8_t *data, uint16_t len)
-{
-	struct i2c_msg msg;
-	int ret=-1;
-	
-	msg.flags = !I2C_M_RD;
-	msg.addr = client->addr;
-	msg.len = len;
-	msg.buf = data;		
-	
-	ret=i2c_transfer(client->adapter, &msg,1);
-	return ret;
-}
-static bool i2c_test(struct i2c_client * client)
-{
-	int ret, retry;
-	uint8_t test_data[1] = { 0 };	//only write a data address.
-	
-	for(retry=0; retry < 2; retry++)
-	{
-		ret =i2c_write_bytes(client, test_data, 1);	//Test i2c.
-		if (ret == 1)
-			break;
-		msleep(5);
-	}
-	
-	return ret==1 ? true : false;
-}
-
 static int ctp_detect(struct i2c_client *client, struct i2c_board_info *info)
 {
 	struct i2c_adapter *adapter = client->adapter;
@@ -249,7 +218,7 @@ static int ctp_detect(struct i2c_client *client, struct i2c_board_info *info)
     
 	if(twi_id == adapter->nr){
                 pr_info("%s: addr= %x\n",__func__,client->addr);
-                ret = i2c_test(client);
+                ret = ctp_i2c_test(client);
                 if(!ret){
         		pr_info("%s:I2C connection might be something wrong \n",__func__);
         		return -ENODEV;

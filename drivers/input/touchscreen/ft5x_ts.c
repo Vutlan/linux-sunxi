@@ -52,7 +52,6 @@
 #define FOR_TSLIB_TEST
 //#define TOUCH_KEY_SUPPORT
 #ifdef TOUCH_KEY_SUPPORT
-//#define TOUCH_KEY_LIGHT_SUPPORT
 #define TOUCH_KEY_FOR_EVB13
 //#define TOUCH_KEY_FOR_ANGDA
 #ifdef TOUCH_KEY_FOR_ANGDA
@@ -88,15 +87,13 @@ static DEFINE_SPINLOCK(i2c_dev_list_lock);
 #define FT5X_NAME	"ft5x_ts"
 
 static struct i2c_client *this_client;
-#ifdef TOUCH_KEY_LIGHT_SUPPORT
-static int gpio_light_hdle = 0;
-#define DEBUG_LIGHT_INFO  0x80
-#endif
+
 #ifdef TOUCH_KEY_SUPPORT
 static int key_tp  = 0;
 static int key_val = 0;
 #endif
 
+#define CTP_IRQ_NUMBER                  (config_info.irq_gpio_number)
 #define CTP_IRQ_MODE			(TRIG_EDGE_NEGATIVE)
 #define CTP_NAME			 FT5X_NAME
 #define SCREEN_MAX_X			(screen_max_x)
@@ -971,14 +968,7 @@ static int ft5x_read_data(void)
 #ifdef TOUCH_KEY_LIGHT_SUPPORT
 static void ft5x_lighting(void)
 {
-	if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_light_hdle, 1, "ctp_light")){
-		dprintk(DEBUG_LIGHT_INFO,"ft5x_ts_light: err when operate gpio. \n");
-	}    
-	msleep(15);
-	if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_light_hdle, 0, "ctp_light")){
-		dprintk(DEBUG_LIGHT_INFO,"ft5x_ts_light: err when operate gpio. \n");
-	}         
-
+        ctp_key_light(1,15);
 	return;
 }
 #endif
@@ -1167,14 +1157,19 @@ static void ft5x_ts_suspend(struct early_suspend *handler)
 {
     dprintk(DEBUG_SUSPEND,"==ft5x_ts_suspend=\n");
     dprintk(DEBUG_SUSPEND,"ft5x_ts_suspend: write FT5X0X_REG_PMODE .\n");
-    ft5x_set_reg(FT5X0X_REG_PMODE, PMODE_HIBERNATE);       
+    ft5x_set_reg(FT5X0X_REG_PMODE, PMODE_HIBERNATE);
+    sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,0);       
 }
 
 static void ft5x_ts_resume(struct early_suspend *handler)
 {
 	dprintk(DEBUG_SUSPEND,"==ft5x_ts_resume== \n");
-	ctp_reset(0,20);
+	sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,1);
+	if(STANDBY_WITH_POWER_OFF == standby_level){
+	        msleep(50);
+	}
 	ctp_wakeup(0,20);
+	
 }
 #endif  //CONFIG_HAS_EARLYSUSPEND
 
@@ -1210,9 +1205,6 @@ ft5x_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
 	this_client = client;
 	i2c_set_clientdata(client, ft5x_ts);
 
-#ifdef TOUCH_KEY_LIGHT_SUPPORT
-	gpio_light_hdle = gpio_request_ex("ctp_para", "ctp_light");
-#endif
 
 #ifdef CONFIG_SUPPORT_FTS_CTP_UPG
 	fts_ctpm_fw_upgrade_with_i_file();

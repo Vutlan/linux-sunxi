@@ -86,12 +86,11 @@ static struct workqueue_struct *goodix_wq;
 #define X_DIFF (800)
 
 static u32 ctp_debug = DEBUG_INIT;
-//by xzd
+
 #define dprintk(level_mask,fmt,arg...)    if(unlikely(ctp_debug & level_mask)) \
         printk("***CTP***"fmt, ## arg)
 
-//by xzd
-//#define dprintk(level_mask,fmt,arg...) printk("***CTP***"fmt, ## arg)
+#define CTP_IRQ_NUMBER                  (config_info.irq_gpio_number)
 #define CTP_IRQ_MODE			(TRIG_EDGE_NEGATIVE)
 #define CTP_NAME			GOODIX_I2C_NAME
 #define TS_RESET_LOW_PERIOD		(15)
@@ -114,6 +113,7 @@ static int revert_x_flag = 0;
 static int revert_y_flag = 0;
 static int exchange_x_y_flag = 0;
 static u32 int_handle = 0;
+
 
 static __u32 twi_id = 0;
 
@@ -661,21 +661,6 @@ exit_work_func:
         return;
 }
 
-//static irqreturn_t goodix_ts_irq_handler(int irq, void *dev_id)
-//{
-//	struct goodix_ts_data *ts = dev_id;	
-//	//int reg_val;	
-//	dprintk(DEBUG_X_Y_INFO,"==========------TS Interrupt-----============\n"); 	
-//        if(!ctp_judge_int_occur(config_info.irq_number)){
-//		ctp_clear_penirq(config_info.irq_number);
-//		queue_work(goodix_wq, &ts->work);
-//
-//	}else{
-//	    return IRQ_NONE;
-//	}
-//	return IRQ_HANDLED;
-//}
-
 static u32 goodix_ts_irq_hanbler(struct goodix_ts_data *ts)
 {
         dprintk(DEBUG_INT_INFO,"==========------TS Interrupt-----============\n");
@@ -696,63 +681,35 @@ static int goodix_ts_power(struct goodix_ts_data * ts, int on)
                 ret = i2c_write_bytes(ts->client, i2c_control_buf1, 3);
                 i2c_end_cmd(ts);
                 sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,0);
-                return ret;
-        
+                return ret;        
         case 1:
-//        GPIO_DIRECTION_OUTPUT(INT_PORT, 0);
-//        GPIO_SET_VALUE(INT_PORT, 0);
-//        msleep(1);
-//        GPIO_SET_VALUE(INT_PORT, 1);
-//        msleep(1);
-//        GPIO_DIRECTION_INPUT(INT_PORT);
-//        GPIO_PULL_UPDOWN(INT_PORT, 0);
-
-//
-//          if(gpio_int_hdle){
-//		sw_gpio_release(gpio_int_hdle, 2);
-//	  }
-//	gpio_int_hdle = sw_gpio_request_ex("ctp_para", "ctp_int_port");
-//	if(!gpio_int_hdle){
-//		pr_info("request tp_int_port failed. \n");
-//	}
-//
-//    	  sw_gpio_set_one_pin_io_status(gpio_int_hdle, 1, "ctp_int_port");
-//    	  sw_gpio_write_one_pin_value(gpio_int_hdle, 0, "ctp_int_port");
-//    	  msleep(100);
-//    	  sw_gpio_set_one_pin_io_status(gpio_int_hdle, 1, "ctp_int_port");
-//	  sw_gpio_write_one_pin_value(gpio_int_hdle, 1, "ctp_int_port");
-//		  msleep(100);
-//		  sw_gpio_set_one_pin_io_status(gpio_int_hdle, 1, "ctp_int_port");
-//		  sw_gpio_write_one_pin_value(gpio_int_hdle, 0, "ctp_int_port"); 
-//		  
-////		  gpio_set_one_pin_io_status(gpio_int_hdle, 0, "ctp_int_port");
-//		  sw_gpio_set_one_pin_pull(gpio_int_hdle, 0, "ctp_int_port");
-//		  
-////		  ret = ctp_ops.set_irq_mode("ctp_para", "ctp_int_port", CTP_IRQ_NO,CTP_IRQ_MODE);
-////			if(0 != ret){
-////				printk("%s:ctp_ops.set_irq_mode err. \n", __func__);
-////				return ret;
-////			}
 
                 sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,1);               
                 ctp_wakeup(0,100);
-#ifdef TEST_I2C_TRANSFER
+                
+                if(STANDBY_WITH_POWER_OFF == standby_level){
+                        sw_gpio_irq_free(int_handle);
+                        int_handle = sw_gpio_irq_request(CTP_IRQ_NUMBER,CTP_IRQ_MODE,(peint_handle)goodix_ts_irq_hanbler,ts);
+       	                if (!int_handle) {
+		                pr_info( "goodix_probe: request irq failed\n");
+		                return -1;
+	                }        
+                }
+                
                 ret = goodix_i2c_test(ts->client);
                 if(!ret){
         	        printk("Warnning: I2C connection might be something wrong!\n");
-        	        ret = -1;
-        	        return ret;
+        	        return -1;
                 }
                 pr_info("===== goodix i2c test ok=======\n");
-#endif
         
                 ret = goodix_init_panel(ts);
                 if( ret != 1){
-                        ret =  -1;
-                        return ret;
+                        printk("init panel fail!\n");
+                        return -1;
                 }
                 ret = i2c_write_bytes(ts->client, i2c_control_buf2, 3);
-                 msleep(10);
+                msleep(10);
                 return success;
         
          default:
@@ -780,7 +737,7 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 {
 	struct goodix_ts_data *ts;
 	int ret = 0;
-        //int err = -1;
+//        int err = -1;
 	printk("=============GT82x Probe==================\n");
         
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)){
@@ -797,17 +754,6 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 		
 	
 	i2c_connect_client = client;				//used by Guitar Updating.
-
-//#ifdef TEST_I2C_TRANSFER
-//	//TODO: used to set speed of i2c transfer. Should be change as your paltform.
-//	printk("Begin goodix i2c test\n");
-//	ret = goodix_i2c_test(client);
-//	if(!ret){
-//		pr_info("Warnning: I2C connection might be something wrong!\n");
-//		goto err_i2c_failed;
-//	}
-//	printk("===== goodix i2c test ok=======\n");
-//#endif
 	
 	INIT_WORK(&ts->work, goodix_ts_work_func);
 	ts->client = client;
@@ -867,15 +813,12 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 	}
 	flush_workqueue(goodix_wq);	
 	ts->power = goodix_ts_power;
-//	gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "ctp_wakeup");
-//        msleep(100);
-//        gpio_write_one_pin_value(gpio_wakeup_hdle, 1, "ctp_wakeup");
-//        msleep(100);
-         ctp_wakeup(0,100);
+        ctp_wakeup(0,100);
 		
 
 	ret = goodix_init_panel(ts);
 	if(!ret) {
+	        printk("init panel fail!\n");
 		goto err_init_godix_ts;
 	}else {
 	        printk("init panel succeed!\n");	
@@ -887,25 +830,12 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 	ts->early_suspend.resume	= goodix_ts_resume;	
 	register_early_suspend(&ts->early_suspend);
 #endif
-
-//	err = ctp_set_irq_mode("ctp_para", "ctp_int_port",  CTP_IRQ_MODE);
-//	if(0 != err){
-//		printk("%s:ctp_ops.set_irq_mode err. \n", __func__);
-//	}
-//	
-//	writel(0x77777777,0xf1c20904);
-//	err =  request_irq(62, goodix_ts_irq_handler, IRQF_TRIGGER_RISING | IRQF_SHARED, client->name, ts);
-//	writel(0x77777777,0xf1c20904);
-//	if (err < 0) {
-//		pr_info( "goodix_probe: request irq failed\n");
-//		goto exit_irq_request_failed;
-//	}
-
         int_handle = sw_gpio_irq_request(CTP_IRQ_NUMBER,CTP_IRQ_MODE,(peint_handle)goodix_ts_irq_hanbler,ts);
        	if (!int_handle) {
 		pr_info( "goodix_probe: request irq failed\n");
 		goto exit_irq_request_failed;
 	}
+
 	printk("Read Goodix version\n");
 	goodix_ts_version(ts);
 		
