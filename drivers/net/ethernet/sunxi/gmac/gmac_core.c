@@ -35,6 +35,7 @@
 #include <linux/platform_device.h>
 #include <linux/clk.h>
 #include <linux/ctype.h>
+#include <linux/gpio.h>
 
 #include <mach/sys_config.h>
 #include <mach/gpio.h>
@@ -1674,12 +1675,12 @@ __setup("mac_addr=", set_mac_addr);
 
 static int __init gmac_init(void)
 {
-	int gmac_used = 0;
+	script_item_u gmac_used;
 
-	if (SCRIPT_PARSER_OK != script_parser_fetch("gmac_para", "gmac_used", &gmac_used, 1))
+	if (SCIRPT_ITEM_VALUE_TYPE_INT != script_get_item("gmac_para", "gmac_used", &gmac_used))
 		printk(KERN_WARNING "[sunxi_gmac]: Script is failed!\n");
 
-	if (!gmac_used) {
+	if (!gmac_used.val) {
 		printk(KERN_WARNING "[sunxi_gmac]: The script config GMAC is not used!\n");
 		return 0;
 	}
@@ -1690,12 +1691,12 @@ static int __init gmac_init(void)
 
 static void __exit gmac_remove(void)
 {
-	int gmac_used = 0;
+	script_item_u gmac_used;
 
-	if (SCRIPT_PARSER_OK != script_parser_fetch("gmac_para", "gmac_used", &gmac_used, 1))
+	if (SCIRPT_ITEM_VALUE_TYPE_INT != script_get_item("gmac_para", "gmac_used", &gmac_used))
 		printk(KERN_WARNING "[sunxi_gmac]: Script is failed!\n");
 
-	if (!gmac_used) {
+	if (!gmac_used.val) {
 		printk(KERN_WARNING "[sunxi_gmac]: The script config GMAC is not used!\n");
 		return;
 	}

@@ -26,6 +26,7 @@
 #include <linux/phy.h>
 #include <linux/module.h>
 #include <linux/init.h>
+#include <mach/sys_config.h>
 
 #include "gmac_reg.h"
 #include "gmac_desc.h"
@@ -130,7 +131,8 @@ struct gmac_priv {
 #ifndef CONFIG_GMAC_SCRIPT_SYS
 	void __iomem *gpiobase;
 #else
-	int gpio_hd;
+	int gpio_cnt;
+	script_item_u *gpio_hd;
 #endif
 #ifndef CONFIG_GMAC_CLK_SYS
 	void __iomem *clkbase;
