@@ -921,18 +921,17 @@ msg_null:
 static irqreturn_t sun6i_i2c_handler(int this_irq, void * dev_id)
 {
 	struct sun6i_i2c *i2c = (struct sun6i_i2c *)dev_id;
-	int ret = SUN6I_I2C_FAIL;
 
 	if (!twi_query_irq_flag(i2c->base_addr)) {
 		I2C_ERR("unknown interrupt!");
-		return ret;
+		return IRQ_NONE;
 	}
 
 	/* disable irq */
 	twi_disable_irq(i2c->base_addr);
 
 	/* twi core process */
-	ret = sun6i_i2c_core_process(i2c);
+	sun6i_i2c_core_process(i2c);
 
 	/* enable irq only when twi is transfering, otherwise disable irq */
 	if (i2c->status != I2C_XFER_IDLE) {
