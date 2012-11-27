@@ -51,12 +51,12 @@ typedef struct sw_hcd_io{
 	__hdle usb_bsp_hdle;				/* usb bsp handle 		*/
 
 	__u32 clk_is_open;					/* is usb clock open? 	*/
-	struct clk	*sie_clk;				/* SIE clock handle 	*/
-	struct clk	*phy_clk;				/* PHY gate 			*/
-	struct clk	*phy0_clk;				/* PHY reset 			*/
+	struct clk	*ahb_otg;				/* ahb clock handle 	*/
+	struct clk	*mod_usbotg;			/* mod_usb otg clock handle 	*/
+	struct clk	*mod_usbphy;			/* PHY0 clock handle 	*/
 
 	unsigned Drv_vbus_Handle;
-	user_gpio_set_t drv_vbus_gpio_set;
+	script_item_u drv_vbus_gpio_set;
 	__u32 host_init_state;				/* usb 控制器的初始化状态。0 : 不工作. 1 : 工作 */
 	__u32 usb_enable;
 }sw_hcd_io_t;

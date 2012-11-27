@@ -21,8 +21,7 @@
 */
 
 #include  "usbc_i.h"
-
-
+#include <mach/platform.h>
 /*
  ***************************************************************************
  *
@@ -423,15 +422,15 @@ static __u32 USBC_Phy_GetCsr(__u32 usbc_no)
 
 	switch(usbc_no){
 		case 0:
-			val = SW_VA_USB0_IO_BASE + 0x404;
+			val = AW_USB_OTG_BASE + 0x404;
 		break;
 
 		case 1:
-			val = SW_VA_USB0_IO_BASE + 0x404;
+			val = AW_USB_OTG_BASE + 0x404;
 		break;
 
 		case 2:
-			val = SW_VA_USB0_IO_BASE + 0x404;
+			val = AW_USB_OTG_BASE + 0x404;
 		break;
 
 		default:

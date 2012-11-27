@@ -36,6 +36,7 @@
 #include <mach/sys_config.h>
 #include <mach/gpio.h>
 #include <linux/clk.h>
+#include <linux/gpio.h>
 
 #include  <mach/clock.h>
 #include "sw_hci_sun6i.h"
@@ -87,114 +88,106 @@ static struct sw_usb_3g g_usb_3g;
 */
 static s32 usb_3g_get_config(struct sw_usb_3g *usb_3g)
 {
-    __s32 ret = 0;
+    script_item_value_type_e type = 0;
+    script_item_u item_temp;
 
     /* 3g_used */
-	ret = script_parser_fetch("3g_para",
-	                          "3g_used",
-	                          (int *)&usb_3g->used,
-	                          64);
-	if(ret != 0){
+	type = script_get_item("3g_para", "3g_used", &item_temp);
+	if(type == SCIRPT_ITEM_VALUE_TYPE_INT){
+        usb_3g->used = item_temp.val;
+	}else{
 		usb_3g_err("ERR: get 3g_used failed\n");
-		//return -1;
+        usb_3g->used = 0;
 	}
 
     /* 3g_usbc_num */
-	ret = script_parser_fetch("3g_para",
-	                          "3g_usbc_num",
-	                          (int *)&usb_3g->usbc_no,
-	                          64);
-	if(ret != 0){
+	type = script_get_item("3g_para", "3g_usbc_num", &item_temp);
+	if(type == SCIRPT_ITEM_VALUE_TYPE_INT){
+        usb_3g->usbc_no = item_temp.val;
+	}else{
 		usb_3g_err("ERR: get 3g_usbc_num failed\n");
-		//return -1;
+        usb_3g->usbc_no = 0;
 	}
 
     /* 3g_usbc_type */
-	ret = script_parser_fetch("3g_para",
-	                          "3g_usbc_type",
-	                          (int *)&usb_3g->usbc_type,
-	                          64);
-	if(ret != 0){
+	type = script_get_item("3g_para", "3g_usbc_type", &item_temp);
+	if(type == SCIRPT_ITEM_VALUE_TYPE_INT){
+        usb_3g->usbc_type = item_temp.val;
+	}else{
 		usb_3g_err("ERR: get 3g_usbc_type failed\n");
-		//return -1;
+        usb_3g->usbc_type = 0;
 	}
 
     /* 3g_uart_num */
-	ret = script_parser_fetch("3g_para",
-	                          "3g_uart_num",
-	                          (int *)&usb_3g->uart_no,
-	                          64);
-	if(ret != 0){
+	type = script_get_item("3g_para", "3g_uart_num", &item_temp);
+	if(type == SCIRPT_ITEM_VALUE_TYPE_INT){
+        usb_3g->uart_no = item_temp.val;
+	}else{
 		usb_3g_err("ERR: get 3g_uart_num failed\n");
-		//return -1;
+		usb_3g->uart_no = 0;
 	}
 
-    /* 3g_vbat_gpio */
-	ret = script_parser_fetch("3g_para",
-	                          "3g_vbat_gpio",
-	                          (int *)&usb_3g->vbat_set,
-	                          64);
-	if(ret != 0){
-		usb_3g_err("ERR: get 3g_vbat_gpio failed\n");
-		//return -1;
-	}
-
-	if(usb_3g->vbat_set.port){
-	    usb_3g->vbat_valid = 1;
+    /* bb_vbat */
+	type = script_get_item("3g_para", "bb_vbat", &usb_3g->bb_vbat);
+	if(type == SCIRPT_ITEM_VALUE_TYPE_PIO){
+	    usb_3g->bb_vbat_valid = 1;
 	}else{
-	    usb_3g_err("ERR: 3g_vbat_gpio is invalid\n");
-	    usb_3g->vbat_valid = 0;
+		usb_3g_err("ERR: get bb_vbat failed\n");
+	    usb_3g->bb_vbat_valid = 0;
 	}
 
-    /* 3g_power_on_off_gpio */
-	ret = script_parser_fetch("3g_para",
-	                          "3g_power_on_off_gpio",
-	                          (int *)&usb_3g->power_on_off_set,
-	                          64);
-	if(ret != 0){
-		usb_3g_err("ERR: get 3g_power_on_off_gpio failed\n");
-		//return -1;
-	}
-
-	if(usb_3g->power_on_off_set.port){
-	    usb_3g->power_on_off_valid = 1;
+    /* bb_pwr_on */
+	type = script_get_item("3g_para", "bb_pwr_on", &usb_3g->bb_pwr_on);
+	if(type == SCIRPT_ITEM_VALUE_TYPE_PIO){
+	    usb_3g->bb_pwr_on_valid = 1;
 	}else{
-	    usb_3g_err("ERR: 3g_power_on_off_gpio is invalid\n");
-	    usb_3g->power_on_off_valid  = 0;
+		usb_3g_err("ERR: get bb_pwr_on failed\n");
+	    usb_3g->bb_pwr_on_valid  = 0;
 	}
 
-    /* 3g_reset_gpio */
-	ret = script_parser_fetch("3g_para",
-	                          "3g_reset_gpio",
-	                          (int *)&usb_3g->reset_set,
-	                          64);
-	if(ret != 0){
-		usb_3g_err("ERR: get 3g_reset_gpio failed\n");
-		//return -1;
-	}
-
-	if(usb_3g->reset_set.port){
-	    usb_3g->reset_valid = 1;
+    /* bb_rst */
+	type = script_get_item("3g_para", "bb_rst", &usb_3g->bb_rst);
+	if(type == SCIRPT_ITEM_VALUE_TYPE_PIO){
+	    usb_3g->bb_rst_valid = 1;
 	}else{
-	    usb_3g_err("ERR: 3g_reset_gpio is invalid\n");
-	    usb_3g->reset_valid  = 0;
+		usb_3g_err("ERR: get bb_rst failed\n");
+	    usb_3g->bb_rst_valid  = 0;
 	}
 
-    /* 3g_wakeup_in_gpio */
-	ret = script_parser_fetch("3g_para",
-	                          "3g_wakeup_in_gpio",
-	                          (int *)&usb_3g->wakeup_in_set,
-	                          64);
-	if(ret != 0){
-		usb_3g_err("ERR: get 3g_wakeup_in_gpio failed\n");
-		//return -1;
-	}
-
-	if(usb_3g->wakeup_in_set.port){
-	    usb_3g->wakeup_in_valid = 1;
+    /* bb_rf_dis */
+	type = script_get_item("3g_para", "bb_rf_dis", &usb_3g->bb_rf_dis);
+	if(type == SCIRPT_ITEM_VALUE_TYPE_PIO){
+	    usb_3g->bb_rf_dis_valid = 1;
 	}else{
-	    usb_3g_err("ERR: 3g_wakeup_in_gpio is invalid\n");
-	    usb_3g->wakeup_in_valid  = 0;
+		usb_3g_err("ERR: get bb_rf_dis failed\n");
+	    usb_3g->bb_rf_dis_valid  = 0;
+	}
+
+    /* bb_host_wake */
+	type = script_get_item("3g_para", "bb_host_wake", &usb_3g->bb_host_wake);
+	if(type == SCIRPT_ITEM_VALUE_TYPE_PIO){
+	    usb_3g->bb_host_wake_valid = 1;
+	}else{
+		usb_3g_err("ERR: get bb_host_wake failed\n");
+	    usb_3g->bb_host_wake_valid  = 0;
+	}
+
+    /* bb_wake */
+	type = script_get_item("3g_para", "bb_wake", &usb_3g->bb_wake);
+	if(type == SCIRPT_ITEM_VALUE_TYPE_PIO){
+	    usb_3g->bb_wake_valid = 1;
+	}else{
+		usb_3g_err("ERR: get bb_wake failed\n");
+	    usb_3g->bb_wake_valid  = 0;
+	}
+
+    /* bb_on */
+	type = script_get_item("3g_para", "bb_on", &usb_3g->bb_on);
+	if(type == SCIRPT_ITEM_VALUE_TYPE_PIO){
+	    usb_3g->bb_on_valid = 1;
+	}else{
+		usb_3g_err("ERR: get bb_on failed\n");
+	    usb_3g->bb_on_valid  = 0;
 	}
 
     return 0;
@@ -220,81 +213,83 @@ static s32 usb_3g_get_config(struct sw_usb_3g *usb_3g)
 */
 static s32 usb_3g_pin_init(struct sw_usb_3g *usb_3g)
 {
+    int ret = 0;
+    unsigned long flags = 0;
 
     //---------------------------------
-    //  3g vbat
+    //  bb_vbat
     //---------------------------------
-    if(usb_3g->vbat_valid){
-		usb_3g->vbat_hd = sw_gpio_request(&(usb_3g->vbat_set), 1);
-		if(usb_3g->vbat_hd == 0){
-			usb_3g_err("ERR: gpio_request vbat_set failed\n");
-			return 0;
-		}
+    if(usb_3g->bb_vbat_valid){
+        ret = gpio_request(usb_3g->bb_vbat.gpio.gpio, "bb_vbat");
+        if(ret != 0){
+            usb_3g_err("gpio_request bb_vbat failed\n");
+            usb_3g->bb_vbat_valid = 0;
+        }else{
+            if(usb_3g->bb_vbat.gpio.data){
+                flags = GPIOF_DIR_OUT | GPIOF_INIT_HIGH;
+            }else{
+                flags = GPIOF_DIR_OUT | GPIOF_INIT_LOW;
+            }
 
-		/* set config, ouput */
-		sw_gpio_set_one_pin_io_status(usb_3g->vbat_hd, 1, NULL);
-
-		/* reserved is pull down */
-		sw_gpio_set_one_pin_pull(usb_3g->vbat_hd, 2, NULL);
-    }else{
-        usb_3g->vbat_hd = 0;
+            gpio_request_one(usb_3g->bb_vbat.gpio.gpio, flags, NULL);
+        }
     }
 
     //---------------------------------
-    //  3g power_on_off
+    //  bb_pwr_on
     //---------------------------------
-    if(usb_3g->power_on_off_valid){
-		usb_3g->power_on_off_hd = sw_gpio_request(&(usb_3g->power_on_off_set), 1);
-		if(usb_3g->power_on_off_hd == 0){
-			usb_3g_err("ERR: sw_gpio_request power_on_off_set failed\n");
-			return 0;
-		}
+    if(usb_3g->bb_pwr_on_valid){
+        ret = gpio_request(usb_3g->bb_pwr_on.gpio.gpio, "bb_pwr_on");
+        if(ret != 0){
+            usb_3g_err("gpio_request bb_pwr_on failed\n");
+            usb_3g->bb_pwr_on_valid = 0;
+        }else{
+            if(usb_3g->bb_pwr_on.gpio.data){
+                flags = GPIOF_DIR_OUT | GPIOF_INIT_HIGH;
+            }else{
+                flags = GPIOF_DIR_OUT | GPIOF_INIT_LOW;
+            }
 
-		/* set config, ouput */
-		sw_gpio_set_one_pin_io_status(usb_3g->power_on_off_hd, 1, NULL);
-
-		/* reserved is pull up */
-		sw_gpio_set_one_pin_pull(usb_3g->power_on_off_hd, 1, NULL);
-    }else{
-        usb_3g->power_on_off_hd = 0;
+            gpio_request_one(usb_3g->bb_pwr_on.gpio.gpio, flags, NULL);
+        }
     }
 
     //---------------------------------
-    //  3g reset
+    //  bb_rst
     //---------------------------------
-    if(usb_3g->reset_valid){
-		usb_3g->reset_hd = sw_gpio_request(&(usb_3g->reset_set), 1);
-		if(usb_3g->reset_hd == 0){
-			usb_3g_err("ERR: sw_gpio_request reset_set failed\n");
-			return 0;
-		}
+    if(usb_3g->bb_rst_valid){
+        ret = gpio_request(usb_3g->bb_rst.gpio.gpio, "bb_rst");
+        if(ret != 0){
+            usb_3g_err("gpio_request bb_rst failed\n");
+            usb_3g->bb_rst_valid = 0;
+        }else{
+            if(usb_3g->bb_rst.gpio.data){
+                flags = GPIOF_DIR_OUT | GPIOF_INIT_HIGH;
+            }else{
+                flags = GPIOF_DIR_OUT | GPIOF_INIT_LOW;
+            }
 
-		/* set config, ouput */
-		sw_gpio_set_one_pin_io_status(usb_3g->reset_hd, 1, NULL);
-
-		/* reserved is pull down */
-		sw_gpio_set_one_pin_pull(usb_3g->reset_hd, 2, NULL);
-    }else{
-        usb_3g->reset_hd = 0;
+            gpio_request_one(usb_3g->bb_rst.gpio.gpio, flags, NULL);
+        }
     }
 
     //---------------------------------
-    //  3g wakeup_out
+    //  bb_wake
     //---------------------------------
-    if(usb_3g->wakeup_in_valid){
-		usb_3g->wakeup_in_hd = sw_gpio_request(&(usb_3g->wakeup_in_set), 1);
-		if(usb_3g->wakeup_in_hd == 0){
-			usb_3g_err("ERR: sw_gpio_request wakeup_in_set failed\n");
-			return 0;
-		}
+    if(usb_3g->bb_wake_valid){
+        ret = gpio_request(usb_3g->bb_wake.gpio.gpio, "bb_wake");
+        if(ret != 0){
+            usb_3g_err("gpio_request bb_wake failed\n");
+            usb_3g->bb_wake_valid = 0;
+        }else{
+            if(usb_3g->bb_wake.gpio.data){
+                flags = GPIOF_DIR_OUT | GPIOF_INIT_HIGH;
+            }else{
+                flags = GPIOF_DIR_OUT | GPIOF_INIT_LOW;
+            }
 
-		/* set config, ouput */
-		sw_gpio_set_one_pin_io_status(usb_3g->wakeup_in_hd, 1, NULL);
-
-		/* reserved is pull down */
-		sw_gpio_set_one_pin_pull(usb_3g->wakeup_in_hd, 2, NULL);
-    }else{
-        usb_3g->wakeup_in_hd = 0;
+            gpio_request_one(usb_3g->bb_wake.gpio.gpio, flags, NULL);
+        }
     }
 
     return 0;
@@ -320,25 +315,36 @@ static s32 usb_3g_pin_init(struct sw_usb_3g *usb_3g)
 */
 static s32 usb_3g_pin_exit(struct sw_usb_3g *usb_3g)
 {
-
-    if(usb_3g->vbat_hd){
-        sw_gpio_release(usb_3g->vbat_hd, 0);
-        usb_3g->vbat_hd = 0;
+    //---------------------------------
+    //  bb_vbat
+    //---------------------------------
+    if(usb_3g->bb_vbat_valid){
+        gpio_free(usb_3g->bb_vbat.gpio.gpio);
+        usb_3g->bb_vbat_valid = 0;
     }
 
-    if(usb_3g->power_on_off_hd){
-        sw_gpio_release(usb_3g->power_on_off_hd, 0);
-        usb_3g->power_on_off_hd = 0;
+    //---------------------------------
+    //  bb_pwr_on
+    //---------------------------------
+    if(usb_3g->bb_pwr_on_valid){
+        gpio_free(usb_3g->bb_pwr_on.gpio.gpio);
+        usb_3g->bb_pwr_on_valid = 0;
     }
 
-    if(usb_3g->reset_hd){
-        sw_gpio_release(usb_3g->reset_hd, 0);
-        usb_3g->reset_hd = 0;
+    //---------------------------------
+    //  bb_rst
+    //---------------------------------
+    if(usb_3g->bb_rst_valid){
+        gpio_free(usb_3g->bb_rst.gpio.gpio);
+        usb_3g->bb_rst_valid = 0;
     }
 
-    if(usb_3g->wakeup_in_hd){
-        sw_gpio_release(usb_3g->wakeup_in_hd, 0);
-        usb_3g->wakeup_in_hd = 0;
+    //---------------------------------
+    //  bb_wake
+    //---------------------------------
+    if(usb_3g->bb_wake_valid){
+        gpio_free(usb_3g->bb_wake.gpio.gpio);
+        usb_3g->bb_wake_valid = 0;
     }
 
     return 0;
@@ -366,18 +372,6 @@ static s32 usb_3g_pin_exit(struct sw_usb_3g *usb_3g)
 */
 static void usb_3g_wakeup_irq_enable(void)
 {
-    __u32 gpio_base = SW_VA_PORTC_IO_BASE;
-    __u32 reg_val = 0;
-	unsigned long flags = 0;
-    struct sw_usb_3g *usb_3g = &g_usb_3g;
-
-    /* interrupt enable */
-	spin_lock_irqsave(&usb_3g->lock, flags);
-    reg_val = USBC_Readl(gpio_base + 0x210);
-    reg_val |= (1 << 2);
-    USBC_Writel(reg_val, (gpio_base + 0x210));
-	spin_unlock_irqrestore(&usb_3g->lock, flags);
-
     return;
 }
 
@@ -401,18 +395,6 @@ static void usb_3g_wakeup_irq_enable(void)
 */
 static void usb_3g_wakeup_irq_disable(void)
 {
-    __u32 gpio_base = SW_VA_PORTC_IO_BASE;
-    __u32 reg_val = 0;
-	unsigned long flags = 0;
-    struct sw_usb_3g *usb_3g = &g_usb_3g;
-
-    /* interrupt disable */
-	spin_lock_irqsave(&usb_3g->lock, flags);
-    reg_val = USBC_Readl(gpio_base + 0x210);
-    reg_val &= ~(1 << 2);
-    USBC_Writel(reg_val, (gpio_base + 0x210));
-	spin_unlock_irqrestore(&usb_3g->lock, flags);
-
     return;
 }
 
@@ -436,18 +418,6 @@ static void usb_3g_wakeup_irq_disable(void)
 */
 static void usb_3g_wakeup_irq_clear(void)
 {
-    __u32 gpio_base = SW_VA_PORTC_IO_BASE;
-    __u32 reg_val = 0;
-	unsigned long flags = 0;
-    struct sw_usb_3g *usb_3g = &g_usb_3g;
-
-    /* clear interrupt pending */
-	spin_lock_irqsave(&usb_3g->lock, flags);
-    reg_val = USBC_Readl(gpio_base + 0x214);
-    reg_val |= (1 << 2);
-    USBC_Writel(reg_val, (gpio_base + 0x214));
-	spin_unlock_irqrestore(&usb_3g->lock, flags);
-
     return;
 }
 
@@ -471,33 +441,6 @@ static void usb_3g_wakeup_irq_clear(void)
 */
 static int usb_3g_wakeup_irq_config(void)
 {
-    __u32 gpio_base = SW_VA_PORTC_IO_BASE;
-    __u32 reg_val = 0;
-	unsigned long flags = 0;
-    struct sw_usb_3g *usb_3g = &g_usb_3g;
-
-	spin_lock_irqsave(&usb_3g->lock, flags);
-
-    /* pull up, PH2 */
-    reg_val = USBC_Readl(gpio_base + 0x118);
-    reg_val &= ~(0x03 << 4);
-    reg_val |= (0x01 << 4);      //EINT2
-    USBC_Writel(reg_val, (gpio_base + 0x118));
-
-    /* set port configure register, PH2 */
-    reg_val = USBC_Readl(gpio_base + 0xFC);
-    reg_val &= ~(0x07 << 8);
-    reg_val |= (0x6 << 8);      //EINT2
-    USBC_Writel(reg_val, (gpio_base + 0xFC));
-
-    /* PIO interrupt configure register */
-    reg_val = USBC_Readl(gpio_base + 0x200);
-    reg_val &= ~(0x07 << 8);
-    reg_val |= (0x1 << 8);
-    USBC_Writel(reg_val, (gpio_base + 0x200));
-
-	spin_unlock_irqrestore(&usb_3g->lock, flags);
-
     return 0;
 }
 
@@ -521,25 +464,6 @@ static int usb_3g_wakeup_irq_config(void)
 */
 static int usb_3g_wakeup_irq_config_clear(void)
 {
-    __u32 gpio_base = SW_VA_PORTC_IO_BASE;
-    __u32 reg_val = 0;
-	unsigned long flags = 0;
-    struct sw_usb_3g *usb_3g = &g_usb_3g;
-
-	spin_lock_irqsave(&usb_3g->lock, flags);
-
-    /* set port configure register, PH2 */
-    reg_val = USBC_Readl(gpio_base + 0xFC);
-    reg_val &= ~(0x07 << 8);
-    USBC_Writel(reg_val, (gpio_base + 0xFC));
-
-    /* PIO interrupt configure register */
-    reg_val = USBC_Readl(gpio_base + 0x200);
-    reg_val &= ~(0x07 << 8);
-    USBC_Writel(reg_val, (gpio_base + 0x200));
-
-	spin_unlock_irqrestore(&usb_3g->lock, flags);
-
     return 0;
 }
 
@@ -593,15 +517,7 @@ static void usb_3g_wakeup_irq_work(struct work_struct *data)
 */
 static u32 is_usb_3g_wakeup_irq_pending(void)
 {
-    __u32 gpio_base = SW_VA_PORTC_IO_BASE;
-    __u32 reg_val = 0;
-    __u32 result = 0;
-
-    /* interrupt pending */
-    reg_val = USBC_Readl(gpio_base + 0x214);
-    result = (reg_val & (1 << 2)) ? 1 : 0;
-
-	return result;
+	return 0;
 }
 
 /*
@@ -624,18 +540,6 @@ static u32 is_usb_3g_wakeup_irq_pending(void)
 */
 static void usb_3g_wakeup_irq_clear_pending(void)
 {
-    __u32 gpio_base = SW_VA_PORTC_IO_BASE;
-    __u32 reg_val = 0;
-	unsigned long flags = 0;
-    struct sw_usb_3g *usb_3g = &g_usb_3g;
-
-    /* clear interrupt pending */
-    spin_lock_irqsave(&usb_3g->lock, flags);
-    reg_val = USBC_Readl(gpio_base + 0x214);
-    reg_val |= (1 << 2);
-    USBC_Writel(reg_val, (gpio_base + 0x214));
-    spin_unlock_irqrestore(&usb_3g->lock, flags);
-
     return ;
 }
 
@@ -659,15 +563,7 @@ static void usb_3g_wakeup_irq_clear_pending(void)
 */
 static u32 is_usb_3g_wakeup_irq_enable(void)
 {
-    __u32 gpio_base = SW_VA_PORTC_IO_BASE;
-    __u32 reg_val = 0;
-    __u32 result = 0;
-
-    /* interrupt pending */
-    reg_val = USBC_Readl(gpio_base + 0x210);
-    result = (reg_val & (1 << 2)) ? 1 : 0;
-
-    return result;
+    return 0;
 }
 
 /*
@@ -796,9 +692,9 @@ failed:
 */
 int usb_3g_wakeup_irq_exit(void)
 {
+#ifdef CONFIG_HAS_EARLYSUSPEND
 	struct sw_usb_3g *usb_3g = &g_usb_3g;
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
 	unregister_early_suspend(&usb_3g->early_suspend);
 #endif
 
@@ -865,18 +761,17 @@ EXPORT_SYMBOL(usb_3g_wakeup_irq_exit);
 */
 void usb_3g_vbat(struct sw_usb_3g *usb_3g, u32 on)
 {
-    if(!usb_3g->vbat_hd){
-        //usb_3g_err("err: drv_vbus_ext_Handle == NULL\n");
+    if(!usb_3g->bb_vbat_valid){
         return;
     }
 
     if(on){
-        usb_3g_dbg("Set USB usb_3g vBat on\n");
+        usb_3g_dbg("Set BaseBand vBat on\n");
     }else{
-        usb_3g_dbg("Set USB usb_3g vBat off\n");
+        usb_3g_dbg("Set BaseBand vBat off\n");
     }
 
-    sw_gpio_write_one_pin_value(usb_3g->vbat_hd, on, NULL);
+    __gpio_set_value(usb_3g->bb_vbat.gpio.gpio, on);
 
     return;
 }
@@ -904,14 +799,13 @@ void usb_3g_reset(u32 usbc_no, u32 time)
 {
     struct sw_usb_3g *usb_3g = &g_usb_3g;
 
-    if(!usb_3g->reset_hd){
-        //usb_3g_err("err: drv_vbus_ext_Handle == NULL\n");
+    if(!usb_3g->bb_rst_valid){
         return;
     }
 
-    sw_gpio_write_one_pin_value(usb_3g->reset_hd, 1, NULL);
+    __gpio_set_value(usb_3g->bb_rst.gpio.gpio, 1);
     mdelay(time);
-    sw_gpio_write_one_pin_value(usb_3g->reset_hd, 0, NULL);
+    __gpio_set_value(usb_3g->bb_rst.gpio.gpio, 0);
 
     return;
 }
@@ -940,7 +834,7 @@ void usb_3g_wakeup_sleep(u32 usbc_no, u32 sleep)
 {
     struct sw_usb_3g *usb_3g = &g_usb_3g;
 
-    if(!usb_3g->wakeup_in_hd){
+    if(!usb_3g->bb_wake_valid){
         //usb_3g_err("err: drv_vbus_ext_Handle == NULL\n");
         return;
     }
@@ -951,7 +845,7 @@ void usb_3g_wakeup_sleep(u32 usbc_no, u32 sleep)
         usb_3g_dbg("wakeup usb_3g\n");
     }
 
-    sw_gpio_write_one_pin_value(usb_3g->wakeup_in_hd, sleep, NULL);
+    __gpio_set_value(usb_3g->bb_wake.gpio.gpio, sleep);
 
     return;
 }
@@ -985,16 +879,20 @@ static void usb_3g_power_on_off(struct sw_usb_3g *usb_3g, u32 is_on)
 {
     u32 on_off = 0;
 
+    if(!usb_3g->bb_pwr_on_valid){
+        return;
+    }
+
     usb_3g_dbg("Set usb_3g Power %s\n", (is_on ? "ON" : "OFF"));
 
     /* set power */
-    if(usb_3g->power_on_off_set.data == 0){
+    if(usb_3g->bb_pwr_on.gpio.data == 0){
         on_off = is_on ? 1 : 0;
     }else{
         on_off = is_on ? 0 : 1;
     }
 
-    sw_gpio_write_one_pin_value(usb_3g->power_on_off_hd, on_off, NULL);
+    __gpio_set_value(usb_3g->bb_pwr_on.gpio.gpio, on_off);
 
     return;
 }

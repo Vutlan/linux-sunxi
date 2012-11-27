@@ -29,7 +29,12 @@
 #include <linux/clk.h>
 #include <linux/io.h>
 
-//#include  <mach/clock.h>
+#include <mach/irqs.h>
+#include <mach/platform.h>
+
+#include  <mach/clock.h>
+#include <mach/sys_config.h>
+
 #include  "../include/sw_hcd_config.h"
 #include  "../include/sw_hcd_core.h"
 #include  "../include/sw_hcd_dma.h"
@@ -108,20 +113,20 @@ static void sw_hcd_restore_context(struct sw_hcd *sw_hcd);
 #ifndef  SW_USB_FPGA
 static s32 usb_clock_init(sw_hcd_io_t *sw_hcd_io)
 {
-	sw_hcd_io->sie_clk = clk_get(NULL, "ahb_usb0");
-	if (IS_ERR(sw_hcd_io->sie_clk)){
+	sw_hcd_io->ahb_otg = clk_get(NULL, "ahb_otg");
+	if (IS_ERR(sw_hcd_io->ahb_otg)){
 		DMSG_PANIC("ERR: get usb sie clk failed.\n");
 		goto failed;
 	}
 
-	sw_hcd_io->phy_clk = clk_get(NULL, "usb_phy");
-	if (IS_ERR(sw_hcd_io->phy_clk)){
+	sw_hcd_io->mod_usbotg = clk_get(NULL, "mod_usbotg");
+	if (IS_ERR(sw_hcd_io->mod_usbotg)){
 		DMSG_PANIC("ERR: get usb phy clk failed.\n");
 		goto failed;
 	}
 
-	sw_hcd_io->phy0_clk = clk_get(NULL, "usb_phy0");
-	if (IS_ERR(sw_hcd_io->phy0_clk)){
+	sw_hcd_io->mod_usbphy = clk_get(NULL, "mod_usbphy0");
+	if (IS_ERR(sw_hcd_io->mod_usbphy)){
 		DMSG_PANIC("ERR: get usb phy0 clk failed.\n");
 		goto failed;
 	}
@@ -129,19 +134,19 @@ static s32 usb_clock_init(sw_hcd_io_t *sw_hcd_io)
 	return 0;
 
 failed:
-	if(sw_hcd_io->sie_clk){
-		clk_put(sw_hcd_io->sie_clk);
-		sw_hcd_io->sie_clk = NULL;
+	if(sw_hcd_io->ahb_otg){
+		clk_put(sw_hcd_io->ahb_otg);
+		sw_hcd_io->ahb_otg = NULL;
 	}
 
-	if(sw_hcd_io->phy_clk){
-		clk_put(sw_hcd_io->phy_clk);
-		sw_hcd_io->phy_clk = NULL;
+	if(sw_hcd_io->mod_usbotg){
+		clk_put(sw_hcd_io->mod_usbotg);
+		sw_hcd_io->mod_usbotg = NULL;
 	}
 
-	if(sw_hcd_io->phy0_clk){
-		clk_put(sw_hcd_io->phy0_clk);
-		sw_hcd_io->phy0_clk = NULL;
+	if(sw_hcd_io->mod_usbphy){
+		clk_put(sw_hcd_io->mod_usbphy);
+		sw_hcd_io->mod_usbphy = NULL;
 	}
 
 	return -1;
@@ -149,19 +154,19 @@ failed:
 
 static s32 usb_clock_exit(sw_hcd_io_t *sw_hcd_io)
 {
-	if(sw_hcd_io->sie_clk){
-		clk_put(sw_hcd_io->sie_clk);
-		sw_hcd_io->sie_clk = NULL;
+	if(sw_hcd_io->ahb_otg){
+		clk_put(sw_hcd_io->ahb_otg);
+		sw_hcd_io->ahb_otg = NULL;
 	}
 
-	if(sw_hcd_io->phy_clk){
-		clk_put(sw_hcd_io->phy_clk);
-		sw_hcd_io->phy_clk = NULL;
+	if(sw_hcd_io->mod_usbotg){
+		clk_put(sw_hcd_io->mod_usbotg);
+		sw_hcd_io->mod_usbotg = NULL;
 	}
 
-	if(sw_hcd_io->phy0_clk){
-		clk_put(sw_hcd_io->phy0_clk);
-		sw_hcd_io->phy0_clk = NULL;
+	if(sw_hcd_io->mod_usbphy){
+		clk_put(sw_hcd_io->mod_usbphy);
+		sw_hcd_io->mod_usbphy = NULL;
 	}
 
 	return 0;
@@ -189,28 +194,28 @@ static s32 open_usb_clock(sw_hcd_io_t *sw_hcd_io)
 {
  	DMSG_INFO_HCD0("open_usb_clock\n");
 
-	if(sw_hcd_io->sie_clk && sw_hcd_io->phy_clk && sw_hcd_io->phy0_clk && !sw_hcd_io->clk_is_open){
-	   	clk_enable(sw_hcd_io->sie_clk);
+	if(sw_hcd_io->ahb_otg && sw_hcd_io->mod_usbotg && sw_hcd_io->mod_usbphy && !sw_hcd_io->clk_is_open){
+	   	clk_enable(sw_hcd_io->ahb_otg);
 		mdelay(10);
 
-	    clk_enable(sw_hcd_io->phy_clk);
-	    clk_enable(sw_hcd_io->phy0_clk);
-		clk_reset(sw_hcd_io->phy0_clk, 0);
+	    //clk_enable(sw_hcd_io->mod_usbotg); /*NO SCLK_GATING_OTG */
+		clk_reset(sw_hcd_io->mod_usbotg, AW_CCU_CLK_NRESET);
+	    clk_enable(sw_hcd_io->mod_usbphy);
+		clk_reset(sw_hcd_io->mod_usbphy, AW_CCU_CLK_NRESET);
 		mdelay(10);
 
 		sw_hcd_io->clk_is_open = 1;
 	}else{
 		DMSG_INFO("ERR: open usb clock failed, (0x%p, 0x%p, 0x%p, %d)\n",
-			      sw_hcd_io->sie_clk, sw_hcd_io->phy_clk, sw_hcd_io->phy0_clk, sw_hcd_io->clk_is_open);
+			      sw_hcd_io->ahb_otg, sw_hcd_io->mod_usbotg, sw_hcd_io->mod_usbphy, sw_hcd_io->clk_is_open);
 	}
 
 	UsbPhyInit(0);
 
-#if 0
-	DMSG_INFO("[hcd0]: open, 0x60(0x%x), 0xcc(0x%x)\n",
-		      (u32)USBC_Readl(SW_VA_CCM_IO_BASE + 0x60),
-		      (u32)USBC_Readl(SW_VA_CCM_IO_BASE + 0xcc));
-#endif
+	DMSG_INFO("[hcd0]: open, 0x60(0x%x), 0xcc(0x%x), 0x2c0(0x%x)\n",
+		      (u32)USBC_Readl(AW_CCM_BASE + 0x60),
+		      (u32)USBC_Readl(AW_CCM_BASE + 0xcc),
+		      (u32)USBC_Readl(AW_CCM_BASE + 0x2c0));
 
 	return 0;
 }
@@ -237,22 +242,24 @@ static s32 close_usb_clock(sw_hcd_io_t *sw_hcd_io)
 {
  	DMSG_INFO_HCD0("close_usb_clock\n");
 
-	if(sw_hcd_io->sie_clk && sw_hcd_io->phy_clk && sw_hcd_io->phy0_clk && sw_hcd_io->clk_is_open){
-		clk_reset(sw_hcd_io->phy0_clk, 1);
-	    clk_disable(sw_hcd_io->phy0_clk);
-	    clk_disable(sw_hcd_io->phy_clk);
-	    clk_disable(sw_hcd_io->sie_clk);
+	if(sw_hcd_io->ahb_otg && sw_hcd_io->mod_usbotg && sw_hcd_io->mod_usbphy && sw_hcd_io->clk_is_open){
+		clk_reset(sw_hcd_io->mod_usbphy, AW_CCU_CLK_RESET);
+	    clk_disable(sw_hcd_io->mod_usbphy);
+
+		clk_reset(sw_hcd_io->mod_usbotg, AW_CCU_CLK_RESET);
+	   // clk_disable(sw_hcd_io->mod_usbotg); /*NO SCLK_GATING_OTG */
+	    clk_disable(sw_hcd_io->ahb_otg);
 		sw_hcd_io->clk_is_open = 0;
 	}else{
 		DMSG_INFO("ERR: close usb clock failed, (0x%p, 0x%p, 0x%p, %d)\n",
-			      sw_hcd_io->sie_clk, sw_hcd_io->phy_clk, sw_hcd_io->phy0_clk, sw_hcd_io->clk_is_open);
+			      sw_hcd_io->ahb_otg, sw_hcd_io->mod_usbotg, sw_hcd_io->mod_usbphy, sw_hcd_io->clk_is_open);
 	}
 
-#if 0
-	DMSG_INFO("[hcd0]: close, 0x60(0x%x), 0xcc(0x%x)\n",
-		      (u32)USBC_Readl(SW_VA_CCM_IO_BASE + 0x60),
-		      (u32)USBC_Readl(SW_VA_CCM_IO_BASE + 0xcc));
-#endif
+
+	DMSG_INFO("[hcd0]: close, 0x60(0x%x), 0xcc(0x%x), 0x2c0(0x%x)\n",
+		      (u32)USBC_Readl(AW_CCM_BASE + 0x60),
+		      (u32)USBC_Readl(AW_CCM_BASE + 0xcc),
+		      (u32)USBC_Readl(AW_CCM_BASE + 0x2c0));
 
 	return 0;
 }
@@ -290,7 +297,7 @@ static s32 usb_clock_exit(sw_hcd_io_t *sw_hcd_io)
 static u32  open_usb_clock(sw_hcd_io_t *sw_hcd_io)
 {
 	u32 reg_value = 0;
-	u32 ccmu_base = SW_VA_CCM_IO_BASE;
+	u32 ccmu_base = AW_CCM_BASE;
 
 	DMSG_INFO_HCD0("[%s]: open_usb_clock\n", sw_hcd_driver_name);
 
@@ -333,7 +340,7 @@ static u32  open_usb_clock(sw_hcd_io_t *sw_hcd_io)
 static u32 close_usb_clock(sw_hcd_io_t *sw_hcd_io)
 {
 	u32 reg_value = 0;
-	u32 ccmu_base = SW_VA_CCM_IO_BASE;
+	u32 ccmu_base = AW_CCM_BASE;
 
 	DMSG_INFO_HCD0("[%s]: close_usb_clock\n", sw_hcd_driver_name);
 
@@ -380,25 +387,27 @@ static __s32 pin_init(sw_hcd_io_t *sw_hcd_io)
 
 #ifndef  SW_USB_FPGA
 	__s32 ret = 0;
+    script_item_value_type_e type = 0;
+	sw_hcd_io->Drv_vbus_Handle = 1;
 
-	/* request gpio */
-	ret = script_parser_fetch("usbc0", "usb_drv_vbus_gpio", (int *)&sw_hcd_io->drv_vbus_gpio_set, 64);
-	if(ret != 0){
-		DMSG_PANIC("ERR: get usbc0(drv vbus) id failed\n");
-		return -1;
+	/* usbc drv_vbus */
+	type = script_get_item("usbc0", "usb_drv_vbus_gpio", (int *)&sw_hcd_io->drv_vbus_gpio_set);
+	if(ret != SCIRPT_ITEM_VALUE_TYPE_INT){
+		DMSG_PANIC("ERR: get usbc0(drv vbus) failed\n");
 	}
 
-	sw_hcd_io->Drv_vbus_Handle = gpio_request(&sw_hcd_io->drv_vbus_gpio_set, 1);
-	if(sw_hcd_io->Drv_vbus_Handle == 0){
+	sw_hcd_io->Drv_vbus_Handle = gpio_request(sw_hcd_io->drv_vbus_gpio_set.gpio.gpio);
+	if(sw_hcd_io->Drv_vbus_Handle != 0){
 		DMSG_PANIC("ERR: gpio_request failed\n");
 		return -1;
 	}
 
 	/* set config, ouput */
-	gpio_set_one_pin_io_status(sw_hcd_io->Drv_vbus_Handle, 1, NULL);
+	sw_gpio_setcfg(sw_hcd_io->drv_vbus_gpio_set.gpio.gpio, 1);
 
 	/* reserved is pull down */
-	gpio_set_one_pin_pull(sw_hcd_io->Drv_vbus_Handle, 2, NULL);
+	sw_gpio_setpull(sw_hcd_io->drv_vbus_gpio_set.gpio.gpio, 2);
+
 #endif
 	return 0;
 }
@@ -424,8 +433,10 @@ static __s32 pin_init(sw_hcd_io_t *sw_hcd_io)
 static __s32 pin_exit(sw_hcd_io_t *sw_hcd_io)
 {
 #ifndef	SW_USB_FPGA
-	gpio_release(sw_hcd_io->Drv_vbus_Handle, 0);
-	sw_hcd_io->Drv_vbus_Handle = 0;
+	if(sw_hcd_io->Drv_vbus_Handle == 0){
+		gpio_free(sw_hcd_io->drv_vbus_gpio_set.gpio.gpio, 0);
+		sw_hcd_io->Drv_vbus_Handle = 1;
+	}
 #endif
 	return 0;
 }
@@ -464,7 +475,7 @@ static void sw_hcd_board_set_vbus(struct sw_hcd *sw_hcd, int is_on)
     }
 
 	/* set gpio data */
-	gpio_write_one_pin_value(sw_hcd->sw_hcd_io->Drv_vbus_Handle, on_off, NULL);
+	__gpio_set_value(sw_hcd->sw_hcd_io->drv_vbus_gpio_set.gpio.gpio, on_off);
 #endif
 
 	if(is_on){
@@ -474,7 +485,6 @@ static void sw_hcd_board_set_vbus(struct sw_hcd *sw_hcd, int is_on)
 		USBC_Host_EndSession(sw_hcd->sw_hcd_io->usb_bsp_hdle);
 		USBC_ForceVbusValid(sw_hcd->sw_hcd_io->usb_bsp_hdle, USBC_VBUS_TYPE_DISABLE);
 	}
-
 
 	return;
 }
@@ -642,8 +652,8 @@ static __s32 sw_hcd_io_init(__u32 usbc_no, struct platform_device *pdev, sw_hcd_
 	spinlock_t lock;
 	unsigned long flags = 0;
 
-	sw_hcd_io->usb_vbase  = (void __iomem *)SW_VA_USB0_IO_BASE;
-	sw_hcd_io->sram_vbase = (void __iomem *)SW_VA_SRAM_IO_BASE;
+	sw_hcd_io->usb_vbase  = (void __iomem *)AW_USB_OTG_BASE;
+	sw_hcd_io->sram_vbase = (void __iomem *)AW_SRAMCTRL_BASE;
 
 //	DMSG_INFO_HCD0("[usb host]: usb_vbase    = 0x%x\n", (u32)sw_hcd_io->usb_vbase);
 //	DMSG_INFO_HCD0("[usb host]: sram_vbase   = 0x%x\n", (u32)sw_hcd_io->sram_vbase);

@@ -47,8 +47,9 @@
 #include <asm/system.h>
 #include <asm/unaligned.h>
 #include <mach/irqs.h>
+#include <mach/platform.h>
 
-//#include  <mach/clock.h>
+#include  <mach/clock.h>
 #include <mach/sys_config.h>
 
 #include  "sw_hci_sun6i.h"
@@ -56,24 +57,25 @@
 #ifdef  CONFIG_SW_USB_3G
 #include  "sw_usb_3g.h"
 #endif
-
 #ifndef  SW_USB_FPGA
-static char* usbc_name[3] 			= {"usbc0", "usbc1", "usbc2"};
-static char* usbc_ahb_ehci_name[3]  = {"", "ahb_ehci0", "ahb_ehci1"};
-static char* usbc_ahb_ohci_name[3]  = {"", "ahb_ohci0", "ahb_ohci1"};
-static char* usbc_phy_gate_name[3] 	= {"usb_phy", "usb_phy", "usb_phy"};
-static char* ohci_phy_gate_name[3]  = {"", "usb_ohci0", "usb_ohci1"};
-static char* usbc_phy_reset_name[3] = {"usb_phy0", "usb_phy1", "usb_phy2"};
+static char* usbc_name[3] 			= {"usbc0", "usbc1", "usbc2", "usbc3"};
+static char* usbc_ahb_ehci_name[3]  = {"", "AW_AHB_CLK_EHCI0", "AW_AHB_CLK_EHCI1"};
+static char* usbc_ahb_ohci_name[4]  = {"", "AW_AHB_CLK_OHCI0", "AW_AHB_CLK_OHCI1", "AW_AHB_CLK_OHCI2"};
+
+static char* usbc_ehci_name[3]  = {"", "AW_MOD_CLK_USBEHCI0", "AW_MOD_CLK_USBEHCI1"};
+static char* usbc_ohci_name[4]  = {"", "AW_MOD_CLK_USBOHCI0", "AW_MOD_CLK_USBOHCI1", "AW_MOD_CLK_USBOHCI2"};
+
+static char* usbc_phy_name[3] 	= {"AW_MOD_CLK_USBPHY0", "AW_MOD_CLK_USBPHY0", "AW_MOD_CLK_USBPHY0"};
+
 #endif
 
-static u32 usbc_base[4] 			= {SW_VA_USB0_IO_BASE, SW_VA_USB1_IO_BASE, SW_VA_USB2_IO_BASE, SW_VA_USB3_IO_BASE};
-static u32 ehci_irq_no[4] 			= {0, SW_INT_SRC_EHCI0, SW_INT_SRC_EHCI1};
-static u32 ohci_irq_no[4] 			= {0, SW_INT_SRC_OHCI0, SW_INT_SRC_OHCI1, SW_INT_SRC_OHCI2};
+static u32 usbc_base[4] 			= {AW_VIR_USB_OTG_BASE, AW_VIR_USB_EHCI0_BASE, AW_VIR_USB_EHCI1_BASE, AW_VIR_USB_OHCI2_BASE};
+static u32 ehci_irq_no[3] 			= {0, AW_IRQ_USB_EHCI0, AW_IRQ_USB_EHCI1};
+static u32 ohci_irq_no[4] 			= {0, AW_IRQ_USB_OHCI0, AW_IRQ_USB_OHCI1, AW_IRQ_USB_OHCI2};
 
-u32 usb1_drv_vbus_Handle = 0;
-u32 usb2_drv_vbus_Handle = 0;
-u32 usb3_drv_vbus_Handle = 0;
-
+u32 usb1_drv_vbus_Handle = 1;
+u32 usb2_drv_vbus_Handle = 1;
+u32 usb3_drv_vbus_Handle = 1;
 
 static u32 usb1_set_vbus_cnt = 0;
 static u32 usb2_set_vbus_cnt = 0;
@@ -107,24 +109,23 @@ static u32 usb3_enable_configure_cnt = 0;
 */
 static s32 get_usb_cfg(struct sw_hci_hcd *sw_hci)
 {
-	__s32 ret = 0;
-
 #ifndef  SW_USB_FPGA
+
+    script_item_value_type_e type = 0;
+	script_item_u item_temp;
+
 	/* usbc enable */
-	ret = script_parser_fetch(usbc_name[sw_hci->usbc_no], "usb_used", (int *)&sw_hci->used, 64);
-	if(ret != 0){
+	type = script_get_item(usbc_name[sw_hci->usbc_no], "usb_used", &item_temp);
+	if(type == SCIRPT_ITEM_VALUE_TYPE_INT){
+		sw_hci->used = item_temp.val;
+	}else{
 		DMSG_PANIC("ERR: get usbc2 enable failed\n");
-		//return -1;
+		sw_hci->used = 0;
 	}
 
-	/* request gpio */
-	ret = script_parser_fetch(usbc_name[sw_hci->usbc_no], "usb_drv_vbus_gpio", (int *)&sw_hci->drv_vbus_gpio_set, 64);
-	if(ret != 0){
-		DMSG_PANIC("ERR: get usbc%d(%s) id failed\n", sw_hci->usbc_no, usbc_name[sw_hci->usbc_no]);
-		return -1;
-	}
-
-	if(sw_hci->drv_vbus_gpio_set.port){
+	/* usbc drv_vbus */
+	type = script_get_item(usbc_name[sw_hci->usbc_no], "usb_drv_vbus_gpio", (int *)&sw_hci->drv_vbus_gpio_set);
+	if(ret == SCIRPT_ITEM_VALUE_TYPE_INT){
 		sw_hci->drv_vbus_gpio_valid = 1;
 	}else{
 		DMSG_PANIC("ERR: %s(drv vbus) is invalid\n", sw_hci->hci_name);
@@ -132,10 +133,12 @@ static s32 get_usb_cfg(struct sw_hci_hcd *sw_hci)
 	}
 
 	/* host_init_state */
-	ret = script_parser_fetch(usbc_name[sw_hci->usbc_no], "usb_host_init_state", (int *)&(sw_hci->host_init_state), 64);
-	if(ret != 0){
+	type = script_get_item(usbc_name[sw_hci->usbc_no], "usb_host_init_state", &item_temp);
+	if(type == SCIRPT_ITEM_VALUE_TYPE_INT){
+		sw_hci->host_init_state = item_temp.val;
+	}else{
 		DMSG_PANIC("ERR: script_parser_fetch host_init_state failed\n");
-		return -1;
+		sw_hci->host_init_state = 0;
 	}
 
 #else
@@ -151,31 +154,37 @@ static s32 get_usb_cfg(struct sw_hci_hcd *sw_hci)
     u32 usb_3g_usbc_type = 0;
 
     /* 3g_used */
-    ret = script_parser_fetch("3g_para", "3g_used", (int *)&usb_3g_used, 64);
-    if(ret != 0){
-        DMSG_PANIC("ERR: get 3g_used failed\n");
-        //return -1;
-    }
+
+	type = script_get_item("3g_para", "3g_used", &item_temp);
+	if(type == SCIRPT_ITEM_VALUE_TYPE_INT){
+		usb_3g_used = item_temp.val;
+	}else{
+		DMSG_PANIC("ERR: script_parser_fetch usb_3g_used failed\n");
+		usb_3g_used = 0;
+	}
 
     if(usb_3g_used){
         /* 3g_usbc_num */
-        ret = script_parser_fetch("3g_para", "3g_usbc_num", (int *)&usb_3g_usbc_num, 64);
-        if(ret != 0){
-            DMSG_PANIC("ERR: get 3g_usbc_num failed\n");
-            //return -1;
-        }
+		type = script_get_item("3g_para", "3g_usbc_num", &item_temp);
+		if(type == SCIRPT_ITEM_VALUE_TYPE_INT){
+			usb_3g_usbc_num = item_temp.val;
+		}else{
+			DMSG_PANIC("ERR: script_parser_fetch usb_3g_usbc_num failed\n");
+			usb_3g_usbc_num = 0;
+		}
 
         /* 3g_usbc_type */
-        ret = script_parser_fetch("3g_para", "3g_usbc_type", (int *)&usb_3g_usbc_type, 64);
-        if(ret != 0){
-            DMSG_PANIC("ERR: get 3g_usbc_type failed\n");
-            //return -1;
-        }
+		type = script_get_item("3g_para", "3g_usbc_type", &item_temp);
+		if(type == SCIRPT_ITEM_VALUE_TYPE_INT){
+			usb_3g_usbc_type = item_temp.val;
+		}else{
+			DMSG_PANIC("ERR: script_parser_fetch usb_3g_usbc_type failed\n");
+			usb_3g_usbc_type = 0;
+		}
 
         /* 只开3G使用的那个模组 */
         if(sw_hci->usbc_no == usb_3g_usbc_num){
             sw_hci->used = 0;
-
             if(sw_hci->usbc_type == usb_3g_usbc_type){
                 sw_hci->used = 1;
             }
@@ -440,58 +449,54 @@ static void UsbPhyInit(__u32 usbc_no)
 static s32 clock_init(struct sw_hci_hcd *sw_hci, u32 ohci)
 {
     if(ohci){  /* ohci */
-    	sw_hci->sie_clk = clk_get(NULL, usbc_ahb_ohci_name[sw_hci->usbc_no]);
-    	if (IS_ERR(sw_hci->sie_clk)){
+    	sw_hci->ahb = clk_get(NULL, usbc_ahb_ohci_name[sw_hci->usbc_no]);
+    	if (IS_ERR(sw_hci->ahb)){
     		DMSG_PANIC("ERR: get ohci%d abh clk failed.\n", (sw_hci->usbc_no - 1));
     		goto failed;
     	}
 
-    	sw_hci->ohci_gate = clk_get(NULL, ohci_phy_gate_name[sw_hci->usbc_no]);
-    	if (IS_ERR(sw_hci->ohci_gate)){
+    	sw_hci->mod_usb = clk_get(NULL, usbc_ohci_name[sw_hci->usbc_no]);
+    	if (IS_ERR(sw_hci->mod_usb)){
     		DMSG_PANIC("ERR: get ohci%d gate clk failed.\n", (sw_hci->usbc_no - 1));
     		goto failed;
     	}
 	}else{  /* ehci */
-    	sw_hci->sie_clk = clk_get(NULL, usbc_ahb_ehci_name[sw_hci->usbc_no]);
-    	if (IS_ERR(sw_hci->sie_clk)){
+    	sw_hci->ahb = clk_get(NULL, usbc_ahb_ehci_name[sw_hci->usbc_no]);
+    	if (IS_ERR(sw_hci->ahb)){
     		DMSG_PANIC("ERR: get ehci%d abh clk failed.\n", (sw_hci->usbc_no - 1));
     		goto failed;
     	}
+
+    	sw_hci->mod_usb = clk_get(NULL, usbc_ehci_name[sw_hci->usbc_no]);
+    	if (IS_ERR(sw_hci->mod_usb)){
+    		DMSG_PANIC("ERR: get ohci%d gate clk failed.\n", (sw_hci->usbc_no - 1));
+    		goto failed;
+    	}
+
 	}
 
-	sw_hci->phy_gate = clk_get(NULL, usbc_phy_gate_name[sw_hci->usbc_no]);
-	if (IS_ERR(sw_hci->phy_gate)){
-		DMSG_PANIC("ERR: get usb%d phy_gate failed.\n", sw_hci->usbc_no);
-		goto failed;
-	}
-
-	sw_hci->phy_reset = clk_get(NULL, usbc_phy_reset_name[sw_hci->usbc_no]);
-	if (IS_ERR(sw_hci->phy_reset)){
-		DMSG_PANIC("ERR: get usb%d phy_reset failed.\n", sw_hci->usbc_no);
+	sw_hci->mod_usbphy = clk_get(NULL, usbc_phy_name[sw_hci->usbc_no]);
+	if (IS_ERR(sw_hci->mod_usbphy)){
+		DMSG_PANIC("ERR: get usb%d mod_usbphy failed.\n", sw_hci->usbc_no);
 		goto failed;
 	}
 
 	return 0;
 
 failed:
-	if(sw_hci->sie_clk){
-		clk_put(sw_hci->sie_clk);
-		sw_hci->sie_clk = NULL;
+	if(sw_hci->ahb){
+		clk_put(sw_hci->ahb);
+		sw_hci->ahb = NULL;
 	}
 
-	if(sw_hci->phy_gate){
-		clk_put(sw_hci->phy_gate);
-		sw_hci->phy_gate = NULL;
+	if(sw_hci->mod_usbphy){
+		clk_put(sw_hci->mod_usbphy);
+		sw_hci->mod_usbphy = NULL;
 	}
 
-	if(sw_hci->phy_reset){
-		clk_put(sw_hci->phy_reset);
-		sw_hci->phy_reset = NULL;
-	}
-
-	if(sw_hci->ohci_gate){
-	    clk_put(sw_hci->ohci_gate);
-		sw_hci->ohci_gate = NULL;
+	if(sw_hci->mod_usb){
+	    clk_put(sw_hci->mod_usb);
+		sw_hci->mod_usb = NULL;
 	}
 
 	return -1;
@@ -517,24 +522,19 @@ failed:
 */
 static s32 clock_exit(struct sw_hci_hcd *sw_hci, u32 ohci)
 {
-	if(sw_hci->ohci_gate){
-		clk_put(sw_hci->ohci_gate);
-		sw_hci->ohci_gate = NULL;
+	if(sw_hci->mod_usb){
+		clk_put(sw_hci->mod_usb);
+		sw_hci->mod_usb = NULL;
 	}
 
-	if(sw_hci->sie_clk){
-		clk_put(sw_hci->sie_clk);
-		sw_hci->sie_clk = NULL;
+	if(sw_hci->ahb){
+		clk_put(sw_hci->ahb);
+		sw_hci->ahb = NULL;
 	}
 
-	if(sw_hci->phy_gate){
-		clk_put(sw_hci->phy_gate);
-		sw_hci->phy_gate = NULL;
-	}
-
-	if(sw_hci->phy_reset){
-		clk_put(sw_hci->phy_reset);
-		sw_hci->phy_reset = NULL;
+	if(sw_hci->mod_usbphy){
+		clk_put(sw_hci->mod_usbphy);
+		sw_hci->mod_usbphy = NULL;
 	}
 
 	return 0;
@@ -562,37 +562,37 @@ static int open_clock(struct sw_hci_hcd *sw_hci, u32 ohci)
 {
  	DMSG_INFO("[%s]: open clock\n", sw_hci->hci_name);
 
-    if(sw_hci->sie_clk && sw_hci->phy_gate
-       && sw_hci->phy_reset && !sw_hci->clk_is_open){
+    if(sw_hci->ahb && sw_hci->mod_usb
+       && sw_hci->mod_usbphy && !sw_hci->clk_is_open){
         sw_hci->clk_is_open = 1;
 
- 	    clk_enable(sw_hci->phy_gate);
-	    clk_enable(sw_hci->phy_reset);
-		clk_reset(sw_hci->phy_reset, 0);
+	    clk_enable(sw_hci->mod_usbphy);
+		clk_reset(sw_hci->mod_usbphy, AW_CCU_CLK_NRESET);
 
-        if(ohci && sw_hci->ohci_gate){
-            clk_enable(sw_hci->ohci_gate);
+        if(ohci){
+            clk_enable(sw_hci->mod_usb);
         }
+		clk_reset(sw_hci->mod_usb, AW_CCU_CLK_NRESET);
 
         mdelay(10);
 
-   	    clk_enable(sw_hci->sie_clk);
+   	    clk_enable(sw_hci->ahb);
 
         mdelay(10);
 
     	UsbPhyInit(sw_hci->usbc_no);
     }else{
-		DMSG_PANIC("[%s]: wrn: open clock failed, (0x%p, 0x%p, 0x%p, %d, 0x%p)\n",
+		DMSG_PANIC("[%s]: wrn: open clock failed, (0x%p, 0x%p, %d, 0x%p)\n",
 			      sw_hci->hci_name,
-			      sw_hci->sie_clk, sw_hci->phy_gate,
-			      sw_hci->phy_reset, sw_hci->clk_is_open,
-			      sw_hci->ohci_gate);
+			      sw_hci->ahb, sw_hci->mod_usbphy, sw_hci->clk_is_open,
+			      sw_hci->mod_usb);
 	}
 
-    DMSG_DEBUG("[%s]: open clock, 0x60(0x%x), 0xcc(0x%x)\n",
+    DMSG_INFO("[%s]: open clock, 0x60(0x%x), 0xcc(0x%x), 0x2c0(0x%x)\n",
               sw_hci->hci_name,
-              (u32)USBC_Readl(SW_VA_CCM_IO_BASE + 0x60),
-              (u32)USBC_Readl(SW_VA_CCM_IO_BASE + 0xcc));
+              (u32)USBC_Readl(AW_CCM_BASE + 0x60),
+              (u32)USBC_Readl(AW_CCM_BASE + 0xcc),
+              (u32)USBC_Readl(AW_CCM_BASE + 0x2c0));
 
 	return 0;
 }
@@ -619,32 +619,32 @@ static int close_clock(struct sw_hci_hcd *sw_hci, u32 ohci)
 {
  	DMSG_INFO("[%s]: close clock\n", sw_hci->hci_name);
 
-    if(sw_hci->sie_clk && sw_hci->phy_gate
-       && sw_hci->phy_reset && sw_hci->clk_is_open){
+    if(sw_hci->ahb && sw_hci->mod_usb
+       && sw_hci->mod_usbphy && sw_hci->clk_is_open){
 
     	sw_hci->clk_is_open = 0;
 
-        if(ohci && sw_hci->ohci_gate){
-	        clk_disable(sw_hci->ohci_gate);
+        if(ohci){
+	        clk_disable(sw_hci->mod_usb);
 	    }
+		clk_reset(sw_hci->mod_usb, AW_CCU_CLK_RESET);
 
-		clk_reset(sw_hci->phy_reset, 1);
-	    clk_disable(sw_hci->phy_reset);
-	    clk_disable(sw_hci->phy_gate);
+	    clk_disable(sw_hci->mod_usbphy);
+		clk_reset(sw_hci->mod_usbphy, AW_CCU_CLK_RESET);
 
-	    clk_disable(sw_hci->sie_clk);
+	    clk_disable(sw_hci->ahb);
     }else{
-		DMSG_PANIC("[%s]: wrn: open clock failed, (0x%p, 0x%p, 0x%p, %d, 0x%p)\n",
-			      sw_hci->hci_name,
-			      sw_hci->sie_clk, sw_hci->phy_gate,
-			      sw_hci->phy_reset, sw_hci->clk_is_open,
-			      sw_hci->ohci_gate);
+		DMSG_PANIC("[%s]: wrn: open clock failed, (0x%p, 0x%p, %d, 0x%p)\n",
+			      sw_hci->hci_name,sw_hci->ahb,
+			      sw_hci->mod_usbphy, sw_hci->clk_is_open,
+			      sw_hci->mod_usb);
 	}
 
-    DMSG_DEBUG("[%s]: close clock, 0x60(0x%x), 0xcc(0x%x)\n",
+    DMSG_INFO("[%s]: close clock, 0x60(0x%x), 0xcc(0x%x),0x2c0(0x%x)\n",
               sw_hci->hci_name,
-              (u32)USBC_Readl(SW_VA_CCM_IO_BASE + 0x60),
-              (u32)USBC_Readl(SW_VA_CCM_IO_BASE + 0xcc));
+              (u32)USBC_Readl(AW_CCM_BASE + 0x60),
+              (u32)USBC_Readl(AW_CCM_BASE + 0xcc),
+              (u32)USBC_Readl(AW_CCM_BASE + 0x2c0));
 
 	return 0;
 }
@@ -940,21 +940,21 @@ static void hci_port_configure(struct sw_hci_hcd *sw_hci, u32 enable)
 *
 *******************************************************************************
 */
-static u32 alloc_pin(user_gpio_set_t *gpio_list)
+static u32 alloc_pin(struct gpio_config gpio)
 {
-    u32 pin_handle = 0;
+    u32 pin_handle = 1;
 
-	pin_handle = gpio_request(gpio_list, 1);
-	if(pin_handle == 0){
+	pin_handle = gpio_request(gpio.gpio);
+	if(pin_handle != 0){
 		DMSG_PANIC("ERR: gpio_request failed\n");
-		return 0;
+		return pin_handle;
 	}
 
 	/* set config, ouput */
-	gpio_set_one_pin_io_status(pin_handle, 1, NULL);
+	sw_gpio_setcfg(gpio.gpio, 1);
 
 	/* reserved is pull down */
-	gpio_set_one_pin_pull(pin_handle, 2, NULL);
+	sw_gpio_setpull(gpio.gpio, 2);
 
 	return pin_handle;
 }
@@ -977,12 +977,9 @@ static u32 alloc_pin(user_gpio_set_t *gpio_list)
 *
 *******************************************************************************
 */
-static void free_pin(u32 pin_handle)
+static void free_pin(struct gpio_config gpio)
 {
-    if(pin_handle){
-    	gpio_release(pin_handle, 0);
-    }
-
+    gpio_free(gpio.gpio);
 	return;
 }
 #else
@@ -1005,9 +1002,9 @@ static void free_pin(u32 pin_handle)
 *
 *******************************************************************************
 */
-static u32 alloc_pin(user_gpio_set_t *gpio_list)
+static u32 alloc_pin(struct gpio_config gpio)
 {
-	return 1;
+	return 0;
 }
 
 /*
@@ -1028,7 +1025,7 @@ static u32 alloc_pin(user_gpio_set_t *gpio_list)
 *
 *******************************************************************************
 */
-static void free_pin(u32 pin_handle)
+static void free_pin(struct gpio_config gpio)
 {
 	return;
 }
@@ -1285,7 +1282,6 @@ static int init_sw_hci(struct sw_hci_hcd *sw_hci, u32 usbc_no, u32 ohci, const c
     s32 ret = 0;
 	u32 reg_value = 0;
 
-
     memset(sw_hci, 0, sizeof(struct sw_hci_hcd));
 
     sw_hci->usbc_no         = usbc_no;
@@ -1300,13 +1296,10 @@ static int init_sw_hci(struct sw_hci_hcd *sw_hci, u32 usbc_no, u32 ohci, const c
     sprintf(sw_hci->hci_name, "%s%d", hci_name, sw_hci->usbc_no);
 
 	sw_hci->usb_vbase		= (void __iomem	*)usbc_base[sw_hci->usbc_no];
-	sw_hci->sram_vbase		= (void __iomem	*)SW_VA_SRAM_IO_BASE;
-
-#ifndef  SW_USB_FPGA
-	//sw_hci->clock_vbase     = (void __iomem	*)SW_VA_CCM_IO_BASE;
-	//sw_hci->gpio_vbase		= (void __iomem	*)SW_VA_PORTC_IO_BASE;
-#endif
-	sw_hci->sdram_vbase     = (void __iomem	*)SW_VA_DRAM_IO_BASE;
+	sw_hci->sram_vbase		= (void __iomem	*)AW_SRAMCTRL_BASE;
+	sw_hci->clock_vbase     = (void __iomem	*)AW_CCM_BASE;
+	sw_hci->gpio_vbase		= (void __iomem	*)AW_VIR_PIO_BASE;
+	sw_hci->sdram_vbase     = (void __iomem	*)AW_VIR_SDMMC1_BASE;
 
 	get_usb_cfg(sw_hci);
 	sw_hci->open_clock          = open_clock;
@@ -1388,8 +1381,8 @@ static int __init sw_hci_sun6i_init(void)
     init_sw_hci(&sw_ehci0, 1, 0, ehci_name);
     init_sw_hci(&sw_ohci0, 1, 1, ohci_name);
 
-    usb1_drv_vbus_Handle = alloc_pin(&sw_ehci0.drv_vbus_gpio_set);
-    if(usb1_drv_vbus_Handle == 0){
+    usb1_drv_vbus_Handle = alloc_pin(sw_ehci0.drv_vbus_gpio_set.gpio);
+    if(usb1_drv_vbus_Handle != 0){
         DMSG_PANIC("ERR: usb1 alloc_pin failed\n");
         goto failed0;
     }
@@ -1398,24 +1391,23 @@ static int __init sw_hci_sun6i_init(void)
     sw_ohci0.drv_vbus_Handle = usb1_drv_vbus_Handle;
 
     /* USB2 */
-    //init_sw_hci(&sw_ehci1, 2, 0, ehci_name);
-    //init_sw_hci(&sw_ohci1, 2, 1, ohci_name);
+    init_sw_hci(&sw_ehci1, 2, 0, ehci_name);
+    init_sw_hci(&sw_ohci1, 2, 1, ohci_name);
 
-    //usb2_drv_vbus_Handle = alloc_pin(&sw_ehci1.drv_vbus_gpio_set);
-    //if(usb2_drv_vbus_Handle == 0){
-    //    DMSG_PANIC("ERR: usb2 alloc_pin failed\n");
-    //    goto failed0;
-    //}
+    usb2_drv_vbus_Handle = alloc_pin(sw_ehci1.drv_vbus_gpio_set.gpio);
+    if(usb2_drv_vbus_Handle != 0){
+        DMSG_PANIC("ERR: usb2 alloc_pin failed\n");
+        goto failed0;
+    }
 
-    //sw_ehci1.drv_vbus_Handle = usb2_drv_vbus_Handle;
-    //sw_ohci1.drv_vbus_Handle = usb2_drv_vbus_Handle;
+    sw_ehci1.drv_vbus_Handle = usb2_drv_vbus_Handle;
+    sw_ohci1.drv_vbus_Handle = usb2_drv_vbus_Handle;
 
 	/* USB3 */
-
     init_sw_hci(&sw_ohci2, 3, 1, ohci_name);
 
-    usb3_drv_vbus_Handle = alloc_pin(&sw_ohci2.drv_vbus_gpio_set);
-    if(usb3_drv_vbus_Handle == 0){
+    usb3_drv_vbus_Handle = alloc_pin(sw_ohci2.drv_vbus_gpio_set.gpio);
+    if(usb3_drv_vbus_Handle != 0){
         DMSG_PANIC("ERR: usb2 alloc_pin failed\n");
         goto failed0;
     }
@@ -1465,7 +1457,6 @@ static int __init sw_hci_sun6i_init(void)
 			DMSG_PANIC("ERR: usb%d %s is enable\n", sw_ohci2.usbc_no, sw_ohci2.hci_name);
 		}
 #endif
-
 
     return 0;
 
@@ -1542,21 +1533,27 @@ static void __exit sw_hci_sun6i_exit(void)
     exit_sw_hci(&sw_ehci0, 0);
     exit_sw_hci(&sw_ohci0, 1);
 
-    free_pin(usb1_drv_vbus_Handle);
-    usb1_drv_vbus_Handle = 0;
+	if(usb1_drv_vbus_Handle	== 0){
+    	free_pin(sw_ehci0.drv_vbus_gpio_set.gpio);
+    	usb1_drv_vbus_Handle = 1;
+	}
 
     /* USB2 */
-    //exit_sw_hci(&sw_ehci1, 0);
-    //exit_sw_hci(&sw_ohci1, 1);
+    exit_sw_hci(&sw_ehci1, 0);
+    exit_sw_hci(&sw_ohci1, 1);
 
-    //free_pin(usb2_drv_vbus_Handle);
-    //usb2_drv_vbus_Handle = 0;
+	if(usb2_drv_vbus_Handle	== 0){
+    	free_pin(sw_ehci1.drv_vbus_gpio_set.gpio);
+    	usb2_drv_vbus_Handle = 1;
+	}
 
     /*USB3 */
     exit_sw_hci(&sw_ohci2, 1);
 
-    free_pin(usb3_drv_vbus_Handle);
-    usb3_drv_vbus_Handle = 0;
+	if(usb3_drv_vbus_Handle	== 0){
+    	free_pin(sw_ohci2.drv_vbus_gpio_set.gpio);
+    	usb3_drv_vbus_Handle = 1;
+	}
 
     return ;
 }

@@ -41,6 +41,7 @@
 #include <asm/system.h>
 #include <asm/unaligned.h>
 #include <mach/irqs.h>
+#include <mach/platform.h>
 
 #include  "../include/sw_usb_config.h"
 #include  "usb_hw_scan.h"
@@ -165,7 +166,7 @@ __s32 usbc0_platform_device_init(struct usb_port_info *port_info)
 
     /* device */
     sw_udc_cfg.port_info = port_info;
-    sw_udc_cfg.usbc_base = SW_VA_USB0_IO_BASE;
+    sw_udc_cfg.usbc_base = AW_USB_OTG_BASE;
 
     /* host */
     sw_hcd_config.port_info = port_info;

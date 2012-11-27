@@ -52,7 +52,6 @@ static struct usb_scan_info g_usb_scan_info;
 
 void (*__usb_hw_scan) (struct usb_scan_info *);
 
-u32 usb_vbus_id_state = 1;
 #ifndef  SW_USB_FPGA
 /*
 *******************************************************************************
@@ -72,9 +71,9 @@ u32 usb_vbus_id_state = 1;
 *
 *******************************************************************************
 */
-static __u32 get_pin_data(u32 id_hdle)
+static __u32 get_pin_data(struct usb_gpio *usb_gpio)
 {
-    return gpio_read_one_pin_value(id_hdle, NULL);
+    return __gpio_get_value(usb_gpio.gpio_set.gpio.gpio);
 }
 
 /*
@@ -98,7 +97,7 @@ static __u32 get_pin_data(u32 id_hdle)
 *
 *********************************************************************
 */
-static __u32 PIODataIn_debounce(__hdle phdle, __u32 *value)
+static __u32 PIODataIn_debounce(struct usb_gpio *usb_gpio, __u32 *value)
 {
     __u32 retry  = 0;
     __u32 time   = 10;
@@ -112,7 +111,7 @@ static __u32 PIODataIn_debounce(__hdle phdle, __u32 *value)
     if(phdle){
         retry = time;
 		while(retry--){
-			temp1 = get_pin_data(phdle);
+			temp1 = get_pin_data(usb_gpio);
 			if(temp1){
 				cnt++;
 			}
@@ -161,8 +160,8 @@ static u32 get_id_state(struct usb_scan_info *info)
 	enum usb_id_state id_state = USB_DEVICE_MODE;
 	__u32 pin_data = 0;
 
-	if(info->id_hdle){
-		if(!PIODataIn_debounce(info->id_hdle, &pin_data)){
+	if(info->id_hdle == 0){
+		if(!PIODataIn_debounce(info->cfg->port[0].id, &pin_data)){
 			if(pin_data){
 				id_state = USB_DEVICE_MODE;
 			}else{
@@ -201,8 +200,8 @@ static u32 get_detect_vbus_state(struct usb_scan_info *info)
 	enum usb_det_vbus_state det_vbus_state = USB_DET_VBUS_INVALID;
 	__u32 pin_data = 0;
 
-	if(info->det_vbus_hdle){
-		if(!PIODataIn_debounce(info->det_vbus_hdle, &pin_data)){
+	if(info->det_vbus_hdle == 0){
+		if(!PIODataIn_debounce(info->cfg->port[0].det_vbus, &pin_data)){
 			if(pin_data){
 				det_vbus_state = USB_DET_VBUS_VALID;
 			}else{
@@ -225,16 +224,16 @@ static u32 get_dp_dm_status_normal(struct usb_scan_info *info)
 	__u32 dm = 0;
 
 	/* USBC_EnableDpDmPullUp */
-	reg_val = USBC_Readl(USBC_REG_ISCR(SW_VA_USB0_IO_BASE));
+	reg_val = USBC_Readl(USBC_REG_ISCR(AW_USB_OTG_BASE));
 	reg_val |= (1 << USBC_BP_ISCR_DPDM_PULLUP_EN);
-	USBC_Writel(reg_val, USBC_REG_ISCR(SW_VA_USB0_IO_BASE));
+	USBC_Writel(reg_val, USBC_REG_ISCR(AW_USB_OTG_BASE));
 
 	/* USBC_EnableIdPullUp */
-	reg_val = USBC_Readl(USBC_REG_ISCR(SW_VA_USB0_IO_BASE));
+	reg_val = USBC_Readl(USBC_REG_ISCR(AW_USB_OTG_BASE));
 	reg_val |= (1 << USBC_BP_ISCR_ID_PULLUP_EN);
-	USBC_Writel(reg_val, USBC_REG_ISCR(SW_VA_USB0_IO_BASE));
+	USBC_Writel(reg_val, USBC_REG_ISCR(AW_USB_OTG_BASE));
 
-	reg_val = USBC_Readl(USBC_REG_ISCR(SW_VA_USB0_IO_BASE));
+	reg_val = USBC_Readl(USBC_REG_ISCR(AW_USB_OTG_BASE));
 	dp = (reg_val >> USBC_BP_ISCR_EXT_DP_STATUS) & 0x01;
 	dm = (reg_val >> USBC_BP_ISCR_EXT_DM_STATUS) & 0x01;
 
@@ -482,6 +481,7 @@ static void do_vbus1_id1(struct usb_scan_info *info)
 	return;
 }
 #ifdef  SW_USB_FPGA
+u32 usb_vbus_id_state = 1;
 __u32 set_vbus_id_state(u32 state)
 {
 	usb_vbus_id_state = state;
@@ -654,6 +654,8 @@ __s32 usb_hw_scan_init(struct usb_cfg *cfg)
 	scan_info->cfg 					= cfg;
 	scan_info->id_old_state 		= USB_DEVICE_MODE;
 	scan_info->det_vbus_old_state 	= USB_DET_VBUS_INVALID;
+	scan_info->id_hdle = 1;
+	scan_info->det_vbus_hdle = 1;
 
 	port_info =&(cfg->port[0]);
 	switch(port_info->port_type){
@@ -690,68 +692,40 @@ __s32 usb_hw_scan_init(struct usb_cfg *cfg)
 					}
 
                     /* 如果id和vbus的pin相同, 就不需要拉pio了 */
-					if(port_info->id.gpio_set.port_num == port_info->det_vbus.gpio_set.port_num){
+					if(port_info->id.gpio_set.gpio.gpio == port_info->det_vbus.gpio_set.gpio.gpio){
 						need_pull_pio = 0;
 					}
 
 					/* request id gpio */
-					switch(port_info->id.group_type){
-						case GPIO_GROUP_TYPE_PIO:
-							/* request gpio */
-							scan_info->id_hdle = gpio_request(&port_info->id.gpio_set, 1);
-							if(scan_info->id_hdle == 0){
-								DMSG_PANIC("ERR: id gpio_request failed\n");
-								ret = -1;
-								goto failed;
-							}
+					scan_info->id_hdle = gpio_request(port_info->id.gpio_set.gpio.gpio, "otg_id");
+					if(scan_info->id_hdle != 0){
+						DMSG_PANIC("ERR: id gpio_request failed\n");
+						ret = -1;
+						goto failed;
+					}
 
-							/* set config, input */
-							gpio_set_one_pin_io_status(scan_info->id_hdle, 0, NULL);
+					/* set config, input */
+					sw_gpio_setcfg(port_info->id.gpio_set.gpio.gpio, 0);
 
-							/* reserved is pull up */
-							if(need_pull_pio){
-								gpio_set_one_pin_pull(scan_info->id_hdle, 1, NULL);
-							}
-						break;
-
-						case GPIO_GROUP_TYPE_POWER:
-							/* not support */
-						break;
-
-						default:
-							DMSG_PANIC("ERR: unkown id gpio group type(%d)\n", port_info->id.group_type);
-							ret = -1;
-							goto failed;
+					/* reserved is pull up */
+					if(need_pull_pio){
+						sw_gpio_setpull(port_info->id.gpio_set.gpio.gpio, 1);
 					}
 
 					/* request det_vbus gpio */
-					switch(port_info->det_vbus.group_type){
-						case GPIO_GROUP_TYPE_PIO:
-							/* request gpio */
-							scan_info->det_vbus_hdle = gpio_request(&port_info->det_vbus.gpio_set, 1);
-							if(scan_info->det_vbus_hdle == 0){
-								DMSG_PANIC("ERR: det_vbus gpio_request failed\n");
-								ret = -1;
-								goto failed;
-							}
 
-							/* set config, input */
-							gpio_set_one_pin_io_status(scan_info->det_vbus_hdle, 0, NULL);
+					scan_info->det_vbus_hdle = gpio_request(port_info->det_vbus.gpio_set.gpio.gpio, "otg_det");
+					if(scan_info->det_vbus_hdle != 0){
+						DMSG_PANIC("ERR: det_vbus gpio_request failed\n");
+						ret = -1;
+						goto failed;
+					}
+					/* set config, input */
+					sw_gpio_setcfg(port_info->det_vbus.gpio_set.gpio.gpio, 0);
 
-							/* reserved is disable */
-							if(need_pull_pio){
-								gpio_set_one_pin_pull(scan_info->det_vbus_hdle, 0, NULL);
-							}
-						break;
-
-						case GPIO_GROUP_TYPE_POWER:
-							/* not support */
-						break;
-
-						default:
-							DMSG_PANIC("ERR: unkown det_vbus gpio group type(%d)\n", port_info->det_vbus.group_type);
-							ret = -1;
-							goto failed;
+					/* reserved is disable */
+					if(need_pull_pio){
+						sw_gpio_setpull(port_info->det_vbus.gpio_set.gpio.gpio, 0);
 					}
 
 					__usb_hw_scan = vbus_id_hw_scan;
@@ -777,14 +751,14 @@ __s32 usb_hw_scan_init(struct usb_cfg *cfg)
 
 failed:
 #ifndef  SW_USB_FPGA
-	if(scan_info->id_hdle){
-		gpio_release(scan_info->id_hdle, 0);
-		scan_info->id_hdle = 0;
+	if(scan_info->id_hdle == 0)
+		gpio_free(port_info->id.gpio_set.gpio.gpio);
+		scan_info->id_hdle = 1;
 	}
 
-	if(scan_info->det_vbus_hdle){
-		gpio_release(scan_info->det_vbus_hdle, 0);
-		scan_info->det_vbus_hdle = 0;
+	if(scan_info->det_vbus_hdle == 0){
+		gpio_free(port_info->det_vbus.gpio_set.gpio.gpio);
+		scan_info->det_vbus_hdle = 1;
 	}
 #endif
 	__usb_hw_scan = null_hw_scan;
@@ -792,7 +766,6 @@ failed:
 	return ret;
 }
 
-#ifdef  SW_USB_FPGA
 /*
 *******************************************************************************
 *                     usb_hw_scan_exit
@@ -811,6 +784,7 @@ failed:
 *
 *******************************************************************************
 */
+#ifdef  SW_USB_FPGA
 __s32 usb_hw_scan_exit(struct usb_cfg *cfg)
 {
 	return 0;
@@ -820,15 +794,16 @@ __s32 usb_hw_scan_exit(struct usb_cfg *cfg)
 {
 
 	struct usb_scan_info *scan_info = &g_usb_scan_info;
-	if(scan_info->id_hdle){
-		gpio_release(scan_info->id_hdle, 0);
-		scan_info->id_hdle = 0;
+	if(scan_info->id_hdle == 0)
+		gpio_free(port_info->id.gpio_set.gpio.gpio);
+		scan_info->id_hdle = 1;
 	}
 
-	if(scan_info->det_vbus_hdle){
-		gpio_release(scan_info->det_vbus_hdle, 0);
-		scan_info->det_vbus_hdle = 0;
+	if(scan_info->det_vbus_hdle == 0){
+		gpio_free(port_info->det_vbus.gpio_set.gpio.gpio);
+		scan_info->det_vbus_hdle = 1;
 	}
+
 	return 0;
 }
 #endif

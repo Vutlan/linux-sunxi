@@ -237,15 +237,14 @@ struct sw_hci_hcd{
 	struct platform_device *pdev;
 	struct usb_hcd *hcd;
 
-	struct clk	*sie_clk;				/* SIE clock handle 	*/
-	struct clk	*phy_gate;				/* PHY clock handle 	*/
-	struct clk	*phy_reset;				/* PHY reset handle 	*/
-	struct clk	*ohci_gate;			    /* ohci clock handle 	*/
+	struct clk	*ahb;				/* ahb clock handle 	*/
+	struct clk	*mod_usb;			/* mod_usb otg clock handle 	*/
+	struct clk	*mod_usbphy;			/* PHY0 clock handle 	*/
 	__u32 clk_is_open;					/* is usb clock open 	*/
 
 
 	u32 drv_vbus_Handle;
-	user_gpio_set_t drv_vbus_gpio_set;
+	script_item_u drv_vbus_gpio_set;
 	u32 drv_vbus_gpio_valid;
 	__u32 power_flag;                   /* flag. ÊÇ·ñ¹©µç       */
 

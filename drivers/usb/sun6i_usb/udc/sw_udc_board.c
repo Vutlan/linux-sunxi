@@ -36,7 +36,8 @@
 #include <linux/clk.h>
 #include <linux/io.h>
 
-//#include  <mach/clock.h>
+#include  <mach/clock.h>
+#include  <mach/platform.h>
 #include  "sw_udc_config.h"
 #include  "sw_udc_board.h"
 
@@ -70,28 +71,30 @@ u32  open_usb_clock(sw_udc_io_t *sw_udc_io)
 {
  	DMSG_INFO_UDC("open_usb_clock\n");
 
-	if(sw_udc_io->sie_clk && sw_udc_io->phy_clk && sw_udc_io->phy0_clk && !sw_udc_io->clk_is_open){
-	   	clk_enable(sw_udc_io->sie_clk);
+	if(sw_udc_io->ahb_otg && sw_udc_io->mod_usbotg && sw_udc_io->mod_usbphy && !sw_udc_io->clk_is_open){
+	   	clk_enable(sw_udc_io->ahb_otg);
 		mdelay(10);
 
-	    clk_enable(sw_udc_io->phy_clk);
-	    clk_enable(sw_udc_io->phy0_clk);
-	    clk_reset(sw_udc_io->phy0_clk, 0);
+	    //clk_enable(sw_udc_io->mod_usbotg); /*NO SCLK_GATING_OTG */
+		clk_reset(sw_udc_io->mod_usbotg, AW_CCU_CLK_NRESET);
+
+	    clk_enable(sw_udc_io->mod_usbphy);
+	    clk_reset(sw_udc_io->mod_usbphy, AW_CCU_CLK_NRESET);
 		mdelay(10);
 
 		sw_udc_io->clk_is_open = 1;
 	}else{
-		DMSG_PANIC("ERR: clock handle is null, sie_clk(0x%p), phy_clk(0x%p), phy0_clk(0x%p), open(%d)\n",
-			       sw_udc_io->sie_clk, sw_udc_io->phy_clk, sw_udc_io->phy0_clk, sw_udc_io->clk_is_open);
+		DMSG_PANIC("ERR: clock handle is null, ahb_otg(0x%p), mod_usbotg(0x%p), mod_usbphy(0x%p), open(%d)\n",
+			       sw_udc_io->ahb_otg, sw_udc_io->mod_usbotg, sw_udc_io->mod_usbphy, sw_udc_io->clk_is_open);
 	}
 
 	UsbPhyInit(0);
 
-#if 0
-	DMSG_INFO("[udc0]: open, 0x60(0x%x), 0xcc(0x%x)\n",
-		      (u32)USBC_Readl(SW_VA_CCM_IO_BASE + 0x60),
-		      (u32)USBC_Readl(SW_VA_CCM_IO_BASE + 0xcc));
-#endif
+
+	DMSG_INFO("[udc0]: open, 0x60(0x%x), 0xcc(0x%x), 0x2c0(0x%x)\n",
+		      (u32)USBC_Readl(AW_VIR_CCM_BASE + 0x60),
+		      (u32)USBC_Readl(AW_VIR_CCM_BASE + 0xcc),
+			  (u32)USBC_Readl(AW_VIR_CCM_BASE + 0x2C0));
 
 	return 0;
 }
@@ -118,24 +121,26 @@ u32 close_usb_clock(sw_udc_io_t *sw_udc_io)
 {
 	DMSG_INFO_UDC("close_usb_clock\n");
 
-	if(sw_udc_io->sie_clk && sw_udc_io->phy_clk && sw_udc_io->phy0_clk && sw_udc_io->clk_is_open){
+	if(sw_udc_io->ahb_otg && sw_udc_io->mod_usbotg && sw_udc_io->mod_usbphy && sw_udc_io->clk_is_open){
 		sw_udc_io->clk_is_open = 0;
 
-	    clk_reset(sw_udc_io->phy0_clk, 1);
-	    clk_disable(sw_udc_io->phy0_clk);
-	    clk_disable(sw_udc_io->phy_clk);
-	    clk_disable(sw_udc_io->sie_clk);
+	    clk_reset(sw_udc_io->mod_usbphy, AW_CCU_CLK_RESET);
+	    clk_disable(sw_udc_io->mod_usbphy);
+
+	    //clk_disable(sw_udc_io->mod_usbotg);  /*NO SCLK_GATING_OTG */
+		clk_reset(sw_udc_io->mod_usbotg, AW_CCU_CLK_RESET);
+
+	    clk_disable(sw_udc_io->ahb_otg);
 	}else{
-		DMSG_PANIC("ERR: clock handle is null, sie_clk(0x%p), phy_clk(0x%p), phy0_clk(0x%p), open(%d)\n",
-			       sw_udc_io->sie_clk, sw_udc_io->phy_clk, sw_udc_io->phy0_clk, sw_udc_io->clk_is_open);
+		DMSG_PANIC("ERR: clock handle is null, ahb_otg(0x%p), mod_usbotg(0x%p), mod_usbphy(0x%p), open(%d)\n",
+			       sw_udc_io->ahb_otg, sw_udc_io->mod_usbotg, sw_udc_io->mod_usbphy, sw_udc_io->clk_is_open);
 	}
 
-#if 0
-	DMSG_INFO("[udc0]: close, 0x60(0x%x), 0xcc(0x%x)\n",
-		      (u32)USBC_Readl(SW_VA_CCM_IO_BASE + 0x60),
-		      (u32)USBC_Readl(SW_VA_CCM_IO_BASE + 0xcc));
-#endif
 
+	DMSG_INFO("[udc0]: close, 0x60(0x%x), 0xcc(0x%x),0x2c0(0x%x)\n",
+		      (u32)USBC_Readl(AW_VIR_CCM_BASE + 0x60),
+		      (u32)USBC_Readl(AW_VIR_CCM_BASE + 0xcc),
+			  (u32)USBC_Readl(AW_VIR_CCM_BASE + 0xcc));
 	return 0;
 }
 
@@ -162,7 +167,7 @@ u32 close_usb_clock(sw_udc_io_t *sw_udc_io)
 u32  open_usb_clock(sw_udc_io_t *sw_udc_io)
 {
 	u32 reg_value = 0;
-	u32 ccmu_base = SW_VA_CCM_IO_BASE;
+	u32 ccmu_base = AW_CCM_BASE;
 
 	//AHB1_RST_REG0 USBOTG_RST
 	reg_value = USBC_Readl(ccmu_base + 0x2c0);
@@ -202,7 +207,7 @@ u32  open_usb_clock(sw_udc_io_t *sw_udc_io)
 u32 close_usb_clock(sw_udc_io_t *sw_udc_io)
 {
 	u32 reg_value = 0;
-	u32 ccmu_base = SW_VA_CCM_IO_BASE;
+	u32 ccmu_base = AW_CCM_BASE;
 
 	//AHB1_RST_REG0 USBOTG_RST
 	reg_value = USBC_Readl(ccmu_base + 0x2c0);
@@ -400,29 +405,29 @@ __s32 sw_udc_io_init(__u32 usbc_no, struct platform_device *pdev, sw_udc_io_t *s
 	spinlock_t lock;
 	unsigned long flags = 0;
 
-	sw_udc_io->usb_vbase  = (void __iomem *)SW_VA_USB0_IO_BASE;
-	sw_udc_io->sram_vbase = (void __iomem *)SW_VA_SRAM_IO_BASE;
+	sw_udc_io->usb_vbase  = (void __iomem *)AW_VIR_USB_OTG_BASE;
+	sw_udc_io->sram_vbase = (void __iomem *)AW_VIR_SRAMCTRL_BASE;
 
 	DMSG_INFO_UDC("usb_vbase  = 0x%x\n", (u32)sw_udc_io->usb_vbase);
 	DMSG_INFO_UDC("sram_vbase = 0x%x\n", (u32)sw_udc_io->sram_vbase);
 
 #ifndef  SW_USB_FPGA
     /* open usb lock */
-	sw_udc_io->sie_clk = clk_get(NULL, "ahb_usb0");
-	if (IS_ERR(sw_udc_io->sie_clk)){
-		DMSG_PANIC("ERR: get usb sie clk failed.\n");
+	sw_udc_io->ahb_otg = clk_get(NULL, "ahb_otg");
+	if (IS_ERR(sw_udc_io->ahb_otg)){
+		DMSG_PANIC("ERR: get usb ahb_otg clk failed.\n");
 		goto io_failed;
 	}
 
-	sw_udc_io->phy_clk = clk_get(NULL, "usb_phy");
-	if (IS_ERR(sw_udc_io->phy_clk)){
-		DMSG_PANIC("ERR: get usb phy clk failed.\n");
+	sw_udc_io->mod_usbotg = clk_get(NULL, "mod_usbotg");
+	if (IS_ERR(sw_udc_io->mod_usbotg)){
+		DMSG_PANIC("ERR: get usb mod_usbotg failed.\n");
 		goto io_failed;
 	}
 
-	sw_udc_io->phy0_clk = clk_get(NULL, "usb_phy0");
-	if (IS_ERR(sw_udc_io->phy0_clk)){
-		DMSG_PANIC("ERR: get usb phy0 clk failed.\n");
+	sw_udc_io->mod_usbphy = clk_get(NULL, "mod_usbphy0");
+	if (IS_ERR(sw_udc_io->mod_usbphy )){
+		DMSG_PANIC("ERR: get usb mod_usbphy failed.\n");
 		goto io_failed;
 	}
 #endif
@@ -444,19 +449,19 @@ __s32 sw_udc_io_init(__u32 usbc_no, struct platform_device *pdev, sw_udc_io_t *s
 
 #ifndef  SW_USB_FPGA
 io_failed:
-	if(sw_udc_io->sie_clk){
-		clk_put(sw_udc_io->sie_clk);
-		sw_udc_io->sie_clk = NULL;
+	if(sw_udc_io->ahb_otg){
+		clk_put(sw_udc_io->ahb_otg);
+		sw_udc_io->ahb_otg = NULL;
 	}
 
-	if(sw_udc_io->phy_clk){
-		clk_put(sw_udc_io->phy_clk);
-		sw_udc_io->phy_clk = NULL;
+	if(sw_udc_io->mod_usbotg){
+		clk_put(sw_udc_io->mod_usbotg);
+		sw_udc_io->mod_usbotg = NULL;
 	}
 
-	if(sw_udc_io->phy0_clk){
-		clk_put(sw_udc_io->phy0_clk);
-		sw_udc_io->phy0_clk = NULL;
+	if(sw_udc_io->mod_usbphy){
+		clk_put(sw_udc_io->mod_usbphy);
+		sw_udc_io->mod_usbphy = NULL;
 	}
 #endif
 
@@ -487,19 +492,19 @@ __s32 sw_udc_io_exit(__u32 usbc_no, struct platform_device *pdev, sw_udc_io_t *s
 
 	close_usb_clock(sw_udc_io);
 #ifndef  SW_USB_FPGA
-	if(sw_udc_io->sie_clk){
-		clk_put(sw_udc_io->sie_clk);
-		sw_udc_io->sie_clk = NULL;
+	if(sw_udc_io->ahb_otg){
+		clk_put(sw_udc_io->ahb_otg);
+		sw_udc_io->ahb_otg = NULL;
 	}
 
-	if(sw_udc_io->phy_clk){
-		clk_put(sw_udc_io->phy_clk);
-		sw_udc_io->phy_clk = NULL;
+	if(sw_udc_io->mod_usbotg){
+		clk_put(sw_udc_io->mod_usbotg);
+		sw_udc_io->mod_usbotg = NULL;
 	}
 
-	if(sw_udc_io->phy0_clk){
-		clk_put(sw_udc_io->phy0_clk);
-		sw_udc_io->phy0_clk = NULL;
+	if(sw_udc_io->mod_usbphy){
+		clk_put(sw_udc_io->mod_usbphy);
+		sw_udc_io->mod_usbphy = NULL;
 	}
 #endif
 	sw_udc_io->usb_vbase  = NULL;

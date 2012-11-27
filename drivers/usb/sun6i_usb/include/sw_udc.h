@@ -154,9 +154,9 @@ typedef struct sw_udc_io{
 	__hdle usb_bsp_hdle;				/* usb bsp handle 		*/
 
 	__u32 clk_is_open;					/* is usb clock open? 	*/
-	struct clk	*sie_clk;				/* SIE clock handle 	*/
-	struct clk	*phy_clk;				/* PHY clock handle 	*/
-	struct clk	*phy0_clk;				/* PHY0 clock handle 	*/
+	struct clk	*ahb_otg;				/* ahb clock handle 	*/
+	struct clk	*mod_usbotg;			/* mod_usb otg clock handle 	*/
+	struct clk	*mod_usbphy;			/* PHY0 clock handle 	*/
 
 	long Drv_vbus_Handle;
 }sw_udc_io_t;
@@ -166,7 +166,7 @@ typedef struct sw_udc_io{
 //---------------------------------------------------------------
 typedef struct sw_udc {
 	spinlock_t			        lock;
-    struct platform_device *pdev;
+    struct platform_device      *pdev;
 	struct device		        *controller;
 
 	struct sw_udc_ep		    ep[SW_UDC_ENDPOINTS];

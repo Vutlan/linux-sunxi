@@ -44,21 +44,26 @@ struct sw_usb_3g{
     u32 usbc_type;                      /* 挂载的USB控制器控制器类型 */
     u32 uart_no;                        /* 挂载的uart控制器 */
 
-    u32 vbat_valid;
-    user_gpio_set_t vbat_set;           /* vbat pin, 3g总电源 */
-    u32 vbat_hd;
+    u32 bb_vbat_valid;                  /* pin is vlaid? */
+    script_item_u bb_vbat;              /* vbat_en pin, 3g总电源 */
 
-    u32 power_on_off_valid;
-    user_gpio_set_t power_on_off_set;   /* power_on_off pin */
-    u32 power_on_off_hd;
+    u32 bb_pwr_on_valid;
+    script_item_u bb_pwr_on;
 
-    u32 reset_valid;
-    user_gpio_set_t reset_set;          /* reset pin */
-    u32 reset_hd;
+    u32 bb_rst_valid;
+    script_item_u bb_rst;
 
-    u32 wakeup_in_valid;
-    user_gpio_set_t wakeup_in_set;     /* wakeup_out pin, A10 wakeup/sleep usb_3g */
-    u32 wakeup_in_hd;
+    u32 bb_rf_dis_valid;
+    script_item_u bb_rf_dis;
+
+    u32 bb_host_wake_valid;
+    script_item_u bb_host_wake;
+
+    u32 bb_wake_valid;
+    script_item_u bb_wake;
+
+    u32 bb_on_valid;
+    script_item_u bb_on;
 };
 
 //-----------------------------------------------------------------------------

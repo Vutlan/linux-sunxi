@@ -69,9 +69,7 @@ enum usb_detect_type{
 /* pio信息 */
 typedef struct usb_gpio{
 	__u32 valid;          	/* pio是否可用。 0:无效, !0:有效	*/
-
-	__u32 group_type;		/* pio类型 							*/
-	user_gpio_set_t gpio_set;
+	script_item_u gpio_set;
 }usb_gpio_t;
 
 typedef struct usb_port_info{
