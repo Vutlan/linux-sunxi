@@ -745,7 +745,7 @@ config  TOUCHSCREEN_SUN4I_TS
 config TOUCHSCREEN_FT5X_TS
        tristate  "ft5x touchscreen driver"
        help
-         byd0x7ets touchscreen driver
+         ft5x touchscreen driver
 
 config TOUCHSCREEN_FT5X06_TS_2PLUS1
        tristate  "ft5x06 2plus1 touchscreen driver"
@@ -771,4 +771,9 @@ config  TOUCHSCREEN_GT801_2PLUS1_TS
        tristate  "GT801_2PLUS1_TS touchscreen driver"
        help
           GT801_2PLUS1_TS touchscreen driver  
+          
+config  TOUCHSCREEN_GSLX680
+       tristate  "gslx680 touchscreen driver"
+       help
+         gslx680 touchscreen driver
 endif
