@@ -250,6 +250,7 @@ struct sunxi_mmc_ctrl_regs {
 };
 
 struct sunxi_mmc_platform_data {
+	/* predefine information */
 	u32 ocr_avail;
 	u32 caps;
 	u32 caps2;
@@ -257,6 +258,18 @@ struct sunxi_mmc_platform_data {
 	u32 f_max;
 	u32 dma_tl;
 	char* regulator;
+
+	/* sys config information */
+	u32 used:8,
+	    cdmode:8,
+	    width:4,
+	    wpmode:4,
+	    has_hwrst:4,
+	    isiodev:4;
+	struct gpio_config mmcio[10];
+	struct gpio_config hwrst;
+	struct gpio_config cd;
+	struct gpio_config wp;
 };
 
 struct sunxi_mmc_host {
@@ -319,10 +332,10 @@ struct sunxi_mmc_host {
 	u32 pio_hdle;
 	s32 cd_hdle;
 	s32 cd_mode;
-#define CARD_DETECT_BY_GPIO     (1)	/* mmc detected by gpio check */
-#define CARD_DETECT_BY_GPIO_IRQ (2)	/* mmc detected by gpio irq */
-#define CARD_ALWAYS_PRESENT     (3)	/* mmc always present, without detect pin */
-#define CARD_DETECT_BY_FS       (4)	/* mmc insert/remove by fs, /proc/sunxi-mmc.x/insert node */
+#define CARD_DETECT_BY_GPIO_POLL (1)	/* mmc detected by gpio check */
+#define CARD_DETECT_BY_GPIO_IRQ  (2)	/* mmc detected by gpio irq */
+#define CARD_ALWAYS_PRESENT      (3)	/* mmc always present, without detect pin */
+#define CARD_DETECT_BY_FS        (4)	/* mmc insert/remove by fs, /proc/sunxi-mmc.x/insert node */
 
 	u32 power_on:8;
 	u32 read_only:8;
