@@ -370,8 +370,10 @@ static s32 usb_3g_pin_exit(struct sw_usb_3g *usb_3g)
 *
 *******************************************************************************
 */
-static void usb_3g_wakeup_irq_enable(void)
+static void usb_3g_wakeup_irq_enable(struct sw_usb_3g *usb_3g)
 {
+    sw_gpio_eint_set_enable(usb_3g->bb_host_wake.gpio.gpio, 1);
+
     return;
 }
 
@@ -393,31 +395,10 @@ static void usb_3g_wakeup_irq_enable(void)
 *
 *******************************************************************************
 */
-static void usb_3g_wakeup_irq_disable(void)
+static void usb_3g_wakeup_irq_disable(struct sw_usb_3g *usb_3g)
 {
-    return;
-}
+    sw_gpio_eint_set_enable(usb_3g->bb_host_wake.gpio.gpio, 0);
 
-/*
-*******************************************************************************
-*                     usb_3g_wakeup_irq_clear
-*
-* Description:
-*    Only used to provide driver mode change events
-*
-* Parameters:
-*    void
-*
-* Return value:
-*    void
-*
-* note:
-*    void
-*
-*******************************************************************************
-*/
-static void usb_3g_wakeup_irq_clear(void)
-{
     return;
 }
 
@@ -439,8 +420,21 @@ static void usb_3g_wakeup_irq_clear(void)
 *
 *******************************************************************************
 */
-static int usb_3g_wakeup_irq_config(void)
+static int usb_3g_wakeup_irq_config(struct sw_usb_3g *usb_3g)
 {
+    struct gpio_config_eint_all pcfg;
+    u32 cfg_num = 0;
+
+    memset(&pcfg, 0, sizeof(struct gpio_config_eint_all));
+    pcfg.gpio = usb_3g->bb_host_wake.gpio.gpio;
+    pcfg.pull = 1;
+    pcfg.enabled = 0;
+    pcfg.irq_pd = 1;
+    pcfg.trig_type = TRIG_EDGE_NEGATIVE;
+
+    cfg_num = 1;
+    sw_gpio_eint_setall_range(&pcfg, cfg_num);
+
     return 0;
 }
 
@@ -462,8 +456,21 @@ static int usb_3g_wakeup_irq_config(void)
 *
 *******************************************************************************
 */
-static int usb_3g_wakeup_irq_config_clear(void)
+static int usb_3g_wakeup_irq_config_clear(struct sw_usb_3g *usb_3g)
 {
+    struct gpio_config_eint_all pcfg;
+    u32 cfg_num = 0;
+
+    memset(&pcfg, 0, sizeof(struct gpio_config_eint_all));
+    pcfg.gpio = usb_3g->bb_host_wake.gpio.gpio;
+    pcfg.pull = 1;
+    pcfg.enabled = 0;
+    pcfg.irq_pd = 1;
+    pcfg.trig_type = TRIG_EDGE_NEGATIVE;
+
+    cfg_num = 1;
+    sw_gpio_eint_setall_range(&pcfg, cfg_num);
+
     return 0;
 }
 
@@ -515,9 +522,9 @@ static void usb_3g_wakeup_irq_work(struct work_struct *data)
 *
 *******************************************************************************
 */
-static u32 is_usb_3g_wakeup_irq_pending(void)
+static u32 is_usb_3g_wakeup_irq_pending(struct sw_usb_3g *usb_3g)
 {
-	return 0;
+	return sw_gpio_eint_get_irqpd_sta(usb_3g->bb_host_wake.gpio.gpio);
 }
 
 /*
@@ -538,8 +545,10 @@ static u32 is_usb_3g_wakeup_irq_pending(void)
 *
 *******************************************************************************
 */
-static void usb_3g_wakeup_irq_clear_pending(void)
+static void usb_3g_wakeup_irq_clear_pending(struct sw_usb_3g *usb_3g)
 {
+    sw_gpio_eint_clr_irqpd_sta(usb_3g->bb_host_wake.gpio.gpio);
+
     return ;
 }
 
@@ -561,9 +570,17 @@ static void usb_3g_wakeup_irq_clear_pending(void)
 *
 *******************************************************************************
 */
-static u32 is_usb_3g_wakeup_irq_enable(void)
+static u32 is_usb_3g_wakeup_irq_enable(struct sw_usb_3g *usb_3g)
 {
-    return 0;
+    u32 ret = 0;
+    __u32 result = 0;
+
+    ret = sw_gpio_eint_get_enable(usb_3g->bb_host_wake.gpio.gpio, &result);
+    if(ret != 0){
+        result = 0;
+    }
+
+    return result;
 }
 
 /*
@@ -584,42 +601,51 @@ static u32 is_usb_3g_wakeup_irq_enable(void)
 *
 *******************************************************************************
 */
-static irqreturn_t usb_3g_wakeup_irq_interrupt(int irq, void *__hci)
+static u32 usb_3g_wakeup_irq_interrupt(void *para)
 {
     __u32 result = 0;
+    struct sw_usb_3g *usb_3g = &g_usb_3g;
 
-    if(!is_usb_3g_wakeup_irq_pending()){
-        return IRQ_NONE;
+    if(!is_usb_3g_wakeup_irq_pending(usb_3g)){
+        return -1;
     }
 
-	if(is_usb_3g_wakeup_irq_enable()){
+	if(is_usb_3g_wakeup_irq_enable(usb_3g)){
 	    result = 1;
 	}
 
-    usb_3g_wakeup_irq_disable();
-    usb_3g_wakeup_irq_config_clear();
-    usb_3g_wakeup_irq_clear_pending();
+    usb_3g_wakeup_irq_disable(usb_3g);
+    usb_3g_wakeup_irq_config_clear(usb_3g);
+    usb_3g_wakeup_irq_clear_pending(usb_3g);
 
     if(result){
-        schedule_work(&g_usb_3g.irq_work);
+        schedule_work(&usb_3g->irq_work);
     }
 
-	return IRQ_HANDLED;
+	return 0;
 }
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 static void usb_3g_early_suspend(struct early_suspend *h)
 {
-    usb_3g_wakeup_irq_config();
-    usb_3g_wakeup_irq_clear();
-    usb_3g_wakeup_irq_enable();
+    struct sw_usb_3g *usb_3g = &g_usb_3g;
+
+    usb_3g_wakeup_irq_config(usb_3g);
+    usb_3g_wakeup_irq_clear_pending(usb_3g);
+    usb_3g_wakeup_irq_enable(usb_3g);
+
+    return;
 }
 
 static void usb_3g_early_resume(struct early_suspend *h)
 {
-    usb_3g_wakeup_irq_disable();
-    usb_3g_wakeup_irq_config_clear();
-    usb_3g_wakeup_irq_clear();
+    struct sw_usb_3g *usb_3g = &g_usb_3g;
+
+    usb_3g_wakeup_irq_disable(usb_3g);
+    usb_3g_wakeup_irq_config_clear(usb_3g);
+    usb_3g_wakeup_irq_clear_pending(usb_3g);
+
+    return;
 }
 #endif
 
@@ -644,27 +670,27 @@ static void usb_3g_early_resume(struct early_suspend *h)
 int usb_3g_wakeup_irq_init(void)
 {
 	struct sw_usb_3g *usb_3g = &g_usb_3g;
-    int ret = 0;
-    int nIrq = SW_INT_IRQNO_PIO;
+//    int ret = 0;
 
-    ret = request_irq(nIrq, usb_3g_wakeup_irq_interrupt, IRQF_TRIGGER_FALLING | IRQF_SHARED, "usb_3g", usb_3g);
-    if(ret != 0){
-        usb_3g_err("request_irq failed, ret=%d\n", ret);
+    usb_3g->irq_handle = sw_gpio_irq_request(usb_3g->bb_host_wake.gpio.gpio,
+                                            TRIG_EDGE_NEGATIVE,
+                                            usb_3g_wakeup_irq_interrupt,
+                                            usb_3g);
+    if(usb_3g->irq_handle == 0){
+        usb_3g_err("request_irq failed\n");
         goto failed;
     }
 
 	/* Init IRQ workqueue before request_irq */
 	INIT_WORK(&usb_3g->irq_work, usb_3g_wakeup_irq_work);
 
-    usb_3g_wakeup_irq_config();
+    usb_3g_wakeup_irq_config(usb_3g);
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
     usb_3g->early_suspend.suspend = usb_3g_early_suspend;
     usb_3g->early_suspend.resume = usb_3g_early_resume;
 	register_early_suspend(&usb_3g->early_suspend);
 #endif
-
-    //enable_irq(nIrq);
 
     return 0;
 
@@ -692,19 +718,17 @@ failed:
 */
 int usb_3g_wakeup_irq_exit(void)
 {
-#ifdef CONFIG_HAS_EARLYSUSPEND
 	struct sw_usb_3g *usb_3g = &g_usb_3g;
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
 	unregister_early_suspend(&usb_3g->early_suspend);
 #endif
 
-	usb_3g_wakeup_irq_disable();
+	usb_3g_wakeup_irq_disable(usb_3g);
+    usb_3g_wakeup_irq_config_clear(usb_3g);
+    usb_3g_wakeup_irq_clear_pending(usb_3g);
 
-    usb_3g_wakeup_irq_config_clear();
-
-    usb_3g_wakeup_irq_clear();
-
-    //free_irq(SW_INT_IRQNO_PIO, usb_3g_wakeup_irq_interrupt);
+    //sw_gpio_irq_free(usb_3g->irq_handle);
 
     return 0;
 }
