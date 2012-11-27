@@ -215,7 +215,7 @@ __s32 BSP_disp_print_reg(__bool b_force_on, __u32 id)
             
         case DISP_REG_CCMU:
             base = gdisp.init_para.base_ccmu;
-            size = 0x158;
+            size = 0x308;
             sprintf(str, "ccmu:\n");
             break;
             

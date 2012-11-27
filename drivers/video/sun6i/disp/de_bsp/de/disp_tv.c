@@ -24,16 +24,10 @@ __s32 Disp_TVEC_Init(__u32 sel)
     gdisp.screen[sel].dac_source[2] = DISP_TV_DAC_SRC_PR;
     gdisp.screen[sel].dac_source[3] = DISP_TV_DAC_SRC_COMPOSITE;
 
-    ret = OSAL_Script_FetchParser_Data("tv_out_dac_para", "dac_used", &value, 1);
-    if(ret < 0)
+    ret = OSAL_Script_FetchParser_Data("tv_para", "dac_used", &value, 1);
+    if(ret == 0)
     {
-        DE_INF("fetch script data tv_out_dac_para.dac_used fail\n");
-    }
-    else
-    {
-        DE_INF("tv_out_dac_para.dac_used=%d\n",value);
-
-	    if(value != 0)
+        if(value != 0)
 	    {
 	        __s32 i = 0;
 	        char sub_key[20];
@@ -43,14 +37,9 @@ __s32 Disp_TVEC_Init(__u32 sel)
 	            sprintf(sub_key, "dac%d_src", i);
 	            
 	            ret = OSAL_Script_FetchParser_Data("tv_out_dac_para", sub_key, &value, 1);
-	            if(ret < 0)
-	            {
-	                DE_INF("fetch script data tv_out_dac_para.%s fail\n", sub_key);
-	            }
-	            else
+	            if(ret == 0)
 	            {
 	                gdisp.screen[sel].dac_source[i] = value;
-	                DE_INF("tv_out_dac_para.%s = %d\n", sub_key, value);
 	            }
 	        }
 	    }
@@ -212,17 +201,13 @@ __s32 BSP_disp_tv_open(__u32 sel)
         Disp_Switch_Dram_Mode(DISP_OUTPUT_TYPE_TV, tv_mod);
 #ifdef __LINUX_OSAL__
         {
-            user_gpio_set_t  gpio_info[1];
+            disp_gpio_set_t  gpio_info[1];
             __hdle gpio_pa_shutdown;
             __s32 ret;            
 
-            memset(gpio_info, 0, sizeof(user_gpio_set_t));
-            ret = OSAL_Script_FetchParser_Data("audio_para","audio_pa_ctrl", (int *)gpio_info, sizeof(user_gpio_set_t)/sizeof(int));
-            if(ret < 0)
-            {
-                DE_WRN("fetch script data audio_para.audio_pa_ctrl fail\n");
-            }
-            else
+            memset(gpio_info, 0, sizeof(disp_gpio_set_t));
+            ret = OSAL_Script_FetchParser_Data("audio_para","audio_pa_ctrl", (int *)gpio_info, sizeof(disp_gpio_set_t)/sizeof(int));
+            if(ret == 0)
             {
                 gpio_pa_shutdown = OSAL_GPIO_Request(gpio_info, 1);
                 if(!gpio_pa_shutdown) 
@@ -232,7 +217,7 @@ __s32 BSP_disp_tv_open(__u32 sel)
                 else
                 {
                     OSAL_GPIO_DevWRITE_ONEPIN_DATA(gpio_pa_shutdown, 0, "audio_pa_ctrl");
-                }
+                }                
             }
         }
 #endif
@@ -264,12 +249,12 @@ __s32 BSP_disp_tv_close(__u32 sel)
         
 #ifdef __LINUX_OSAL__
         {
-            user_gpio_set_t  gpio_info[1];
+            disp_gpio_set_t  gpio_info[1];
             __hdle gpio_pa_shutdown;
             __s32 ret;         
 
-            memset(gpio_info, 0, sizeof(user_gpio_set_t));
-            ret = OSAL_Script_FetchParser_Data("audio_para","audio_pa_ctrl", (int *)gpio_info, sizeof(user_gpio_set_t)/sizeof(int));
+            memset(gpio_info, 0, sizeof(disp_gpio_set_t));
+            ret = OSAL_Script_FetchParser_Data("audio_para","audio_pa_ctrl", (int *)gpio_info, sizeof(disp_gpio_set_t)/sizeof(int));
             if(ret < 0)
             {
                 DE_WRN("fetch script data audio_para.audio_pa_ctrl fail\n");

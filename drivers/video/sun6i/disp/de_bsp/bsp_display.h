@@ -36,7 +36,7 @@
 #include <linux/platform_device.h>
 #include <linux/clk.h>
 #include <linux/cdev.h>
-//#include <mach/sys_config.h>  for what?
+#include <mach/sys_config.h>
 #include <mach/clock.h>
 //#include <mach/aw_ccu.h>
 #include <mach/gpio.h>
@@ -45,6 +45,7 @@
 #include <linux/timer.h>
 #include <mach/irqs.h>
 #include <linux/sunxi_physmem.h>
+#include <linux/gpio.h>
 
 
 typedef unsigned int __hdle;

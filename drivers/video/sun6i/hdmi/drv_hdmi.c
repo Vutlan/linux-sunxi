@@ -263,18 +263,15 @@ __s32 Hdmi_init(void)
 {	    
     __audio_hdmi_func audio_func;
     __disp_hdmi_func disp_func;
-    __s32 ret;
-    __u32 value;
+    script_item_u   val;
+    script_item_value_type_e  type;
 
     hdmi_used = 0;
-    ret = script_parser_fetch("hdmi_para", "hdmi_used", &value, 1);
-    if(ret < 0)
+    
+    type = script_get_item("hdmi_para", "hdmi_used", &val);
+    if(SCIRPT_ITEM_VALUE_TYPE_INT == type)
     {
-        __wrn("fetch script data hdmi_para.hdmi_used fail\n");
-    }
-    else
-    {
-        hdmi_used = value;
+        hdmi_used = val.val;
         if(hdmi_used)
     	{
         	run_sem = kmalloc(sizeof(struct semaphore),GFP_KERNEL | __GFP_ZERO);
@@ -298,7 +295,6 @@ __s32 Hdmi_init(void)
             audio_func.hdmi_audio_enable = Hdmi_Audio_Enable;
             audio_func.hdmi_set_audio_para = Hdmi_Set_Audio_Para;
         	audio_set_hdmi_func(&audio_func);
-
             
             disp_func.hdmi_open = Hdmi_open;
             disp_func.hdmi_close = Hdmi_close;

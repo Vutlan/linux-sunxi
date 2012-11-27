@@ -22,6 +22,19 @@
 #define  __OSAL_H__
 
 
+typedef struct
+{
+    char  gpio_name[32];
+    int port;
+    int port_num;
+    int mul_sel;
+    int pull;
+    int drv_level;
+    int data;
+    int gpio;
+} disp_gpio_set_t;
+
+
 #include "../de_bsp/bsp_display.h"
 
 #include  "OSAL_Cache.h"

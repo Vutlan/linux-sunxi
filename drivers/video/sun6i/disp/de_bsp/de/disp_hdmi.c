@@ -13,13 +13,8 @@ __s32 Display_Hdmi_Init(void)
     __u32 value;
     
     ret = OSAL_Script_FetchParser_Data("hdmi_para", "hdmi_used", &value, 1);
-    if(ret < 0)
+    if(ret == 0)
     {
-        DE_WRN("fetch script data hdmi_para.hdmi_used fail\n");
-    }
-    else
-    {
-        DE_INF("hdmi_para.hdmi_used = %d\n", value);
         gdisp.screen[0].hdmi_used = value;
         gdisp.screen[1].hdmi_used = value;
 
