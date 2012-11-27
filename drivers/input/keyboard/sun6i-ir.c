@@ -40,9 +40,7 @@
 #endif
 
 #ifdef SYS_GPIO_CFG_EN
-//#include <mach/sys_config.h>
 //#include <mach/system.h>
-static struct clk *apb_ir_clk;
 static struct clk *ir_clk;
 static struct gpio_hdle {
 	script_item_u	val;
@@ -181,29 +179,19 @@ static void ir_clk_cfg(void)
 #endif
 	
 #ifdef SYS_CLK_CFG_EN
-	apb_ir_clk = clk_get(NULL, "apb_ir0");		
-	if (!apb_ir_clk) {
-		printk(KERN_DEBUG "try to get apb_ir0 clock failed!\n");
+	ir_clk = clk_get(NULL, CLK_MOD_R_CIR);		
+	if (!ir_clk || IS_ERR(ir_clk)) {
+		printk(KERN_DEBUG "try to get ir0 clock failed!\n");
 		return;
 	}
 
-	ir_clk = clk_get(NULL, "ir0");		
-	if (!ir_clk) {
-		printk(KERN_DEBUG "try to get ir0 clock failed!\n");
-		return;
+	if (clk_enable(ir_clk)) {
+		printk(KERN_DEBUG "try to enable apb_ir_clk failed!\n");	
 	}
 
 	if (clk_set_rate(ir_clk, rate)) {
 		printk(KERN_DEBUG "set ir0 clock freq to 3M failed!\n");
 	}
-		
-	if (clk_enable(apb_ir_clk)) {
-		printk(KERN_DEBUG "try to enable apb_ir_clk failed!\n");	
-	}
-	if (clk_enable(ir_clk)) {
-		printk(KERN_DEBUG "try to enable apb_ir_clk failed!\n");	
-	}
-		
 #else	
 	/* Enable APB Clock for IR */	
 	tmp = readl(CCM_BASE + 0x10);
@@ -226,8 +214,12 @@ static void ir_clk_cfg(void)
 static void ir_clk_uncfg(void)
 {
 #ifdef SYS_CLK_CFG_EN
-	clk_put(apb_ir_clk);
-	clk_put(ir_clk);
+	if(NULL == ir_clk || IS_ERR(ir_clk)) {
+		printk("ir_clk handle is invalid, just return!\n");
+		return;
+	} else {	
+		clk_put(ir_clk);
+	}
 #else	
 #endif
  
@@ -588,8 +580,12 @@ static void sun6i_ir_suspend(struct early_suspend *h)
 	//tmp &= 0xfffffffc;
 	//writel(tmp, IR_BASE+IR_CTRL_REG);
 
-	clk_disable(ir_clk);
-	clk_disable(apb_ir_clk);
+	if(NULL == ir_clk || IS_ERR(ir_clk)) {
+		printk("ir_clk handle is invalid, just return!\n");
+		return;
+	} else {	
+		clk_disable(ir_clk);
+	}
 
 	return ;
 }
