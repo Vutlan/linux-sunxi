@@ -34,30 +34,37 @@
 #include <mach/clock.h>
 #include <mach/platform.h> 
 #include <mach/hardware.h> 
+#include <mach/sys_config.h>
 #include <linux/dma-mapping.h>
 #include <mach/dma.h>
 #include <linux/wait.h>
 #include <linux/sched.h>
 #include <asm/cacheflush.h>
+#include <mach/gpio.h>
+#include <linux/gpio.h>
 #include "nand_lib.h"
 #include "nand_blk.h"
 
-#ifndef __FPGA_TEST__
-    #include <mach/sys_config.h>
-#endif
+struct clk *pll6;
+struct clk *nand0_clk;
+struct clk *ahb_nand0;
+struct clk *nand1_clk;
+struct clk *ahb_nand1;
 
-static struct clk *ahb_nand_clk = NULL;
-static struct clk *mod_nand_clk = NULL;
 
 int seq=0;
 int nand_handle=0;
 
 
 #ifdef __OS_NAND_SUPPORT_INT__
-static int nandrb_ready_flag = 1;
-static int nanddma_ready_flag = 1;
-static DECLARE_WAIT_QUEUE_HEAD(NAND_RB_WAIT);
-static DECLARE_WAIT_QUEUE_HEAD(NAND_DMA_WAIT);
+static int nandrb_ready_flag[2] = {1, 1};
+static int nanddma_ready_flag[2] = {1, 1};
+static DECLARE_WAIT_QUEUE_HEAD(NAND_RB_WAIT_CH0);
+static DECLARE_WAIT_QUEUE_HEAD(NAND_RB_WAIT_CH1);
+
+static DECLARE_WAIT_QUEUE_HEAD(NAND_DMA_WAIT_CH0);
+static DECLARE_WAIT_QUEUE_HEAD(NAND_DMA_WAIT_CH1);
+
 #endif
 
 //#define RB_INT_MSG_ON
@@ -99,57 +106,202 @@ static DECLARE_WAIT_QUEUE_HEAD(NAND_DMA_WAIT);
 * Returns    : EPDK_TRUE/ EPDK_FALSE
 *********************************************************************************************************
 */
-
-int NAND_ClkRequest(void)
+int NAND_ClkRequest(__u32 nand_index)
 {
-    printk("[NAND] nand clk request start\n");
-	ahb_nand_clk = clk_get(NULL,"ahb_nfc");
-	if(!ahb_nand_clk) {
+	long    rate;
+
+	pll6 = clk_get(NULL, "sys_pll6");
+	if(NULL == pll6 || IS_ERR(pll6)) {
+		printk("%s: clock handle invalid!\n", __func__);
 		return -1;
 	}
-	mod_nand_clk = clk_get(NULL,"nfc");
-		if(!mod_nand_clk) {
+
+	if(nand_index == 0) {
+		nand0_clk = clk_get(NULL, "mod_nand0");
+		ahb_nand0 = clk_get(NULL, "ahb_nand0");
+	
+		/* 检查clock句柄有效性 */
+		if(NULL == nand0_clk || IS_ERR(nand0_clk)
+			|| NULL == ahb_nand0 || IS_ERR(ahb_nand0)){
+			printk("%s: clock handle invalid!\n", __func__);
+			return -1;
+		}
+
+		/* 设置 NAND0 控制器的父时钟为PLL6 */
+		if(clk_set_parent(nand0_clk, pll6))
+			printk("%s: set nand0_clk parent to pll6 failed!\n", __func__);
+
+		/* 设置NAND0 控制器的频率为50Mhz */
+		rate = clk_round_rate(nand0_clk, 20000000);
+		if(clk_set_rate(nand0_clk, rate))
+			printk("%s: set nand0_clk rate to %dHZ failed!\n", __func__, (__u32)rate);
+
+		/* 打开NAND0 的AHB GATING */
+		if(clk_enable(ahb_nand0))
+			printk("%s: enable ahb_nand0 failed!\n", __func__);
+		/* 打开NAND0 的模块 GATING */
+		if(clk_enable(nand0_clk))
+			printk("%s: enable nand0_clk failed!\n", __func__);
+		/* 放开NAND0 的复位 */
+		if(clk_reset(nand0_clk, AW_CCU_CLK_NRESET))
+			printk("%s: NRESET nand0_clk failed!\n", __func__);
+	} else if(nand_index == 1) {
+		nand1_clk = clk_get(NULL, "mod_nand1");
+		ahb_nand1 = clk_get(NULL, "ahb_nand1");
+	
+		/* 检查clock句柄有效性 */
+		if(NULL == nand1_clk || IS_ERR(nand1_clk)
+		|| NULL == ahb_nand1 || IS_ERR(ahb_nand1)){
+			printk("%s: clock handle invalid!\n", __func__);
+			return -1;
+		}	
+
+		/* 设置 NAND1 控制器的父时钟为PLL6 */
+		if(clk_set_parent(nand1_clk, pll6))
+			printk("%s: set nand1_clk parent to pll6 failed!\n", __func__);
+
+		/* 设置NAND1 控制器的频率为50Mhz */
+		rate = clk_round_rate(nand1_clk, 20000000);
+		if(clk_set_rate(nand1_clk, rate))
+			printk("%s: set nand1_clk rate to %dHZ failed!\n", __func__, (__u32)rate);
+
+		/* 打开NAND1 的AHB GATING */
+		if(clk_enable(ahb_nand1))
+			printk("%s: enable ahb_nand1 failed!\n", __func__);
+		/* 打开NAND1 的模块 GATING */
+		if(clk_enable(nand1_clk))
+			printk("%s: enable nand1_clk failed!\n", __func__);
+		/* 放开NAND1 的复位 */
+		if(clk_reset(nand1_clk, AW_CCU_CLK_NRESET))
+			printk("%s: NRESET nand1_clk failed!\n", __func__);
+	} else {
+		printk("NAND_ClkRequest, nand_index error: 0x%x\n", nand_index);
 		return -1;
 	}
-	printk("[NAND] nand clk request ok!\n");
+
+	return 0;
+	
+}
+
+void NAND_ClkRelease(__u32 nand_index)
+{
+
+
+	if(nand_index == 0)
+	{
+		if(NULL != nand0_clk && !IS_ERR(nand0_clk)) {
+			/* 使NAND0控制器进入复位状态 */
+			if(clk_reset( nand0_clk, AW_CCU_CLK_RESET))
+				printk("%s: RESET nand0_clk failed!\n", __func__);
+			/* 关闭NAND0的模块时钟 */
+			clk_disable(nand0_clk);
+			/* 释放nand0_clk句柄 */
+			clk_put(nand0_clk);
+			nand0_clk = NULL;
+		}
+		if(NULL != ahb_nand0 && !IS_ERR(ahb_nand0)) {
+			/* 关闭NAND00的AHB GATING */
+			clk_disable(ahb_nand0);
+			/* 释放ahb_sdc0句柄 */
+			clk_put(ahb_nand0);
+			ahb_nand0 = NULL;
+		}
+	}
+	else if(nand_index == 1)
+	{
+		if(NULL != nand1_clk && !IS_ERR(nand0_clk)) {
+			/* 使NAND0控制器进入复位状态 */
+			if(clk_reset( nand1_clk, AW_CCU_CLK_RESET))
+				printk("%s: RESET nand0_clk failed!\n", __func__);
+			/* 关闭NAND0的模块时钟 */
+			clk_disable(nand1_clk);
+			/* 释放nand0_clk句柄 */
+			clk_put(nand1_clk);
+			nand0_clk = NULL;
+		}
+		if(NULL != ahb_nand1 && !IS_ERR(ahb_nand1)) {
+			/* 关闭NAND00的AHB GATING */
+			clk_disable(ahb_nand1);
+			/* 释放ahb_sdc0句柄 */
+			clk_put(ahb_nand1);
+			ahb_nand1 = NULL;
+		}
+	}
+	else
+	{
+		printk("NAND_ClkRequest, nand_index error: 0x%x\n", nand_index);
+	}
+
+	if(NULL != pll6 && !IS_ERR(pll6)) {
+		/* 释放pll6句柄 */
+		clk_put(pll6);
+		pll6 = NULL;
+	}
+}
+
+int NAND_SetClk(__u32 nand_index, __u32 nand_clk)
+{
+	long    rate;
+
+	if(nand_index == 0) {
+		/* 检查clock句柄有效性 */
+		if(NULL == nand0_clk || IS_ERR(nand0_clk)){
+			printk("%s: clock handle invalid!\n", __func__);
+			return -1;
+		}
+
+		/* 设置NAND0 控制器的频率为50Mhz */
+		rate = clk_round_rate(nand0_clk, nand_clk*1000000);
+		if(clk_set_rate(nand0_clk, rate))
+			printk("%s: set nand0_clk rate to %dHZ failed! nand_clk: 0x%x\n", __func__, (__u32)rate, nand_clk);
+
+	} else if(nand_index == 1) {
+		/* 检查clock句柄有效性 */
+		if(NULL == nand1_clk || IS_ERR(nand1_clk)) {
+			printk("%s: clock handle invalid!\n", __func__);
+			return -1;
+		}	
+
+		/* 设置NAND1 控制器的频率为50Mhz */
+		rate = clk_round_rate(nand1_clk, nand_clk*1000000);
+		if(clk_set_rate(nand1_clk, rate))
+			printk("%s: set nand1_clk rate to %dHZ failed! nand_clk: 0x%x\n", __func__, (__u32)rate, nand_clk);
+	} else {
+		printk("NAND_SetClk, nand_index error: 0x%x\n", nand_index);
+		return -1;
+	}
+
 	return 0;
 }
 
-void NAND_ClkRelease(void)
+int NAND_GetClk(__u32 nand_index)
 {
-	clk_put(ahb_nand_clk);
-	clk_put(mod_nand_clk);
-}
+	long    rate;
 
+	if(nand_index == 0) {
+		/* 检查clock句柄有效性 */
+		if(NULL == nand0_clk || IS_ERR(nand0_clk)){
+			printk("%s: clock handle invalid!\n", __func__);
+			return -1;
+		}
 
-int NAND_AHBEnable(void)
-{
-	return clk_enable(ahb_nand_clk);
-}
+		/* 设置NAND0 控制器的频率为50Mhz */
+		rate = clk_get_rate(nand0_clk);
+	} else if(nand_index == 1) {
+		/* 检查clock句柄有效性 */
+		if(NULL == nand1_clk || IS_ERR(nand1_clk)){
+			printk("%s: clock handle invalid!\n", __func__);
+			return -1;
+		}	
 
-int NAND_ClkEnable(void)
-{
-	return clk_enable(mod_nand_clk);
-}
+		/* 设置NAND1 控制器的频率为50Mhz */
+		rate = clk_get_rate(nand1_clk);
+	} else {
+		printk("NAND_GetClk, nand_index error: 0x%x\n", nand_index);
+		return -1;
+	}
 
-void NAND_AHBDisable(void)
-{
-	clk_disable(ahb_nand_clk);
-}
-
-void NAND_ClkDisable(void)
-{
-	clk_disable(mod_nand_clk);
-}
-
-int NAND_SetClk(__u32 nand_clk)
-{
-	return clk_set_rate(mod_nand_clk, nand_clk*2000000);
-}
-
-int NAND_GetClk(void)
-{
-	return (clk_get_rate(mod_nand_clk)/2000000);
+	return (rate/1000000);
 }
 
 void eLIBs_CleanFlushDCacheRegion_nand(void *adr, size_t bytes)
@@ -203,15 +355,20 @@ __u32 NAND_DMASingleUnmap(__u32 rw, __u32 buff_addr, __u32 len)
 #ifdef __OS_NAND_SUPPORT_INT__
 void NAND_EnDMAInt(void)
 {
+	__u32 nand_index;
+
+	nand_index = NAND_GetCurrentCH();
+	
 	//clear interrupt
+	#if 0
 	NFC_DmaIntClearStatus();
 	if(NFC_DmaIntGetStatus())
 	{
 		dbg_rbint_wrn("nand clear dma int status error in int enable \n");
 		dbg_rbint_wrn("dma status: 0x%x\n", NFC_DmaIntGetStatus());
 	}
-	
-	nanddma_ready_flag = 0;
+	#endif
+	nanddma_ready_flag[nand_index] = 0;
 
 	//enable interrupt
 	NFC_DmaIntEnable();
@@ -221,25 +378,31 @@ void NAND_EnDMAInt(void)
 
 void NAND_ClearDMAInt(void)
 {
+	__u32 nand_index;
+
+	nand_index = NAND_GetCurrentCH();
     
 	//disable interrupt
 	NFC_DmaIntDisable();
 	dbg_dmaint("dma int clear\n");
 
 	//clear interrupt
-	NFC_DmaIntClearStatus();
-	if(NFC_DmaIntGetStatus())
-	{
-		dbg_dmaint_wrn("nand clear dma int status error in int clear \n");
-		dbg_dmaint_wrn("dma status: 0x%x\n", NFC_DmaIntGetStatus());
-	}
+	//NFC_DmaIntClearStatus();
+	//if(NFC_DmaIntGetStatus())
+	//{
+	//	dbg_dmaint_wrn("nand clear dma int status error in int clear \n");
+	//	dbg_dmaint_wrn("dma status: 0x%x\n", NFC_DmaIntGetStatus());
+	//}
 	
-	nanddma_ready_flag = 0;
+	nanddma_ready_flag[nand_index] = 0;
 }
 
 void NAND_DMAInterrupt(void)
 {
+	__u32 nand_index;
 
+	nand_index = NAND_GetCurrentCH();
+	
 	dbg_dmaint("dma int occor! \n");
 	if(!NFC_DmaIntGetStatus())
 	{
@@ -248,42 +411,76 @@ void NAND_DMAInterrupt(void)
     
     NAND_ClearDMAInt();
     
-    nanddma_ready_flag = 1;
-	wake_up( &NAND_DMA_WAIT );
-
+    nanddma_ready_flag[nand_index] = 1;
+    if(nand_index == 0)
+	wake_up( &NAND_DMA_WAIT_CH0 );
+    else if(nand_index == 1)
+	wake_up( &NAND_DMA_WAIT_CH1 );
 }
 
 __s32 NAND_WaitDmaFinish(void)
 {
+	__u32 nand_index;
+
+	nand_index = NAND_GetCurrentCH();
+
 #ifdef __OS_SUPPORT_DMA_INT__    
-    NAND_EnDMAInt();
+	NAND_EnDMAInt();
 	
 	//wait_event(NAND_RB_WAIT, nandrb_ready_flag);
-	dbg_dmaint("dma wait\n",);
+	dbg_dmaint("dma wait\n");
 
-	if(nanddma_ready_flag)
+	if(nanddma_ready_flag[nand_index])
 	{
 		dbg_rbint("fast dma int\n");
 		NAND_ClearDMAInt();
 		return 0;
 	}
-    
-    if(wait_event_timeout(NAND_DMA_WAIT, nanddma_ready_flag, 1*HZ)==0)
+
+	if(NFC_DmaIntGetStatus())
 	{
-		dbg_dmaint_wrn("nand wait rb ready time out\n");
-	    NAND_ClearDMAInt();
-	}
-	else
-	{
-		dbg_rbint("nand wait dma ready ok\n");
+		dbg_rbint("dma fast ready \n");
 		NAND_ClearDMAInt();
+		return 0;
 	}
+
+    	if(nand_index == 0)
+    	{
+    		if(wait_event_timeout(NAND_DMA_WAIT_CH0, nanddma_ready_flag[nand_index], 1*HZ)==0)
+		{
+			dbg_dmaint_wrn("nand wait dma ready time out, ch: 0x%d\n", nand_index);
+			NAND_ClearDMAInt();
+		}
+		else
+		{
+			dbg_rbint("nand wait dma ready ok\n");
+			NAND_ClearDMAInt();
+		}
+    	}
+	else if(nand_index ==1)
+	{
+		if(wait_event_timeout(NAND_DMA_WAIT_CH1, nanddma_ready_flag[nand_index], 1*HZ)==0)
+		{
+			dbg_dmaint_wrn("nand wait dma ready time out, ch: 0x%d\n", nand_index);
+			NAND_ClearDMAInt();
+		}
+		else
+		{
+			dbg_rbint("nand wait dma ready ok\n");
+			NAND_ClearDMAInt();
+		}
+	}
+    	
 #endif	
     return 0;
 }
 
 void NAND_EnRbInt(void)
 {
+	__u32 nand_index;
+
+	nand_index = NAND_GetCurrentCH();
+	
 	//clear interrupt
 	NFC_RbIntClearStatus();
 	
@@ -292,7 +489,7 @@ void NAND_EnRbInt(void)
 		dbg_rbint_wrn("nand clear rb int status error in int enable \n");
 	}
 	
-	nandrb_ready_flag = 0;
+	nandrb_ready_flag[nand_index] = 0;
 
 	//enable interrupt
 	NFC_RbIntEnable();
@@ -303,7 +500,10 @@ void NAND_EnRbInt(void)
 
 void NAND_ClearRbInt(void)
 {
-    
+    	__u32 nand_index;
+
+	nand_index = NAND_GetCurrentCH();
+	
 	//disable interrupt
 	NFC_RbIntDisable();;
 
@@ -318,12 +518,15 @@ void NAND_ClearRbInt(void)
 		dbg_rbint_wrn("nand clear rb int status error in int clear \n");
 	}
 	
-	nandrb_ready_flag = 0;
+	nandrb_ready_flag[nand_index] = 0;
 }
 
 
 void NAND_RbInterrupt(void)
 {
+	__u32 nand_index;
+
+	nand_index = NAND_GetCurrentCH();
 
 	dbg_rbint("rb int occor! \n");
 	if(!NFC_RbIntGetStatus())
@@ -333,8 +536,11 @@ void NAND_RbInterrupt(void)
     
     NAND_ClearRbInt();
     
-    nandrb_ready_flag = 1;
-	wake_up( &NAND_RB_WAIT );
+    nandrb_ready_flag[nand_index] = 1;
+    if(nand_index == 0)
+	wake_up( &NAND_RB_WAIT_CH0 );
+    else if(nand_index ==1)
+    	wake_up( &NAND_RB_WAIT_CH1 );
 
 }
 
@@ -342,13 +548,17 @@ __s32 NAND_WaitRbReady(void)
 {
 #ifdef __OS_SUPPORT_RB_INT__ 
 	__u32 rb;
+	__u32 nand_index;
+	
+	nand_index = NAND_GetCurrentCH();
+
 	
 	NAND_EnRbInt();
 	
 	//wait_event(NAND_RB_WAIT, nandrb_ready_flag);
 	dbg_rbint("rb wait \n");
 
-	if(nandrb_ready_flag)
+	if(nandrb_ready_flag[nand_index])
 	{
 		dbg_rbint("fast rb int\n");
 		NAND_ClearRbInt();
@@ -363,16 +573,33 @@ __s32 NAND_WaitRbReady(void)
 		return 0;
 	}
 
+
+	if(nand_index == 0)
+	{
+		if(wait_event_timeout(NAND_RB_WAIT_CH0, nandrb_ready_flag[nand_index], 1*HZ)==0)
+		{
+			dbg_rbint_wrn("nand wait rb ready time out, ch: %d\n", nand_index);
+			NAND_ClearRbInt();
+		}
+		else
+		{
+			dbg_rbint("nand wait rb ready ok\n");
+		}
+	}
+	else if(nand_index ==1)
+	{
+		if(wait_event_timeout(NAND_RB_WAIT_CH1, nandrb_ready_flag[nand_index], 1*HZ)==0)
+		{
+			dbg_rbint_wrn("nand wait rb ready time out, ch: %d\n", nand_index);
+			NAND_ClearRbInt();
+		}
+		else
+		{
+			dbg_rbint("nand wait rb ready ok\n");
+		}
+	}
+		
 	
-	if(wait_event_timeout(NAND_RB_WAIT, nandrb_ready_flag, 1*HZ)==0)
-	{
-		dbg_rbint_wrn("nand wait rb ready time out\n");
-		NAND_ClearRbInt();
-	}
-	else
-	{
-		dbg_rbint("nand wait rb ready ok\n");
-	}
 #endif	
     return 0;
 }
@@ -393,23 +620,94 @@ __u32 NAND_VA_TO_PA(__u32 buff_addr)
     return (__u32)(__pa((void *)buff_addr));
 }
 
-void NAND_PIORequest(void)
+void NAND_PIORequest(__u32 nand_index)
 {
-	printk("[NAND] nand gpio_request\n");
-	#ifndef __FPGA_TEST__
-	nand_handle = gpio_request_ex("nand_para",NULL);
-	if(!nand_handle)
+	int	cnt, i;
+	script_item_u *list = NULL;
+
+	if(nand_index == 0)
 	{
-		printk("[NAND] nand gpio_request ok\n");
+		printk("[NAND] nand0 gpio_request\n");
+	
+		/* 获取gpio list */
+		cnt = script_get_pio_list("nand0_para", &list);
+		if(0 == cnt) {
+			printk("get nand0_para gpio list failed\n");
+			return;
+		}
+		/* 申请gpio */
+		for(i = 0; i < cnt; i++)
+			if(0 != gpio_request(list[i].gpio.gpio, NULL))
+				printk("request nand0_para gpio list failed\n");
+		/* 配置gpio list */
+		if(0 != sw_gpio_setall_range(&list[0].gpio, cnt))
+			printk("sw_gpio_setall_range failed\n");
+	}
+	else if(nand_index ==1)
+	{
+		printk("[NAND] nand1 gpio_request\n");
+		
+		cnt = script_get_pio_list("nand1_para", &list);
+		if(0 == cnt) {
+			printk("get nand1_para gpio list failed\n");
+			return;
+		}
+		/* 申请gpio */
+		for(i = 0; i < cnt; i++)
+			if(0 != gpio_request(list[i].gpio.gpio, NULL))
+				printk("request nand1_para gpio list failed\n");
+		/* 配置gpio list */
+		if(0 != sw_gpio_setall_range(&list[0].gpio, cnt))
+			printk("sw_gpio_setall_range failed\n");
 	}
 	else
 	{
-	    printk("[NAND] nand gpio_request fail\n");
+		printk("NAND_PIORequest, nand_index error: 0x%x\n", nand_index);
 	}
-	#endif
 
 
 }
+
+void NAND_PIORelease(__u32 nand_index)
+{
+
+	int	cnt;
+	script_item_u *list = NULL;
+
+	if(nand_index == 0)
+	{
+		printk("[NAND] nand gpio_release\n");
+	
+		/* 获取gpio list */
+		cnt = script_get_pio_list("nand0_para", &list);
+		if(0 == cnt) {
+			printk("get nand0_para gpio list failed\n");
+			return;
+		}
+
+		/* 释放gpio */
+		while(cnt--)
+			gpio_free(list[cnt].gpio.gpio);
+	}
+	else if(nand_index == 1)
+	{
+		cnt = script_get_pio_list("nand1_para", &list);
+		if(0 == cnt) {
+			printk("get nand1_para gpio list failed\n");
+			return;
+		}
+
+		/* 释放gpio */
+		while(cnt--)
+			gpio_free(list[cnt].gpio.gpio);
+	}
+	else
+	{
+		printk("NAND_PIORelease, nand_index error: 0x%x\n", nand_index);
+	}
+	
+}
+
 
 void NAND_Interrupt(void)
 {
@@ -425,14 +723,6 @@ void NAND_Interrupt(void)
         NAND_DMAInterrupt();    
     }    
 #endif
-}
-
-void NAND_PIORelease(void)
-{
-
-	//printk("[NAND] nand gpio_release\n");
-	//gpio_release("nand_para",NULL);
-
 }
 
 void NAND_Memset(void* pAddr, unsigned char value, unsigned int len)

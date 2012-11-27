@@ -119,6 +119,8 @@ extern __s32 NAND_GetParam(boot_nand_para_t * nand_param);
 extern __s32 NAND_GetFlashInfo(boot_flash_info_t *info);
 extern __u32 NAND_GetDiskSize(void);
 extern void  NAND_SetSrcClkName(__u32 pll_name);
+extern __u32 NAND_GetChannelCnt(void);
+extern __u32 NAND_GetCurrentCH(void);
 
 //for lsb mode
 extern __s32 NFC_LSBEnable(__u32 chip, __u32 read_retry_type);

@@ -86,14 +86,11 @@ struct collect_ops collect_arg;
 #endif
 
 //for CLK
-extern int NAND_ClkRequest(void);
-extern void NAND_ClkRelease(void);
-extern int NAND_AHBEnable(void);
-extern void NAND_AHBDisable(void);
-extern int NAND_ClkEnable(void);
-extern void NAND_ClkDisable(void);
-extern int NAND_SetClk(unsigned int nand_clk);
-extern int NAND_GetClk(void);
+extern int NAND_ClkRequest(__u32 nand_index);
+extern void NAND_ClkRelease(__u32 nand_index);
+extern int NAND_SetClk(__u32 nand_index, __u32 nand_clk);
+extern int NAND_GetClk(__u32 nand_index);
+
 //for DMA
 extern int NAND_RequestDMA(void);
 extern int NAND_ReleaseDMA(void);
@@ -101,8 +98,9 @@ extern void NAND_DMAConfigStart(int rw, unsigned int buff_addr, int len);
 extern int NAND_QueryDmaStat(void);
 extern int NAND_WaitDmaFinish(void);
 //for PIO
-extern void NAND_PIORequest(void);
-extern void NAND_PIORelease(void);
+extern void NAND_PIORequest(__u32 nand_index);
+extern void NAND_PIORelease(__u32 nand_index);
+
 //for Int
 extern void NAND_EnRbInt(void);
 extern void NAND_ClearRbInt(void);
@@ -121,26 +119,48 @@ static int nand_flush_force(__u32 dev_num);
 
 
 #ifdef __OS_NAND_SUPPORT_INT__	
-    spinlock_t     nand_int_lock;
+    spinlock_t     nand_int_lock0;
+    spinlock_t	   nand_int_lock1;
+
     
     static irqreturn_t nand_interrupt_ch0(int irq, void *dev_id)
     {
         unsigned long iflags;
-    
-        spin_lock_irqsave(&nand_int_lock, iflags);
-        NAND_Interrupt();
-        spin_unlock_irqrestore(&nand_int_lock, iflags);
+	__u32 nand_index;
+	
+	spin_lock_irqsave(&nand_int_lock0, iflags);
+
+	nand_index = NAND_GetCurrentCH();
+	if(nand_index!=0)
+	{
+		printk(" ch %d int in ch0\n", nand_index);
+	}
+	else
+	{
+		NAND_Interrupt();
+	}
+	
+        spin_unlock_irqrestore(&nand_int_lock0, iflags);
     
     	return IRQ_HANDLED;
     }
 
-	static irqreturn_t nand_interrupt_ch1(int irq, void *dev_id)
+    static irqreturn_t nand_interrupt_ch1(int irq, void *dev_id)
     {
         unsigned long iflags;
-    
-        spin_lock_irqsave(&nand_int_lock, iflags);
-        NAND_Interrupt();
-        spin_unlock_irqrestore(&nand_int_lock, iflags);
+    	__u32 nand_index;
+	
+        spin_lock_irqsave(&nand_int_lock1, iflags);
+        nand_index = NAND_GetCurrentCH();
+	if(nand_index!=1)
+	{
+		printk(" ch %d int in ch1\n", nand_index);
+	}
+	else
+	{
+		NAND_Interrupt();
+	}
+        spin_unlock_irqrestore(&nand_int_lock1, iflags);
     
     	return IRQ_HANDLED;
     }
@@ -1081,8 +1101,9 @@ static int __init init_blklayer(void)
     printk("[NAND] nand driver version: 0x%x 0x%x, support int! \n", NAND_VERSION_0,NAND_VERSION_1);
     NAND_ClearRbInt();
     NAND_ClearDMAInt();
-  
-    spin_lock_init(&nand_int_lock);
+
+	spin_lock_init(&nand_int_lock0);
+	spin_lock_init(&nand_int_lock1);
 	irqflags_ch0 = IRQF_DISABLED;
 	irqflags_ch1 = IRQF_DISABLED;
 
@@ -1184,8 +1205,8 @@ static int nand_suspend(struct platform_device *plat_dev, pm_message_t state)
 	}else{
 		down(&mytr.nand_ops_mutex);
 
-		NAND_ClkDisable();
-		NAND_PIORelease();
+		//NAND_ClkDisable();
+		//NAND_PIORelease();
 		printk("[NAND] nand_suspend ok \n");
 		return 0;
 	}
@@ -1199,8 +1220,8 @@ static int nand_resume(struct platform_device *plat_dev)
 {
 
 	printk("[NAND] nand_resume \n");
-	NAND_ClkEnable();
-	NAND_PIORequest();
+	//NAND_ClkEnable();
+	//NAND_PIORequest();
 
 	up(&mytr.nand_ops_mutex);
 
