@@ -86,7 +86,6 @@ void change_runtime_env(__u32 mmu_flag)
 	__u32 factor_n = 0;
 	__u32 factor_k = 0;
 	__u32 factor_m = 0;
-	__u32 factor_p = 0;
 	__u32 start = 0;
 	__u32 cmu_reg = 0;
 	volatile __u32 reg_val = 0;
@@ -104,7 +103,7 @@ void change_runtime_env(__u32 mmu_flag)
 	//busy_waiting();
 	//get runtime freq: clk src + divider ratio
 	//src selection
-	reg_val = *(volatile int *)(cmu_reg + 0x54);
+	reg_val = *(volatile int *)(cmu_reg + 0x50);
 	reg_val >>= 16;
 	reg_val &= 0x3;
 	if(0 == reg_val){
@@ -114,18 +113,16 @@ void change_runtime_env(__u32 mmu_flag)
 	}else if(1 == reg_val){
 		//hosc, 24Mhz
 		cpu_freq = 24000; 			//unit is khz
-	}else if(2 == reg_val){
+	}else if(2 == reg_val || 3 == reg_val){
 		//get pll_factor
 		reg_val = *(volatile int *)(cmu_reg + 0x00);
-		factor_p = 0x3 & (reg_val >> 16);
-		factor_p = 1 << factor_p;		//1/2/4/8
 		factor_n = 0x1f & (reg_val >> 8); 	//the range is 0-31
 		factor_k = (0x3 & (reg_val >> 4)) + 1; 	//the range is 1-4
 		factor_m = (0x3 & (reg_val >> 0)) + 1; 	//the range is 1-4
 		
 		//cpu_freq = (24000*factor_n*factor_k)/(factor_p*factor_m);
-		cpu_freq = raw_lib_udiv(24000*factor_n*factor_k, factor_p*factor_m);
-		//msg("cpu_freq = dec(%d). \n", cpu_freq);
+		cpu_freq = raw_lib_udiv(24000*factor_n*factor_k, factor_m);
+		printk("cpu_freq = dec(%d). \n", cpu_freq);
 		//busy_waiting();
 	}
 	

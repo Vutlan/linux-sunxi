@@ -18,18 +18,18 @@
 #ifndef __MEM_CLK_H__
 #define __MEM_CLK_H__
 
+#include <mach/ccmu.h>
+
 struct clk_state{
 	__ccmu_reg_list_t   *CmuReg;
 	__u32    ccu_reg_back[15];
 };
 
 struct clk_div_t {
-    __u32   cpu_div:4;      /* division of cpu clock, divide core_pll */
-    __u32   axi_div:4;      /* division of axi clock, divide cpu clock*/
-    __u32   ahb_div:4;      /* division of ahb clock, divide axi clock*/
-    __u32   apb_div:4;      /* division of apb clock, divide ahb clock*/
-    __u32   reserved:16;
+	__u32	axi_div;      /* division of axi clock, divide cpu clock*/
+	__u32	ahb_apb_div;	/* ahb1/apb1 clock divide ratio */
 };
+
 struct pll_factor_t {
     __u8    FactorN;
     __u8    FactorK;
@@ -41,7 +41,7 @@ struct pll_factor_t {
 __s32 mem_clk_save(struct clk_state *pclk_state);
 __s32 mem_clk_restore(struct clk_state *pclk_state);
 
-__s32 mem_clk_init(void);
+__ccmu_reg_list_t * mem_clk_init(void);
 __s32 mem_clk_setdiv(struct clk_div_t *clk_div);
 __s32 mem_clk_getdiv(struct clk_div_t  *clk_div);
 __s32 mem_clk_set_pll_factor(struct pll_factor_t *pll_factor);

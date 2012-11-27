@@ -64,20 +64,24 @@ int resume1_c_part(void)
 		serial_init_nommu();
 		serial_puts_nommu("resume1: 0. \n");
 	}
+#if 1
+	/*restore freq from 384 to orignal freq.*/
+	mem_clk_setdiv(&mem_para_info.clk_div);
+	mem_clk_set_pll_factor(&mem_para_info.pll_factor);
+	change_runtime_env(0);
+	delay_ms(5);
+	
+	if(unlikely(mem_para_info.debug_mask&PM_STANDBY_PRINT_RESUME)){
+		serial_puts_nommu("resume1: 1. before restore mmu. \n");
+	}
+#endif	
 	/*restore mmu configuration*/
 	save_mem_status_nommu(RESUME1_START |0x03);
 	//save_mem_status(RESUME1_START |0x03);
 
-	
 	restore_mmu_state(&(mem_para_info.saved_mmu_state));
 	save_mem_status(RESUME1_START |0x13);
 
-#endif
-
-#ifdef POWER_OFF
-	/* disable watch-dog: coresponding with  */
-	mem_tmr_init();
-	mem_tmr_disable_watchdog();
 #endif
 
 //before jump to late_resume	
@@ -91,6 +95,10 @@ int resume1_c_part(void)
 	flush_icache();
 #endif
 
+	if(unlikely(mem_para_info.debug_mask&PM_STANDBY_PRINT_RESUME)){
+		serial_puts("resume1: 3. after restore mmu, before jump.\n");
+	}
+
 	//busy_waiting();
 	jump_to_resume((void *)mem_para_info.resume_pointer, mem_para_info.saved_runtime_context_svc);
 
@@ -99,20 +107,38 @@ int resume1_c_part(void)
 
 
 /*******************************************************************************
-*函数名称: set_pll
-*函数原型：void set_pll( void )
-*函数功能: resume中用C语言编写的 调整CPU频率
-*入口参数: void
-*返 回 值: void
-*备    注:
+* interface : set_pll
+*	prototype		：void set_pll( void )
+*	function		: adjust CPU frequence, from 24M hosc to pll1 384M
+*	input para	: void
+*	return value	: void
+*	note:
 *******************************************************************************/
 void set_pll( void )
 {
-	//cpus in charge this
-	mem_clk_init();
-	mem_clk_setdiv(&mem_para_info.clk_div);
-	mem_clk_set_pll_factor(&mem_para_info.pll_factor);
+	/*when enter this func, state is as follow:
+	 *	1. mmu is disable.
+	 *	2. clk is 24M hosc (?)
+	 *
+	 */
+	__ccmu_reg_list_t   *CmuReg;
 
+	CmuReg = mem_clk_init();
+	
+	//switch to 24M
+	*(volatile __u32 *)(&CmuReg->SysClkDiv) = 0x00010000;
+	//setting PLL1 to 384M
+	*(volatile __u32 *)(&CmuReg->Pll1Ctl) = (0x00001000) | (0x80000000); //N = 16, K=M=1
+	//delay 
+	//need reconstruction!!
+	init_perfcounters(1, 0); //need double check..
+	change_runtime_env(0);
+	delay_ms(10);
+	//switch to PLL1
+	*(volatile __u32 *)(&CmuReg->SysClkDiv) = 0x00020000;
+	change_runtime_env(0);
+	delay_ms(10);
+	
 	return ;
 }
 

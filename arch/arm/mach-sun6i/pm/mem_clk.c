@@ -201,18 +201,18 @@ __s32 mem_clk_restore(struct clk_state *pclk_state)
 *
 *********************************************************************************************************
 */
-__s32 mem_clk_init(void)
+__ccmu_reg_list_t * mem_clk_init(void)
 {
     CmuReg = (__ccmu_reg_list_t *)IO_ADDRESS(AW_CCM_BASE);
 
-    return 0;
+    return CmuReg;
 }
 
 /*
 *********************************************************************************************************
 *                                     mem_clk_setdiv
 *
-* Description: switch core clock to 32k low osc.
+* Description: set div ratio
 *
 * Arguments  : none
 *
@@ -223,13 +223,16 @@ __s32 mem_clk_setdiv(struct clk_div_t *clk_div)
 {
 	if(!clk_div)
 	{
-	return -1;
+		return -1;
 	}
 	
+	//set axi ratio
 	CmuReg->SysClkDiv.AXIClkDiv = clk_div->axi_div;
-	//CmuReg->SysClkDiv.AHBClkDiv = clk_div->ahb_div;
-	//CmuReg->SysClkDiv.APB0ClkDiv = clk_div->apb_div;
-	
+	//set ahb1/apb1 clock divide ratio
+	*(volatile __u32 *)(&CmuReg->Ahb1Div) = clk_div->ahb_apb_div;
+
+
+
 	return 0;
 }
 
@@ -237,7 +240,7 @@ __s32 mem_clk_setdiv(struct clk_div_t *clk_div)
 *********************************************************************************************************
 *                                     mem_clk_getdiv
 *
-* Description: switch core clock to 32k low osc.
+* Description: 
 *
 * Arguments  : none
 *
@@ -252,8 +255,7 @@ __s32 mem_clk_getdiv(struct clk_div_t  *clk_div)
 	}
 	
 	clk_div->axi_div = CmuReg->SysClkDiv.AXIClkDiv;
-	//clk_div->ahb_div = CmuReg->SysClkDiv.AHBClkDiv;
-	//clk_div->apb_div = CmuReg->SysClkDiv.APB0ClkDiv;
+	clk_div->ahb_apb_div = *(volatile __u32 *)(&CmuReg->Ahb1Div);
 	
 	return 0;
 }
@@ -273,12 +275,11 @@ __s32 mem_clk_getdiv(struct clk_div_t  *clk_div)
 
 __s32 mem_clk_set_pll_factor(struct pll_factor_t *pll_factor)
 {
-
-	CmuReg->Pll1Ctl.FactorN = pll_factor->FactorN;
+	//set pll factor: notice: when raise freq, N must be the last to set
 	CmuReg->Pll1Ctl.FactorK = pll_factor->FactorK;
 	CmuReg->Pll1Ctl.FactorM = pll_factor->FactorM;
-	//CmuReg->Pll1Ctl.PLLDivP = pll_factor->FactorP;
-	
+	CmuReg->Pll1Ctl.FactorN = pll_factor->FactorN;
+	//need delay?
 	//busy_waiting();
 	
 	return 0;
@@ -301,7 +302,6 @@ __s32 mem_clk_get_pll_factor(struct pll_factor_t *pll_factor)
 	pll_factor->FactorN = CmuReg->Pll1Ctl.FactorN;
 	pll_factor->FactorK = CmuReg->Pll1Ctl.FactorK;
 	pll_factor->FactorM = CmuReg->Pll1Ctl.FactorM;
-	//pll_factor->FactorP = CmuReg->Pll1Ctl.PLLDivP;
 	
 	//busy_waiting();
 	
