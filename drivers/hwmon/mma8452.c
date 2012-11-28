@@ -181,7 +181,7 @@ static int gsensor_fetch_sysconfig_para(void)
  
 	if (SCIRPT_ITEM_VALUE_TYPE_INT  != type) {
 	                pr_err("%s: type err  device_used = %d. \n", __func__, val.val);
-	                goto script_parser_fetch_err;
+	                goto script_get_item_err;
 	}
 	device_used = val.val;
 	
@@ -190,7 +190,7 @@ static int gsensor_fetch_sysconfig_para(void)
 		type = script_get_item("gsensor_para", "gsensor_name", &val);
 		if (SCIRPT_ITEM_VALUE_TYPE_STR  != type) {
 			pr_err("%s: type err  gsensor_name = %s. \n", __func__, val.str);
-			goto script_parser_fetch_err;
+			goto script_get_item_err;
 		}
 		strcpy(name, val.str);
 		if (strcmp(SENSOR_NAME, name)) {
@@ -202,7 +202,7 @@ static int gsensor_fetch_sysconfig_para(void)
 		type = script_get_item("gsensor_para", "gsensor_twi_addr", &val);	
 		if (SCIRPT_ITEM_VALUE_TYPE_INT  != type) {
 	                pr_err("%s: type err  twi_addr = %d. \n", __func__, val.val);
-	                goto script_parser_fetch_err;
+	                goto script_get_item_err;
 		}
 		twi_addr = val.val;
 		
@@ -214,7 +214,7 @@ static int gsensor_fetch_sysconfig_para(void)
 		type = script_get_item("gsensor_para", "gsensor_twi_id", &val);	
 		if(SCIRPT_ITEM_VALUE_TYPE_INT != type){
 			pr_err("%s: type err twi_id = %d. \n", __func__, val.val);
-			goto script_parser_fetch_err;
+			goto script_get_item_err;
 		}
 		twi_id = val.val;
 		
@@ -229,8 +229,8 @@ static int gsensor_fetch_sysconfig_para(void)
 
 	return ret;
 
-script_parser_fetch_err:
-	pr_notice("=========script_parser_fetch_err============\n");
+script_get_item_err:
+	pr_notice("=========script_get_item_err============\n");
 	return ret;
 
 }

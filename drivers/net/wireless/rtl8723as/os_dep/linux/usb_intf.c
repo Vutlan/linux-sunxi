@@ -1815,7 +1815,7 @@ static int __init rtw_drv_entry(void)
 	/* ----------get usb_wifi_usbc_num------------- */	
 	type = script_get_item("usb_wifi_para", "usb_wifi_usbc_num", &item);
 	if(SCIRPT_ITEM_VALUE_TYPE_INT != type){		
-		DBG_8192C("ERR: script_parser_fetch usb_wifi_usbc_num failed\n");			
+		DBG_8192C("ERR: script_get_item usb_wifi_usbc_num failed\n");			
 		return -ENOMEM;	
 	}	
 	DBG_8192C("sw_usb_enable_hcd: usbc_num = %d\n", item.val);	
