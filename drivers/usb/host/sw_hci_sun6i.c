@@ -58,7 +58,7 @@
 #include  "sw_usb_3g.h"
 #endif
 #ifndef  SW_USB_FPGA
-static char* usbc_name[3] 			= {"usbc0", "usbc1", "usbc2", "usbc3"};
+static char* usbc_name[4] 			= {"usbc0", "usbc1", "usbc2", "usbc3"};
 static char* usbc_ahb_ehci_name[3]  = {"", "AW_AHB_CLK_EHCI0", "AW_AHB_CLK_EHCI1"};
 static char* usbc_ahb_ohci_name[4]  = {"", "AW_AHB_CLK_OHCI0", "AW_AHB_CLK_OHCI1", "AW_AHB_CLK_OHCI2"};
 
@@ -590,9 +590,9 @@ static int open_clock(struct sw_hci_hcd *sw_hci, u32 ohci)
 
     DMSG_INFO("[%s]: open clock, 0x60(0x%x), 0xcc(0x%x), 0x2c0(0x%x)\n",
               sw_hci->hci_name,
-              (u32)USBC_Readl(AW_CCM_BASE + 0x60),
-              (u32)USBC_Readl(AW_CCM_BASE + 0xcc),
-              (u32)USBC_Readl(AW_CCM_BASE + 0x2c0));
+              (u32)USBC_Readl(AW_VIR_CCM_BASE + 0x60),
+              (u32)USBC_Readl(AW_VIR_CCM_BASE + 0xcc),
+              (u32)USBC_Readl(AW_VIR_CCM_BASE + 0x2c0));
 
 	return 0;
 }
@@ -642,9 +642,9 @@ static int close_clock(struct sw_hci_hcd *sw_hci, u32 ohci)
 
     DMSG_INFO("[%s]: close clock, 0x60(0x%x), 0xcc(0x%x),0x2c0(0x%x)\n",
               sw_hci->hci_name,
-              (u32)USBC_Readl(AW_CCM_BASE + 0x60),
-              (u32)USBC_Readl(AW_CCM_BASE + 0xcc),
-              (u32)USBC_Readl(AW_CCM_BASE + 0x2c0));
+              (u32)USBC_Readl(AW_VIR_CCM_BASE + 0x60),
+              (u32)USBC_Readl(AW_VIR_CCM_BASE + 0xcc),
+              (u32)USBC_Readl(AW_VIR_CCM_BASE + 0x2c0));
 
 	return 0;
 }
@@ -1296,8 +1296,8 @@ static int init_sw_hci(struct sw_hci_hcd *sw_hci, u32 usbc_no, u32 ohci, const c
     sprintf(sw_hci->hci_name, "%s%d", hci_name, sw_hci->usbc_no);
 
 	sw_hci->usb_vbase		= (void __iomem	*)usbc_base[sw_hci->usbc_no];
-	sw_hci->sram_vbase		= (void __iomem	*)AW_SRAMCTRL_BASE;
-	sw_hci->clock_vbase     = (void __iomem	*)AW_CCM_BASE;
+	sw_hci->sram_vbase		= (void __iomem	*)AW_VIR_SRAMCTRL_BASE;
+	sw_hci->clock_vbase     = (void __iomem	*)AW_VIR_CCM_BASE;
 	sw_hci->gpio_vbase		= (void __iomem	*)AW_VIR_PIO_BASE;
 	sw_hci->sdram_vbase     = (void __iomem	*)AW_VIR_SDMMC1_BASE;
 

@@ -213,9 +213,9 @@ static s32 open_usb_clock(sw_hcd_io_t *sw_hcd_io)
 	UsbPhyInit(0);
 
 	DMSG_INFO("[hcd0]: open, 0x60(0x%x), 0xcc(0x%x), 0x2c0(0x%x)\n",
-		      (u32)USBC_Readl(AW_CCM_BASE + 0x60),
-		      (u32)USBC_Readl(AW_CCM_BASE + 0xcc),
-		      (u32)USBC_Readl(AW_CCM_BASE + 0x2c0));
+		      (u32)USBC_Readl(AW_VIR_CCM_BASE + 0x60),
+		      (u32)USBC_Readl(AW_VIR_CCM_BASE + 0xcc),
+		      (u32)USBC_Readl(AW_VIR_CCM_BASE + 0x2c0));
 
 	return 0;
 }
@@ -257,9 +257,9 @@ static s32 close_usb_clock(sw_hcd_io_t *sw_hcd_io)
 
 
 	DMSG_INFO("[hcd0]: close, 0x60(0x%x), 0xcc(0x%x), 0x2c0(0x%x)\n",
-		      (u32)USBC_Readl(AW_CCM_BASE + 0x60),
-		      (u32)USBC_Readl(AW_CCM_BASE + 0xcc),
-		      (u32)USBC_Readl(AW_CCM_BASE + 0x2c0));
+		      (u32)USBC_Readl(AW_VIR_CCM_BASE + 0x60),
+		      (u32)USBC_Readl(AW_VIR_CCM_BASE + 0xcc),
+		      (u32)USBC_Readl(AW_VIR_CCM_BASE + 0x2c0));
 
 	return 0;
 }
@@ -297,7 +297,7 @@ static s32 usb_clock_exit(sw_hcd_io_t *sw_hcd_io)
 static u32  open_usb_clock(sw_hcd_io_t *sw_hcd_io)
 {
 	u32 reg_value = 0;
-	u32 ccmu_base = AW_CCM_BASE;
+	u32 ccmu_base = AW_VIR_CCM_BASE;
 
 	DMSG_INFO_HCD0("[%s]: open_usb_clock\n", sw_hcd_driver_name);
 
@@ -340,7 +340,7 @@ static u32  open_usb_clock(sw_hcd_io_t *sw_hcd_io)
 static u32 close_usb_clock(sw_hcd_io_t *sw_hcd_io)
 {
 	u32 reg_value = 0;
-	u32 ccmu_base = AW_CCM_BASE;
+	u32 ccmu_base = AW_VIR_CCM_BASE;
 
 	DMSG_INFO_HCD0("[%s]: close_usb_clock\n", sw_hcd_driver_name);
 
@@ -652,8 +652,8 @@ static __s32 sw_hcd_io_init(__u32 usbc_no, struct platform_device *pdev, sw_hcd_
 	spinlock_t lock;
 	unsigned long flags = 0;
 
-	sw_hcd_io->usb_vbase  = (void __iomem *)AW_USB_OTG_BASE;
-	sw_hcd_io->sram_vbase = (void __iomem *)AW_SRAMCTRL_BASE;
+	sw_hcd_io->usb_vbase  = (void __iomem *)AW_VIR_USB_OTG_BASE;
+	sw_hcd_io->sram_vbase = (void __iomem *)AW_VIR_SRAMCTRL_BASE;
 
 //	DMSG_INFO_HCD0("[usb host]: usb_vbase    = 0x%x\n", (u32)sw_hcd_io->usb_vbase);
 //	DMSG_INFO_HCD0("[usb host]: sram_vbase   = 0x%x\n", (u32)sw_hcd_io->sram_vbase);

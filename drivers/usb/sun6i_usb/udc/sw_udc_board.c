@@ -167,7 +167,7 @@ u32 close_usb_clock(sw_udc_io_t *sw_udc_io)
 u32  open_usb_clock(sw_udc_io_t *sw_udc_io)
 {
 	u32 reg_value = 0;
-	u32 ccmu_base = AW_CCM_BASE;
+	u32 ccmu_base = AW_VIR_CCM_BASE;
 
 	//AHB1_RST_REG0 USBOTG_RST
 	reg_value = USBC_Readl(ccmu_base + 0x2c0);
@@ -207,7 +207,7 @@ u32  open_usb_clock(sw_udc_io_t *sw_udc_io)
 u32 close_usb_clock(sw_udc_io_t *sw_udc_io)
 {
 	u32 reg_value = 0;
-	u32 ccmu_base = AW_CCM_BASE;
+	u32 ccmu_base = AW_VIR_CCM_BASE;
 
 	//AHB1_RST_REG0 USBOTG_RST
 	reg_value = USBC_Readl(ccmu_base + 0x2c0);

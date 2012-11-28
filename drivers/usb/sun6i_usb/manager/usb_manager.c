@@ -591,7 +591,7 @@ static int __init usb_manager_init(void)
 
     memset(&usbc, 0, sizeof(bsp_usbc_t));
 
-	usbc.usbc_info[0].base = AW_USB_OTG_BASE;
+	usbc.usbc_info[0].base = AW_VIR_USB_OTG_BASE;
 	usbc.sram_base = AW_VIR_SRAMCTRL_BASE;
 	USBC_init(&usbc);
 
