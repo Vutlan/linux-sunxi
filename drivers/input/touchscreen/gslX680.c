@@ -48,7 +48,7 @@
 #include <mach/system.h>
 #include <mach/hardware.h>
 #include <mach/sys_config.h>
-#include "A13_gslX680.h"
+#include "gslX680.h"
 #include <mach/gpio.h> 
 #include <linux/ctp.h>
 
@@ -166,6 +166,7 @@ struct gsl_ts {
 #endif
 
 };
+extern struct ctp_config_info config_info;
 
 static u32 ctp_debug = DEBUG_INIT;
 #define dprintk(level_mask,fmt,arg...)    if(unlikely(ctp_debug & level_mask)) \
@@ -203,7 +204,6 @@ static int exchange_x_y_flag = 0;
 static u32 int_handle = 0;
 
 static __u32 twi_id = 0;
-extern struct ctp_config_info config_info;
 
 /* Addresses to scan */
 static const unsigned short normal_i2c[2] = {0x40,I2C_CLIENT_END};
@@ -272,7 +272,8 @@ static int gslX680_chip_init(void)
 //	sw_gpio_set_one_pin_io_status(gpio_wakeup_hdle, 1, "ctp_wakeup");		
 //        sw_gpio_write_one_pin_value(gpio_wakeup_hdle, 1, "ctp_wakeup");
 //	msleep(20);	
-         ctp_wakeup(0,20);
+         ctp_wakeup(1,0);
+         msleep(20);
          return 0;   
 }
 
@@ -280,7 +281,7 @@ static int gslX680_shutdown_low(void)
 {
 //	sw_gpio_set_one_pin_io_status(gpio_wakeup_hdle, 1, "ctp_wakeup");
 //	sw_gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "ctp_wakeup");	
-        ctp_wakeup(1,0);
+        ctp_wakeup(0,0);
 	return 0;
 }
 
@@ -288,7 +289,7 @@ static int gslX680_shutdown_high(void)
 {
 //	sw_gpio_set_one_pin_io_status(gpio_wakeup_hdle, 1, "ctp_wakeup");
 //	sw_gpio_write_one_pin_value(gpio_wakeup_hdle, 1, "ctp_wakeup");	
-        ctp_wakeup(0,0);
+        ctp_wakeup(1,0);
 	return 0;
 }
 
@@ -580,7 +581,9 @@ static void report_key(struct gsl_ts *ts, u16 x, u16 y)
 
 static void report_data(struct gsl_ts *ts, u16 x, u16 y, u8 pressure, u8 id)
 {
-	//swap(x, y);
+	if(1 == exchange_x_y_flag){
+                swap(x, y);
+        }
         if(1 == revert_x_flag){
                 x = SCREEN_MAX_X - x;
         }
@@ -588,10 +591,6 @@ static void report_data(struct gsl_ts *ts, u16 x, u16 y, u8 pressure, u8 id)
                 y = SCREEN_MAX_Y - y;
         }
         
-        if(1 == exchange_x_y_flag){
-                swap(x, y);
-        }
-
 	dprintk(DEBUG_X_Y_INFO,"#####id=%d,x=%d,y=%d######\n",id,x,y);
 
 	if(x>=SCREEN_MAX_X||y>=SCREEN_MAX_Y)
@@ -845,7 +844,8 @@ static int gsl_ts_suspend(struct device *dev)
 	//int rc = 0;
 
   	dprintk(DEBUG_SUSPEND,"I'am in gsl_ts_suspend() start\n");
-	ts->is_suspended = true;	
+	ts->is_suspended = true;
+	cancel_work_sync(&ts->work);	
 	
 #ifdef GSL_TIMER
 	dprintk(DEBUG_SUSPEND,"gsl_ts_suspend () : delete gsl_timer\n");
@@ -1041,7 +1041,7 @@ static int __init gsl_ts_init(void)
 	int ret = -1;
 	printk("****************************************************************\n");
 	printk("==gsl_ts_init==\n");
-	
+
 	if(!ctp_get_system_config()){
                 printk("%s:read config fail!\n",__func__);
                 return ret;

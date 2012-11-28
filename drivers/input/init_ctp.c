@@ -13,16 +13,18 @@
 #include <mach/sys_config.h> 
 #include <linux/gpio.h>
 
+struct ctp_config_info config_info;
+EXPORT_SYMBOL_GPL(config_info);
+
 #define CTP_IRQ_NUMBER     (config_info.irq_gpio_number)
 
-static u32 ctp_debug = DEBUG_INIT;
+static u32 ctp_debug = 0;
 
 #define dprintk(level_mask,fmt,arg...)    if(unlikely(ctp_debug & level_mask)) \
         printk("***CTP***"fmt, ## arg)
 
 
-struct ctp_config_info config_info;
-EXPORT_SYMBOL_GPL(config_info);
+
 
 int ctp_i2c_write_bytes(struct i2c_client *client, uint8_t *data, uint16_t len)
 {
@@ -254,20 +256,19 @@ static int ctp_fetch_sysconfig_para(void)
 {
 	int ret = -1;
 	script_item_u   val;
-	
-	ret = script_dump_mainkey("ctp_para");
-
+        if(ctp_debug){
+	        script_dump_mainkey("ctp_para");
+        }
 	pr_info("=====%s=====. \n", __func__);
 
 	if(SCIRPT_ITEM_VALUE_TYPE_INT != script_get_item("ctp_para", "ctp_used", &val)){
-		pr_err("%s: script_get_item err. \n", __func__);
+		pr_err("%s: ctp_used script_get_item  err. \n", __func__);
 		goto script_get_item_err;
 	}
 	config_info.ctp_used = val.val;
 	
 	if(1 != config_info.ctp_used){
 		pr_err("%s: ctp_unused. \n",  __func__);
-		ret = 1;
 		return ret;
 	}
 	
@@ -278,31 +279,31 @@ static int ctp_fetch_sysconfig_para(void)
 	config_info.twi_id = val.val;
 	
 	if(SCIRPT_ITEM_VALUE_TYPE_INT != script_get_item("ctp_para", "ctp_screen_max_x", &val)){
-		pr_err("%s: ctp_twi_id script_get_item err. \n",__func__ );
+		pr_err("%s: ctp_screen_max_x script_get_item err. \n",__func__ );
 		goto script_get_item_err;
 	}
 	config_info.screen_max_x = val.val;
 	
         if(SCIRPT_ITEM_VALUE_TYPE_INT != script_get_item("ctp_para", "ctp_screen_max_y", &val)){
-        		pr_err("%s: ctp_twi_id script_get_item err. \n",__func__ );
+        		pr_err("%s: ctp_screen_max_y script_get_item err. \n",__func__ );
         		goto script_get_item_err;
         }
         config_info.screen_max_y = val.val;
         
         if(SCIRPT_ITEM_VALUE_TYPE_INT != script_get_item("ctp_para", "ctp_revert_x_flag", &val)){
-                pr_err("%s: ctp_twi_id script_get_item err. \n",__func__ );
+                pr_err("%s: ctp_revert_x_flag script_get_item err. \n",__func__ );
                 goto script_get_item_err;
         }
         config_info.revert_x_flag = val.val;
         
         if(SCIRPT_ITEM_VALUE_TYPE_INT != script_get_item("ctp_para", "ctp_revert_y_flag", &val)){
-                pr_err("%s: ctp_twi_id script_get_item err. \n",__func__ );
+                pr_err("%s: ctp_revert_y_flag script_get_item err. \n",__func__ );
                 goto script_get_item_err;
         }
         config_info.revert_y_flag = val.val;
         
         if(SCIRPT_ITEM_VALUE_TYPE_INT != script_get_item("ctp_para", "ctp_exchange_x_y_flag", &val)){
-                pr_err("%s: ctp_twi_id script_get_item err. \n",__func__ );
+                pr_err("%s: ctp_exchange_x_y_flag script_get_item err. \n",__func__ );
                 goto script_get_item_err;
         }
         config_info.exchange_x_y_flag = val.val;
@@ -320,20 +321,28 @@ script_get_item_err:
  */
 int ctp_wakeup(int status,int ms)
 {
-        printk("%s:status:%d,ms = %d\n",__func__,status,ms); 
+        printk("***CTP*** %s:status:%d,ms = %d\n",__func__,status,ms); 
 
         if(status == 0){
-                __gpio_set_value(config_info.wakeup_gpio_number, 0);
-                msleep(ms);
-                __gpio_set_value(config_info.wakeup_gpio_number, 1);
+                
+                if(ms == 0) {
+                         __gpio_set_value(config_info.wakeup_gpio_number, 0);
+                }else {
+                        __gpio_set_value(config_info.wakeup_gpio_number, 0);
+                        msleep(ms);
+                        __gpio_set_value(config_info.wakeup_gpio_number, 1);
+                }
         }
         if(status == 1){
-                 __gpio_set_value(config_info.wakeup_gpio_number, 1); 
-                 msleep(ms);
-                __gpio_set_value(config_info.wakeup_gpio_number, 0);       
+                if(ms == 0) {
+                         __gpio_set_value(config_info.wakeup_gpio_number, 1);
+                }else {
+                        __gpio_set_value(config_info.wakeup_gpio_number, 1); 
+                        msleep(ms);
+                        __gpio_set_value(config_info.wakeup_gpio_number, 0); 
+                }      
         }
-        msleep(10); 
-        //gpio_free(config_info.wakeup_gpio_number);  
+        msleep(10);  
 	return 0;
 }
 EXPORT_SYMBOL(ctp_wakeup);
@@ -344,21 +353,27 @@ EXPORT_SYMBOL(ctp_wakeup);
 #ifdef TOUCH_KEY_LIGHT_SUPPORT 
 int ctp_key_light(int status,int ms)
 {
-        int ret = -1;
-        printk("status:%d,ms = %d\n",status,ms); 
+        printk("***CTP*** %s:status:%d,ms = %d\n",__func__,status,ms); 
 
         if(status == 0){
-                __gpio_set_value(config_info.key_light_gpio_number, 0);
-                msleep(ms);
-                __gpio_set_value(config_info.key_light_gpio_number, 1);
+                 if(ms == 0) {
+                         __gpio_set_value(config_info.key_light_gpio_number, 0);
+                }else {
+                        __gpio_set_value(config_info.key_light_gpio_number, 0);
+                        msleep(ms);
+                        __gpio_set_value(config_info.key_light_gpio_number, 1);
+                }
         }
         if(status == 1){
-                 __gpio_set_value(config_info.key_light_gpio_number, 1); 
-                 msleep(ms);
-                __gpio_set_value(config_info.key_light_gpio_number, 0);       
+                 if(ms == 0) {
+                         __gpio_set_value(config_info.key_light_gpio_number, 1);
+                }else{
+                        __gpio_set_value(config_info.key_light_gpio_number, 1); 
+                        msleep(ms);
+                        __gpio_set_value(config_info.key_light_gpio_number, 0); 
+                }      
         }
-        msleep(10); 
-        //gpio_free(config_info.wakeup_gpio_number);  
+        msleep(10);   
 	return 0;
 }
 EXPORT_SYMBOL(ctp_key_light);

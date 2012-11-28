@@ -793,19 +793,23 @@ config  TOUCHSCREEN_SW_TS
 config TOUCHSCREEN_FT5X_TS
        tristate  "ft5x touchscreen driver"
        default m
+       depends on INPUT && I2C
        help
          ft5x touchscreen driver   
          
 config  TOUCHSCREEN_GSLX680
-       tristate  "gslx680 touchscreen driver"
+       tristate  "gslX680 touchscreen driver"
        default m
+       depends on INPUT && I2C
        help
-         gslx680 touchscreen driver      
+         gslX3680,gslX2680 touchscreen driver ,     
          
 config  TOUCHSCREEN_GT82X
        tristate  "gt82x touchscreen driver"
+       default m
+       depends on INPUT && I2C
        help
-         gt82x touchscreen driver
+         gt813,gt827,gt828 touchscreen driver
          
 config  TOUCHSCREEN_SUN6I_TS
        tristate  "sun6i-ts touchscreen driver"

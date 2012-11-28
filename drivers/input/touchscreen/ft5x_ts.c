@@ -1155,21 +1155,23 @@ static u32 ft5x_ts_interrupt(struct ft5x_ts_data *ft5x_ts)
 
 static void ft5x_ts_suspend(struct early_suspend *handler)
 {
-    dprintk(DEBUG_SUSPEND,"==ft5x_ts_suspend=\n");
-    dprintk(DEBUG_SUSPEND,"ft5x_ts_suspend: write FT5X0X_REG_PMODE .\n");
-    ft5x_set_reg(FT5X0X_REG_PMODE, PMODE_HIBERNATE);
-    sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,0);       
+        dprintk(DEBUG_SUSPEND,"==ft5x_ts_suspend=\n");
+        dprintk(DEBUG_SUSPEND,"ft5x_ts_suspend: write FT5X0X_REG_PMODE .\n");
+        sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,0);
+        cancel_work_sync(&ft5x_ts->pen_event_work);
+        ft5x_set_reg(FT5X0X_REG_PMODE, PMODE_HIBERNATE);
+              
 }
 
 static void ft5x_ts_resume(struct early_suspend *handler)
 {
 	dprintk(DEBUG_SUSPEND,"==ft5x_ts_resume== \n");
+	ctp_wakeup(0,20);
 	sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,1);
 	if(STANDBY_WITH_POWER_OFF == standby_level){
-	        msleep(50);
+	        msleep(100);
 	}
-	ctp_wakeup(0,20);
-	
+		
 }
 #endif  //CONFIG_HAS_EARLYSUSPEND
 

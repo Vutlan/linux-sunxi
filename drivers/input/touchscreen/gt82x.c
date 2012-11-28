@@ -258,43 +258,6 @@ static int ctp_detect(struct i2c_client *client, struct i2c_board_info *info)
 	}
 }
 
-//停用设备
-#ifdef CONFIG_HAS_EARLYSUSPEND
-static void goodix_ts_suspend(struct early_suspend *h)
-{
-	int ret;
-	struct goodix_ts_data *ts = container_of(h, struct goodix_ts_data, early_suspend);
-        struct i2c_client * client = ts->client;
-        
-        dprintk(DEBUG_SUSPEND,"enter earlysuspend: goodix_ts_suspend. \n");
-   
-	ret = cancel_work_sync(&ts->work);	
-		
-	if (ts->power) {
-		ret = ts->power(ts,0);
-		if (ret < 0)
-			dprintk(DEBUG_SUSPEND,"%s power off failed\n", f3x_ts_name);
-	}
-	return ;
-}
-
-//重新唤醒
-static void goodix_ts_resume(struct early_suspend *h)
-{
-	int ret;
-	struct goodix_ts_data *ts = container_of(h, struct goodix_ts_data, early_suspend);
-        struct i2c_client * client = ts->client;
-  
-        dprintk(DEBUG_SUSPEND,"enter laterresume: goodix_ts_resume. \n");
-
-	if (ts->power) {
-		ret = ts->power(ts, 1);
-		if (ret < 0)
-			dprintk(DEBUG_SUSPEND,"%s power on failed\n", f3x_ts_name);
-	}
-	return ;
-}
-#endif
 /*******************************************************
 Function:
 	GTP initialize function.
@@ -428,144 +391,7 @@ static void goodix_touch_up(struct goodix_ts_data* ts)
     input_report_abs(ts->input_dev, ABS_MT_WIDTH_MAJOR, 0);
     input_mt_sync(ts->input_dev);
 }
-/*******************************************************
-Function:
-	Goodix touchscreen work function.
-Input:
-	ts:	i2c client private struct.	
-Output:
-	None.
-*******************************************************/
-//static void goodix_ts_work_func(struct work_struct *work)
-//{
-//        u8 finger = 0;
-//        u8 chk_sum = 0;
-//        u8 key = 0;
-//        u16 X_value;
-//        u16 Y_value;
-//        u32 position = 0;
-//        s32 ret = -1;
-//        s32 tmp = 0;
-//        s32 i = 0;
-//        u8 *coor_point;
-//        u8 touch_data[2 + 2 + 5*MAX_FINGER_NUM + 1] = {READ_TOUCH_ADDR_H,READ_TOUCH_ADDR_L,0, 0};
-//        static u8 finger_last[MAX_FINGER_NUM+1]={0};        //上次触摸按键的手指索引
-//        u8 finger_current[MAX_FINGER_NUM+1] = {0};        //当前触摸按键的手指索引
-//
-//        struct goodix_ts_data *ts = container_of(work, struct goodix_ts_data, work);
-//
-//        ret=i2c_read_bytes(ts->client, touch_data,sizeof(touch_data)/sizeof(touch_data[0])); 
-//        i2c_end_cmd(ts);
-//        if(ret <= 0) {
-//                dprintk(DEBUG_X_Y_INFO,"line:%d,I2C transfer error. Number:%d\n ",__LINE__, ret);
-//                ts->bad_data = 1;
-//                tmp ++;
-//        }
-//
-//        if(ts->bad_data){
-//        //TODO:Is sending config once again (to reset the chip) useful?    
-//                ts->bad_data = 0;
-//                msleep(20);
-//        }
-//        key = touch_data[3]&0x0f; // 1, 2, 4, 8
-//        if (key == 0x0f){
-//                if (goodix_init_panel(ts)){
-//                        dprintk(DEBUG_X_Y_INFO,"Reload config failed!\n");
-//                        goto XFER_ERROR;
-//                }else{   
-//                        dprintk(DEBUG_X_Y_INFO,"Reload config successfully!\n");
-//                }        
-//        }
-//        
-//        finger = (u8)touch_num(touch_data[2]&0x1f, MAX_FINGER_NUM);
-//        dprintk(DEBUG_X_Y_INFO,"touch num:%x\n", finger);
-//        
-//        for (i = 1;i < MAX_FINGER_NUM + 1; i++){
-//                finger_current[i] = !!(touch_data[2] & (0x01<<(i-1)));
-//        }
-//
-//#ifndef DEBUG_COORD
-//        for (i = 0; i < (2 + 2 + 5*MAX_FINGER_NUM + 1); i++){  
-//                dprintk(DEBUG_X_Y_INFO,"%5x", touch_data[i]);
-//        }
-//        dprintk(DEBUG_X_Y_INFO,"\n");
-//#endif 
-//
-//    //检验校验和    
-//        coor_point = &touch_data[4];
-//        chk_sum = 0;
-//        for ( i = 0; i < 5*finger; i++){
-//                chk_sum += coor_point[i];
-//                dprintk(DEBUG_X_Y_INFO,"%5x", coor_point[i]);
-//        }
-//        dprintk(DEBUG_X_Y_INFO,"\ncheck sum:%x\n", chk_sum);
-//        dprintk(DEBUG_X_Y_INFO,"check sum byte:%x\n", coor_point[5*finger]);
-//        if (chk_sum != coor_point[5*finger]){
-//                goto XFER_ERROR;
-//        }
-//
-//        //发送坐标//
-//        if (finger){
-//                for(i = 0, position=1;position < MAX_FINGER_NUM+1; position++){
-//                        if(finger_current[position]){     
-//                                X_value = coor_point[i] << 8;
-//                                X_value = X_value | coor_point[i + 1];
-//        
-//                                Y_value = coor_point[i + 2] << 8;
-//                                Y_value = Y_value | coor_point[i + 3];
-//        
-//                                if(1 == revert_x_flag){
-//                                        X_value= SCREEN_MAX_WIDTH - X_value;
-//                                }
-//                                if(1 == revert_y_flag){
-//                                        Y_value = SCREEN_MAX_HEIGHT - Y_value;
-//                                }
-//                                if(1 == exchange_x_y_flag) {
-//        
-//                                        swap(X_value, Y_value);
-//                                }
-//        
-//                                input_report_key(ts->input_dev, BTN_TOUCH, 1);
-//                                input_report_abs(ts->input_dev, ABS_MT_TRACKING_ID, position - 1);
-//                                input_report_abs(ts->input_dev, ABS_MT_POSITION_X,Y_value);  
-//                                input_report_abs(ts->input_dev, ABS_MT_POSITION_Y,X_value);
-//                                input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR,15);
-//                                input_mt_sync(ts->input_dev);
-//                                i += 5;
-//        
-//                                dprintk(DEBUG_X_Y_INFO,"X:%d\n", (s32)X_value);
-//                                dprintk(DEBUG_X_Y_INFO,"Y:%d\n", (s32)Y_value);       
-//                        }
-//                }       
-//        }else{
-//                input_report_key(ts->input_dev, BTN_TOUCH, 0);
-//                input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0);
-//                input_mt_sync(ts->input_dev);
-//        }
-//        
-//#ifdef HAVE_TOUCH_KEY
-//#ifdef DEBUG_COORD
-//        for (i = 0; i < 4; i++){
-//                dprintk(DEBUG_X_Y_INFO,"key:%4x   ", !!(key&(0x01<<i)));
-//        }
-//         dprintk(DEBUG_X_Y_INFO,"\n");
-//#endif
-//        
-//        if((last_key != 0) || (key != 0)){
-//                for(count = 0; count < 4; count++){
-//                        input_report_key(ts->input_dev, touch_key_array[count], !!(key&(0x01<<count)));    
-//                }
-//        }
-//        last_key = key;
-//#endif
-//        input_sync(ts->input_dev);
-//        for(position=1;position<MAX_FINGER_NUM+1; position++){
-//                finger_last[position] = finger_current[position];
-//        }
-//        return ;
-//XFER_ERROR:
-//    dprintk(DEBUG_X_Y_INFO,"XFER_ERROR!\n");
-//}
+
 static void goodix_ts_work_func(struct work_struct *work)
 {
         u8* coor_data = NULL;
@@ -680,29 +506,22 @@ static int goodix_ts_power(struct goodix_ts_data * ts, int on)
         case 0:
                 ret = i2c_write_bytes(ts->client, i2c_control_buf1, 3);
                 i2c_end_cmd(ts);
-                sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,0);
                 return ret;        
-        case 1:
-
-                sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,1);               
+        case 1:             
                 ctp_wakeup(0,100);
-                
                 if(STANDBY_WITH_POWER_OFF == standby_level){
-                        sw_gpio_irq_free(int_handle);
-                        int_handle = sw_gpio_irq_request(CTP_IRQ_NUMBER,CTP_IRQ_MODE,(peint_handle)goodix_ts_irq_hanbler,ts);
-       	                if (!int_handle) {
-		                pr_info( "goodix_probe: request irq failed\n");
-		                return -1;
-	                }        
+                        ret = goodix_i2c_test(ts->client);
+                        if(!ret){
+        	                printk("Warnning: I2C connection might be something wrong!\n");
+        	                ctp_wakeup(0,50);
+        	                ret = goodix_i2c_test(ts->client);
+        	                if(!ret){
+        	                        printk("retry fail!\n");
+        	                        return -1;
+        	                }
+                        }
+                        pr_info("===== goodix i2c test ok=======\n");
                 }
-                
-                ret = goodix_i2c_test(ts->client);
-                if(!ret){
-        	        printk("Warnning: I2C connection might be something wrong!\n");
-        	        return -1;
-                }
-                pr_info("===== goodix i2c test ok=======\n");
-        
                 ret = goodix_init_panel(ts);
                 if( ret != 1){
                         printk("init panel fail!\n");
@@ -720,8 +539,43 @@ static int goodix_ts_power(struct goodix_ts_data * ts, int on)
 	
 }
 
+//停用设备
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static void goodix_ts_suspend(struct early_suspend *h)
+{
+	int ret;
+	struct goodix_ts_data *ts = container_of(h, struct goodix_ts_data, early_suspend);
+        struct i2c_client * client = ts->client;
+        
+        dprintk(DEBUG_SUSPEND,"enter earlysuspend: goodix_ts_suspend. \n");
+   	                                
+       sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,0);
+       ret = cancel_work_sync(&ts->work);
+	if (ts->power) {
+		ret = ts->power(ts,0);
+		if (ret < 0)
+			dprintk(DEBUG_SUSPEND,"%s power off failed\n", f3x_ts_name);
+	}
+	return ;
+}
 
-
+//重新唤醒
+static void goodix_ts_resume(struct early_suspend *h)
+{
+	int ret;
+	struct goodix_ts_data *ts = container_of(h, struct goodix_ts_data, early_suspend);
+        struct i2c_client * client = ts->client;
+  
+        dprintk(DEBUG_SUSPEND,"enter laterresume: goodix_ts_resume. \n");
+        sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,1);  
+	if (ts->power) {
+		ret = ts->power(ts, 1);
+		if (ret < 0)
+			dprintk(DEBUG_SUSPEND,"%s power on failed\n", f3x_ts_name);
+	}
+	return ;
+}
+#endif
 /*******************************************************	
 功能：
 	触摸屏探测函数
@@ -925,7 +779,7 @@ static int __devinit goodix_ts_init(void)
 	//int err = -1;
         printk("****************************************************************\n");
 	printk("===========================%s=====================\n", __func__);
-	
+
         if(!ctp_get_system_config()){
                 printk("%s:read config fail!\n",__func__);
                 return ret;
