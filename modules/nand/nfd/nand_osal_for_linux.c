@@ -391,7 +391,7 @@ void NAND_ClearDMAInt(void)
     
 	//disable interrupt
 	NFC_DmaIntDisable();
-	dbg_dmaint("dma int clear\n");
+	dbg_dmaint("ch %d dma int clear\n", nand_index);
 
 	//clear interrupt
 	//NFC_DmaIntClearStatus();
@@ -412,7 +412,7 @@ void NAND_DMAInterrupt(void)
 	if(nand_index >1)
 		printk("NAND_ClearDMAInt, nand_index error: 0x%x\n", nand_index);
 	
-	dbg_dmaint("dma int occor! \n");
+	dbg_dmaint("ch %d dma int occor! \n", nand_index);
 	if(!NFC_DmaIntGetStatus())
 	{
 		dbg_dmaint_wrn("nand dma int late \n");
@@ -441,18 +441,18 @@ __s32 NAND_WaitDmaFinish(void)
 	NAND_EnDMAInt();
 	
 	//wait_event(NAND_RB_WAIT, nandrb_ready_flag);
-	dbg_dmaint("dma wait\n");
+	dbg_dmaint("ch %d dma wait\n", nand_index);
 
 	if(nanddma_ready_flag[nand_index])
 	{
-		dbg_rbint("fast dma int\n");
+		dbg_dmaint("ch %d fast dma int\n", nand_index);
 		NAND_ClearDMAInt();
 		return 0;
 	}
 
 	if(NFC_DmaIntGetStatus())
 	{
-		dbg_rbint("dma fast ready \n");
+		dbg_dmaint("ch %d dma fast ready \n", nand_index);
 		NAND_ClearDMAInt();
 		return 0;
 	}
@@ -461,12 +461,13 @@ __s32 NAND_WaitDmaFinish(void)
     	{
     		if(wait_event_timeout(NAND_DMA_WAIT_CH0, nanddma_ready_flag[nand_index], 1*HZ)==0)
 		{
-			dbg_dmaint_wrn("nand wait dma ready time out, ch: 0x%d, dma_status: %x, dma_ready_flag: 0x%x\n", nand_index, NFC_DmaIntGetStatus(),nanddma_ready_flag[nand_index]);
+			dbg_dmaint_wrn("nand wait dma int time out, ch: 0x%d, dma_status: %x, dma_ready_flag: 0x%x\n", nand_index, NFC_DmaIntGetStatus(),nanddma_ready_flag[nand_index]);
+			while(!NFC_DmaIntGetStatus());
 			NAND_ClearDMAInt();
 		}
 		else
 		{
-			dbg_rbint("nand wait dma ready ok\n");
+			dbg_dmaint("nand wait dma ready ok\n");
 			NAND_ClearDMAInt();
 		}
     	}
@@ -474,12 +475,13 @@ __s32 NAND_WaitDmaFinish(void)
 	{
 		if(wait_event_timeout(NAND_DMA_WAIT_CH1, nanddma_ready_flag[nand_index], 1*HZ)==0)
 		{
-			dbg_dmaint_wrn("nand wait dma ready time out, ch: 0x%d, dma_status: %x, dma_ready_flag: 0x%x\n", nand_index, NFC_DmaIntGetStatus(),nanddma_ready_flag[nand_index]);
+			dbg_dmaint_wrn("nand wait dma int time out, ch: 0x%d, dma_status: %x, dma_ready_flag: 0x%x\n", nand_index, NFC_DmaIntGetStatus(),nanddma_ready_flag[nand_index]);
+			while(!NFC_DmaIntGetStatus());	
 			NAND_ClearDMAInt();
 		}
 		else
 		{
-			dbg_rbint("nand wait dma ready ok\n");
+			dbg_dmaint("nand wait dma ready ok\n");
 			NAND_ClearDMAInt();
 		}
 	}
@@ -603,7 +605,7 @@ __s32 NAND_WaitRbReady(void)
 	{
 		if(wait_event_timeout(NAND_RB_WAIT_CH0, nandrb_ready_flag[nand_index], 1*HZ)==0)
 		{
-			dbg_rbint_wrn("nand wait rb ready time out, ch: %d\n", nand_index);
+			dbg_rbint_wrn("nand wait rb int time out, ch: %d\n", nand_index);
 			NAND_ClearRbInt();
 		}
 		else
@@ -615,7 +617,7 @@ __s32 NAND_WaitRbReady(void)
 	{
 		if(wait_event_timeout(NAND_RB_WAIT_CH1, nandrb_ready_flag[nand_index], 1*HZ)==0)
 		{
-			dbg_rbint_wrn("nand wait rb ready time out, ch: %d\n", nand_index);
+			dbg_rbint_wrn("nand wait rb int time out, ch: %d\n", nand_index);
 			NAND_ClearRbInt();
 		}
 		else
@@ -736,17 +738,23 @@ void NAND_PIORelease(__u32 nand_index)
 
 void NAND_Interrupt(void)
 {
-#ifdef __OS_NAND_SUPPORT_INT__    
+#ifdef __OS_NAND_SUPPORT_INT__   
+
+    //printk("nand interrupt!\n");
     if(NFC_RbIntOccur())
     {
-        //printk("nand rb int\n");
+        dbg_rbint("nand rb int\n");
         NAND_RbInterrupt();
     }
     else if(NFC_DmaIntOccur())
     {
-        //printk("nand dma int\n");
+        dbg_dmaint("nand dma int\n");
         NAND_DMAInterrupt();    
-    }    
+    }
+    else
+    {
+    	printk("error, no interrupt\n");
+    }
 #endif
 }
 

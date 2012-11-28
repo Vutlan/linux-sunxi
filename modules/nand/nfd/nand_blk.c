@@ -125,6 +125,8 @@ static int nand_flush_force(__u32 dev_num);
     {
         unsigned long iflags;
 	__u32 nand_index;
+
+	//printk("nand_interrupt_ch0!\n");
 	
 	spin_lock_irqsave(&nand_int_lock0, iflags);
 
@@ -147,6 +149,8 @@ static int nand_flush_force(__u32 dev_num);
     {
         unsigned long iflags;
     	__u32 nand_index;
+
+	//printk("nand_interrupt_ch1!\n");
 	
         spin_lock_irqsave(&nand_int_lock1, iflags);
         nand_index = NAND_GetCurrentCH();
@@ -1322,7 +1326,6 @@ void __exit nand_exit(void)
 	if(nand0_used_flag.val == 0)
 	{
 		printk("nand driver is disabled \n");
-		return 0;
 	}
 #endif
 
