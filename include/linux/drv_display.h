@@ -312,6 +312,7 @@ typedef enum
     LCD_IF_CPU			= 1,
     LCD_IF_LVDS			= 3,
     LCD_IF_DSI			= 4,
+    LCD_IF_EDP          = 5,
 }__lcd_if_t;
 
 typedef enum
@@ -560,6 +561,11 @@ typedef struct
     
 	__u32						lcd_dsi_dphy_timing_en; //todo? maybe not used
 	__disp_dsi_dphy_timing_t*	lcd_dsi_dphy_timing_p;
+
+    __u32                  lcd_edp_tx_ic;   //0:anx9804;  1:anx6345
+    __u32                  lcd_edp_tx_rate; //1(1.62G); 2(2.7G); 3(5.4G)
+    __u32                  lcd_edp_tx_lane; //  1/2/4lane
+
 
 
 	__u32   lcd_dclk_freq;

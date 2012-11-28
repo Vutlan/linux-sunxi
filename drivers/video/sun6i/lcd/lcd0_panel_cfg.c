@@ -1,8 +1,18 @@
 
 #include "lcd_panel_cfg.h"
+#include "lcd_bak/lcd_edp_anx9804.h"
+#include "lcd_bak/lcd_edp_anx6345.h"
 
 //delete this line if you want to use the lcd para define in sys_config1.fex
 //#define LCD_PARA_USE_CONFIG
+
+static void LCD_power_on(__u32 sel);
+static void LCD_power_off(__u32 sel);
+static void LCD_bl_open(__u32 sel);
+static void LCD_bl_close(__u32 sel);
+
+static void LCD_panel_init(__u32 sel);
+static void LCD_panel_exit(__u32 sel);
 
 #ifdef LCD_PARA_USE_CONFIG
 static __u8 g_gamma_tbl[][2] = 
@@ -69,7 +79,11 @@ static void LCD_cfg_panel_info(__panel_para_t * info)
     info->lcd_cpu_if          = 0;        //0: 18bit; 8:16bit
     info->lcd_cpu_te          = 0;        //0: disable; 1: rising te mode;  2:falling te mode
 
-    info->lcd_frm             = 1;        //0: disable; 1: enable rgb666 dither; 2:enable rgb656 dither
+    info->lcd_edp_tx_ic       = 0;        //0:anx9804;  1:anx6345
+    info->lcd_edp_tx_rate     = 0;        //1:1.62G;   2:2.7G;    3:5.4G
+    info->lcd_edp_tx_lane     = 4;        //  1/2/4lane
+
+    info->lcd_frm             = 0;        //0: disable; 1: enable rgb666 dither; 2:enable rgb656 dither
 
 
     info->lcd_gamma_en = 0;
@@ -97,6 +111,7 @@ static void LCD_cfg_panel_info(__panel_para_t * info)
 static __s32 LCD_open_flow(__u32 sel)
 {
 	LCD_OPEN_FUNC(sel, LCD_power_on, 50);   //open lcd power, and delay 50ms
+	LCD_OPEN_FUNC(sel, LCD_panel_init,	200);   //open lcd power, than delay 200ms
 	LCD_OPEN_FUNC(sel, TCON_open, 500);     //open lcd controller, and delay 500ms
 	LCD_OPEN_FUNC(sel, LCD_bl_open, 0);     //open lcd backlight, and delay 0ms
 
@@ -107,6 +122,7 @@ static __s32 LCD_close_flow(__u32 sel)
 {	
 	LCD_CLOSE_FUNC(sel, LCD_bl_close, 0);       //close lcd backlight, and delay 0ms
 	LCD_CLOSE_FUNC(sel, TCON_close, 0);         //close lcd controller, and delay 0ms
+	LCD_CLOSE_FUNC(sel, LCD_panel_exit,	200);   //open lcd power, than delay 200ms
 	LCD_CLOSE_FUNC(sel, LCD_power_off, 1000);   //close lcd power, and delay 1000ms
 
 	return 0;
@@ -132,6 +148,36 @@ static void LCD_bl_close(__u32 sel)
 {
     LCD_BL_EN(sel, 0);//config lcd_bl_en pin to close lcd backlight
     LCD_PWM_EN(sel, 0);//close pwm module
+}
+
+static void LCD_panel_init(__u32 sel)
+{
+    __panel_para_t *info = kmalloc(sizeof(__panel_para_t), GFP_KERNEL | __GFP_ZERO);
+    
+    lcd_get_panel_para(sel, info);
+    if((info->lcd_if == LCD_IF_EDP) && (info->lcd_edp_tx_ic == 0))
+    {
+        __inf("edp select anx9804 ic\n");
+        anx9804_init(info);
+    }
+    else if((info->lcd_if == LCD_IF_EDP) && (info->lcd_edp_tx_ic == 1))
+    {
+        __inf("edp select anx6345 ic\n");
+        anx6345_init(info);
+    }
+    else
+    {
+        __inf("== panel is edp interface ===!\n");
+    }
+
+    kfree(info);
+    
+    return;
+}
+
+static void LCD_panel_exit(__u32 sel)
+{
+	return ;
 }
 
 //sel: 0:lcd0; 1:lcd1

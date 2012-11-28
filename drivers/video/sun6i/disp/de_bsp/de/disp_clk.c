@@ -729,7 +729,7 @@ static __s32 LCD_PLL_Calc(__u32 sel, __panel_para_t * info, __u32 *divider)
 	__s32 pll_freq = -1;
 	
 	lcd_dclk_freq = info->lcd_dclk_freq * 1000000;
-	if (info->lcd_if == 0 || info->lcd_if == 1 ||info->lcd_if == 2)// hv panel , CPU panel and	ttl panel
+	if (info->lcd_if == LCD_IF_HV || info->lcd_if == LCD_IF_CPU ||  (info->lcd_if == LCD_IF_EDP))// hv panel , CPU panel and	ttl panel
 	{
 		if (lcd_dclk_freq > 2000000 && lcd_dclk_freq <= 297000000) //MHz 
 		{

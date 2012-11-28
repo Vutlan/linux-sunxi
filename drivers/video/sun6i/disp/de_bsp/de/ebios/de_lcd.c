@@ -216,7 +216,7 @@ __s32 tcon0_src_select(__u32 sel, __lcd_src_t src)
 
 __s32 tcon0_open(__u32 sel, __panel_para_t * panel)
 {
-	if(panel->lcd_if == LCD_IF_HV || panel->lcd_if == LCD_IF_LVDS)
+	if((panel->lcd_if == LCD_IF_HV) || (panel->lcd_if == LCD_IF_LVDS) || (panel->lcd_if == LCD_IF_EDP))
 	{
 		lcd_dev[sel]->tcon0_ctl.bits.tcon0_en = 1;
 		tcon_irq_enable(sel,LCD_IRQ_TCON0_VBLK);
@@ -362,7 +362,7 @@ __s32 tcon0_cfg_mode_tri(__u32 sel, __panel_para_t * panel)
 
 __s32 tcon0_cfg(__u32 sel, __panel_para_t * panel)
 {
-	if(panel->lcd_if == LCD_IF_HV)
+	if((panel->lcd_if == LCD_IF_HV) || (panel->lcd_if == LCD_IF_EDP))
 	{
 		lcd_dev[sel]->tcon0_ctl.bits.tcon0_if = 0;
 		lcd_dev[sel]->tcon0_hv_ctl.bits.hv_mode = panel->lcd_hv_if;

@@ -5,11 +5,6 @@
 #include "dev_lcd.h"
 
 
-static void LCD_power_on(__u32 sel);
-static void LCD_power_off(__u32 sel);
-static void LCD_bl_open(__u32 sel);
-static void LCD_bl_close(__u32 sel);
-
 void LCD_get_panel_funs_0(__lcd_panel_fun_t * fun);
 void LCD_get_panel_funs_1(__lcd_panel_fun_t * fun);
 
@@ -29,6 +24,11 @@ extern void LCD_CPU_WR_INDEX(__u32 sel,__u32 index);
 extern void LCD_CPU_WR_DATA(__u32 sel, __u32 data);
 extern void LCD_CPU_AUTO_FLUSH(__u32 sel, __bool en);
 
+extern __s32 lcd_iic_write(__u8 slave_addr, __u8 sub_addr, __u8 value);
+extern __s32 lcd_iic_read(__u8 slave_addr, __u8 sub_addr, __u8* value);
+
+extern __s32 lcd_get_panel_para(__u32 sel,__panel_para_t * info);
+
 extern __s32 dsi_dcs_wr(__u32 sel,__u8 cmd,__u8* para_p,__u32 para_num);
 
 extern __s32 LCD_GPIO_request(__u32 sel, __u32 io_index);
@@ -39,18 +39,6 @@ extern __s32 LCD_GPIO_write(__u32 sel,__u32 io_index, __u32 data);
 
 extern __s32 pwm_set_para(__u32 channel, __pwm_info_t * pwm_info);
 extern __s32 pwm_get_para(__u32 channel, __pwm_info_t * pwm_info);
-
-#define OSAL_Script_FetchParser_Data script_parser_fetch
-#define OSAL_GPIO_Request gpio_request
-#define OSAL_GPIO_Release gpio_release
-#define OSAL_GPIO_Request_Ex gpio_request_ex
-#define OSAL_GPIO_DevGetAllPins_Status gpio_get_all_pin_status
-#define OSAL_GPIO_DevGetONEPins_Status gpio_get_one_pin_status
-#define OSAL_GPIO_DevSetONEPin_Status gpio_set_one_pin_status
-#define OSAL_GPIO_DevSetONEPIN_IO_STATUS gpio_set_one_pin_io_status
-#define OSAL_GPIO_DevSetONEPIN_PULL_STATUS gpio_set_one_pin_pull
-#define OSAL_GPIO_DevREAD_ONEPIN_DATA gpio_read_one_pin_value
-#define OSAL_GPIO_DevWRITE_ONEPIN_DATA gpio_write_one_pin_value
 
 #define BIT0		  0x00000001  
 #define BIT1		  0x00000002  

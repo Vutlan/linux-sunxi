@@ -90,8 +90,26 @@ __s32 OSAL_GPIO_DevSetONEPin_Status(u32 p_handler, disp_gpio_set_t *gpio_status,
 
 __s32 OSAL_GPIO_DevSetONEPIN_IO_STATUS(u32 p_handler, __u32 if_set_to_output_status, const char *gpio_name)
 {
-    __wrn("OSAL_GPIO_DevSetONEPIN_IO_STATUS is NULL\n");
-    return 0;
+    int ret;
+
+    if(if_set_to_output_status)
+    {
+        ret = gpio_direction_output(p_handler, 1);
+        if(ret != 0)
+        {
+            __wrn("gpio_direction_output fail!\n");
+        }
+    }
+    else
+    {
+        ret = gpio_direction_input(p_handler);
+        if(ret != 0)
+        {
+            __wrn("gpio_direction_input fail!\n");
+        }
+    }
+    
+    return ret;
 }
 
 __s32 OSAL_GPIO_DevSetONEPIN_PULL_STATUS(u32 p_handler, __u32 set_pull_status, const char *gpio_name)
