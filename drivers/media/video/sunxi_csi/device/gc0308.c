@@ -13,55 +13,18 @@
 #include <media/v4l2-chip-ident.h>
 #include <media/v4l2-mediabus.h>//linux-3.0
 #include <linux/io.h>
-#include <mach/gpio.h>
-//#include <mach/sys_config.h>
+#include <../arch/arm/mach-sun6i/include/mach/gpio.h>
+#include <../arch/arm/mach-sun6i/include/mach/sys_config.h>
 #include <linux/regulator/consumer.h>
 #include <mach/system.h>
-#include "../../../../power/axp_power/axp-gpio.h"
-#if defined CONFIG_ARCH_SUN4I
-#include "../include/sun4i_csi_core.h"
-#include "../include/sun4i_dev_csi.h"
-#elif defined CONFIG_ARCH_SUN5I
-#include "../include/sun5i_csi_core.h"
-#include "../include/sun5i_dev_csi.h"
-#else
+//#include "../../../../power/axp_power/axp-gpio.h"
 #include "../include/sunxi_csi_core.h"
 #include "../include/sunxi_csi_dev.h"
-#endif
 
 MODULE_AUTHOR("raymonxiu");
 MODULE_DESCRIPTION("A low-level driver for GalaxyCore GC0308 sensors");
 MODULE_LICENSE("GPL");
 
-#define FPGA
-
-#ifdef FPGA
-
-#define MAGIC_VER_A  0
-#define MAGIC_VER_B  1
-#define MAGIC_VER_C  2
-
-int sw_get_ic_ver(void)
-{
-  return MAGIC_VER_B;
-}
-//int gpio_write_one_pin_value(int hdl, int status, char *name)
-//{
-//  return 0;
-//}
-//int gpio_set_one_pin_io_status(int hdl, int status, char *name)
-//{
-//  return 0;
-//}
-int axp_gpio_set_io(int num, int val)
-{
-  return 0;
-}
-int axp_gpio_set_value(int num, int sta)
-{
-  return 0;
-}
-#endif
 
 //for internel driver debug
 #define DEV_DBG_EN   		0
@@ -124,11 +87,11 @@ int axp_gpio_set_value(int num, int sta)
 #define I2C_ADDR 0x42
 
 /* Registers */
-#ifdef FPGA
-static int magic_ver;
-#else
-static enum sw_ic_ver magic_ver;
-#endif
+//#ifdef CSI_VER_FOR_FPGA
+//static int magic_ver;
+//#else
+//static enum sw_ic_ver magic_ver;
+//#endif
 /*
  * Information we maintain about a known sensor.
  */
@@ -181,23 +144,23 @@ struct regval_list {
  * The default register settings
  *
  */
-static struct regval_list sensor_default_regs_49p5M[] = {
-{{0xfe},{0x00}},																					 
-//MCLK=49.5MHz 10fps
-{{0x01},{0xcb}},   //0x28                                        
-{{0x02},{0x60}},   //0x00
-{{0x0f},{0x18}},	 //0x21                                 
-{{0xe2},{0x00}},                                           
-{{0xe3},{0xFA}},                                           
-{{0xe4},{0x03}},                                           
-{{0xe5},{0xE8}},                                           
-{{0xe6},{0x03}},                                           
-{{0xe7},{0xE8}},                                           
-{{0xe8},{0x03}},                                           
-{{0xe9},{0xE8}},                                           
-{{0xea},{0x09}},                                           
-{{0xeb},{0xC4}},
-};
+//static struct regval_list sensor_default_regs_49p5M[] = {
+//{{0xfe},{0x00}},																					 
+////MCLK=49.5MHz 10fps
+//{{0x01},{0xcb}},   //0x28                                        
+//{{0x02},{0x60}},   //0x00
+//{{0x0f},{0x18}},	 //0x21                                 
+//{{0xe2},{0x00}},                                           
+//{{0xe3},{0xFA}},                                           
+//{{0xe4},{0x03}},                                           
+//{{0xe5},{0xE8}},                                           
+//{{0xe6},{0x03}},                                           
+//{{0xe7},{0xE8}},                                           
+//{{0xe8},{0x03}},                                           
+//{{0xe9},{0xE8}},                                           
+//{{0xea},{0x09}},                                           
+//{{0xeb},{0xC4}},
+//};
 
 static struct regval_list sensor_default_regs_24M[] = {
 {{0xfe},{0x00}},																					 
@@ -949,27 +912,31 @@ static int sensor_write_array(struct v4l2_subdev *sd, struct regval_list *vals ,
 /*
  * CSI GPIO control
  */
-static void csi_gpio_write(struct v4l2_subdev *sd, user_gpio_set_t *gpio, int status)
+static void csi_gpio_write(struct v4l2_subdev *sd, struct gpio_config *gpio, int level)
 {
-	struct csi_dev *dev=(struct csi_dev *)dev_get_drvdata(sd->v4l2_dev->dev);
-		
-  if(gpio->port == 0xffff) {
-    axp_gpio_set_io(gpio->port_num, 1);
-    axp_gpio_set_value(gpio->port_num, status); 
-  } else {
-    sw_gpio_write_one_pin_value(dev->csi_pin_hd,status,(char *)&gpio->gpio_name);
-  }
+//	struct csi_dev *dev=(struct csi_dev *)dev_get_drvdata(sd->v4l2_dev->dev);
+	
+	if(gpio->mul_sel==1)
+	{
+	  gpio_direction_output(gpio->gpio, level);
+	  gpio->data=level;
+	} else {
+	  csi_dev_dbg("gpio is not in output function\n");
+	}
 }
 
-static void csi_gpio_set_status(struct v4l2_subdev *sd, user_gpio_set_t *gpio, int status)
+static void csi_gpio_set_status(struct v4l2_subdev *sd, struct gpio_config *gpio, int status)
 {
-	struct csi_dev *dev=(struct csi_dev *)dev_get_drvdata(sd->v4l2_dev->dev);
-		
-  if(gpio->port == 0xffff) {
-    axp_gpio_set_io(gpio->port_num, status);
-  } else {
-    sw_gpio_set_one_pin_io_status(dev->csi_pin_hd,status,(char *)&gpio->gpio_name);
-  }
+//	struct csi_dev *dev=(struct csi_dev *)dev_get_drvdata(sd->v4l2_dev->dev);
+	
+	if(1 == status) {  /* output */
+		if(0 != gpio_direction_output(gpio->gpio, gpio->data))
+			csi_dev_dbg("gpio_direction_output failed\n");
+	} else if(0 == status) {  /* input */
+	  if(0 != gpio_direction_input(gpio->gpio) )
+	    csi_dev_dbg("gpio_direction_input failed\n");
+	}
+	gpio->mul_sel=status;
 }
 
 /*
@@ -1146,19 +1113,19 @@ static int sensor_init(struct v4l2_subdev *sd, u32 val)
 		csi_dev_err("chip found is not an target chip.\n");
 		return ret;
 	}
-
-	switch(magic_ver) {
-	case MAGIC_VER_A:
-	case MAGIC_VER_B:
-		sensor_write_array(sd, sensor_default_regs_49p5M , ARRAY_SIZE(sensor_default_regs_49p5M));
-		break;
-	case MAGIC_VER_C:
-		sensor_write_array(sd, sensor_default_regs_24M , ARRAY_SIZE(sensor_default_regs_24M));
-		break;
-	default:
-		sensor_write_array(sd, sensor_default_regs_24M , ARRAY_SIZE(sensor_default_regs_24M));
-		break;
-	}
+	sensor_write_array(sd, sensor_default_regs_24M , ARRAY_SIZE(sensor_default_regs_24M));
+//	switch(magic_ver) {
+//	case MAGIC_VER_A:
+//	case MAGIC_VER_B:
+//		sensor_write_array(sd, sensor_default_regs_49p5M , ARRAY_SIZE(sensor_default_regs_49p5M));
+//		break;
+//	case MAGIC_VER_C:
+//		sensor_write_array(sd, sensor_default_regs_24M , ARRAY_SIZE(sensor_default_regs_24M));
+//		break;
+//	default:
+//		sensor_write_array(sd, sensor_default_regs_24M , ARRAY_SIZE(sensor_default_regs_24M));
+//		break;
+//	}
 	return sensor_write_array(sd, sensor_default_regs , ARRAY_SIZE(sensor_default_regs));
 }
 
@@ -2353,19 +2320,19 @@ static int sensor_probe(struct i2c_client *client,
 	
 //	info->clkrc = 1;	/* 30fps */
 
-	magic_ver = sw_get_ic_ver();
-  switch(magic_ver) {
-  case MAGIC_VER_A:
-  case MAGIC_VER_B:
-  	info->ccm_info->mclk = MCLK_VER_B;
-  	break;
-  case MAGIC_VER_C:
-  	info->ccm_info->mclk = MCLK_VER_C;
-  	break;
-  default:
-  	info->ccm_info->mclk = MCLK_VER_C;
-  	break;
-  }
+//	magic_ver = sw_get_ic_ver();
+//  switch(magic_ver) {
+//  case MAGIC_VER_A:
+//  case MAGIC_VER_B:
+//  	info->ccm_info->mclk = MCLK_VER_B;
+//  	break;
+//  case MAGIC_VER_C:
+//  	info->ccm_info->mclk = MCLK_VER_C;
+//  	break;
+//  default:
+//  	info->ccm_info->mclk = MCLK_VER_C;
+//  	break;
+//  }
 	return 0;
 }
 

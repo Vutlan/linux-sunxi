@@ -13,47 +13,19 @@
 #include <media/v4l2-chip-ident.h>
 #include <media/v4l2-mediabus.h>//linux-3.0
 #include <linux/io.h>
-#include <mach/gpio.h>
-#include <mach/sys_config.h>
+#include <../arch/arm/mach-sun6i/include/mach/gpio.h>
+#include <../arch/arm/mach-sun6i/include/mach/sys_config.h>
 #include <linux/regulator/consumer.h>
-//#include <mach/system.h>
+#include <mach/system.h>
 //#include "../../../../power/axp_power/axp-gpio.h"
-#if defined CONFIG_ARCH_SUN4I
-#include "../include/sun4i_csi_core.h"
-#include "../include/sun4i_dev_csi.h"
-#elif defined CONFIG_ARCH_SUN5I
-#include "../include/sun5i_csi_core.h"
-#include "../include/sun5i_dev_csi.h"
-#else
 #include "../include/sunxi_csi_core.h"
 #include "../include/sunxi_csi_dev.h"
-#endif
 
 MODULE_AUTHOR("raymonxiu");
 MODULE_DESCRIPTION("A low-level driver for OV ov5640 sensors");
 MODULE_LICENSE("GPL");
 
-#define FPGA
 
-#ifdef FPGA
-
-//int gpio_write_one_pin_value(int hdl, int status, char *name)
-//{
-//  return 0;
-//}
-//int gpio_set_one_pin_io_status(int hdl, int status, char *name)
-//{
-//  return 0;
-//}
-int axp_gpio_set_io(int num, int val)
-{
-  return 0;
-}
-int axp_gpio_set_value(int num, int sta)
-{
-  return 0;
-}
-#endif
 
 //for internel driver debug
 #define DEV_DBG_EN   		1 
@@ -92,7 +64,7 @@ int axp_gpio_set_value(int num, int sta)
 
 #define CONTINUEOUS_AF
 
-#define FPGA
+//#define CSI_VER_FOR_FPGA
 /*
  * Basic window sizes.  These probably belong somewhere more globally
  * useful.
@@ -127,7 +99,7 @@ int axp_gpio_set_value(int num, int sta)
 /*
  * Our nominal (default) frame rate.
  */
-#ifdef FPGA
+#ifdef CSI_VER_FOR_FPGA
 #define SENSOR_FRAME_RATE 15
 #else
 #define SENSOR_FRAME_RATE 30
@@ -498,7 +470,7 @@ static struct regval_list sensor_qsxga_regs[] = { //qsxga: 2592*1936
 //	{{0x30,0x08},{0x42}},
 	//pll and clock setting
 	{{0x30,0x34},{0x18}},                            	    
-#ifndef FPGA
+#ifndef CSI_VER_FOR_FPGA
 	{{0x30,0x35},{0x21}},    
 #else
   {{0x30,0x35},{0x41}},                         
@@ -518,7 +490,7 @@ static struct regval_list sensor_qsxga_regs[] = { //qsxga: 2592*1936
 	{{0x38,0x0d},{0x1c}}, //HTS LSB                       
 	{{0x38,0x0e},{0x07}}, //VTS MSB                       
 	{{0x38,0x0f},{0xb0}}, //LSB                           
-#ifndef FPGA
+#ifndef CSI_VER_FOR_FPGA
 	//banding step                                        
 	{{0x3a,0x08},{0x00}}, //50HZ step MSB                 
 	{{0x3a,0x09},{0x93}}, //50HZ step LSB                 
@@ -587,7 +559,7 @@ static struct regval_list sensor_qxga_regs[] = { //qxga: 2048*1536
 //	{{0x30,0x08},{0x42}},
 	//pll and clock setting
 	{{0x30,0x34},{0x18}},                            	 
-#ifndef FPGA
+#ifndef CSI_VER_FOR_FPGA
 	{{0x30,0x35},{0x21}}, 	                        
 #else
   {{0x30,0x35},{0x41}},                         
@@ -607,7 +579,7 @@ static struct regval_list sensor_qxga_regs[] = { //qxga: 2048*1536
 	{{0x38,0x0d},{0x1c}}, //HTS LSB                    
 	{{0x38,0x0e},{0x07}}, //VTS MSB                    
 	{{0x38,0x0f},{0xb0}}, //LSB                        
-#ifndef FPGA
+#ifndef CSI_VER_FOR_FPGA
 	//banding step                                        
 	{{0x3a,0x08},{0x00}}, //50HZ step MSB                 
 	{{0x3a,0x09},{0x93}}, //50HZ step LSB                 
@@ -675,7 +647,7 @@ static struct regval_list sensor_uxga_regs[] = { //UXGA: 1600*1200
 //	{{0x30,0x08},{0x42}},
 	//pll and clock setting                     			                                 								                                             
 	{{0x30,0x34},{0x18}},                            	                  	                                                           
-#ifndef FPGA
+#ifndef CSI_VER_FOR_FPGA
 	{{0x30,0x35},{0x21}}, 	                        
 #else
   {{0x30,0x35},{0x41}},                         
@@ -695,7 +667,7 @@ static struct regval_list sensor_uxga_regs[] = { //UXGA: 1600*1200
 	{{0x38,0x0d},{0x1c}}, //HTS LSB                                                                                                
 	{{0x38,0x0e},{0x07}}, //VTS MSB                                                                                                
 	{{0x38,0x0f},{0xb0}}, //LSB                                                                                                    
-#ifndef FPGA
+#ifndef CSI_VER_FOR_FPGA
 	//banding step                                        
 	{{0x3a,0x08},{0x00}}, //50HZ step MSB                 
 	{{0x3a,0x09},{0x93}}, //50HZ step LSB                 
@@ -764,7 +736,7 @@ static struct regval_list sensor_sxga_regs[] = { //SXGA: 1280*960
 //	{{0x30,0x08},{0x42}},
 	//pll and clock setting                                      								                              
 	{{0x30,0x34},{0x18}},                                       	              
-#ifndef FPGA
+#ifndef CSI_VER_FOR_FPGA
 	{{0x30,0x35},{0x21}}, 	                        
 #else
   {{0x30,0x35},{0x41}},                         
@@ -784,7 +756,7 @@ static struct regval_list sensor_sxga_regs[] = { //SXGA: 1280*960
 	{{0x38,0x0d},{0x1c}}, //HTS LSB                                                                     
 	{{0x38,0x0e},{0x07}}, //VTS MSB                                                                     
 	{{0x38,0x0f},{0xb0}}, //LSB                                                                         
-#ifndef FPGA
+#ifndef CSI_VER_FOR_FPGA
 	//banding step                                        
 	{{0x3a,0x08},{0x00}}, //50HZ step MSB                 
 	{{0x3a,0x09},{0x93}}, //50HZ step LSB                 
@@ -852,7 +824,7 @@ static struct regval_list sensor_xga_regs[] = { //XGA: 1024*768
 //	{{0x30,0x08},{0x42}},
 	//pll and clock setting
 	{{0x30,0x34},{0x18}},
-#ifndef FPGA
+#ifndef CSI_VER_FOR_FPGA
 	{{0x30,0x35},{0x21}}, 	                        
 #else
   {{0x30,0x35},{0x41}},                         
@@ -872,7 +844,7 @@ static struct regval_list sensor_xga_regs[] = { //XGA: 1024*768
 	{{0x38,0x0d},{0x1c}}, //HTS LSB     
 	{{0x38,0x0e},{0x07}}, //VTS MSB    
 	{{0x38,0x0f},{0xb0}}, //LSB
-#ifndef FPGA
+#ifndef CSI_VER_FOR_FPGA
 	//banding step                                        
 	{{0x3a,0x08},{0x00}}, //50HZ step MSB                 
 	{{0x3a,0x09},{0x93}}, //50HZ step LSB                 
@@ -953,7 +925,7 @@ static struct regval_list sensor_1080p_regs[] = { //1080: 1920*1080
 //	{{0x30,0x08},{0x42}},
 	//pll and clock setting
 	{{0x30,0x34},{0x18}},
-#ifndef FPGA
+#ifndef CSI_VER_FOR_FPGA
 	{{0x30,0x35},{0x11}},	//0x11:30fps 0x21:15fps
 #else
 	{{0x30,0x35},{0x41}},	//0x11:30fps 0x21:15fps 0x41:7.5fps
@@ -973,7 +945,7 @@ static struct regval_list sensor_1080p_regs[] = { //1080: 1920*1080
 	{{0x38,0x0d},{0xc4}},	//HTS LSB   
 	{{0x38,0x0e},{0x04}},	//VTS MSB        
 	{{0x38,0x0f},{0x60}},	//VTS LSB       
-#ifndef FPGA
+#ifndef CSI_VER_FOR_FPGA
 	//banding step
 	{{0x3a,0x08},{0x01}}, //50HZ step MSB 
 	{{0x3a,0x09},{0x50}}, //50HZ step LSB 
@@ -1041,7 +1013,7 @@ static struct regval_list sensor_720p_regs[] = { //1280*720
 //	{{0x30,0x08},{0x42}},
 //	//pll and clock setting
 	{{0x30,0x34},{0x18}},
-#ifndef FPGA
+#ifndef CSI_VER_FOR_FPGA
 	{{0x30,0x35},{0x21}},	//0x11:60fps 0x21:30fps 0x41:15fps
 #else
 	{{0x30,0x35},{0x41}},	//0x11:60fps 0x21:30fps 0x41:15fps 0xa1:7.5fps
@@ -1061,7 +1033,7 @@ static struct regval_list sensor_720p_regs[] = { //1280*720
 	{{0x38,0x0d},{0x64}},	//HTS LSB   
 	{{0x38,0x0e},{0x02}},	//VTS MSB        
 	{{0x38,0x0f},{0xe4}},	//LSB       
-#ifndef FPGA
+#ifndef CSI_VER_FOR_FPGA
 	//banding step
 	{{0x3a,0x08},{0x00}}, //50HZ step MSB 
 	{{0x3a,0x09},{0xdd}}, //50HZ step LSB 
@@ -1129,7 +1101,7 @@ static struct regval_list sensor_svga_regs[] = { //SVGA: 800*600
 //	{{0x30,0x08},{0x42}},
 //	//pll and clock setting
 	{{0x30,0x34},{0x1a}},                
-#ifndef FPGA
+#ifndef CSI_VER_FOR_FPGA
 	{{0x30,0x35},{0x11}}, 
 #else
 	{{0x30,0x35},{0x21}}, //0x11:30fps 0x21:15fps
@@ -1149,7 +1121,7 @@ static struct regval_list sensor_svga_regs[] = { //SVGA: 800*600
 	{{0x38,0x0d},{0x68}}, //HTS LSB      
 	{{0x38,0x0e},{0x03}}, //VTS MSB      
 	{{0x38,0x0f},{0xd8}}, //LSB          
-#ifndef FPGA
+#ifndef CSI_VER_FOR_FPGA
 	//banding step  
 	{{0x3a,0x08},{0x01}},//50HZ step MSB 
 	{{0x3a,0x09},{0x27}},//50HZ step LSB 
@@ -1218,7 +1190,7 @@ static struct regval_list sensor_vga_regs[] = { //VGA:  640*480
 //	{{0x30,0x08},{0x42}},
 //	//pll and clock setting
 	{{0x30,0x34},{0x1a}},                
-#ifndef FPGA
+#ifndef CSI_VER_FOR_FPGA
 	{{0x30,0x35},{0x11}},                             
 #else
 	{{0x30,0x35},{0x21}},                            
@@ -1238,7 +1210,7 @@ static struct regval_list sensor_vga_regs[] = { //VGA:  640*480
 	{{0x38,0x0e},{0x03}}, //VTS MSB      
 	{{0x38,0x0f},{0xd8}}, //LSB          
               
-#ifndef FPGA
+#ifndef CSI_VER_FOR_FPGA
 	//banding step  
 	{{0x3a,0x08},{0x01}},//50HZ step MSB 
 	{{0x3a,0x09},{0x27}},//50HZ step LSB 
@@ -2214,27 +2186,31 @@ static int sensor_write_continuous(struct v4l2_subdev *sd, int addr, char vals[]
 /*
  * CSI GPIO control
  */
-static void csi_gpio_write(struct v4l2_subdev *sd, user_gpio_set_t *gpio, int status)
+static void csi_gpio_write(struct v4l2_subdev *sd, struct gpio_config *gpio, int level)
 {
-	struct csi_dev *dev=(struct csi_dev *)dev_get_drvdata(sd->v4l2_dev->dev);
-		
-  if(gpio->port == 0xffff) {
-    axp_gpio_set_io(gpio->port_num, 1);
-    axp_gpio_set_value(gpio->port_num, status); 
-  } else {
-    sw_gpio_write_one_pin_value(dev->csi_pin_hd,status,(char *)&gpio->gpio_name);
-  }
+//	struct csi_dev *dev=(struct csi_dev *)dev_get_drvdata(sd->v4l2_dev->dev);
+	
+	if(gpio->mul_sel==1)
+	{
+	  gpio_direction_output(gpio->gpio, level);
+	  gpio->data=level;
+	} else {
+	  csi_dev_dbg("gpio is not in output function\n");
+	}
 }
 
-static void csi_gpio_set_status(struct v4l2_subdev *sd, user_gpio_set_t *gpio, int status)
+static void csi_gpio_set_status(struct v4l2_subdev *sd, struct gpio_config *gpio, int status)
 {
-	struct csi_dev *dev=(struct csi_dev *)dev_get_drvdata(sd->v4l2_dev->dev);
-		
-  if(gpio->port == 0xffff) {
-    axp_gpio_set_io(gpio->port_num, status);
-  } else {
-    sw_gpio_set_one_pin_io_status(dev->csi_pin_hd,status,(char *)&gpio->gpio_name);
-  }
+//	struct csi_dev *dev=(struct csi_dev *)dev_get_drvdata(sd->v4l2_dev->dev);
+	
+	if(1 == status) {  /* output */
+		if(0 != gpio_direction_output(gpio->gpio, gpio->data))
+			csi_dev_dbg("gpio_direction_output failed\n");
+	} else if(0 == status) {  /* input */
+	  if(0 != gpio_direction_input(gpio->gpio) )
+	    csi_dev_dbg("gpio_direction_input failed\n");
+	}
+	gpio->mul_sel=status;
 }
 
 
@@ -2654,7 +2630,7 @@ static int sensor_set_capture_exposure(struct v4l2_subdev *sd)
 	unsigned long capture_exposure_gain;
 	unsigned long capture_gain;
 	unsigned char gain,exposurelow,exposuremid,exposurehigh;
-#ifndef FPGA
+#ifndef CSI_VER_FOR_FPGA
 	unsigned int capture_fps = 750;
 	unsigned int preview_fps = 3000;
 #else

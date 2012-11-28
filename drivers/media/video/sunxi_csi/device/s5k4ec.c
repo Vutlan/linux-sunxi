@@ -13,29 +13,19 @@
 #include <media/v4l2-chip-ident.h>
 #include <media/v4l2-mediabus.h>//linux-3.0
 #include <linux/io.h>
-//#include <mach/gpio_v2.h>
-//#include <mach/sys_config.h>
+#include <../arch/arm/mach-sun6i/include/mach/gpio.h>
+#include <../arch/arm/mach-sun6i/include/mach/sys_config.h>
 #include <linux/regulator/consumer.h>
 #include <mach/system.h>
-#include "../../../../power/axp_power/axp-gpio.h"
-#if defined CONFIG_ARCH_SUN4I
-#include "../include/sun4i_csi_core.h"
-#include "../include/sun4i_dev_csi.h"
-#elif defined CONFIG_ARCH_SUN5I
-#include "../include/sun5i_csi_core.h"
-#include "../include/sun5i_dev_csi.h"
-#else
+//#include "../../../../power/axp_power/axp-gpio.h"
 #include "../include/sunxi_csi_core.h"
 #include "../include/sunxi_csi_dev.h"
-#endif
 
 MODULE_AUTHOR("raymonxiu");
 MODULE_DESCRIPTION("A low-level driver for samsung s5k4ec sensors");
 MODULE_LICENSE("GPL");
 
-#define FPGA
-
-#ifdef FPGA
+#ifdef CSI_VER_FOR_FPGA
 int gpio_write_one_pin_value(int hdl, int status, char *name)
 {
   return 0;
@@ -2555,7 +2545,7 @@ static struct regval_list sensor_default_regs[] = {
 	
 //System Clock & Output clock (Pclk)		
 {{0x00,0x2A},{0x02,0x1A}},	
-#ifdef FPGA
+#ifdef CSI_VER_FOR_FPGA
 {{0x0F,0x12},{0x34,0xBC}},   //REG_TC_IPRM_OpClk4KHz_0 
 {{0x0F,0x12},{0x27,0x8d}},   //REG_TC_IPRM_MinOutRate4KHz_0
 {{0x0F,0x12},{0x27,0x8d}},   //REG_TC_IPRM_MaxOutRate4KHz_0
@@ -5374,32 +5364,37 @@ static int sensor_s_relaunch_af_zone(struct v4l2_subdev *sd)
 	return 0;
 }
 #endif
+
 /*
  * CSI GPIO control
  */
-static void csi_gpio_write(struct v4l2_subdev *sd, user_gpio_set_t *gpio, int status)
+static void csi_gpio_write(struct v4l2_subdev *sd, struct gpio_config *gpio, int level)
 {
-	struct csi_dev *dev=(struct csi_dev *)dev_get_drvdata(sd->v4l2_dev->dev);
-		
-  if(gpio->port == 0xffff) {
-    axp_gpio_set_io(gpio->port_num, 1);
-    axp_gpio_set_value(gpio->port_num, status); 
-  } else {
-    gpio_write_one_pin_value(dev->csi_pin_hd,status,(char *)&gpio->gpio_name);
-  }
+//	struct csi_dev *dev=(struct csi_dev *)dev_get_drvdata(sd->v4l2_dev->dev);
+	
+	if(gpio->mul_sel==1)
+	{
+	  gpio_direction_output(gpio->gpio, level);
+	  gpio->data=level;
+	} else {
+	  csi_dev_dbg("gpio is not in output function\n");
+	}
 }
 
-
-static void csi_gpio_set_status(struct v4l2_subdev *sd, user_gpio_set_t *gpio, int status)
+static void csi_gpio_set_status(struct v4l2_subdev *sd, struct gpio_config *gpio, int status)
 {
-	struct csi_dev *dev=(struct csi_dev *)dev_get_drvdata(sd->v4l2_dev->dev);
-		
-  if(gpio->port == 0xffff) {
-    axp_gpio_set_io(gpio->port_num, status);
-  } else {
-    gpio_set_one_pin_io_status(dev->csi_pin_hd,status,(char *)&gpio->gpio_name);
-  }
+//	struct csi_dev *dev=(struct csi_dev *)dev_get_drvdata(sd->v4l2_dev->dev);
+	
+	if(1 == status) {  /* output */
+		if(0 != gpio_direction_output(gpio->gpio, gpio->data))
+			csi_dev_dbg("gpio_direction_output failed\n");
+	} else if(0 == status) {  /* input */
+	  if(0 != gpio_direction_input(gpio->gpio) )
+	    csi_dev_dbg("gpio_direction_input failed\n");
+	}
+	gpio->mul_sel=status;
 }
+
 
 
 /*
@@ -6308,6 +6303,9 @@ static int sensor_s_band_filter(struct v4l2_subdev *sd,
 			ret = sensor_write_array(sd, sensor_flicker_60hz_regs, ARRAY_SIZE(sensor_flicker_60hz_regs));
 			if (ret < 0)
 				csi_dev_err("sensor_write_array err at sensor_s_band_filter!\n");
+		  break;
+		case V4L2_CID_POWER_LINE_FREQUENCY_AUTO:
+		default:
 		  break;
 	}
 	mdelay(10);

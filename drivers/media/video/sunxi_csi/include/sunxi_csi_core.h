@@ -12,10 +12,25 @@
 #include <linux/i2c.h>
 #include <media/v4l2-mediabus.h>//linux-3.0
 #include <mach/sys_config.h>
+#include <linux/gpio.h>
+#include <../arch/arm/mach-sun6i/include/mach/clock.h>
+#include <../arch/arm/mach-sun6i/include/mach/gpio.h>
+#include <../arch/arm/mach-sun6i/include/mach/sys_config.h>
+
 #include "../csi0/mipi_csi/dphy/dphy.h"
 #include "../csi0/mipi_csi/protocol/protocol.h"
 #include "../csi0/mipi_csi/dphy/dphy_reg.h"
 #include "../csi0/mipi_csi/protocol/protocol_reg.h"
+
+#undef CSI_VER_FOR_FPGA
+
+#if defined (CONFIG_AW_FPGA_V4_PLATFORM)
+  #define CSI_VER_FOR_FPGA
+#elif defined (CONFIG_AW_FPGA_V7_PLATFORM)
+  #define CSI_VER_FOR_FPGA
+#elif defined (CONFIG_AW_ASIC_EVB_PLATFORM)
+  #undef CSI_VER_FOR_FPGA
+#endif
 
 //for internel driver debug
 #define DBG_EN   		0 	
@@ -355,11 +370,18 @@ struct ccm_config {
 	int stby_mode;
 	int interface;
 	int flash_pol;		
-	user_gpio_set_t reset_io;
-	user_gpio_set_t standby_io;
-	user_gpio_set_t power_io;
-	user_gpio_set_t flash_io;
-	user_gpio_set_t af_power_io;
+//	user_gpio_set_t reset_io;
+//	user_gpio_set_t standby_io;
+//	user_gpio_set_t power_io;
+//	user_gpio_set_t flash_io;
+//	user_gpio_set_t af_power_io;
+	//modified to 33
+	struct gpio_config reset_io;
+	struct gpio_config standby_io;
+	struct gpio_config power_io;
+	struct gpio_config flash_io;
+	struct gpio_config af_power_io;
+	
 	struct regulator 	 *iovdd;		  /*interface voltage source of sensor module*/
 	struct regulator 	 *avdd;			/*anlog voltage source of sensor module*/
 	struct regulator 	 *dvdd;			/*core voltage source of sensor module*/
@@ -402,7 +424,9 @@ struct csi_dev {
 	int								opened;
 
 	/*pin,clock,irq resource*/
-	int								csi_pin_hd;
+	//int								csi_pin_hd;
+	script_item_u     *csi_pin_list;
+	int               csi_pin_cnt;//add for 33
 	struct clk				*csi_clk_src;
 	struct clk				*csi_ahb_clk;
 	struct clk				*csi_module_clk;
@@ -430,11 +454,17 @@ struct csi_dev {
 	unsigned int flash_pol;
 	
 	/* csi io */
-	user_gpio_set_t reset_io;
-	user_gpio_set_t standby_io;
-	user_gpio_set_t power_io;
-	user_gpio_set_t flash_io;
-	user_gpio_set_t af_power_io;
+//	user_gpio_set_t reset_io;
+//	user_gpio_set_t standby_io;
+//	user_gpio_set_t power_io;
+//	user_gpio_set_t flash_io;
+//	user_gpio_set_t af_power_io;
+	//modified to 33
+	struct gpio_config reset_io;
+	struct gpio_config standby_io;
+	struct gpio_config power_io;
+	struct gpio_config flash_io;
+	struct gpio_config af_power_io;
 	
 	/*parameters*/
 	unsigned int			cur_ch;

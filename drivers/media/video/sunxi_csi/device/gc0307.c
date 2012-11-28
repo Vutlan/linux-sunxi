@@ -13,47 +13,21 @@
 #include <media/v4l2-chip-ident.h>
 #include <media/v4l2-mediabus.h>//linux-3.0
 #include <linux/io.h>
-#include <mach/gpio.h>
-#include <mach/sys_config.h>
+#include <../arch/arm/mach-sun6i/include/mach/gpio.h>
+#include <../arch/arm/mach-sun6i/include/mach/sys_config.h>
 #include <linux/regulator/consumer.h>
 #include <mach/system.h>
-#include "../../../../power/axp_power/axp-gpio.h"
-#if defined CONFIG_ARCH_SUN4I
-#include "../include/sun4i_csi_core.h"
-#include "../include/sun4i_dev_csi.h"
-#elif defined CONFIG_ARCH_SUN5I
-#include "../include/sun5i_csi_core.h"
-#include "../include/sun5i_dev_csi.h"
-#else
+//#include "../../../../power/axp_power/axp-gpio.h"
 #include "../include/sunxi_csi_core.h"
 #include "../include/sunxi_csi_dev.h"
-#endif
 
 MODULE_AUTHOR("raymonxiu");
 MODULE_DESCRIPTION("A low-level driver for GalaxyCore GC0307 sensors");
 MODULE_LICENSE("GPL");
 
-#define FPGA
+#define CSI_VER_FOR_FPGA
 
-#ifdef FPGA
 
-//int gpio_write_one_pin_value(int hdl, int status, char *name)
-//{
-//  return 0;
-//}
-//int gpio_set_one_pin_io_status(int hdl, int status, char *name)
-//{
-//  return 0;
-//}
-int axp_gpio_set_io(int num, int val)
-{
-  return 0;
-}
-int axp_gpio_set_value(int num, int sta)
-{
-  return 0;
-}
-#endif
 
 //for internel driver debug
 #define DEV_DBG_EN   		0 
@@ -1146,27 +1120,31 @@ static int sensor_write_array(struct v4l2_subdev *sd, struct regval_list *vals ,
 /*
  * CSI GPIO control
  */
-static void csi_gpio_write(struct v4l2_subdev *sd, user_gpio_set_t *gpio, int status)
+static void csi_gpio_write(struct v4l2_subdev *sd, struct gpio_config *gpio, int level)
 {
-	struct csi_dev *dev=(struct csi_dev *)dev_get_drvdata(sd->v4l2_dev->dev);
-		
-  if(gpio->port == 0xffff) {
-    axp_gpio_set_io(gpio->port_num, 1);
-    axp_gpio_set_value(gpio->port_num, status); 
-  } else {
-    sw_gpio_write_one_pin_value(dev->csi_pin_hd,status,(char *)&gpio->gpio_name);
-  }
+//	struct csi_dev *dev=(struct csi_dev *)dev_get_drvdata(sd->v4l2_dev->dev);
+	
+	if(gpio->mul_sel==1)
+	{
+	  gpio_direction_output(gpio->gpio, level);
+	  gpio->data=level;
+	} else {
+	  csi_dev_dbg("gpio is not in output function\n");
+	}
 }
 
-static void csi_gpio_set_status(struct v4l2_subdev *sd, user_gpio_set_t *gpio, int status)
+static void csi_gpio_set_status(struct v4l2_subdev *sd, struct gpio_config *gpio, int status)
 {
-	struct csi_dev *dev=(struct csi_dev *)dev_get_drvdata(sd->v4l2_dev->dev);
-		
-  if(gpio->port == 0xffff) {
-    axp_gpio_set_io(gpio->port_num, status);
-  } else {
-    sw_gpio_set_one_pin_io_status(dev->csi_pin_hd,status,(char *)&gpio->gpio_name);
-  }
+//	struct csi_dev *dev=(struct csi_dev *)dev_get_drvdata(sd->v4l2_dev->dev);
+	
+	if(1 == status) {  /* output */
+		if(0 != gpio_direction_output(gpio->gpio, gpio->data))
+			csi_dev_dbg("gpio_direction_output failed\n");
+	} else if(0 == status) {  /* input */
+	  if(0 != gpio_direction_input(gpio->gpio) )
+	    csi_dev_dbg("gpio_direction_input failed\n");
+	}
+	gpio->mul_sel=status;
 }
 
 /*
