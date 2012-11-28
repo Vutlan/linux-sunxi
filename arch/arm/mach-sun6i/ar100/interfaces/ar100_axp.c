@@ -42,6 +42,7 @@ axp_isr_t axp_isr_node;
 int ar100_axp_read_reg(unsigned char *addr, unsigned char *data, unsigned long len)
 {
 	int                   i;
+	int					  result;
 	struct ar100_message *pmessage;
 	
 	if ((addr == NULL) || (data == NULL) || (len > AXP_TRANS_BYTE_MAX)) {
@@ -99,9 +100,10 @@ int ar100_axp_read_reg(unsigned char *addr, unsigned char *data, unsigned long l
 	}
 	
 	/* free message */
+	result = pmessage->result;
 	ar100_message_free(pmessage);
 	
-	return 0;
+	return result;
 }
 EXPORT_SYMBOL(ar100_axp_read_reg);
 
@@ -118,6 +120,7 @@ EXPORT_SYMBOL(ar100_axp_read_reg);
 int ar100_axp_write_reg(unsigned char *addr, unsigned char *data, unsigned long len)
 {
 	int                   i;
+	int					  result;
 	struct ar100_message *pmessage;
 	
 	if ((addr == NULL) || (data == NULL) || (len > AXP_TRANS_BYTE_MAX)) {
@@ -170,9 +173,10 @@ int ar100_axp_write_reg(unsigned char *addr, unsigned char *data, unsigned long 
 	ar100_hwmsgbox_send_message(pmessage, AR100_SEND_MSG_TIMEOUT);
 	
 	/* free message */
+	result = pmessage->result;
 	ar100_message_free(pmessage);
 	
-	return 0;
+	return result;
 }
 EXPORT_SYMBOL(ar100_axp_write_reg);
 
@@ -185,13 +189,12 @@ EXPORT_SYMBOL(ar100_axp_write_reg);
  * @return: result, 0 - register call-back function successed;
  *                 !0 - register call-back function failed;
  * NOTE: the function is like "int callback(void *para)";
+ *       this function will execute in system ISR.
  */
 int ar100_axp_cb_register(ar100_cb_t func, void *para)
 {
-	if (axp_isr_node.handler) 
-	{
-		if(func == axp_isr_node.handler)
-		{
+	if (axp_isr_node.handler) {
+		if(func == axp_isr_node.handler) {
 			AR100_WRN("pmu interrupt handler register already\n");
 			return 0;
 		}
@@ -230,7 +233,7 @@ int ar100_axp_int_notify(struct ar100_message *pmessage)
 	unsigned char status[5];
 	/* 
 	 * copy message readout data to user data buffer
-	 * the status[5] is the PMU int status
+	 * the status[5] is the PMU int status.
 	 */
 	for (i = 0; i < 5; i++) {
 		if (i < 4) {
@@ -240,7 +243,7 @@ int ar100_axp_int_notify(struct ar100_message *pmessage)
 		}
 	}
 	axp_isr_node.arg = status;
-		
+	
 	if (axp_isr_node.handler == NULL) {
 		AR100_WRN("pmu isr not install\n");
 		return -EINVAL;

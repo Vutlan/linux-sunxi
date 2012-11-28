@@ -65,22 +65,17 @@ int ar100_init(void)
 	
 	/* 
 	 * request ar100 resources:
-	 * p2wi gpio/...
+	 * p2wi/uart gpio...
 	 */
-	//if (gpio_request(GPIOL(0), "p2wi_sck") != 0) {
-	//	AR100_ERR("request p2wi sck gpio failed\n");
-	//	return -EINVAL;
-	//}
-	//if (gpio_request(GPIOL(1), "p2wi_sda") != 0) {
-	//	AR100_ERR("request p2wi sda gpio failed\n");
-	//	gpio_free(GPIOL(0));
-	//	return -EINVAL;
-	//}
-	/* config PL0 and PL1 as p2wi use */
-	sw_gpio_setcfg(GPIOL(0), 3);
-	sw_gpio_setcfg(GPIOL(1), 3);
+	sw_gpio_setcfg(GPIOL(0), 3);	/* p2wi sck */
+	sw_gpio_setcfg(GPIOL(1), 3);	/* p2wi sda */
+	sw_gpio_setcfg(GPIOL(2), 2);	/* uart tx */
+	sw_gpio_setcfg(GPIOL(3), 2);	/* uart rx */
 	
 	AR100_INF("sram_a2 vaddr(%x)\n", (unsigned int)ar100_sram_a2_vbase);
+	
+	/* clear sram_a2 area */
+	memset((void *)ar100_sram_a2_vbase, 0, AW_SRAM_A2_SIZE);
 	
 	/* load ar100 system binary data to sram_a2 */
 	binary_len = (int)(&ar100_binary_end) - (int)(&ar100_binary_start);

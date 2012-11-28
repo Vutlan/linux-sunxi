@@ -238,10 +238,12 @@ irqreturn_t ar100_hwmsgbox_int_handler(int irq, void *dev)
 				/* if error call the callback function. by superm */
 				if (pmessage->result != 0) {
 					if (pmessage->cb.handler == NULL) {
-						AR100_WRN("callback not install\n");
+						AR100_WRN("message [%x] error, callback not install\n", 
+								  (unsigned int)pmessage->type);
 					} else {
 						/* call callback function */
-						AR100_WRN("call the callback function\n");
+						AR100_WRN("messgae [%x] error, call message callback function\n",
+								  (unsigned int)pmessage->type);
 						(*(pmessage->cb.handler))(pmessage->cb.arg);
 					}
 				}

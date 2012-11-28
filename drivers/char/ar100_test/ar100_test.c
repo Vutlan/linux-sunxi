@@ -15,6 +15,12 @@
 
 #include "ar100_test.h"
 
+int __ar100_dvfs_cb(void *arg)
+{
+	printk("dvfs fail once\n");
+	return 0;
+}
+
 void __ar100_dvfs_test(void)
 {
 	unsigned int i;
@@ -29,7 +35,7 @@ void __ar100_dvfs_test(void)
 	};
 	for (i = 0; i < sizeof(freq_table) / sizeof(unsigned int); i++) {
 		printk("dvfs request freq: %d\n", freq_table[i]);
-		ar100_dvfs_set_cpufreq(freq_table[i], AR100_DVFS_SYN, NULL, NULL);
+		ar100_dvfs_set_cpufreq(freq_table[i], AR100_DVFS_SYN, NULL, __ar100_dvfs_cb);
 	}
 	/* test succeeded */
 	printk("dvfs test succeeded\n");
