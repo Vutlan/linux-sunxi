@@ -53,7 +53,7 @@
 
 static int axp_debug = 0;
 static int pmu_used2 = 0;
-static int gpio_adp_hdle = 0;
+//static int gpio_adp_hdle = 0; /* not need for new gpio */
 static int pmu_suspendpwroff_vol = 0;
 static int pmu_earlysuspend_chgcur = 0;
 static int pmu_batdeten = 0;
@@ -1489,122 +1489,155 @@ static void axp_charging_monitor(struct work_struct *work)
 	}
 
 #if defined (CONFIG_AXP_CHGCHANGE)
-		if(pmu_used2){
-			gpio_adp_val = gpio_read_one_pin_value(gpio_adp_hdle,"pmu_adpdet");
-			DBG_PSY_MSG("GPIO->H2 = %d\n",gpio_adp_val);
-  		if(!gpio_adp_val){
-  			ret = script_parser_fetch("pmu_para", "pmu_init_chgcur2", &pmu_init_chgcur, sizeof(int));
-      	if (ret){
-      		printk("axp driver uning configuration failed(%d)\n", __LINE__);
-        	pmu_init_chgcur = INTCHGCUR / 1000;
-      	}
-      	pmu_init_chgcur = pmu_init_chgcur * 1000;
-      	ret = script_parser_fetch("pmu_para", "pmu_earlysuspend_chgcur2", &pmu_earlysuspend_chgcur, sizeof(int));
-      	if (ret){
-      		printk("axp driver uning configuration failed(%d)\n", __LINE__);
-        	pmu_earlysuspend_chgcur = SUSCHGCUR / 1000;
-      	}
-      	pmu_earlysuspend_chgcur = pmu_earlysuspend_chgcur * 1000;
-      	ret = script_parser_fetch("pmu_para", "pmu_suspend_chgcur2", &pmu_suspend_chgcur, sizeof(int));
-      	if (ret){
-      		printk("axp driver uning configuration failed(%d)\n", __LINE__);
-        	pmu_suspend_chgcur = SUSCHGCUR / 1000;
-      	}
-      	pmu_suspend_chgcur = pmu_suspend_chgcur * 1000;
-      	ret = script_parser_fetch("pmu_para", "pmu_resume_chgcur2", &pmu_resume_chgcur, sizeof(int));
-      	if (ret){
-        	printk("axp driver uning configuration failed(%d)\n", __LINE__);
-        	pmu_resume_chgcur = RESCHGCUR / 1000;
-      	}
-     		pmu_resume_chgcur = pmu_resume_chgcur * 1000;
-      	ret = script_parser_fetch("pmu_para", "pmu_shutdown_chgcur2", &pmu_shutdown_chgcur, sizeof(int));
-      	if (ret){
-        	printk("axp driver uning configuration failed(%d)\n", __LINE__);
-        	pmu_shutdown_chgcur = CLSCHGCUR / 1000;
-      	}
-      	pmu_shutdown_chgcur = pmu_shutdown_chgcur * 1000;
-  		}
-  		else{
-  			ret = script_parser_fetch("pmu_para", "pmu_init_chgcur", &pmu_init_chgcur, sizeof(int));
-      	if (ret){
-      		printk("axp driver uning configuration failed(%d)\n", __LINE__);
-        	pmu_init_chgcur = INTCHGCUR / 1000;
-      	}
-      	pmu_init_chgcur = pmu_init_chgcur * 1000;
-      	ret = script_parser_fetch("pmu_para", "pmu_earlysuspend_chgcur", &pmu_earlysuspend_chgcur, sizeof(int));
-      	if (ret){
-      		printk("axp driver uning configuration failed(%d)\n", __LINE__);
-        	pmu_earlysuspend_chgcur = SUSCHGCUR / 1000;
-      	}
-      	pmu_earlysuspend_chgcur = pmu_earlysuspend_chgcur * 1000;
-      	ret = script_parser_fetch("pmu_para", "pmu_suspend_chgcur", &pmu_suspend_chgcur, sizeof(int));
-      	if (ret){
-      		printk("axp driver uning configuration failed(%d)\n", __LINE__);
-        	pmu_suspend_chgcur = SUSCHGCUR / 1000;
-      	}
-      	pmu_suspend_chgcur = pmu_suspend_chgcur * 1000;
-      	ret = script_parser_fetch("pmu_para", "pmu_resume_chgcur", &pmu_resume_chgcur, sizeof(int));
-      	if (ret){
-        	printk("axp driver uning configuration failed(%d)\n", __LINE__);
-        	pmu_resume_chgcur = RESCHGCUR / 1000;
-      	}
-      	pmu_resume_chgcur = pmu_resume_chgcur * 1000;
-      	ret = script_parser_fetch("pmu_para", "pmu_shutdown_chgcur", &pmu_shutdown_chgcur, sizeof(int));
-      	if (ret){
-        	printk("axp driver uning configuration failed(%d)\n", __LINE__);
-        	pmu_shutdown_chgcur = CLSCHGCUR / 1000;
-      	}
-      	pmu_shutdown_chgcur = pmu_shutdown_chgcur * 1000;
-  		}
+	if(pmu_used2) {
+		script_item_value_type_e type;
+		script_item_u item;
 
+  		type = script_get_item("pmu_para", "pmu_adpdet", &item);
+		if(SCIRPT_ITEM_VALUE_TYPE_PIO != type) {
+			printk("%s err: pmu_para->pmu_adpdet is not gpio\n", __func__);
+			gpio_adp_val = -1;
+		} else
+			gpio_adp_val = __gpio_get_value(item.gpio.gpio);
+		DBG_PSY_MSG("GPIO->H2 = %d\n",gpio_adp_val);
+  		if(!gpio_adp_val) {
+			/* get pmu_para->pmu_init_chgcur2 */
+			type = script_get_item("pmu_para", "pmu_init_chgcur2", &item);
+			if(SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+				printk("%s err: pmu_para->pmu_init_chgcur2 is not int\n", __func__);
+				printk("axp driver uning configuration failed(%d)\n", __LINE__);
+				pmu_init_chgcur = INTCHGCUR / 1000;
+			} else
+				pmu_init_chgcur = item.val;
+		      	pmu_init_chgcur = pmu_init_chgcur * 1000;
+			/* get pmu_para->pmu_earlysuspend_chgcur2 */
+			type = script_get_item("pmu_para", "pmu_earlysuspend_chgcur2", &item);
+			if(SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+				printk("%s err: pmu_para->pmu_earlysuspend_chgcur2 is not int\n", __func__);
+				printk("axp driver uning configuration failed(%d)\n", __LINE__);
+				pmu_earlysuspend_chgcur = SUSCHGCUR / 1000;
+			} else
+				pmu_earlysuspend_chgcur = item.val;
+		      	pmu_earlysuspend_chgcur = pmu_earlysuspend_chgcur * 1000;
+			/* get pmu_para->pmu_suspend_chgcur2 */
+			type = script_get_item("pmu_para", "pmu_suspend_chgcur2", &item);
+			if(SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+				printk("%s err: pmu_para->pmu_suspend_chgcur2 is not int\n", __func__);
+				printk("axp driver uning configuration failed(%d)\n", __LINE__);
+				pmu_suspend_chgcur = SUSCHGCUR / 1000;
+			} else
+				pmu_suspend_chgcur = item.val;
+		      	pmu_suspend_chgcur = pmu_suspend_chgcur * 1000;
+			/* get pmu_para->pmu_resume_chgcur2 */
+			type = script_get_item("pmu_para", "pmu_resume_chgcur2", &item);
+			if(SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+				printk("%s err: pmu_para->pmu_resume_chgcur2 is not int\n", __func__);
+				printk("axp driver uning configuration failed(%d)\n", __LINE__);
+				pmu_resume_chgcur = RESCHGCUR / 1000;
+			} else
+				pmu_resume_chgcur = item.val;
+     			pmu_resume_chgcur = pmu_resume_chgcur * 1000;
+			/* get pmu_para->pmu_shutdown_chgcur2 */
+			type = script_get_item("pmu_para", "pmu_shutdown_chgcur2", &item);
+			if(SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+				printk("%s err: pmu_para->pmu_shutdown_chgcur2 is not int\n", __func__);
+				printk("axp driver uning configuration failed(%d)\n", __LINE__);
+				pmu_shutdown_chgcur = CLSCHGCUR / 1000;
+			} else
+				pmu_shutdown_chgcur = item.val;
+		      	pmu_shutdown_chgcur = pmu_shutdown_chgcur * 1000;
+  		} else {
+			/* get pmu_para->pmu_init_chgcur */
+			type = script_get_item("pmu_para", "pmu_init_chgcur", &item);
+			if(SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+				printk("%s err: pmu_para->pmu_init_chgcur is not int\n", __func__);
+		      		printk("axp driver uning configuration failed(%d)\n", __LINE__);
+		        	pmu_init_chgcur = INTCHGCUR / 1000;
+			} else
+				pmu_init_chgcur = item.val;
+		      	pmu_init_chgcur = pmu_init_chgcur * 1000;
+			/* get pmu_para->pmu_earlysuspend_chgcur */
+			type = script_get_item("pmu_para", "pmu_earlysuspend_chgcur", &item);
+			if(SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+				printk("%s err: pmu_para->pmu_earlysuspend_chgcur is not int\n", __func__);
+		      		printk("axp driver uning configuration failed(%d)\n", __LINE__);
+		        	pmu_earlysuspend_chgcur = SUSCHGCUR / 1000;
+			} else
+				pmu_earlysuspend_chgcur = item.val;
+		      	pmu_earlysuspend_chgcur = pmu_earlysuspend_chgcur * 1000;
+			/* get pmu_para->pmu_suspend_chgcur */
+			type = script_get_item("pmu_para", "pmu_suspend_chgcur", &item);
+			if(SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+				printk("%s err: pmu_para->pmu_suspend_chgcur is not int\n", __func__);
+		      		printk("axp driver uning configuration failed(%d)\n", __LINE__);
+		        	pmu_suspend_chgcur = SUSCHGCUR / 1000;
+			} else
+				pmu_suspend_chgcur = item.val;
+		      	pmu_suspend_chgcur = pmu_suspend_chgcur * 1000;
+			/* get pmu_para->pmu_resume_chgcur */
+			type = script_get_item("pmu_para", "pmu_resume_chgcur", &item);
+			if(SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+				printk("%s err: pmu_para->pmu_resume_chgcur is not int\n", __func__);
+		        	printk("axp driver uning configuration failed(%d)\n", __LINE__);
+		        	pmu_resume_chgcur = RESCHGCUR / 1000;
+			} else
+				pmu_resume_chgcur = item.val;
+		      	pmu_resume_chgcur = pmu_resume_chgcur * 1000;
+			/* get pmu_para->pmu_shutdown_chgcur */
+			type = script_get_item("pmu_para", "pmu_shutdown_chgcur", &item);
+			if(SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+				printk("%s err: pmu_para->pmu_shutdown_chgcur is not int\n", __func__);
+		        	printk("axp driver uning configuration failed(%d)\n", __LINE__);
+		        	pmu_shutdown_chgcur = CLSCHGCUR / 1000;
+			} else
+				pmu_shutdown_chgcur = item.val;
+		      	pmu_shutdown_chgcur = pmu_shutdown_chgcur * 1000;
+  		}
 
 #if defined CONFIG_HAS_EARLYSUSPEND
-  		 	if(early_suspend_flag){
-  		 			if(pmu_earlysuspend_chgcur == 0){
-  		 				axp_clr_bits(axp_charger->master,AW1636_CHARGE_CONTROL1,0x80);
-  		 			}
-  		 			else if(pmu_earlysuspend_chgcur >= 300000 && pmu_init_chgcur <= 2550000){
-  		 			  axp_set_bits(axp_charger->master,AW1636_CHARGE_CONTROL1,0x80);
-							tmp = (pmu_earlysuspend_chgcur -200001)/150000;
-							charger->chgcur = tmp *150000 + 300000;
-							axp_update(charger->master, AW1636_CHARGE_CONTROL1, tmp, 0x0F);
-						}
-  		 	}else
-#endif
-			{
-				if(pmu_init_chgcur == 0){
-					axp_clr_bits(axp_charger->master,AW1636_CHARGE_CONTROL1,0x80);
-				}
-				else if (pmu_init_chgcur >= 300000 && pmu_init_chgcur <= 2550000){
-					axp_set_bits(axp_charger->master,AW1636_CHARGE_CONTROL1,0x80);
-    			tmp = (pmu_init_chgcur -200001)/150000;
-    			charger->chgcur = tmp *150000 + 300000;
+	  	if(early_suspend_flag){
+	  			if(pmu_earlysuspend_chgcur == 0){
+	  				axp_clr_bits(axp_charger->master,AW1636_CHARGE_CONTROL1,0x80);
+	  			} else if(pmu_earlysuspend_chgcur >= 300000 && pmu_init_chgcur <= 2550000) {
+	  				axp_set_bits(axp_charger->master,AW1636_CHARGE_CONTROL1,0x80);
+					tmp = (pmu_earlysuspend_chgcur -200001)/150000;
+					charger->chgcur = tmp *150000 + 300000;
 					axp_update(charger->master, AW1636_CHARGE_CONTROL1, tmp, 0x0F);
-    		}
-  		}
-
-  	}
+				}
+	  	} else
 #endif
-		if(axp_debug){
-			DBG_PSY_MSG("pmu_init_chgcur           = %d\n",pmu_init_chgcur);
-			DBG_PSY_MSG("pmu_earlysuspend_chgcur   = %d\n",pmu_earlysuspend_chgcur);
-			DBG_PSY_MSG("pmu_suspend_chgcur        = %d\n",pmu_suspend_chgcur);
-			DBG_PSY_MSG("pmu_resume_chgcur         = %d\n",pmu_resume_chgcur);
-			DBG_PSY_MSG("pmu_shutdown_chgcur               = %d\n",pmu_shutdown_chgcur);
+		{
+			if(pmu_init_chgcur == 0){
+				axp_clr_bits(axp_charger->master,AW1636_CHARGE_CONTROL1,0x80);
+			} else if(pmu_init_chgcur >= 300000 && pmu_init_chgcur <= 2550000) {
+				axp_set_bits(axp_charger->master,AW1636_CHARGE_CONTROL1,0x80);
+				tmp = (pmu_init_chgcur -200001)/150000;
+				charger->chgcur = tmp *150000 + 300000;
+				axp_update(charger->master, AW1636_CHARGE_CONTROL1, tmp, 0x0F);
+	    		}
+	  	}
+  	}
+#endif /* defined (CONFIG_AXP_CHGCHANGE) */
+	if(axp_debug){
+		DBG_PSY_MSG("pmu_init_chgcur           = %d\n",pmu_init_chgcur);
+		DBG_PSY_MSG("pmu_earlysuspend_chgcur   = %d\n",pmu_earlysuspend_chgcur);
+		DBG_PSY_MSG("pmu_suspend_chgcur        = %d\n",pmu_suspend_chgcur);
+		DBG_PSY_MSG("pmu_resume_chgcur         = %d\n",pmu_resume_chgcur);
+		DBG_PSY_MSG("pmu_shutdown_chgcur               = %d\n",pmu_shutdown_chgcur);
+	}
+	/* if battery volume changed, inform uevent */
+	if(charger->rest_vol - pre_rest_vol){
+		printk("battery vol change: %d->%d \n", pre_rest_vol, charger->rest_vol);
+		pre_rest_vol = charger->rest_vol;
+		axp_write(charger->master,AW1636_DATA_BUFFER1,charger->rest_vol | 0x80);
+		if(charger->rest_vol == 100){
+			axp_clr_bits(charger->master,AW1636_PDBC,0x38);
 		}
-    /* if battery volume changed, inform uevent */
-    if(charger->rest_vol - pre_rest_vol){
-        printk("battery vol change: %d->%d \n", pre_rest_vol, charger->rest_vol);
-        pre_rest_vol = charger->rest_vol;
-        axp_write(charger->master,AW1636_DATA_BUFFER1,charger->rest_vol | 0x80);
-        if(charger->rest_vol == 100){
-        	axp_clr_bits(charger->master,AW1636_PDBC,0x38);
-        }
-        power_supply_changed(&charger->batt);
-    }
+		power_supply_changed(&charger->batt);
+	}
 
-    /* reschedule for the next time */
-    schedule_delayed_work(&charger->work, charger->interval);
+	/* reschedule for the next time */
+	schedule_delayed_work(&charger->work, charger->interval);
 }
 
 static int axp_battery_probe(struct platform_device *pdev)
@@ -1615,6 +1648,8 @@ static int axp_battery_probe(struct platform_device *pdev)
   uint8_t val1,val2,tmp,val;
   uint8_t ocv_cap[31],v[2];
   int Cur_CoulombCounter,rdc;
+  script_item_value_type_e type;
+  script_item_u item;
 
   powerkeydev = input_allocate_device();
   if (!powerkeydev) {
@@ -1743,14 +1778,15 @@ static int axp_battery_probe(struct platform_device *pdev)
     axp_set_bits(charger->master, AW1636_CHARGE_VBUS, 0x03);
 
 
-  /* set lowe power warning/shutdown voltage*/
-  var = script_parser_fetch("pmu_para", "pmu_suspendpwroff_vol", &pmu_suspendpwroff_vol, sizeof(int));
-  if (var)
-  {
-     printk("[AXP]axp driver uning configuration failed(%d)\n", __LINE__);
-     pmu_suspendpwroff_vol = 3500;
-     printk("[AXP]pmu_suspendpwroff_vol = %d\n",pmu_suspendpwroff_vol);
-  }
+	/* set lowe power warning/shutdown voltage*/
+	type = script_get_item("pmu_para", "pmu_suspendpwroff_vol", &item);
+	if(SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+	     printk("[AXP]axp driver uning configuration failed(%d)\n", __LINE__);
+	     pmu_suspendpwroff_vol = 3500;
+	     printk("[AXP]pmu_suspendpwroff_vol = %d\n",pmu_suspendpwroff_vol);
+	} else
+		pmu_suspendpwroff_vol = item.val;
+
   pmu_suspendpwroff_vol = pmu_suspendpwroff_vol * 1000;
 	
 	if(pmu_suspendpwroff_vol >= 2867200 && pmu_suspendpwroff_vol <= 4200000){
@@ -1927,61 +1963,63 @@ static int axp_battery_probe(struct platform_device *pdev)
   charger->interval = msecs_to_jiffies(10 * 1000);
   INIT_DELAYED_WORK(&charger->work, axp_charging_monitor);
   schedule_delayed_work(&charger->work, charger->interval);
-
-  var = script_parser_fetch("pmu_para", "pmu_used2", &pmu_used2, sizeof(int));
-  if (var)
-  {
-     printk("axp driver uning configuration failed(%d)\n", __LINE__);
-     pmu_used2 = 0;
-     printk("pmu_used2 = %d\n",pmu_used2);
-  }
-
-  var = script_parser_fetch("pmu_para", "pmu_earlysuspend_chgcur", &pmu_earlysuspend_chgcur, sizeof(int));
-  if (var)
-  {
-     printk("axp driver uning configuration failed(%d)\n", __LINE__);
-     pmu_earlysuspend_chgcur = pmu_suspend_chgcur / 1000;
-     printk("pmu_earlysuspend_chgcur = %d\n",pmu_earlysuspend_chgcur);
-  }
-  pmu_earlysuspend_chgcur = pmu_earlysuspend_chgcur * 1000;
-  
-  var = script_parser_fetch("pmu_para", "pmu_batdeten", &pmu_batdeten, sizeof(int));
-  if (var)
-  {
-     printk("axp driver uning configuration failed(%d)\n", __LINE__);
-     pmu_batdeten = 1;
-     printk("pmu_batdeten = %d\n",pmu_batdeten);
-  }
-  if(!pmu_batdeten)
-  	axp_clr_bits(charger->master,AW1636_PDBC,0x40);
-  else
-  	axp_set_bits(charger->master,AW1636_PDBC,0x40);
+	/* get pmu_para->pmu_used2 */
+	type = script_get_item("pmu_para", "pmu_used2", &item);
+	if(SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+		printk("axp driver uning configuration failed(%d)\n", __LINE__);
+		pmu_used2 = 0;
+		printk("pmu_used2 = %d\n",pmu_used2);
+	} else
+		pmu_used2 = item.val;
+	/* get pmu_para->pmu_earlysuspend_chgcur */
+	type = script_get_item("pmu_para", "pmu_earlysuspend_chgcur", &item);
+	if(SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+		printk("axp driver uning configuration failed(%d)\n", __LINE__);
+		pmu_earlysuspend_chgcur = pmu_suspend_chgcur / 1000;
+		printk("pmu_earlysuspend_chgcur = %d\n",pmu_earlysuspend_chgcur);
+	} else
+		pmu_earlysuspend_chgcur = item.val;
+	pmu_earlysuspend_chgcur = pmu_earlysuspend_chgcur * 1000;
+	/* get pmu_para->pmu_batdeten */
+	type = script_get_item("pmu_para", "pmu_batdeten", &item);
+	if(SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+		printk("axp driver uning configuration failed(%d)\n", __LINE__);
+		pmu_batdeten = 1;
+		printk("pmu_batdeten = %d\n",pmu_batdeten);
+	} else
+		pmu_batdeten = item.val;
+	if(!pmu_batdeten)
+		axp_clr_bits(charger->master,AW1636_PDBC,0x40);
+	else
+		axp_set_bits(charger->master,AW1636_PDBC,0x40);
   	
-  /*axp usb-pc limite*/
-  var = script_parser_fetch("pmu_para", "pmu_usbvol_pc", &pmu_usbvolnew, sizeof(int));
-  if (var)
-  {
-     printk("axp driver uning configuration failed-pmu_usbvol_pc\n");
-     pmu_usbvolnew = 4000;
-     printk("pmu_usbvolnew = %d\n",pmu_usbvolnew);
-  }
-  
-  var = script_parser_fetch("pmu_para", "pmu_usbcur_pc", &pmu_usbcurnew, sizeof(int));
-  if (var)
-  {
-     printk("axp driver uning configuration failed-pmu_usbcurnew\n");
-     pmu_usbcurnew = 200;
-     printk("pmu_usbcurnew = %d\n",pmu_usbcurnew);
-  }
+	/*axp usb-pc limite*/
+	/* get pmu_para->pmu_usbvol_pc */
+	type = script_get_item("pmu_para", "pmu_usbvol_pc", &item);
+	if(SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+		printk("axp driver uning configuration failed-pmu_usbvol_pc\n");
+		pmu_usbvolnew = 4000;
+		printk("pmu_usbvolnew = %d\n",pmu_usbvolnew);
+	} else
+		pmu_usbvolnew = item.val;
+	/* get pmu_para->pmu_usbcur_pc */
+	type = script_get_item("pmu_para", "pmu_usbcur_pc", &item);
+	if(SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+		printk("axp driver uning configuration failed-pmu_usbcurnew\n");
+		pmu_usbcurnew = 200;
+		printk("pmu_usbcurnew = %d\n",pmu_usbcurnew);
+	} else
+		pmu_usbcurnew = item.val;
 
 #if defined (CONFIG_AXP_CHGCHANGE)
-  if(pmu_used2){
-  	gpio_adp_hdle = gpio_request_ex("pmu_para", "pmu_adpdet");
-  	if (!gpio_adp_hdle)
-    {
-        DBG_PSY_MSG("get adapter parameter failed\n");
-    }
-  }
+	if(pmu_used2) {
+	  	type = script_get_item("pmu_para", "pmu_adpdet", &item);
+		if(SCIRPT_ITEM_VALUE_TYPE_PIO != type)
+			printk("%s err: pmu_para->pmu_adpdet is not gpio\n", __func__);
+		else
+			if(0 != sw_gpio_setall_range(&item.gpio, 1))
+				printk("%s err: gpio config failed, line %d\n", __func__, __LINE__);
+	}
 #endif
 
 #ifdef CONFIG_HAS_EARLYSUSPEND

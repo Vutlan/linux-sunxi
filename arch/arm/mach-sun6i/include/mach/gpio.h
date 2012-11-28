@@ -18,8 +18,6 @@
 
 #include <linux/types.h>
 
-#define RESERVE_OLD_SCRIPT_GPIO_20121122 /* remain old script and gpio api, eg: script_parser_fetch_ex, sw_gpio_request */
-
 /* pio/rpio base */
 #define PIO_VBASE(n) 		(0xf1c20800 + ((n) << 5) + ((n) << 2)) /* pio(PA ~ PF), 0xf1c20800 + n * 0x24 */
 #define RPIO_VBASE(n) 		(0xf1f02c00 + ((n) << 5) + ((n) << 2)) /* r-pio(PL ~ PM), 0xf1f02c00 + n * 0x24 */
@@ -188,10 +186,6 @@ u32 sw_gpio_eint_set_debounce(u32 gpio, struct gpio_eint_debounce dbc);
 u32 sw_gpio_eint_setall_range(struct gpio_config_eint_all *pcfg, u32 cfg_num);
 u32 sw_gpio_eint_getall_range(struct gpio_config_eint_all *pcfg, u32 cfg_num);
 void sw_gpio_eint_dumpall_range(struct gpio_config_eint_all *pcfg, u32 cfg_num);
-
-#ifdef RESERVE_OLD_SCRIPT_GPIO_20121122
-#include "../../gpio/old/sys_config.h"
-#endif /* RESERVE_OLD_SCRIPT_GPIO_20121122 */
 
 #endif /* __SW_GPIO_H */
 

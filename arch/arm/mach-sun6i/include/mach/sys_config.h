@@ -74,8 +74,4 @@ int script_get_pio_list(char *main_key, script_item_u **list);
  */
 int script_dump_mainkey(char *main_key);
 
-#ifdef RESERVE_OLD_SCRIPT_GPIO_20121122
-#include "../../gpio/old/sys_config.h"
-#endif /* RESERVE_OLD_SCRIPT_GPIO_20121122 */
-
 #endif

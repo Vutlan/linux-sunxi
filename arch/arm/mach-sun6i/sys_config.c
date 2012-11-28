@@ -212,7 +212,6 @@ typedef struct {
     void                *next;
 } script_main_key_t;
 
-#ifndef RESERVE_OLD_SCRIPT_GPIO_20121122
 typedef enum {
 	SCIRPT_PARSER_VALUE_TYPE_INVALID = 0,
 	SCIRPT_PARSER_VALUE_TYPE_SINGLE_WORD,
@@ -220,7 +219,6 @@ typedef enum {
 	SCIRPT_PARSER_VALUE_TYPE_MULTI_WORD,
 	SCIRPT_PARSER_VALUE_TYPE_GPIO_WORD
 } script_parser_value_type_t;
-#endif /* RESERVE_OLD_SCRIPT_GPIO_20121122 */
 
 static script_main_key_t   *g_script;
 

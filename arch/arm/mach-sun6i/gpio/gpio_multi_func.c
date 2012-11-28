@@ -500,7 +500,3 @@ u32 sw_gpio_resume(void)
 }
 EXPORT_SYMBOL(sw_gpio_resume);
 
-#ifdef RESERVE_OLD_SCRIPT_GPIO_20121122
-#include "./old/sys_config.c"
-#include "./old/gpio_script.c"
-#endif /* RESERVE_OLD_SCRIPT_GPIO_20121122 */
