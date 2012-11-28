@@ -6,4 +6,4 @@
 #
 
 # for nand test
-obj-$(CONFIG_SUN4I_NANDFLASH_TEST) += nand/
+# obj-$(CONFIG_SUN6I_NANDFLASH_TEST) += nand/

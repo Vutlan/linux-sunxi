@@ -14,4 +14,4 @@ config SUNXI_TEST_SELECT
 
 
 # for nand test
-source "drivers/test/nand/Kconfig"
+# source "drivers/test/nand/Kconfig"

@@ -52,7 +52,7 @@
 ////#include "../nfd/nand_blk.h"
 //#include "../lib/src/include/mbr.h"
 
-#include "../nfd/nand_lib.h"			//nand驱动编译成库时，用此头文件代替 
+#include "../../../nand/nfd/nand_lib.h"			//nand驱动编译成库时，用此头文件代替 
 
 #include "nand_test.h"
 
