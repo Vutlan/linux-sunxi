@@ -282,7 +282,7 @@ static int gsensor_fetch_sysconfig_para(void)
 			pr_err("%s: type err  gsensor_name = %s. \n", __func__, val.str);
 			goto script_parser_fetch_err;
 		}
-		strcpy(&name, val.str);
+		strcpy(name, val.str);
 		if (strcmp(SENSOR_NAME, name)) {
 			pr_err("%s: name %s does not match SENSOR_NAME. \n", __func__, name);
 			pr_err(SENSOR_NAME);

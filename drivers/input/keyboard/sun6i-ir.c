@@ -231,19 +231,22 @@ static void ir_sys_cfg(void)
 	ir_gpio_hdle.type = script_get_item("ir_para", "ir0_rx", &(ir_gpio_hdle.val));
 	
 	if(SCIRPT_ITEM_VALUE_TYPE_PIO != ir_gpio_hdle.type)
-		printk("IR gpio type err! \n");
+		printk(KERN_ERR "IR gpio type err! \n");
 	
 	dprintk(DEBUG_BASE_LEVEL0, "value is: gpio %d, mul_sel %d, pull %d, drv_level %d, data %d\n", 
 		ir_gpio_hdle.val.gpio.gpio, ir_gpio_hdle.val.gpio.mul_sel, ir_gpio_hdle.val.gpio.pull,  
 		ir_gpio_hdle.val.gpio.drv_level, ir_gpio_hdle.val.gpio.data);
 	 
-	if(0 != gpio_request(ir_gpio_hdle.val.gpio.gpio, NULL))
+	if(0 != gpio_request(ir_gpio_hdle.val.gpio.gpio, NULL)) {	
+		printk(KERN_ERR "ERROR: IR Gpio_request is failed\n");
 		goto end;
+	}
 
 	
-	if (0 != sw_gpio_setall_range(&ir_gpio_hdle.val.gpio, 1))
-		printk("IR gpio set err!");
-        
+	if (0 != sw_gpio_setall_range(&ir_gpio_hdle.val.gpio, 1)) {
+		printk(KERN_ERR "IR gpio set err!");
+		goto end;
+	}
 #else
 	unsigned long tmp;
 	/* config IO: PIOB4 to IR_Rx */
