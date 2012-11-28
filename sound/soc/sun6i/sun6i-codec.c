@@ -1666,6 +1666,21 @@ static int snd_sun6i_codec_resume(struct platform_device *pdev)
 		printk("open codec_moduleclk failed; \n");
 	}
 	codec_wr_control(SUN6I_PA_CTRL, 0x1, HPPAEN, 0x1);
+	/*process for normal standby*/
+	if (NORMAL_STANDBY == standby_type) {
+	/*process for super standby*/
+	} else if(SUPER_STANDBY == standby_type) {
+		/*when TX FIFO available room less than or equal N,
+		* DRQ Requeest will be de-asserted.
+		*/
+		codec_wr_control(SUN6I_DAC_FIFOC, 0x3, DRA_LEVEL,0x3);
+		/*write 1 to flush tx fifo*/
+		codec_wr_control(SUN6I_DAC_FIFOC, 0x1, DAC_FIFO_FLUSH, 0x1);
+		/*write 1 to flush rx fifo*/
+		codec_wr_control(SUN6I_ADC_FIFOC, 0x1, ADC_FIFO_FLUSH, 0x1);
+		/*set HPVOL volume*/
+		codec_wr_control(SUN6I_DAC_ACTL, 0x3f, VOLUME, 0x3b);
+	}
 	printk("[audio codec]:resume end\n");
 	return 0;
 }
