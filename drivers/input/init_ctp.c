@@ -260,8 +260,8 @@ static int ctp_fetch_sysconfig_para(void)
 	pr_info("=====%s=====. \n", __func__);
 
 	if(SCIRPT_ITEM_VALUE_TYPE_INT != script_get_item("ctp_para", "ctp_used", &val)){
-		pr_err("%s: script_parser_fetch err. \n", __func__);
-		goto script_parser_fetch_err;
+		pr_err("%s: script_get_item err. \n", __func__);
+		goto script_get_item_err;
 	}
 	config_info.ctp_used = val.val;
 	
@@ -272,45 +272,45 @@ static int ctp_fetch_sysconfig_para(void)
 	}
 	
 	if(SCIRPT_ITEM_VALUE_TYPE_INT != script_get_item("ctp_para", "ctp_twi_id", &val)){
-		pr_err("%s: ctp_twi_id script_parser_fetch err. \n",__func__ );
-		goto script_parser_fetch_err;
+		pr_err("%s: ctp_twi_id script_get_item err. \n",__func__ );
+		goto script_get_item_err;
 	}
 	config_info.twi_id = val.val;
 	
 	if(SCIRPT_ITEM_VALUE_TYPE_INT != script_get_item("ctp_para", "ctp_screen_max_x", &val)){
-		pr_err("%s: ctp_twi_id script_parser_fetch err. \n",__func__ );
-		goto script_parser_fetch_err;
+		pr_err("%s: ctp_twi_id script_get_item err. \n",__func__ );
+		goto script_get_item_err;
 	}
 	config_info.screen_max_x = val.val;
 	
         if(SCIRPT_ITEM_VALUE_TYPE_INT != script_get_item("ctp_para", "ctp_screen_max_y", &val)){
-        		pr_err("%s: ctp_twi_id script_parser_fetch err. \n",__func__ );
-        		goto script_parser_fetch_err;
+        		pr_err("%s: ctp_twi_id script_get_item err. \n",__func__ );
+        		goto script_get_item_err;
         }
         config_info.screen_max_y = val.val;
         
         if(SCIRPT_ITEM_VALUE_TYPE_INT != script_get_item("ctp_para", "ctp_revert_x_flag", &val)){
-                pr_err("%s: ctp_twi_id script_parser_fetch err. \n",__func__ );
-                goto script_parser_fetch_err;
+                pr_err("%s: ctp_twi_id script_get_item err. \n",__func__ );
+                goto script_get_item_err;
         }
         config_info.revert_x_flag = val.val;
         
         if(SCIRPT_ITEM_VALUE_TYPE_INT != script_get_item("ctp_para", "ctp_revert_y_flag", &val)){
-                pr_err("%s: ctp_twi_id script_parser_fetch err. \n",__func__ );
-                goto script_parser_fetch_err;
+                pr_err("%s: ctp_twi_id script_get_item err. \n",__func__ );
+                goto script_get_item_err;
         }
         config_info.revert_y_flag = val.val;
         
         if(SCIRPT_ITEM_VALUE_TYPE_INT != script_get_item("ctp_para", "ctp_exchange_x_y_flag", &val)){
-                pr_err("%s: ctp_twi_id script_parser_fetch err. \n",__func__ );
-                goto script_parser_fetch_err;
+                pr_err("%s: ctp_twi_id script_get_item err. \n",__func__ );
+                goto script_get_item_err;
         }
         config_info.exchange_x_y_flag = val.val;
 
 	return 0;
 
-script_parser_fetch_err:
-	pr_notice("=========script_parser_fetch_err============\n");
+script_get_item_err:
+	pr_notice("=========script_get_item_err============\n");
 	return ret;
 }
 
