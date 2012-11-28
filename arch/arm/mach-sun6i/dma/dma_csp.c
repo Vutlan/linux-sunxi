@@ -331,7 +331,7 @@ u32 csp_dma_clear_irqpend(u32 index)
 	} else if(1 == index){
 		ureg_addr = (u32)DMA_IRQ_PEND_REG1;
 	} else {
-		DMA_ERR_FUN_LINE;
+		DMA_ERR("%s err, line %d\n", __func__, __LINE__);
 		return 0xffffffff;
 	}
 

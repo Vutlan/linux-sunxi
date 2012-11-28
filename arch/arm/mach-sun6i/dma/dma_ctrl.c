@@ -24,11 +24,11 @@ void __dma_dump_buf_chain(struct dma_channel_t *pchan)
 	u32 	i = 0;
 	struct des_mgr_t *pdes_mgr = pchan->pdes_mgr;
 
-	DMA_INF("+++++++++++%s+++++++++++\n", __FUNCTION__);
+	DMA_INF("+++++++++++%s+++++++++++\n", __func__);
 
 	while(NULL != pdes_mgr) {
 		if(0 == pdes_mgr->des_num) {
-			DMA_DBG_FUN_LINE; /* des_num never be 0 since pdes_mgr valid */
+			DMA_INF("%s, line %d\n", __func__, __LINE__); /* des_num never be 0 since pdes_mgr valid */
 			break;
 		}
 
@@ -43,7 +43,7 @@ void __dma_dump_buf_chain(struct dma_channel_t *pchan)
 		pdes_mgr = pdes_mgr->pnext;
 	}
 
-	DMA_INF("-----------%s-----------\n", __FUNCTION__);
+	DMA_INF("-----------%s-----------\n", __func__);
 }
 
 /**
@@ -82,7 +82,7 @@ u32 dma_start(dm_hdl_t dma_hdl)
 	udes_paddr = pchan->pdes_mgr->des_pa;
 	DMA_WRITE_REG(udes_paddr, pchan->reg_base + DMA_OFF_REG_START);
 
-	//DMA_DBG("%s: write 0x%08x to reg 0x%08x\n", __FUNCTION__, udes_paddr, pchan->reg_base + DMA_OFF_REG_START);
+	//DMA_DBG("%s: write 0x%08x to reg 0x%08x\n", __func__, udes_paddr, pchan->reg_base + DMA_OFF_REG_START);
 
 	/* start dma */
 	csp_dma_chan_start(pchan);
@@ -93,7 +93,7 @@ u32 dma_start(dm_hdl_t dma_hdl)
 
 End:
 	if(0 != uRet) {
-		DMA_ERR("%s err, line %d, dma_hdl 0x%08x\n", __FUNCTION__, uRet, (u32)dma_hdl);
+		DMA_ERR("%s err, line %d, dma_hdl 0x%08x\n", __func__, uRet, (u32)dma_hdl);
 	}
 
 	return uRet;
@@ -143,29 +143,29 @@ u32 dma_stop(dm_hdl_t dma_hdl)
 	struct dma_channel_t *pchan = (struct dma_channel_t *)dma_hdl;
 
 #ifdef DBG_DMA
-	//DMA_INF("%s: state %d, buf chain: \n", __FUNCTION__, (u32)pchan->state.st_md_ch);
-	DMA_INF("%s: state %d, buf chain: \n", __FUNCTION__, (u32)STATE_CHAIN(pchan));
+	//DMA_INF("%s: state %d, buf chain: \n", __func__, (u32)pchan->state.st_md_ch);
+	DMA_INF("%s: state %d, buf chain: \n", __func__, (u32)STATE_CHAIN(pchan));
 	__dma_dump_buf_chain(pchan);
 
 	//switch(pchan->state.st_md_ch) {
 	switch(STATE_CHAIN(pchan)) {
 	case DMA_CHAN_STA_IDLE:
-		DMA_INF("%s: state idle, maybe before start or already stopped\n", __FUNCTION__);
+		DMA_INF("%s: state idle, maybe before start or already stopped\n", __func__);
 		break;
 	case DMA_CHAN_STA_RUNING:
 		DMA_INF("%s: state running, so stop the channel, abort the transfer, and free extra des, \
-			init main des\n", __FUNCTION__);
+			init main des\n", __func__);
 		break;
 	case DMA_CHAN_STA_DONE:
 		DMA_INF("%s: state done, just stop the channel(des already cleared and inited in qd handle)\n", \
-			__FUNCTION__);
+			__func__);
 		break;
 	case DMA_CHAN_STA_WAIT_QD:
 		DMA_INF("%s: state wait_qd, so stop the channel, abort the transfer, and free extra des, \
-			init main des\n", __FUNCTION__);
+			init main des\n", __func__);
 		break;
 	default:
-		DMA_ERR_FUN_LINE;
+		DMA_ERR("%s err, line %d\n", __func__, __LINE__);
 		break;
 	}
 #endif /* DBG_DMA */
@@ -173,7 +173,7 @@ u32 dma_stop(dm_hdl_t dma_hdl)
 	/*
 	 * abort dma transfer if state is running or wait_qd
 	 */
-	DMA_DBG_FUN_LINE_TOCHECK;
+	DMA_INF("%s, line %d\n", __func__, __LINE__);
 	if(DMA_CHAN_STA_RUNING == STATE_CHAIN(pchan)
 		|| DMA_CHAN_STA_WAIT_QD == STATE_CHAIN(pchan)) {
 		if(NULL != pchan->qd_cb.func) {
@@ -203,7 +203,7 @@ u32 dma_stop(dm_hdl_t dma_hdl)
 
 End:
 	if(0 != uret) {
-		DMA_ERR("%s err, line %d\n", __FUNCTION__, uret);
+		DMA_ERR("%s err, line %d\n", __func__, uret);
 	}
 
 	return uret;
@@ -290,7 +290,7 @@ u32 dma_set_op_cb(dm_hdl_t dma_hdl, struct dma_op_cb_t *pcb)
 
 	/* only in idle state can set callback */
 	if(DMA_CHAN_STA_IDLE != STATE_CHAIN(pchan)) {
-		DMA_ERR_FUN_LINE;
+		DMA_ERR("%s err, line %d\n", __func__, __LINE__);
 		return __LINE__;
 	}
 
@@ -312,7 +312,7 @@ u32 dma_set_hd_cb(dm_hdl_t dma_hdl, struct dma_cb_t *pcb)
 
 	/* only in idle state can set callback */
 	if(DMA_CHAN_STA_IDLE != STATE_CHAIN(pchan)) {
-		DMA_ERR_FUN_LINE;
+		DMA_ERR("%s err, line %d\n", __func__, __LINE__);
 		return __LINE__;
 	}
 
@@ -334,7 +334,7 @@ u32 dma_set_fd_cb(dm_hdl_t dma_hdl, struct dma_cb_t *pcb)
 
 	/* only in idle state can set callback */
 	if(DMA_CHAN_STA_IDLE != STATE_CHAIN(pchan)) {
-		DMA_ERR_FUN_LINE;
+		DMA_ERR("%s err, line %d\n", __func__, __LINE__);
 		return __LINE__;
 	}
 
@@ -356,7 +356,7 @@ u32 dma_set_qd_cb(dm_hdl_t dma_hdl, struct dma_cb_t *pcb)
 
 	/* only in idle state can set callback */
 	if(DMA_CHAN_STA_IDLE != STATE_CHAIN(pchan)) {
-		DMA_ERR_FUN_LINE;
+		DMA_ERR("%s err, line %d\n", __func__, __LINE__);
 		return __LINE__;
 	}
 

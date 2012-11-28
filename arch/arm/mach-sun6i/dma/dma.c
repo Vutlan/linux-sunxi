@@ -26,8 +26,8 @@ static int __devinit dma_drv_probe(struct platform_device *dev)
 	int 	ret = 0;
 
 	ret = dma_init(dev);
-	if (ret) {
-		DMA_ERR_FUN_LINE;
+	if(ret) {
+		DMA_ERR("%s err, line %d\n", __func__, __LINE__);
 	}
 	return ret;
 }
@@ -43,8 +43,8 @@ static int __devexit dma_drv_remove(struct platform_device *dev)
 	int 	ret = 0;
 
 	ret = dma_deinit();
-	if (ret) {
-		DMA_ERR_FUN_LINE;
+	if(ret) {
+		DMA_ERR("%s err, line %d\n", __func__, __LINE__);
 	}
 	return ret;
 }
@@ -58,7 +58,13 @@ static int __devexit dma_drv_remove(struct platform_device *dev)
  */
 static int dma_drv_suspend(struct platform_device *dev, pm_message_t state)
 {
-	DMA_DBG_FUN_LINE;
+	if(NORMAL_STANDBY == standby_type) { /* process for normal standby */
+ 		DMA_INF("%s: normal standby, line %d\n", __func__, __LINE__);
+	} else if(SUPER_STANDBY == standby_type) { /* process for super standby */
+ 		DMA_INF("%s: super standby, line %d\n", __func__, __LINE__);
+		if(0 != dma_clk_deinit())
+			DMA_ERR("%s err, dma_clk_deinit failed\n", __func__);
+	}
 	return 0;
 }
 
@@ -70,7 +76,13 @@ static int dma_drv_suspend(struct platform_device *dev, pm_message_t state)
  */
 static int dma_drv_resume(struct platform_device *dev)
 {
-	DMA_DBG_FUN_LINE;
+	if(NORMAL_STANDBY == standby_type) { /* process for normal standby */
+ 		DMA_INF("%s: normal standby, line %d\n", __func__, __LINE__);
+	} else if(SUPER_STANDBY == standby_type) { /* process for super standby */
+ 		DMA_INF("%s: super standby, line %d\n", __func__, __LINE__);
+		if(0 != dma_clk_init())
+			DMA_ERR("%s err, dma_clk_init failed\n", __func__);
+	}
 	return 0;
 }
 

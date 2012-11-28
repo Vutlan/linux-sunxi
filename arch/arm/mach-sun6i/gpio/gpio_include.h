@@ -27,6 +27,7 @@
 #include <linux/spinlock.h>
 #include <linux/types.h>
 #include <linux/clk.h>
+#include <linux/pm.h>
 #include <asm-generic/gpio.h>
 
 #include <mach/memory.h>

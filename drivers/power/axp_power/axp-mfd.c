@@ -270,19 +270,7 @@ static int __devinit axp_mfd_probe(struct i2c_client *client,
 	if(ret){
 		return ret;
 	}
-	
-	/* set ac/usb_in shutdown mean restart */
-	//Kyle added
-	//int power_start = 0;
-	/*
-  	ret = script_parser_fetch("target", "power_start", &power_start, sizeof(int));
-  	if (ret)
-  	{
-    	printk("[AXP]axp driver uning configuration failed(%d)\n", __LINE__);
-     	power_start = 0;
-     	printk("[AXP]power_start = %d\n",power_start);
-  	}
-  	*/
+
 	return 0;
 
 out_free_irq:

@@ -39,12 +39,6 @@
 	#define DMA_ERR(format,args...)   printk("[dma-err] "format,##args)
 #endif
 
-#define DMA_DBG_FUN_LINE   		DMA_INF("%s(%d)\n", __FUNCTION__, __LINE__)
-#define DMA_ERR_FUN_LINE   		DMA_ERR("%s(%d)\n", __FUNCTION__, __LINE__)
-#define DMA_DBG_FUN_LINE_TODO  		DMA_INF("%s(%d) - todo########\n", __FUNCTION__, __LINE__)
-#define DMA_DBG_FUN_LINE_TOCHECK 	DMA_INF("%s(%d) - tocheck########\n", __FUNCTION__, __LINE__)
-#define DMA_ASSERT(x)			if(!(x)) {DMA_ERR("%s err, line %d\n", __FUNCTION__, __LINE__);}
-
 /*
  * dma channel total
  */

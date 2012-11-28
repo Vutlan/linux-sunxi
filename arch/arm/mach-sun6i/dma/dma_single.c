@@ -43,7 +43,7 @@ u32 __dma_start(dm_hdl_t dma_hdl)
 
 End:
 	if(0 != uret) {
-		DMA_ERR("%s err, line %d, dma_hdl 0x%08x\n", __FUNCTION__, uret, (u32)dma_hdl);
+		DMA_ERR("%s err, line %d, dma_hdl 0x%08x\n", __func__, uret, (u32)dma_hdl);
 	}
 	return uret;
 }
@@ -114,12 +114,12 @@ void __dump_buf_list_sgmd(struct dma_channel_t *pchan)
 	int i = 0;
 #endif /* (DMA_DBG_LEVEL != 3) */
 
-	DMA_INF("+++++++++++%s+++++++++++\n", __FUNCTION__);
+	DMA_INF("+++++++++++%s+++++++++++\n", __func__);
 	list_for_each_safe(p, n, &pchan->buf_list_head) {
 		pitem = list_entry(p, struct des_item_t, list);
 		DMA_INF("des[%d]: 0x%08x\n", i++, (u32)&pitem->des);
 	}
-	DMA_INF("-----------%s-----------\n", __FUNCTION__);
+	DMA_INF("-----------%s-----------\n", __func__);
 }
 
 /* abort回调, 硬件上stop, 释放当前buffer(如果有), 释放list buffer */
@@ -128,21 +128,22 @@ u32 __dma_stop(dm_hdl_t dma_hdl)
 	u32 	uret = 0;
 	struct dma_channel_t *pchan = (struct dma_channel_t *)dma_hdl;
 
-	DMA_INF("%s: state %d, buf chain: \n", __FUNCTION__, (u32)STATE_SGL(pchan));
+	DMA_INF("%s: state %d, buf chain: \n", __func__, (u32)STATE_SGL(pchan));
 	__dump_buf_list_sgmd(pchan);
 
 	switch(STATE_SGL(pchan)) {
 	case SINGLE_STA_IDLE:
-		DMA_INF("%s: state idle, maybe before start or after stop, so stop the channel, free all buf list\n", __FUNCTION__);
-		DMA_ASSERT(NULL == pchan->pcur_des);
+		DMA_INF("%s: state idle, maybe before start or after stop, so stop the channel, free all buf list\n", __func__);
+		WARN(NULL != pchan->pcur_des, "%s err, line %d!\n", __func__, __LINE__);
 		break;
 	case SINGLE_STA_RUNING:
-		DMA_INF("%s: state running, so stop the channel, abort the cur buf, and free extra buf\n", __FUNCTION__);
-		DMA_ASSERT(NULL != pchan->pcur_des);
+		DMA_INF("%s: state running, so stop the channel, abort the cur buf, and free extra buf\n", __func__);
+		WARN(NULL == pchan->pcur_des, "%s err, line %d!\n", __func__, __LINE__);
 		break;
 	case SINGLE_STA_LAST_DONE:
-		DMA_INF("%s: state last done, so stop the channel, buffer already freed all, to check\n", __FUNCTION__);
-		DMA_ASSERT(NULL == pchan->pcur_des && list_empty(&pchan->buf_list_head));
+		DMA_INF("%s: state last done, so stop the channel, buffer already freed all, to check\n", __func__);
+		WARN(NULL != pchan->pcur_des || !list_empty(&pchan->buf_list_head),
+			"%s err, line %d!\n", __func__, __LINE__);
 		break;
 	default:
 		uret = __LINE__;
@@ -176,7 +177,7 @@ u32 __dma_stop(dm_hdl_t dma_hdl)
 
 End:
 	if(0 != uret) {
-		DMA_ERR("%s err, line %d\n", __FUNCTION__, uret);
+		DMA_ERR("%s err, line %d\n", __func__, uret);
 	}
 	return uret;
 }
@@ -210,7 +211,7 @@ u32 __dma_set_op_cb(dm_hdl_t dma_hdl, struct dma_op_cb_t *pcb)
 	struct dma_channel_t *pchan = (struct dma_channel_t *)dma_hdl;
 
 	if(SINGLE_STA_IDLE != STATE_SGL(pchan)) {
-		DMA_ERR_FUN_LINE;
+		DMA_ERR("%s err, line %d\n", __func__, __LINE__);
 	}
 	pchan->op_cb.func = pcb->func;
 	pchan->op_cb.parg = pcb->parg;
@@ -222,7 +223,7 @@ u32 __dma_set_hd_cb(dm_hdl_t dma_hdl, struct dma_cb_t *pcb)
 	struct dma_channel_t *pchan = (struct dma_channel_t *)dma_hdl;
 
 	if(SINGLE_STA_IDLE != STATE_SGL(pchan)) {
-		DMA_ERR_FUN_LINE;
+		DMA_ERR("%s err, line %d\n", __func__, __LINE__);
 	}
 	pchan->hd_cb.func = pcb->func;
 	pchan->hd_cb.parg = pcb->parg;
@@ -234,7 +235,7 @@ u32 __dma_set_fd_cb(dm_hdl_t dma_hdl, struct dma_cb_t *pcb)
 	struct dma_channel_t *pchan = (struct dma_channel_t *)dma_hdl;
 
 	if(SINGLE_STA_IDLE != STATE_SGL(pchan)) {
-		DMA_ERR_FUN_LINE;
+		DMA_ERR("%s err, line %d\n", __func__, __LINE__);
 	}
 	pchan->fd_cb.func = pcb->func;
 	pchan->fd_cb.parg = pcb->parg;
@@ -246,7 +247,7 @@ u32 __dma_set_qd_cb(dm_hdl_t dma_hdl, struct dma_cb_t *pcb)
 	struct dma_channel_t *pchan = (struct dma_channel_t *)dma_hdl;
 
 	if(SINGLE_STA_IDLE != STATE_SGL(pchan)) {
-		DMA_ERR_FUN_LINE;
+		DMA_ERR("%s err, line %d\n", __func__, __LINE__);
 	}
 	pchan->qd_cb.func = pcb->func;
 	pchan->qd_cb.parg = pcb->parg;
@@ -280,13 +281,13 @@ u32 __dma_enqueue(dm_hdl_t dma_hdl, struct cofig_des_t *pdes, enum dma_enque_pha
 	pdes_itm->des = *pdes;
 	pdes_itm->paddr = utemp;
 
-//	不管状态怎样, enqueue to list
+	/* 不管状态怎样, enqueue to list */
 	list_add_tail(&pdes_itm->list, &pchan->buf_list_head);
 
 	if(SINGLE_STA_LAST_DONE == STATE_SGL(pchan)) {
 		if(ENQUE_PHASE_NORMAL != phase)
-			DMA_ERR_FUN_LINE;
-		DMA_DBG_FUN_LINE;
+			DMA_ERR("%s err, line %d\n", __func__, __LINE__);
+		DMA_INF("%s, line %d\n", __func__, __LINE__);
 		if(0 != __dma_start(dma_hdl)) {
 			uret = __LINE__;
 			goto End;
@@ -294,7 +295,7 @@ u32 __dma_enqueue(dm_hdl_t dma_hdl, struct cofig_des_t *pdes, enum dma_enque_pha
 	}
 End:
 	if(0 != uret) {
-		DMA_ERR("%s err, line %d\n", __FUNCTION__, uret);
+		DMA_ERR("%s err, line %d\n", __func__, uret);
 	}
 	return uret;
 }
@@ -331,7 +332,7 @@ u32 __handle_qd_sgmd(struct dma_channel_t *pchan)
 	/* cannot lock fd_cb function, in case sw_dma_enqueue called and locked agin */
 	if(NULL != pchan->qd_cb.func) {
 		if(0 != pchan->qd_cb.func((dm_hdl_t)pchan, pchan->qd_cb.parg, DMA_CB_OK)) {
-			DMA_ERR_FUN_LINE;
+			DMA_ERR("%s err, line %d\n", __func__, __LINE__);
 			return 0;
 		}
 	}
@@ -342,20 +343,20 @@ u32 __handle_qd_sgmd(struct dma_channel_t *pchan)
 
 	/* stopped when hd_cb/fd_cb/qd_cb/somewhere calling? */
 	if(SINGLE_STA_IDLE == cur_state) {
-		DMA_ASSERT(NULL == pchan->pcur_des);
-		DMA_INF("%s: state idle, stopped in cb before? just return ok!\n", __FUNCTION__);
+		WARN(NULL != pchan->pcur_des, "%s err, line %d!\n", __func__, __LINE__);
+		DMA_INF("%s: state idle, stopped in cb before? just return ok!\n", __func__);
 		goto End;
 	} else if(SINGLE_STA_RUNING == cur_state) {
 		/* for continue mode, just re start the cur buffer */
 		if(unlikely(true == pchan->bconti_mode)) {
-			DMA_ASSERT(true == list_empty(&pchan->buf_list_head));
+			WARN(!list_empty(&pchan->buf_list_head), "%s err, line %d!\n", __func__, __LINE__);
 			list_add_tail(&pchan->pcur_des->list, &pchan->buf_list_head);
 			uret = __dma_start((dm_hdl_t)pchan);
 			goto End;
 		}
 
 		/* for no-continue mode, free cur buf and start the next buf in chain */
-		DMA_ASSERT(NULL != pchan->pcur_des);
+		WARN(NULL == pchan->pcur_des, "%s err, line %d!\n", __func__, __LINE__);
 		utemp = pchan->pcur_des->paddr;
 #ifndef TEMP_FOR_XJF_20121121
 		dma_pool_free(g_pool_sg, pchan->pcur_des, utemp);
@@ -375,7 +376,7 @@ u32 __handle_qd_sgmd(struct dma_channel_t *pchan)
 				goto End;
 			}
 		} else {
-			DMA_DBG_FUN_LINE;
+			DMA_INF("%s, line %d\n", __func__, __LINE__);
 			STATE_CHAIN(pchan) = SINGLE_STA_LAST_DONE; /* change state to done */
 		}
 		goto End;
@@ -387,7 +388,7 @@ u32 __handle_qd_sgmd(struct dma_channel_t *pchan)
 End:
 	DMA_CHAN_UNLOCK(&pchan->lock, flags);
 	if(0 != uret) {
-		DMA_ERR("%s err, line %d\n", __FUNCTION__, uret);
+		DMA_ERR("%s err, line %d\n", __func__, uret);
 	}
 
 	return uret;
@@ -409,7 +410,7 @@ u32 dma_release_single(dm_hdl_t dma_hdl)
 #ifdef DBG_DMA
 	if(0 != dma_check_handle(dma_hdl)) {
 		DMA_CHAN_UNLOCK(&pchan->lock, flags);
-		DMA_ERR_FUN_LINE;
+		DMA_ERR("%s err, line %d\n", __func__, __LINE__);
 		return __LINE__;
 	}
 #endif /* DBG_DMA */
@@ -417,9 +418,9 @@ u32 dma_release_single(dm_hdl_t dma_hdl)
 	/* if not idle, call stop first */
 	if(SINGLE_STA_IDLE != STATE_SGL(pchan)) {
 		DMA_INF("%s maybe err: line %d, state(%d) not idle, call stop dma first!\n", \
-			__FUNCTION__, __LINE__, STATE_SGL(pchan));
+			__func__, __LINE__, STATE_SGL(pchan));
 		if(0 != __dma_stop(dma_hdl)) {
-			DMA_ERR_FUN_LINE;
+			DMA_ERR("%s err, line %d\n", __func__, __LINE__);
 		}
 	}
 
@@ -439,7 +440,7 @@ u32 dma_release_single(dm_hdl_t dma_hdl)
 	memset(&pchan->qd_cb, 0, sizeof(pchan->qd_cb));
 
 	/* maybe enqueued but not started, so free buf */
-	DMA_ASSERT(NULL == pchan->pcur_des);
+	WARN(NULL != pchan->pcur_des, "%s err, line %d!\n", __func__, __LINE__);
 	__dma_free_buflist(pchan);
 
 	DMA_CHAN_UNLOCK(&pchan->lock, flags);
@@ -466,7 +467,7 @@ u32 dma_ctrl_single(dm_hdl_t dma_hdl, enum dma_op_type_e op, void *parg)
 		&& (DMA_OP_PAUSE != op)
 		&& (DMA_OP_RESUME != op)
 		&& (DMA_OP_STOP != op)) {
-		DMA_ERR_FUN_LINE;
+		DMA_ERR("%s err, line %d\n", __func__, __LINE__);
 		return __LINE__;
 	}
 
@@ -475,7 +476,7 @@ u32 dma_ctrl_single(dm_hdl_t dma_hdl, enum dma_op_type_e op, void *parg)
 #ifdef DBG_DMA
 	if(0 != dma_check_handle(dma_hdl)) {
 		DMA_CHAN_UNLOCK(&pchan->lock, flags);
-		DMA_ERR_FUN_LINE;
+		DMA_ERR("%s err, line %d\n", __func__, __LINE__);
 		return __LINE__;
 	}
 #endif /* DBG_DMA */
@@ -483,7 +484,7 @@ u32 dma_ctrl_single(dm_hdl_t dma_hdl, enum dma_op_type_e op, void *parg)
 	/* let the caller to do some operation before op */
 	if((DMA_OP_SET_OP_CB != op) && (NULL != pchan->op_cb.func)) {
 		if(0 != pchan->op_cb.func(dma_hdl, pchan->op_cb.parg, op))
-			DMA_ERR_FUN_LINE;
+			DMA_ERR("%s err, line %d\n", __func__, __LINE__);
 	}
 
 	switch(op) {
@@ -533,7 +534,7 @@ u32 dma_ctrl_single(dm_hdl_t dma_hdl, enum dma_op_type_e op, void *parg)
 End:
 	DMA_CHAN_UNLOCK(&pchan->lock, flags);
 	if(0 != uret) {
-		DMA_ERR("%s err, line %d, dma_hdl 0x%08x\n", __FUNCTION__, uret, (u32)dma_hdl);
+		DMA_ERR("%s err, line %d, dma_hdl 0x%08x\n", __func__, uret, (u32)dma_hdl);
 	}
 	return uret;
 }
@@ -612,7 +613,7 @@ End:
 	}
 
 	if(0 != uret) {
-		DMA_ERR("%s err, line %d\n", __FUNCTION__, uret);
+		DMA_ERR("%s err, line %d\n", __func__, uret);
 	}
 	return uret;
 }
@@ -672,7 +673,7 @@ End:
 	}
 
 	if(0 != uret) {
-		DMA_ERR("%s err, line %d\n", __FUNCTION__, uret);
+		DMA_ERR("%s err, line %d\n", __func__, uret);
 	}
 	return uret;
 }
@@ -689,8 +690,7 @@ u32 dma_irq_hdl_sgmd(struct dma_channel_t *pchan, u32 upend_bits)
 	u32	uirq_spt = 0;
 	u32	uret = 0;
 
-	DMA_ASSERT(0 != upend_bits);
-
+	WARN(0 == upend_bits, "%s err, line %d!\n", __func__, __LINE__);
 	uirq_spt = pchan->irq_spt;
 
 	/* deal half done */
@@ -728,7 +728,7 @@ u32 dma_irq_hdl_sgmd(struct dma_channel_t *pchan, u32 upend_bits)
 
 End:
 	if(0 != uret) {
-		DMA_ERR("%s err, line %d\n", __FUNCTION__, uret);
+		DMA_ERR("%s err, line %d\n", __func__, uret);
 	}
 	return uret;
 }

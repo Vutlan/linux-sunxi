@@ -64,7 +64,7 @@ u32 __dma_chan_handle_qd(struct dma_channel_t *pchan)
 	 * should not queue done in continue mode
 	 */
 	if(true == pchan->bconti_mode) {
-		DMA_ERR_FUN_LINE;
+		DMA_ERR("%s err, line %d\n", __func__, __LINE__);
 		return __LINE__;
 	}
 
@@ -76,7 +76,7 @@ u32 __dma_chan_handle_qd(struct dma_channel_t *pchan)
 	//DMA_CHAN_LOCK(&pchan->lock, flags);
 	if(NULL != pchan->qd_cb.func) {
 		if(0 != pchan->qd_cb.func((dm_hdl_t)pchan, pchan->qd_cb.parg, DMA_CB_OK)) {
-			DMA_ERR_FUN_LINE;
+			DMA_ERR("%s err, line %d\n", __func__, __LINE__);
 			return 0;
 		}
 	}
@@ -90,7 +90,7 @@ u32 __dma_chan_handle_qd(struct dma_channel_t *pchan)
 	if(DMA_CHAN_STA_IDLE == STATE_CHAIN(pchan)) {
 		DMA_CHAN_UNLOCK(&pchan->lock, flags);
 		DMA_ERR("%s err, line %d, state idle, stopped during hd_cb/fd_cb/qd_cb or somewhere else? just return ok\n", \
-			__FUNCTION__, __LINE__);
+			__func__, __LINE__);
 		return 0;
 	}
 
@@ -117,7 +117,7 @@ u32 __dma_chan_handle_qd(struct dma_channel_t *pchan)
 	 * run the new buffer chain
 	 */
 	if(DMA_CHAN_STA_WAIT_QD == STATE_CHAIN(pchan)) {
-		DMA_DBG_FUN_LINE;
+		DMA_INF("%s, line %d\n", __func__, __LINE__);
 
 		/* start the new queue(from begin) */
 		if(NULL != pchan->op_cb.func) {
@@ -149,7 +149,7 @@ u32 __dma_chan_handle_qd(struct dma_channel_t *pchan)
 End:
 	DMA_CHAN_UNLOCK(&pchan->lock, flags);
 	if(0 != uRet) {
-		DMA_ERR("%s err, line %d\n", __FUNCTION__, uRet);
+		DMA_ERR("%s err, line %d\n", __func__, uRet);
 	}
 
 	return 0;
@@ -175,7 +175,7 @@ irqreturn_t dma_irq_hdl(int irq, void *dev)
 	struct dma_channel_t *pchan = NULL;
 	struct dma_mgr_t *pdma_mgr = NULL;
 
-	DMA_DBG("%s, line %d, dma en0 0x%08x, en1 0x%08x, pd0 0x%08x, pd1 0x%08x\n", __FUNCTION__, __LINE__, \
+	DMA_DBG("%s, line %d, dma en0 0x%08x, en1 0x%08x, pd0 0x%08x, pd1 0x%08x\n", __func__, __LINE__, \
 		DMA_READ_REG(DMA_IRQ_EN_REG0), DMA_READ_REG(DMA_IRQ_EN_REG1), \
 		DMA_READ_REG(DMA_IRQ_PEND_REG0), DMA_READ_REG(DMA_IRQ_PEND_REG1));
 
@@ -235,7 +235,7 @@ irqreturn_t dma_irq_hdl(int irq, void *dev)
 
 End:
 	if(0 != uline) {
-		DMA_ERR("%s err, line %d\n", __FUNCTION__, uline);
+		DMA_ERR("%s err, line %d\n", __func__, uline);
 	}
 
 	return IRQ_HANDLED;

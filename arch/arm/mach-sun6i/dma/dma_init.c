@@ -98,15 +98,15 @@ int dma_init(struct platform_device *device)
 	/* register dma interrupt */
 	ret = request_irq(AW_IRQ_DMA, dma_irq_hdl, IRQF_DISABLED, "dma_irq", (void *)&g_dma_mgr);
 	if(ret) {
-		DMA_ERR("%s err: request_irq return %d\n", __FUNCTION__, ret);
+		DMA_ERR("%s err: request_irq return %d\n", __func__, ret);
 		ret = __LINE__;
 		goto End;
 	}
-	DMA_DBG_FUN_LINE;
+	DMA_INF("%s, line %d\n", __func__, __LINE__);
 
 End:
 	if(0 != ret) {
-		DMA_ERR("%s err, line %d\n", __FUNCTION__, ret);
+		DMA_ERR("%s err, line %d\n", __func__, ret);
 
 		if (NULL != g_pool_sg) {
 			dma_pool_destroy(g_pool_sg);
@@ -146,11 +146,9 @@ End:
  */
 int dma_deinit(void)
 {
-	int 	ret = 0;
 	u32 	i = 0;
 
-	DMA_DBG_FUN_LINE_TOCHECK;
-
+	DMA_INF("%s, line %d\n", __func__, __LINE__);
 	/* free dma irq */
 	free_irq(AW_IRQ_DMA, (void *)&g_dma_mgr);
 
@@ -158,7 +156,6 @@ int dma_deinit(void)
 		dma_pool_destroy(g_pool_sg);
 		g_pool_sg = NULL;
 	}
-
 	if (NULL != g_pool_ch) {
 		dma_pool_destroy(g_pool_ch);
 		g_pool_ch = NULL;
@@ -174,19 +171,15 @@ int dma_deinit(void)
 		g_pdes_mgr = NULL;
 	}
 #endif /* USE_UNCACHED_FOR_DESMGR */
-
 	/* deinit lock for each channel */
 	for(i = 0; i < DMA_CHAN_TOTAL; i++) {
 		DMA_CHAN_LOCK_DEINIT(&g_dma_mgr.chnl[i].lock);
 	}
-
 	/* clear dma manager */
 	memset(&g_dma_mgr, 0, sizeof(g_dma_mgr));
-
 	/* unmap dma reg base */
 	iounmap(g_dma_reg_vbase);
 	g_dma_reg_vbase = 0;
-
-	return ret;
+	return 0;
 }
 
