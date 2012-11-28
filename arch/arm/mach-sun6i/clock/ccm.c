@@ -20,6 +20,8 @@
  */
 #include <mach/platform.h>
 #include <mach/clock.h>
+#include <mach/hardware.h>
+#include <asm/delay.h>
 #include "ccm_i.h"
 
 #define make_aw_clk_inf(clk_id, clk_name)   {.id = clk_id, .name = clk_name}
@@ -236,8 +238,9 @@ int aw_ccu_init(void)
     CCU_DBG("%s\n", __func__);
 
     /* initialise the CCU io base */
-    aw_ccu_reg = (__ccmu_reg_list_t *)ioremap_nocache(AW_CCM_BASE, 0x400);
-    aw_cpus_reg = (__ccmu_reg_cpu0_list_t *)ioremap_nocache(AW_R_CPUCFG_BASE, 0x200);
+    aw_ccu_reg = (__ccmu_reg_list_t *)IO_ADDRESS(AW_CCM_BASE);
+    aw_cpus_reg = (__ccmu_reg_cpu0_list_t *)IO_ADDRESS(AW_R_PRCM_BASE);
+
     return 0;
 }
 
@@ -321,4 +324,55 @@ int aw_ccu_get_clk(__aw_ccu_clk_id_e id, __ccu_clk_t *clk)
     return 0;
 }
 
+
+/*
+*********************************************************************************************************
+*                           aw_ccu_switch_ahb_2_pll6
+*
+*Description: switch ahb to pll6
+*
+*Arguments  : void
+*
+*Return     :
+*
+*Notes      :
+*
+*********************************************************************************************************
+*/
+int aw_ccu_switch_ahb_2_pll6(void)
+{
+    aw_ccu_reg->Ahb1Div.Ahb1PreDiv = 3;
+    aw_ccu_reg->Ahb1Div.Ahb1Div = 3;
+    __delay(2000);
+    aw_ccu_reg->Ahb1Div.Ahb1ClkSrc = 3;
+    __delay(5000);
+
+    return 0;
+}
+
+
+/*
+*********************************************************************************************************
+*                           aw_ccu_switch_apb_2_pll6
+*
+*Description: switch ahb to pll6
+*
+*Arguments  : void
+*
+*Return     :
+*
+*Notes      :
+*
+*********************************************************************************************************
+*/
+int aw_ccu_switch_apb_2_pll6(void)
+{
+    aw_ccu_reg->Apb2Div.DivN = 3;
+    aw_ccu_reg->Apb2Div.DivM = 4;
+    __delay(2000);
+    aw_ccu_reg->Apb2Div.ClkSrc = 2;
+    __delay(5000);
+
+    return 0;
+}
 

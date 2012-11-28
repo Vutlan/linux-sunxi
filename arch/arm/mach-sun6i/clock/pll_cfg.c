@@ -498,19 +498,19 @@ static struct pll_freq_cfg_tbl    PllxTbl[] = {
 };
 int ccm_get_pllx_para(__ccmu_media_pll_t *factor, __u64 rate)
 {
-
-    int     index;
-
-    if(!factor || rate > 600000000)
-    {
+    if(!factor) {
         /* parameter is invalid */
         return -1;
     }
 
+    if(rate > 600000000) {
+        rate = 600000000;
+    }
+
     /* find the clock configuration */
-    index = 600000000 / 3000000;
-    factor->FactorN = PllxTbl[index].FactorN;
-    factor->FactorM = PllxTbl[index].FactorM;
+    do_div(rate, 3000000);
+    factor->FactorN = PllxTbl[rate].FactorN;
+    factor->FactorM = PllxTbl[rate].FactorM;
     return 0;
 }
 

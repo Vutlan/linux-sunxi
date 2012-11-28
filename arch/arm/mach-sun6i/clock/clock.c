@@ -29,6 +29,7 @@
 #include <linux/platform_device.h>
 #include <linux/debugfs.h>
 #include <mach/clock.h>
+#include <mach/sys_config.h>
 #include "ccm_i.h"
 
 // alloc memory for store clock informatioin
@@ -53,9 +54,13 @@ static struct clk_lookup    lookups[AW_CCU_CLK_CNT];
 */
 int clk_init(void)
 {
-    int     i;
+    int             i;
+    struct clk      *clk;
+    __u64           rate;
+    script_item_u   script_item;
 
     CCU_DBG("aw clock manager init!\n");
+
     //initialise clock controller unit
     aw_ccu_init();
     //clear the data structure
@@ -67,7 +72,6 @@ int clk_init(void)
             CCU_ERR("try toc get clock(id:%d) informaiton failed!\n", i);
         }
 #ifdef CCU_LOCK_LIUGANG_20120930
-	//CCU_DBG("spinlock init for clock%d!\n", i);
 	/* init clk spin lock */
 	CCU_LOCK_INIT(&aw_clock[i].lock);
 #endif /* CCU_LOCK_LIUGANG_20120930 */
@@ -78,6 +82,87 @@ int clk_init(void)
     }
     /* initiate some clocks */
     lookups[AW_MOD_CLK_SMPTWD].dev_id = "smp_twd";
+
+    /* config plls */
+    if(script_get_item("clock", "pll3", &script_item) == SCIRPT_ITEM_VALUE_TYPE_INT) {
+        CCU_INF("script config pll3 to %d Mhz\n", script_item.val);
+        if(!((script_item.val < 30) || (script_item.val > 600))) {
+            clk = &aw_clock[AW_SYS_CLK_PLL3];
+            clk_set_rate(clk, script_item.val*1000000);
+            clk_enable(clk);
+        }
+    }
+    if(script_get_item("clock", "pll4", &script_item) == SCIRPT_ITEM_VALUE_TYPE_INT) {
+        CCU_INF("script config pll4 to %d Mhz\n", script_item.val);
+        if(!((script_item.val < 30) || (script_item.val > 600))) {
+            clk = &aw_clock[AW_SYS_CLK_PLL4];
+            clk_set_rate(clk, script_item.val*1000000);
+            clk_enable(clk);
+        }
+    }
+
+    clk = &aw_clock[AW_SYS_CLK_PLL6];
+    if(script_get_item("clock", "pll6", &script_item) == SCIRPT_ITEM_VALUE_TYPE_INT) {
+        CCU_INF("script config pll6 to %d Mhz\n", script_item.val);
+        if((script_item.val < 30) || (script_item.val > 1800)) {
+            script_item.val = 600;
+        }
+    } else{
+        script_item.val = 600;
+    }
+    clk_set_rate(clk, script_item.val*1000000);
+    clk_enable(clk);
+
+
+    if(script_get_item("clock", "pll7", &script_item) == SCIRPT_ITEM_VALUE_TYPE_INT) {
+        CCU_INF("script config pll7 to %d Mhz\n", script_item.val);
+        if(!((script_item.val < 30) || (script_item.val > 600))) {
+            clk = &aw_clock[AW_SYS_CLK_PLL7];
+            clk_set_rate(clk, script_item.val*1000000);
+            clk_enable(clk);
+        }
+    }
+    if(script_get_item("clock", "pll8", &script_item) == SCIRPT_ITEM_VALUE_TYPE_INT) {
+        CCU_INF("script config pll8 to %d Mhz\n", script_item.val);
+        if(!((script_item.val < 30) || (script_item.val > 600))) {
+            clk = &aw_clock[AW_SYS_CLK_PLL8];
+            clk_set_rate(clk, script_item.val*1000000);
+            clk_enable(clk);
+        }
+    }
+    if(script_get_item("clock", "pll9", &script_item) == SCIRPT_ITEM_VALUE_TYPE_INT) {
+        CCU_INF("script config pll9 to %d Mhz\n", script_item.val);
+        if(!((script_item.val < 30) || (script_item.val > 600))) {
+            clk = &aw_clock[AW_SYS_CLK_PLL9];
+            clk_set_rate(clk, script_item.val*1000000);
+            clk_enable(clk);
+        }
+    }
+    if(script_get_item("clock", "pll10", &script_item) == SCIRPT_ITEM_VALUE_TYPE_INT) {
+        CCU_INF("script config pll10 to %d Mhz\n", script_item.val);
+        if(!((script_item.val < 30) || (script_item.val > 600))) {
+            clk = &aw_clock[AW_SYS_CLK_PLL10];
+            clk_set_rate(clk, script_item.val*1000000);
+            clk_enable(clk);
+        }
+    }
+
+    /* switch ahb clock to pll6 */
+    aw_ccu_switch_ahb_2_pll6();
+    clk = &aw_clock[AW_SYS_CLK_AHB1];
+    rate = clk_round_rate(clk, AHB1_FREQ_MAX);
+    clk_set_rate(clk, rate);
+
+    if(script_get_item("clock", "apb2", &script_item) == SCIRPT_ITEM_VALUE_TYPE_INT) {
+        CCU_INF("script config apb2 to %d Mhz\n", script_item.val);
+        if(!((script_item.val < 5) || (script_item.val > 120))) {
+            aw_ccu_switch_apb_2_pll6();
+            clk = &aw_clock[AW_SYS_CLK_APB2];
+            rate = clk_round_rate(clk, script_item.val*1000000);
+            clk_set_rate(clk, rate);
+            clk_enable(clk);
+        }
+    }
 
     return 0;
 }

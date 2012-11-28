@@ -24,7 +24,7 @@
 #include <mach/ccmu.h>
 #include <mach/clock.h>
 
-#define CCMU_DBG_LEVEL  (1)
+#define CCMU_DBG_LEVEL  (2)
 
 #if (CCMU_DBG_LEVEL == 0 )
     #define CCU_DBG(...)
@@ -43,6 +43,9 @@
     #define CCU_INF(format,args...)   printk("[ccmu] "format,##args)
     #define CCU_ERR(format,args...)   printk("[ccmu] "format,##args)
 #endif
+
+#define AHB1_FREQ_MAX   (200000000)
+
 
 /* define system clock id       */
 typedef enum __AW_CCU_CLK_ID
@@ -325,43 +328,43 @@ static inline __s32 ccu_clk_calc_hash(char *string)
 #define PLL9_ENBLE      (aw_ccu_reg->Pll9Ctl.PLLEn)
 #define PLL10_ENBLE     (aw_ccu_reg->Pll10Ctl.PLLEn)
 
-#define PLL1_FACTOR_N   (aw_ccu_reg->Pll1Ctl.FactorN)
+#define PLL1_FACTOR_N   (aw_ccu_reg->Pll1Ctl.FactorN+1)
 #define PLL1_FACTOR_K   (aw_ccu_reg->Pll1Ctl.FactorK+1)
 #define PLL1_FACTOR_M   (aw_ccu_reg->Pll1Ctl.FactorM+1)
 
-#define PLL2_FACTOR_N   (aw_ccu_reg->Pll2Ctl.FactorN)
+#define PLL2_FACTOR_N   (aw_ccu_reg->Pll2Ctl.FactorN+1)
 #define PLL2_FACTOR_K   (aw_ccu_reg->Pll2Ctl.FactorK+1)
 #define PLL2_FACTOR_M   (aw_ccu_reg->Pll2Ctl.FactorM+1)
 
-#define PLL3_FACTOR_N   (aw_ccu_reg->Pll3Ctl.FactorN)
+#define PLL3_FACTOR_N   (aw_ccu_reg->Pll3Ctl.FactorN+1)
 #define PLL3_FACTOR_K   (aw_ccu_reg->Pll3Ctl.FactorK+1)
 #define PLL3_FACTOR_M   (aw_ccu_reg->Pll3Ctl.FactorM+1)
 
-#define PLL4_FACTOR_N   (aw_ccu_reg->Pll4Ctl.FactorN)
+#define PLL4_FACTOR_N   (aw_ccu_reg->Pll4Ctl.FactorN+1)
 #define PLL4_FACTOR_K   (aw_ccu_reg->Pll4Ctl.FactorK+1)
 #define PLL4_FACTOR_M   (aw_ccu_reg->Pll4Ctl.FactorM+1)
 
-#define PLL5_FACTOR_N   (aw_ccu_reg->Pll5Ctl.FactorN)
+#define PLL5_FACTOR_N   (aw_ccu_reg->Pll5Ctl.FactorN+1)
 #define PLL5_FACTOR_K   (aw_ccu_reg->Pll5Ctl.FactorK+1)
 #define PLL5_FACTOR_M   (aw_ccu_reg->Pll5Ctl.FactorM+1)
 
-#define PLL6_FACTOR_N   (aw_ccu_reg->Pll6Ctl.FactorN)
+#define PLL6_FACTOR_N   (aw_ccu_reg->Pll6Ctl.FactorN+1)
 #define PLL6_FACTOR_K   (aw_ccu_reg->Pll6Ctl.FactorK+1)
 #define PLL6_FACTOR_M   (aw_ccu_reg->Pll6Ctl.FactorM+1)
 
-#define PLL7_FACTOR_N   (aw_ccu_reg->Pll7Ctl.FactorN)
+#define PLL7_FACTOR_N   (aw_ccu_reg->Pll7Ctl.FactorN+1)
 #define PLL7_FACTOR_K   (aw_ccu_reg->Pll7Ctl.FactorK+1)
 #define PLL7_FACTOR_M   (aw_ccu_reg->Pll7Ctl.FactorM+1)
 
-#define PLL8_FACTOR_N   (aw_ccu_reg->Pll8Ctl.FactorN)
+#define PLL8_FACTOR_N   (aw_ccu_reg->Pll8Ctl.FactorN+1)
 #define PLL8_FACTOR_K   (aw_ccu_reg->Pll8Ctl.FactorK+1)
 #define PLL8_FACTOR_M   (aw_ccu_reg->Pll8Ctl.FactorM+1)
 
-#define PLL9_FACTOR_N   (aw_ccu_reg->Pll9Ctl.FactorN)
+#define PLL9_FACTOR_N   (aw_ccu_reg->Pll9Ctl.FactorN+1)
 #define PLL9_FACTOR_K   (aw_ccu_reg->Pll9Ctl.FactorK+1)
 #define PLL9_FACTOR_M   (aw_ccu_reg->Pll9Ctl.FactorM+1)
 
-#define PLL10_FACTOR_N  (aw_ccu_reg->Pll10Ctl.FactorN)
+#define PLL10_FACTOR_N  (aw_ccu_reg->Pll10Ctl.FactorN+1)
 #define PLL10_FACTOR_K  (aw_ccu_reg->Pll10Ctl.FactorK+1)
 #define PLL10_FACTOR_M  (aw_ccu_reg->Pll10Ctl.FactorM+1)
 
@@ -387,9 +390,12 @@ extern __clk_ops_t mod_clk_ops;
 int aw_ccu_init(void);
 int aw_ccu_exit(void);
 int aw_ccu_get_clk(__aw_ccu_clk_id_e id, __ccu_clk_t *clk);
+int aw_ccu_switch_ahb_2_pll6(void);
+int aw_ccu_switch_apb_2_pll6(void);
 
 int ccm_get_pll1_para(__ccmu_pll1_reg0000_t *factor, __u64 rate);
 int ccm_get_pllx_para(__ccmu_media_pll_t *factor, __u64 rate);
+
 
 #endif /* #ifndef __AW_CCMU_I_H__ */
 

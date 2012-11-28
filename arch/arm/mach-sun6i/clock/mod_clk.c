@@ -2339,7 +2339,7 @@ static __u64 mod_clk_round_rate(__aw_ccu_clk_id_e id, __u64 rate)
             low = 0;
             high = sizeof(module0_clk_div_tbl)/sizeof(struct module0_div_tbl) - 1;
 
-            while(low<high){
+            while(low<=high){
                 if(module0_clk_div_tbl[(low+high)/2].Div < tmp_rate)
                 {
                     low = (low+high)/2+1;
