@@ -116,6 +116,9 @@ int NAND_ClkRequest(__u32 nand_index)
 		return -1;
 	}
 
+	rate = clk_get_rate(pll6);
+		printk("%s: get pll6 rate %dHZ\n", __func__, (__u32)rate);
+
 	if(nand_index == 0) {
 		nand0_clk = clk_get(NULL, "mod_nand0");
 		ahb_nand0 = clk_get(NULL, "ahb_nand0");
@@ -251,7 +254,7 @@ int NAND_SetClk(__u32 nand_index, __u32 nand_clk)
 		}
 
 		/* 设置NAND0 控制器的频率为50Mhz */
-		rate = clk_round_rate(nand0_clk, nand_clk*1000000);
+		rate = clk_round_rate(nand0_clk, nand_clk*2000000);
 		if(clk_set_rate(nand0_clk, rate))
 			printk("%s: set nand0_clk rate to %dHZ failed! nand_clk: 0x%x\n", __func__, (__u32)rate, nand_clk);
 
@@ -263,7 +266,7 @@ int NAND_SetClk(__u32 nand_index, __u32 nand_clk)
 		}	
 
 		/* 设置NAND1 控制器的频率为50Mhz */
-		rate = clk_round_rate(nand1_clk, nand_clk*1000000);
+		rate = clk_round_rate(nand1_clk, nand_clk*2000000);
 		if(clk_set_rate(nand1_clk, rate))
 			printk("%s: set nand1_clk rate to %dHZ failed! nand_clk: 0x%x\n", __func__, (__u32)rate, nand_clk);
 	} else {
@@ -301,7 +304,7 @@ int NAND_GetClk(__u32 nand_index)
 		return -1;
 	}
 
-	return (rate/1000000);
+	return (rate/2000000);
 }
 
 void eLIBs_CleanFlushDCacheRegion_nand(void *adr, size_t bytes)
@@ -358,6 +361,8 @@ void NAND_EnDMAInt(void)
 	__u32 nand_index;
 
 	nand_index = NAND_GetCurrentCH();
+	if(nand_index >1)
+		printk("NAND_ClearDMAInt, nand_index error: 0x%x\n", nand_index);
 	
 	//clear interrupt
 	#if 0
@@ -381,6 +386,8 @@ void NAND_ClearDMAInt(void)
 	__u32 nand_index;
 
 	nand_index = NAND_GetCurrentCH();
+	if(nand_index >1)
+		printk("NAND_ClearDMAInt, nand_index error: 0x%x\n", nand_index);
     
 	//disable interrupt
 	NFC_DmaIntDisable();
@@ -402,6 +409,8 @@ void NAND_DMAInterrupt(void)
 	__u32 nand_index;
 
 	nand_index = NAND_GetCurrentCH();
+	if(nand_index >1)
+		printk("NAND_ClearDMAInt, nand_index error: 0x%x\n", nand_index);
 	
 	dbg_dmaint("dma int occor! \n");
 	if(!NFC_DmaIntGetStatus())
@@ -416,6 +425,8 @@ void NAND_DMAInterrupt(void)
 	wake_up( &NAND_DMA_WAIT_CH0 );
     else if(nand_index == 1)
 	wake_up( &NAND_DMA_WAIT_CH1 );
+
+    
 }
 
 __s32 NAND_WaitDmaFinish(void)
@@ -423,6 +434,8 @@ __s32 NAND_WaitDmaFinish(void)
 	__u32 nand_index;
 
 	nand_index = NAND_GetCurrentCH();
+	if(nand_index >1)
+		printk("NAND_ClearDMAInt, nand_index error: 0x%x\n", nand_index);
 
 #ifdef __OS_SUPPORT_DMA_INT__    
 	NAND_EnDMAInt();
@@ -448,7 +461,7 @@ __s32 NAND_WaitDmaFinish(void)
     	{
     		if(wait_event_timeout(NAND_DMA_WAIT_CH0, nanddma_ready_flag[nand_index], 1*HZ)==0)
 		{
-			dbg_dmaint_wrn("nand wait dma ready time out, ch: 0x%d\n", nand_index);
+			dbg_dmaint_wrn("nand wait dma ready time out, ch: 0x%d, dma_status: %x, dma_ready_flag: 0x%x\n", nand_index, NFC_DmaIntGetStatus(),nanddma_ready_flag[nand_index]);
 			NAND_ClearDMAInt();
 		}
 		else
@@ -461,7 +474,7 @@ __s32 NAND_WaitDmaFinish(void)
 	{
 		if(wait_event_timeout(NAND_DMA_WAIT_CH1, nanddma_ready_flag[nand_index], 1*HZ)==0)
 		{
-			dbg_dmaint_wrn("nand wait dma ready time out, ch: 0x%d\n", nand_index);
+			dbg_dmaint_wrn("nand wait dma ready time out, ch: 0x%d, dma_status: %x, dma_ready_flag: 0x%x\n", nand_index, NFC_DmaIntGetStatus(),nanddma_ready_flag[nand_index]);
 			NAND_ClearDMAInt();
 		}
 		else
@@ -469,6 +482,10 @@ __s32 NAND_WaitDmaFinish(void)
 			dbg_rbint("nand wait dma ready ok\n");
 			NAND_ClearDMAInt();
 		}
+	}
+	else
+	{
+		printk("NAND_WaitDmaFinish, error nand_index: 0x%x\n", nand_index);
 	}
     	
 #endif	
@@ -480,6 +497,8 @@ void NAND_EnRbInt(void)
 	__u32 nand_index;
 
 	nand_index = NAND_GetCurrentCH();
+	if(nand_index >1)
+		printk("NAND_ClearDMAInt, nand_index error: 0x%x\n", nand_index);
 	
 	//clear interrupt
 	NFC_RbIntClearStatus();
@@ -503,6 +522,8 @@ void NAND_ClearRbInt(void)
     	__u32 nand_index;
 
 	nand_index = NAND_GetCurrentCH();
+	if(nand_index >1)
+		printk("NAND_ClearDMAInt, nand_index error: 0x%x\n", nand_index);
 	
 	//disable interrupt
 	NFC_RbIntDisable();;
@@ -527,6 +548,8 @@ void NAND_RbInterrupt(void)
 	__u32 nand_index;
 
 	nand_index = NAND_GetCurrentCH();
+	if(nand_index >1)
+		printk("NAND_ClearDMAInt, nand_index error: 0x%x\n", nand_index);
 
 	dbg_rbint("rb int occor! \n");
 	if(!NFC_RbIntGetStatus())
@@ -551,6 +574,8 @@ __s32 NAND_WaitRbReady(void)
 	__u32 nand_index;
 	
 	nand_index = NAND_GetCurrentCH();
+	if(nand_index >1)
+		printk("NAND_ClearDMAInt, nand_index error: 0x%x\n", nand_index);
 
 	
 	NAND_EnRbInt();

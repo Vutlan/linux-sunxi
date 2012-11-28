@@ -24,10 +24,8 @@
 #include <asm/cacheflush.h>
 #include "nand_blk.h"
 #include "../nandtest/nand_test.h"
+#include <mach/sys_config.h>
 
-#ifndef __FPGA_TEST__
-    #include <mach/sys_config.h>
-#endif
 
 extern __u32 nand_current_dev_num;
 extern int part_secur[ND_MAX_PART_COUNT];
@@ -1271,21 +1269,22 @@ static struct platform_driver nand_driver = {
 int __init nand_init(void)
 {
 	s32 ret;
-#ifndef __FPGA_TEST__
-    int nand_used = 0;
+#if 1
+    	script_item_u   nand0_used_flag;
+	script_item_value_type_e  type;
+
+	/* 获取card_line值 */
+	type = script_get_item("nand0_para", "nand0_used", &nand0_used_flag);
+	if(SCIRPT_ITEM_VALUE_TYPE_INT != type)
+		printk("type err!");
+	printk("nand0_used_flag is %d\n", nand0_used_flag.val);
     
-    ret = script_parser_fetch("nand_para","nand_used", &nand_used, sizeof(int));
-    if (ret)
-    {
-    	printk("nand init fetch emac using configuration failed\n");
 
-    }
-
-    if(nand_used == 0)
-    {
-        printk("nand driver is disabled \n");
-        return 0;
-    }
+	if(nand0_used_flag.val == 0)
+	{
+		printk("nand driver is disabled \n");
+		return 0;
+	}
 #endif
 
 	printk("[NAND]nand driver, init 11 .\n");
@@ -1309,22 +1308,24 @@ int __init nand_init(void)
 
 void __exit nand_exit(void)
 {
-#ifndef __FPGA_TEST__
-    s32 ret;
-	int nand_used = 0;
-    ret = script_parser_fetch("nand_para","nand_used", &nand_used, sizeof(int));
-    if (ret)
-    {
-    	printk("nand init fetch emac using configuration failed\n");
+#if 1
+	script_item_u	nand0_used_flag;
+	script_item_value_type_e  type;
 
-    }
+	/* 获取card_line值 */
+	type = script_get_item("nand0_para", "nand0_used", &nand0_used_flag);
+	if(SCIRPT_ITEM_VALUE_TYPE_INT != type)
+		printk("type err!");
+	printk("nand0_used_flag is %d\n", nand0_used_flag.val);
+    
 
-    if(nand_used == 0)
-    {
-        printk("nand driver is disabled \n");
-        return ;
-    }
+	if(nand0_used_flag.val == 0)
+	{
+		printk("nand driver is disabled \n");
+		return 0;
+	}
 #endif
+
 	printk("[NAND]nand driver : bye bye\n");
 	platform_driver_unregister(&nand_driver);
 	//platform_device_unregister(&nand_device);
