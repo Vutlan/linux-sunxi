@@ -356,7 +356,6 @@ struct sunxi_mmc_host {
 
 	/* backup register structrue */
 	struct sunxi_mmc_ctrl_regs bak_regs;
-	user_gpio_set_t bak_gpios[6];
 };
 
 #define SMC_MSG(d, ...)    do { printk("[mmc]: "__VA_ARGS__); } while(0)
