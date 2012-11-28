@@ -13,25 +13,49 @@
 #define bcm40183_msg(...)    do {printk("[bcm40183]: "__VA_ARGS__);} while(0)
 static int bcm40183_wl_on = 0;
 static int bcm40183_bt_on = 0;
-
+static int bcm40183_vdd_en = 0;
+static int bcm40183_vcc_en = 0;
+static int bcm40183_wl_regon = 0;
+static int bcm40183_bt_regon = 0;
+static int bcm40183_bt_rst = 0;
 
 static int bcm40183_gpio_ctrl(char* name, int level)
 {
-	struct wifi_pm_ops *ops = &wifi_card_pm_ops;
-	char* gpio_cmd[3] = {"bcm40183_wl_regon", "bcm40183_bt_regon", "bcm40183_bt_rst"};
-	int i = 0;
-	int ret = 0;
-
+	int i = 0, ret1 = 0, ret2 = 0, gpio = 0;
+	unsigned long flags = 0;
+	char* gpio_name[3] = {"bcm40183_wl_regon", "bcm40183_bt_regon", "bcm40183_bt_rst"};
+	
 	for (i=0; i<3; i++) {
-		if (strcmp(name, gpio_cmd[i])==0)
+		if (strcmp(name, gpio_name[i])==0) {
+			    switch (i)
+			    {
+			        case 0: /* bcm40183_wl_regon */
+						gpio = bcm40183_wl_regon;
+			            break;
+			        case 1: /* bcm40183_bt_regon */
+						gpio = bcm40183_bt_regon;
+			            break;
+					case 2: /* bcm40183_bt_rst */
+						gpio = bcm40183_bt_rst;
+						break;
+					default:
+            			bcm40183_msg("no matched gpio!\n");
+			    }
 			break;
+		}
 	}
+
 	if (i==3) {
 		bcm40183_msg("No gpio %s for BCM40183 module\n", name);
 		return -1;
 	}
 
-	bcm40183_msg("Set GPIO %s to %d !\n", name, level);
+	if (1==level)
+		flags = GPIOF_OUT_INIT_HIGH;
+	else 
+		flags = GPIOF_OUT_INIT_LOW;
+
+	bcm40183_msg("set GPIO %s to %d !\n", name, level);
 	if (strcmp(name, "bcm40183_wl_regon") == 0) {
 		if (level) {
 			if (bcm40183_bt_on) {
@@ -73,28 +97,59 @@ static int bcm40183_gpio_ctrl(char* name, int level)
 	}
 
 gpio_state_change:
-	ret = sw_gpio_write_one_pin_value(ops->pio_hdle, level, name);
-	if (ret) {
-		bcm40183_msg("Failed to set gpio %s to %d !\n", name, level);
+
+	ret1 = gpio_request(gpio, NULL);
+	if (0!=ret1)
+		bcm40183_msg("warming failed to request gpio %d\n", gpio);
+
+	ret2 = gpio_request_one(gpio, flags, NULL);
+	if (ret2) {
+		if (0==ret1)
+			gpio_free(gpio);
+		bcm40183_msg("failed to set gpio %d to %d !\n", gpio, level);
 		return -1;
+	} else {
+		if (0==ret1)
+			gpio_free(gpio);
+		bcm40183_msg("succeed to set gpio %d to %d !\n", gpio, level);
 	}
 
 	return 0;
 
 power_change:
 
-	ret = sw_gpio_write_one_pin_value(ops->pio_hdle, level, "bcm40183_vcc_en");
-	if (ret) {
-		bcm40183_msg("Failed to set BCM40183 bcm40183_vcc_en %s\n", level ? "on" : "off");
+	ret1 = gpio_request(bcm40183_vcc_en, NULL);
+	if (0!=ret1)
+		bcm40183_msg("warming failed to request bcm40183_vcc_en gpio\n");
+
+	ret2 = gpio_request_one(bcm40183_vcc_en, flags, NULL);
+	if (ret2) {
+		if (0==ret1)
+			gpio_free(bcm40183_vcc_en);
+		bcm40183_msg("failed to set gpio bcm40183_vcc_en to %d !\n", level);
 		return -1;
+	} else {
+		if (0==ret1)
+			gpio_free(bcm40183_vcc_en);
+		bcm40183_msg("succeed to set gpio bcm40183_vcc_en to %d !\n", level);
 	}
-	
-	ret = sw_gpio_write_one_pin_value(ops->pio_hdle, level, "bcm40183_vdd_en");
-	if (ret) {
-		bcm40183_msg("Failed to set BCM40183 bcm40183_vdd_en %s\n", level ? "on" : "off");
+
+	ret1 = gpio_request(bcm40183_vdd_en, NULL);
+	if (0!=ret1)
+		bcm40183_msg("warming failed to request bcm40183_vdd_en gpio\n");
+
+	ret2 = gpio_request_one(bcm40183_vdd_en, flags, NULL);
+	if (ret2) {
+		if (0==ret1)
+			gpio_free(bcm40183_vdd_en);
+		bcm40183_msg("failed to set gpio bcm40183_vdd_en to %d !\n", level);
 		return -1;
-	}	
-	
+	} else {
+		if (0==ret1)
+			gpio_free(bcm40183_vdd_en);
+		bcm40183_msg("succeed to set gpio bcm40183_vdd_en to %d !\n", level);
+	}
+
 	udelay(500);
 
 change_state:
@@ -103,28 +158,8 @@ change_state:
 	if (strcmp(name, "bcm40183_bt_regon")==0)
 		bcm40183_bt_on = level;
 	bcm40183_msg("BCM40183 power state change: wifi %d, bt %d !!\n", bcm40183_wl_on, bcm40183_bt_on);
-	goto gpio_state_change;
-}
-
-static int bcm40183_get_gpio_value(char* name)
-{
-	int ret = -1;
-	int i = 0;
-	struct wifi_pm_ops *ops = &wifi_card_pm_ops;
-
-	char* gpio_cmd[3] = {"bcm40183_wl_host_wake", "bcm40183_bt_wake", "bcm40183_bt_host_wake"};
-
-	for (i=0; i<3; i++) {
-		if (strcmp(name, gpio_cmd[i])) {
-			bcm40183_msg("Can not get %s pin value\n", name);
-			return -1;
-		}
-	}
-
-	ret = sw_gpio_read_one_pin_value(ops->pio_hdle, name);
-	bcm40183_msg("Succeed to get gpio %s value: %d !\n", name, ret);
-
-	return ret;
+	
+goto gpio_state_change;
 }
 
 static void bcm40183_power(int mode, int *updown)
@@ -148,12 +183,44 @@ static void bcm40183_power(int mode, int *updown)
 
 void bcm40183_gpio_init(void)
 {
+	script_item_u val ;
+	script_item_value_type_e type;
 	struct wifi_pm_ops *ops = &wifi_card_pm_ops;
 	
-	bcm40183_msg("exec bcm40181_wifi_gpio_init\n");	
+	bcm40183_msg("exec bcm40183_wifi_gpio_init\n");
+
+	type = script_get_item(wifi_para, "bcm40183_vdd_en", &val);
+	if (SCIRPT_ITEM_VALUE_TYPE_PIO!=type) 
+		bcm40183_msg("get bcm40183 bcm40183_vdd_en gpio failed\n");
+	else
+		bcm40183_vdd_en = val.gpio.gpio;
+
+	type = script_get_item(wifi_para, "bcm40183_vcc_en", &val);
+	if (SCIRPT_ITEM_VALUE_TYPE_PIO!=type) 
+		bcm40183_msg("get bcm40183 bcm40183_vcc_en gpio failed\n");
+	else
+		bcm40183_vcc_en = val.gpio.gpio;
+
+	type = script_get_item(wifi_para, "bcm40183_wl_regon", &val);
+	if (SCIRPT_ITEM_VALUE_TYPE_PIO!=type) 
+		bcm40183_msg("get bcm40183 bcm40183_wl_regon gpio failed\n");
+	else
+		bcm40183_wl_regon = val.gpio.gpio;
+
+	type = script_get_item(wifi_para, "bcm40183_bt_regon", &val);
+	if (SCIRPT_ITEM_VALUE_TYPE_PIO!=type) 
+		bcm40183_msg("get bcm40183 bcm40183_bt_regon gpio failed\n");
+	else
+		bcm40183_bt_regon = val.gpio.gpio;
+
+	type = script_get_item(wifi_para, "bcm40183_bt_rst", &val);
+	if (SCIRPT_ITEM_VALUE_TYPE_PIO!=type) 
+		bcm40183_msg("get bcm40183 bcm40183_bt_rst gpio failed\n");
+	else
+		bcm40183_bt_rst = val.gpio.gpio;
+
 	bcm40183_wl_on = 0;
 	bcm40183_bt_on = 0;
-	ops->gpio_ctrl = bcm40183_gpio_ctrl;
-	ops->get_io_val = bcm40183_get_gpio_value;
+	ops->gpio_ctrl	= bcm40183_gpio_ctrl;
 	ops->power = bcm40183_power;
 }

@@ -1128,7 +1128,7 @@ extern void rtd2885_wlan_netlink_sendMsg(char *action_string, char *name);
 #include <mach/sys_config.h>
 extern int sw_usb_disable_hcd(__u32 usbc_no);
 extern int sw_usb_enable_hcd(__u32 usbc_no);
-static int usb_wifi_host = 2;
+static script_item_u item;
 #endif
 
 _adapter *rtw_usb_if1_init(struct dvobj_priv *dvobj,
@@ -1506,16 +1506,16 @@ static int __init rtw_drv_entry(void)
 #endif
 #ifdef CONFIG_PLATFORM_ARM_SUN4I
 #ifndef CONFIG_RTL8723A
-	int ret = 0;
+	script_item_value_type_e type;
+	
 	/* ----------get usb_wifi_usbc_num------------- */	
-	ret = script_parser_fetch("usb_wifi_para", "usb_wifi_usbc_num", (int *)&usb_wifi_host, 64);	
-	if(ret != 0){		
-		printk("ERR: script_parser_fetch usb_wifi_usbc_num failed\n");		
-		ret = -ENOMEM;		
-		return ret;	
+	type = script_get_item("usb_wifi_para", "usb_wifi_usbc_num", &item);
+	if(SCIRPT_ITEM_VALUE_TYPE_INT != type){		
+		printk("ERR: script_parser_fetch usb_wifi_usbc_num failed\n");			
+		return -ENOMEM;	
 	}	
-	printk("sw_usb_enable_hcd: usbc_num = %d\n", usb_wifi_host);	
-	sw_usb_enable_hcd(usb_wifi_host);
+	printk("sw_usb_enable_hcd: usbc_num = %d\n", item.val);	
+	sw_usb_enable_hcd(item.val);
 #endif //CONFIG_RTL8723A	
 #endif //CONFIG_PLATFORM_ARM_SUN4I
 
@@ -1560,8 +1560,8 @@ static void __exit rtw_drv_halt(void)
 #endif
 #ifdef CONFIG_PLATFORM_ARM_SUN4I
 #ifndef CONFIG_RTL8723A
-	printk("sw_usb_disable_hcd: usbc_num = %d\n", usb_wifi_host);
-	sw_usb_disable_hcd(usb_wifi_host);
+	printk("sw_usb_disable_hcd: usbc_num = %d\n", item.val);
+	sw_usb_disable_hcd(item.val);
 #endif //ifndef CONFIG_RTL8723A	
 #endif	//CONFIG_PLATFORM_ARM_SUN4I
 	DBG_871X("-rtw_drv_halt\n");

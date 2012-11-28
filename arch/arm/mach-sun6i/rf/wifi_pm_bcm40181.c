@@ -12,50 +12,67 @@
 #define bcm40181_msg(...)    do {printk("[bcm40181]: "__VA_ARGS__);} while(0)
 
 static int bcm40181_powerup = 0;
+static int bcm40181_vdd_en = 0;
+static int bcm40181_vcc_en = 0;
+static int bcm40181_shdn   = 0;
 
 static int bcm40181_gpio_ctrl(char* name, int level)
 {
-	int i = 0, ret = 0;
-	struct wifi_pm_ops *ops = &wifi_card_pm_ops;
-	char* gpio_name[4] = {"bcm40181_shdn", "bcm40181_host_wake", "bcm40181_vdd_en",	"bcm40181_vcc_en"};
+	int i = 0, ret1 = 0, ret2 = 0, gpio = 0;
+	unsigned long flags = 0;
+	char* gpio_name[3] = {"bcm40181_vdd_en", "bcm40181_vcc_en", "bcm40181_shdn"};
 
-	for (i=0; i<4; i++) {
-		if (strcmp(name, gpio_name[i])==0)
+	for (i=0; i<3; i++) {
+		if (strcmp(name, gpio_name[i])==0) {
+			    switch (i)
+			    {
+			        case 0: /* bcm40181_vdd_en */
+						gpio = bcm40181_vdd_en;
+			            break;
+			        case 1: /* bcm40181_vcc_en */
+						gpio = bcm40181_vcc_en;
+			            break;
+					case 2: /* bcm40181_shdn */
+						gpio = bcm40181_shdn;
+						break;
+					default:
+            			bcm40181_msg("no matched gpio!\n");
+			    }
 			break;
+		}
 	}
-	
-	if (i==4) {
+
+	if (i==3) {
 		bcm40181_msg("No gpio %s for bcm40181-wifi module\n", name);
 		return -1;
 	}
+	
+	if (1==level)
+		flags = GPIOF_OUT_INIT_HIGH;
+	else
+		flags = GPIOF_OUT_INIT_LOW;
 
-	ret = sw_gpio_write_one_pin_value(ops->pio_hdle, level, name);
-	if (ret) {
-		bcm40181_msg("Failed to set gpio %s to %d !\n", name, level);
+	ret1 = gpio_request(gpio, NULL);
+	if (0!=ret1)
+		bcm40181_msg("warming failed to request gpio %d\n", gpio);
+
+	ret2 = gpio_request_one(gpio, flags, NULL);
+	if (ret2) {
+		if (0==ret1)
+			gpio_free(gpio);
+		bcm40181_msg("failed to set gpio %d to %d !\n", gpio, level);
 		return -1;
-	} else
-		bcm40181_msg("Succeed to set gpio %s to %d !\n", name, level);
+	} else {
+		if (0==ret1)
+			gpio_free(gpio);
+		bcm40181_msg("succeed to set gpio %d to %d !\n", gpio, level);
+	}
 
     if (strcmp(name, "bcm40181_vdd_en") == 0) {
         bcm40181_powerup = level;
     }
     
 	return 0;
-}
-
-static int bcm40181_get_gpio_value(char* name)
-{
-	int ret = -1;
-	struct wifi_pm_ops *ops = &wifi_card_pm_ops;
-
-	if (strcmp(name, "bcm40181_host_wake")) {
-		bcm40181_msg("No gpio %s for BCM40181\n", name);
-		return -1;
-	}
-	ret = sw_gpio_read_one_pin_value(ops->pio_hdle, name);
-	bcm40181_msg("Succeed to get gpio %s value: %d !\n", name, ret);
-
-	return ret;
 }
 
 void bcm40181_power(int mode, int *updown)
@@ -85,11 +102,31 @@ void bcm40181_power(int mode, int *updown)
 
 void bcm40181_gpio_init(void)
 {
+	script_item_u val ;
+	script_item_value_type_e type;
 	struct wifi_pm_ops *ops = &wifi_card_pm_ops;
 
 	bcm40181_msg("exec bcm40181_wifi_gpio_init\n");
+
+	type = script_get_item(wifi_para, "bcm40181_vdd_en", &val);
+	if (SCIRPT_ITEM_VALUE_TYPE_PIO!=type) 
+		bcm40181_msg("get bcm40181 bcm40181_vdd_en gpio failed\n");
+	else
+		bcm40181_vdd_en = val.gpio.gpio;
+
+	type = script_get_item(wifi_para, "bcm40181_vcc_en", &val);
+	if (SCIRPT_ITEM_VALUE_TYPE_PIO!=type) 
+		bcm40181_msg("get bcm40181 bcm40181_vcc_en gpio failed\n");
+	else
+		bcm40181_vcc_en = val.gpio.gpio;
+
+	type = script_get_item(wifi_para, "bcm40181_shdn", &val);
+	if (SCIRPT_ITEM_VALUE_TYPE_PIO!=type) 
+		bcm40181_msg("get bcm40181 bcm40181_shdn gpio failed\n");
+	else
+		bcm40181_shdn = val.gpio.gpio;
+
 	bcm40181_powerup = 0;
-	ops->gpio_ctrl = bcm40181_gpio_ctrl;
-	ops->get_io_val = bcm40181_get_gpio_value;
+	ops->gpio_ctrl	= bcm40181_gpio_ctrl;
 	ops->power = bcm40181_power;
 }

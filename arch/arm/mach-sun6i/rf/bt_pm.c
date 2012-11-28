@@ -10,16 +10,15 @@
 #if (defined CONFIG_MMC)
 extern int wifi_pm_get_mod_type(void);
 extern int wifi_pm_gpio_ctrl(char* name, int level);
-extern int wifi_pm_get_io_val(char* name);
 #else
 static __inline int wifi_pm_get_mod_type(void) {return 0;}
 static __inline int wifi_pm_gpio_ctrl(char* name, int level) {return -1;}
-static __inline int wifi_pm_get_io_val(char* name) {return -1;}
 #endif
 
 static DEFINE_SPINLOCK(bt_power_lock);
 static const char bt_name[] = "bcm40183";
 static struct rfkill *sw_rfkill;
+
 static int rfkill_set_power(void *data, bool blocked)
 {
     unsigned int mod_sel = wifi_pm_get_mod_type();

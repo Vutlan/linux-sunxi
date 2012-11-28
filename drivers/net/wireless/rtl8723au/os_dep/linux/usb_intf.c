@@ -1140,7 +1140,7 @@ extern void rtd2885_wlan_netlink_sendMsg(char *action_string, char *name);
 #include <mach/sys_config.h>
 extern int sw_usb_disable_hcd(__u32 usbc_no);
 extern int sw_usb_enable_hcd(__u32 usbc_no);
-static int usb_wifi_host = 2;
+static script_item_u item;
 #endif
 
 
@@ -1508,7 +1508,6 @@ extern int console_suspend_enabled;
 
 static int __init rtw_drv_entry(void)
 {
-	int ret = 0;
 #ifdef CONFIG_PLATFORM_RTK_DMP
 	u32 tmp;
 	tmp=readl((volatile unsigned int*)0xb801a608);
@@ -1517,15 +1516,16 @@ static int __init rtw_drv_entry(void)
 	writel(tmp,(volatile unsigned int*)0xb801a608);//write dummy register for 1055
 #endif
 #ifdef CONFIG_PLATFORM_ARM_SUN4I
+	script_item_value_type_e type;
+	
 	/* ----------get usb_wifi_usbc_num------------- */	
-	ret = script_parser_fetch("usb_wifi_para", "usb_wifi_usbc_num", (int *)&usb_wifi_host, 64);	
-	if(ret != 0){		
-		printk("ERR: script_parser_fetch usb_wifi_usbc_num failed\n");		
-		ret = -ENOMEM;		
-		return ret;	
+	type = script_get_item("usb_wifi_para", "usb_wifi_usbc_num", &item);
+	if(SCIRPT_ITEM_VALUE_TYPE_INT != type){	
+		printk("ERR: script_parser_fetch usb_wifi_usbc_num failed\n");			
+		return -ENOMEM;	
 	}	
-	printk("sw_usb_enable_hcd: usbc_num = %d\n", usb_wifi_host);	
-	//sw_usb_enable_hcd(usb_wifi_host);
+	printk("sw_usb_enable_hcd: usbc_num = %d\n", item.val);	
+	//sw_usb_enable_hcd(item.val);
 #endif //CONFIG_PLATFORM_ARM_SUN4I
 
 	RT_TRACE(_module_hci_intfs_c_,_drv_err_,("+rtw_drv_entry\n"));
@@ -1571,8 +1571,8 @@ static void __exit rtw_drv_halt(void)
 	DBG_871X("-rtw_drv_halt\n");
 
 #ifdef CONFIG_PLATFORM_ARM_SUN4I
-	printk("sw_usb_disable_hcd: usbc_num = %d\n", usb_wifi_host);
-	//sw_usb_disable_hcd(usb_wifi_host);
+	printk("sw_usb_disable_hcd: usbc_num = %d\n", item.val);
+	//sw_usb_disable_hcd(item.val);
 #endif	//CONFIG_PLATFORM_ARM_SUN4I
 }
 

@@ -14,49 +14,66 @@
 
 static int rtl8189es_powerup = 0;
 static int rtl8189es_suspend = 0;
+static int rtl8189es_vdd_en = 0;
+static int rtl8189es_vcc_en = 0;
+static int rtl8189es_shdn = 0;
 
 static int rtl8189es_gpio_ctrl(char* name, int level)
 {
-	int i = 0, ret = 0;
-	struct wifi_pm_ops *ops = &wifi_card_pm_ops;
-	char* gpio_name[4] = {"rtl8189es_wakeup", "rtl8189es_shdn",	"rtl8189es_vcc_en",	"rtl8189es_vdd_en"};
+	int i = 0, ret1 = 0, ret2 = 0, gpio = 0;
+	unsigned long flags = 0;
+	char* gpio_name[3] = {"rtl8189es_vdd_en", "rtl8189es_vcc_en", "rtl8189es_shdn"};
 
-	for (i=0; i<4; i++) {
-		if (strcmp(name, gpio_name[i])==0)
+	for (i=0; i<3; i++) {
+		if (strcmp(name, gpio_name[i])==0) {
+			    switch (i)
+			    {
+			        case 0: /* rtl8189es_vdd_en */
+						gpio = rtl8189es_vdd_en;
+			            break;
+			        case 1: /* rtl8189es_vcc_en */
+						gpio = rtl8189es_vcc_en;
+			            break;
+					case 2: /* rtl8189es_shdn */
+						gpio = rtl8189es_shdn;
+						break;
+					default:
+            			rtl8189es_msg("no matched gpio!\n");
+			    }
 			break;
+		}
 	}
-	if (i==4) {
+
+	if (3==i) {
 		rtl8189es_msg("No gpio %s for rtl8189es-wifi module\n", name);
 		return -1;
 	}
 
-	ret = sw_gpio_write_one_pin_value(ops->pio_hdle, level, name);
-	if (ret) {
-		rtl8189es_msg("Failed to set gpio %s to %d !\n", name, level);
-		return -1;
-	} else
-		rtl8189es_msg("Succeed to set gpio %s to %d !\n", name, level);
+	if (1==level)
+		flags = GPIOF_OUT_INIT_HIGH;
+	else
+		flags = GPIOF_OUT_INIT_LOW;
 
-	if (strcmp(name, "rtl8189es_vdd_en") == 0) {
-		rtl8189es_powerup = level;
+	ret1 = gpio_request(gpio, NULL);
+	if (0!=ret1)
+		rtl8189es_msg("warming failed to request gpio %s\n", name);
+
+	ret2 = gpio_request_one(gpio, flags, NULL);
+	if (ret2) {
+		if (0==ret1)
+			gpio_free(gpio);
+		rtl8189es_msg("failed to set gpio %s to %d !\n", name, level);
+		return -1;
+	} else {
+		if (0==ret1)
+			gpio_free(gpio);
+		rtl8189es_msg("succeed to set gpio %s to %d !\n", name, level);
 	}
+
+	if (strcmp(name, "rtl8189es_vdd_en") == 0)
+		rtl8189es_powerup = level;
 
 	return 0;
-}
-
-static int rtl8189es_get_io_value(char* name)
-{
-	int ret = -1;
-	struct wifi_pm_ops *ops = &wifi_card_pm_ops;
-
-	if (strcmp(name, "rtl8189es_wakeup")) {
-		rtl8189es_msg("No gpio %s for rtl8189es\n", name);
-		return -1;
-	}
-	ret = sw_gpio_read_one_pin_value(ops->pio_hdle, name);
-	rtl8189es_msg("Succeed to get gpio %s value: %d !\n", name, ret);
-
-	return ret;
 }
 
 static void rtl8189es_standby(int instadby)
@@ -109,13 +126,33 @@ static void rtl8189es_power(int mode, int *updown)
 
 void rtl8189es_gpio_init(void)
 {
+	script_item_u val ;
+	script_item_value_type_e type;
 	struct wifi_pm_ops *ops = &wifi_card_pm_ops;
 
 	rtl8189es_msg("exec rtl8189es_wifi_gpio_init\n");
+
+	type = script_get_item(wifi_para, "rtl8189es_vdd_en", &val);
+	if (SCIRPT_ITEM_VALUE_TYPE_PIO!=type) 
+		rtl8189es_msg("get rtl8189es rtl8189es_vdd_en gpio failed\n");
+	else
+		rtl8189es_vdd_en = val.gpio.gpio;
+
+	type = script_get_item(wifi_para, "rtl8189es_vcc_en", &val);
+	if (SCIRPT_ITEM_VALUE_TYPE_PIO!=type) 
+		rtl8189es_msg("get rtl8189es rtl8189es_vcc_en gpio failed\n");
+	else
+		rtl8189es_vcc_en = val.gpio.gpio;	
+
+	type = script_get_item(wifi_para, "rtl8189es_shdn", &val);
+	if (SCIRPT_ITEM_VALUE_TYPE_PIO!=type) 
+		rtl8189es_msg("get rtl8189es rtl8189es_shdn gpio failed\n");
+	else
+		rtl8189es_shdn = val.gpio.gpio;
+
 	rtl8189es_powerup = 0;
 	rtl8189es_suspend = 0;
 	ops->gpio_ctrl 	  = rtl8189es_gpio_ctrl;
-	ops->get_io_val   = rtl8189es_get_io_value;
 	ops->standby 	  = rtl8189es_standby;
 	ops->power 		  = rtl8189es_power;
 }
