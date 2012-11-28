@@ -172,13 +172,26 @@ err_out:
 
 static int sw_serial_put_resource(struct sw_serial_port *sport)
 {
+	script_item_u *list = NULL;
+    char uart_para[16];
+	int cnt,i;
+
 	clk_reset(sport->mod_clk,AW_CCU_CLK_RESET);
     clk_disable(sport->mod_clk);
 	clk_disable(sport->bus_clk);
     clk_put(sport->mod_clk);
 	clk_put(sport->bus_clk);
-    sw_gpio_release(sport->pio_hdle, 1);
-    return 0;
+
+	sprintf(uart_para, "uart_para%d", sport->port_no);
+	cnt = script_get_pio_list(uart_para, &list);
+	if(!cnt){
+		return 1;
+	}
+ 
+	for(i=0;i<cnt;i++)
+		gpio_free(list[i].gpio.gpio);
+
+	return 0;
 }
 
 static int sw_serial_get_config(struct sw_serial_port *sport, u32 uart_id)
