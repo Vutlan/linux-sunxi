@@ -1881,18 +1881,17 @@ fail:
 
 static int sun6i_spi_get_cfg_csbitmap(int bus_num)
 {
-    int value = 0;
-    int ret   = 0;
+    script_item_u cs_bitmap;
+    script_item_value_type_e type;
     char *main_name[] = {"spi0_para", "spi1_para", "spi2_para", "spi3_para"};
-    char *sub_name = "spi_cs_bitmap";
 
-    ret = script_parser_fetch(main_name[bus_num], sub_name, &value, sizeof(int));
-    if(ret != SCRIPT_PARSER_OK){
-        SPI_ERR("get spi %d para failed, err code = %d \n", bus_num, ret);
+    type = script_get_item(main_name[bus_num], "spi_cs_bitmap", &cs_bitmap);
+    if(SCIRPT_ITEM_VALUE_TYPE_INT != type){
+        SPI_ERR("[spi-%d] get spi_cs_bitmap from sysconfig failed\n", bus_num);
         return 0;
     }
 
-    return value;
+    return cs_bitmap.val;
 }
 
 /* get configuration in the script */
