@@ -118,17 +118,20 @@ __s32 mem_int_exit(void)
 */
 __s32 mem_enable_int(enum interrupt_source_e src)
 {
-    __u32   tmpGrp = (__u32)src >> 5;
-    __u32   tmpSrc = (__u32)src & 0x1f;
+	__u32   tmpGrp = (__u32)src >> 5;
+	__u32   tmpSrc = (__u32)src & 0x1f;
 
-    //enable interrupt source
-    *(volatile __u32 *)(GicDDisc + GIC_DIST_ENABLE_SET + tmpGrp*4) |= (1<<tmpSrc);
-    //printk("GicDDisc + GIC_DIST_ENABLE_SET + tmpGrp*4 = 0x%x. tmpGrp = 0x%x.\n", GicDDisc + GIC_DIST_ENABLE_SET + tmpGrp*4, tmpGrp);
-    //printk("tmpSrc = 0x%x. \n", tmpSrc);
-    
-    //need to care mask or priority?
+	GicDDisc = (void *)IO_ADDRESS(AW_GIC_DIST_BASE);
+	GicCDisc = (void *)IO_ADDRESS(AW_GIC_CPU_BASE);
 
-    return 0;
+	//enable interrupt source
+	*(volatile __u32 *)(GicDDisc + GIC_DIST_ENABLE_SET + tmpGrp*4) |= (1<<tmpSrc);
+	//printk("GicDDisc + GIC_DIST_ENABLE_SET + tmpGrp*4 = 0x%x. tmpGrp = 0x%x.\n", GicDDisc + GIC_DIST_ENABLE_SET + tmpGrp*4, tmpGrp);
+	//printk("tmpSrc = 0x%x. \n", tmpSrc);
+
+	//need to care mask or priority?
+
+	return 0;
 }
 
 
@@ -145,15 +148,18 @@ __s32 mem_enable_int(enum interrupt_source_e src)
 */
 __s32 mem_query_int(enum interrupt_source_e src)
 {
-    __s32   result = 0;
-    __u32   tmpGrp = (__u32)src >> 5;
-    __u32   tmpSrc = (__u32)src & 0x1f;
+	__s32   result = 0;
+	__u32   tmpGrp = (__u32)src >> 5;
+	__u32   tmpSrc = (__u32)src & 0x1f;
 
-    result = *(volatile __u32 *)(GicDDisc + GIC_DIST_PENDING_SET + tmpGrp*4) & (1<<tmpSrc);
-    
-    //printk("GicDDisc + GIC_DIST_PENDING_SET + tmpGrp*4 = 0x%x. tmpGrp = 0x%x.\n", GicDDisc + GIC_DIST_PENDING_SET + tmpGrp*4, tmpGrp);
-    //printk("tmpSrc = 0x%x. result = 0x%x. \n", tmpSrc, result);
+	GicDDisc = (void *)IO_ADDRESS(AW_GIC_DIST_BASE);
+	GicCDisc = (void *)IO_ADDRESS(AW_GIC_CPU_BASE);
 
-    return result? 0:-1;
+	result = *(volatile __u32 *)(GicDDisc + GIC_DIST_PENDING_SET + tmpGrp*4) & (1<<tmpSrc);
+
+	//printk("GicDDisc + GIC_DIST_PENDING_SET + tmpGrp*4 = 0x%x. tmpGrp = 0x%x.\n", GicDDisc + GIC_DIST_PENDING_SET + tmpGrp*4, tmpGrp);
+	//printk("tmpSrc = 0x%x. result = 0x%x. \n", tmpSrc, result);
+
+	return result? 0:-1;
 }
 

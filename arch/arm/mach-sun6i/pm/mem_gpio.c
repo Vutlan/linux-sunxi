@@ -18,7 +18,7 @@ __s32 mem_gpio_save(struct gpio_state *pgpio_state)
 	
 	/*save all the gpio reg*/
 	for(i=0; i<(GPIO_REG_LENGTH); i++){
-		pgpio_state->gpio_reg_back[i] = *(volatile __u32 *)(SW_VA_PIO_IO_BASE + i*0x04); 
+		pgpio_state->gpio_reg_back[i] = *(volatile __u32 *)(IO_ADDRESS(AW_PIO_BASE) + i*0x04); 
 	}
 	return 0;
 }
@@ -40,7 +40,7 @@ __s32 mem_gpio_restore(struct gpio_state *pgpio_state)
 	
 	/*restore all the gpio reg*/
 	for(i=0; i<(GPIO_REG_LENGTH); i++){
-		 *(volatile __u32 *)(SW_VA_PIO_IO_BASE + i*0x04) = pgpio_state->gpio_reg_back[i];
+		 *(volatile __u32 *)(IO_ADDRESS(AW_PIO_BASE) + i*0x04) = pgpio_state->gpio_reg_back[i];
 	}
 	return 0;
 }

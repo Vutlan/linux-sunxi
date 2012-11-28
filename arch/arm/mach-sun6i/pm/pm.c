@@ -316,7 +316,7 @@ static int aw_early_suspend(void)
 #define MAX_RETRY_TIMES (5)
 	
 	//backup device state
-	mem_ccu_save((__ccmu_reg_list_t *)(SW_VA_CCM_IO_BASE));
+	mem_ccu_save((__ccmu_reg_list_t *)(IO_ADDRESS(AW_CCM_BASE)));
 	mem_clk_save(&(saved_clk_state));
 	mem_gpio_save(&(saved_gpio_state));
 	mem_tmr_save(&(saved_tmr_state));
@@ -473,7 +473,7 @@ static void aw_late_resume(void)
 	mem_tmr_restore(&(saved_tmr_state));
 	//mem_int_restore(&(saved_gic_state));
 	mem_sram_restore(&(saved_sram_state));
-	mem_ccu_restore((__ccmu_reg_list_t *)(SW_VA_CCM_IO_BASE));
+	mem_ccu_restore((__ccmu_reg_list_t *)(IO_ADDRESS(AW_CCM_BASE)));
 
 	return;
 }
@@ -630,8 +630,13 @@ static int aw_pm_enter(suspend_state_t state)
 		//at current situation, no need to clean & invalidate cache;
 		//__cpuc_flush_kern_all();
 
+		//config int src.
+		mem_int_init();
+		
 		/* goto sram and run */
 		standby(&standby_info);
+		
+		mem_int_exit();
 
 	}else if(SUPER_STANDBY == standby_type){
 		aw_super_standby(state);

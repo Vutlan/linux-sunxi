@@ -20,9 +20,9 @@
 #define TWI_CHECK_TIMEOUT       (0x2ff)
 
 static __twic_reg_t*   TWI_REG_BASE[3] = {
-    (__twic_reg_t*)SW_VA_TWI0_IO_BASE,
-    (__twic_reg_t*)SW_VA_TWI1_IO_BASE,
-    (__twic_reg_t*)SW_VA_TWI2_IO_BASE
+    (__twic_reg_t*)IO_ADDRESS(AW_TWI0_BASE),
+    (__twic_reg_t*)IO_ADDRESS(AW_TWI1_BASE),
+    (__twic_reg_t*)IO_ADDRESS(AW_TWI2_BASE)
 };
 
 static __u32 TwiClkRegBak = 0;

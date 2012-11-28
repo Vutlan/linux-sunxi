@@ -14,15 +14,13 @@
 #undef CONFIG_ARCH_SUN6I
 #endif
 
-#define __AC(X,Y)	(X##Y)
-#define _AC(X,Y)	__AC(X,Y)
-#define _AT(T,X)	((T)(X))
-#define UL(x) _AC(x, UL)
-#define IO_ADDRESS(x)		((x) + 0xf0000000)
-
 #define CONFIG_ARCH_SUN6I
 #define ENABLE_SUPER_STANDBY
+
+#ifndef CONFIG_AW_ASIC_EVB_PLATFORM
 #define SUN6I_FPGA_SIM
+#endif
+
 //#define CHECK_IC_VERSION
 
 //#define RETURN_FROM_RESUME0_WITH_MMU    //suspend: 0xf000, resume0: 0xc010, resume1: 0xf000
@@ -56,27 +54,10 @@
 #define MEM_SW_VA_SRAM_BASE (0x00000000)
 #define MEM_SW_PA_SRAM_BASE (0x00000000)
 
-#define	SW_VA_CCM_IO_BASE	(0xf1c20000)
-#define	SW_VA_PIO_IO_BASE	(0xf1c20800)
-#define	SW_VA_TIMERC_IO_BASE 	(0xf1c20c00)
-#define	SW_VA_LRADC_IO_BASE 	(0xf1c22800)
-#define	SW_VA_TWI0_IO_BASE	(0xf1c2ac00)
-#define	SW_VA_TWI1_IO_BASE	(0xf1c2b000)
-#define	SW_VA_TWI2_IO_BASE	(0xf1c2b400)
-#define	SW_VA_TWI3_IO_BASE	(0xf1c2b800)
-#define	SW_VA_SRAM_IO_BASE	(0xf1c00000)
-
-#define	SW_PA_CCM_IO_BASE	(0x01c20000)
-#define	SW_PA_PIO_IO_BASE	(0x01c20800)
-#define	SW_PA_TIMERC_IO_BASE 	(0x01c20c00)
-#define	SW_PA_LRADC_IO_BASE 	(0x01c22800)
-#define	SW_PA_TWI0_IO_BASE	(0x01c2ac00)
-#define	SW_PA_TWI1_IO_BASE	(0x01c2b000)
-#define	SW_PA_TWI2_IO_BASE	(0x01c2b400)
-#define	SW_PA_TWI3_IO_BASE	(0x01c2b800)
-#define	SW_PA_SRAM_IO_BASE	(0x01c00000)
-
-
-
+#define __AC(X,Y)	(X##Y)
+#define _AC(X,Y)	__AC(X,Y)
+#define _AT(T,X)	((T)(X))
+#define UL(x) _AC(x, UL)
+#define IO_ADDRESS(x)		((x) + 0xf0000000)
 
 #endif /*_PM_CONFIG_H*/

@@ -39,7 +39,7 @@ static __u32 KeyCtrl, KeyIntc, KeyInts, KeyData0, KeyData1;
 __s32 standby_key_init(void)
 {
     /* set key register base */
-    KeyReg = (__standby_key_reg_t *)SW_VA_LRADC_IO_BASE;
+    KeyReg = (__standby_key_reg_t *)(IO_ADDRESS(AW_LRADC01_BASE));
 
     /* backup LRADC registers */
     KeyCtrl = KeyReg->Lradc_Ctrl;
