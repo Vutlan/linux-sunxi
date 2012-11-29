@@ -13,6 +13,7 @@ static __u32 *pttab[2];   //POINTER of LGC tab
 static __u32 printf_cnt=0; //for test
 static __u32 g_iep_status[2] = {0,0};
 
+static __u32 drc_reg_bak[2];
 //power save core 
 #define SCENE_CHNG_THR   45	//
 #define SCENE_CHANGE_DETECT_DISABLE 1	//enable detetion cause filcker in actual ic test 111230, so disable it.
@@ -31,7 +32,7 @@ __s32 drc_clk_init(__u32 sel)
 {
 	__u32 pll_freq;
 
-    DE_INF("deu %d clk init\n", sel);
+    DE_INF("drc %d clk init\n", sel);
 	if(!sel)
 	{
 	    h_drcahbclk0 = OSAL_CCMU_OpenMclk(AHB_CLK_DRC0);
@@ -40,9 +41,9 @@ __s32 drc_clk_init(__u32 sel)
 
 		OSAL_CCMU_MclkReset(h_drcmclk0, RST_INVAILD);
 
-		OSAL_CCMU_SetMclkSrc(h_drcmclk0, SYS_CLK_PLL9);
+		OSAL_CCMU_SetMclkSrc(h_drcmclk0, SYS_CLK_PLL7);
 
-		pll_freq = OSAL_CCMU_GetSrcFreq(SYS_CLK_PLL9);
+		pll_freq = OSAL_CCMU_GetSrcFreq(SYS_CLK_PLL7);
 		if(pll_freq < 300000000)
 		{
 			OSAL_CCMU_SetMclkDiv(h_drcmclk0, 1);
@@ -65,9 +66,9 @@ __s32 drc_clk_init(__u32 sel)
 
 		OSAL_CCMU_MclkReset(h_drcmclk1, RST_INVAILD);
 
-		OSAL_CCMU_SetMclkSrc(h_drcmclk1, SYS_CLK_PLL9);
+		OSAL_CCMU_SetMclkSrc(h_drcmclk1, SYS_CLK_PLL7);
 		
-		pll_freq = OSAL_CCMU_GetSrcFreq(SYS_CLK_PLL9);
+		pll_freq = OSAL_CCMU_GetSrcFreq(SYS_CLK_PLL7);
 		if(pll_freq < 300000000)
 		{
 			OSAL_CCMU_SetMclkDiv(h_drcmclk1, 1);
@@ -646,12 +647,45 @@ __s32 IEP_Drc_Early_Suspend(__u32 sel)//close clk
 
 __s32 iep_drc_suspend(__u32 sel)//save register
 {
-	return DIS_SUCCESS;
+    __u32 i,reg_val;
+#if defined(__LINUX_OSAL__)
+    drc_reg_bak[sel] = (__u32)kmalloc(sizeof(__u32)*0x200,GFP_KERNEL | __GFP_ZERO);
+#endif
+    if(drc_reg_bak[sel])
+    {
+        for(i=0; i<0x200; i+=4)
+        {
+            //save register
+            reg_val = sys_get_wvalue(DRC_EBIOS_Get_Reg_Base(sel) +i);
+            sys_put_wvalue(drc_reg_bak[sel]+i, reg_val);
+        }
+    }
+    return 0;
 }
 
 __s32 iep_drc_resume (__u32 sel)//restore register
 {
-	return DIS_SUCCESS;
+    __u32 i;
+    __u32 reg_val;
+
+    if(drc_reg_bak[sel])
+    {
+        for(i=4; i<0x200; i+=4)
+        {
+            reg_val = sys_get_wvalue(drc_reg_bak[sel] + i);
+            sys_put_wvalue(DRC_EBIOS_Get_Reg_Base(sel) + i,reg_val);
+        }
+
+        reg_val = sys_get_wvalue(drc_reg_bak[sel]);
+        sys_put_wvalue(DRC_EBIOS_Get_Reg_Base(sel),reg_val);
+#if defined(__LINUX_OSAL__)
+        kfree((void*)drc_reg_bak[sel]);
+        drc_reg_bak[sel] = 0;
+#endif
+    }
+
+    return 0;
+
 }
 
 __s32 IEP_Drc_Late_Resume(__u32 sel)//open clk

@@ -49,7 +49,7 @@ static void LCD_cfg_panel_info(__panel_para_t * info)
     info->lcd_x               = 1280;
     info->lcd_y               = 800;
     info->lcd_dclk_freq       = 70;       //MHz 
-    info->lcd_dclk_phase      = 1;        //0: normal phase offset; 1: 1/3 phase offset;  2: 2/3 phase offset; 4: 90 phase  5: phase 0; 
+    info->lcd_io_phase        = 0x0000;   //0:noraml; 1:intert phase(0~3bit: vsync phase; 4~7bit:hsync phase; 8~11bit:dclk phase; 12~15bit:de phase)
     info->lcd_pwm_freq        = 50000;     //Hz
     info->lcd_pwm_pol         = 1;
 
@@ -167,7 +167,7 @@ static void LCD_panel_init(__u32 sel)
     }
     else
     {
-        __inf("== selct other panel except edp ===!\n");
+        __inf("== panel is not edp interface ===!\n");
     }
 
     kfree(info);

@@ -585,7 +585,7 @@ typedef struct
 	__u32   lcd_vspw;
 	__u32   lcd_hspw;
 
-	__u32   lcd_dclk_phase;
+	__u32   lcd_io_phase;
 
 	__u32   lcd_frm;
 	__u32   lcd_gamma_en;

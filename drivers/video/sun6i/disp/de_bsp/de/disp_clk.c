@@ -145,9 +145,9 @@ __s32 image_clk_init(__u32 sel)
 #ifdef RESET_OSAL
 		OSAL_CCMU_MclkReset(h_debe0mclk, RST_INVAILD);
 #endif	
-		OSAL_CCMU_SetMclkSrc(h_debe0mclk, SYS_CLK_PLL9);
+		OSAL_CCMU_SetMclkSrc(h_debe0mclk, SYS_CLK_PLL7);
 
-		pll_freq = OSAL_CCMU_GetSrcFreq(SYS_CLK_PLL9);
+		pll_freq = OSAL_CCMU_GetSrcFreq(SYS_CLK_PLL7);
 		if(pll_freq < 300000000)
 		{
 			OSAL_CCMU_SetMclkDiv(h_debe0mclk, 1);
@@ -172,9 +172,9 @@ __s32 image_clk_init(__u32 sel)
 	
         OSAL_CCMU_MclkReset(h_debe1mclk, RST_INVAILD);
 #endif 
-        OSAL_CCMU_SetMclkSrc(h_debe1mclk, SYS_CLK_PLL9);//FIX CONNECT TO PLL9
+        OSAL_CCMU_SetMclkSrc(h_debe1mclk, SYS_CLK_PLL7);//FIX CONNECT TO PLL9
 
-		pll_freq = OSAL_CCMU_GetSrcFreq(SYS_CLK_PLL9);
+		pll_freq = OSAL_CCMU_GetSrcFreq(SYS_CLK_PLL7);
 		if(pll_freq < 300000000)
 		{
 			OSAL_CCMU_SetMclkDiv(h_debe1mclk, 1);
@@ -273,7 +273,7 @@ __s32 scaler_clk_init(__u32 sel)
 		OSAL_CCMU_MclkReset(h_defe0mclk, RST_INVAILD);
 #endif
 	
-		OSAL_CCMU_SetMclkSrc(h_defe0mclk, SYS_CLK_PLL9);	//FIX CONNECT TO  PLL9
+		OSAL_CCMU_SetMclkSrc(h_defe0mclk, SYS_CLK_PLL7);	//FIX CONNECT TO  PLL9
 		OSAL_CCMU_SetMclkDiv(h_defe0mclk, 1);
 	
 		OSAL_CCMU_MclkOnOff(h_defe0ahbclk, CLK_ON);
@@ -292,7 +292,7 @@ __s32 scaler_clk_init(__u32 sel)
 #ifdef RESET_OSAL
 		OSAL_CCMU_MclkReset(h_defe1mclk, RST_INVAILD);
 #endif	
-		OSAL_CCMU_SetMclkSrc(h_defe1mclk, SYS_CLK_PLL9);	//FIX CONNECT PLL9
+		OSAL_CCMU_SetMclkSrc(h_defe1mclk, SYS_CLK_PLL7);	//FIX CONNECT PLL9
 		OSAL_CCMU_SetMclkDiv(h_defe1mclk, 1);
 	
 		OSAL_CCMU_MclkOnOff(h_defe1ahbclk, CLK_ON);
@@ -700,7 +700,6 @@ __s32 disp_pll_init(void)
 {
 	OSAL_CCMU_SetSrcFreq(SYS_CLK_PLL3, 297000000);	
 	OSAL_CCMU_SetSrcFreq(SYS_CLK_PLL7, 297000000);
-    OSAL_CCMU_SetSrcFreq(SYS_CLK_PLL9, 297000000);
 
 	return DIS_SUCCESS;
 }

@@ -412,10 +412,10 @@ __s32 LCD_parse_panel_para(__u32 sel, __panel_para_t * info)
         info->lcd_edp_tx_lane= value;
     }
 
-    ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_dclk_phase", &value, 1);
+    ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_io_phase", &value, 1);
     if(ret == 0)
     {
-        info->lcd_dclk_phase = value;
+        info->lcd_io_phase = value;
     }
 
     ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_gamma_en", &value, 1);

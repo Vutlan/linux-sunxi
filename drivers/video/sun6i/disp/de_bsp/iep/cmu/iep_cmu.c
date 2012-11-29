@@ -12,7 +12,7 @@
 
 #include "iep_cmu.h"
 
-void *cmu_mem;
+static __u32 cmu_mem[2];
 __u32 cmu_reg_base[2] = {0,0};//CMU_REGS_BASE
 
 __u32 hsv_range_par[21] = 
@@ -284,15 +284,15 @@ __s32 iep_cmu_suspend(__u32 sel)
 {
 	__u32 i,reg_val;
 #if defined(__LINUX_OSAL__)
-	cmu_mem = kmalloc(sizeof(__u32)*0x100,GFP_KERNEL | __GFP_ZERO);
+	cmu_mem[sel] = (__u32)kmalloc(sizeof(__u32)*0x100,GFP_KERNEL | __GFP_ZERO);
 #endif
-    if(cmu_mem)
+    if(cmu_mem[sel])
     {
         for(i=0; i<0x100; i+=4)
         {
         	//save register
             reg_val = CMU_RUINT32(sel,IMGEHC_CMU_CTL_REG_OFF +i);
-            put_wvalue(cmu_mem, reg_val);
+            put_wvalue(cmu_mem[sel]+i, reg_val);
         }
     }
 
@@ -304,18 +304,19 @@ __s32 iep_cmu_resume(__u32 sel)
 	__u32 i,reg_val;
 
 	IEP_CMU_Reg_Init(sel);
-    if(cmu_mem)
+    if(cmu_mem[sel])
     {
         for(i=4; i<0x100; i+=4)
         {
         	//restore register
-            reg_val = get_wvalue(cmu_mem +i);
+            reg_val = get_wvalue(cmu_mem[sel] +i);
             CMU_WUINT32(sel,IMGEHC_CMU_CTL_REG_OFF +i,reg_val);
         }
-        reg_val = get_wvalue(cmu_mem);
+        reg_val = get_wvalue(cmu_mem[sel]);
         CMU_WUINT32(sel,IMGEHC_CMU_CTL_REG_OFF,reg_val);
 #if defined(__LINUX_OSAL__)
-    	kfree(cmu_mem);
+    	kfree((void*)cmu_mem[sel]);
+        cmu_mem[sel] = 0;
 #endif
     }
 	

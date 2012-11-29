@@ -7,6 +7,7 @@ static __u32 g_deu_clk_status;
 extern __u8 deu_lp_tab_s[5][5][5];
 extern __u8 deu_lp_tab_l[5][5][5];
 
+static __u32 deu_reg_bak[2];
 static __hdle h_deuahbclk0, h_deudramclk0, h_deumclk0, h_deuahbclk1, h_deudramclk1, h_deumclk1;
 
 static __deu_t gdeu[2];	//DRC module parameters
@@ -35,9 +36,9 @@ __s32 deu_clk_init(__u32 sel)
 
 		OSAL_CCMU_MclkReset(h_deumclk0, RST_INVAILD);
 		
-		OSAL_CCMU_SetMclkSrc(h_deumclk0, SYS_CLK_PLL9);	//FIX CONNECT TO PLL9
+		OSAL_CCMU_SetMclkSrc(h_deumclk0, SYS_CLK_PLL7);	//FIX CONNECT TO PLL9
 		OSAL_CCMU_SetMclkDiv(h_deumclk0, 1);
-        pll_freq = OSAL_CCMU_GetSrcFreq(SYS_CLK_PLL9);
+        pll_freq = OSAL_CCMU_GetSrcFreq(SYS_CLK_PLL7);
 		if(pll_freq < 300000000)
 		{
 			OSAL_CCMU_SetMclkDiv(h_deumclk0, 1);
@@ -60,7 +61,7 @@ __s32 deu_clk_init(__u32 sel)
 
 		OSAL_CCMU_MclkReset(h_deumclk1, RST_INVAILD);
 		
-		OSAL_CCMU_SetMclkSrc(h_deumclk1, SYS_CLK_PLL9);	//FIX CONNECT TO PLL9
+		OSAL_CCMU_SetMclkSrc(h_deumclk1, SYS_CLK_PLL7);	//FIX CONNECT TO PLL9
 		OSAL_CCMU_SetMclkDiv(h_deumclk1, 1);
 		
 		OSAL_CCMU_MclkOnOff(h_deuahbclk1, CLK_ON);
@@ -424,12 +425,46 @@ __s32 IEP_Deu_Early_Suspend(__u32 sel);//close clk
 
 __s32 iep_deu_suspend(__u32 sel)//save register
 {
-    return DIS_SUCCESS;
+    __u32 i,reg_val;
+#if defined(__LINUX_OSAL__)
+	deu_reg_bak[sel] = (__u32)kmalloc(sizeof(__u32)*0x60,GFP_KERNEL | __GFP_ZERO);
+#endif
+    if(deu_reg_bak[sel])
+    {
+        for(i=0; i<0x60; i+=4)
+        {
+        	//save register
+            reg_val = sys_get_wvalue(DEU_EBIOS_Get_Reg_Base(sel) +i);
+            sys_put_wvalue(deu_reg_bak[sel]+i, reg_val);
+        }
+    }
+
+	return 0;
 }
 
 __s32 iep_deu_resume (__u32 sel)//restore register
 {
-    return DIS_SUCCESS;
+    __u32 i;
+    __u32 reg_val;
+
+    if(deu_reg_bak[sel])
+    {
+        for(i=4; i<0x60; i+=4)
+        {
+            reg_val = sys_get_wvalue(deu_reg_bak[sel] + i);
+            sys_put_wvalue(DEU_EBIOS_Get_Reg_Base(sel) + i,reg_val);
+        }
+
+        reg_val = sys_get_wvalue(deu_reg_bak[sel]);
+        sys_put_wvalue(DEU_EBIOS_Get_Reg_Base(sel),reg_val);
+#if defined(__LINUX_OSAL__)
+        kfree((void*)deu_reg_bak[sel]);
+        deu_reg_bak[sel] = 0;
+#endif
+    }
+
+    return 0;
+    
 }
 
 
