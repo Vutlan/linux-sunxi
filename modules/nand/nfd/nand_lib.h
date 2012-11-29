@@ -98,6 +98,8 @@ extern __s32 PHY_Init(void);
 extern __s32 PHY_Exit(void);
 extern __s32 PHY_ChangeMode(__u8 serial_mode);
 extern __s32 PHY_ScanDDRParam(void);
+extern __s32 PHY_SynchBank(__u32 nBank, __u32 bMode);
+extern __s32 PHY_ResetChip(__u32 nChip);
 
 //for simplie(boot0)
 extern __s32 PHY_SimpleErase(struct boot_physical_param * eraseop);
@@ -121,6 +123,9 @@ extern __u32 NAND_GetDiskSize(void);
 extern void  NAND_SetSrcClkName(__u32 pll_name);
 extern __u32 NAND_GetChannelCnt(void);
 extern __u32 NAND_GetCurrentCH(void);
+extern __u32 NAND_GetChipConnect(void);
+extern __u32 NAND_GetChipCnt(void);
+
 
 //for lsb mode
 extern __s32 NFC_LSBEnable(__u32 chip, __u32 read_retry_type);

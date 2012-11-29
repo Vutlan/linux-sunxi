@@ -12,6 +12,7 @@ struct list_head;
 struct semaphore;
 struct hd_geometry;
 
+#define NAND_REG_LENGTH 	(0xC4>>2)
 struct nand_blk_dev{
 	struct nand_blk_ops *nandr;
 	struct list_head list;			
@@ -58,3 +59,6 @@ struct nand_blk_ops{
 	struct module *owner;	
 };
 
+struct nand_state{
+	u32 nand_reg_back[2][NAND_REG_LENGTH];
+};

@@ -315,13 +315,18 @@ void eLIBs_CleanFlushDCacheRegion_nand(void *adr, size_t bytes)
 
 __s32 NAND_CleanFlushDCacheRegion(__u32 buff_addr, __u32 len)
 {
-	eLIBs_CleanFlushDCacheRegion_nand((void *)buff_addr, (size_t)len);
+	//eLIBs_CleanFlushDCacheRegion_nand((void *)buff_addr, (size_t)len);
     return 0;
 }
+
+
+__u32 tmp_dma_phy_addr[2] = {0, 0};
+__u32 tmp_dma_len[2] = {0, 0};
 
 __u32 NAND_DMASingleMap(__u32 rw, __u32 buff_addr, __u32 len)
 {
     __u32 mem_addr;
+    __u32 nand_index = NAND_GetCurrentCH();
     
     if (rw == 1) 
     {
@@ -331,15 +336,30 @@ __u32 NAND_DMASingleMap(__u32 rw, __u32 buff_addr, __u32 len)
     {
 	    mem_addr = (__u32)dma_map_single(NULL, (void *)buff_addr, len, DMA_FROM_DEVICE);
 	}
+
+	tmp_dma_phy_addr[nand_index] = mem_addr;
+	tmp_dma_len[nand_index] = len;
 	
 	return mem_addr;
 }
 
 __u32 NAND_DMASingleUnmap(__u32 rw, __u32 buff_addr, __u32 len)
 {
-    __u32 mem_addr;
-    
-    mem_addr = (__u32)virt_to_phys((void *)buff_addr);
+	__u32 mem_addr = buff_addr;
+	__u32 nand_index = NAND_GetCurrentCH();	
+
+    if(tmp_dma_phy_addr[nand_index]!=mem_addr)
+    {
+    	printk("NAND_DMASingleUnmap, dma addr not match! nand_index: 0x%x, tmp_dma_phy_addr:0x%x, mem_addr: 0x%x\n", nand_index,tmp_dma_phy_addr[nand_index], mem_addr);
+	mem_addr = tmp_dma_phy_addr[nand_index];
+    }
+
+    if(tmp_dma_len[nand_index] != len)
+    {
+	    printk("NAND_DMASingleUnmap, dma len not match! nand_index: 0x%x, tmp_dma_len:0x%x, len: 0x%x\n", nand_index,tmp_dma_len[nand_index], len);
+	    len = tmp_dma_len[nand_index];
+	}
+    	
 
 	if (rw == 1) 
 	{
@@ -770,7 +790,7 @@ void NAND_Memcpy(void* pAddr_dst, void* pAddr_src, unsigned int len)
 
 void* NAND_Malloc(unsigned int Size)
 {
-    return kmalloc(Size, GFP_KERNEL);
+     	return kmalloc(Size, GFP_KERNEL);
 }
 
 void NAND_Free(void *pAddr, unsigned int Size)
