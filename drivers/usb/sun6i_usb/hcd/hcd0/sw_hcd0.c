@@ -33,6 +33,7 @@
 #include <mach/platform.h>
 
 #include  <mach/clock.h>
+#include <linux/gpio.h>
 #include <mach/sys_config.h>
 
 #include  "../include/sw_hcd_config.h"
@@ -103,29 +104,26 @@ static struct sw_hcd *g_sw_hcd0 = NULL;
 //  函数区
 //---------------------------------------------------------------
 
-#define  sw_hcd_BOARD_DRV_VBUS_GPIO	(AW_GPB(16))  /* PIOB16 */
-
 #define res_size(_r) (((_r)->end - (_r)->start) + 1)
 
 static void sw_hcd_save_context(struct sw_hcd *sw_hcd);
 static void sw_hcd_restore_context(struct sw_hcd *sw_hcd);
 
-#ifndef  SW_USB_FPGA
 static s32 usb_clock_init(sw_hcd_io_t *sw_hcd_io)
 {
-	sw_hcd_io->ahb_otg = clk_get(NULL, "ahb_otg");
+	sw_hcd_io->ahb_otg = clk_get(NULL, CLK_AHB_OTG);
 	if (IS_ERR(sw_hcd_io->ahb_otg)){
 		DMSG_PANIC("ERR: get usb sie clk failed.\n");
 		goto failed;
 	}
 
-	sw_hcd_io->mod_usbotg = clk_get(NULL, "mod_usbotg");
+	sw_hcd_io->mod_usbotg = clk_get(NULL, CLK_MOD_USBOTG);
 	if (IS_ERR(sw_hcd_io->mod_usbotg)){
 		DMSG_PANIC("ERR: get usb phy clk failed.\n");
 		goto failed;
 	}
 
-	sw_hcd_io->mod_usbphy = clk_get(NULL, "mod_usbphy0");
+	sw_hcd_io->mod_usbphy = clk_get(NULL, CLK_MOD_USBPHY0);
 	if (IS_ERR(sw_hcd_io->mod_usbphy)){
 		DMSG_PANIC("ERR: get usb phy0 clk failed.\n");
 		goto failed;
@@ -211,12 +209,12 @@ static s32 open_usb_clock(sw_hcd_io_t *sw_hcd_io)
 	}
 
 	UsbPhyInit(0);
-
+/*
 	DMSG_INFO("[hcd0]: open, 0x60(0x%x), 0xcc(0x%x), 0x2c0(0x%x)\n",
-		      (u32)USBC_Readl(AW_VIR_CCM_BASE + 0x60),
-		      (u32)USBC_Readl(AW_VIR_CCM_BASE + 0xcc),
-		      (u32)USBC_Readl(AW_VIR_CCM_BASE + 0x2c0));
-
+		      (u32)USBC_Readl(sw_hcd_io->clock_vbase + 0x60),
+		      (u32)USBC_Readl(sw_hcd_io->clock_vbase + 0xcc),
+		      (u32)USBC_Readl(sw_hcd_io->clock_vbase + 0x2c0));
+*/
 	return 0;
 }
 
@@ -255,114 +253,14 @@ static s32 close_usb_clock(sw_hcd_io_t *sw_hcd_io)
 			      sw_hcd_io->ahb_otg, sw_hcd_io->mod_usbotg, sw_hcd_io->mod_usbphy, sw_hcd_io->clk_is_open);
 	}
 
-
+/*
 	DMSG_INFO("[hcd0]: close, 0x60(0x%x), 0xcc(0x%x), 0x2c0(0x%x)\n",
-		      (u32)USBC_Readl(AW_VIR_CCM_BASE + 0x60),
-		      (u32)USBC_Readl(AW_VIR_CCM_BASE + 0xcc),
-		      (u32)USBC_Readl(AW_VIR_CCM_BASE + 0x2c0));
-
-	return 0;
-}
-
-#else
-
-static s32 usb_clock_init(sw_hcd_io_t *sw_hcd_io)
-{
-	return 0;
-}
-
-static s32 usb_clock_exit(sw_hcd_io_t *sw_hcd_io)
-{
-	return 0;
-}
-
-/*
-*******************************************************************************
-*                     open_usb_clock
-*
-* Description:
-*
-*
-* Parameters:
-*    void
-*
-* Return value:
-*    void
-*
-* note:
-*    void
-*
-*******************************************************************************
+		      (u32)USBC_Readl(sw_hcd_io->clock_vbase + 0x60),
+		      (u32)USBC_Readl(sw_hcd_io->clock_vbase + 0xcc),
+		      (u32)USBC_Readl(sw_hcd_io->clock_vbase + 0x2c0));
 */
-static u32  open_usb_clock(sw_hcd_io_t *sw_hcd_io)
-{
-	u32 reg_value = 0;
-	u32 ccmu_base = AW_VIR_CCM_BASE;
-
-	DMSG_INFO_HCD0("[%s]: open_usb_clock\n", sw_hcd_driver_name);
-
-	//AHB1_RST_REG0 USBOTG_RST
-	reg_value = USBC_Readl(ccmu_base + 0x2c0);
-	reg_value |= (1 << 24);				/* usb0 clear reset*/
-	USBC_Writel(reg_value, (ccmu_base + 0x2c0));
-
-	//USBPHY_CFG_REG USBPHY0_RET
-	reg_value = USBC_Readl(ccmu_base + 0xcc);
-	reg_value |= (1 << 0);
-	USBC_Writel(reg_value, (ccmu_base + 0xcc));
-
-	//delay to wati SIE stable
-	reg_value = 10000;
-	while(reg_value--);
-
-	sw_hcd_io->clk_is_open = 1;
 	return 0;
 }
-
-/*
-*******************************************************************************
-*                     close_usb_clock
-*
-* Description:
-*
-*
-* Parameters:
-*    void
-*
-* Return value:
-*    void
-*
-* note:
-*    void
-*
-*******************************************************************************
-*/
-static u32 close_usb_clock(sw_hcd_io_t *sw_hcd_io)
-{
-	u32 reg_value = 0;
-	u32 ccmu_base = AW_VIR_CCM_BASE;
-
-	DMSG_INFO_HCD0("[%s]: close_usb_clock\n", sw_hcd_driver_name);
-
-	//AHB1_RST_REG0 USBOTG_RST
-	reg_value = USBC_Readl(ccmu_base + 0x2c0);
-	reg_value &= ~(1 << 24); 			/* usb0  reset*/
-	USBC_Writel(reg_value, (ccmu_base + 0x2c0));
-
-	//USBPHY_CFG_REG USBPHY0_RET
-	reg_value = USBC_Readl(ccmu_base + 0xcc);
-	reg_value &= ~(1 << 0);
-	USBC_Writel(reg_value, (ccmu_base + 0xcc));
-
-	//等sie的时钟变稳
-	reg_value = 10000;
-	while(reg_value--);
-
-	sw_hcd_io->clk_is_open = 0;
-	return 0;
-}
-
-#endif
 
 /*
 *******************************************************************************
@@ -384,29 +282,32 @@ static u32 close_usb_clock(sw_hcd_io_t *sw_hcd_io)
 */
 static __s32 pin_init(sw_hcd_io_t *sw_hcd_io)
 {
-
 #ifndef  SW_USB_FPGA
 	__s32 ret = 0;
     script_item_value_type_e type = 0;
-	sw_hcd_io->Drv_vbus_Handle = 1;
 
 	/* usbc drv_vbus */
-	type = script_get_item("usbc0", "usb_drv_vbus_gpio", (int *)&sw_hcd_io->drv_vbus_gpio_set);
-	if(ret != SCIRPT_ITEM_VALUE_TYPE_INT){
-		DMSG_PANIC("ERR: get usbc0(drv vbus) failed\n");
+	type = script_get_item("usbc0", "usb_drv_vbus_gpio", &sw_hcd_io->drv_vbus_gpio_set);
+	if(type == SCIRPT_ITEM_VALUE_TYPE_PIO){
+        sw_hcd_io->drv_vbus_valid = 1;
+	}else{
+	    DMSG_PANIC("ERR: get usbc0(drv vbus) failed\n");
+        sw_hcd_io->drv_vbus_valid = 0;
 	}
 
-	sw_hcd_io->Drv_vbus_Handle = gpio_request(sw_hcd_io->drv_vbus_gpio_set.gpio.gpio);
-	if(sw_hcd_io->Drv_vbus_Handle != 0){
-		DMSG_PANIC("ERR: gpio_request failed\n");
-		return -1;
+    if(sw_hcd_io->drv_vbus_valid){
+    	ret = gpio_request(sw_hcd_io->drv_vbus_gpio_set.gpio.gpio, "otg_drv_vbus");
+    	if(ret != 0){
+    		DMSG_PANIC("ERR: gpio_request failed\n");
+    		sw_hcd_io->drv_vbus_valid = 0;
+    	}else{
+        	/* set config, ouput */
+        	sw_gpio_setcfg(sw_hcd_io->drv_vbus_gpio_set.gpio.gpio, 1);
+
+        	/* reserved is pull down */
+        	sw_gpio_setpull(sw_hcd_io->drv_vbus_gpio_set.gpio.gpio, 2);
+    	}
 	}
-
-	/* set config, ouput */
-	sw_gpio_setcfg(sw_hcd_io->drv_vbus_gpio_set.gpio.gpio, 1);
-
-	/* reserved is pull down */
-	sw_gpio_setpull(sw_hcd_io->drv_vbus_gpio_set.gpio.gpio, 2);
 
 #endif
 	return 0;
@@ -433,9 +334,9 @@ static __s32 pin_init(sw_hcd_io_t *sw_hcd_io)
 static __s32 pin_exit(sw_hcd_io_t *sw_hcd_io)
 {
 #ifndef	SW_USB_FPGA
-	if(sw_hcd_io->Drv_vbus_Handle == 0){
-		gpio_free(sw_hcd_io->drv_vbus_gpio_set.gpio.gpio, 0);
-		sw_hcd_io->Drv_vbus_Handle = 1;
+	if(sw_hcd_io->drv_vbus_valid){
+		gpio_free(sw_hcd_io->drv_vbus_gpio_set.gpio.gpio);
+		sw_hcd_io->drv_vbus_valid = 0;
 	}
 #endif
 	return 0;
@@ -461,14 +362,15 @@ static __s32 pin_exit(sw_hcd_io_t *sw_hcd_io)
 */
 static void sw_hcd_board_set_vbus(struct sw_hcd *sw_hcd, int is_on)
 {
-
-	//u32 on_off = 0;
+#ifndef  SW_USB_FPGA
+	u32 on_off = 0;
+#endif
 
 	DMSG_INFO("[%s]: Set USB Power %s\n", sw_hcd->driver_name, (is_on ? "ON" : "OFF"));
 
 #ifndef  SW_USB_FPGA
     /* set power */
-    if(sw_hcd->sw_hcd_io->drv_vbus_gpio_set.data == 0){
+    if(sw_hcd->sw_hcd_io->drv_vbus_gpio_set.gpio.data == 0){
         on_off = is_on ? 1 : 0;
     }else{
         on_off = is_on ? 0 : 1;
@@ -485,78 +387,6 @@ static void sw_hcd_board_set_vbus(struct sw_hcd *sw_hcd, int is_on)
 		USBC_Host_EndSession(sw_hcd->sw_hcd_io->usb_bsp_hdle);
 		USBC_ForceVbusValid(sw_hcd->sw_hcd_io->usb_bsp_hdle, USBC_VBUS_TYPE_DISABLE);
 	}
-
-	return;
-}
-
-static void clear_usb_reg(__u32 usb_base)
-{
-	__u32 reg_val = 0;
-	__u32 i = 0;
-
-	/* global control and status */
-	reg_val = readl(USBC_REG_EX_USB_GCS(usb_base));
-	reg_val = 0x20;
-	writel(reg_val, USBC_REG_EX_USB_GCS(usb_base));
-
-	/* endpoint interrupt flag */
-	reg_val = readl(USBC_REG_EX_USB_EPINTF(usb_base));
-	reg_val = 0x44;
-	writel(reg_val, USBC_REG_EX_USB_EPINTF(usb_base));
-
-	/* endpoint interrupt enable */
-	reg_val = readl(USBC_REG_EX_USB_EPINTE(usb_base));
-	reg_val = 0x48;
-	writel(reg_val, USBC_REG_EX_USB_EPINTE(usb_base));
-
-	/* bus interrupt flag */
-	reg_val = readl(USBC_REG_EX_USB_BUSINTF(usb_base));
-	reg_val = 0x4c;
-	writel(reg_val, USBC_REG_EX_USB_BUSINTF(usb_base));
-
-	/* bus interrupt enable */
-	reg_val = readl(USBC_REG_EX_USB_BUSINTE(usb_base));
-	reg_val = 0x50;
-	writel(reg_val, USBC_REG_EX_USB_BUSINTE(usb_base));
-
-	/* endpoint control status */
-	for(i = 0; i < USBC_MAX_EP_NUM; i++){
-		writeb(i, USBC_REG_EPIND(usb_base));
-
-		/* endpoint control status */
-		if(i == 0){
-			reg_val = readl(USBC_REG_EX_USB_CSR0(usb_base));
-			reg_val = 0x00;
-			writel(reg_val, USBC_REG_EX_USB_CSR0(usb_base));
-		}else{
-			/* TX endpoint control status */
-			reg_val = readl(USBC_REG_EX_USB_TXCSR(usb_base));
-			reg_val = 0x00;
-			writel(reg_val, USBC_REG_EX_USB_TXCSR(usb_base));
-
-			/* RX endpoint control status */
-			reg_val = readl(USBC_REG_EX_USB_RXCSR(usb_base));
-			reg_val = 0x00;
-			writel(reg_val, USBC_REG_EX_USB_RXCSR(usb_base));
-		}
-
-		/* TX fifo seting */
-		reg_val = readl(USBC_REG_EX_USB_TXFIFO(usb_base));
-		reg_val = 0x90;
-		writel(reg_val, USBC_REG_EX_USB_TXFIFO(usb_base));
-
-		/* RX fifo seting */
-		reg_val = readl(USBC_REG_EX_USB_RXFIFO(usb_base));
-		reg_val = 0x94;
-		writel(reg_val, USBC_REG_EX_USB_RXFIFO(usb_base));
-
-		/* function address */
-		reg_val = readl(USBC_REG_EX_USB_FADDR(usb_base));
-		reg_val = 0x00;
-		writel(reg_val, USBC_REG_EX_USB_FADDR(usb_base));
-	}
-
-	writeb(0x00, USBC_REG_EPIND(usb_base));
 
 	return;
 }
@@ -596,6 +426,7 @@ static __s32 sw_hcd_bsp_init(__u32 usbc_no, sw_hcd_io_t *sw_hcd_io)
 
 #ifdef  SW_USB_FPGA
 	clear_usb_reg((u32)sw_hcd_io->usb_vbase);
+	fpga_config_use_otg((u32)sw_hcd_io->sram_vbase);
 #endif
     return 0;
 }
@@ -686,13 +517,19 @@ static __s32 sw_hcd_io_init(__u32 usbc_no, struct platform_device *pdev, sw_hcd_
 	}
 
 #ifndef  SW_USB_FPGA
+{
+    script_item_value_type_e type = 0;
+    script_item_u item_temp;
+
 	/* get usb_host_init_state */
-	ret = script_parser_fetch(SET_USB0, KEY_USB_HOST_INIT_STATE, (int *)&(sw_hcd_io->host_init_state), 64);
-	if(ret != 0){
-		DMSG_PANIC("ERR: script_parser_fetch host_init_state failed\n");
-		ret = -ENOMEM;
-		goto io_failed2;
+	type = script_get_item(SET_USB0, KEY_USB_HOST_INIT_STATE, &item_temp);
+	if(type == SCIRPT_ITEM_VALUE_TYPE_INT){
+	    sw_hcd_io->host_init_state = item_temp.val;
+	}else{
+		DMSG_PANIC("ERR: get host_init_state failed\n");
+	    sw_hcd_io->host_init_state = 1;
 	}
+}
 #else
 	sw_hcd_io->host_init_state = 1;
 #endif
@@ -700,11 +537,6 @@ static __s32 sw_hcd_io_init(__u32 usbc_no, struct platform_device *pdev, sw_hcd_
 	DMSG_INFO("[sw_hcd0]: host_init_state = %d\n", sw_hcd_io->host_init_state);
 
 	return 0;
-
-#ifndef  SW_USB_FPGA
-io_failed2:
-	pin_exit(sw_hcd_io);
-#endif
 
 io_failed1:
 	sw_hcd_bsp_exit(usbc_no, sw_hcd_io);

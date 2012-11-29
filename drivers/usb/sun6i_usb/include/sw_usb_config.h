@@ -40,20 +40,9 @@
 #include  "sw_udc.h"
 #include  "sw_hcd.h"
 
+#if defined (CONFIG_AW_FPGA_V4_PLATFORM) || defined (CONFIG_AW_FPGA_V7_PLATFORM)
 #define   SW_USB_FPGA
-
-#ifdef  SW_USB_FPGA
-
-#define  SW_VA_USB0_IO_BASE     0xf1c19000
-#define  SW_VA_USB1_IO_BASE     0xf1c1a000
-#define  SW_VA_USB2_IO_BASE     0xf1c1b000
-
-#define  SW_VA_SRAM_IO_BASE     0xf1c00000
-//#define  SW_INTC_IRQNO_USB0     (21 + 32)
-#define  SW_VA_CCM_IO_BASE      0xf1c20000
-
 #endif
-
 
 #endif   //__SW_USB_CONFIG_H__
 

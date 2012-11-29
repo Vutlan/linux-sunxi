@@ -55,30 +55,6 @@ extern int usb_disabled(void);
 int sw_usb_disable_ehci(__u32 usbc_no);
 int sw_usb_enable_ehci(__u32 usbc_no);
 
-void print_ehci_info(struct sw_hci_hcd *sw_ehci)
-{
-    DMSG_INFO("----------print_ehci_info---------\n");
-	DMSG_INFO("hci_name             = %s\n", sw_ehci->hci_name);
-	DMSG_INFO("irq_no               = %d\n", sw_ehci->irq_no);
-	DMSG_INFO("usbc_no              = %d\n", sw_ehci->usbc_no);
-
-	DMSG_INFO("usb_vbase            = 0x%p\n", sw_ehci->usb_vbase);
-	DMSG_INFO("sram_vbase           = 0x%p\n", sw_ehci->sram_vbase);
-	DMSG_INFO("clock_vbase          = 0x%p\n", sw_ehci->clock_vbase);
-	DMSG_INFO("sdram_vbase          = 0x%p\n", sw_ehci->sdram_vbase);
-
-	DMSG_INFO("clock: AHB(0x%x), USB(0x%x)\n",
-	          (u32)USBC_Readl(sw_ehci->clock_vbase + 0x60),
-              (u32)USBC_Readl(sw_ehci->clock_vbase + 0xcc));
-
-	DMSG_INFO("USB: 0x%x\n",(u32)USBC_Readl(sw_ehci->usb_vbase + SW_USB_PMU_IRQ_ENABLE));
-	DMSG_INFO("DRAM: USB1(0x%x), USB2(0x%x)\n",
-	          (u32)USBC_Readl(sw_ehci->sdram_vbase + SW_SDRAM_REG_HPCR_USB1),
-	          (u32)USBC_Readl(sw_ehci->sdram_vbase + SW_SDRAM_REG_HPCR_USB2));
-
-	DMSG_INFO("----------------------------------\n");
-}
-
 /*
 *******************************************************************************
 *                     sw_hcd_board_set_vbus
@@ -379,8 +355,6 @@ static int sw_ehci_hcd_probe(struct platform_device *pdev)
 	struct sw_hci_hcd *sw_ehci = NULL;
 	int ret = 0;
 
-	printk("Line:%d:%s\n", __LINE__, __func__);
-
 	if(pdev == NULL){
 		DMSG_PANIC("ERR: Argment is invaild\n");
 		return -1;
@@ -443,16 +417,6 @@ static int sw_ehci_hcd_probe(struct platform_device *pdev)
 	}
 
 	platform_set_drvdata(pdev, hcd);
-
-#ifdef  SW_USB_EHCI_DEBUG
-	DMSG_INFO("[%s]: probe, clock: 0x60(0x%x), 0xcc(0x%x); usb: 0x800(0x%x), dram:(0x%x, 0x%x)\n",
-		      sw_ehci->hci_name,
-		      (u32)USBC_Readl(sw_ehci->clock_vbase + 0x60),
-		      (u32)USBC_Readl(sw_ehci->clock_vbase + 0xcc),
-		      (u32)USBC_Readl(sw_ehci->usb_vbase + 0x800),
-		      (u32)USBC_Readl(sw_ehci->sdram_vbase + SW_SDRAM_REG_HPCR_USB1),
-		      (u32)USBC_Readl(sw_ehci->sdram_vbase + SW_SDRAM_REG_HPCR_USB2));
-#endif
 
     sw_ehci->probe = 1;
 

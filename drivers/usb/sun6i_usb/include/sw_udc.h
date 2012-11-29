@@ -157,8 +157,6 @@ typedef struct sw_udc_io{
 	struct clk	*ahb_otg;				/* ahb clock handle 	*/
 	struct clk	*mod_usbotg;			/* mod_usb otg clock handle 	*/
 	struct clk	*mod_usbphy;			/* PHY0 clock handle 	*/
-
-	long Drv_vbus_Handle;
 }sw_udc_io_t;
 
 //---------------------------------------------------------------

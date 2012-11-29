@@ -161,9 +161,6 @@ static struct device_attribute host_attrs[] = {
 */
 __s32 usbc0_platform_device_init(struct usb_port_info *port_info)
 {
-	int i = 0;
-	int ret = 0;
-
     /* device */
     sw_udc_cfg.port_info = port_info;
     sw_udc_cfg.usbc_base = AW_VIR_USB_OTG_BASE;
@@ -187,11 +184,16 @@ __s32 usbc0_platform_device_init(struct usb_port_info *port_info)
             platform_device_register(&sw_hcd_device);
 
 #ifdef  SW_USB_FPGA
-			for (i = 0; i < ARRAY_SIZE(host_attrs); i++) {
-				ret = device_create_file(&sw_hcd_device.dev, &host_attrs[i]);
-				if (ret)
-					printk("device_create_file fail\n");
-			}
+{
+	int ret = 0;
+	int i = 0;
+
+	for (i = 0; i < ARRAY_SIZE(host_attrs); i++) {
+		ret = device_create_file(&sw_hcd_device.dev, &host_attrs[i]);
+		if (ret)
+			printk("device_create_file fail\n");
+	}
+}
 #endif
         break;
 

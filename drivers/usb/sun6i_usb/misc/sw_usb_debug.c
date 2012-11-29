@@ -115,7 +115,6 @@ void print_usb_reg_by_ep(spinlock_t *lock, __u32 usbc_base, __s32 ep_index, char
 
     return;
 }
-
 /*
 *******************************************************************************
 *                     print_all_usb_reg
@@ -164,5 +163,124 @@ void print_all_usb_reg(spinlock_t *lock, __u32 usbc_base, __s32 ep_start, __u32 
 
     return;
 }
+/*
+*******************************************************************************
+*                     clear_usb_reg
+*
+* Description:
+*    void
+*
+* Parameters:
+*    void
+*
+* Return value:
+*    void
+*
+* note:
+*    void
+*
+*******************************************************************************
+*/
+void clear_usb_reg(__u32 usb_base)
+{
+	__u32 reg_val = 0;
+	__u32 i = 0;
+
+	/* global control and status */
+	reg_val = readl(USBC_REG_EX_USB_GCS(usb_base));
+	reg_val = 0x20;
+	writel(reg_val, USBC_REG_EX_USB_GCS(usb_base));
+
+	/* endpoint interrupt flag */
+	reg_val = readl(USBC_REG_EX_USB_EPINTF(usb_base));
+	reg_val = 0x44;
+	writel(reg_val, USBC_REG_EX_USB_EPINTF(usb_base));
+
+	/* endpoint interrupt enable */
+	reg_val = readl(USBC_REG_EX_USB_EPINTE(usb_base));
+	reg_val = 0x48;
+	writel(reg_val, USBC_REG_EX_USB_EPINTE(usb_base));
+
+	/* bus interrupt flag */
+	reg_val = readl(USBC_REG_EX_USB_BUSINTF(usb_base));
+	reg_val = 0x4c;
+	writel(reg_val, USBC_REG_EX_USB_BUSINTF(usb_base));
+
+	/* bus interrupt enable */
+	reg_val = readl(USBC_REG_EX_USB_BUSINTE(usb_base));
+	reg_val = 0x50;
+	writel(reg_val, USBC_REG_EX_USB_BUSINTE(usb_base));
+
+	/* endpoint control status */
+	for(i = 0; i < USBC_MAX_EP_NUM; i++){
+		writeb(i, USBC_REG_EPIND(usb_base));
+
+		/* endpoint control status */
+		if(i == 0){
+			reg_val = readl(USBC_REG_EX_USB_CSR0(usb_base));
+			reg_val = 0x00;
+			writel(reg_val, USBC_REG_EX_USB_CSR0(usb_base));
+		}else{
+			/* TX endpoint control status */
+			reg_val = readl(USBC_REG_EX_USB_TXCSR(usb_base));
+			reg_val = 0x00;
+			writel(reg_val, USBC_REG_EX_USB_TXCSR(usb_base));
+
+			/* RX endpoint control status */
+			reg_val = readl(USBC_REG_EX_USB_RXCSR(usb_base));
+			reg_val = 0x00;
+			writel(reg_val, USBC_REG_EX_USB_RXCSR(usb_base));
+		}
+
+		/* TX fifo seting */
+		reg_val = readl(USBC_REG_EX_USB_TXFIFO(usb_base));
+		reg_val = 0x90;
+		writel(reg_val, USBC_REG_EX_USB_TXFIFO(usb_base));
+
+		/* RX fifo seting */
+		reg_val = readl(USBC_REG_EX_USB_RXFIFO(usb_base));
+		reg_val = 0x94;
+		writel(reg_val, USBC_REG_EX_USB_RXFIFO(usb_base));
+
+		/* function address */
+		reg_val = readl(USBC_REG_EX_USB_FADDR(usb_base));
+		reg_val = 0x00;
+		writel(reg_val, USBC_REG_EX_USB_FADDR(usb_base));
+	}
+
+	writeb(0x00, USBC_REG_EPIND(usb_base));
+
+	return;
+}
+
+/*
+*******************************************************************************
+*                     FPGA_CONFIG_USE_OTG
+*
+* Description:
+*    void
+*
+* Parameters:
+*    void
+*
+* Return value:
+*    void
+*
+* note:
+*    void
+*
+*******************************************************************************
+*/
+void fpga_config_use_otg(__u32 sram_vbase)
+{
+	__u32 reg_value = 0;
+
+	reg_value = USBC_Readl(sram_vbase + 0x04);
+	reg_value |= 0x01;
+	USBC_Writel(reg_value, (sram_vbase + 0x04));
+	return ;
+}
+
+
 
 

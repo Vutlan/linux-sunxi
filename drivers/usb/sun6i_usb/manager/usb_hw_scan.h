@@ -40,9 +40,6 @@ typedef enum usb_det_vbus_state{
 typedef struct usb_scan_info{
 	struct usb_cfg 			*cfg;
 
-	u32                     id_hdle;                /* id handle                */
-	u32                     det_vbus_hdle;        	/* detect vbus handle       */
-
     usb_id_state_t          id_old_state;           /* last id state            */
     usb_det_vbus_state_t    det_vbus_old_state;     /* last detect vbus state   */
 

@@ -47,8 +47,6 @@
 
 #define res_size(_r) (((_r)->end - (_r)->start) + 1)
 
-#ifndef  SW_USB_FPGA
-
 /*
 *******************************************************************************
 *                     open_usb_clock
@@ -90,12 +88,12 @@ u32  open_usb_clock(sw_udc_io_t *sw_udc_io)
 
 	UsbPhyInit(0);
 
-
+/*
 	DMSG_INFO("[udc0]: open, 0x60(0x%x), 0xcc(0x%x), 0x2c0(0x%x)\n",
-		      (u32)USBC_Readl(AW_VIR_CCM_BASE + 0x60),
-		      (u32)USBC_Readl(AW_VIR_CCM_BASE + 0xcc),
-			  (u32)USBC_Readl(AW_VIR_CCM_BASE + 0x2C0));
-
+		      (u32)USBC_Readl(sw_udc_io->clock_vbase + 0x60),
+		      (u32)USBC_Readl(sw_udc_io->clock_vbase + 0xcc),
+			  (u32)USBC_Readl(sw_udc_io->clock_vbase + 0x2c0));
+*/
 	return 0;
 }
 
@@ -136,170 +134,13 @@ u32 close_usb_clock(sw_udc_io_t *sw_udc_io)
 			       sw_udc_io->ahb_otg, sw_udc_io->mod_usbotg, sw_udc_io->mod_usbphy, sw_udc_io->clk_is_open);
 	}
 
-
+/*
 	DMSG_INFO("[udc0]: close, 0x60(0x%x), 0xcc(0x%x),0x2c0(0x%x)\n",
-		      (u32)USBC_Readl(AW_VIR_CCM_BASE + 0x60),
-		      (u32)USBC_Readl(AW_VIR_CCM_BASE + 0xcc),
-			  (u32)USBC_Readl(AW_VIR_CCM_BASE + 0xcc));
-	return 0;
-}
-
-#else
-
-/*
-*******************************************************************************
-*                     open_usb_clock
-*
-* Description:
-*
-*
-* Parameters:
-*    void
-*
-* Return value:
-*    void
-*
-* note:
-*    void
-*
-*******************************************************************************
+		      (u32)USBC_Readl(sw_udc_io->clock_vbase + 0x60),
+		      (u32)USBC_Readl(sw_udc_io->clock_vbase + 0xcc),
+			  (u32)USBC_Readl(sw_udc_io->clock_vbase + 0x2c0));
 */
-u32  open_usb_clock(sw_udc_io_t *sw_udc_io)
-{
-	u32 reg_value = 0;
-	u32 ccmu_base = AW_VIR_CCM_BASE;
-
-	//AHB1_RST_REG0 USBOTG_RST
-	reg_value = USBC_Readl(ccmu_base + 0x2c0);
-	reg_value |= (1 << 24);				/* usb0 clear reset*/
-	USBC_Writel(reg_value, (ccmu_base + 0x2c0));
-
-	//USBPHY_CFG_REG USBPHY0_RET
-	reg_value = USBC_Readl(ccmu_base + 0xcc);
-	reg_value |= (1 << 0);
-	USBC_Writel(reg_value, (ccmu_base + 0xcc));
-
-	reg_value = 10000;
-	while(reg_value--);
-	sw_udc_io->clk_is_open = 1;
-
 	return 0;
-}
-
-/*
-*******************************************************************************
-*					  close_usb_clock
-*
-* Description:
-*
-*
-* Parameters:
-*	 void
-*
-* Return value:
-*	 void
-*
-* note:
-*	 void
-*
-*******************************************************************************
-*/
-u32 close_usb_clock(sw_udc_io_t *sw_udc_io)
-{
-	u32 reg_value = 0;
-	u32 ccmu_base = AW_VIR_CCM_BASE;
-
-	//AHB1_RST_REG0 USBOTG_RST
-	reg_value = USBC_Readl(ccmu_base + 0x2c0);
-	reg_value &= ~(1 << 24); 			/* usb0  reset*/
-	USBC_Writel(reg_value, (ccmu_base + 0x2c0));
-
-	//USBPHY_CFG_REG USBPHY0_RET
-	reg_value = USBC_Readl(ccmu_base + 0xcc);
-	reg_value &= ~(1 << 0);
-	USBC_Writel(reg_value, (ccmu_base + 0xcc));
-
-	//等sie的时钟变稳
-	reg_value = 10000;
-	while(reg_value--);
-
-	sw_udc_io->clk_is_open = 0;
-
-	return 0;
-}
-
-#endif
-
-static void clear_usb_reg(__u32 usb_base)
-{
-	__u32 reg_val = 0;
-	__u32 i = 0;
-
-	/* global control and status */
-	reg_val = readl(USBC_REG_EX_USB_GCS(usb_base));
-	reg_val = 0x20;
-	writel(reg_val, USBC_REG_EX_USB_GCS(usb_base));
-
-	/* endpoint interrupt flag */
-	reg_val = readl(USBC_REG_EX_USB_EPINTF(usb_base));
-	reg_val = 0x44;
-	writel(reg_val, USBC_REG_EX_USB_EPINTF(usb_base));
-
-	/* endpoint interrupt enable */
-	reg_val = readl(USBC_REG_EX_USB_EPINTE(usb_base));
-	reg_val = 0x48;
-	writel(reg_val, USBC_REG_EX_USB_EPINTE(usb_base));
-
-	/* bus interrupt flag */
-	reg_val = readl(USBC_REG_EX_USB_BUSINTF(usb_base));
-	reg_val = 0x4c;
-	writel(reg_val, USBC_REG_EX_USB_BUSINTF(usb_base));
-
-	/* bus interrupt enable */
-	reg_val = readl(USBC_REG_EX_USB_BUSINTE(usb_base));
-	reg_val = 0x50;
-	writel(reg_val, USBC_REG_EX_USB_BUSINTE(usb_base));
-
-	/* endpoint control status */
-	for(i = 0; i < USBC_MAX_EP_NUM; i++){
-		writeb(i, USBC_REG_EPIND(usb_base));
-
-		/* endpoint control status */
-		if(i == 0){
-			reg_val = readl(USBC_REG_EX_USB_CSR0(usb_base));
-			reg_val = 0x00;
-			writel(reg_val, USBC_REG_EX_USB_CSR0(usb_base));
-		}else{
-			/* TX endpoint control status */
-			reg_val = readl(USBC_REG_EX_USB_TXCSR(usb_base));
-			reg_val = 0x00;
-			writel(reg_val, USBC_REG_EX_USB_TXCSR(usb_base));
-
-			/* RX endpoint control status */
-			reg_val = readl(USBC_REG_EX_USB_RXCSR(usb_base));
-			reg_val = 0x00;
-			writel(reg_val, USBC_REG_EX_USB_RXCSR(usb_base));
-		}
-
-		/* TX fifo seting */
-		reg_val = readl(USBC_REG_EX_USB_TXFIFO(usb_base));
-		reg_val = 0x90;
-		writel(reg_val, USBC_REG_EX_USB_TXFIFO(usb_base));
-
-		/* RX fifo seting */
-		reg_val = readl(USBC_REG_EX_USB_RXFIFO(usb_base));
-		reg_val = 0x94;
-		writel(reg_val, USBC_REG_EX_USB_RXFIFO(usb_base));
-
-		/* function address */
-		reg_val = readl(USBC_REG_EX_USB_FADDR(usb_base));
-		reg_val = 0x00;
-		writel(reg_val, USBC_REG_EX_USB_FADDR(usb_base));
-	}
-
-	writeb(0x00, USBC_REG_EPIND(usb_base));
-
-	return;
 }
 
 /*
@@ -334,6 +175,7 @@ __s32 sw_udc_bsp_init(__u32 usbc_no, sw_udc_io_t *sw_udc_io)
 	}
 #ifdef  SW_USB_FPGA
 	clear_usb_reg((u32)sw_udc_io->usb_vbase);
+	fpga_config_use_otg(sw_udc_io->usbc.sram_base);
 #endif
 
 	USBC_EnhanceSignal(sw_udc_io->usb_bsp_hdle);
@@ -411,26 +253,24 @@ __s32 sw_udc_io_init(__u32 usbc_no, struct platform_device *pdev, sw_udc_io_t *s
 	DMSG_INFO_UDC("usb_vbase  = 0x%x\n", (u32)sw_udc_io->usb_vbase);
 	DMSG_INFO_UDC("sram_vbase = 0x%x\n", (u32)sw_udc_io->sram_vbase);
 
-#ifndef  SW_USB_FPGA
     /* open usb lock */
-	sw_udc_io->ahb_otg = clk_get(NULL, "ahb_otg");
+	sw_udc_io->ahb_otg = clk_get(NULL, CLK_AHB_OTG);
 	if (IS_ERR(sw_udc_io->ahb_otg)){
 		DMSG_PANIC("ERR: get usb ahb_otg clk failed.\n");
 		goto io_failed;
 	}
 
-	sw_udc_io->mod_usbotg = clk_get(NULL, "mod_usbotg");
+	sw_udc_io->mod_usbotg = clk_get(NULL, CLK_MOD_USBOTG);
 	if (IS_ERR(sw_udc_io->mod_usbotg)){
 		DMSG_PANIC("ERR: get usb mod_usbotg failed.\n");
 		goto io_failed;
 	}
 
-	sw_udc_io->mod_usbphy = clk_get(NULL, "mod_usbphy0");
+	sw_udc_io->mod_usbphy = clk_get(NULL, CLK_MOD_USBPHY0);
 	if (IS_ERR(sw_udc_io->mod_usbphy )){
 		DMSG_PANIC("ERR: get usb mod_usbphy failed.\n");
 		goto io_failed;
 	}
-#endif
 
 	open_usb_clock(sw_udc_io);
 
@@ -447,7 +287,6 @@ __s32 sw_udc_io_init(__u32 usbc_no, struct platform_device *pdev, sw_udc_io_t *s
 
 	return 0;
 
-#ifndef  SW_USB_FPGA
 io_failed:
 	if(sw_udc_io->ahb_otg){
 		clk_put(sw_udc_io->ahb_otg);
@@ -463,8 +302,6 @@ io_failed:
 		clk_put(sw_udc_io->mod_usbphy);
 		sw_udc_io->mod_usbphy = NULL;
 	}
-#endif
-
 	return ret;
 }
 

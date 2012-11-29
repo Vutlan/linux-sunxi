@@ -172,13 +172,16 @@ static int sw_release_io_resource(struct platform_device *pdev, struct sw_hci_hc
 
 static void sw_setup_gpio(void)
 {
-	int reg_val = 0;
 #ifdef  SW_USB_FPGA
+	int reg_val = 0;
+
 	reg_val = USBC_Readl(0xf1c20800 + 0x6c + 0xc); //gpiod[30]:dm;gpiod[31]:dp;
 	reg_val &= (~(0xff<<24));
 	reg_val |= (0x22<<24);
 	USBC_Writel(reg_val, (0xf1c20800 + 0x6c + 0xc));
 #else
+    /* javen, 需要将这里的代码补起来，并且规划化 */
+
 	//gpio_set_cfg(GPIO_G(10), 2, 3);
 	//gpio_set_pull(GPIO_G(10), 2, PIO_PULLDOWN);
 #endif
@@ -375,14 +378,13 @@ static int sw_ohci_hcd_probe(struct platform_device *pdev)
 	/* get io resource */
 	sw_get_io_resource(pdev, sw_ohci);
 
-
 	if(sw_ohci->usbc_no == 3){
-		sw_ohci->ohci_base 			= sw_ohci->usb_vbase;
+		sw_ohci->ohci_base = sw_ohci->usb_vbase;
 	}else{
-		sw_ohci->ohci_base 			= sw_ohci->usb_vbase + SW_USB_OHCI_BASE_OFFSET;
+		sw_ohci->ohci_base = sw_ohci->usb_vbase + SW_USB_OHCI_BASE_OFFSET;
 	}
 
-	sw_ohci->ohci_reg_length 	= SW_USB_OHCI_LEN;
+	sw_ohci->ohci_reg_length = SW_USB_OHCI_LEN;
 
     /*creat a usb_hcd for the ohci controller*/
 	hcd = usb_create_hcd(&sw_ohci_hc_driver, &pdev->dev, ohci_name);
@@ -410,16 +412,6 @@ static int sw_ohci_hcd_probe(struct platform_device *pdev)
     }
 
     platform_set_drvdata(pdev, hcd);
-
-#ifdef  SW_USB_OHCI_DEBUG
-    DMSG_INFO("[%s]: probe, clock: 0x60(0x%x), 0xcc(0x%x); usb: 0x800(0x%x), dram:(0x%x, 0x%x)\n",
-              sw_ohci->hci_name,
-              (u32)USBC_Readl(sw_ohci->clock_vbase + 0x60),
-              (u32)USBC_Readl(sw_ohci->clock_vbase + 0xcc),
-              (u32)USBC_Readl(sw_ohci->usb_vbase + 0x800),
-              (u32)USBC_Readl(sw_ohci->sdram_vbase + SW_SDRAM_REG_HPCR_USB1),
-              (u32)USBC_Readl(sw_ohci->sdram_vbase + SW_SDRAM_REG_HPCR_USB2));
-#endif
 
 	sw_ohci->probe = 1;
 

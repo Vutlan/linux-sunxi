@@ -132,8 +132,6 @@ static __s32 usb_script_parse(struct usb_cfg *cfg)
     script_item_value_type_e type = 0;
 	script_item_u item_temp;
 
-
-
 	for(i = 0; i < cfg->usbc_num; i++){
 		if(i == 0){
 			set_usbc = SET_USB0;
@@ -171,8 +169,8 @@ static __s32 usb_script_parse(struct usb_cfg *cfg)
 		}
 
 		/* usbc id */
-		type = script_get_item(set_usbc, KEY_USB_ID_GPIO, (int *)&(cfg->port[i].id.gpio_set));
-		if(ret == SCIRPT_ITEM_VALUE_TYPE_INT){
+		type = script_get_item(set_usbc, KEY_USB_ID_GPIO, &(cfg->port[i].id.gpio_set));
+		if(ret == SCIRPT_ITEM_VALUE_TYPE_PIO){
 			cfg->port[i].id.valid = 1;
 		}else{
 			cfg->port[i].id.valid = 0;
@@ -180,8 +178,8 @@ static __s32 usb_script_parse(struct usb_cfg *cfg)
 		}
 
 		/* usbc det_vbus */
-		type = script_get_item(set_usbc, KEY_USB_DETVBUS_GPIO, (int *)&(cfg->port[i].det_vbus.gpio_set));
-		if(ret == SCIRPT_ITEM_VALUE_TYPE_INT){
+		type = script_get_item(set_usbc, KEY_USB_DETVBUS_GPIO, &(cfg->port[i].det_vbus.gpio_set));
+		if(type == SCIRPT_ITEM_VALUE_TYPE_PIO){
 			cfg->port[i].det_vbus.valid = 1;
 		}else{
 			cfg->port[i].det_vbus.valid = 0;
@@ -189,8 +187,8 @@ static __s32 usb_script_parse(struct usb_cfg *cfg)
 		}
 
 		/* usbc drv_vbus */
-		type = script_get_item(set_usbc, KEY_USB_DRVVBUS_GPIO, (int *)&(cfg->port[i].drv_vbus.gpio_set));
-		if(ret == SCIRPT_ITEM_VALUE_TYPE_INT){
+		type = script_get_item(set_usbc, KEY_USB_DRVVBUS_GPIO, &(cfg->port[i].drv_vbus.gpio_set));
+		if(type == SCIRPT_ITEM_VALUE_TYPE_PIO){
 			cfg->port[i].drv_vbus.valid = 1;
 		}else{
 			cfg->port[i].drv_vbus.valid = 0;
@@ -288,11 +286,11 @@ err:
 */
 static void print_gpio_set(struct gpio_config *gpio)
 {
-	DMSG_MANAGER_DEBUG("gpio_name            = %s\n", gpio_set->gpio.gpio);
-	DMSG_MANAGER_DEBUG("mul_sel              = %x\n", gpio_set->gpio.mul_sel);
-	DMSG_MANAGER_DEBUG("pull                 = %x\n", gpio_set->gpio.pull);
-	DMSG_MANAGER_DEBUG("drv_level            = %x\n", gpio_set->gpio.drv_level);
-	DMSG_MANAGER_DEBUG("data                 = %x\n", gpio_set->gpio.data);
+	DMSG_MANAGER_DEBUG("gpio_name            = %s\n", gpio->gpio.gpio);
+	DMSG_MANAGER_DEBUG("mul_sel              = %x\n", gpio->gpio.mul_sel);
+	DMSG_MANAGER_DEBUG("pull                 = %x\n", gpio->gpio.pull);
+	DMSG_MANAGER_DEBUG("drv_level            = %x\n", gpio->gpio.drv_level);
+	DMSG_MANAGER_DEBUG("data                 = %x\n", gpio->gpio.data);
 }
 
 /*
@@ -418,29 +416,6 @@ err:
 
 /*
 *******************************************************************************
-*                     print_gpio_set
-*
-* Description:
-*    void
-*
-* Parameters:
-*    void
-*
-* Return value:
-*    void
-*
-* note:
-*    void
-*
-*******************************************************************************
-*/
-static void print_gpio_set(struct gpio_config *gpio)
-{
-	return;
-}
-
-/*
-*******************************************************************************
 *                     print_usb_cfg
 *
 * Description:
@@ -459,39 +434,7 @@ static void print_gpio_set(struct gpio_config *gpio)
 */
 static void print_usb_cfg(struct usb_cfg *cfg)
 {
-    u32 i = 0;
-
-	DMSG_MANAGER_DEBUG("\n-----------usb config information--------------\n");
-
-	DMSG_MANAGER_DEBUG("controller number    = %x\n", (u32)USBC_MAX_CTL_NUM);
-
-	DMSG_MANAGER_DEBUG("usb_global_enable    = %x\n", cfg->usb_global_enable);
-	DMSG_MANAGER_DEBUG("usbc_num             = %x\n", cfg->usbc_num);
-
-    for(i = 0; i < USBC_MAX_CTL_NUM; i++){
-		DMSG_MANAGER_DEBUG("\n");
-		DMSG_MANAGER_DEBUG("port[%d]:\n", i);
-		DMSG_MANAGER_DEBUG("enable               = %x\n", cfg->port[i].enable);
-		DMSG_MANAGER_DEBUG("port_no              = %x\n", cfg->port[i].port_no);
-		DMSG_MANAGER_DEBUG("port_type            = %x\n", cfg->port[i].port_type);
-		DMSG_MANAGER_DEBUG("detect_type          = %x\n", cfg->port[i].detect_type);
-
-		DMSG_MANAGER_DEBUG("id.valid             = %x\n", cfg->port[i].id.valid);
-		DMSG_MANAGER_DEBUG("id.group_type        = %x\n", cfg->port[i].id.group_type);
-		print_gpio_set(&cfg->port[i].id.gpio_set.gpio);
-
-		DMSG_MANAGER_DEBUG("vbus.valid           = %x\n", cfg->port[i].det_vbus.valid);
-		DMSG_MANAGER_DEBUG("vbus.group_type      = %x\n", cfg->port[i].det_vbus.group_type);
-		print_gpio_set(&cfg->port[i].det_vbus.gpio_set.gpio);
-
-		DMSG_MANAGER_DEBUG("drv_vbus.valid       = %x\n", cfg->port[i].drv_vbus.valid);
-		DMSG_MANAGER_DEBUG("drv_vbus.group_type  = %x\n", cfg->port[i].drv_vbus.group_type);
-		print_gpio_set(&cfg->port[i].drv_vbus.gpio_set.gpio);
-
-		DMSG_MANAGER_DEBUG("\n");
-    }
-
-	DMSG_MANAGER_DEBUG("-------------------------------------------------\n");
+	return;
 }
 
 #endif

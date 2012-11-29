@@ -264,61 +264,16 @@ __u32 USBC_ReadPacket(__hdle hUSB, __u32 fifo, __u32 cnt, void *buff)
 
 	return len;
 }
-#ifndef  SW_USB_FPGA
-/* 映射SRAM D给usb fifo使用 */
+
 void USBC_ConfigFIFO_Base(__hdle hUSB, __u32 sram_base, __u32 fifo_mode)
 {
-    __usbc_otg_t *usbc_otg = (__usbc_otg_t *)hUSB;
     __fifo_info_t *usbc_info = &usbc_info_g;
-	__u32 reg_value = 0;
 
-	printk("Line:%d:%s\n", __LINE__, __func__);
-
-
-	if(usbc_otg == NULL){
-		return ;
-	}
-
-	if(usbc_otg->port_num == 0){
-		reg_value = USBC_Readl(sram_base + 0x04);
-		reg_value &= ~(0x03 << 0);
-		reg_value |= (1 << 0);
-		USBC_Writel(reg_value, (sram_base + 0x04));
-
-		usbc_info->port0_fifo_addr = 0x00;
-		usbc_info->port0_fifo_size = (8 * 1024);	//8k
-    }
+	usbc_info->port0_fifo_addr = 0x00;
+	usbc_info->port0_fifo_size = (8 * 1024);	//8k
 
 	return ;
 }
-#else
-/* 映射SRAM D给usb fifo使用 */
-void USBC_ConfigFIFO_Base(__hdle hUSB, __u32 sram_base, __u32 fifo_mode)
-{
-    __usbc_otg_t *usbc_otg = (__usbc_otg_t *)hUSB;
-    __fifo_info_t *usbc_info = &usbc_info_g;
-	__u32 reg_value = 0;
-
-	printk("Line:%d:%s\n", __LINE__, __func__);
-
-
-	if(usbc_otg == NULL){
-		return ;
-	}
-
-	if(usbc_otg->port_num == 0){
-		reg_value = USBC_Readl(sram_base + 0x04);
-		reg_value |= 0x01;
-		USBC_Writel(reg_value, (sram_base + 0x04));
-
-		usbc_info->port0_fifo_addr = 0x00;
-		usbc_info->port0_fifo_size = (8 * 1024);	//8k
-    }
-
-	return ;
-}
-#endif
-
 
 /* 获得port fifo的起始地址 */
 __u32 USBC_GetPortFifoStartAddr(__hdle hUSB)

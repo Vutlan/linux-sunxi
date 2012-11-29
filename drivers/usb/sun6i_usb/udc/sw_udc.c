@@ -85,9 +85,146 @@ static const unsigned char TestPkt[54] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x
 		                                 0xFB, 0xFD, 0x7E, 0x00};
 
 //---------------------------------------------------------------
-//  函数 定义
+//  debug
 //---------------------------------------------------------------
 
+static int g_queue_debug = 0;
+static int g_dma_debug = 0;
+static int g_write_debug = 0;
+static int g_read_debug = 0;
+static int g_irq_debug = 0;
+int g_msc_write_debug = 0;
+int g_msc_read_debug = 0;
+
+static ssize_t show_udc_debug(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%u\n", g_queue_debug);
+}
+
+static ssize_t udc_queue_debug(struct device *dev, struct device_attribute *attr,
+		const char *buf, size_t count)
+{
+    int debug = 0;
+
+
+    sscanf(buf, "%d", &debug);
+    g_queue_debug = debug;
+
+	return count;
+}
+static DEVICE_ATTR(queue_debug, 0644, show_udc_debug, udc_queue_debug);
+
+static ssize_t show_dma_debug(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%u\n", g_dma_debug);
+}
+
+static ssize_t udc_dma_debug(struct device *dev, struct device_attribute *attr,
+		const char *buf, size_t count)
+{
+    int debug = 0;
+
+
+    sscanf(buf, "%d", &debug);
+    g_dma_debug = debug;
+
+	return count;
+}
+static DEVICE_ATTR(dma_debug, 0644, show_dma_debug, udc_dma_debug);
+
+static ssize_t show_write_debug(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%u\n", g_write_debug);
+}
+
+static ssize_t udc_write_debug(struct device *dev, struct device_attribute *attr,
+		const char *buf, size_t count)
+{
+    int debug = 0;
+
+
+    sscanf(buf, "%d", &debug);
+    g_write_debug = debug;
+
+	return count;
+}
+static DEVICE_ATTR(write_debug, 0644, show_write_debug, udc_write_debug);
+
+static ssize_t show_read_debug(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%u\n", g_read_debug);
+}
+
+static ssize_t udc_read_debug(struct device *dev, struct device_attribute *attr,
+		const char *buf, size_t count)
+{
+    int debug = 0;
+
+
+    sscanf(buf, "%d", &debug);
+    g_read_debug = debug;
+
+	return count;
+}
+static DEVICE_ATTR(read_debug, 0644, show_read_debug, udc_read_debug);
+
+static ssize_t show_irq_debug(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%u\n", g_irq_debug);
+}
+
+static ssize_t udc_irq_debug(struct device *dev, struct device_attribute *attr,
+		const char *buf, size_t count)
+{
+    int debug = 0;
+
+
+    sscanf(buf, "%d", &debug);
+    g_irq_debug = debug;
+
+	return count;
+}
+static DEVICE_ATTR(irq_debug, 0644, show_irq_debug, udc_irq_debug);
+
+static ssize_t show_msc_write_debug(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%u\n", g_msc_write_debug);
+}
+
+static ssize_t udc_msc_write_debug(struct device *dev, struct device_attribute *attr,
+		const char *buf, size_t count)
+{
+    int debug = 0;
+
+
+    sscanf(buf, "%d", &debug);
+    g_msc_write_debug = debug;
+
+	return count;
+}
+static DEVICE_ATTR(msc_write_debug, 0644, show_msc_write_debug, udc_msc_write_debug);
+
+static ssize_t show_msc_read_debug(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%u\n", g_msc_read_debug);
+}
+
+static ssize_t udc_msc_read_debug(struct device *dev, struct device_attribute *attr,
+		const char *buf, size_t count)
+{
+    int debug = 0;
+
+
+    sscanf(buf, "%d", &debug);
+    g_msc_read_debug = debug;
+
+	return count;
+}
+static DEVICE_ATTR(msc_read_debug, 0644, show_msc_read_debug, udc_msc_read_debug);
+
+//---------------------------------------------------------------
+//  函数 定义
+//---------------------------------------------------------------
 
 static void cfg_udc_command(enum sw_udc_cmd_e cmd);
 static void cfg_vbus_draw(unsigned int ma);
@@ -235,7 +372,15 @@ __acquires(ep->dev->lock)
 		         ep, ep->num,
 		         req, &(req->req), req->req.length, req->req.actual);
 
-	//DMSG_INFO("d: (0x%p, %d, %d)\n", &(req->req), req->req.length, req->req.actual);
+//if(g_queue_debug){
+//	DMSG_INFO("d: (0x%p, %d, %d)\n\n\n", &(req->req), req->req.length, req->req.actual);
+//}
+
+if(g_queue_debug){
+	DMSG_INFO("d:%d\n", req->req.actual);
+}
+
+
 //	DMSG_INFO("d:%d\n\n", req->req.actual);
 
 	list_del_init(&req->queue);
@@ -504,10 +649,9 @@ static int pio_write_fifo(struct sw_udc_ep *ep, struct sw_udc_request *req)
 		         req, &(req->req), req->req.length, req->req.actual,
 		         count, is_last);
 
-	//DMSG_INFO("w: (0x%p, %d, %d)\n", &(req->req), req->req.length, req->req.actual);
-//	if(req->req.length == 13){
-//		DMSG_INFO("w: (0x%p, %d, %d)\n", &(req->req), req->req.length, req->req.actual);
-//	}
+    if(g_write_debug){
+	    DMSG_INFO("pw: (0x%p, %d, %d)\n", &(req->req), req->req.length, req->req.actual);
+    }
 
 	if(idx){  //ep1~4
 		ret = USBC_Dev_WriteDataStatus(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_TX, is_last);
@@ -598,8 +742,14 @@ static int dma_write_fifo(struct sw_udc_ep *ep, struct sw_udc_request *req)
 	ep->dma_working	= 1;
 	ep->dma_transfer_len = left_len;
 
+    if(g_dma_debug){
+	    DMSG_INFO("dw: (0x%p, %d, %d)\n", &(req->req), req->req.length, req->req.actual);
+    }
+
+    spin_unlock(&ep->dev->lock);
 	sw_udc_dma_set_config(ep, req, (__u32)req->req.dma, left_len);
 	sw_udc_dma_start(ep, fifo_reg, (__u32)req->req.dma, left_len);
+	spin_lock(&ep->dev->lock);
 
 	//DMSG_INFO("w: ep:0x%p, dev:0x%p, lock:0x%p", ep, ep->dev, &ep->dev->lock);
 
@@ -626,6 +776,28 @@ static int dma_write_fifo(struct sw_udc_ep *ep, struct sw_udc_request *req)
 */
 static int sw_udc_write_fifo(struct sw_udc_ep *ep, struct sw_udc_request *req)
 {
+	if(ep->dma_working){
+		DMSG_PANIC("ERR: dma is busy, write fifo. ep(0x%p, %d), req(0x%p, 0x%p, 0x%x, %d, %d)\n\n",
+						ep, ep->num,
+						req, &(req->req), (u32)req->req.buf, req->req.length, req->req.actual);
+{
+    struct sw_udc_request *req_next = NULL;
+
+    if(likely (!list_empty(&ep->queue))){
+        req_next = list_entry(ep->queue.next, struct sw_udc_request, queue);
+    }else{
+        req_next = NULL;
+    }
+
+    if(req_next){
+        DMSG_PANIC("ERR: dma is busy, write fifo. req(0x%p, 0x%p, 0x%x, %d, %d)\n\n",
+                        req_next, &(req_next->req), (u32)req_next->req.buf, req_next->req.length, req_next->req.actual);
+    }
+}
+
+		return 0;
+	}
+
 	if(is_sw_udc_dma_capable(req, ep)){
 		return dma_write_fifo(ep, req);
 	}else{
@@ -744,6 +916,10 @@ static int pio_read_fifo(struct sw_udc_ep *ep, struct sw_udc_request *req)
 		         req, &(req->req), req->req.length, req->req.actual,
 		         fifo_count, is_last);
 
+    if(g_read_debug){
+	    DMSG_INFO("pr: (0x%p, %d, %d)\n", &(req->req), req->req.length, req->req.actual);
+    }
+
     if (idx){
 		ret = USBC_Dev_ReadDataStatus(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_RX, is_last);
 		if(ret != 0){
@@ -828,10 +1004,17 @@ static int dma_read_fifo(struct sw_udc_ep *ep, struct sw_udc_request *req)
 	left_len = req->req.length - req->req.actual;
     left_len = left_len - (left_len % ep->ep.maxpacket);
 
+    if(g_dma_debug){
+	    DMSG_INFO("dr: (0x%p, %d, %d)\n", &(req->req), req->req.length, req->req.actual);
+    }
+
 	ep->dma_working	= 1;
 	ep->dma_transfer_len = left_len;
+
+	spin_unlock(&ep->dev->lock);
 	sw_udc_dma_set_config(ep, req, (__u32)req->req.dma, left_len);
 	sw_udc_dma_start(ep, fifo_reg, (__u32)req->req.dma, left_len);
+	spin_lock(&ep->dev->lock);
 
 	return 0;
 }
@@ -856,6 +1039,27 @@ static int dma_read_fifo(struct sw_udc_ep *ep, struct sw_udc_request *req)
 */
 static int sw_udc_read_fifo(struct sw_udc_ep *ep, struct sw_udc_request *req)
 {
+	if(ep->dma_working){
+		DMSG_PANIC("ERR: dma is busy, read fifo. ep(0x%p, %d), req(0x%p, 0x%p, 0x%x, %d, %d)\n\n",
+						ep, ep->num,
+						req, &(req->req), (u32)req->req.buf, req->req.length, req->req.actual);
+{
+    struct sw_udc_request *req_next = NULL;
+
+    if(likely (!list_empty(&ep->queue))){
+        req_next = list_entry(ep->queue.next, struct sw_udc_request, queue);
+    }else{
+        req_next = NULL;
+    }
+
+    if(req_next){
+		DMSG_PANIC("ERR: dma is busy, read fifo. req(0x%p, 0x%p, 0x%x, %d, %d)\n\n",
+						req_next, &(req_next->req), (u32)req_next->req.buf, req_next->req.length, req_next->req.actual);
+    }
+}
+		return 0;
+	}
+
 	if(is_sw_udc_dma_capable(req, ep)){
 		return dma_read_fifo(ep, req);
 	}else{
@@ -1474,6 +1678,10 @@ static void sw_udc_handle_ep(struct sw_udc_ep *ep)
 		req = NULL;
     }
 
+    if(g_irq_debug && req){
+	    DMSG_INFO("e: (0x%p, %d, %d)\n", &(req->req), req->req.length, req->req.actual);
+    }
+
 	idx = ep->bEndpointAddress & 0x7F;
 
 	old_ep_index = USBC_GetActiveEp(g_sw_udc_io.usb_bsp_hdle);
@@ -1688,6 +1896,10 @@ static void sw_udc_stop_dma_work(struct sw_udc *dev)
 			spin_unlock(&ep->dev->lock);
 			sw_udc_dma_stop(ep);
 			spin_lock(&ep->dev->lock);
+
+            ep->dev->sw_udc_dma[ep->num].is_start = 0;
+            ep->dma_transfer_len = 0;
+
 			sw_udc_clean_dma_status(ep);
 		}
 	}
@@ -1976,6 +2188,10 @@ void sw_udc_dma_completion(struct sw_udc *dev, struct sw_udc_ep *ep, struct sw_u
 			USBC_Dev_ReadDataStatus(dev->sw_udc_io->usb_bsp_hdle, USBC_EP_TYPE_RX, 1);
 		}
 	}
+
+    if(g_dma_debug){
+	    DMSG_INFO("di: (0x%p, %d, %d)\n", &(req->req), req->req.length, req->req.actual);
+    }
 
     /* 如果本次传输有数据没有传输完毕，得接着传输 */
 	req->req.actual += dma_transmit_len;
@@ -2408,7 +2624,12 @@ static int sw_udc_queue(struct usb_ep *_ep, struct usb_request *_req, gfp_t gfp_
 		      ep, ep->num,
 		      req, _req, _req->length, _req->actual);
 
-	//DMSG_INFO("q: (0x%p, %d, %d)\n", _req,_req->length, _req->actual);
+    //if(g_queue_debug){
+	//    DMSG_INFO("q: (0x%p, %d, %d)\n", _req,_req->length, _req->actual);
+	//}
+	if(g_queue_debug){
+	    DMSG_INFO("q:%d\n",_req->length);
+	}
 //	DMSG_INFO("q:%d\n", _req->length);
 
 
@@ -2941,7 +3162,7 @@ static void sw_udc_enable(struct sw_udc *dev)
 
 	USBC_Dev_ConfigTransferMode(g_sw_udc_io.usb_bsp_hdle, USBC_TS_TYPE_BULK, USBC_TS_MODE_HS);
 #else
-	//DMSG_INFO_UDC("CONFIG_USB_GADGET_DUALSPEED: USBC_TS_MODE_FS\n");
+	DMSG_INFO_UDC("CONFIG_USB_GADGET_DUALSPEED: USBC_TS_MODE_FS\n");
 
 	USBC_Dev_ConfigTransferMode(g_sw_udc_io.usb_bsp_hdle, USBC_TS_TYPE_BULK, USBC_TS_MODE_FS);
 #endif
@@ -3420,6 +3641,14 @@ static int sw_udc_probe_otg(struct platform_device *pdev)
 	if(retval){
 		return retval;
 	}
+
+    device_create_file(&pdev->dev, &dev_attr_queue_debug);
+    device_create_file(&pdev->dev, &dev_attr_dma_debug);
+    device_create_file(&pdev->dev, &dev_attr_write_debug);
+    device_create_file(&pdev->dev, &dev_attr_read_debug);
+    device_create_file(&pdev->dev, &dev_attr_irq_debug);
+    device_create_file(&pdev->dev, &dev_attr_msc_read_debug);
+    device_create_file(&pdev->dev, &dev_attr_msc_write_debug);
 
     return 0;
 }
