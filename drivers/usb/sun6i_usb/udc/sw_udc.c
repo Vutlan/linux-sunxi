@@ -248,9 +248,6 @@ static __u32 is_peripheral_active(void)
 /* Maps the buffer to dma  */
 static inline void sw_udc_map_dma_buffer(struct sw_udc_request *req, struct sw_udc *udc, struct sw_udc_ep *ep)
 {
-
-	DMSG_TEST("sw:%s:%d: 0x%x, 0x%x\n", __func__, __LINE__, req->req.dma, req->req.length);
-
 	if(!is_sw_udc_dma_capable(req, ep)){
 	    DMSG_PANIC("err: need not to dma map\n");
         return;
@@ -259,7 +256,6 @@ static inline void sw_udc_map_dma_buffer(struct sw_udc_request *req, struct sw_u
     req->map_state = UN_MAPPED;
 
     if (req->req.dma == DMA_ADDR_INVALID) {
-		DMSG_TEST("%s:%d: \n", __func__, __LINE__);
         req->req.dma = dma_map_single(
                 udc->controller,
                 req->req.buf,
@@ -267,7 +263,6 @@ static inline void sw_udc_map_dma_buffer(struct sw_udc_request *req, struct sw_u
                 (is_tx_ep(ep) ? DMA_TO_DEVICE : DMA_FROM_DEVICE));
         req->map_state = SW_UDC_USB_MAPPED;
     } else {
-		DMSG_TEST("%s:%d: \n", __func__, __LINE__);
         dma_sync_single_for_device(udc->controller,
             req->req.dma,
             req->req.length,
@@ -275,20 +270,12 @@ static inline void sw_udc_map_dma_buffer(struct sw_udc_request *req, struct sw_u
         req->map_state = PRE_MAPPED;
     }
 
-	DMSG_TEST("%s:%d: 0x%x, 0x%p\n", __func__, __LINE__, req->req.dma, req->req.buf);
-
     return;
 }
 
 /* Unmap the buffer from dma and maps it back to cpu */
 static inline void sw_udc_unmap_dma_buffer(struct sw_udc_request *req, struct sw_udc *udc, struct sw_udc_ep *ep)
 {
-	DMSG_TEST("sw:%s:%d: 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%p, 0x%p\n", __func__, __LINE__,
-		req->map_state, req->req.length,
-		req->req.actual, ep->ep.maxpacket,
-		ep->num, is_udc_support_dma(),
-		req, ep);
-
 	if(!is_buffer_mapped(req, ep)){
 	    DMSG_PANIC("err: need not to dma ummap\n");
 		return;
@@ -298,8 +285,6 @@ static inline void sw_udc_unmap_dma_buffer(struct sw_udc_request *req, struct sw
 		DMSG_PANIC("not unmapping a never mapped buffer\n");
 		return;
 	}
-
-	DMSG_TEST("sw:%s:%d: 0x%x\n", __func__, __LINE__, req->map_state);
 
 	if (req->map_state == SW_UDC_USB_MAPPED) {
 		dma_unmap_single(udc->controller,
@@ -316,9 +301,6 @@ static inline void sw_udc_unmap_dma_buffer(struct sw_udc_request *req, struct sw
 	}
 
 	req->map_state = UN_MAPPED;
-
-	DMSG_TEST("%s:%d: 0x%x, 0x%p\n", __func__, __LINE__, req->req.dma, req->req.buf);
-
 
 	return;
 }
@@ -368,20 +350,9 @@ __acquires(ep->dev->lock)
 {
 	unsigned halted = ep->halted;
 
-	DMSG_TEST("d: ep(0x%p, %d), req(0x%p, 0x%p, %d, %d)\n\n",
-		         ep, ep->num,
-		         req, &(req->req), req->req.length, req->req.actual);
-
-//if(g_queue_debug){
-//	DMSG_INFO("d: (0x%p, %d, %d)\n\n\n", &(req->req), req->req.length, req->req.actual);
-//}
-
-if(g_queue_debug){
-	DMSG_INFO("d:%d\n", req->req.actual);
-}
-
-
-//	DMSG_INFO("d:%d\n\n", req->req.actual);
+	if(g_queue_debug){
+		DMSG_INFO("d: (0x%p, %d, %d)\n\n\n", &(req->req), req->req.length, req->req.actual);
+	}
 
 	list_del_init(&req->queue);
 
@@ -398,8 +369,6 @@ if(g_queue_debug){
 	req->req.complete(&ep->ep, &req->req);
 	spin_lock(&ep->dev->lock);
 	ep->halted = halted;
-
-	DMSG_TEST("de\n\n");
 }
 
 /*
@@ -548,69 +517,6 @@ static inline int sw_udc_write_packet(int fifo,
 *
 *******************************************************************************
 */
-#if 0
-static int pio_write_fifo(struct sw_udc_ep *ep, struct sw_udc_request *req)
-{
-	unsigned    count       = 0;
-	int		    is_last     = 0;
-	u32		    idx         = 0;
-	int		    fifo_reg    = 0;
-	__s32 		ret 		= 0;
-	u8		old_ep_index 	= 0;
-
-	idx = ep->bEndpointAddress & 0x7F;
-
-    /* select ep */
-	old_ep_index = USBC_GetActiveEp(g_sw_udc_io.usb_bsp_hdle);
-	USBC_SelectActiveEp(g_sw_udc_io.usb_bsp_hdle, idx);
-
-    /* select fifo */
-    fifo_reg = USBC_SelectFIFO(g_sw_udc_io.usb_bsp_hdle, idx);
-
-	count = sw_udc_write_packet(fifo_reg, req, ep->ep.maxpacket);
-
-	/* last packet is often short (sometimes a zlp) */
-	if(count != ep->ep.maxpacket){
-		is_last = 1;
-	}else if (req->req.length != req->req.actual || req->req.zero){
-		is_last = 0;
-	}else{
-	    is_last = 2;
-	}
-
-	DMSG_TEST("pw: ep(0x%p, %d), req(0x%p, 0x%p, %d, %d), cnt(%d, %d)\n",
-		         ep, ep->num,
-		         req, &(req->req), req->req.length, req->req.actual,
-		         count, is_last);
-
-	if(idx){  //ep1~4
-		ret = USBC_Dev_WriteDataStatus(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_TX, is_last);
-		if(ret != 0){
-			DMSG_PANIC("ERR: USBC_Dev_WriteDataStatus, failed\n");
-		    req->req.status = -EOVERFLOW;
-		}
-	}else{  //ep0
-		ret = USBC_Dev_WriteDataStatus(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_EP0, is_last);
-		if(ret != 0){
-			DMSG_PANIC("ERR: USBC_Dev_WriteDataStatus, failed\n");
-			req->req.status = -EOVERFLOW;
-		}
-	}
-
-	USBC_SelectActiveEp(g_sw_udc_io.usb_bsp_hdle, old_ep_index);
-
-	if(is_last){
-		if(!idx){  /* ep0 */
-			ep->dev->ep0state=EP0_IDLE;
-            sw_udc_done(ep,req, 0);
-		}
-
-		is_last = 1;
-	}
-
-	return is_last;
-}
-#else
 static int pio_write_fifo(struct sw_udc_ep *ep, struct sw_udc_request *req)
 {
 	unsigned    count       = 0;
@@ -644,11 +550,6 @@ static int pio_write_fifo(struct sw_udc_ep *ep, struct sw_udc_request *req)
 	    is_last = 2;
 	}
 
-	DMSG_TEST("pw: ep(0x%p, %d), req(0x%p, 0x%p, %d, %d), cnt(%d, %d)\n",
-		         ep, ep->num,
-		         req, &(req->req), req->req.length, req->req.actual,
-		         count, is_last);
-
     if(g_write_debug){
 	    DMSG_INFO("pw: (0x%p, %d, %d)\n", &(req->req), req->req.length, req->req.actual);
     }
@@ -681,8 +582,6 @@ static int pio_write_fifo(struct sw_udc_ep *ep, struct sw_udc_request *req)
 	return is_last;
 }
 
-#endif
-
 /*
 *******************************************************************************
 *                     dma_write_fifo
@@ -707,19 +606,6 @@ static int dma_write_fifo(struct sw_udc_ep *ep, struct sw_udc_request *req)
 	u32		idx         = 0;
 	int		fifo_reg    = 0;
 	u8		old_ep_index 	= 0;
-
-	DMSG_TEST("dw: ep(0x%p, %d), req(0x%p, 0x%p, %d, %d)\n",
-		         ep, ep->num,
-		         req, &(req->req), req->req.length, req->req.actual);
-
-	if(ep->dma_working){
-/*
-		DMSG_PANIC("ERR: dma is busy, write fifo. ep(0x%p, %d), req(0x%p, 0x%p, 0x%x, %d, %d)\n\n",
-						ep, ep->num,
-						req, &(req->req), (u32)req->req.buf, req->req.length, req->req.actual);
-*/
-		return 0;
-	}
 
 	idx = ep->bEndpointAddress & 0x7F;
 
@@ -751,8 +637,6 @@ static int dma_write_fifo(struct sw_udc_ep *ep, struct sw_udc_request *req)
 	sw_udc_dma_start(ep, fifo_reg, (__u32)req->req.dma, left_len);
 	spin_lock(&ep->dev->lock);
 
-	//DMSG_INFO("w: ep:0x%p, dev:0x%p, lock:0x%p", ep, ep->dev, &ep->dev->lock);
-
 	return 0;
 }
 
@@ -777,23 +661,24 @@ static int dma_write_fifo(struct sw_udc_ep *ep, struct sw_udc_request *req)
 static int sw_udc_write_fifo(struct sw_udc_ep *ep, struct sw_udc_request *req)
 {
 	if(ep->dma_working){
-		DMSG_PANIC("ERR: dma is busy, write fifo. ep(0x%p, %d), req(0x%p, 0x%p, 0x%x, %d, %d)\n\n",
-						ep, ep->num,
-						req, &(req->req), (u32)req->req.buf, req->req.length, req->req.actual);
-{
-    struct sw_udc_request *req_next = NULL;
+		if(g_dma_debug){
+		    struct sw_udc_request *req_next = NULL;
 
-    if(likely (!list_empty(&ep->queue))){
-        req_next = list_entry(ep->queue.next, struct sw_udc_request, queue);
-    }else{
-        req_next = NULL;
-    }
+			DMSG_PANIC("ERR: dma is busy, write fifo. ep(0x%p, %d), req(0x%p, 0x%p, 0x%x, %d, %d)\n\n",
+							ep, ep->num,
+							req, &(req->req), (u32)req->req.buf, req->req.length, req->req.actual);
 
-    if(req_next){
-        DMSG_PANIC("ERR: dma is busy, write fifo. req(0x%p, 0x%p, 0x%x, %d, %d)\n\n",
-                        req_next, &(req_next->req), (u32)req_next->req.buf, req_next->req.length, req_next->req.actual);
-    }
-}
+		    if(likely (!list_empty(&ep->queue))){
+		        req_next = list_entry(ep->queue.next, struct sw_udc_request, queue);
+		    }else{
+		        req_next = NULL;
+		    }
+
+		    if(req_next){
+		        DMSG_PANIC("ERR: dma is busy, write fifo. req(0x%p, 0x%p, 0x%x, %d, %d)\n\n",
+		                        req_next, &(req_next->req), (u32)req_next->req.buf, req_next->req.length, req_next->req.actual);
+		    }
+		}
 
 		return 0;
 	}
@@ -911,11 +796,6 @@ static int pio_read_fifo(struct sw_udc_ep *ep, struct sw_udc_request *req)
 		is_last = (req->req.length <= req->req.actual) ? 1 : 0;
 	}
 
-	DMSG_TEST("pr: ep(0x%p, %d), req(0x%p, 0x%p, %d, %d), cnt(%d, %d)\n",
-		         ep, ep->num,
-		         req, &(req->req), req->req.length, req->req.actual,
-		         fifo_count, is_last);
-
     if(g_read_debug){
 	    DMSG_INFO("pr: (0x%p, %d, %d)\n", &(req->req), req->req.length, req->req.actual);
     }
@@ -973,19 +853,6 @@ static int dma_read_fifo(struct sw_udc_ep *ep, struct sw_udc_request *req)
 	int		fifo_reg    = 0;
 	u8		old_ep_index 	= 0;
 
-	DMSG_TEST("dr: ep(0x%p, %d), req(0x%p, 0x%p, %d, %d)\n",
-		         ep, ep->num,
-		         req, &(req->req), req->req.length, req->req.actual);
-
-	if(ep->dma_working){
-/*
-		DMSG_PANIC("ERR: dma is busy, read fifo. ep(0x%p, %d), req(0x%p, 0x%p, 0x%x, %d, %d)\n\n",
-						ep, ep->num,
-						req, &(req->req), (u32)req->req.buf, req->req.length, req->req.actual);
-*/
-		return 0;
-	}
-
 	idx = ep->bEndpointAddress & 0x7F;
 
     /* select ep */
@@ -1040,23 +907,25 @@ static int dma_read_fifo(struct sw_udc_ep *ep, struct sw_udc_request *req)
 static int sw_udc_read_fifo(struct sw_udc_ep *ep, struct sw_udc_request *req)
 {
 	if(ep->dma_working){
-		DMSG_PANIC("ERR: dma is busy, read fifo. ep(0x%p, %d), req(0x%p, 0x%p, 0x%x, %d, %d)\n\n",
-						ep, ep->num,
-						req, &(req->req), (u32)req->req.buf, req->req.length, req->req.actual);
-{
-    struct sw_udc_request *req_next = NULL;
+		if(g_dma_debug){
+		    struct sw_udc_request *req_next = NULL;
 
-    if(likely (!list_empty(&ep->queue))){
-        req_next = list_entry(ep->queue.next, struct sw_udc_request, queue);
-    }else{
-        req_next = NULL;
-    }
+			DMSG_PANIC("ERR: dma is busy, read fifo. ep(0x%p, %d), req(0x%p, 0x%p, 0x%x, %d, %d)\n\n",
+							ep, ep->num,
+							req, &(req->req), (u32)req->req.buf, req->req.length, req->req.actual);
 
-    if(req_next){
-		DMSG_PANIC("ERR: dma is busy, read fifo. req(0x%p, 0x%p, 0x%x, %d, %d)\n\n",
-						req_next, &(req_next->req), (u32)req_next->req.buf, req_next->req.length, req_next->req.actual);
-    }
-}
+		    if(likely (!list_empty(&ep->queue))){
+		        req_next = list_entry(ep->queue.next, struct sw_udc_request, queue);
+		    }else{
+		        req_next = NULL;
+		    }
+
+		    if(req_next){
+				DMSG_PANIC("ERR: dma is busy, read fifo. req(0x%p, 0x%p, 0x%x, %d, %d)\n\n",
+								req_next, &(req_next->req), (u32)req_next->req.buf, req_next->req.length, req_next->req.actual);
+		    }
+		}
+
 		return 0;
 	}
 
@@ -1578,92 +1447,6 @@ DMSG_DBG_UDC("sw_udc_handle_ep0--4--%d\n", dev->ep0state);
 *
 *******************************************************************************
 */
-#if 0
-static void sw_udc_handle_ep(struct sw_udc_ep *ep)
-{
-	struct sw_udc_request	*req = NULL;
-	int is_in   = ep->bEndpointAddress & USB_DIR_IN;
-	u32 idx     = 0;
-	u8 old_ep_index = 0;
-	u32 is_done = 0;
-
-	idx = ep->bEndpointAddress & 0x7F;
-
-	old_ep_index = USBC_GetActiveEp(g_sw_udc_io.usb_bsp_hdle);
-    USBC_SelectActiveEp(g_sw_udc_io.usb_bsp_hdle, idx);
-
-	if (is_in) {
-		if (USBC_Dev_IsEpStall(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_TX)) {
-			DMSG_PANIC("ERR: tx ep(%d) is stall\n", idx);
-			USBC_Dev_EpClearStall(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_TX);
-		    goto end;
-		}
-	} else {
-		if (USBC_Dev_IsEpStall(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_RX)) {
-			DMSG_PANIC("ERR: rx ep(%d) is stall\n", idx);
-            USBC_Dev_EpClearStall(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_RX);
-		    goto end;
-		}
-	}
-
-	/* get req */
-	if(likely (!list_empty(&ep->queue))){
-		req = list_entry(ep->queue.next, struct sw_udc_request, queue);
-	}else{
-		req = NULL;
-    }
-
-	if(req){
-
-        //DMSG_INFO("b: (0x%p, %d, %d)\n", &(req->req), req->req.length, req->req.actual);
-
-	    if(is_in){
-	        /* 如果传输完毕，就传下一个；如果没有传完，就接着传 */
-    		if(req->req.length <= req->req.actual){
-    		    sw_udc_done(ep, req, 0);
-    		    is_done = 1;
-    		    goto next;
-    		}else{
-    		    if(!USBC_Dev_IsWriteDataReady(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_TX)){
-    			    sw_udc_write_fifo(ep, req);
-    		    }
-    		}
-	    }else{
-            if(USBC_Dev_IsReadDataReady(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_RX)){
-                is_done = sw_udc_read_fifo(ep,req);
-            }
-	    }
-	}
-
-next:
-	/* do next req */
-    if(is_done){
-        if(likely (!list_empty(&ep->queue))){
-            req = list_entry(ep->queue.next, struct sw_udc_request, queue);
-        }else{
-            req = NULL;
-        }
-
-        if(req){
-
-            //DMSG_INFO("n: (0x%p, %d, %d)\n", &(req->req), req->req.length, req->req.actual);
-
-            USBC_SelectActiveEp(g_sw_udc_io.usb_bsp_hdle, idx);
-
-            if(is_in && !USBC_Dev_IsWriteDataReady(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_TX)){
-    			sw_udc_write_fifo(ep, req);
-            }else if(!is_in && USBC_Dev_IsReadDataReady(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_RX)){
-                sw_udc_read_fifo(ep,req);
-            }
-        }
-    }
-
-end:
-	USBC_SelectActiveEp(g_sw_udc_io.usb_bsp_hdle, old_ep_index);
-
-	return;
-}
-#else
 static void sw_udc_handle_ep(struct sw_udc_ep *ep)
 {
 	struct sw_udc_request	*req = NULL;
@@ -1718,7 +1501,6 @@ end:
 
 	return;
 }
-#endif
 
 /*
 *******************************************************************************
@@ -1937,8 +1719,6 @@ static irqreturn_t sw_udc_irq(int dummy, void *_dev)
 
 	spin_lock_irqsave(&dev->lock, flags);
 
-	//DMSG_INFO("is\n");
-
 	/* Driver connected ? */
 	if (!dev->driver || !is_peripheral_active()) {
 		DMSG_PANIC("ERR: functoin driver is not exist, or udc is not active.\n");
@@ -1958,8 +1738,6 @@ static irqreturn_t sw_udc_irq(int dummy, void *_dev)
 	usb_irq = USBC_INT_MiscPending(g_sw_udc_io.usb_bsp_hdle);
 	tx_irq  = USBC_INT_EpPending(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_TX);
 	rx_irq  = USBC_INT_EpPending(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_RX);
-
-	//DMSG_INFO("irq: usb_irq=%02x, tx_irq=%02x, rx_irq=%02x\n", usb_irq, tx_irq, rx_irq);
 
 	usb_irq = filtrate_irq_misc(usb_irq);
 
@@ -2108,13 +1886,8 @@ static irqreturn_t sw_udc_irq(int dummy, void *_dev)
 		}
 	}
 
-	//DMSG_TEST("irq: %d irq end.\n", dev->irq_no);
-
 	/* Restore old index */
 	USBC_SelectActiveEp(g_sw_udc_io.usb_bsp_hdle, old_ep_idx);
-
-	//DMSG_INFO("ie\n");
-
 
 	spin_unlock_irqrestore(&dev->lock, flags);
 
@@ -2159,15 +1932,10 @@ void sw_udc_dma_completion(struct sw_udc *dev, struct sw_udc_ep *ep, struct sw_u
 
     sw_udc_unmap_dma_buffer(req, dev, ep);
 
-	//DMSG_INFO("dma: ep:0x%p, dev:0x%p, lock:0x%p", ep, ep->dev, &ep->dev->lock);
 	spin_lock_irqsave(&dev->lock, flags);
 
 	old_ep_index = USBC_GetActiveEp(dev->sw_udc_io->usb_bsp_hdle);
 	USBC_SelectActiveEp(dev->sw_udc_io->usb_bsp_hdle, ep->num);
-
-	DMSG_TEST("dq: ep(0x%p, %d), req(0x%p, 0x%p, %d, %d)\n",
-		         ep, ep->num,
-		         req, &(req->req), req->req.length, req->req.actual);
 
 	if((ep->bEndpointAddress) & USB_DIR_IN){  //tx, dma_mode1
 		USBC_Dev_ClearEpDma(dev->sw_udc_io->usb_bsp_hdle, USBC_EP_TYPE_TX);
@@ -2177,15 +1945,10 @@ void sw_udc_dma_completion(struct sw_udc *dev, struct sw_udc_ep *ep, struct sw_u
 
 	dma_transmit_len = sw_udc_dma_transmit_length(ep, ((ep->bEndpointAddress) & USB_DIR_IN), (__u32)req->req.buf);
 	if(dma_transmit_len < req->req.length){
-		DMSG_PANIC("WRN: DMA recieve data not complete, (%d, %d, %d)\n",
-					req->req.length, req->req.actual, dma_transmit_len);
-
 		if((ep->bEndpointAddress) & USB_DIR_IN){
 			USBC_Dev_ClearEpDma(dev->sw_udc_io->usb_bsp_hdle, USBC_EP_TYPE_TX);
-			USBC_Dev_WriteDataStatus(dev->sw_udc_io->usb_bsp_hdle, USBC_EP_TYPE_TX, 1);
 		}else{
 			USBC_Dev_ClearEpDma(dev->sw_udc_io->usb_bsp_hdle, USBC_EP_TYPE_RX);
-			USBC_Dev_ReadDataStatus(dev->sw_udc_io->usb_bsp_hdle, USBC_EP_TYPE_RX, 1);
 		}
 	}
 
@@ -2193,20 +1956,21 @@ void sw_udc_dma_completion(struct sw_udc *dev, struct sw_udc_ep *ep, struct sw_u
 	    DMSG_INFO("di: (0x%p, %d, %d)\n", &(req->req), req->req.length, req->req.actual);
     }
 
+	ep->dma_working = 0;
+	ep->dma_transfer_len = 0;
+
     /* 如果本次传输有数据没有传输完毕，得接着传输 */
 	req->req.actual += dma_transmit_len;
 	if(req->req.length > req->req.actual){
-		DMSG_INFO_UDC("dma irq, transfer left data\n");
-
 		if(((ep->bEndpointAddress & USB_DIR_IN) != 0)
 			&& !USBC_Dev_IsWriteDataReady(dev->sw_udc_io->usb_bsp_hdle, USBC_EP_TYPE_TX)){
-			if(sw_udc_write_fifo(ep, req)){
+			if(pio_write_fifo(ep, req)){
 				req = NULL;
 				is_complete = 1;
 			}
-		}else if(((ep->bEndpointAddress & USB_DIR_IN) != 0)
+		}else if(((ep->bEndpointAddress & USB_DIR_IN) == 0)
 			&& USBC_Dev_IsReadDataReady(dev->sw_udc_io->usb_bsp_hdle, USBC_EP_TYPE_RX)){
-			if(sw_udc_read_fifo(ep, req)){
+			if(pio_read_fifo(ep, req)){
 				req = NULL;
 				is_complete = 1;
 			}
@@ -2214,13 +1978,6 @@ void sw_udc_dma_completion(struct sw_udc *dev, struct sw_udc_ep *ep, struct sw_u
 	}else{	/* 如果DMA完成的传输了数据，就done */
 		sw_udc_done(ep, req, 0);
 		is_complete = 1;
-	}
-
-    /* 如果DMA完成的传输了数据，就done */
-
-	if(is_complete){
-		ep->dma_working	= 0;
-		ep->dma_transfer_len = 0;
 	}
 
 	//-------------------------------------------------
@@ -2234,10 +1991,6 @@ void sw_udc_dma_completion(struct sw_udc *dev, struct sw_udc_ep *ep, struct sw_u
 	    }
 
 		if(req_next){
-			DMSG_TEST("do next req: ep(0x%p, %d), req(0x%p, 0x%p, %d, %d)\n",
-				         ep, ep->num,
-				         req_next, &(req_next->req), req_next->req.length, req_next->req.actual);
-
 			if(((ep->bEndpointAddress & USB_DIR_IN) != 0)
 				&& !USBC_Dev_IsWriteDataReady(dev->sw_udc_io->usb_bsp_hdle, USBC_EP_TYPE_TX)){
 				sw_udc_write_fifo(ep, req_next);
@@ -2250,7 +2003,6 @@ void sw_udc_dma_completion(struct sw_udc *dev, struct sw_udc_ep *ep, struct sw_u
 
 	USBC_SelectActiveEp(dev->sw_udc_io->usb_bsp_hdle, old_ep_index);
 
-	DMSG_TEST("dc\n");
 	spin_unlock_irqrestore(&dev->lock, flags);
 
 	return;
@@ -2620,19 +2372,9 @@ static int sw_udc_queue(struct usb_ep *_ep, struct usb_request *_req, gfp_t gfp_
 		goto end;
 	}
 
-	DMSG_TEST("\n\nq: ep(0x%p, %d), req(0x%p, 0x%p, %d, %d)\n",
-		      ep, ep->num,
-		      req, _req, _req->length, _req->actual);
-
-    //if(g_queue_debug){
-	//    DMSG_INFO("q: (0x%p, %d, %d)\n", _req,_req->length, _req->actual);
-	//}
-	if(g_queue_debug){
-	    DMSG_INFO("q:%d\n",_req->length);
+    if(g_queue_debug){
+	    DMSG_INFO("q: (0x%p, %d, %d)\n", _req,_req->length, _req->actual);
 	}
-//	DMSG_INFO("q:%d\n", _req->length);
-
-
 
 	old_ep_index = USBC_GetActiveEp(g_sw_udc_io.usb_bsp_hdle);
 	if (ep->bEndpointAddress) {
@@ -2682,7 +2424,6 @@ static int sw_udc_queue(struct usb_ep *_ep, struct usb_request *_req, gfp_t gfp_
 	USBC_SelectActiveEp(g_sw_udc_io.usb_bsp_hdle, old_ep_index);
 
 end:
-	DMSG_TEST("qe\n");
 	spin_unlock_irqrestore(&ep->dev->lock, flags);
 
     return 0;

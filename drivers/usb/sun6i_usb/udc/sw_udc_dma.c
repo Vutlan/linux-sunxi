@@ -382,7 +382,7 @@ __u32 sw_udc_dma_left_length(struct sw_udc_ep *ep, __u32 is_in, __u32 buffer_add
 
 	DMSG_DBG_DMA("sw_udc_dma_transmit_length\n");
 
-	sw_dma_getcurposition(ep->dev->sw_udc_dma.dma_hdle, &src, &dst);
+	sw_dma_getposition((dm_hdl_t)ep->dev->sw_udc_dma[ep->num].dma_hdle, &src, &dst);
 	if(is_in){	/* tx */
 		dma_buffer = (__u32)src;
 	}else{	/* rx */

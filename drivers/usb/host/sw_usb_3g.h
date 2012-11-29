@@ -22,6 +22,11 @@
 #ifndef  __SW_USB_3G_H__
 #define  __SW_USB_3G_H__
 
+#define MODULE_GPIO_PULL_DISABLE  0
+#define MODULE_GPIO_PULL_UP       1
+#define MODULE_GPIO_PULL_DOWN     2
+
+
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------

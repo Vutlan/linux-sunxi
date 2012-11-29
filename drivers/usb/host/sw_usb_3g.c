@@ -214,7 +214,7 @@ static s32 usb_3g_get_config(struct sw_usb_3g *usb_3g)
 static s32 usb_3g_pin_init(struct sw_usb_3g *usb_3g)
 {
     int ret = 0;
-    unsigned long flags = 0;
+    u32 pull = 0;
 
     //---------------------------------
     //  bb_vbat
@@ -225,13 +225,16 @@ static s32 usb_3g_pin_init(struct sw_usb_3g *usb_3g)
             usb_3g_err("gpio_request bb_vbat failed\n");
             usb_3g->bb_vbat_valid = 0;
         }else{
-            if(usb_3g->bb_vbat.gpio.data){
-                flags = GPIOF_DIR_OUT | GPIOF_INIT_HIGH;
-            }else{
-                flags = GPIOF_DIR_OUT | GPIOF_INIT_LOW;
-            }
+            /* set config, ouput */
+            sw_gpio_setcfg(usb_3g->bb_vbat.gpio.gpio, GPIO_CFG_OUTPUT);
 
-            gpio_request_one(usb_3g->bb_vbat.gpio.gpio, flags, NULL);
+            /* reserved is pull down */
+            if(usb_3g->bb_vbat.gpio.data){
+                pull = MODULE_GPIO_PULL_UP;
+            }else{
+                pull = MODULE_GPIO_PULL_DOWN;
+            }
+            sw_gpio_setpull(usb_3g->bb_vbat.gpio.gpio, pull);
         }
     }
 
@@ -244,13 +247,16 @@ static s32 usb_3g_pin_init(struct sw_usb_3g *usb_3g)
             usb_3g_err("gpio_request bb_pwr_on failed\n");
             usb_3g->bb_pwr_on_valid = 0;
         }else{
-            if(usb_3g->bb_pwr_on.gpio.data){
-                flags = GPIOF_DIR_OUT | GPIOF_INIT_HIGH;
-            }else{
-                flags = GPIOF_DIR_OUT | GPIOF_INIT_LOW;
-            }
+            /* set config, ouput */
+            sw_gpio_setcfg(usb_3g->bb_pwr_on.gpio.gpio, GPIO_CFG_OUTPUT);
 
-            gpio_request_one(usb_3g->bb_pwr_on.gpio.gpio, flags, NULL);
+            /* reserved is pull down */
+            if(usb_3g->bb_pwr_on.gpio.data){
+                pull = MODULE_GPIO_PULL_UP;
+            }else{
+                pull = MODULE_GPIO_PULL_DOWN;
+            }
+            sw_gpio_setpull(usb_3g->bb_pwr_on.gpio.gpio, pull);
         }
     }
 
@@ -263,13 +269,16 @@ static s32 usb_3g_pin_init(struct sw_usb_3g *usb_3g)
             usb_3g_err("gpio_request bb_rst failed\n");
             usb_3g->bb_rst_valid = 0;
         }else{
-            if(usb_3g->bb_rst.gpio.data){
-                flags = GPIOF_DIR_OUT | GPIOF_INIT_HIGH;
-            }else{
-                flags = GPIOF_DIR_OUT | GPIOF_INIT_LOW;
-            }
+            /* set config, ouput */
+            sw_gpio_setcfg(usb_3g->bb_rst.gpio.gpio, GPIO_CFG_OUTPUT);
 
-            gpio_request_one(usb_3g->bb_rst.gpio.gpio, flags, NULL);
+            /* reserved is pull down */
+            if(usb_3g->bb_rst.gpio.data){
+                pull = MODULE_GPIO_PULL_UP;
+            }else{
+                pull = MODULE_GPIO_PULL_DOWN;
+            }
+            sw_gpio_setpull(usb_3g->bb_rst.gpio.gpio, pull);
         }
     }
 
@@ -282,13 +291,16 @@ static s32 usb_3g_pin_init(struct sw_usb_3g *usb_3g)
             usb_3g_err("gpio_request bb_wake failed\n");
             usb_3g->bb_wake_valid = 0;
         }else{
-            if(usb_3g->bb_wake.gpio.data){
-                flags = GPIOF_DIR_OUT | GPIOF_INIT_HIGH;
-            }else{
-                flags = GPIOF_DIR_OUT | GPIOF_INIT_LOW;
-            }
+            /* set config, ouput */
+            sw_gpio_setcfg(usb_3g->bb_wake.gpio.gpio, GPIO_CFG_OUTPUT);
 
-            gpio_request_one(usb_3g->bb_wake.gpio.gpio, flags, NULL);
+            /* reserved is pull down */
+            if(usb_3g->bb_wake.gpio.data){
+                pull = MODULE_GPIO_PULL_UP;
+            }else{
+                pull = MODULE_GPIO_PULL_DOWN;
+            }
+            sw_gpio_setpull(usb_3g->bb_wake.gpio.gpio, pull);
         }
     }
 
@@ -859,7 +871,6 @@ void usb_3g_wakeup_sleep(u32 usbc_no, u32 sleep)
     struct sw_usb_3g *usb_3g = &g_usb_3g;
 
     if(!usb_3g->bb_wake_valid){
-        //usb_3g_err("err: drv_vbus_ext_Handle == NULL\n");
         return;
     }
 
@@ -992,17 +1003,14 @@ EXPORT_SYMBOL(usb_3g_power);
 u32 is_suspport_usb_3g(u32 usbc_no, u32 usbc_type)
 {
     if(!g_usb_3g.used){
-        //usb_3g_err("err: not support, (%d, %d)\n", g_usb_3g.usbc_no, usbc_no);
         return 0;
     }
 
     if(g_usb_3g.usbc_no != usbc_no){
-        //usb_3g_err("err: not support, (%d, %d)\n", g_usb_3g.usbc_no, usbc_no);
         return 0;
     }
 
     if(g_usb_3g.usbc_type != usbc_type){
-        //usb_3g_err("err: not support, (%d, %d)\n", g_usb_3g.usbc_type, usbc_type);
         return 0;
     }
 
