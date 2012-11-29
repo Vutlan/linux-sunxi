@@ -167,6 +167,8 @@ free_pclk:
     clk_put(sport->bus_clk);
 iounmap:
 err_out:
+	while(i--)
+		gpio_free(list[i].gpio.gpio);
     return ret;
 }
 
