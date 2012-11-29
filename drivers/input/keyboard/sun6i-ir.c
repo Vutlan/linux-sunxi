@@ -239,7 +239,6 @@ static void ir_sys_cfg(void)
 	 
 	if(0 != gpio_request(ir_gpio_hdle.val.gpio.gpio, NULL)) {	
 		printk(KERN_ERR "ERROR: IR Gpio_request is failed\n");
-		goto end;
 	}
 
 	

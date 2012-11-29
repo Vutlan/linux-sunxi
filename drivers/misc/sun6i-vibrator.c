@@ -56,9 +56,9 @@ module_param_named(debug_mask, debug_mask, int, S_IRUGO | S_IWUSR | S_IWGRP);
 static void set_sun6i_vibrator(int on)
 {
 	if(on) {
-		gpio_set_value(vibe_gpio_hdle.val.gpio.gpio, !vibe_off);
+		__gpio_set_value(vibe_gpio_hdle.val.gpio.gpio, !vibe_off);
 	} else {
-		gpio_set_value(vibe_gpio_hdle.val.gpio.gpio, vibe_off);
+		__gpio_set_value(vibe_gpio_hdle.val.gpio.gpio, vibe_off);
 	}
 }
 
@@ -148,7 +148,6 @@ static int __init sun6i_vibrator_init(void)
 
 	if(0 != gpio_request(vibe_gpio_hdle.val.gpio.gpio, NULL)) {
 		printk(KERN_ERR "ERROR: vibe Gpio_request is failed\n");
-		goto exit;
 	}
 	
 	if (0 != sw_gpio_setall_range(&vibe_gpio_hdle.val.gpio, 1)) {
@@ -156,9 +155,7 @@ static int __init sun6i_vibrator_init(void)
 		goto exit;
 	}
 
-	if (0 != gpio_direction_output(vibe_gpio_hdle.val.gpio.gpio, vibe_off)) {
-		printk(KERN_ERR "vibe gpio set out failed!");
-	}
+	__gpio_set_value(vibe_gpio_hdle.val.gpio.gpio, vibe_off);
 
 	INIT_WORK(&vibrator_work, update_vibrator);
 
