@@ -105,7 +105,7 @@ static char	*apb_clock_name[]={
 static int sw_serial_get_resource(struct sw_serial_port *sport)
 {
     char uart_para[16];
-    int cnt,i,ret;
+    int cnt,i=0,ret;
 	script_item_u *list = NULL;
 
     /* get register base */
