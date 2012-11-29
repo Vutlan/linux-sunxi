@@ -136,13 +136,13 @@ static int gmac_sys_request(struct platform_device *pdev, struct gmac_priv *priv
 	}
 #else
 	priv->gmac_ahb_clk = clk_get(&pdev->dev, "ahb_gmac");
-	if (unlikely(!priv->gmac_ahb_clk)) {
+	if (unlikely(!priv->gmac_ahb_clk || IS_ERR(priv->gmac_ahb_clk))) {
 		printk(KERN_ERR "ERROR: Get clock is failed!\n");
 		ret = -1;
 		goto out;
 	}
 	priv->gmac_mod_clk = clk_get(&pdev->dev, "mod_gmac");
-	if (unlikely(!priv->gmac_mod_clk)) {
+	if (unlikely(!priv->gmac_mod_clk || IS_ERR(priv->gmac_mod_clk))) {
 		printk(KERN_ERR "ERROR: Get mod gmac is failed!\n");
 		ret = -1;
 		goto out;

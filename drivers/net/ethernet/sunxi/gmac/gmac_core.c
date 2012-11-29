@@ -187,10 +187,10 @@ static void gmac_clk_ctl(struct gmac_priv *priv, unsigned int flag)
 #else
 	if (flag) {
 		clk_enable(priv->gmac_ahb_clk);
-		clk_reset(priv->gmac_mod_clk, 0);
+		clk_reset(priv->gmac_mod_clk, AW_CCU_CLK_NRESET);
 	} else {
 		clk_disable(priv->gmac_ahb_clk);
-		clk_reset(priv->gmac_mod_clk, 1);
+		clk_reset(priv->gmac_mod_clk, AW_CCU_CLK_RESET);
 	}
 #endif
 }
