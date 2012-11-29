@@ -20,7 +20,7 @@ static int rtl8189es_shdn = 0;
 
 static int rtl8189es_gpio_ctrl(char* name, int level)
 {
-	int i = 0, ret1 = 0, ret2 = 0, gpio = 0;
+	int i = 0, ret = 0, gpio = 0;
 	unsigned long flags = 0;
 	char* gpio_name[3] = {"rtl8189es_vdd_en", "rtl8189es_vcc_en", "rtl8189es_shdn"};
 
@@ -54,19 +54,13 @@ static int rtl8189es_gpio_ctrl(char* name, int level)
 	else
 		flags = GPIOF_OUT_INIT_LOW;
 
-	ret1 = gpio_request(gpio, NULL);
-	if (0!=ret1)
-		rtl8189es_msg("warming failed to request gpio %s\n", name);
-
-	ret2 = gpio_request_one(gpio, flags, NULL);
-	if (ret2) {
-		if (0==ret1)
-			gpio_free(gpio);
+	ret = gpio_request_one(gpio, flags, NULL);
+	if (ret) {
+		gpio_free(gpio);
 		rtl8189es_msg("failed to set gpio %s to %d !\n", name, level);
 		return -1;
 	} else {
-		if (0==ret1)
-			gpio_free(gpio);
+		gpio_free(gpio);
 		rtl8189es_msg("succeed to set gpio %s to %d !\n", name, level);
 	}
 

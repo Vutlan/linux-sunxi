@@ -18,7 +18,7 @@ static int bcm40181_shdn   = 0;
 
 static int bcm40181_gpio_ctrl(char* name, int level)
 {
-	int i = 0, ret1 = 0, ret2 = 0, gpio = 0;
+	int i = 0, ret = 0, gpio = 0;
 	unsigned long flags = 0;
 	char* gpio_name[3] = {"bcm40181_vdd_en", "bcm40181_vcc_en", "bcm40181_shdn"};
 
@@ -52,19 +52,13 @@ static int bcm40181_gpio_ctrl(char* name, int level)
 	else
 		flags = GPIOF_OUT_INIT_LOW;
 
-	ret1 = gpio_request(gpio, NULL);
-	if (0!=ret1)
-		bcm40181_msg("warming failed to request gpio %d\n", gpio);
-
-	ret2 = gpio_request_one(gpio, flags, NULL);
-	if (ret2) {
-		if (0==ret1)
-			gpio_free(gpio);
+	ret = gpio_request_one(gpio, flags, NULL);
+	if (ret) {
+		gpio_free(gpio);
 		bcm40181_msg("failed to set gpio %d to %d !\n", gpio, level);
 		return -1;
 	} else {
-		if (0==ret1)
-			gpio_free(gpio);
+		gpio_free(gpio);
 		bcm40181_msg("succeed to set gpio %d to %d !\n", gpio, level);
 	}
 

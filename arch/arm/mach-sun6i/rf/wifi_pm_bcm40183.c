@@ -21,7 +21,7 @@ static int bcm40183_bt_rst = 0;
 
 static int bcm40183_gpio_ctrl(char* name, int level)
 {
-	int i = 0, ret1 = 0, ret2 = 0, gpio = 0;
+	int i = 0, ret = 0, gpio = 0;
 	unsigned long flags = 0;
 	char* gpio_name[3] = {"bcm40183_wl_regon", "bcm40183_bt_regon", "bcm40183_bt_rst"};
 	
@@ -98,19 +98,13 @@ static int bcm40183_gpio_ctrl(char* name, int level)
 
 gpio_state_change:
 
-	ret1 = gpio_request(gpio, NULL);
-	if (0!=ret1)
-		bcm40183_msg("warming failed to request gpio %d\n", gpio);
-
-	ret2 = gpio_request_one(gpio, flags, NULL);
-	if (ret2) {
-		if (0==ret1)
-			gpio_free(gpio);
+	ret = gpio_request_one(gpio, flags, NULL);
+	if (ret) {
+		gpio_free(gpio);
 		bcm40183_msg("failed to set gpio %d to %d !\n", gpio, level);
 		return -1;
 	} else {
-		if (0==ret1)
-			gpio_free(gpio);
+		gpio_free(gpio);
 		bcm40183_msg("succeed to set gpio %d to %d !\n", gpio, level);
 	}
 
@@ -118,35 +112,23 @@ gpio_state_change:
 
 power_change:
 
-	ret1 = gpio_request(bcm40183_vcc_en, NULL);
-	if (0!=ret1)
-		bcm40183_msg("warming failed to request bcm40183_vcc_en gpio\n");
-
-	ret2 = gpio_request_one(bcm40183_vcc_en, flags, NULL);
-	if (ret2) {
-		if (0==ret1)
-			gpio_free(bcm40183_vcc_en);
+	ret = gpio_request_one(bcm40183_vcc_en, flags, NULL);
+	if (ret) {
+		gpio_free(bcm40183_vcc_en);
 		bcm40183_msg("failed to set gpio bcm40183_vcc_en to %d !\n", level);
 		return -1;
 	} else {
-		if (0==ret1)
-			gpio_free(bcm40183_vcc_en);
+		gpio_free(bcm40183_vcc_en);
 		bcm40183_msg("succeed to set gpio bcm40183_vcc_en to %d !\n", level);
 	}
 
-	ret1 = gpio_request(bcm40183_vdd_en, NULL);
-	if (0!=ret1)
-		bcm40183_msg("warming failed to request bcm40183_vdd_en gpio\n");
-
-	ret2 = gpio_request_one(bcm40183_vdd_en, flags, NULL);
-	if (ret2) {
-		if (0==ret1)
-			gpio_free(bcm40183_vdd_en);
+	ret = gpio_request_one(bcm40183_vdd_en, flags, NULL);
+	if (ret) {
+		gpio_free(bcm40183_vdd_en);
 		bcm40183_msg("failed to set gpio bcm40183_vdd_en to %d !\n", level);
 		return -1;
 	} else {
-		if (0==ret1)
-			gpio_free(bcm40183_vdd_en);
+		gpio_free(bcm40183_vdd_en);
 		bcm40183_msg("succeed to set gpio bcm40183_vdd_en to %d !\n", level);
 	}
 
@@ -159,7 +141,7 @@ change_state:
 		bcm40183_bt_on = level;
 	bcm40183_msg("BCM40183 power state change: wifi %d, bt %d !!\n", bcm40183_wl_on, bcm40183_bt_on);
 	
-goto gpio_state_change;
+	goto gpio_state_change;
 }
 
 static void bcm40183_power(int mode, int *updown)
