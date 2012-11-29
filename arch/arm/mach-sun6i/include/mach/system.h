@@ -25,7 +25,8 @@
 #include <mach/hardware.h>
 #include <mach/platform.h>
 #include <asm/delay.h>
-
+#include <asm/io.h> 
+#include <linux/kernel.h>
 static inline void arch_idle(void)
 {
 	/*
@@ -37,17 +38,11 @@ static inline void arch_idle(void)
 
 static inline void arch_reset(char mode, const char *cmd)
 {
-    /* use watch-dog to reset system */
-/*
-    #define WATCH_DOG_CTRL_REG  (SW_VA_TIMERC_IO_BASE + 0x0094)
-    *(volatile unsigned int *)WATCH_DOG_CTRL_REG = 0;
-    __delay(100000);
-    *(volatile unsigned int *)WATCH_DOG_CTRL_REG |= 2;
-    while(1) {
-        __delay(100);
-        *(volatile unsigned int *)WATCH_DOG_CTRL_REG |= 1;
-    }
-*/
+	/* use watch dog reset */
+	printk("arch_reset enterint!\n");
+	writel(1,(AW_VIR_TIMER_BASE + AW_WDOG1_IRQ_EN_REG));
+	writel(1,(AW_VIR_TIMER_BASE + AW_WDOG1_CFG_REG));
+	writel(1,(AW_VIR_TIMER_BASE + AW_WDOG1_MODE_REG));
 }
 
 /*

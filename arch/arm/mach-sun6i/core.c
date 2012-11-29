@@ -98,6 +98,9 @@ static void sun6i_fixup(struct tag *tags, char **from,
 static void sun6i_restart(char mode, const char *cmd)
 {
 	printk("[%s] enter\n", __FUNCTION__);
+	writel(1,(AW_VIR_TIMER_BASE + AW_WDOG1_IRQ_EN_REG));
+	writel(1,(AW_VIR_TIMER_BASE + AW_WDOG1_CFG_REG));
+	writel(1,(AW_VIR_TIMER_BASE + AW_WDOG1_MODE_REG));
 }
 
 extern void sw_pdev_init(void);

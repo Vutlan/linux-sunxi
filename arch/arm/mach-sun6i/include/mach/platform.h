@@ -274,6 +274,12 @@
 #define AW_AVS_CNT1_REG             0x0088
 #define AW_AVS_CNT_DIV_REG          0x008c
 
+#define	AW_WDOG1_IRQ_EN_REG			0xa0
+#define	AW_WDOG1_IRQ_STA_REG		0xa4
+#define	AW_WDOG1_CTRL_REG			0xb0
+#define	AW_WDOG1_CFG_REG			0xb4
+#define	AW_WDOG1_MODE_REG			0xb8
+
 /*
  * CPUCFG
  */
