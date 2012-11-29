@@ -100,7 +100,6 @@ gpio_state_change:
 
 	ret = gpio_request_one(gpio, flags, NULL);
 	if (ret) {
-		gpio_free(gpio);
 		bcm40183_msg("failed to set gpio %d to %d !\n", gpio, level);
 		return -1;
 	} else {
@@ -114,7 +113,6 @@ power_change:
 
 	ret = gpio_request_one(bcm40183_vcc_en, flags, NULL);
 	if (ret) {
-		gpio_free(bcm40183_vcc_en);
 		bcm40183_msg("failed to set gpio bcm40183_vcc_en to %d !\n", level);
 		return -1;
 	} else {
@@ -124,7 +122,6 @@ power_change:
 
 	ret = gpio_request_one(bcm40183_vdd_en, flags, NULL);
 	if (ret) {
-		gpio_free(bcm40183_vdd_en);
 		bcm40183_msg("failed to set gpio bcm40183_vdd_en to %d !\n", level);
 		return -1;
 	} else {

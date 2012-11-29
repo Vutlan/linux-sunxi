@@ -56,7 +56,6 @@ static int rtl8189es_gpio_ctrl(char* name, int level)
 
 	ret = gpio_request_one(gpio, flags, NULL);
 	if (ret) {
-		gpio_free(gpio);
 		rtl8189es_msg("failed to set gpio %s to %d !\n", name, level);
 		return -1;
 	} else {

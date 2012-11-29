@@ -87,7 +87,6 @@ gpio_state_change:
 
 	ret = gpio_request_one(gpio, flags, NULL);
 	if (ret) {
-		gpio_free(gpio);
 		rtl8723as_msg("failed to set gpio %d to %d !\n", gpio, level);
 		return -1;
 	} else {
@@ -101,7 +100,6 @@ power_change:
 
 	ret = gpio_request_one(rtk_rtl8723as_wb_pwr, flags, NULL);
 	if (ret) {
-		gpio_free(gpio);
 		rtl8723as_msg("failed to set gpio rtk_rtl8723as_wb_pwr to %d !\n", level);
 		return -1;
 	} else {

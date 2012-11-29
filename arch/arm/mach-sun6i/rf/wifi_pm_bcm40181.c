@@ -54,7 +54,6 @@ static int bcm40181_gpio_ctrl(char* name, int level)
 
 	ret = gpio_request_one(gpio, flags, NULL);
 	if (ret) {
-		gpio_free(gpio);
 		bcm40181_msg("failed to set gpio %d to %d !\n", gpio, level);
 		return -1;
 	} else {
