@@ -36,7 +36,9 @@
 #include <mach/system.h>
 #include <mach/hardware.h>
 #include <mach/sys_config.h>
+
 #ifdef CONFIG_HAS_EARLYSUSPEND
+#include <linux/pm.h>
 #include <linux/earlysuspend.h>
 #endif
 

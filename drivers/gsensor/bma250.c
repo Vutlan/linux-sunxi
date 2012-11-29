@@ -28,7 +28,9 @@
 #include <mach/system.h>
 #include <mach/hardware.h>
 #include <mach/sys_config.h>
+
 #ifdef CONFIG_HAS_EARLYSUSPEND
+#include <linux/pm.h>
 #include <linux/earlysuspend.h>
 #endif
 
@@ -482,7 +484,7 @@ static int bma250_set_range(struct i2c_client *client, unsigned char Range)
 static int bma250_get_range(struct i2c_client *client, unsigned char *Range)
 {
 	int comres = 0;
-	unsigned char data;
+	unsigned char data = '\0';
 
 	if (client == NULL) {
 		comres = -1;
@@ -1018,7 +1020,7 @@ static void bma250_late_resume(struct early_suspend *h)
 						 data->bandwidth_state) < 0)
 			printk("suspend: write bandwidth err\n");
 		if (bma250_set_range(data->bma250_client, data->range_state) < 0)
-			printk("suspend: write range err\n")
+			printk("suspend: write range err\n");
 			
 		mutex_lock(&data->enable_mutex);
 		if (atomic_read(&data->enable)==1) {

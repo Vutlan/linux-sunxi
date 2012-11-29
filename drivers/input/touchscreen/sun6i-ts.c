@@ -1562,7 +1562,7 @@ static int __init sun4i_ts_init(void)
 	if (1 == device_used) {
 		type = script_get_item("rtp_para", "rtp_screen_size", &val);
 		if(SCIRPT_ITEM_VALUE_TYPE_INT  != type){
-	        pr_err("sun4i_ts_init: script_parser_fetch err. \n");
+	        pr_err("sun4i_ts_init: script_get err. \n");
 	        goto script_get_err;
 		}
 		tp_screen_size = val.val;
@@ -1582,7 +1582,7 @@ static int __init sun4i_ts_init(void)
 
 		type = script_get_item("rtp_para", "rtp_regidity_level", &val);
 		if (SCIRPT_ITEM_VALUE_TYPE_INT  != type) {
-			pr_err("sun4i_ts_init: script_parser_fetch err rtp_regidity_level. \n");
+			pr_err("sun4i_ts_init: script_get err rtp_regidity_level. \n");
 			goto script_get_err;
 		}
 		tp_regidity_level = val.val;
@@ -1595,7 +1595,7 @@ static int __init sun4i_ts_init(void)
 
 		type = script_get_item("rtp_para", "rtp_press_threshold_enable", &val);
 		if (SCIRPT_ITEM_VALUE_TYPE_INT  != type) {
-			pr_err("sun4i_ts_init: script_parser_fetch err rtp_press_threshold_enable. \n");
+			pr_err("sun4i_ts_init: script_get err rtp_press_threshold_enable. \n");
 			goto script_get_err;
 		}
 		tp_press_threshold_enable = val.val;
@@ -1609,7 +1609,7 @@ static int __init sun4i_ts_init(void)
 		if (1 == tp_press_threshold_enable) {
 			type = script_get_item("rtp_para", "rtp_press_threshold", &val);
 			if (SCIRPT_ITEM_VALUE_TYPE_INT  != type) {
-				pr_err("sun4i_ts_init: script_parser_fetch err rtp_press_threshold. \n");
+				pr_err("sun4i_ts_init: script_get err rtp_press_threshold. \n");
 				goto script_get_err;
 			}
 			tp_press_threshold = val.val;
@@ -1623,7 +1623,7 @@ static int __init sun4i_ts_init(void)
 		
 		type = script_get_item("rtp_para", "rtp_sensitive_level", &val);
 		if (SCIRPT_ITEM_VALUE_TYPE_INT  != type) {
-			pr_err("sun4i_ts_init: script_parser_fetch err rtp_sensitive_level. \n");
+			pr_err("sun4i_ts_init: script_get err rtp_sensitive_level. \n");
 			goto script_get_err;
 		}
 		tp_sensitive_level = val.val;
@@ -1636,7 +1636,7 @@ static int __init sun4i_ts_init(void)
 
 		type = script_get_item("rtp_para", "rtp_exchange_x_y_flag", &val);	    
 		if (SCIRPT_ITEM_VALUE_TYPE_INT  != type) {
-			pr_err("sun4i_ts_init: script_parser_fetch err rtp_exchange_x_y_flag. \n");
+			pr_err("sun4i_ts_init: script_get err rtp_exchange_x_y_flag. \n");
 			goto script_get_err;
 		}
 		tp_exchange_x_y = val.val;
