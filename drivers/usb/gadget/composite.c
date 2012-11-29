@@ -1686,7 +1686,6 @@ static s32 get_android_config(struct android_usb_config *config)
 {
 
 #if defined (CONFIG_AW_FPGA_V4_PLATFORM) || defined (CONFIG_AW_FPGA_V7_PLATFORM)
-
 	config->vendor_id = 0x18D1;
 	config->mass_storage_id = 0x0001;
 	config->adb_id = 0x0002;
@@ -1698,8 +1697,6 @@ static s32 get_android_config(struct android_usb_config *config)
 	config->msc_release = 100;
 	config->luns = 3;
 #else
-    s32 ret = 0;
-
     script_item_value_type_e type = 0;
 	script_item_u item_temp;
 
@@ -1711,7 +1708,7 @@ static s32 get_android_config(struct android_usb_config *config)
 	if(type == SCIRPT_ITEM_VALUE_TYPE_INT){
 		config->vendor_id = item_temp.val;
 	}else{
-		DMSG_PANIC("ERR: get usbc(%d) port type failed\n", i);
+		printk("ERR: get usb_feature vendor_id failed\n");
 		config->vendor_id = 0x18D1;
 	}
 
@@ -1720,7 +1717,7 @@ static s32 get_android_config(struct android_usb_config *config)
 	if(type == SCIRPT_ITEM_VALUE_TYPE_INT){
 		config->mass_storage_id = item_temp.val;
 	}else{
-		DMSG_PANIC("ERR: get usbc(%d) port type failed\n", i);
+		 printk("ERR: get usb_feature mass_storage_id failed\n");
 		config->mass_storage_id = 0x0001;
 	}
 
@@ -1729,7 +1726,7 @@ static s32 get_android_config(struct android_usb_config *config)
 	if(type == SCIRPT_ITEM_VALUE_TYPE_INT){
 		config->adb_id = item_temp.val;
 	}else{
-		DMSG_PANIC("ERR: get usbc(%d) port type failed\n", i);
+		printk("ERR: get usb_feature adb_id failed\n");
 		config->adb_id = 0x0002;
 	}
 
@@ -1738,7 +1735,7 @@ static s32 get_android_config(struct android_usb_config *config)
 	if(type == SCIRPT_ITEM_VALUE_TYPE_STR){
 		strcpy(config->usb_manufacturer_name, item_temp.str);
 	}else{
-		DMSG_PANIC("ERR: get usbc(%d) port type failed\n", i);
+		printk("ERR: get usb_feature manufacturer_name failed\n");
 		strcpy(config->usb_manufacturer_name, "USB Developer");
 	}
 
@@ -1747,7 +1744,7 @@ static s32 get_android_config(struct android_usb_config *config)
 	if(type == SCIRPT_ITEM_VALUE_TYPE_STR){
 		strcpy(config->usb_product_name, item_temp.str);
 	}else{
-		DMSG_PANIC("ERR: get usbc(%d) port type failed\n", i);
+		printk("ERR: get usb_feature product_name failed\n");
 		strcpy(config->usb_product_name, "Android");
 	}
 
@@ -1756,7 +1753,7 @@ static s32 get_android_config(struct android_usb_config *config)
 	if(type == SCIRPT_ITEM_VALUE_TYPE_STR){
 		strcpy(config->usb_serial_number, item_temp.str);
 	}else{
-		DMSG_PANIC("ERR: get usbc(%d) port type failed\n", i);
+		printk("ERR: get usb_feature serial_number failed\n");
 		strcpy(config->usb_serial_number, "20080411");
 	}
 
@@ -1770,7 +1767,7 @@ static s32 get_android_config(struct android_usb_config *config)
 	if(type == SCIRPT_ITEM_VALUE_TYPE_STR){
 		strcpy(config->msc_vendor_name, item_temp.str);
 	}else{
-		DMSG_PANIC("ERR: get usbc(%d) port type failed\n", i);
+		printk("ERR: get msc_feature vendor_name failed\n");
 		strcpy(config->msc_vendor_name, "USB 2.0");
 	}
 
@@ -1779,7 +1776,7 @@ static s32 get_android_config(struct android_usb_config *config)
 	if(type == SCIRPT_ITEM_VALUE_TYPE_STR){
 		strcpy(config->msc_product_name, item_temp.str);
 	}else{
-		DMSG_PANIC("ERR: get usbc(%d) port type failed\n", i);
+		printk("ERR: get msc_feature product_name failed\n");
 		strcpy(config->msc_product_name, "USB Flash Driver");
 	}
 
@@ -1788,7 +1785,7 @@ static s32 get_android_config(struct android_usb_config *config)
 	if(type == SCIRPT_ITEM_VALUE_TYPE_INT){
 		config->msc_release = item_temp.val;
 	}else{
-		DMSG_PANIC("ERR: get usbc(%d) port type failed\n", i);
+		printk("ERR: get msc_feature release failed\n");
 		config->msc_release = 100;
 	}
 
@@ -1797,11 +1794,10 @@ static s32 get_android_config(struct android_usb_config *config)
 	if(type == SCIRPT_ITEM_VALUE_TYPE_INT){
 		config->luns = item_temp.val;
 	}else{
-		DMSG_PANIC("ERR: get usbc(%d) port type failed\n", i);
+		printk("ERR: get msc_feature luns failed\n");
 		config->luns = 3;
 	}
 #endif
-
     return 0;
 }
 
