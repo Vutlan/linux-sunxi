@@ -340,24 +340,35 @@ static void twi_set_gpio_sysconfig(struct sun6i_i2c *i2c)
 {
 	int	cnt, i;
 	char twi_para[16] = {0};
-	script_item_u *list = NULL;
+	script_item_u used, *list = NULL;
+	script_item_value_type_e type;
 
 	sprintf(twi_para, "twi%d_para", i2c->bus_num);
-	/* ªÒ»°gpio list */
-	cnt = script_get_pio_list(twi_para, &list);
-	if (0 == cnt) {
-		I2C_ERR("[i2c%d] get gpio list failed\n", i2c->bus_num);
+	type = script_get_item(twi_para, "twi_used", &used);
+	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+		I2C_ERR("[i2c%d] twi_used err!\n", i2c->bus_num);
 		return;
 	}
 
-	/* …Í«Îgpio */
-	for (i = 0; i < cnt; i++)
-		if (0 != gpio_request(list[i].gpio.gpio, NULL))
-			goto end;
+	if (1 == used.val) {
+		/* ªÒ»°gpio list */
+		cnt = script_get_pio_list(twi_para, &list);
+		if (0 == cnt) {
+			I2C_ERR("[i2c%d] get gpio list failed\n", i2c->bus_num);
+			return;
+		}
 
-	/* ≈‰÷√gpio list */
-	if (0 != sw_gpio_setall_range(&list[0].gpio, cnt))
-		I2C_ERR("[i2c%d] sw_gpio_setall_range failed\n", i2c->bus_num);
+		/* …Í«Îgpio */
+		for (i = 0; i < cnt; i++)
+			if (0 != gpio_request(list[i].gpio.gpio, NULL))
+				goto end;
+
+		/* ≈‰÷√gpio list */
+		if (0 != sw_gpio_setall_range(&list[0].gpio, cnt))
+			I2C_ERR("[i2c%d] sw_gpio_setall_range failed\n", i2c->bus_num);
+	}
+
+	return;
 
 end:
 	/*  Õ∑≈gpio */
@@ -567,6 +578,15 @@ static void twi_release_gpio(struct sun6i_i2c *i2c)
 	    writel(reg_val, _R_Pn_PUL0(0));
 	}
 #endif
+#else
+	int gpio_cnt, i;
+	script_item_u *list = NULL;
+	char twi_para[16] = {0};
+
+	sprintf(twi_para, "twi%d_para", i2c->bus_num);
+	gpio_cnt = script_get_pio_list(twi_para, &list);
+	for(i = 0; i < gpio_cnt; i++)
+		gpio_free(list[i].gpio.gpio);
 #endif
 }
 #endif

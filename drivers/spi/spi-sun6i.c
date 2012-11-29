@@ -1177,32 +1177,55 @@ static void sun6i_spi_cleanup(struct spi_device *spi)
 
 #ifdef CONFIG_AW_ASIC_EVB_PLATFORM
 
-static void sun6i_spi_set_gpio_sysconfig(struct sun6i_spi *sspi)
+static void sun6i_spi_request_gpio(struct sun6i_spi *sspi)
 {
 	int	cnt, i;
 	char spi_para[16] = {0};
-	script_item_u *list = NULL;
+	script_item_u used, *list = NULL;
+	script_item_value_type_e type;
 
 	sprintf(spi_para, "spi%d_para", sspi->master->bus_num);
-	/* ªÒ»°gpio list */
-	cnt = script_get_pio_list(spi_para, &list);
-	if (0 == cnt) {
-		SPI_ERR("[spi-%d] get gpio list failed\n", sspi->master->bus_num);
+	type = script_get_item(spi_para, "spi_used", &used);
+	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+		SPI_ERR("[spi-%d] spi_used err!\n", sspi->master->bus_num);
 		return;
 	}
 
-	/* …Í«Îgpio */
-	for (i = 0; i < cnt; i++)
-		if (0 != gpio_request(list[i].gpio.gpio, NULL))
-			goto end;
+	if (1 == used.val) {
+		/* ªÒ»°gpio list */
+		cnt = script_get_pio_list(spi_para, &list);
+		if (0 == cnt) {
+			SPI_ERR("[spi-%d] get gpio list failed\n", sspi->master->bus_num);
+			return;
+		}
 
-	/* ≈‰÷√gpio list */
-	if (0 != sw_gpio_setall_range(&list[0].gpio, cnt))
-		SPI_ERR("[spi-%d] sw_gpio_setall_range failed\n", sspi->master->bus_num);
+		/* …Í«Îgpio */
+		for (i = 0; i < cnt; i++)
+			if (0 != gpio_request(list[i].gpio.gpio, NULL))
+				goto end;
+
+		/* ≈‰÷√gpio list */
+		if (0 != sw_gpio_setall_range(&list[0].gpio, cnt))
+			SPI_ERR("[spi-%d] sw_gpio_setall_range failed\n", sspi->master->bus_num);
+	}
+
+	return;
 
 end:
 	/*  Õ∑≈gpio */
 	while (i--)
+		gpio_free(list[i].gpio.gpio);
+}
+
+static void sun6i_spi_release_gpio(struct sun6i_spi *sspi)
+{
+	int gpio_cnt, i;
+	script_item_u *list = NULL;
+	char spi_para[16] = {0};
+
+	sprintf(spi_para, "spi%d_para", sspi->master->bus_num);
+	gpio_cnt = script_get_pio_list(spi_para, &list);
+	for(i = 0; i < gpio_cnt; i++)
 		gpio_free(list[i].gpio.gpio);
 }
 
@@ -1333,6 +1356,8 @@ static int sun6i_spi_hw_exit(struct sun6i_spi *sspi)
 		clk_put(sspi->hclk);
 		sspi->hclk = NULL;
 	}
+
+	sun6i_spi_release_gpio(sspi);
 
 	return 0;
 }
@@ -1508,7 +1533,7 @@ static int __init sun6i_spi_probe(struct platform_device *pdev)
 	}
 
 #ifdef CONFIG_AW_ASIC_EVB_PLATFORM
-	sun6i_spi_set_gpio_sysconfig(sspi);
+	sun6i_spi_request_gpio(sspi);
 #endif
 
 	spin_lock_init(&sspi->lock);
