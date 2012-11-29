@@ -15,8 +15,8 @@
 
 #include "dma_include.h"
 
-static struct clk 	*g_dma_ahb_clk = NULL;
-static struct clk 	*g_dma_mod_clk = NULL;
+struct clk 	*g_dma_ahb_clk = NULL;
+struct clk 	*g_dma_mod_clk = NULL;
 
 u32 dma_clk_init(void)
 {

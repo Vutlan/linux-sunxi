@@ -36,5 +36,8 @@ u32  csp_dma_chan_get_irqpend(struct dma_channel_t * pchan);
 u32 dma_clk_init(void);
 u32 dma_clk_deinit(void);
 
+extern struct clk *g_dma_ahb_clk;
+extern struct clk *g_dma_mod_clk;
+
 #endif  /* __DMA_CSP_H */
 
