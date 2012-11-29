@@ -542,11 +542,22 @@ static struct platform_driver sw_keypad_driver = {
 static int __init sw_keypad_init(void)
 {
     int ret;
+#ifdef SYS_GPIO_CFG_EN
+    script_item_u item;
+    script_item_value_type_e type;
+#endif
 
     swkp_msg("sw keypad init\n");
     kp_used  = 0;
 #ifdef SYS_GPIO_CFG_EN
-    ret = script_parser_fetch("keypad_para", "ke_used", &kp_used, sizeof(int));
+    type = script_get_item("keypad_para", "ke_used", &item);
+    if(SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+    	printk("%s err: get keypad_para->ke_used config failed!\n", __func__);
+	ret = -1;
+    } else {
+    	kp_used = item.val;
+	ret = 0;
+    }
 #else
 	//config keypad 
 	ret = 0;
