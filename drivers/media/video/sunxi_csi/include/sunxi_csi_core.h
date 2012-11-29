@@ -33,7 +33,11 @@
 #endif
 
 //for internel driver debug
-#define DBG_EN   		0 	
+#ifdef  CSI_VER_FOR_FPGA
+#define DBG_EN   		1 	
+#else
+#define DBG_EN   		0
+#endif
 //debug level 0~3
 #define DBG_LEVEL 	3
 

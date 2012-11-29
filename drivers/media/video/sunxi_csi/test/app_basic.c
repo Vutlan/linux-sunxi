@@ -45,7 +45,7 @@ struct size{
 	int height;
 };
 
-static char *           dev_name        = "/dev/video0";//摄像头设备名
+static char *           dev_name        = "/dev/video1";//摄像头设备名
 static int              fd              = -1;
 struct buffer *         buffers         = NULL;
 static unsigned int     n_buffers       = 0;

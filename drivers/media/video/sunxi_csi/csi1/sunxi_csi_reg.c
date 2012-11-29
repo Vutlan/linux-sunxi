@@ -15,9 +15,6 @@ void bsp_csi_set_base_addr(unsigned int addr)
 {
 	CSI_VBASE = addr ;
 	printk("csi_base = %x\n",addr);
-	//pin for FPGA
-	W(0xf1c20800+0x90,0x33333333);
-	W(0xf1c20800+0x94,0x00003333);
 }
 
 /* open module */

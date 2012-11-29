@@ -915,7 +915,12 @@ static int sensor_write_array(struct v4l2_subdev *sd, struct regval_list *vals ,
 static void csi_gpio_write(struct v4l2_subdev *sd, struct gpio_config *gpio, int level)
 {
 //	struct csi_dev *dev=(struct csi_dev *)dev_get_drvdata(sd->v4l2_dev->dev);
-	
+  if(gpio->gpio==GPIO_INDEX_INVALID)
+  {
+    csi_dev_dbg("invalid gpio\n");
+    return;
+  }
+  
 	if(gpio->mul_sel==1)
 	{
 	  gpio_direction_output(gpio->gpio, level);
