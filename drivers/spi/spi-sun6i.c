@@ -81,6 +81,7 @@ struct sun6i_spi {
 	enum spi_mode_type mode_type;
 
 	unsigned int irq; /* irq NO. */
+	char irq_name[48];
 
 	int busy;
 #define SPI_FREE   (1<<0)
@@ -1408,7 +1409,6 @@ static int __init sun6i_spi_probe(struct platform_device *pdev)
 	struct sun6i_spi *sspi;
 	struct sun6i_spi_platform_data *pdata;
 	struct spi_master *master;
-	char irq_name[48];
 	int ret = 0, err = 0, irq;
 	int cs_bitmap = 0;
 
@@ -1480,8 +1480,8 @@ static int __init sun6i_spi_probe(struct platform_device *pdev)
 	    SPI_INF("[spi-%d]: cs bitmap from cfg = 0x%x \n", master->bus_num, cs_bitmap);
 	}
 
-	snprintf(irq_name, sizeof(irq_name), "sun6i-spi.%u", pdev->id);
-	err = request_irq(sspi->irq, sun6i_spi_handler, IRQF_DISABLED, irq_name, sspi);
+	snprintf(sspi->irq_name, sizeof(sspi->irq_name), "sun6i-spi.%u", pdev->id);
+	err = request_irq(sspi->irq, sun6i_spi_handler, IRQF_DISABLED, sspi->irq_name, sspi);
 	if (err) {
 		SPI_ERR("Cannot request IRQ\n");
 		goto err0;
