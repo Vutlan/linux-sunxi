@@ -129,6 +129,7 @@ typedef enum __AW_CCU_CLK_ID
     AW_MOD_CLK_VE,          /* "mod_ve"                         */
     AW_MOD_CLK_ADDA,        /* "mod_adda"                       */
     AW_MOD_CLK_AVS,         /* "mod_avs"                        */
+    AW_MOD_CLK_DMIC,        /* "mod_dmic"                       */
     AW_MOD_CLK_HDMI,        /* "mod_hdmi"                       */
     AW_MOD_CLK_HDMI_DDC,    /* "mod_hdmi_ddc"                   */
     AW_MOD_CLK_PS,          /* "mod_ps"                         */

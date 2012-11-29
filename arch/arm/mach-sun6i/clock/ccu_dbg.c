@@ -240,8 +240,8 @@ void clk_dbg_inf(void)
     print_module0_clock("Sd1", &aw_ccu_reg->Sd1);
     print_module0_clock("Sd2", &aw_ccu_reg->Sd2);
     print_module0_clock("Sd3", &aw_ccu_reg->Sd3);
-    print_module0_clock("Sd1", &aw_ccu_reg->Ts);
-    print_module0_clock("Sd1", &aw_ccu_reg->Ss);
+    print_module0_clock("Ts", &aw_ccu_reg->Ts);
+    print_module0_clock("Ss", &aw_ccu_reg->Ss);
     print_module0_clock("Spi0", &aw_ccu_reg->Spi0);
     print_module0_clock("Spi1", &aw_ccu_reg->Spi1);
     print_module0_clock("Spi2", &aw_ccu_reg->Spi2);
@@ -659,8 +659,8 @@ static int ccmu_stats_show(struct seq_file *m, void *unused)
     sprintf_module0_clock(m, "Sd1", &aw_ccu_reg->Sd1);
     sprintf_module0_clock(m, "Sd2", &aw_ccu_reg->Sd2);
     sprintf_module0_clock(m, "Sd3", &aw_ccu_reg->Sd3);
-    sprintf_module0_clock(m, "Sd1", &aw_ccu_reg->Ts);
-    sprintf_module0_clock(m, "Sd1", &aw_ccu_reg->Ss);
+    sprintf_module0_clock(m, "Ts", &aw_ccu_reg->Ts);
+    sprintf_module0_clock(m, "Ss", &aw_ccu_reg->Ss);
     sprintf_module0_clock(m, "Spi0", &aw_ccu_reg->Spi0);
     sprintf_module0_clock(m, "Spi1", &aw_ccu_reg->Spi1);
     sprintf_module0_clock(m, "Spi2", &aw_ccu_reg->Spi2);

@@ -126,6 +126,7 @@ typedef enum __AW_CCU_CLK_RESET
 #define CLK_MOD_VE          "mod_ve"
 #define CLK_MOD_ADDA        "mod_adda"
 #define CLK_MOD_AVS         "mod_avs"
+#define CLK_MOD_DMIC        "mod_dmic"
 #define CLK_MOD_HDMI        "mod_hdmi"
 #define CLK_MOD_HDMI_DDC    "mod_hdmi_ddc"
 #define CLK_MOD_PS          "mod_ps"

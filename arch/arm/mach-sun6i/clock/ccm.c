@@ -99,6 +99,7 @@ __aw_ccu_clk_t aw_ccu_clk_tbl[] = /* liugang, for ccu test */
     make_aw_clk_inf(AW_MOD_CLK_VE,          CLK_MOD_VE          ),
     make_aw_clk_inf(AW_MOD_CLK_ADDA,        CLK_MOD_ADDA        ),
     make_aw_clk_inf(AW_MOD_CLK_AVS,         CLK_MOD_AVS         ),
+    make_aw_clk_inf(AW_MOD_CLK_DMIC,        CLK_MOD_DMIC        ),
     make_aw_clk_inf(AW_MOD_CLK_HDMI,        CLK_MOD_HDMI        ),
     make_aw_clk_inf(AW_MOD_CLK_HDMI_DDC,    CLK_MOD_HDMI_DDC    ),
     make_aw_clk_inf(AW_MOD_CLK_PS,          CLK_MOD_PS          ),

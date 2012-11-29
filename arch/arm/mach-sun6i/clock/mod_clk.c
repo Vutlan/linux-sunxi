@@ -503,6 +503,8 @@ static __aw_ccu_clk_id_e mod_clk_get_parent(__aw_ccu_clk_id_e id)
                 return AW_SYS_CLK_PLL7X2;
             else if(aw_ccu_reg->Csi0.SClkSrc == 4)
                 return AW_SYS_CLK_MIPIPLL;
+            else if(aw_ccu_reg->Csi0.SClkSrc == 5)
+                return AW_SYS_CLK_PLL4;
             else
                 return AW_SYS_CLK_NONE;
         case AW_MOD_CLK_CSI0M:
@@ -510,12 +512,8 @@ static __aw_ccu_clk_id_e mod_clk_get_parent(__aw_ccu_clk_id_e id)
                 return AW_SYS_CLK_PLL3;
             else if(aw_ccu_reg->Csi0.MClkSrc == 1)
                 return AW_SYS_CLK_PLL7;
-            else if(aw_ccu_reg->Csi0.MClkSrc == 2)
-                return AW_SYS_CLK_HOSC;
             else if(aw_ccu_reg->Csi0.MClkSrc == 5)
-                return AW_SYS_CLK_PLL3X2;
-            else if(aw_ccu_reg->Csi0.MClkSrc == 6)
-                return AW_SYS_CLK_PLL7X2;
+                return AW_SYS_CLK_HOSC;
             else
                 return AW_SYS_CLK_NONE;
         case AW_MOD_CLK_CSI1S:
@@ -529,6 +527,8 @@ static __aw_ccu_clk_id_e mod_clk_get_parent(__aw_ccu_clk_id_e id)
                 return AW_SYS_CLK_PLL7X2;
             else if(aw_ccu_reg->Csi1.SClkSrc == 4)
                 return AW_SYS_CLK_MIPIPLL;
+            else if(aw_ccu_reg->Csi1.SClkSrc == 5)
+                return AW_SYS_CLK_PLL4;
             else
                 return AW_SYS_CLK_NONE;
         case AW_MOD_CLK_CSI1M:
@@ -536,12 +536,8 @@ static __aw_ccu_clk_id_e mod_clk_get_parent(__aw_ccu_clk_id_e id)
                 return AW_SYS_CLK_PLL3;
             else if(aw_ccu_reg->Csi1.MClkSrc == 1)
                 return AW_SYS_CLK_PLL7;
-            else if(aw_ccu_reg->Csi1.MClkSrc == 2)
-                return AW_SYS_CLK_HOSC;
             else if(aw_ccu_reg->Csi1.MClkSrc == 5)
-                return AW_SYS_CLK_PLL3X2;
-            else if(aw_ccu_reg->Csi1.MClkSrc == 6)
-                return AW_SYS_CLK_PLL7X2;
+                return AW_SYS_CLK_HOSC;
             else
                 return AW_SYS_CLK_NONE;
 
@@ -727,6 +723,8 @@ static __aw_ccu_clk_onff_e mod_clk_get_status(__aw_ccu_clk_id_e id)
             return GET_CLK_STATUS(&aw_ccu_reg->Adda);
         case AW_MOD_CLK_AVS:
             return GET_CLK_STATUS(&aw_ccu_reg->Avs);
+        case AW_MOD_CLK_DMIC:
+            return GET_CLK_STATUS(&aw_ccu_reg->Dmic);
         case AW_MOD_CLK_HDMI:
             return GET_CLK_STATUS(&aw_ccu_reg->Hdmi);
         case AW_MOD_CLK_HDMI_DDC:
@@ -1316,6 +1314,8 @@ static __s32 mod_clk_set_parent(__aw_ccu_clk_id_e id, __aw_ccu_clk_id_e parent)
                 aw_ccu_reg->Csi0.SClkSrc = 3;
             else if(parent == AW_SYS_CLK_MIPIPLL)
                 aw_ccu_reg->Csi0.SClkSrc = 4;
+            else if(parent == AW_SYS_CLK_PLL4)
+                aw_ccu_reg->Csi0.SClkSrc = 5;
             else
                 return -1;
             return 0;
@@ -1325,11 +1325,7 @@ static __s32 mod_clk_set_parent(__aw_ccu_clk_id_e id, __aw_ccu_clk_id_e parent)
             else if(parent == AW_SYS_CLK_PLL7)
                 aw_ccu_reg->Csi0.MClkSrc = 1;
             else if(parent == AW_SYS_CLK_HOSC)
-                aw_ccu_reg->Csi0.MClkSrc = 2;
-            else if(parent == AW_SYS_CLK_PLL3X2)
                 aw_ccu_reg->Csi0.MClkSrc = 5;
-            else if(parent == AW_SYS_CLK_PLL7X2)
-                aw_ccu_reg->Csi0.MClkSrc = 6;
             else
                 return -1;
             return 0;
@@ -1344,6 +1340,8 @@ static __s32 mod_clk_set_parent(__aw_ccu_clk_id_e id, __aw_ccu_clk_id_e parent)
                 aw_ccu_reg->Csi1.SClkSrc = 3;
             else if(parent == AW_SYS_CLK_MIPIPLL)
                 aw_ccu_reg->Csi1.SClkSrc = 4;
+            else if(parent == AW_SYS_CLK_PLL4)
+                aw_ccu_reg->Csi1.SClkSrc = 5;
             else
                 return -1;
             return 0;
@@ -1353,11 +1351,7 @@ static __s32 mod_clk_set_parent(__aw_ccu_clk_id_e id, __aw_ccu_clk_id_e parent)
             else if(parent == AW_SYS_CLK_PLL7)
                 aw_ccu_reg->Csi1.MClkSrc = 1;
             else if(parent == AW_SYS_CLK_HOSC)
-                aw_ccu_reg->Csi1.MClkSrc = 2;
-            else if(parent == AW_SYS_CLK_PLL3X2)
                 aw_ccu_reg->Csi1.MClkSrc = 5;
-            else if(parent == AW_SYS_CLK_PLL7X2)
-                aw_ccu_reg->Csi1.MClkSrc = 6;
             else
                 return -1;
             return 0;
@@ -1550,6 +1544,8 @@ static __s32 mod_clk_set_status(__aw_ccu_clk_id_e id, __aw_ccu_clk_onff_e status
             aw_ccu_reg->Adda.ClkGate = STATUS_BIT(status); break;
         case AW_MOD_CLK_AVS:
             aw_ccu_reg->Avs.ClkGate = STATUS_BIT(status); break;
+        case AW_MOD_CLK_DMIC:
+            aw_ccu_reg->Dmic.ClkGate = STATUS_BIT(status); break;
         case AW_MOD_CLK_HDMI:
             aw_ccu_reg->Hdmi.ClkGate = STATUS_BIT(status); break;
         case AW_MOD_CLK_HDMI_DDC:

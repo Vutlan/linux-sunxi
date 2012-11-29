@@ -192,6 +192,8 @@ int clk_enable(struct clk *clk)
     if(!clk->ops || !clk->ops->set_status)
         return 0;
 
+    CCU_DBG("%s:%d:%s: %s !\n", __FILE__, __LINE__, __FUNCTION__, clk->aw_clk->name);
+
     CCU_LOCK(&clk->lock, flags);
 
     if(!clk->enable) {
@@ -249,6 +251,9 @@ unsigned long clk_get_rate(struct clk *clk)
     ret = (unsigned long)clk->aw_clk->rate;
 
     CCU_UNLOCK(&clk->lock, flags);
+
+    CCU_DBG("%s:%d:%s: %s (rate = %lu) !\n", __FILE__, __LINE__, __FUNCTION__, clk->aw_clk->name, ret);
+
     return ret;
 }
 EXPORT_SYMBOL(clk_get_rate);
@@ -265,11 +270,13 @@ long clk_round_rate(struct clk *clk, unsigned long rate)
     if(!clk->ops || !clk->ops->round_rate)
         return rate;
 
-    CCU_DBG("%s:%d:%s: %s !\n", __FILE__, __LINE__, __FUNCTION__, clk->aw_clk->name);
+    CCU_DBG("%s:%d:%s: %s (rate = %lu)!\n", __FILE__, __LINE__, __FUNCTION__, clk->aw_clk->name, rate);
 
     CCU_LOCK(&clk->lock, flags);
     ret = clk->ops->round_rate(clk->aw_clk->id, rate);
     CCU_UNLOCK(&clk->lock, flags);
+
+    CCU_DBG("%s:%d:%s: %s (result = %lu)!\n", __FILE__, __LINE__, __FUNCTION__, clk->aw_clk->name, ret);
 
     return ret;
 }
@@ -285,7 +292,7 @@ int clk_set_rate(struct clk *clk, unsigned long rate)
     if(!clk->ops || !clk->ops->get_rate || !clk->ops->set_rate)
         return 0;
 
-    CCU_DBG("%s:%d:%s: %s !\n", __FILE__, __LINE__, __FUNCTION__, clk->aw_clk->name);
+    CCU_DBG("%s:%d:%s: %s (rate = %lu)!\n", __FILE__, __LINE__, __FUNCTION__, clk->aw_clk->name, rate);
 
     CCU_LOCK(&clk->lock, flags);
 
@@ -317,6 +324,9 @@ struct clk *clk_get_parent(struct clk *clk)
     clk_ret = &aw_clock[clk->aw_clk->parent];
 
     CCU_UNLOCK(&clk->lock, flags);
+
+    CCU_DBG("%s:%d:%s: %s (parent:%s)!\n", __FILE__, __LINE__, __FUNCTION__, clk->aw_clk->name, clk_ret->aw_clk->name);
+
     return clk_ret;
 }
 EXPORT_SYMBOL(clk_get_parent);
@@ -332,7 +342,7 @@ int clk_set_parent(struct clk *clk, struct clk *parent)
     if(!clk->ops || !clk->ops->get_parent || !clk->ops->set_parent || !clk->ops->get_rate)
         return 0;
 
-    CCU_DBG("%s:%d:%s: %s !\n", __FILE__, __LINE__, __FUNCTION__, clk->aw_clk->name);
+    CCU_DBG("%s:%d:%s: %s (parent:%s)!\n", __FILE__, __LINE__, __FUNCTION__, clk->aw_clk->name, parent->aw_clk->name);
 
     CCU_LOCK(&clk->lock, flags);
 
@@ -340,7 +350,7 @@ int clk_set_parent(struct clk *clk, struct clk *parent)
         clk->aw_clk->parent = clk->ops->get_parent(clk->aw_clk->id);
         clk->aw_clk->rate   = clk->ops->get_rate(clk->aw_clk->id);
 
-	CCU_UNLOCK(&clk->lock, flags);
+        CCU_UNLOCK(&clk->lock, flags);
         return 0;
     }
 
@@ -360,7 +370,7 @@ int clk_reset(struct clk *clk, __aw_ccu_clk_reset_e reset)
     if(!clk->ops || !clk->ops->set_reset)
         return 0;
 
-    CCU_DBG("%s:%d:%s: %s !\n", __FILE__, __LINE__, __FUNCTION__, clk->aw_clk->name);
+    CCU_DBG("%s:%d:%s: %s (rese:%d)!\n", __FILE__, __LINE__, __FUNCTION__, clk->aw_clk->name, reset);
 
     CCU_LOCK(&clk->lock, flags);
 
