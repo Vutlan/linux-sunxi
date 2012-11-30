@@ -88,7 +88,6 @@ void __test_script_api(void)
 		{GPIOH(16)},
 		{GPIOH(18)},
 	};
-	struct gpio_config axp_gpio = {GPIO_AXP(1)};
 
 	/*
 	[card0_boot_para]
@@ -248,11 +247,27 @@ void __test_script_api(void)
 	PIOTEST_DBG_FUN_LINE;
 	sw_gpio_dump_config((struct gpio_config *)&item_get.gpio, 1);
 	PIOTEST_DBG_FUN_LINE;
-	WARN_ON(0 != sw_gpio_setall_range(&item_get.gpio, 1));
+	/* NOTE: axp gpio can only use standard linux gpio api */
+	if(1 == item_get.gpio.mul_sel) {
+		if(0 != gpio_direction_output(item_get.gpio.gpio, item_get.gpio.data))
+			printk("%s err, set axp gpio output failed\n", __func__);
+		else {
+			printk("%s, set axp gpio output success!\n", __func__);
+			if(item_get.gpio.data != __gpio_get_value(item_get.gpio.gpio))
+				printk("%s err, get axp gpio value NOT match!\n", __func__);
+			else
+				printk("%s ok, get axp gpio value match!\n", __func__);
+		}
+	} else if(0 == item_get.gpio.mul_sel) {
+		if(0 != gpio_direction_input(item_get.gpio.gpio))
+			printk("%s err, set axp gpio input failed\n", __func__);
+		else {
+			int val = __gpio_get_value(item_get.gpio.gpio);
+			printk("%s, set axp gpio input success! get value %d\n", __func__, val);
+		}
+	} else
+		printk("%s err, line %d\n", __func__, __LINE__);
 	PIOTEST_DBG_FUN_LINE;
-	WARN_ON(0 != sw_gpio_getall_range((struct gpio_config *)&axp_gpio, 1));
-	PIOTEST_DBG_FUN_LINE;
-	sw_gpio_dump_config((struct gpio_config *)&axp_gpio, 1);
 }
 
 u32 __test_request_free(void)
