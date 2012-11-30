@@ -13,7 +13,7 @@ ccflags-y += -Idrivers/gpu/pvr \
              -Idrivers/gpu/pvr/services4/system/sunxi 
 
 ccflags-y += \
-            -DSGX_FEATURE_MP_CORE_COUNT=1 \
+            -DSGX_FEATURE_MP_CORE_COUNT=2 \
             -DPVR_BUILD_TYPE="\"release\"" \
             -DPVRSRV_MODNAME="\"pvrsrvkm\"" \
             -DSGXCORE=544   \

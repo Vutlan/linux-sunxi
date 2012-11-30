@@ -37,13 +37,15 @@ PURPOSE AND NONINFRINGEMENT; AND (B) IN NO EVENT SHALL THE AUTHORS OR
 COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
 IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-  
 */ /**************************************************************************/
 
 #ifndef __IMG_LINUX_ION_H__
 #define __IMG_LINUX_ION_H__
 
 #include <linux/ion.h>
+#if defined (CONFIG_ION_OMAP)
+#include <linux/omap_ion.h>
+#endif
 #if defined (SUPPORT_ION)
 #include "img_types.h"
 #include "servicesext.h"

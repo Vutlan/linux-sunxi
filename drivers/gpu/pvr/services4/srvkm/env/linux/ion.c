@@ -37,7 +37,6 @@ PURPOSE AND NONINFRINGEMENT; AND (B) IN NO EVENT SHALL THE AUTHORS OR
 COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
 IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-  
 */ /**************************************************************************/
 
 #include "ion.h"
@@ -57,6 +56,77 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <linux/file.h>
 #include <linux/fs.h>
 
+#if defined (CONFIG_ION_OMAP)
+extern struct ion_client *gpsIONClient;
+
+void PVRSRVExportFDToIONHandles(int fd, struct ion_client **client,
+								struct ion_handle *handles[2])
+{
+	PVRSRV_FILE_PRIVATE_DATA *psPrivateData;
+	PVRSRV_KERNEL_MEM_INFO *psKernelMemInfo;
+	LinuxMemArea *psLinuxMemArea;
+	PVRSRV_ERROR eError;
+	struct file *psFile;
+
+	/* Take the bridge mutex so the handle won't be freed underneath us */
+	LinuxLockMutex(&gPVRSRVLock);
+
+	psFile = fget(fd);
+	if(!psFile)
+		goto err_unlock;
+
+	psPrivateData = psFile->private_data;
+	if(!psPrivateData)
+	{
+		PVR_DPF((PVR_DBG_ERROR, "%s: struct file* has no private_data; "
+								"invalid export handle", __func__));
+		goto err_fput;
+	}
+
+	eError = PVRSRVLookupHandle(KERNEL_HANDLE_BASE,
+								(IMG_PVOID *)&psKernelMemInfo,
+								psPrivateData->hKernelMemInfo,
+								PVRSRV_HANDLE_TYPE_MEM_INFO);
+	if(eError != PVRSRV_OK)
+	{
+		PVR_DPF((PVR_DBG_ERROR, "%s: Failed to look up MEM_INFO handle",
+								__func__));
+		goto err_fput;
+	}
+
+	psLinuxMemArea = (LinuxMemArea *)psKernelMemInfo->sMemBlk.hOSMemHandle;
+	BUG_ON(psLinuxMemArea == IMG_NULL);
+
+	if(psLinuxMemArea->eAreaType != LINUX_MEM_AREA_ION)
+	{
+		PVR_DPF((PVR_DBG_ERROR, "%s: Valid handle, but not an ION buffer",
+								__func__));
+		goto err_fput;
+	}
+
+	handles[0] = psLinuxMemArea->uData.sIONTilerAlloc.psIONHandle[0];
+	handles[1] = psLinuxMemArea->uData.sIONTilerAlloc.psIONHandle[1];
+	if(client)
+		*client = gpsIONClient;
+
+err_fput:
+	fput(psFile);
+err_unlock:
+	/* Allow PVRSRV clients to communicate with srvkm again */
+	LinuxUnLockMutex(&gPVRSRVLock);
+}
+
+struct ion_handle *
+PVRSRVExportFDToIONHandle(int fd, struct ion_client **client)
+{
+	struct ion_handle *psHandles[2] = { IMG_NULL, IMG_NULL };
+	PVRSRVExportFDToIONHandles(fd, client, psHandles);
+	return psHandles[0];
+}
+
+EXPORT_SYMBOL(PVRSRVExportFDToIONHandles);
+EXPORT_SYMBOL(PVRSRVExportFDToIONHandle);
+#endif
 
 #if defined (SUPPORT_ION)
 #include "syscommon.h"

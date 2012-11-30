@@ -345,8 +345,8 @@ PVRSRV_ERROR EnableSystemClocks(SYS_DATA *psSysData)
 		}
 
 		/*set pll frequency*/
-		if(clk_set_rate(h_gpu_hydpll, SYS_SGX_CORE_CLOCK_SPEED)){
-			printk("try to set gpu_hydpll rate %d failed!\n",SYS_SGX_CORE_CLOCK_SPEED);
+		if(clk_set_rate(h_gpu_hydpll, SYS_SGX_HYD_CLOCK_SPEED)){
+			printk("try to set gpu_hydpll rate %d failed!\n",SYS_SGX_HYD_CLOCK_SPEED);
 		}
 		if(clk_set_rate(h_gpu_corepll, SYS_SGX_CORE_CLOCK_SPEED)){
 			printk("try to set gpu_corepll rate %d failed!\n",SYS_SGX_CORE_CLOCK_SPEED);

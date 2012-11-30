@@ -39,7 +39,6 @@ PURPOSE AND NONINFRINGEMENT; AND (B) IN NO EVENT SHALL THE AUTHORS OR
 COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
 IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-  
 */ /**************************************************************************/
 #ifndef __IMG_LINUX_MM_H__
 #define __IMG_LINUX_MM_H__
@@ -547,6 +546,34 @@ LinuxMemArea *NewAllocPagesLinuxMemArea(IMG_UINT32 ui32Bytes, IMG_UINT32 ui32Are
 IMG_VOID FreeAllocPagesLinuxMemArea(LinuxMemArea *psLinuxMemArea);
 
 
+#if defined(CONFIG_ION_OMAP)
+
+/*!
+ *******************************************************************************
+ * @brief 
+ *
+ * @param ui32Bytes  
+ * @param ui32AreaFlags  E.g Heap caching and mapping Flags
+ *
+ * @return 
+ ******************************************************************************/
+LinuxMemArea *
+NewIONLinuxMemArea(IMG_UINT32 ui32Bytes, IMG_UINT32 ui32AreaFlags,
+                   IMG_PVOID pvPrivData, IMG_UINT32 ui32PrivDataLength);
+
+
+/*!
+ *******************************************************************************
+ * @brief 
+ *
+ * @param psLinuxMemArea  
+ *
+ * @return 
+ ******************************************************************************/
+IMG_VOID FreeIONLinuxMemArea(LinuxMemArea *psLinuxMemArea);
+
+#else /* defined(CONFIG_ION_OMAP) */
+
 static inline LinuxMemArea *
 NewIONLinuxMemArea(IMG_UINT32 ui32Bytes, IMG_UINT32 ui32AreaFlags,
                    IMG_PVOID pvPrivData, IMG_UINT32 ui32PrivDataLength)
@@ -564,6 +591,8 @@ static inline IMG_VOID FreeIONLinuxMemArea(LinuxMemArea *psLinuxMemArea)
     PVR_UNREFERENCED_PARAMETER(psLinuxMemArea);
     BUG();
 }
+
+#endif /* defined(CONFIG_ION_OMAP) */
 
 
 /*!
