@@ -441,6 +441,8 @@ enum sw_ic_ver sw_get_ic_ver(void)
                 version = MAGIC_VER_A13A;
             } else if(val == 0x162542) {
                 version = MAGIC_VER_A13B;
+            } else if(val == 0x162543) {
+                version = MAGIC_VER_A13C;
             } else {
                 version = MAGIC_VER_UNKNOWN;
             }

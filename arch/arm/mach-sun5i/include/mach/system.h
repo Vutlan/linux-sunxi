@@ -55,6 +55,7 @@ enum sw_ic_ver {
 	MAGIC_VER_UNKNOWN   = 1,
 	MAGIC_VER_A13A      = 0xA13A,
 	MAGIC_VER_A13B      = 0xA13B,
+	MAGIC_VER_A13C      = 0xA13C,
 	MAGIC_VER_A12A      = 0xA12A,
 	MAGIC_VER_A12B      = 0xA12B,
 	MAGIC_VER_A10SA     = 0xA10A,
