@@ -323,6 +323,8 @@ static  void codec_init(void)
 
 	/*enable pa*/
 	codec_wr_control(SUN6I_PA_CTRL, 0x1, HPPAEN, 0x1);
+	/*set HPCOM control as direct driver for HPL & HPR*/
+	codec_wr_control(SUN6I_PA_CTRL, 0x3, HPCOM_CTL, 0x3);
 
 	/*when TX FIFO available room less than or equal N,
 	* DRQ Requeest will be de-asserted.
