@@ -271,9 +271,10 @@ u32 port_to_index(u32 port, u32 port_num)
 	};
 
 	/* check power pin */
-	if(AXP_PORT_VAL == port && (0 == port_num || 1 == port_num))
+	if(AXP_PORT_VAL == port) {
+		WARN(port_num >= AXP_NR, "%s err, line %d, please check sys_config.fex", __func__, __LINE__);
 		return (AXP_NR_BASE + port_num);
-	else {
+	} else {
 		if(port - 1 < ARRAY_SIZE(gpio_trans_tbl)
 			&& GPIO_INDEX_INVALID != gpio_trans_tbl[port - 1].base
 			&& port_num < gpio_trans_tbl[port - 1].nr)
