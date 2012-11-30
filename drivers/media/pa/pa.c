@@ -46,6 +46,10 @@ static struct class *pa_dev_class;
 static struct cdev *pa_dev;
 static dev_t dev_num ;
 
+static int req_status;
+static script_item_u item;
+static script_item_value_type_e  type;
+
 typedef enum PA_OPT
 {
 	PA_OPEN = 200,
@@ -64,55 +68,22 @@ static int pa_dev_release(struct inode *inode, struct file *filp){
 
 static long pa_dev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {	
-	int req_status;
-	script_item_u item;
- 	script_item_value_type_e  type;
 	switch (cmd) {	
 		case PA_OPEN:
 			gpio_pa_count = true;
-			/*get the default pa val(close)*/
-		    type = script_get_item("audio_para", "audio_pa_ctrl", &item);
-			if (SCIRPT_ITEM_VALUE_TYPE_PIO != type) {
-				printk("script_get_item return type err\n");
-				return -EFAULT;
-			}
-			/*request gpio*/
-			req_status = gpio_request(item.gpio.gpio, NULL);
-			if (0!=req_status) {
-				printk("request gpio failed!\n");	
-			}
 			item.gpio.data = 1;
-			/*config gpio info of audio_pa_ctrl*/
+			/*config gpio info of audio_pa_ctrl open*/
 			if (0 != sw_gpio_setall_range(&item.gpio, 1)) {
 				printk("sw_gpio_setall_range failed\n");
-			}
-			/*while set the pgio value, release gpio handle*/
-			if (0 == req_status) {
-				gpio_free(item.gpio.gpio);
 			}
 			break;
 		case PA_CLOSE:
 			default:
 			gpio_pa_count = false;
-			/*get the default pa val(close)*/
-		    type = script_get_item("audio_para", "audio_pa_ctrl", &item);
-			if (SCIRPT_ITEM_VALUE_TYPE_PIO != type) {
-				printk("script_get_item return type err\n");
-				return -EFAULT;
-			}
-			/*request gpio*/
-			req_status = gpio_request(item.gpio.gpio, NULL);
-			if (0!=req_status) {
-				printk("request gpio failed!\n");	
-			}
 			item.gpio.data = 0;
-			/*config gpio info of audio_pa_ctrl*/
+			/*config gpio info of audio_pa_ctrl close*/
 			if (0 != sw_gpio_setall_range(&item.gpio, 1)) {
 				printk("sw_gpio_setall_range failed\n");
-			}
-			/*while set the pgio value, release gpio handle*/
-			if (0 == req_status) {
-				gpio_free(item.gpio.gpio);
 			}
 			break;
 	}
@@ -120,57 +91,23 @@ static long pa_dev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 }
 
 static int snd_pa_suspend(struct platform_device *pdev,pm_message_t state)
-{	
-	int req_status;
-	script_item_u item;
- 	script_item_value_type_e  type;
-	/*get the default pa val(close)*/
-    type = script_get_item("audio_para", "audio_pa_ctrl", &item);
-	if (SCIRPT_ITEM_VALUE_TYPE_PIO != type) {
-		printk("script_get_item return type err\n");
-		return -EFAULT;
-	}
-	/*request gpio*/
-	req_status = gpio_request(item.gpio.gpio, NULL);
-	if (0!=req_status) {
-		printk("request gpio failed!\n");	
-	}
+{
 	item.gpio.data = 0;
-	/*config gpio info of audio_pa_ctrl*/
+	/*config gpio info of audio_pa_ctrl close*/
 	if (0 != sw_gpio_setall_range(&item.gpio, 1)) {
 		printk("sw_gpio_setall_range failed\n");
-	}
-	/*while set the pgio value, release gpio handle*/
-	if (0 == req_status) {
-		gpio_free(item.gpio.gpio);
 	}
 	return 0;
 }
 
 static int snd_pa_resume(struct platform_device *pdev)
 {
-	int req_status;
-	script_item_u item;
- 	script_item_value_type_e  type;
-	/*get the default pa val(close)*/
-    type = script_get_item("audio_para", "audio_pa_ctrl", &item);
-	if (SCIRPT_ITEM_VALUE_TYPE_PIO != type) {
-		printk("script_get_item return type err\n");
-		return -EFAULT;
-	}
-	/*request gpio*/
-	req_status = gpio_request(item.gpio.gpio, NULL);
-	if (0 != req_status) {
-		printk("request gpio failed!\n");	
-	}
-	item.gpio.data = 1;
-	/*config gpio info of audio_pa_ctrl*/
-	if (0 != sw_gpio_setall_range(&item.gpio, 1)) {
-		printk("sw_gpio_setall_range failed\n");
-	}
-	/*while set the pgio value, release gpio handle*/
-	if (0 == req_status) {
-		gpio_free(item.gpio.gpio);
+	if (true == gpio_pa_count) {
+		item.gpio.data = 1;
+		/*config gpio info of audio_pa_ctrl open*/
+		if (0 != sw_gpio_setall_range(&item.gpio, 1)) {
+			printk("sw_gpio_setall_range failed\n");
+		}
 	}
 	return 0;
 }
@@ -201,9 +138,6 @@ static struct platform_driver pa_driver = {
 static int __init pa_dev_init(void)
 {
     int err = 0;
-    int req_status;
-	script_item_u item;
- 	script_item_value_type_e  type;
 	printk("[pa_drv] start!!!\n");
 
 	if ((platform_device_register(&device_pa)) < 0) {
@@ -233,18 +167,13 @@ static int __init pa_dev_init(void)
 	}
 	/*request gpio*/
 	req_status = gpio_request(item.gpio.gpio, NULL);
-	if (0!=req_status) {
-		printk("request gpio failed!\n");	
+	if (0 != req_status) {
+		printk("request gpio failed!\n");
 	}
-	/*config gpio info of audio_pa_ctrl*/
+	/*config gpio info of audio_pa_ctrl, the default pa config is close(check pa sys_config1.fex).*/
 	if (0 != sw_gpio_setall_range(&item.gpio, 1)) {
 		printk("sw_gpio_setall_range failed\n");
 	}
-	/*while set the pgio value, release gpio handle*/
-	if (0 == req_status) {
-		gpio_free(item.gpio.gpio);
-	}
-
     printk("[pa_drv] init end!!!\n");
     return 0;
 }
@@ -255,6 +184,11 @@ static void __exit pa_dev_exit(void)
     device_destroy(pa_dev_class,  dev_num);
     class_destroy(pa_dev_class);
     platform_driver_unregister(&pa_driver);
+   	/*while set the pgio value, release gpio handle*/
+	if (0 == req_status) {
+		gpio_free(item.gpio.gpio);
+	}
+
 }
 module_exit(pa_dev_exit);
 
