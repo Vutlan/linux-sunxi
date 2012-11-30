@@ -2152,6 +2152,7 @@ static int __devexit zet6221_ts_remove(struct i2c_client *dev)
 
 	input_unregister_device(zet6221_ts->input);
 	input_free_device(zet6221_ts->input);
+	cancel_work_sync(&zet6221_ts->work1);
 	destroy_workqueue(zet6221_ts->ts_workqueue); 
 	kfree(zet6221_ts);
     
