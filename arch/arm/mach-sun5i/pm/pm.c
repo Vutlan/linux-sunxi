@@ -251,7 +251,8 @@ static int aw_pm_valid(suspend_state_t state)
 #ifdef CHECK_IC_VERSION
 	if(1 == standby_mode){
 			version = sw_get_ic_ver();
-			if(!(MAGIC_VER_A13B == version || MAGIC_VER_A12B == version || MAGIC_VER_A10SB == version)){
+			if(!(MAGIC_VER_A13C == version || MAGIC_VER_A13B == version 
+                || MAGIC_VER_A12B == version || MAGIC_VER_A10SB == version)){
 				pr_info("ic version: %d not support super standby. \n", version);
 				standby_mode = 0;
 			}
