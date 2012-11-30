@@ -17,16 +17,10 @@
 #include <linux/kernel.h>
 #include <mach/sys_config.h>
 #include <mach/gpio.h>
-
-#if 0
-#include <linux/vmalloc.h>
-#define SCRIPT_MALLOC(x)	vmalloc(x)
-#define SCRIPT_FREE(x)		vfree(x)
-#else
 #include <linux/slab.h>
+
 #define SCRIPT_MALLOC(x)	kzalloc((x), GFP_KERNEL)
 #define SCRIPT_FREE(x)		kfree(x)
-#endif
 
 /*
  * define origin main key data structure in cript buffer
@@ -212,6 +206,14 @@ typedef struct {
     void                *next;
 } script_main_key_t;
 
+/*
+ * define script sub key type, raw from sys_config.bin
+ * @SCIRPT_PARSER_VALUE_TYPE_INVALID: invalid type
+ * @SCIRPT_PARSER_VALUE_TYPE_SINGLE_WORD: int item type
+ * @SCIRPT_PARSER_VALUE_TYPE_STRING: string item type
+ * @SCIRPT_PARSER_VALUE_TYPE_MULTI_WORD: multi int type, not used currently
+ * @SCIRPT_PARSER_VALUE_TYPE_GPIO_WORD: gpio item type
+ */
 typedef enum {
 	SCIRPT_PARSER_VALUE_TYPE_INVALID = 0,
 	SCIRPT_PARSER_VALUE_TYPE_SINGLE_WORD,
@@ -413,7 +415,6 @@ EXPORT_SYMBOL(script_get_pio_list);
 
 /*
  * init script
- * @script: original data of script
  */
 static int __init script_init(void)
 {
@@ -441,7 +442,6 @@ static int __init script_init(void)
         printk(KERN_ERR "try to alloc memory for main keys!\n");
         return -1;
     }
-    //memset(g_script, 0, script_hdr->main_cnt*sizeof(script_main_key_t));
 
     origin_main = &script_hdr->main_key;
     for(i=0; i<script_hdr->main_cnt; i++) {
@@ -459,8 +459,6 @@ static int __init script_init(void)
             printk(KERN_ERR "try alloc memory for sub keys failed!\n");
             goto err_out;
         }
-        //memset(main_key->subkey, 0, origin_main[i].sub_cnt*sizeof(script_sub_key_t));
-        //memset(main_key->subkey_val, 0, origin_main[i].sub_cnt*sizeof(script_item_u));
 
         sub_key = main_key->subkey;
         sub_val = main_key->subkey_val;
@@ -477,7 +475,6 @@ static int __init script_init(void)
                 sub_key[j].type = SCIRPT_ITEM_VALUE_TYPE_INT;
             } else if(origin_sub[j].pattern.type == SCIRPT_PARSER_VALUE_TYPE_STRING) {
                 sub_val[j].str = SCRIPT_MALLOC((origin_sub[j].pattern.cnt<<2) + 1);
-		//memset(sub_val[j].str, 0, (origin_sub[j].pattern.cnt<<2) + 1);
                 memcpy(sub_val[j].str, (char *)((unsigned int)script_hdr + (origin_sub[j].offset<<2)), origin_sub[j].pattern.cnt<<2);
                 sub_key[j].type = SCIRPT_ITEM_VALUE_TYPE_STR;
             } else if(origin_sub[j].pattern.type == SCIRPT_PARSER_VALUE_TYPE_GPIO_WORD) {

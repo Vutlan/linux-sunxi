@@ -43,7 +43,7 @@
 #define PL_NR			9
 #define PM_NR			9 /* spec: "Pin MultiPlex" is 8 while "PM Configure Register 1" is 9 */
 /* for axp power PIO */
-#define AXP_NR			2
+#define AXP_NR			5
 
 /*
  * base index for each pio
