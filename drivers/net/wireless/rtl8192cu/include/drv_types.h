@@ -198,7 +198,7 @@ struct registry_priv
 #ifdef CONFIG_IOL
 	bool force_iol; //enable iol without other concern
 #endif
-
+	u8  special_rf_path; //0: 2T2R ,1: only turn on path A 1T1R, 2: only turn on path B 1T1R
 	u8	mac_phy_mode; //0:by efuse, 1:smsp, 2:dmdp, 3:dmsp.
 
 #ifdef CONFIG_80211D
