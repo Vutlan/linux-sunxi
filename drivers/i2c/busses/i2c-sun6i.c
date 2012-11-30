@@ -1111,6 +1111,11 @@ static int sun6i_i2c_clk_init(struct sun6i_i2c *i2c)
 		return -1;
 	}
 
+	if (clk_reset(i2c->mclk, AW_CCU_CLK_NRESET)) {
+		I2C_ERR("[i2c%d] NRESET module clock failed!\n",i2c->bus_num);
+		return -1;
+	}
+
 	/* enable twi bus */
 	twi_enable_bus(i2c->base_addr);
 
@@ -1134,14 +1139,18 @@ static int sun6i_i2c_clk_exit(struct sun6i_i2c *i2c)
 
 	/* disable clk */
 	if (!i2c->mclk || IS_ERR(i2c->mclk)) {
-		I2C_ERR("i2c mclk handle is invalid, just return!\n");
+		I2C_ERR("[i2c%d] i2c mclk handle is invalid, just return!\n", i2c->bus_num);
 		return -1;
 	} else {
+		if (clk_reset( i2c->mclk, AW_CCU_CLK_RESET)) {
+			printk("[i2c%d] RESET module clock failed!\n", i2c->bus_num);
+			return -1;
+		}
 		clk_disable(i2c->mclk);
 	}
 
 	if (!i2c->pclk || IS_ERR(i2c->pclk)) {
-		I2C_ERR("i2c pclk handle is invalid, just return!\n");
+		I2C_ERR("[i2c%d] i2c pclk handle is invalid, just return!\n", i2c->bus_num);
 		return -1;
 	} else {
 		clk_disable(i2c->pclk);
