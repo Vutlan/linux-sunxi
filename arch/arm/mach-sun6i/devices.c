@@ -42,7 +42,7 @@ static struct plat_serial8250_port debug_uart_platform_data[] = {
 	{
 		.membase        = (void __iomem *)(IO_ADDRESS(AW_UART0_BASE)),
 		.mapbase        = (resource_size_t)AW_UART0_BASE,
-		.irq            = 33,
+		.irq            = 32,
 		.flags          = UPF_BOOT_AUTOCONF|UPF_IOREMAP,
 		.iotype         = UPIO_MEM32,
 		.regshift       = 2,
