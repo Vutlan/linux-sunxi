@@ -66,25 +66,27 @@ typedef struct ar100_message
 #define	AR100_MESSAGE_BASE		 	(0x10)
 
 /* standby commands */
-#define	AR100_SSTANDBY_ENTER_REQ	 (AR100_MESSAGE_BASE + 0x00)  /* request to enter       (ac327 to ar100) */
+#define	AR100_SSTANDBY_ENTER_REQ         (AR100_MESSAGE_BASE + 0x00)  /* request to enter       (ac327 to ar100) */
 #define	AR100_SSTANDBY_RESTORE_NOTIFY    (AR100_MESSAGE_BASE + 0x01)  /* restore finished       (ac327 to ar100) */
-#define	AR100_NSTANDBY_ENTER_REQ	 (AR100_MESSAGE_BASE + 0x02)  /* request to enter       (ac327 to ar100) */
+#define	AR100_NSTANDBY_ENTER_REQ         (AR100_MESSAGE_BASE + 0x02)  /* request to enter       (ac327 to ar100) */
 #define	AR100_NSTANDBY_WAKEUP_NOTIFY     (AR100_MESSAGE_BASE + 0x03)  /* wakeup notify          (ar100 to ac327) */
 #define	AR100_NSTANDBY_RESTORE_REQ       (AR100_MESSAGE_BASE + 0x04)  /* request to restore     (ac327 to ar100) */
 #define	AR100_NSTANDBY_RESTORE_COMPLETE  (AR100_MESSAGE_BASE + 0x05)  /* ar100 restore complete (ar100 to ac327) */
 
 /* dvfs commands */
-#define	AR100_CPUX_DVFS_REQ		 (AR100_MESSAGE_BASE + 0x20)  /* request dvfs           (ac327 to ar100) */
+#define	AR100_CPUX_DVFS_REQ              (AR100_MESSAGE_BASE + 0x20)  /* request dvfs           (ac327 to ar100) */
 
 /* pmu commands */                                     
-#define	AR100_AXP_READ_REGS		 (AR100_MESSAGE_BASE + 0x41)  /* read registers	        (ac327 to ar100) */
-#define	AR100_AXP_WRITE_REGS		 (AR100_MESSAGE_BASE + 0x42)  /* write registers        (ac327 to ar100) */
+#define	AR100_AXP_READ_REGS              (AR100_MESSAGE_BASE + 0x41)  /* read registers	        (ac327 to ar100) */
+#define	AR100_AXP_WRITE_REGS             (AR100_MESSAGE_BASE + 0x42)  /* write registers        (ac327 to ar100) */
 #define AR100_AXP_INT_COMING_NOTIFY      (AR100_MESSAGE_BASE + 0x45)  /* interrupt coming notify(ar100 to ac327) */
+#define AR100_AXP_DISABLE_IRQ            (AR100_MESSAGE_BASE + 0x46)  /* disable axp irq of ar100                */
+#define AR100_AXP_ENABLE_IRQ             (AR100_MESSAGE_BASE + 0x47)  /* enable axp irq of ar100                 */
 
 /* set ar100 debug level commands */
-#define AR100_SET_DEBUG_LEVEL		 (AR100_MESSAGE_BASE + 0x50)  /* set ar100 debug level  (ac327 to ar100) */
+#define AR100_SET_DEBUG_LEVEL            (AR100_MESSAGE_BASE + 0x50)  /* set ar100 debug level  (ac327 to ar100) */
 
 /* ar100 initialize state notify commands */
-#define AR100_STARTUP_NOTIFY	 	 (AR100_MESSAGE_BASE + 0x80)  /* ar100 init state notify(ar100 to ac327) */
+#define AR100_STARTUP_NOTIFY             (AR100_MESSAGE_BASE + 0x80)  /* ar100 init state notify(ar100 to ac327) */
 
 #endif	/* __AR100_MESSAGES_H */

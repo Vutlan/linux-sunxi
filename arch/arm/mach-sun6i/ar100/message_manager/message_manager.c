@@ -278,8 +278,8 @@ int ar100_message_coming_notify(struct ar100_message *pmessage)
 	switch (pmessage->type) {
 		case AR100_AXP_INT_COMING_NOTIFY: {
 			AR100_INF("pmu interrupt coming notify\n");
-			pmessage->result = ar100_axp_int_notify(pmessage);
-			ret = 0;
+			ret = ar100_axp_int_notify(pmessage);
+			pmessage->result = ret;
 			break;
 		}
 		default : {

@@ -226,29 +226,72 @@ void ar100_axp_cb_unregister(ar100_cb_t func)
 }
 EXPORT_SYMBOL(ar100_axp_cb_unregister);
 
+int ar100_disable_axp_irq(void)
+{
+	int					  result;
+	struct ar100_message *pmessage;
+	
+	/* allocate a message frame */
+	pmessage = ar100_message_allocate(AR100_MESSAGE_ATTR_HARDSYN);
+	if (pmessage == NULL) {
+		AR100_WRN("allocate message failed\n");
+		return -ENOMEM;
+	}
+	
+	/* initialize message */
+	pmessage->type       = AR100_AXP_DISABLE_IRQ;
+	pmessage->attr       = AR100_MESSAGE_ATTR_HARDSYN;
+	pmessage->state      = AR100_MESSAGE_INITIALIZED;
+	pmessage->cb.handler = NULL;
+	pmessage->cb.arg     = NULL;
+	
+	/* send message use hwmsgbox */
+	ar100_hwmsgbox_send_message(pmessage, AR100_SEND_MSG_TIMEOUT);
+	
+	/* free message */
+	result = pmessage->result;
+	ar100_message_free(pmessage);
+	
+	return result;
+}
+EXPORT_SYMBOL(ar100_disable_axp_irq);
+
+int ar100_enable_axp_irq(void)
+{
+	int					  result;
+	struct ar100_message *pmessage;
+	
+	/* allocate a message frame */
+	pmessage = ar100_message_allocate(AR100_MESSAGE_ATTR_HARDSYN);
+	if (pmessage == NULL) {
+		AR100_WRN("allocate message failed\n");
+		return -ENOMEM;
+	}
+	
+	/* initialize message */
+	pmessage->type       = AR100_AXP_ENABLE_IRQ;
+	pmessage->attr       = AR100_MESSAGE_ATTR_HARDSYN;
+	pmessage->state      = AR100_MESSAGE_INITIALIZED;
+	pmessage->cb.handler = NULL;
+	pmessage->cb.arg     = NULL;
+	
+	/* send message use hwmsgbox */
+	ar100_hwmsgbox_send_message(pmessage, AR100_SEND_MSG_TIMEOUT);
+	
+	/* free message */
+	result = pmessage->result;
+	ar100_message_free(pmessage);
+	
+	return result;
+}
+EXPORT_SYMBOL(ar100_enable_axp_irq);
 
 int ar100_axp_int_notify(struct ar100_message *pmessage)
 {
-	unsigned int  i;
-	unsigned char status[5];
-	/* 
-	 * copy message readout data to user data buffer
-	 * the status[5] is the PMU int status.
-	 */
-	for (i = 0; i < 5; i++) {
-		if (i < 4) {
-			status[i] = ((pmessage->paras[0]) >> (i * 8)) & 0xff;
-		} else {
-			status[i] = ((pmessage->paras[1]) >> ((i - 4) * 8)) & 0xff;
-		}
-	}
-	axp_isr_node.arg = status;
-	
-	if (axp_isr_node.handler == NULL) {
-		AR100_WRN("pmu isr not install\n");
-		return -EINVAL;
-	}
-	
 	/* call pmu interrupt handler */
+	if (axp_isr_node.handler == NULL) {
+		AR100_WRN("axp irq handler not install\n");
+		return 1;
+	}
 	return (*(axp_isr_node.handler))(axp_isr_node.arg);
 }

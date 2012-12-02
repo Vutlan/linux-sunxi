@@ -35,7 +35,7 @@ int ar100_hwmsgbox_init(void)
 	ret = request_irq(AW_IRQ_MBOX, ar100_hwmsgbox_int_handler, 
 			IRQF_DISABLED, "ar100_hwmsgbox_irq", NULL);
 	if (ret) {
-		printk("request_irq error, return %d\n", ret);
+		AR100_ERR("request_irq error, return %d\n", ret);
 		return ret;
 	}
 	
@@ -85,7 +85,9 @@ int ar100_hwmsgbox_send_message(struct ar100_message *pmessage, unsigned int tim
 		/* hwsyn messsage must feedback use syn rx channel */
 		/* message not valid */
 		while (readl(IO_ADDRESS(AW_MSGBOX_MSG_STATUS_REG(AR100_HWMSGBOX_AC327_SYN_RX_CH))) == 0) {
-			;
+			if (time_is_before_eq_jiffies(expire)) {
+				return -ETIMEDOUT;
+			}
 		}
 		/* check message valid */
 		if (value != (readl(IO_ADDRESS(AW_MSGBOX_MSG_REG(AR100_HWMSGBOX_AC327_SYN_RX_CH))))) {
@@ -117,7 +119,7 @@ int ar100_hwmsgbox_send_message(struct ar100_message *pmessage, unsigned int tim
 	}
 	/* write message to message-queue fifo */
 	value = ((volatile unsigned long)pmessage) - ar100_sram_a2_vbase; 
-	AR100_LOG("ac327 send message : %x\n", (unsigned int)value);
+	AR100_INF("ac327 send message : %x\n", (unsigned int)value);
 	writel(value, IO_ADDRESS(AW_MSGBOX_MSG_REG(AR100_HWMSGBOX_AR100_ASYN_RX_CH)));
 	
 	/* syn messsage must wait message feedback */
@@ -224,7 +226,7 @@ int ar100_hwmsgbox_clear_receiver_pending(int queue, int user)
  */
 irqreturn_t ar100_hwmsgbox_int_handler(int irq, void *dev)
 {
-	AR100_LOG("ac327 msgbox interrupt handler...\n");
+	AR100_INF("ac327 msgbox interrupt handler...\n");
 	
 	/* process ac327 asyn received channel, process all received messages */
 	while (readl(IO_ADDRESS(AW_MSGBOX_MSG_STATUS_REG(AR100_HWMSGBOX_AR100_ASYN_TX_CH)))) {

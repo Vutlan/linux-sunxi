@@ -106,7 +106,7 @@ int ar100_init(void)
 	
 	/* wait ar100 ready */
 	AR100_INF("wait ar100 ready....\n");
-	if (ar100_wait_ready(500)) {
+	if (ar100_wait_ready(500000)) {
 		AR100_LOG("ar100 startup failed\n");
 	}
 	
@@ -127,7 +127,7 @@ int ar100_init(void)
 	
 	return 0;
 }
-device_initcall(ar100_init);
+subsys_initcall(ar100_init);
 
 static int ar100_wait_ready(unsigned int timeout)
 {

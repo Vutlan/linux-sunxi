@@ -20,7 +20,7 @@
 #define	AR100_DVFS_SYN		(1<<0)
 
 /* axp driver interfaces */
-#define AXP_TRANS_BYTE_MAX	(5)
+#define AXP_TRANS_BYTE_MAX	(8)
 
 /* ar100 call-back */
 typedef int (*ar100_cb_t)(void *arg);
@@ -101,5 +101,8 @@ int ar100_axp_cb_register(ar100_cb_t func, void *para);
  * @func:  call-back function which need be unregister;
  */
 void ar100_axp_cb_unregister(ar100_cb_t func);
+
+int ar100_disable_axp_irq(void);
+int ar100_enable_axp_irq(void);
 
 #endif	/* __ASM_ARCH_A100_H */

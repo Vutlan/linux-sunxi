@@ -25,14 +25,15 @@ void __ar100_dvfs_test(void)
 {
 	unsigned int i;
 	unsigned int freq_table[] = {
-		120000000, 
+		120000000,
 		240000000, 
-		300000000, 
-		360000000, 
-		300000000, 
-		240000000, 
-		120000000
+		300000000,
+		360000000,
+		300000000,
+		240000000,
+		120000000,
 	};
+	
 	for (i = 0; i < sizeof(freq_table) / sizeof(unsigned int); i++) {
 		printk("dvfs request freq: %d\n", freq_table[i]);
 		ar100_dvfs_set_cpufreq(freq_table[i], AR100_DVFS_SYN, NULL, __ar100_dvfs_cb);
@@ -41,11 +42,43 @@ void __ar100_dvfs_test(void)
 	printk("dvfs test succeeded\n");
 }
 
-#define AXP_TEST_BASE_REG_ADDR	(0x15)
+static struct work_struct axp_work;
+
+static void __axp_irq_work(struct work_struct *work)
+{
+	u32 i;
+	u8 addr[5];
+	u8 data[5];
+	
+	printk("axp irq work running...\n");
+	
+	//read out irq status and dump irq status
+	printk("read axp irq status\n");
+	for (i = 0; i < 5; i++) {
+		addr[i] = 0x48 + i;
+	}
+	ar100_axp_read_reg(addr, data, 5);
+	printk("axp irq status information:\n");
+	for (i = 0; i < 5; i++) {
+		printk("addr:0x%x, data:0x%x\n", addr[i], data[i]);
+	}
+	
+	printk("clear axp status\n");
+	ar100_axp_write_reg(addr, data, 5);
+	
+	printk("re-enable axp irq of ar100\n");
+	ar100_enable_axp_irq();
+	
+	printk("axp irq handle end\n");
+}
 
 static int __ar100_axp_cb(void *arg)
 {
-	printk("ar100 axp interrupt coming\n");
+	printk("axp irq coming...\n");
+	
+	(void)schedule_work(&axp_work);
+	
+	printk("axp irq handle end\n");
 	return 0;
 }
 
@@ -62,8 +95,8 @@ static void __ar100_axp_test(void)
 	printk("test axp write regs begin...\n");
 	len = AXP_TRANS_BYTE_MAX;
 	for (i = 0; i < AXP_TRANS_BYTE_MAX; i++) {
-		addr_table[i] = AXP_TEST_BASE_REG_ADDR + i;
-		data_table[i] = 0x8;
+		addr_table[i] = 0xc0 + i;
+		data_table[i] = 0x20;
 	}
 	for (len = 1; len <= AXP_TRANS_BYTE_MAX; len++) {
 		printk("write axp regs data:\n");
@@ -83,7 +116,7 @@ static void __ar100_axp_test(void)
 	printk("test axp read regs begin...\n");
 	len = AXP_TRANS_BYTE_MAX;
 	for (i = 0; i < AXP_TRANS_BYTE_MAX; i++) {
-		addr_table[i] = AXP_TEST_BASE_REG_ADDR + i;
+		addr_table[i] = 0xc0 + i;
 	}
 	for (len = 1; len <= AXP_TRANS_BYTE_MAX; len++) {
 		ret = ar100_axp_read_reg(addr_table, data_table, len);
@@ -101,6 +134,7 @@ static void __ar100_axp_test(void)
 	
 	/* test axp interrupt call-back */
 	printk("test axp call-back begin...\n");
+	INIT_WORK(&axp_work, __axp_irq_work);
 	if(ar100_axp_cb_register(__ar100_axp_cb, NULL)) {
 		printk("test axp reg cb failed\n");
 	}
