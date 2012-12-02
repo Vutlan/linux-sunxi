@@ -208,7 +208,7 @@ static u32 debug_mask = 0;
 #define dprintk(level_mask, fmt, arg...)	if (unlikely(debug_mask & level_mask)) \
 	printk(KERN_DEBUG fmt , ## arg)
 
-
+module_param_named(debug_mask, debug_mask, int, S_IRUGO | S_IWUSR | S_IWGRP);
 
 struct {
 	unsigned int cutoff_ms;
@@ -259,12 +259,10 @@ struct lis3dh_acc_platform_data lis3dh_dev_data;
 
 
 /* Addresses to scan */
-static union{
-	unsigned short dirty_addr_buf[2];
-	const unsigned short normal_i2c[2];
-}u_i2c_addr = {{0x00},};
+static const unsigned short normal_i2c[] = {0x18, I2C_CLIENT_END};
 static __u32 twi_id = 0;
-
+static int i2c_num = 0;
+static const unsigned short i2c_address[3] = {0x18,0x19,0x38};
 
 static void lis3dh_acc_set_data(struct lis3dh_acc_platform_data *dev_data)
 {
@@ -295,8 +293,6 @@ static int gsensor_fetch_sysconfig_para(void)
 {
 	int ret = -1;
 	int device_used = -1;
-	__u32 twi_addr = 0;
-	char name[I2C_NAME_SIZE];
 	script_item_u	val;
 	script_item_value_type_e  type;
 		
@@ -313,31 +309,6 @@ static int gsensor_fetch_sysconfig_para(void)
 	device_used = val.val;
 		
 	if (1 == device_used) {
-			
-		type = script_get_item("gsensor_para", "gsensor_name", &val);
-		if (SCIRPT_ITEM_VALUE_TYPE_STR	!= type) {
-			pr_err("%s: type err  gsensor_name = %s. \n", __func__, val.str);
-			goto script_get_err;
-		}
-		strcpy(name, val.str);
-		if (strcmp(SENSOR_NAME, name)) {
-			pr_err("%s: name %s does not match SENSOR_NAME. \n", __func__, name);
-			pr_err(SENSOR_NAME);
-			return ret;
-		}
-	
-		type = script_get_item("gsensor_para", "gsensor_twi_addr", &val);	
-		if (SCIRPT_ITEM_VALUE_TYPE_INT	!= type) {
-			pr_err("%s: type err  twi_addr = %d. \n", __func__, val.val);
-			goto script_get_err;
-		}
-		twi_addr = val.val;
-			
-		u_i2c_addr.dirty_addr_buf[0] = twi_addr;
-		u_i2c_addr.dirty_addr_buf[1] = I2C_CLIENT_END;
-		dprintk(DEBUG_BASE_LEVEL0, "%s: after: gsensor_twi_addr is 0x%x, dirty_addr_buf: 0x%hx. dirty_addr_buf[1]: 0x%hx \n", \
-			__func__, twi_addr, u_i2c_addr.dirty_addr_buf[0], u_i2c_addr.dirty_addr_buf[1]);
-	
 		type = script_get_item("gsensor_para", "gsensor_twi_id", &val); 
 		if(SCIRPT_ITEM_VALUE_TYPE_INT != type){
 			pr_err("%s: type err twi_id = %d. \n", __func__, val.val);
@@ -427,8 +398,6 @@ static int lis3dh_acc_i2c_write(struct lis3dh_acc_data *acc, u8 * buf, int len)
 	return err;
 }
 
-
-
 /**
  * gsensor_detect - Device detection callback for automatic device creation
  * return value:  
@@ -438,31 +407,30 @@ static int lis3dh_acc_i2c_write(struct lis3dh_acc_data *acc, u8 * buf, int len)
 int gsensor_detect(struct i2c_client *client, struct i2c_board_info *info)
 {
 	struct i2c_adapter *adapter = client->adapter;
-	/* int ret; */
-
-	if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE_DATA)) {
-		pr_info("%s: ========err\n",__func__);
+	int ret;
+	if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE_DATA))
 		return -ENODEV;
-	}
-
+	
 	lis3dh_acc_set_data(&lis3dh_dev_data);
-    
+            
 	if (twi_id == adapter->nr) {
-					pr_info("%s: addr= %x\n",__func__,client->addr);
-
-		/*ret = gsensor_i2c_test(client);
-		if(!ret){
-			pr_info("%s:I2C connection might be something wrong or maybe the other gsensor equipment! \n",__func__);
-			return -ENODEV;
-		} else {           	    
-			pr_info("I2C connection sucess!\n");
-			strlcpy(info->type, SENSOR_NAME, I2C_NAME_SIZE);
-			return 0;	
-		}*/
-		strlcpy(info->type, SENSOR_NAME, I2C_NAME_SIZE);
-		info->platform_data = &lis3dh_dev_data;
-		return 0;
-
+		for(i2c_num = 0; i2c_num < (sizeof(i2c_address)/sizeof(i2c_address[0]));i2c_num++)
+		{
+			client->addr = i2c_address[i2c_num];
+			pr_info("%s:addr= 0x%x,i2c_num:%d\n",__func__,client->addr,i2c_num);
+			ret = i2c_smbus_read_byte_data(client,WHO_AM_I);
+			pr_info("Read ID value is :%d",ret);
+			if ((ret &0x00FF) == WHOAMI_LIS3DH_ACC) {
+				pr_info("lis3dh_acc Device detected!\n" );
+    				strlcpy(info->type, SENSOR_NAME, I2C_NAME_SIZE);
+				info->platform_data = &lis3dh_dev_data;
+				return 0; 
+			}                                                        
+		}
+        
+		pr_info("%s:lis3dh_acc Device not found, \
+			maybe the other gsensor equipment! \n",__func__);
+		return -ENODEV;
 	} else {
 		return -ENODEV;
 	}
@@ -1670,7 +1638,7 @@ static struct i2c_driver lis3dh_acc_driver = {
 	.suspend = lis3dh_acc_suspend,
 	.resume = lis3dh_acc_resume,
 	.id_table = lis3dh_acc_id,
-	.address_list	= u_i2c_addr.normal_i2c,
+	.address_list	= normal_i2c,
 };
 
 static int __init lis3dh_acc_init(void)
@@ -1679,12 +1647,9 @@ static int __init lis3dh_acc_init(void)
 						LIS3DH_ACC_DEV_NAME);
 	
 	if(gsensor_fetch_sysconfig_para()){
-			printk("%s: err.\n", __func__);
-			return -1;
-		}
-	
-	dprintk(DEBUG_BASE_LEVEL0, "%s: after fetch_sysconfig_para:  normal_i2c: 0x%hx. normal_i2c[1]: 0x%hx \n", \
-		__func__, u_i2c_addr.normal_i2c[0], u_i2c_addr.normal_i2c[1]);
+		printk("%s: err.\n", __func__);
+		return -1;
+	}
 	
 	lis3dh_acc_driver.detect = gsensor_detect;
 		

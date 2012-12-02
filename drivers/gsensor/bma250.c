@@ -241,11 +241,10 @@ struct bma250_data {
 };
 
 /* Addresses to scan */
-static union{
-	unsigned short dirty_addr_buf[2];
-	const unsigned short normal_i2c[2];
-}u_i2c_addr = {{0x00},};
+static const unsigned short normal_i2c[] = {0x18, I2C_CLIENT_END};
 static __u32 twi_id = 0;
+static int i2c_num = 0;
+static const unsigned short i2c_address[3] = {0x18,0x19,0x38};
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 static void bma250_early_suspend(struct early_suspend *h);
@@ -262,49 +261,20 @@ static int gsensor_fetch_sysconfig_para(void)
 {
 	int ret = -1;
 	int device_used = -1;
-	__u32 twi_addr = 0;
-	char name[I2C_NAME_SIZE];
 	script_item_u	val;
 	script_item_value_type_e  type;
-	
 		
 	dprintk(DEBUG_BASE_LEVEL0, "========%s===================\n", __func__);
 
-	
 	type = script_get_item("gsensor_para", "gsensor_used", &val);
  
 	if (SCIRPT_ITEM_VALUE_TYPE_INT  != type) {
-	                pr_err("%s: type err  device_used = %d. \n", __func__, val.val);
-	                goto script_get_err;
+		pr_err("%s: type err  device_used = %d. \n", __func__, val.val);
+		goto script_get_err;
 	}
 	device_used = val.val;
 	
 	if (1 == device_used) {
-		
-		type = script_get_item("gsensor_para", "gsensor_name", &val);
-		if (SCIRPT_ITEM_VALUE_TYPE_STR  != type) {
-			pr_err("%s: type err  gsensor_name = %s. \n", __func__, val.str);
-			goto script_get_err;
-		}
-		strcpy(name, val.str);
-		if (strcmp(SENSOR_NAME, name)) {
-			pr_err("%s: name %s does not match SENSOR_NAME. \n", __func__, name);
-			pr_err(SENSOR_NAME);
-			return ret;
-		}
-
-		type = script_get_item("gsensor_para", "gsensor_twi_addr", &val);	
-		if (SCIRPT_ITEM_VALUE_TYPE_INT  != type) {
-	                pr_err("%s: type err  twi_addr = %d. \n", __func__, val.val);
-	                goto script_get_err;
-		}
-		twi_addr = val.val;
-		
-		u_i2c_addr.dirty_addr_buf[0] = twi_addr;
-		u_i2c_addr.dirty_addr_buf[1] = I2C_CLIENT_END;
-		dprintk(DEBUG_BASE_LEVEL0, "%s: after: gsensor_twi_addr is 0x%x, dirty_addr_buf: 0x%hx. dirty_addr_buf[1]: 0x%hx \n", \
-			__func__, twi_addr, u_i2c_addr.dirty_addr_buf[0], u_i2c_addr.dirty_addr_buf[1]);
-
 		type = script_get_item("gsensor_para", "gsensor_twi_id", &val);	
 		if(SCIRPT_ITEM_VALUE_TYPE_INT != type){
 			pr_err("%s: type err twi_id = %d. \n", __func__, val.val);
@@ -334,17 +304,37 @@ script_get_err:
  *                    = 0; success;
  *                    < 0; err
  */
-static int gsensor_detect(struct i2c_client *client, struct i2c_board_info *info)
+int gsensor_detect(struct i2c_client *client, struct i2c_board_info *info)
 {
 	struct i2c_adapter *adapter = client->adapter;
-
-	if(twi_id == adapter->nr){
-		pr_info("%s: Detected chip %s at adapter %d, address 0x%02x\n",
-			 __func__, SENSOR_NAME, i2c_adapter_id(adapter), client->addr);
-
-		strlcpy(info->type, SENSOR_NAME, I2C_NAME_SIZE);
-		return 0;
-	}else{
+	int ret;
+	if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE_DATA))
+		return -ENODEV;
+            
+	if (twi_id == adapter->nr) {
+		for (i2c_num = 0; i2c_num < (sizeof(i2c_address)/sizeof(i2c_address[0]));i2c_num++) {
+			client->addr = i2c_address[i2c_num];
+			pr_info("%s:addr= 0x%x,i2c_num:%d\n",__func__,client->addr,i2c_num);
+			ret = i2c_smbus_read_byte_data(client,BMA250_CHIP_ID_REG);
+			pr_info("Read ID value is :%d",ret);
+			if ((ret &0x00FF) == BMA250_CHIP_ID) {
+				pr_info("Bosch Sensortec Device detected!\n" );
+				strlcpy(info->type, SENSOR_NAME, I2C_NAME_SIZE);
+				return 0; 
+    
+			} else if((ret &0x00FF) == BMA150_CHIP_ID) {
+            	  	
+				pr_info("Bosch Sensortec Device detected!\n" \
+					"BMA150 registered I2C driver!\n");  
+				strlcpy(info->type, SENSOR_NAME, I2C_NAME_SIZE);
+				return 0; 
+			}                                                                     
+		}
+        
+		pr_info("%s:Bosch Sensortec Device not found, \
+			maybe the other gsensor equipment! \n",__func__);
+		return -ENODEV;
+	} else {
 		return -ENODEV;
 	}
 }
@@ -1065,7 +1055,7 @@ static struct i2c_driver bma250_driver = {
 	.id_table	= bma250_id,
 	.probe		= bma250_probe,
 	.remove		= bma250_remove,
-	.address_list	= u_i2c_addr.normal_i2c,
+	.address_list	= normal_i2c,
 };
 
 static int __init BMA250_init(void)
@@ -1077,9 +1067,6 @@ static int __init BMA250_init(void)
 		printk("%s: err.\n", __func__);
 		return -1;
 	}
-
-	dprintk(DEBUG_BASE_LEVEL0, "%s: after fetch_sysconfig_para:  normal_i2c: 0x%hx. normal_i2c[1]: 0x%hx \n", \
-	__func__, u_i2c_addr.normal_i2c[0], u_i2c_addr.normal_i2c[1]);
 
 	bma250_driver.detect = gsensor_detect;
 	

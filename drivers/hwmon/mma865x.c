@@ -356,7 +356,7 @@ static void report_abs(void)
 		dprintk(DEBUG_BASE_LEVEL0, "mma8452 data read failed\n");
 		return;
 	}
-	//pr_info("x= 0x%hx, y = 0x%hx, z = 0x%hx. \n", x, y, z);
+	dprintk(DEBUG_BASE_LEVEL1, "x= 0x%hx, y = 0x%hx, z = 0x%hx\n", x, y, z);
 	input_report_abs(mma865x_idev->input, ABS_X, x);
 	input_report_abs(mma865x_idev->input, ABS_Y, y);
 	input_report_abs(mma865x_idev->input, ABS_Z, z);

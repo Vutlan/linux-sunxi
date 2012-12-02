@@ -61,6 +61,8 @@
 #define INPUT_FUZZ              32
 #define INPUT_FLAT              32
 #define MODE_CHANGE_DELAY_MS    100
+#define MMA8452_I2C_ADDR0       0x1C
+#define MMA8452_I2C_ADDR1       0x1D
 
 enum {
 	DEBUG_BASE_LEVEL0 = 1U << 0,
@@ -74,13 +76,11 @@ static u32 debug_mask = 0;
 
 module_param_named(debug_mask, debug_mask, int, S_IRUGO | S_IWUSR | S_IWGRP);
 
-
-/* register enum for mma8452 registers */
-static union {
-	unsigned short dirty_addr_buf[2];
-	const unsigned short normal_i2c[2];
-}u_i2c_addr = {{0x00},};
+/* Addresses to scan */
+static const unsigned short normal_i2c[2] = {0x1d,I2C_CLIENT_END};
+static const unsigned short i2c_address[2] = {MMA8452_I2C_ADDR0,MMA8452_I2C_ADDR1};
 static __u32 twi_id = 0;
+static int i2c_num = 0;
 
 #ifdef CONFIG_HAS_EARLYSUSPEND	
 struct mma8452_data {
@@ -90,6 +90,7 @@ struct mma8452_data {
 static struct mma8452_data *mma8452_data;
 #endif
 
+/* register enum for mma8452 registers */
 enum {
 	MMA8452_STATUS = 0x00,
 	MMA8452_OUT_X_MSB,
@@ -170,8 +171,6 @@ static int gsensor_fetch_sysconfig_para(void)
 {
 	int ret = -1;
 	int device_used = -1;
-	__u32 twi_addr = 0;
-	char name[I2C_NAME_SIZE];
 	script_item_u	val;
 	script_item_value_type_e  type;
 	
@@ -181,38 +180,13 @@ static int gsensor_fetch_sysconfig_para(void)
 	
 	type = script_get_item("gsensor_para", "gsensor_used", &val);
  
-	if (SCIRPT_ITEM_VALUE_TYPE_INT  != type) {
-	                pr_err("%s: type err  device_used = %d. \n", __func__, val.val);
-	                goto script_get_err;
+	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+		pr_err("%s: type err  device_used = %d. \n", __func__, val.val);
+		goto script_get_err;
 	}
 	device_used = val.val;
 	
 	if (1 == device_used) {
-		
-		type = script_get_item("gsensor_para", "gsensor_name", &val);
-		if (SCIRPT_ITEM_VALUE_TYPE_STR  != type) {
-			pr_err("%s: type err  gsensor_name = %s. \n", __func__, val.str);
-			goto script_get_err;
-		}
-		strcpy(name, val.str);
-		if (strcmp(SENSOR_NAME, name)) {
-			pr_err("%s: name %s does not match SENSOR_NAME. \n", __func__, name);
-			pr_err(SENSOR_NAME);
-			return ret;
-		}
-
-		type = script_get_item("gsensor_para", "gsensor_twi_addr", &val);	
-		if (SCIRPT_ITEM_VALUE_TYPE_INT  != type) {
-	                pr_err("%s: type err  twi_addr = %d. \n", __func__, val.val);
-	                goto script_get_err;
-		}
-		twi_addr = val.val;
-		
-		u_i2c_addr.dirty_addr_buf[0] = twi_addr;
-		u_i2c_addr.dirty_addr_buf[1] = I2C_CLIENT_END;
-		dprintk(DEBUG_BASE_LEVEL0, "%s: after: gsensor_twi_addr is 0x%x, dirty_addr_buf: 0x%hx. dirty_addr_buf[1]: 0x%hx \n", \
-			__func__, twi_addr, u_i2c_addr.dirty_addr_buf[0], u_i2c_addr.dirty_addr_buf[1]);
-
 		type = script_get_item("gsensor_para", "gsensor_twi_id", &val);	
 		if(SCIRPT_ITEM_VALUE_TYPE_INT != type){
 			pr_err("%s: type err twi_id = %d. \n", __func__, val.val);
@@ -248,17 +222,28 @@ script_get_err:
 int gsensor_detect(struct i2c_client *client, struct i2c_board_info *info)
 {
 	struct i2c_adapter *adapter = client->adapter;
-	
-	if (twi_id == adapter->nr) {
-		pr_info("%s: Detected chip %s at adapter %d, address 0x%02x\n",
-			 __func__, SENSOR_NAME, i2c_adapter_id(adapter), client->addr);
-
-		strlcpy(info->type, SENSOR_NAME, I2C_NAME_SIZE);
-		return 0;
+	int ret ;
+	if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE_DATA))
+		return -ENODEV;
+    
+	if(twi_id == adapter->nr){
+		while (i2c_num < 2) {
+			client->addr = i2c_address[i2c_num++];
+			pr_info("%s: addr= %x\n",__func__,client->addr);
+			ret = i2c_smbus_read_byte_data(client, MMA8452_WHO_AM_I);
+			if ((ret&0x00FF) == MMA8452_ID) {
+				printk( "%s: mma8452 equipment is detected!\n",__func__);
+				strlcpy(info->type, SENSOR_NAME, I2C_NAME_SIZE);
+				return 0;
+			}
+		}
+		pr_info("%s: mma8452  equipment is not found!\n",__func__);
+		return  -ENODEV;    
 	} else {
 		return -ENODEV;
 	}
 }
+
 
 static ssize_t mma8452_enable_store(struct device *dev,
 		struct device_attribute *attr,
@@ -396,7 +381,8 @@ static void report_abs(void)
 		//DBG("mma8452 data read failed\n");
 		return;
 	}
-	
+
+	dprintk(DEBUG_BASE_LEVEL1, "x= 0x%hx, y = 0x%hx, z = 0x%hx\n", x, y, z);
 	input_report_abs(mma8452_idev->input, ABS_X, x);
 	input_report_abs(mma8452_idev->input, ABS_Y, y);
 	input_report_abs(mma8452_idev->input, ABS_Z, z);
@@ -555,7 +541,7 @@ static struct i2c_driver mma8452_driver = {
 	.probe	= mma8452_probe,
 	.remove	= __devexit_p(mma8452_remove),
 	.id_table = mma8452_id,
-	.address_list	= u_i2c_addr.normal_i2c,
+	.address_list	= normal_i2c,
 };
 
 static int __init mma8452_init(void)
@@ -568,8 +554,6 @@ static int __init mma8452_init(void)
 		return -1;
 	}
 
-	dprintk(DEBUG_BASE_LEVEL0, "%s: after fetch_sysconfig_para:  normal_i2c: 0x%hx. normal_i2c[1]: 0x%hx \n", \
-	__func__, u_i2c_addr.normal_i2c[0], u_i2c_addr.normal_i2c[1]);
 	mma8452_driver.detect = gsensor_detect;
 	res = i2c_add_driver(&mma8452_driver);
 	if (res < 0) {
