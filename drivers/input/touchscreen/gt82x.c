@@ -85,7 +85,7 @@ const char *f3x_ts_name = "gt82x";
 static struct workqueue_struct *goodix_wq;
 #define X_DIFF (800)
 
-static u32 ctp_debug = DEBUG_INIT;
+static u32 ctp_debug = 0;
 
 #define dprintk(level_mask,fmt,arg...)    if(unlikely(ctp_debug & level_mask)) \
         printk("***CTP***"fmt, ## arg)
@@ -99,8 +99,8 @@ static u32 ctp_debug = DEBUG_INIT;
 #define TS_WAKEUP_HIGH_PERIOD	(100)
 #define TS_POLL_DELAY			(10)	/* ms delay between samples */
 #define TS_POLL_PERIOD			(10)	/* ms delay between samples */
-#define SCREEN_MAX_HEIGHT		(screen_max_x)
-#define SCREEN_MAX_WIDTH		(screen_max_y)
+#define SCREEN_MAX_X		(screen_max_x)
+#define SCREEN_MAX_Y		(screen_max_y)
 #define PRESS_MAX			(255)
 
 
@@ -281,7 +281,7 @@ static int goodix_init_panel(struct goodix_ts_data *ts)
                 0x08,0x12,0xFF,0x0D,0xFF,0x0F,0x10,0x11,
                 0x12,0x13,0x0F,0x03,0x10,0x88,0x88,0x20,
                 0x00,0x00,0x06,0x00,0x00,0x02,0x50,0x3C,
-                0x35,0x03,0x00,0x05,0x00,0x02,0x58,0x04,
+                0x35,0x03,0x00,0x05,0x00,0x03,0x20,0x05,
                 0x00,0x5A,0x5A,0x46,0x46,0x08,0x00,0x03,
                 0x19,0x05,0x14,0x10,0x00,0x07,0x00,0x00,
                 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
@@ -357,17 +357,18 @@ Output:
 *******************************************************/
 static void goodix_touch_down(struct goodix_ts_data* ts,s32 id,s32 x,s32 y,s32 w)
 {
-        if(1 == revert_x_flag){
-                x = SCREEN_MAX_WIDTH - x;
-        }
-        if(1 == revert_y_flag){
-                y = SCREEN_MAX_HEIGHT - y;
-        }
-        
-        if(1 == exchange_x_y_flag){
-                swap(x, y);
-        }
+	dprintk(DEBUG_X_Y_INFO,"source data :ID:%d, X:%d, Y:%d, W:%d", id, x, y, w);
 
+	if(1 == exchange_x_y_flag){
+	        swap(x, y);
+	}
+	if(1 == revert_x_flag){
+	        x = SCREEN_MAX_X - x;
+	}
+	if(1 == revert_y_flag){
+	        y = SCREEN_MAX_Y - y;
+	}
+	dprintk(DEBUG_X_Y_INFO,"report data:ID:%d, X:%d, Y:%d, W:%d", id, x, y, w);
     input_report_abs(ts->input_dev, ABS_MT_POSITION_X, x);
     input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, y);
     input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, w);
@@ -375,7 +376,7 @@ static void goodix_touch_down(struct goodix_ts_data* ts,s32 id,s32 x,s32 y,s32 w
     input_report_abs(ts->input_dev, ABS_MT_TRACKING_ID, id);
     input_mt_sync(ts->input_dev);
 
-    dprintk(DEBUG_X_Y_INFO,"ID:%d, X:%d, Y:%d, W:%d", id, x, y, w);
+    
 }
 /*******************************************************
 Function:
@@ -626,8 +627,8 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 #ifndef GOODIX_MULTI_TOUCH	
 	ts->input_dev->keybit[BIT_WORD(BTN_TOUCH)] = BIT_MASK(BTN_TOUCH);
 	ts->input_dev->absbit[0] = BIT(ABS_X) | BIT(ABS_Y) | BIT(ABS_PRESSURE);
-	input_set_abs_params(ts->input_dev, ABS_X, 0, SCREEN_MAX_HEIGHT, 0, 0);
-	input_set_abs_params(ts->input_dev, ABS_Y, 0, SCREEN_MAX_WIDTH, 0, 0);
+	input_set_abs_params(ts->input_dev, ABS_X, 0, SCREEN_MAX_X, 0, 0);
+	input_set_abs_params(ts->input_dev, ABS_Y, 0, SCREEN_MAX_Y, 0, 0);
 	input_set_abs_params(ts->input_dev, ABS_PRESSURE, 0, 255, 0, 0);	
 	
 #else
@@ -636,8 +637,8 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
   		BIT_MASK(ABS_MT_POSITION_X) | BIT_MASK(ABS_MT_POSITION_Y); 	// for android
 	input_set_abs_params(ts->input_dev, ABS_MT_WIDTH_MAJOR, 0, 255, 0, 0);
 	input_set_abs_params(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0, 255, 0, 0);
-	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_X, 0, SCREEN_MAX_HEIGHT, 0, 0);
-	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_Y, 0, SCREEN_MAX_WIDTH, 0, 0);	
+	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_X, 0, SCREEN_MAX_X, 0, 0);
+	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_Y, 0, SCREEN_MAX_Y, 0, 0);	
 	input_set_abs_params(ts->input_dev, ABS_MT_TRACKING_ID, 0, MAX_FINGER_NUM, 0, 0);	
 #endif	
 
