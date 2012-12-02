@@ -314,6 +314,9 @@ int codec_rd_control(u32 reg, u32 bit, u32 *val)
 */
 static  void codec_init(void)
 {
+	/*audio codec hardware bug. the HBIASADCEN bit must be enable in init*/
+	codec_wr_control(SUN6I_MIC_CTRL, 0x1, HBIASADCEN, 0x1);
+
 	/*mute l_pa and r_pa.耳机，听筒，喇叭默认已经是关闭状态，初始化的时候，不需要重新关闭*/
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPPA_MUTE, 0x0);
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPPA_MUTE, 0x0);
@@ -716,7 +719,7 @@ static u32 sun6i_audio_play_buffdone(dm_hdl_t dma_hdl, void *parg,
 
 	if (result == DMA_CB_ABORT)
 		return 0;
-	
+
 	play_buffdone_flag = true;
 	play_prtd = substream->runtime->private_data;
 	if (substream) {
@@ -1111,7 +1114,8 @@ static int snd_sun6i_codec_prepare(struct snd_pcm_substream	*substream)
 				}
 				if (clk_set_rate(codec_moduleclk, 22579200)) {
 					printk("set codec_moduleclk rate fail\n");
-				}				reg_val = readl(baseaddr + SUN6I_ADC_FIFOC);
+				}
+				reg_val = readl(baseaddr + SUN6I_ADC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(2<<29);
 				writel(reg_val, baseaddr + SUN6I_ADC_FIFOC);
@@ -1251,7 +1255,6 @@ static int snd_sun6i_codec_prepare(struct snd_pcm_substream	*substream)
 		play_dma_config.bconti_mode = false;
 		play_dma_config.src_drq_type = DRQSRC_SDRAM;
 		play_dma_config.dst_drq_type = DRQDST_AUDIO_CODEC;
-
 		if (0 != sw_dma_config(play_prtd->dma_hdl, &play_dma_config, ENQUE_PHASE_NORMAL)) {
 			return -EINVAL;
 		}
@@ -1314,7 +1317,7 @@ static int snd_sun6i_codec_trigger(struct snd_pcm_substream *substream, int cmd)
 				*/
 				if (0 != sw_dma_ctl(play_prtd->dma_hdl, DMA_OP_START, NULL)) {
 					return -EINVAL;
-				}				
+				}
 				/*pa unmute*/
 				codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPPA_MUTE, 0x1);
 				codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPPA_MUTE, 0x1);
@@ -1446,7 +1449,6 @@ static int snd_sun6icard_playback_open(struct snd_pcm_substream *substream)
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	int err;
 	struct sun6i_playback_runtime_data *play_prtd;
-
 	play_prtd = kzalloc(sizeof(struct sun6i_playback_runtime_data), GFP_KERNEL);
 	if (play_prtd == NULL)
 		return -ENOMEM;
@@ -1579,6 +1581,9 @@ static int __init sun6i_codec_probe(struct platform_device *pdev)
 	if ((!codec_pll2clk)||(IS_ERR(codec_pll2clk))) {
 		printk("try to get codec_pll2clk failed!\n");
 	}
+	if (clk_enable(codec_pll2clk)) {
+		printk("enable codec_pll2clk failed; \n");
+	}
 	/* codec_moduleclk */
 	codec_moduleclk = clk_get(NULL, CLK_MOD_ADDA);
 	if ((!codec_moduleclk)||(IS_ERR(codec_moduleclk))) {
@@ -1593,7 +1598,9 @@ static int __init sun6i_codec_probe(struct platform_device *pdev)
 	if (clk_enable(codec_moduleclk)) {
 		printk("err:open codec_moduleclk failed; \n");
 	}
-
+	if (clk_reset(codec_moduleclk, AW_CCU_CLK_NRESET)) {
+		printk("try to NRESET ve module clk failed!\n");
+	}
 	db->codec_base_res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	db->dev = &pdev->dev;
 	if (db->codec_base_res == NULL) {
