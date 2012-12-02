@@ -166,7 +166,7 @@ s32 sw_mci_set_vddio(struct sunxi_mmc_host* smc_host, u32 vdd)
 s32 sw_mci_update_clk(struct sunxi_mmc_host* smc_host)
 {
   	u32 rval;
-  	s32 expire = jiffies + msecs_to_jiffies(30);	//30ms timeout
+  	s32 expire = jiffies + msecs_to_jiffies(1000);	//1000ms timeout
   	s32 ret = 0;
   	u32 imask;
 
@@ -180,12 +180,15 @@ s32 sw_mci_update_clk(struct sunxi_mmc_host* smc_host)
 		rval = mci_readl(smc_host, REG_CMDR);
 	} while (jiffies < expire && (rval & SDXC_Start));
 
-	if (jiffies > expire)
+	if (jiffies > expire) {
+	    smc_host->ferror = 1;
+	    SMC_ERR(smc_host, "update clock timeout, fatal error!!!\n");
 		ret = -1;
-
+	}
+	
 	mci_writel(smc_host, REG_RINTR, 0xffff);
   	mci_writew(smc_host, REG_IMASK, imask);
-
+	
 	return ret;
 }
 
@@ -239,9 +242,9 @@ struct sw_mmc_clk_dly {
 	u32 oclk_dly;
 	u32 sclk_dly;
 } mmc_clk_dly [MMC_CLK_MOD_NUM] = {
-	{MMC_CLK_400K,        3, 1},
-	{MMC_CLK_25M,         3, 4},
-	{MMC_CLK_50M,         3, 4},
+	{MMC_CLK_400K,        1, 1},
+	{MMC_CLK_25M,         2, 3},
+	{MMC_CLK_50M,         2, 3},
 	{MMC_CLK_50MDDR,      2, 4},
 	{MMC_CLK_50MDDR_8BIT, 2, 4},
 	{MMC_CLK_100M,        1, 4},
@@ -251,13 +254,13 @@ struct sw_mmc_clk_dly {
 s32 sw_mci_set_clk_dly(struct sunxi_mmc_host* smc_host, u32 oclk_dly, u32 sclk_dly)
 {
 	u32 smc_no = smc_host->pdev->id;
-	void __iomem *mclk_base = __io_address(0x01c02088 + 0x4 * smc_no);
-	u32 rval = readl(mclk_base);
-
-	rval &= ~((0x7U << 8) | (0x7U << 20));
-	rval |= (oclk_dly << 8) | (sclk_dly << 20);
-
+	void __iomem *mclk_base = __io_address(0x01c20088 + 0x4 * smc_no);
+	u32 rval;
+	
 	spin_lock(&smc_host->lock);
+	rval = readl(mclk_base);
+	rval &= ~((0x7U << 8) | (0x7U << 20));
+	rval |= (oclk_dly << 8) | (sclk_dly << 20);\
 	writel(rval, mclk_base);
 	spin_unlock(&smc_host->lock);
 
@@ -306,9 +309,9 @@ static void sw_mci_send_cmd(struct sunxi_mmc_host* smc_host, struct mmc_command*
 			smc_host->wait = SDC_WAIT_DATA_OVER;
 			imask |= SDXC_DataOver;
 			if (cmd->data->flags & MMC_DATA_STREAM) {
-	    			imask |= SDXC_AutoCMDDone;
-    				cmd_val |= SDXC_Seqmod | SDXC_SendAutoStop;
-    				smc_host->wait = SDC_WAIT_AUTOCMD_DONE;
+				imask |= SDXC_AutoCMDDone;
+				cmd_val |= SDXC_Seqmod | SDXC_SendAutoStop;
+				smc_host->wait = SDC_WAIT_AUTOCMD_DONE;
 			}
 			if (cmd->data->stop) {
 				imask |= SDXC_AutoCMDDone;
@@ -609,18 +612,20 @@ static int sw_mci_set_clk(struct sunxi_mmc_host* smc_host, u32 clk)
 		return -1;
 	}
 	clk_put(sclk);
-
+	
+	sw_mci_oclk_onoff(smc_host, 0, 0);
 	/* set internal divider */
 	idiv = mod_clk / clk / 2;
 	temp = mci_readl(smc_host, REG_CLKCR);
 	temp &= ~0xff;
 	temp |= idiv | SDXC_CardClkOn;
 	mci_writel(smc_host, REG_CLKCR, temp);
-
-	if (!idiv) {
-		oclk_dly = 0;
-		sclk_dly = 0;
-	} else {
+	
+	sw_mci_oclk_onoff(smc_host, 0, 0);
+//	if (!idiv) {
+//		oclk_dly = 0;
+//		sclk_dly = 0;
+//	} else {
 		if (clk <= 400000) {
 			dly = &mmc_clk_dly[MMC_CLK_400K];
 		} else if (clk <= 25000000) {
@@ -648,9 +653,10 @@ static int sw_mci_set_clk(struct sunxi_mmc_host* smc_host, u32 clk)
 			if (sclk_dly)
 				sclk_dly--;
 		}
-	}
+//	}
 	sw_mci_set_clk_dly(smc_host, oclk_dly, sclk_dly);
-	sw_mci_update_clk(smc_host);
+	sw_mci_oclk_onoff(smc_host, 1, 1);
+	SMC_MSG(smc_host, "sdc set clock done\n");
 	return 0;
 }
 
