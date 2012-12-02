@@ -9,26 +9,40 @@ if AW_AXP
 
 choice
 	prompt "AXP PMU type"
-	default AW1636
+	default AW_AXP22
 
-config AW1636
-	bool "AW1636 driver"
+config AW_AXP18
+	bool "AXP18 driver"
 	---help---
-	  AW1636 driver
+	  AXP18 driver
+
+config AW_AXP19
+	bool "AXP19 driver"
+	---help---
+	  AXP19 driver
+
+config AW_AXP20
+	bool "AXP20 driver"
+	---help---
+	  AXP20 driver
+
+config AW_AXP22
+	bool "AXP22 driver"
+	---help---
+	  AXP22 driver
 
 endchoice
+
 config AXP_CHARGEINIT
 	bool "AXP initial charging environment set"
-	default n
+	default y
 
 config AXP_CHGCHANGE
 	bool "AXP charging current set when suspend\resume\shutdown"
 	default y
-	
-config AW1636_COU
-	bool "COULOMB"
-	default y
-	---help---
-			AXP driver for coulomb
 
+config AXP_TWI_USED
+	bool "AXP use twi as transfer channel"
+	default n
+	
 endif # !AW_AXP

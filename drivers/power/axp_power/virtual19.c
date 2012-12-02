@@ -16,8 +16,6 @@
 #include <linux/platform_device.h>
 #include <linux/regulator/consumer.h>
 #include <linux/slab.h>
-#include <linux/module.h>
-
 
 struct virtual_consumer_data {
 	struct mutex lock;
@@ -253,11 +251,11 @@ static ssize_t set_mode(struct device *dev, struct device_attribute *attr,
 	return count;
 }
 
-static DEVICE_ATTR(min_microvolts, 0644, show_min_uV, set_min_uV);
-static DEVICE_ATTR(max_microvolts, 0644, show_max_uV, set_max_uV);
-static DEVICE_ATTR(min_microamps, 0644, show_min_uA, set_min_uA);
-static DEVICE_ATTR(max_microamps, 0644, show_max_uA, set_max_uA);
-static DEVICE_ATTR(mode, 0644, show_mode, set_mode);
+static DEVICE_ATTR(min_microvolts, 0666, show_min_uV, set_min_uV);
+static DEVICE_ATTR(max_microvolts, 0666, show_max_uV, set_max_uV);
+static DEVICE_ATTR(min_microamps, 0666, show_min_uA, set_min_uA);
+static DEVICE_ATTR(max_microamps, 0666, show_max_uA, set_max_uA);
+static DEVICE_ATTR(mode, 0666, show_mode, set_mode);
 
 struct device_attribute *attributes_virtual[] = {
 	&dev_attr_min_microvolts,
@@ -329,114 +327,43 @@ static struct platform_driver regulator_virtual_consumer_driver[] = {
 		.probe		= regulator_virtual_consumer_probe,
 		.remove		= regulator_virtual_consumer_remove,
 		.driver		= {
-			.name		= "reg-20-cs-ldo1",
+			.name		= "reg-19-cs-ldo2",
 		},
 	},{
 		.probe		= regulator_virtual_consumer_probe,
 		.remove		= regulator_virtual_consumer_remove,
 		.driver		= {
-			.name		= "reg-20-cs-ldo2",
+			.name		= "reg-19-cs-ldo3",
 		},
 	},{
 		.probe		= regulator_virtual_consumer_probe,
 		.remove		= regulator_virtual_consumer_remove,
 		.driver		= {
-			.name		= "reg-20-cs-ldo3",
+			.name		= "reg-19-cs-ldo4",
 		},
 	},{
 		.probe		= regulator_virtual_consumer_probe,
 		.remove		= regulator_virtual_consumer_remove,
 		.driver		= {
-			.name		= "reg-20-cs-ldo4",
+			.name		= "reg-19-cs-buck1",
 		},
 	},{
 		.probe		= regulator_virtual_consumer_probe,
 		.remove		= regulator_virtual_consumer_remove,
 		.driver		= {
-			.name		= "reg-20-cs-ldo5",
+			.name		= "reg-19-cs-buck2",
 		},
 	},{
 		.probe		= regulator_virtual_consumer_probe,
 		.remove		= regulator_virtual_consumer_remove,
 		.driver		= {
-			.name		= "reg-20-cs-ldo6",
+			.name		= "reg-19-cs-buck3",
 		},
 	},{
 		.probe		= regulator_virtual_consumer_probe,
 		.remove		= regulator_virtual_consumer_remove,
 		.driver		= {
-			.name		= "reg-20-cs-ldo7",
-		},
-	},{
-		.probe		= regulator_virtual_consumer_probe,
-		.remove		= regulator_virtual_consumer_remove,
-		.driver		= {
-			.name		= "reg-20-cs-ldo8",
-		},
-	},{
-		.probe		= regulator_virtual_consumer_probe,
-		.remove		= regulator_virtual_consumer_remove,
-		.driver		= {
-			.name		= "reg-20-cs-ldo9",
-		},
-	},{
-		.probe		= regulator_virtual_consumer_probe,
-		.remove		= regulator_virtual_consumer_remove,
-		.driver		= {
-			.name		= "reg-20-cs-ldo10",
-		},
-	},{
-		.probe		= regulator_virtual_consumer_probe,
-		.remove		= regulator_virtual_consumer_remove,
-		.driver		= {
-			.name		= "reg-20-cs-ldo11",
-		},
-	},{
-		.probe		= regulator_virtual_consumer_probe,
-		.remove		= regulator_virtual_consumer_remove,
-		.driver		= {
-			.name		= "reg-20-cs-ldo12",
-		},},{
-		.probe		= regulator_virtual_consumer_probe,
-		.remove		= regulator_virtual_consumer_remove,
-		.driver		= {
-			.name		= "reg-20-cs-dcdc1",
-		},
-	},{
-		.probe		= regulator_virtual_consumer_probe,
-		.remove		= regulator_virtual_consumer_remove,
-		.driver		= {
-			.name		= "reg-20-cs-dcdc2",
-		},
-	},{
-		.probe		= regulator_virtual_consumer_probe,
-		.remove		= regulator_virtual_consumer_remove,
-		.driver		= {
-			.name		= "reg-20-cs-dcdc3",
-		},
-	},{
-		.probe		= regulator_virtual_consumer_probe,
-		.remove		= regulator_virtual_consumer_remove,
-		.driver		= {
-			.name		= "reg-20-cs-dcdc4",
-		},
-	},{
-		.probe		= regulator_virtual_consumer_probe,
-		.remove		= regulator_virtual_consumer_remove,
-		.driver		= {
-			.name		= "reg-20-cs-dcdc5",
-		},
-	},{
-		.probe		= regulator_virtual_consumer_probe,
-		.remove		= regulator_virtual_consumer_remove,
-		.driver		= {
-			.name		= "reg-20-cs-ldoio0",
-		},
-	},{
-		.probe		= regulator_virtual_consumer_probe,
-		.remove		= regulator_virtual_consumer_remove,
-		.driver		= {
-			.name		= "reg-20-cs-ldoio1",
+			.name		= "reg-19-cs-ldoio0",
 		},
 	},
 };
@@ -468,6 +395,6 @@ static void __exit regulator_virtual_consumer_exit(void)
 }
 module_exit(regulator_virtual_consumer_exit);
 
-MODULE_AUTHOR("Kyle Cheung");
+MODULE_AUTHOR("Donglu Zhang Krosspower");
 MODULE_DESCRIPTION("Virtual regulator consumer");
 MODULE_LICENSE("GPL");

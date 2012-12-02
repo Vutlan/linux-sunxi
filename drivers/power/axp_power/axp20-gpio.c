@@ -1,9 +1,9 @@
 /*
- * aw1636-gpio.c  --  gpiolib support for X-powers &axp PMICs
+ * axp199-gpio.c  --  gpiolib support for Krosspower &axp PMICs
  *
- * Copyright 2011 X-powers Microelectronics PLC.
+ * Copyright 2011 Krosspower Microelectronics PLC.
  *
- * Author: Kyle Cheung <kylecheung@x-powers.com>
+ * Author: Donglu Zhang <>
  *
  *  This program is free software; you can redistribute  it and/or modify it
  *  under  the terms of  the GNU General  Public License as published by the
@@ -25,28 +25,33 @@
 
 struct virtual_gpio_data {
 	struct mutex lock;
-	int gpio;				//gpio number : 0/1
+	int gpio;				//gpio number : 0/1/2/...
 	int io;                 //0: input      1: output
 	int value;				//0: low        1: high
 };
 
-int axp_gpio_set_io(int gpio, int io_mode)
+int axp_gpio_set_io(int gpio, int io_state)
 {
-	if(io_mode == 1){
+	if(io_state == 1){
 		switch(gpio)
 		{
-			case 0: return axp_clr_bits(AW1636_GPIO0_CFG, 0x06);
-			case 1: return axp_clr_bits(AW1636_GPIO1_CFG, 0x06);
+			case 0: return axp_clr_bits(&axp->dev,AXP20_GPIO0_CFG, 0x06);
+			case 1: return axp_clr_bits(&axp->dev,AXP20_GPIO1_CFG, 0x06);
+			case 2: return axp_clr_bits(&axp->dev,AXP20_GPIO2_CFG, 0x06);
+			case 3: return axp_clr_bits(&axp->dev,AXP20_GPIO3_CFG, 0x04);
 			default:return -ENXIO;
 		}
 	}
-	else if(io_mode == 0){
+	else if(io_state == 0){
 		switch(gpio)
 		{
-			case 0: axp_clr_bits(AW1636_GPIO0_CFG,0x05);
-					return axp_set_bits(AW1636_GPIO0_CFG,0x02);
-			case 1: axp_clr_bits(AW1636_GPIO1_CFG,0x05);
-					return axp_set_bits(AW1636_GPIO1_CFG,0x02);
+			case 0: axp_clr_bits(&axp->dev,AXP20_GPIO0_CFG,0x05);
+					return axp_set_bits(&axp->dev,AXP20_GPIO0_CFG,0x02);
+			case 1: axp_clr_bits(&axp->dev,AXP20_GPIO1_CFG,0x05);
+					return axp_set_bits(&axp->dev,AXP20_GPIO1_CFG,0x02);
+			case 2: axp_clr_bits(&axp->dev,AXP20_GPIO2_CFG,0x05);
+					return axp_set_bits(&axp->dev,AXP20_GPIO2_CFG,0x02);
+			case 3: return axp_set_bits(&axp->dev,AXP20_GPIO3_CFG,0x04);
 			default:return -ENXIO;
 		}
 	}
@@ -55,26 +60,40 @@ int axp_gpio_set_io(int gpio, int io_mode)
 EXPORT_SYMBOL_GPL(axp_gpio_set_io);
 
 
-int axp_gpio_get_io(int gpio, int *io_mode)
+int axp_gpio_get_io(int gpio, int *io_state)
 {
 	uint8_t val;
 	switch(gpio)
 	{
-		case 0: axp_read(AW1636_GPIO0_CFG,&val);val &= 0x07;
+		case 0: axp_read(&axp->dev,AXP20_GPIO0_CFG,&val);val &= 0x07;
 				if(val < 0x02)
-					*io_mode = 1;
+					*io_state = 1;
 				else if (val == 0x02)
-					*io_mode = 0;
+					*io_state = 0;
 				else
 					return -EIO;
 				break;
-		case 1: axp_read(AW1636_GPIO1_CFG,&val);val &= 0x07;
+		case 1: axp_read(&axp->dev,AXP20_GPIO1_CFG,&val);val &= 0x07;
 				if(val < 0x02)
-					*io_mode = 1;
+					*io_state = 1;
 				else if (val == 0x02)
-					*io_mode = 0;
+					*io_state = 0;
 				else
 					return -EIO;
+				break;
+		case 2: axp_read(&axp->dev,AXP20_GPIO2_CFG,&val);val &= 0x07;
+				if(val == 0x0)
+					*io_state = 1;
+				else if (val == 0x02)
+					*io_state = 0;
+				else
+					return -EIO;
+				break;
+		case 3: axp_read(&axp->dev,AXP20_GPIO3_CFG,&val);val &= 0x04;
+				if(val == 0x0)
+					*io_state = 1;
+				else
+					*io_state = 0;
 				break;
 		default:return -ENXIO;
 	}
@@ -86,26 +105,30 @@ EXPORT_SYMBOL_GPL(axp_gpio_get_io);
 
 int axp_gpio_set_value(int gpio, int value)
 {
-	int io_mode,ret;
-	ret = axp_gpio_get_io(gpio,&io_mode);
+	int io_state,ret;
+	ret = axp_gpio_get_io(gpio,&io_state);
 	if(ret)
 		return ret;
-	if(io_mode){
+	if(io_state){
 		if(value){
 			switch(gpio)
 			{
-				case 0: axp_clr_bits(AW1636_GPIO0_CFG,0x06);
-						return axp_set_bits(AW1636_GPIO0_CFG,0x01);
-				case 1: axp_clr_bits(AW1636_GPIO1_CFG,0x06);
-						return axp_set_bits(AW1636_GPIO1_CFG,0x01);
+				case 0: axp_clr_bits(&axp->dev,AXP20_GPIO0_CFG,0x06);
+						return axp_set_bits(&axp->dev,AXP20_GPIO0_CFG,0x01);
+				case 1: axp_clr_bits(&axp->dev,AXP20_GPIO1_CFG,0x06);
+						return axp_set_bits(&axp->dev,AXP20_GPIO1_CFG,0x01);
+				case 2: return axp_set_bits(&axp->dev,AXP20_GPIO2_CFG,0x01);
+				case 3: return axp_set_bits(&axp->dev,AXP20_GPIO3_CFG,0x02);
 				default:break;
 			}
 		}
 		else{
 			switch(gpio)
 			{
-				case 0: return axp_clr_bits(AW1636_GPIO0_CFG,0x03);
-				case 1: return axp_clr_bits(AW1636_GPIO1_CFG,0x03);
+				case 0: return axp_clr_bits(&axp->dev,AXP20_GPIO0_CFG,0x03);
+				case 1: return axp_clr_bits(&axp->dev,AXP20_GPIO1_CFG,0x03);
+				case 2: return axp_clr_bits(&axp->dev,AXP20_GPIO2_CFG,0x03);
+				case 3: return axp_clr_bits(&axp->dev,AXP20_GPIO3_CFG,0x02);
 				default:break;
 			}
 		}
@@ -118,99 +141,35 @@ EXPORT_SYMBOL_GPL(axp_gpio_set_value);
 
 int axp_gpio_get_value(int gpio, int *value)
 {
-	int io_mode;
+	int io_state;
 	int ret;
 	uint8_t val;
-	ret = axp_gpio_get_io(gpio,&io_mode);
+	ret = axp_gpio_get_io(gpio,&io_state);
 	if(ret)
 		return ret;
-	if(io_mode){
+	if(io_state){
 		switch(gpio)
 		{
-			case 0:ret = axp_read(AW1636_GPIO0_CFG,&val);*value = val & 0x01;break;
-			case 1:ret = axp_read(AW1636_GPIO1_CFG,&val);*value = val & 0x01;break;
+			case 0:ret = axp_read(&axp->dev,AXP20_GPIO0_CFG,&val);*value = val & 0x01;break;
+			case 1:ret =axp_read(&axp->dev,AXP20_GPIO1_CFG,&val);*value = val & 0x01;break;
+			case 2:ret = axp_read(&axp->dev,AXP20_GPIO2_CFG,&val);*value = val & 0x01;break;
+			case 3:ret = axp_read(&axp->dev,AXP20_GPIO3_CFG,&val);val &= 0x02;*value = val>>1;break;
 			default:return -ENXIO;
 		}
 	}
 	else{
 		switch(gpio)
 		{
-			case 0:ret = axp_read(AW1636_GPIO01_STATE,&val);break;
-			case 1:ret = axp_read(AW1636_GPIO01_STATE,&val);*value = val>>1;break;
+			case 0:ret = axp_read(&axp->dev,AXP20_GPIO012_STATE,&val);val &= 0x10;*value = val>>4;break;
+			case 1:ret = axp_read(&axp->dev,AXP20_GPIO012_STATE,&val);val &= 0x20;*value = val>>5;break;
+			case 2:ret = axp_read(&axp->dev,AXP20_GPIO012_STATE,&val);val &= 0x40;*value = val>>6;break;
+			case 3:ret = axp_read(&axp->dev,AXP20_GPIO3_CFG,&val);*value = val & 0x01;break;
 			default:return -ENXIO;
 		}
 	}
 	return ret;
 }
 EXPORT_SYMBOL_GPL(axp_gpio_get_value);
-
-static int __axp_gpio_input(struct gpio_chip *chip, unsigned offset)
-{
-	u32  index = chip->base + offset;
-
-	if(GPIO_AXP(0) == index)
-		return axp_gpio_set_io(0, 0);
-	else if(GPIO_AXP(1) == index)
-		return axp_gpio_set_io(1, 0);
-	else
-		return -EINVAL;
-}
-static int __axp_gpio_output(struct gpio_chip *chip, unsigned offset, int value)
-{
-	u32  index = chip->base + offset;
-	int  ret = 0;
-
-	if(GPIO_AXP(0) == index) {
-		ret = axp_gpio_set_io(0, 1); /* set to output */
-		if(ret)
-			return ret;
-		return axp_gpio_set_value(0, value); /* set value */
-	} else if(GPIO_AXP(1) == index) {
-		ret = axp_gpio_set_io(1, 1); /* set to output */
-		if(ret)
-			return ret;
-		return axp_gpio_set_value(1, value); /* set value */
-	}
-	else
-		return -EINVAL;
-}
-static void __axp_gpio_set(struct gpio_chip *chip, unsigned offset, int value)
-{
-	u32  index = chip->base + offset;
-
-	if(GPIO_AXP(0) == index)
-		axp_gpio_set_value(0, value);
-	else if(GPIO_AXP(1) == index)
-		axp_gpio_set_value(1, value);
-	else
-		WARN_ON(1);
-}
-static int __axp_gpio_get(struct gpio_chip *chip, unsigned offset)
-{
-	u32  index = chip->base + offset;
-	int  value = 0;
-
-	if(GPIO_AXP(0) == index) {
-		WARN_ON(0 != axp_gpio_get_value(0, &value));
-		return value;
-	} else if(GPIO_AXP(1) == index) {
-		WARN_ON(0 != axp_gpio_get_value(1, &value));
-		return value;
-	} else {
-		printk("%s err: line %d\n", __func__, __LINE__);;
-		return 0;
-	}
-}
-
-struct gpio_chip axp_gpio_chip = {
-	.base	= AXP_NR_BASE,
-	.ngpio	= AXP_NR,
-	.label	= "axp_pin",
-	.direction_input = __axp_gpio_input,
-	.direction_output = __axp_gpio_output,
-	.set	= __axp_gpio_set,
-	.get	= __axp_gpio_get,
-};
 
 static ssize_t show_gpio(struct device *dev,
 			   struct device_attribute *attr, char *buf)
@@ -365,7 +324,7 @@ static int __devexit axp_gpio_remove(struct platform_device *pdev)
 }
 
 static struct platform_driver axp_gpio_driver = {
-	.driver.name	= "AW1636-gpio",
+	.driver.name	= "axp20-gpio",
 	.driver.owner	= THIS_MODULE,
 	.probe		= axp_gpio_probe,
 	.remove		= __devexit_p(axp_gpio_remove),
@@ -373,9 +332,6 @@ static struct platform_driver axp_gpio_driver = {
 
 static int __init axp_gpio_init(void)
 {
-	/* register axp gpio chip */
-	if(0 != gpiochip_add(&axp_gpio_chip))
-		printk("%s err, line %d\n", __func__, __LINE__);
 	return platform_driver_register(&axp_gpio_driver);
 }
 subsys_initcall(axp_gpio_init);
@@ -386,7 +342,7 @@ static void __exit axp_gpio_exit(void)
 }
 module_exit(axp_gpio_exit);
 
-MODULE_AUTHOR("Kyle Cheung");
+MODULE_AUTHOR("Donglu Zhang ");
 MODULE_DESCRIPTION("GPIO interface for AXP PMICs");
 MODULE_LICENSE("GPL");
 MODULE_ALIAS("platform:axp-gpio");
