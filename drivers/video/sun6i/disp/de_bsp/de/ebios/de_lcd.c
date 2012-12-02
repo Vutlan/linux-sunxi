@@ -22,7 +22,11 @@ __s32 lvds_open(__u32 sel, __panel_para_t * panel)
 	lcd_dev[sel]->tcon0_lvds_ctl.bits.tcon0_lvds_en = 1;
 	if(panel->lcd_lvds_if == LCD_LVDS_IF_DUAL_LINK)
 	{
-		lcd_dev[sel]->tcon0_lvds_ana[0].bits.en_ldo = 1;
+		lcd_dev[sel]->tcon0_lvds_ana[sel].bits.c = 2;
+		lcd_dev[sel]->tcon0_lvds_ana[sel].bits.v = 3;
+		lcd_dev[sel]->tcon0_lvds_ana[sel].bits.pd = 2;
+
+        lcd_dev[sel]->tcon0_lvds_ana[0].bits.en_ldo = 1;
 		lcd_dev[sel]->tcon0_lvds_ana[1].bits.en_ldo = 1;
 		for(i=0;i<1000;i++)
 		lcd_dev[sel]->tcon0_lvds_ana[0].bits.en_mb = 1;
@@ -43,12 +47,19 @@ __s32 lvds_open(__u32 sel, __panel_para_t * panel)
 	}
 	else
 	{
-		lcd_dev[sel]->tcon0_lvds_ana[sel].bits.en_ldo = 1;
-		for(i=0;i<1000;i++)
+		lcd_dev[sel]->tcon0_lvds_ana[0].bits.c = 2;
+		lcd_dev[sel]->tcon0_lvds_ana[1].bits.c = 2;
+		lcd_dev[sel]->tcon0_lvds_ana[0].bits.v = 3;
+		lcd_dev[sel]->tcon0_lvds_ana[1].bits.v = 3;
+		lcd_dev[sel]->tcon0_lvds_ana[0].bits.pd = 2;
+		lcd_dev[sel]->tcon0_lvds_ana[1].bits.pd = 2;
+
+        lcd_dev[sel]->tcon0_lvds_ana[sel].bits.en_ldo = 1;
+		for(i=0;i<1000;i++);    //1200ns
 		lcd_dev[sel]->tcon0_lvds_ana[sel].bits.en_mb = 1;
 		for(i=0;i<1200;i++);	//1200ns
 		lcd_dev[sel]->tcon0_lvds_ana[sel].bits.en_drvc = 1;
-		if(panel->lcd_lvds_colordepth== LCD_LVDS_6bit)
+		if(panel->lcd_lvds_colordepth== LCD_LVDS_8bit)
 		{
 			lcd_dev[sel]->tcon0_lvds_ana[sel].bits.en_drvd = 0x7;
 		}
@@ -257,13 +268,11 @@ __s32 tcon0_cfg_mode_auto(__u32 sel, __panel_para_t * panel)
 	lcd_dev[sel]->tcon0_basic3.bits.hspw = (panel->lcd_hspw==0)? 0:panel->lcd_hspw-1;
 	lcd_dev[sel]->tcon0_basic3.bits.vspw = (panel->lcd_vspw==0)? 0:panel->lcd_vspw-1;
 	start_delay = panel->lcd_vt-panel->lcd_y-10;
-	if(start_delay<1)
-		start_delay = 1;
+	if(start_delay<10)
+		start_delay = 10;
     else if(start_delay>31)
 		start_delay = 31;
-#if !defined(CONFIG_AW_ASIC_EVB_PLATFORM)
-    start_delay = (start_delay < 10)? 10: start_delay;
-#endif
+    
 	lcd_dev[sel]->tcon0_ctl.bits.start_delay = start_delay;
 	return 0;
 }
@@ -389,7 +398,7 @@ __s32 tcon0_cfg(__u32 sel, __panel_para_t * panel)
 		lcd_dev[sel]->tcon0_lvds_ctl.bits.tcon0_lvds_debug_en = 0;
 		lcd_dev[sel]->tcon0_lvds_ctl.bits.tcon0_lvds_correct_mode = 0;
 		lcd_dev[sel]->tcon0_lvds_ctl.bits.tcon0_lvds_dir = 0;
-		lcd_dev[sel]->tcon0_lvds_ctl.bits.tcon0_lvds_clk_sel = 0;
+		lcd_dev[sel]->tcon0_lvds_ctl.bits.tcon0_lvds_clk_sel = 1;
 		panel->lcd_fresh_mode = 0;
         tcon0_cfg_mode_auto(sel,panel);
 	}

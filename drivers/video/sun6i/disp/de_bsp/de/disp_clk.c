@@ -700,6 +700,7 @@ __s32 disp_pll_init(void)
 {
 	OSAL_CCMU_SetSrcFreq(SYS_CLK_PLL3, 297000000);	
 	OSAL_CCMU_SetSrcFreq(SYS_CLK_PLL7, 297000000);
+    *(volatile __u32*)0xf1c20160 = 0x82000000;
 
 	return DIS_SUCCESS;
 }

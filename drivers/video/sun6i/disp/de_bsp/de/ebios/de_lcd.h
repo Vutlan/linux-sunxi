@@ -610,7 +610,7 @@ typedef union
 		__u32 denc             			 :  1 ;    // default: 0;
 		__u32 c                			 :  2 ;    // default: 0;
 		__u32 res3                       :  1 ;    // default: ;
-		__u32 en_drvd               		 :  4 ;    // default: 0;
+		__u32 en_drvd               	 :  4 ;    // default: 0;
 		__u32 en_drvc              		 :  1 ;    // default: 0;
 		__u32 res4                       :  5 ;    // default: ;
 		__u32 en_ldo               		 :  1 ;    // default: 0;

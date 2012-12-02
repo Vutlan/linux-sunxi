@@ -56,7 +56,7 @@ void LCD_vbi_event_proc(__u32 sel, __u32 tcon_index)
     start_delay = TCON_get_start_delay(sel, tcon_index);
     if(cur_line > start_delay-4)
 	{
-	    DE_INF("int:%d,%d\n", cur_line,start_delay);
+	    //DE_INF("int:%d,%d\n", cur_line,start_delay);
         if(gpanel_info[sel].lcd_fresh_mode == 0)//return while not  trigger mode 
 		{
 		    return ;

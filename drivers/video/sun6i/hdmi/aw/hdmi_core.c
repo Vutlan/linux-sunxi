@@ -39,6 +39,13 @@ __s32 hdmi_core_initial(void)
 	memset(&audio_info,0,sizeof(HDMI_AUDIO_INFO));
 	memset(Device_Support_VIC,0,sizeof(Device_Support_VIC));
     HDMI_WUINT32(0x004,0x80000000);			//start hdmi controller	
+    HDMI_WUINT32(0x208,(0x1<<31)+ (0<<30)+ (1<<29)+ (3<<27)+ (0<<26)+ 
+		(1<<25)+ (0<<24)+ (0<<23)+ (4<<20)+ (4<<17)+	(10<<12)+ (0<<8)+ ((4-1)<<4)+(8<<0));
+    HDMI_WUINT32(0x20c,(1<<21) );
+    // tx driver setting
+    HDMI_WUINT32(0x200,0x7e8000ff);   	
+    HDMI_WUINT32(0x204,0x00DeC850);   		
+    
 	return 0;
 }
 
@@ -104,7 +111,7 @@ __s32 hdmi_main_task_loop(void)
     	     HDMI_WUINT32(0x208,(1<<31)+ (1<<30)+ (1<<29)+ (3<<27)+ (0<<26)+ 
 	    		       (1<<25)+ (0<<24)+ (0<<23)+ (4<<20)+ (7<<17)+
 	    		       (15<<12)+ (7<<8)+ (0x0f<<4)+(8<<0) );	  
-         	HDMI_WUINT32(0x200,0xfe800000);   			//txen enable
+         	HDMI_WUINT32(0x200,0xfe8000ff);   			//txen enable
         	HDMI_WUINT32(0x204,0x00D8C860);   			//ckss = 1
 
             HDMI_WUINT32(0x20c, 0 << 21);    		 
@@ -412,7 +419,7 @@ __s32 video_config(__s32 vic)
 	    		       (1<<25)+ (0<<24)+ (0<<23)+ (4<<20)+ (7<<17)+
 	    		       (15<<12)+ (7<<8)+ (clk_div<<4)+(8<<0) );	
 	// tx driver setting
- 	HDMI_WUINT32(0x200,0xfe800000);   			//txen enable
+ 	HDMI_WUINT32(0x200,0xfe8000ff);   			//txen enable
 	HDMI_WUINT32(0x204,0x00D8C860);   			//ckss = 1
 
     HDMI_WUINT32(0x20c, hdmi_pll << 21);
