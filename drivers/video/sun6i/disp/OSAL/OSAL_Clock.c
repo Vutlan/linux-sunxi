@@ -110,7 +110,7 @@ __s32 OSAL_CCMU_SetSrcFreq( __u32 nSclkNo, __u32 nFreq )
     
     hSysClk = clk_get(NULL, clk_name);
     
-    if(NULL == hSysClk){
+    if(NULL == hSysClk || IS_ERR(hSysClk)){
         __wrn("Fail to get handle for system clock [%d].\n", nSclkNo);
         return -1;
     }
@@ -121,7 +121,7 @@ __s32 OSAL_CCMU_SetSrcFreq( __u32 nSclkNo, __u32 nFreq )
         return 0;
     }
     retCode = clk_set_rate(hSysClk, nFreq);
-    if(-1 == retCode){
+    if(0 != retCode){
         __wrn("Fail to set nFreq[%d] for sys clk[%d].\n", nFreq, nSclkNo);
         clk_put(hSysClk);
         return retCode;
@@ -148,7 +148,7 @@ __u32 OSAL_CCMU_GetSrcFreq( __u32 nSclkNo )
     
     hSysClk = clk_get(NULL, clk_name);
     
-    if(NULL == hSysClk){
+    if(NULL == hSysClk || IS_ERR(hSysClk)){
         __wrn("Fail to get handle for system clock [%d].\n", nSclkNo);
         return -1;
     }
@@ -172,6 +172,12 @@ __hdle OSAL_CCMU_OpenMclk( __s32 nMclkNo )
     
     hModClk = clk_get(NULL, clk_name);
 
+    if(NULL == hModClk || IS_ERR(hModClk))
+    {
+        __wrn("clk_get fail\n");
+        return -1;
+    }
+
     __inf("OSAL_CCMU_OpenMclk,  clk_name[%d]=%s, hdl=0x%x\n", nMclkNo,clk_name, (unsigned int)hModClk);
     
     return (__hdle)hModClk;
@@ -181,7 +187,7 @@ __s32 OSAL_CCMU_CloseMclk( __hdle hMclk )
 {
     struct clk* hModClk = (struct clk*)hMclk;
 
-    if(!hModClk || IS_ERR(hModClk))
+    if(NULL == hModClk || IS_ERR(hModClk))
     {
         __wrn("NULL hdle\n");
         return -1;
@@ -199,7 +205,7 @@ __s32 OSAL_CCMU_SetMclkSrc( __hdle hMclk, __u32 nSclkNo )
     s32 retCode = -1;
     char clk_name[20];
 
-    if(!hModClk || IS_ERR(hModClk))
+    if(NULL == hModClk || IS_ERR(hModClk))
     {
         __wrn("NULL hdle\n");
         return -1;
@@ -225,7 +231,7 @@ __s32 OSAL_CCMU_SetMclkSrc( __hdle hMclk, __u32 nSclkNo )
         return 0;
     }
     retCode = clk_set_parent(hModClk, hSysClk);
-    if(-1 == retCode){
+    if(0 != retCode){
         __wrn("Fail to set parent for clk.\n");
         clk_put(hSysClk);
         return -1;
@@ -272,7 +278,7 @@ __s32 OSAL_CCMU_SetMclkDiv( __hdle hMclk, __s32 nDiv )
     struct clk* hParentClk;
     u32         srcRate;
 
-    if(!hModClk || IS_ERR(hModClk))
+    if(NULL == hModClk || IS_ERR(hModClk))
     {
         __wrn("NULL hdle\n");
         return -1;
@@ -280,8 +286,12 @@ __s32 OSAL_CCMU_SetMclkDiv( __hdle hMclk, __s32 nDiv )
 
     __inf("OSAL_CCMU_SetMclkDiv<0x%0x,%d>\n",(unsigned int)hModClk, nDiv);
 
+    if(nDiv == 0){
+    	return -1;
+    }
+
     hParentClk  = clk_get_parent(hModClk);
-    if(!hParentClk || IS_ERR(hParentClk))
+    if(NULL == hParentClk || IS_ERR(hParentClk))
     {
         __inf("fail to get parent of clk 0x%x \n", (unsigned int)hModClk);
         return -1;
@@ -289,10 +299,6 @@ __s32 OSAL_CCMU_SetMclkDiv( __hdle hMclk, __s32 nDiv )
 
     srcRate = clk_get_rate(hParentClk);
         
-    if(nDiv == 0){
-    	return -1;
-    }
-    
     return clk_set_rate(hModClk, srcRate/nDiv);
 }
 
@@ -303,7 +309,7 @@ __u32 OSAL_CCMU_GetMclkDiv( __hdle hMclk )
     u32 mod_freq;
     u32         srcRate;
 
-    if(!hModClk || IS_ERR(hModClk))
+    if(NULL == hModClk || IS_ERR(hModClk))
     {
         __wrn("NULL hdle\n");
         return -1;
@@ -312,7 +318,7 @@ __u32 OSAL_CCMU_GetMclkDiv( __hdle hMclk )
     __inf("OSAL_CCMU_GetMclkDiv of clk 0x%0x\n",(unsigned int)hModClk);
 
     hParentClk  = clk_get_parent(hModClk);
-    if(!hParentClk || IS_ERR(hParentClk))
+    if(NULL == hParentClk || IS_ERR(hParentClk))
     {
         __wrn("fail to get parent of clk 0x%x \n", (unsigned int)hModClk);
         return -1;
@@ -334,7 +340,7 @@ __s32 OSAL_CCMU_MclkOnOff( __hdle hMclk, __s32 bOnOff )
     __s32 ret = 0;
 
 
-    if(!hModClk || IS_ERR(hModClk))
+    if(NULL == hModClk || IS_ERR(hModClk))
     {
         __wrn("NULL hdle\n");
         return -1;
@@ -363,7 +369,7 @@ __s32 OSAL_CCMU_MclkReset(__hdle hMclk, __s32 bReset)
 {
     struct clk* hModClk = (struct clk*)hMclk;
 
-    if(!hModClk || IS_ERR(hModClk))
+    if(NULL == hModClk || IS_ERR(hModClk))
     {
         __wrn("NULL hdle\n");
         return -1;

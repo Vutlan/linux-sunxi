@@ -113,6 +113,31 @@ static ssize_t disp_reg_dump_store(struct device *dev,
 static DEVICE_ATTR(reg_dump, S_IRUGO|S_IWUSR|S_IWGRP,
 		disp_reg_dump_show, disp_reg_dump_store);
 
+#define ____SEPARATOR_SCRIPT_DUMP____
+static ssize_t disp_script_dump_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%s", "there is nothing here!");
+}
+
+static ssize_t disp_script_dump_store(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+	if(strlen(buf) == 0) {
+		printk("Invalid para\n");
+		return -1;
+	}
+
+    script_dump_mainkey(buf);
+
+	return 0;
+}
+
+static DEVICE_ATTR(script_dump, S_IRUGO|S_IWUSR|S_IWGRP,
+		disp_script_dump_show, disp_script_dump_store);
+
+
 #define ____SEPARATOR_LCD____
 static ssize_t disp_lcd_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
@@ -980,11 +1005,12 @@ static struct attribute *disp_attributes[] = {
     &dev_attr_vsync_event_enable.attr,
     &dev_attr_lcd.attr,
     &dev_attr_hdmi.attr,
+    &dev_attr_script_dump.attr,
 	NULL
 };
 
 static struct attribute_group disp_attribute_group = {
-	.name = "dispattributes",
+	.name = "attr",
 	.attrs = disp_attributes
 };
 

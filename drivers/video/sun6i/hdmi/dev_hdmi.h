@@ -17,9 +17,11 @@ extern __s32 Fb_Init(__u32 from);
 
 typedef struct
 {
-	__bool bopen;
+	struct device   *dev;
+    __bool bopen;
 	__disp_tv_mode_t mode;
 	__u32           base_hdmi;
+    struct work_struct      hpd_work;
 }hdmi_info_t;
 
 extern hdmi_info_t ghdmi;

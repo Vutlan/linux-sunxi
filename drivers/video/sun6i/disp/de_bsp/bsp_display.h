@@ -54,7 +54,7 @@ typedef unsigned int __hdle;
 #include "../OSAL/OSAL.h"
 #include "iep/iep.h"
 
-#if 1
+#if 0
 #define OSAL_PRINTF(msg...) {printk(KERN_WARNING "[DISP] ");printk(msg);}
 #define __inf(msg...)       
 #define __msg(msg...)

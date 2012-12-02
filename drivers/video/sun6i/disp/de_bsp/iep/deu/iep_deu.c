@@ -62,7 +62,14 @@ __s32 deu_clk_init(__u32 sel)
 		OSAL_CCMU_MclkReset(h_deumclk1, RST_INVAILD);
 		
 		OSAL_CCMU_SetMclkSrc(h_deumclk1, SYS_CLK_PLL7);	//FIX CONNECT TO PLL9
-		OSAL_CCMU_SetMclkDiv(h_deumclk1, 1);
+		if(pll_freq < 300000000)
+		{
+			OSAL_CCMU_SetMclkDiv(h_deumclk1, 1);
+		}
+		else
+		{
+			OSAL_CCMU_SetMclkDiv(h_deumclk1, 2);
+		}
 		
 		OSAL_CCMU_MclkOnOff(h_deuahbclk1, CLK_ON);
 		OSAL_CCMU_MclkOnOff(h_deumclk1, CLK_ON);
