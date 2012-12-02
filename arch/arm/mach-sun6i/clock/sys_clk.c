@@ -228,7 +228,7 @@ static __u64 sys_clk_get_rate(__aw_ccu_clk_id_e id)
                 aw_ccu_reg->Pll2Ctl.FactorM = 20;
                 aw_ccu_reg->Pll2Ctl.FactorN = 78;
                 aw_ccu_reg->Pll2Ctl.FactorP = 3;
-                return 24576000;
+                return 22579200;
             }
         case AW_SYS_CLK_PLL3:
         case AW_SYS_CLK_PLL4:
@@ -619,14 +619,14 @@ static __s32 sys_clk_set_rate(__aw_ccu_clk_id_e id, __u64 rate)
         {
             if(rate == 22579200)
             {
+                aw_ccu_reg->Pll2Ctl.FactorN = 78;
                 aw_ccu_reg->Pll2Ctl.FactorM = 20;
-                aw_ccu_reg->Pll2Ctl.FactorN = 85;
                 aw_ccu_reg->Pll2Ctl.FactorP = 3;
             }
             else if(rate == 24576000)
             {
+                aw_ccu_reg->Pll2Ctl.FactorN = 85;
                 aw_ccu_reg->Pll2Ctl.FactorM = 20;
-                aw_ccu_reg->Pll2Ctl.FactorN = 78;
                 aw_ccu_reg->Pll2Ctl.FactorP = 3;
             }
             else
