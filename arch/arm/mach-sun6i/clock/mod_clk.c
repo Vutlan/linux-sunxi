@@ -1505,11 +1505,11 @@ static __s32 mod_clk_set_status(__aw_ccu_clk_id_e id, __aw_ccu_clk_onff_e status
         case AW_MOD_CLK_USBPHY2:
             aw_ccu_reg->Usb.Phy2Gate = STATUS_BIT(status); break;
         case AW_MOD_CLK_USBOHCI0:
-            aw_ccu_reg->Usb.Phy0Gate = STATUS_BIT(status); break;
+            aw_ccu_reg->Usb.Ohci0Gate = STATUS_BIT(status); break;
         case AW_MOD_CLK_USBOHCI1:
-            aw_ccu_reg->Usb.Phy0Gate = STATUS_BIT(status); break;
+            aw_ccu_reg->Usb.Ohci1Gate = STATUS_BIT(status); break;
         case AW_MOD_CLK_USBOHCI2:
-            aw_ccu_reg->Usb.Phy0Gate = STATUS_BIT(status); break;
+            aw_ccu_reg->Usb.Ohci2Gate = STATUS_BIT(status); break;
         case AW_MOD_CLK_MDFS:
             aw_ccu_reg->Mdfs.ClkGate = STATUS_BIT(status); break;
         case AW_MOD_CLK_DEBE0:
