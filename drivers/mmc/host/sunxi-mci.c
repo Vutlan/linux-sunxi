@@ -185,10 +185,10 @@ s32 sw_mci_update_clk(struct sunxi_mmc_host* smc_host)
 	    SMC_ERR(smc_host, "update clock timeout, fatal error!!!\n");
 		ret = -1;
 	}
-	
+
 	mci_writel(smc_host, REG_RINTR, 0xffff);
   	mci_writew(smc_host, REG_IMASK, imask);
-	
+
 	return ret;
 }
 
@@ -256,11 +256,11 @@ s32 sw_mci_set_clk_dly(struct sunxi_mmc_host* smc_host, u32 oclk_dly, u32 sclk_d
 	u32 smc_no = smc_host->pdev->id;
 	void __iomem *mclk_base = __io_address(0x01c20088 + 0x4 * smc_no);
 	u32 rval;
-	
+
 	spin_lock(&smc_host->lock);
 	rval = readl(mclk_base);
 	rval &= ~((0x7U << 8) | (0x7U << 20));
-	rval |= (oclk_dly << 8) | (sclk_dly << 20);\
+	rval |= (oclk_dly << 8) | (sclk_dly << 20);
 	writel(rval, mclk_base);
 	spin_unlock(&smc_host->lock);
 
@@ -612,7 +612,7 @@ static int sw_mci_set_clk(struct sunxi_mmc_host* smc_host, u32 clk)
 		return -1;
 	}
 	clk_put(sclk);
-	
+
 	sw_mci_oclk_onoff(smc_host, 0, 0);
 	/* set internal divider */
 	idiv = mod_clk / clk / 2;
@@ -620,7 +620,7 @@ static int sw_mci_set_clk(struct sunxi_mmc_host* smc_host, u32 clk)
 	temp &= ~0xff;
 	temp |= idiv | SDXC_CardClkOn;
 	mci_writel(smc_host, REG_CLKCR, temp);
-	
+
 	sw_mci_oclk_onoff(smc_host, 0, 0);
 //	if (!idiv) {
 //		oclk_dly = 0;
@@ -656,7 +656,6 @@ static int sw_mci_set_clk(struct sunxi_mmc_host* smc_host, u32 clk)
 //	}
 	sw_mci_set_clk_dly(smc_host, oclk_dly, sclk_dly);
 	sw_mci_oclk_onoff(smc_host, 1, 1);
-	SMC_MSG(smc_host, "sdc set clock done\n");
 	return 0;
 }
 
@@ -1086,7 +1085,7 @@ static void sw_mci_cd_cb(unsigned long data)
 		present = 1;
 	else
 		goto modtimer;
-	SMC_MSG(smc_host, "cd %d, host present %d, cur present %d\n",
+	SMC_DBG(smc_host, "cd %d, host present %d, cur present %d\n",
 			gpio_val, smc_host->present, present);
 
 	if (smc_host->present ^ present) {
@@ -1149,6 +1148,7 @@ static irqreturn_t sw_mci_irq(int irq, void *dev_id)
 	if ((raw_int & SDXC_IntErrBit) || (idma_int & SDXC_IDMA_ERR)) {
 		smc_host->error = raw_int & SDXC_IntErrBit;
 		smc_host->wait = SDC_WAIT_FINALIZE;
+		mci_writew(smc_host, REG_IMASK, 0);
 		goto irq_out;
 	}
 
@@ -1646,27 +1646,34 @@ static int sw_mci_proc_read_regs(char *page, char **start, off_t off,
 	p += sprintf(p, "Dump smc regs:\n");
 	for (i=0; i<0x100; i+=4) {
 		if (!(i&0xf))
-			p += sprintf(p, "\n0x%08x : ", i);
+			p += sprintf(p, "\n0x%08x : ", (u32)(smc_host->reg_base + i));
 		p += sprintf(p, "%08x ", readl(smc_host->reg_base + i));
 	}
 	p += sprintf(p, "\n");
 
 	p += sprintf(p, "Dump ccmu regs:\n");
-	for (i=0; i<0x200; i+=4) {
+	for (i=0; i<0x170; i+=4) {
 		if (!(i&0xf))
-			p += sprintf(p, "\n0x%08x : ", i);
+			p += sprintf(p, "\n0x%08x : ", IO_ADDRESS(AW_CCM_BASE) + i);
 		p += sprintf(p, "%08x ", readl(IO_ADDRESS(AW_CCM_BASE) + i));
 	}
 	p += sprintf(p, "\n");
 
 	p += sprintf(p, "Dump gpio regs:\n");
-	for (i=0; i<0x200; i+=4) {
+	for (i=0; i<0x120; i+=4) {
 		if (!(i&0xf))
-			p += sprintf(p, "\n0x%08x : ", i);
+			p += sprintf(p, "\n0x%08x : ", IO_ADDRESS(AW_PIO_BASE) + i);
 		p += sprintf(p, "%08x ", readl(IO_ADDRESS(AW_PIO_BASE)+ i));
 	}
 	p += sprintf(p, "\n");
 
+	p += sprintf(p, "Dump gpio irqc:\n");
+	for (i=0x200; i<0x300; i+=4) {
+		if (!(i&0xf))
+			p += sprintf(p, "\n0x%08x : ", IO_ADDRESS(AW_PIO_BASE) + i);
+		p += sprintf(p, "%08x ", readl(IO_ADDRESS(AW_PIO_BASE)+ i));
+	}
+	p += sprintf(p, "\n");
 
 	return p - page;
 }
@@ -1954,6 +1961,7 @@ static int __devinit sw_mci_probe(struct platform_device *pdev)
 			SMC_ERR(smc_host, "Failed to get gpio irq for card detection\n");
 		}
 		smc_host->cd_hdle = cd_hdle;
+		smc_host->present = !__gpio_get_value(smc_host->pdata->cd.gpio);
 	} else if (smc_host->cd_mode == CARD_DETECT_BY_GPIO_POLL) {
 		init_timer(&smc_host->cd_timer);
 		smc_host->cd_timer.expires = jiffies + 1*HZ;
@@ -2188,6 +2196,8 @@ static int sw_mci_get_devinfo(void)
 			goto fail;
 		}
 		mmcinfo->used = val.val;
+		if (!mmcinfo->used)
+			continue;
 		/* get cdmode information */
 		type = script_get_item(mmc_para, "sdc_detmode", &val);
 		if (type != SCIRPT_ITEM_VALUE_TYPE_INT) {
@@ -2195,6 +2205,15 @@ static int sw_mci_get_devinfo(void)
 			goto fail;
 		}
 		mmcinfo->cdmode = val.val;
+		if (mmcinfo->cdmode == CARD_DETECT_BY_GPIO_POLL ||
+			mmcinfo->cdmode == CARD_DETECT_BY_GPIO_IRQ) {
+			type = script_get_item(mmc_para, "sdc_det", &val);
+			if (type != SCIRPT_ITEM_VALUE_TYPE_PIO) {
+				SMC_MSG(NULL, "get mmc%d's IO(sdc_cd) failed\n", i);
+			} else {
+				mmcinfo->cd = val.gpio;
+			}
+		}
 		/* get buswidth information */
 		type = script_get_item(mmc_para, "sdc_buswidth", &val);
 		if (type != SCIRPT_ITEM_VALUE_TYPE_INT) {
