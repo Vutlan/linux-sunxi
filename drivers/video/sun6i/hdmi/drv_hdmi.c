@@ -302,6 +302,8 @@ __s32 Hdmi_init(void)
             disp_func.hdmi_mode_support = Hdmi_mode_support;
             disp_func.hdmi_get_HPD_status = Hdmi_get_HPD_status;
             disp_func.hdmi_set_pll = Hdmi_set_pll;
+            disp_func.hdmi_suspend = Hdmi_suspend;
+            disp_func.hdmi_resume = Hdmi_resume;
             disp_set_hdmi_func(&disp_func);
         }
     }
@@ -314,7 +316,6 @@ __s32 Hdmi_exit(void)
     if(hdmi_used)
 	{
         Hdmi_hal_exit();
-
     	if(run_sem)
         {
             kfree(run_sem);
