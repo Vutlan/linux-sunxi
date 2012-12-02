@@ -126,7 +126,6 @@ static int usb_hardware_scan_thread(void * pArg)
 */
 static __s32 usb_script_parse(struct usb_cfg *cfg)
 {
-	s32 ret = 0;
 	u32 i = 0;
 	char *set_usbc = NULL;
     script_item_value_type_e type = 0;
@@ -170,7 +169,7 @@ static __s32 usb_script_parse(struct usb_cfg *cfg)
 
 		/* usbc id */
 		type = script_get_item(set_usbc, KEY_USB_ID_GPIO, &(cfg->port[i].id.gpio_set));
-		if(ret == SCIRPT_ITEM_VALUE_TYPE_PIO){
+		if(type == SCIRPT_ITEM_VALUE_TYPE_PIO){
 			cfg->port[i].id.valid = 1;
 		}else{
 			cfg->port[i].id.valid = 0;
@@ -520,7 +519,7 @@ static int __init usb_manager_init(void)
 
 	memset(&g_usb_cfg, 0, sizeof(struct usb_cfg));
 	g_usb_cfg.usb_global_enable = 1;
-    g_usb_cfg.usbc_num = 0;
+    g_usb_cfg.usbc_num = 1;
 
 	ret = get_usb_cfg(&g_usb_cfg);
 	if(ret != 0){

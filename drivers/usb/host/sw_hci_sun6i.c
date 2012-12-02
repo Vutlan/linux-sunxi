@@ -63,13 +63,13 @@
 static char* usbc_name[4] 			= {"usbc0", "usbc1", "usbc2", "usbc3"};
 #endif
 
-static char* usbc_ahb_ehci_name[3]  = {"", "CLK_AHB_EHCI0", "CLK_AHB_EHCI1"};
-static char* usbc_ahb_ohci_name[4]  = {"", "CLK_AHB_OHCI0", "CLK_AHB_OHCI1", "CLK_AHB_OHCI2"};
+static char* usbc_ahb_ehci_name[3]  = {"", CLK_AHB_EHCI0, CLK_AHB_EHCI1};
+static char* usbc_ahb_ohci_name[4]  = {"", CLK_AHB_OHCI0, CLK_AHB_OHCI1, CLK_AHB_OHCI2};
 
-static char* usbc_ehci_name[3]  = {"", "CLK_MOD_USBEHCI0", "CLK_MOD_USBEHCI1"};
-static char* usbc_ohci_name[4]  = {"", "CLK_MOD_USBOHCI0", "CLK_MOD_USBOHCI1", "CLK_MOD_USBOHCI2"};
+static char* usbc_ehci_name[3]  = {"", CLK_MOD_USBEHCI0, CLK_MOD_USBEHCI1};
+static char* usbc_ohci_name[4]  = {"", CLK_MOD_USBOHCI0, CLK_MOD_USBOHCI1, CLK_MOD_USBOHCI2};
 
-static char* usbc_phy_name[3] 	= {"CLK_MOD_USBPHY0", "CLK_MOD_USBPHY1", "CLK_MOD_USBPHY2"};
+static char* usbc_phy_name[3] 	= {CLK_MOD_USBPHY0, CLK_MOD_USBPHY1, CLK_MOD_USBPHY2};
 
 static u32 usbc_base[4] 			= {AW_VIR_USB_OTG_BASE, AW_VIR_USB_EHCI0_BASE, AW_VIR_USB_EHCI1_BASE, AW_VIR_USB_OHCI2_BASE};
 static u32 ehci_irq_no[3] 			= {0, AW_IRQ_USB_EHCI0, AW_IRQ_USB_EHCI1};
@@ -530,7 +530,6 @@ static s32 clock_exit(struct sw_hci_hcd *sw_hci, u32 ohci)
 
 	return 0;
 }
-
 /*
 *******************************************************************************
 *                     open_clock
@@ -678,7 +677,7 @@ static void usb_passby(struct sw_hci_hcd *sw_hci, u32 enable)
 	    	reg_value |= (1 << 10);		/* AHB Master interface INCR8 enable */
 	    	reg_value |= (1 << 9);     	/* AHB Master interface burst type INCR4 enable */
 	    	reg_value |= (1 << 8);     	/* AHB Master interface INCRX align enable */
-	    	reg_value &= ~(1 << 0);     	/* ULPI bypass enable */
+	    	reg_value |= (1 << 0);     	/* ULPI bypass enable */
 		}else if(!enable && usb1_enable_passly_cnt == 1){
 	    	reg_value &= ~(1 << 10);	/* AHB Master interface INCR8 disable */
 	    	reg_value &= ~(1 << 9);     /* AHB Master interface burst type INCR4 disable */
@@ -1253,8 +1252,8 @@ static int __init sw_hci_sun6i_init(void)
     alloc_pin(&sw_ehci1);
 
 	/* USB3 */
-    init_sw_hci(&sw_ohci2, 3, 1, ohci_name);
-    alloc_pin(&sw_ohci2);
+    //init_sw_hci(&sw_ohci2, 3, 1, ohci_name);
+    //alloc_pin(&sw_ohci2);
 
 
 #ifdef  CONFIG_SW_USB_3G
@@ -1265,7 +1264,7 @@ static int __init sw_hci_sun6i_init(void)
     if(sw_ehci0.used){
     	platform_device_register(&sw_usb_ehci_device[0]);
     }else{
-		DMSG_PANIC("ERR: usb%d %s is enable\n", sw_ehci0.usbc_no, sw_ehci0.hci_name);
+		DMSG_PANIC("ERR: usb%d %s is not enable\n", sw_ehci0.usbc_no, sw_ehci0.hci_name);
     }
 #endif
 
@@ -1273,7 +1272,7 @@ static int __init sw_hci_sun6i_init(void)
     if(sw_ohci0.used){
   	    platform_device_register(&sw_usb_ohci_device[0]);
     }else{
-		DMSG_PANIC("ERR: usb%d %s is enable\n", sw_ohci0.usbc_no, sw_ohci0.hci_name);
+		DMSG_PANIC("ERR: usb%d %s is not enable\n", sw_ohci0.usbc_no, sw_ohci0.hci_name);
     }
 #endif
 
@@ -1281,7 +1280,7 @@ static int __init sw_hci_sun6i_init(void)
     if(sw_ehci1.used){
      	platform_device_register(&sw_usb_ehci_device[1]);
     }else{
-		DMSG_PANIC("ERR: usb%d %s is enable\n", sw_ehci1.usbc_no, sw_ehci1.hci_name);
+		DMSG_PANIC("ERR: usb%d %s is not enable\n", sw_ehci1.usbc_no, sw_ehci1.hci_name);
     }
 #endif
 
@@ -1289,7 +1288,7 @@ static int __init sw_hci_sun6i_init(void)
     if(sw_ohci1.used){
      	platform_device_register(&sw_usb_ohci_device[1]);
     }else{
-		DMSG_PANIC("ERR: usb%d %s is enable\n", sw_ohci1.usbc_no, sw_ohci1.hci_name);
+		DMSG_PANIC("ERR: usb%d %s is not enable\n", sw_ohci1.usbc_no, sw_ohci1.hci_name);
     }
 #endif
 
@@ -1297,7 +1296,7 @@ static int __init sw_hci_sun6i_init(void)
 		if(sw_ohci2.used){
 			platform_device_register(&sw_usb_ohci_device[2]);
 		}else{
-			DMSG_PANIC("ERR: usb%d %s is enable\n", sw_ohci2.usbc_no, sw_ohci2.hci_name);
+			DMSG_PANIC("ERR: usb%d %s is not enable\n", sw_ohci2.usbc_no, sw_ohci2.hci_name);
 		}
 #endif
 
@@ -1380,8 +1379,8 @@ static void __exit sw_hci_sun6i_exit(void)
    	free_pin(&sw_ehci1);
 
     /*USB3 */
-    exit_sw_hci(&sw_ohci2, 1);
-   	free_pin(&sw_ohci2);
+    //exit_sw_hci(&sw_ohci2, 1);
+   	//free_pin(&sw_ohci2);
 
     return ;
 }

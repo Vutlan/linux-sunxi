@@ -1704,7 +1704,7 @@ static s32 get_android_config(struct android_usb_config *config)
     //  usb_feature
     //----------------------------------------
     /* vendor_id */
-	type = script_get_item("usb_feature", "usb_feature", &item_temp);
+	type = script_get_item("usb_feature", "vendor_id", &item_temp);
 	if(type == SCIRPT_ITEM_VALUE_TYPE_INT){
 		config->vendor_id = item_temp.val;
 	}else{
