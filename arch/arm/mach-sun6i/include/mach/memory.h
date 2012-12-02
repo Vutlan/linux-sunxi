@@ -22,14 +22,16 @@
 #define __ASM_ARCH_MEMORY_H
 
 #define PLAT_PHYS_OFFSET	UL(0x40000000)
+#define PLAT_MEM_SIZE		SZ_1G
+
 #define SUPER_STANDBY_MEM_BASE	(PLAT_PHYS_OFFSET + SZ_64M + SZ_32M)
 #define SUPER_STANDBY_MEM_SIZE	(SZ_1K)
 
 #define SYS_CONFIG_MEMBASE      (PLAT_PHYS_OFFSET + SZ_32M + SZ_16M)
 #define SYS_CONFIG_MEMSIZE      (SZ_64K)
 
-#define VE_MEM_BASE             (PLAT_PHYS_OFFSET + SZ_1G - SZ_128M - SZ_32M)
-#define VE_MEM_SIZE             (SZ_128M + SZ_32M)
+#define VE_MEM_SIZE             (SZ_128M + SZ_64M + SZ_8M)
+#define VE_MEM_BASE             (PLAT_PHYS_OFFSET + PLAT_MEM_SIZE - VE_MEM_SIZE)
 
 /* g2d memory reserve, same as a1x */
 #define G2D_MEM_BASE            (PLAT_PHYS_OFFSET + SZ_512M - SZ_64M - SZ_32M)

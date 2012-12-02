@@ -82,7 +82,7 @@ static void sun6i_fixup(struct tag *tags, char **from,
 {
 	printk("[%s] enter\n", __FUNCTION__);
 	meminfo->bank[0].start = PLAT_PHYS_OFFSET;
-	meminfo->bank[0].size = SZ_1G - VE_MEM_SIZE;
+	meminfo->bank[0].size = PLAT_MEM_SIZE - VE_MEM_SIZE;
 
 	memblock_reserve(SYS_CONFIG_MEMBASE, SYS_CONFIG_MEMSIZE);
 	memblock_reserve(0x40000000 + 0x4000000, SZ_32M);
