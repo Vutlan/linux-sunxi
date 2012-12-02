@@ -25,12 +25,11 @@
 #define writew(v, addr)	(*((volatile unsigned short *)(addr)) = (unsigned short)(v))
 #define writel(v, addr)	(*((volatile unsigned long  *)(addr)) = (unsigned long)(v))
 
-static void *r_prcm;;
+static void *r_prcm;
+static __ccmu_reg_list_t   *CmuReg;
 __u32   cpu_ms_loopcnt;
 
-
-
-//==============================================================================
+//==============================================================================
 // CLOCK SET FOR SYSTEM STANDBY
 //==============================================================================
 
@@ -54,6 +53,8 @@ __u32   cpu_ms_loopcnt;
 __s32 standby_clk_init(void)
 {
     r_prcm = (void *)IO_ADDRESS(AW_R_PRCM_BASE);
+    CmuReg = (__ccmu_reg_list_t   *)IO_ADDRESS(AW_CCM_BASE);
+    
 
     return 0;
 }
@@ -94,14 +95,10 @@ __s32 standby_clk_exit(void)
 __s32 standby_clk_hoscenable(void)
 {
 	//cpus power domain, offset 0x40, how to enable?
-#if 0
-	CmuReg->HoscCtl.OSC24MEn = 1;
+#if 1
+	CmuReg->SysClkDiv.CpuClkSrc = 1;
 #endif
-	__u32 tmp;
-	tmp = readl(r_prcm + PLL_CTRL_REG1_OFFSET );
-	tmp &= ~(0x00000004);
-	tmp |= (0x00000004);
-	writel(tmp, r_prcm + PLL_CTRL_REG1_OFFSET);
+
 	
 	return 0;
 }
@@ -122,26 +119,34 @@ __s32 standby_clk_ldoenable(void)
 {
 	//cpus power domain, offset 0x44, how to enable?
 #if 0
-    CmuReg->HoscCtl.KeyField = 0x538;
-    CmuReg->HoscCtl.LDOEn = 1;
-    CmuReg->Pll5Ctl.LDO2En = 1;
-    CmuReg->HoscCtl.KeyField = 0x00;
+	CmuReg->HoscCtl.KeyField = 0x538;
+	CmuReg->HoscCtl.LDOEn = 1;
+	CmuReg->Pll5Ctl.LDO2En = 1;
+	CmuReg->HoscCtl.KeyField = 0x00;
 #endif
-    __u32 tmp;
-    tmp = readl(r_prcm + PLL_CTRL_REG1_OFFSET );
-    tmp &= ~(0xff000000);
-    tmp |= (0xa7000000);
-    writel(tmp, r_prcm + PLL_CTRL_REG1_OFFSET);
+	__u32 tmp;
+	tmp = readl(r_prcm + PLL_CTRL_REG1_OFFSET );
+	tmp &= ~(0xff000000);
+	tmp |= (0xa7000000);
+	writel(tmp, r_prcm + PLL_CTRL_REG1_OFFSET);
 
-    tmp = readl(r_prcm + PLL_CTRL_REG1_OFFSET );
-    tmp &= ~(0x00000003);
-    tmp |= (0x00000003);
-    writel(tmp, r_prcm + PLL_CTRL_REG1_OFFSET);
+	//enalbe ldo, ldo1
+	tmp = readl(r_prcm + PLL_CTRL_REG1_OFFSET );
+	tmp &= ~(0x00000003);
+	tmp |= (0x00000003);
+	writel(tmp, r_prcm + PLL_CTRL_REG1_OFFSET);
 
-    tmp = readl(r_prcm + PLL_CTRL_REG1_OFFSET );
-    tmp &= ~(0xff000000);
-    writel(tmp, r_prcm + PLL_CTRL_REG1_OFFSET);
+	//enalbe crystal
+	tmp = readl(r_prcm + PLL_CTRL_REG1_OFFSET );
+	tmp &= ~(0x00000004);
+	tmp |= (0x00000004);
+	writel(tmp, r_prcm + PLL_CTRL_REG1_OFFSET);
 
-    return 0;
+	//disable change.
+	tmp = readl(r_prcm + PLL_CTRL_REG1_OFFSET );
+	tmp &= ~(0xff000000);
+	writel(tmp, r_prcm + PLL_CTRL_REG1_OFFSET);
+
+	return 0;
 }
 

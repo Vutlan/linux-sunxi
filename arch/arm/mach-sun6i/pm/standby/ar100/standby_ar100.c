@@ -222,7 +222,8 @@ int standby_ar100_standby_normal(struct normal_standby_para *para)
 	}
 	//initialize message
 	pmessage->type     = AR100_NSTANDBY_ENTER_REQ;
-	pmessage->attr     = AR100_MESSAGE_ATTR_HARDSYN;
+	//pmessage->attr     = AR100_MESSAGE_ATTR_HARDSYN;
+	pmessage->attr       = 0;
 	standby_memcpy(pmessage->paras, para, sizeof(struct normal_standby_para));
 	pmessage->state    = AR100_MESSAGE_INITIALIZED;
 	

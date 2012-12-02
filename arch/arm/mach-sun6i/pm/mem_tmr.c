@@ -125,8 +125,8 @@ void mem_tmr_enable_watchdog(void)
 	/* set watch-dog reset to whole system*/ 
 	(TmrReg->WDog1_Cfg_Reg) &= ~(0x3);
 	(TmrReg->WDog1_Cfg_Reg) |= 0x1;
-	/*  timeout is 2 seconds */
-	(TmrReg->WDog1_Mode_Reg) = (2<<4);
+	/*  timeout is 16 seconds */
+	(TmrReg->WDog1_Mode_Reg) = (0xb<<4);
 	
 	/* enable watch-dog interrupt*/
 	(TmrReg->WDog1_Irq_En) |= (1<<0);

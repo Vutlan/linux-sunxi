@@ -3,6 +3,8 @@
 
 #include "mach/memory.h"
 #include "asm-generic/sizes.h"
+#include <generated/autoconf.h>
+
 /*
 * Copyright (c) 2011-2015 yanggq.young@allwinnertech.com
 *
@@ -19,7 +21,12 @@
 
 #ifndef CONFIG_AW_ASIC_EVB_PLATFORM
 #define SUN6I_FPGA_SIM
+#else
+#if 0 == CONFIG_AW_ASIC_EVB_PLATFORM 
+#define SUN6I_FPGA_SIM
 #endif
+#endif
+
 
 //#define CHECK_IC_VERSION
 

@@ -36,18 +36,28 @@
 #define	AR100_MESSAGE_PROCESSED		(0x5)	//processed state
 #define	AR100_MESSAGE_FEEDBACKED	(0x6)	//feedback state
 
+typedef int (*ar100_cb_t)(void *arg);
+
+/* call back struct */
+typedef struct ar100_msg_cb
+{
+	ar100_cb_t   handler;
+	void        *arg;
+} ar100_msg_cb_t;
+
 //the structure of message frame,
 //this structure will transfer between ar100 and ac327.
 //sizeof(struct message) : 32Byte.
 typedef struct ar100_message
 {
-	unsigned char   		state;		//identify the used status of message frame
-	unsigned char   		attr;		//message attribute : SYN OR ASYN
-	unsigned char   		type;		//message type : DVFS_REQ
-	unsigned char   		result;		//message process result
-	struct ar100_message 	*next;		//pointer of next message frame
-	void    	   			*private;	//message private data
-	unsigned int   			 paras[13];	//the parameters of message
+	volatile unsigned char   		 state;		/* identify the used status of message frame */
+	volatile unsigned char   		 attr;		/* message attribute : SYN OR ASYN           */
+	volatile unsigned char   		 type;		/* message type : DVFS_REQ                   */
+	volatile unsigned char   		 result;	/* message process result                    */
+	volatile struct ar100_message	*next;		/* pointer of next message frame             */
+	volatile struct ar100_msg_cb		 cb;		/* the callback function and arg of message  */
+	volatile void    	   			*private;	/* message private data                      */
+	volatile unsigned int   			 paras[11];	/* the parameters of message                 */
 } ar100_message_t;
 
 //the base of messages

@@ -20,51 +20,57 @@
 
 typedef struct __MEM_TMR_REG
 {
-    // offset:0x00
-    volatile __u32   IntCtl;
-    volatile __u32   IntSta;
-    volatile __u32   reserved0[2];
-    // offset:0x10
-    volatile __u32   Tmr0Ctl;
-    volatile __u32   Tmr0IntVal;
-    volatile __u32   Tmr0CntVal;
-    volatile __u32   reserved1;
-    // offset:0x20
-    volatile __u32   Tmr1Ctl;
-    volatile __u32   Tmr1IntVal;
-    volatile __u32   Tmr1CntVal;
-    volatile __u32   reserved2;
-    // offset:0x30
-    volatile __u32   Tmr2Ctl;
-    volatile __u32   Tmr2IntVal;
-    volatile __u32   Tmr2CntVal;
-    volatile __u32   reserved3;
-    // offset:0x40
-    volatile __u32   Tmr3Ctl;
-    volatile __u32   Tmr3IntVal;
-    volatile __u32   reserved4[2];
-    // offset:0x50
-    volatile __u32   Tmr4Ctl;
-    volatile __u32   Tmr4IntVal;
-    volatile __u32   Tmr4CntVal;
-    volatile __u32   reserved5;
-    // offset:0x60
-    volatile __u32   Tmr5Ctl;
-    volatile __u32   Tmr5IntVal;
-    volatile __u32   Tmr5CntVal;
-    volatile __u32   reserved6[5];
-    // offset:0x80
-    volatile __u32   AvsCtl;
-    volatile __u32   Avs0Cnt;
-    volatile __u32   Avs1Cnt;
-    volatile __u32   AvsDiv;
+	// offset:0x00
+	volatile __u32   IntCtl;
+	volatile __u32   IntSta;
+	volatile __u32   reserved0[2];
+	// offset:0x10
+	volatile __u32   Tmr0Ctl;
+	volatile __u32   Tmr0IntVal;
+	volatile __u32   Tmr0CntVal;
+	volatile __u32   reserved1;
+	// offset:0x20
+	volatile __u32   Tmr1Ctl;
+	volatile __u32   Tmr1IntVal;
+	volatile __u32   Tmr1CntVal;
+	volatile __u32   reserved2;
+	// offset:0x30
+	volatile __u32   Tmr2Ctl;
+	volatile __u32   Tmr2IntVal;
+	volatile __u32   Tmr2CntVal;
+	volatile __u32   reserved3;
+	// offset:0x40
+	volatile __u32   Tmr3Ctl;
+	volatile __u32   Tmr3IntVal;
+	volatile __u32   reserved4[2];
+	// offset:0x50
+	volatile __u32   Tmr4Ctl;
+	volatile __u32   Tmr4IntVal;
+	volatile __u32   Tmr4CntVal;
+	volatile __u32   reserved5;
+	// offset:0x60
+	volatile __u32   Tmr5Ctl;
+	volatile __u32   Tmr5IntVal;
+	volatile __u32   Tmr5CntVal;
+	volatile __u32   reserved6[5];
+	// offset:0x80
+	volatile __u32   AvsCtl;
+	volatile __u32   Avs0Cnt;
+	volatile __u32   Avs1Cnt;
+	volatile __u32   AvsDiv;
+
+	// offset:0x90: reserved
+	volatile __u32   reserved7[4];
+
 	// offset:0xa0
-    volatile __u32   WDog1_Irq_En;
-    volatile __u32   WDog1_Irq_Sta;
-    volatile __u32   WDog1_Ctrl_Reg;
-    volatile __u32   WDog1_Cfg_Reg;
-    volatile __u32   WDog1_Mode_Reg;	
-    volatile __u32   WDog1_Reset_Pwh_Reg;
+	volatile __u32   WDog1_Irq_En;
+	volatile __u32   WDog1_Irq_Sta;
+	volatile __u32   reserved8[2];
+
+	// offset:0xb0
+	volatile __u32   WDog1_Ctrl_Reg;
+	volatile __u32   WDog1_Cfg_Reg;
+	volatile __u32   WDog1_Mode_Reg;	
 
 } __mem_tmr_reg_t;
 

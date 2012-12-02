@@ -103,8 +103,15 @@ int main(struct aw_pm_info *arg)
 	standby_clk_init();
 	mem_tmr_init();
 
+	if(unlikely(pm_info.standby_para.debug_mask&PM_STANDBY_PRINT_STANDBY)){
+		printk("pm_info.standby_para.event = 0x%x. \n", pm_info.standby_para.event);
+	}
+
 	/* init some system wake source */
 	if(pm_info.standby_para.event & CPU0_WAKEUP_MSGBOX){
+		if(unlikely(pm_info.standby_para.debug_mask&PM_STANDBY_PRINT_STANDBY)){
+			printk("enable CPU0_WAKEUP_MSGBOX. \n");
+		}
 		mem_enable_int(INT_SOURCE_MSG_BOX);
 	}
 	if(pm_info.standby_para.event & CPU0_WAKEUP_KEY){
@@ -119,6 +126,7 @@ int main(struct aw_pm_info *arg)
 
 	//busy_waiting();
 	standby();
+	
 	/* check system wakeup event */
 	pm_info.standby_para.event = 0;
 	//actually, msg_box int will be clear by ar100-driver.
@@ -131,8 +139,14 @@ int main(struct aw_pm_info *arg)
 	}
 
 	/*check completion status: only after restore completion, access dram is allowed. */
-	while(standby_ar100_check_restore_status())
+	while(standby_ar100_check_restore_status()){
+		if(unlikely(pm_info.standby_para.debug_mask&PM_STANDBY_PRINT_STANDBY)){
+			printk("0xf1c20050 value: 0x%x. \n", *((volatile unsigned int *)0xf1c20050));
+			printk("0xf1c20000 value: 0x%x. \n", *((volatile unsigned int *)0xf1c20000));
+		}
 		;
+	}
+	
 	if(unlikely(pm_info.standby_para.debug_mask&PM_STANDBY_PRINT_CACHE_TLB_MISS)){
 		cache_count_get();
 		if(d_cache_miss_end || d_tlb_miss_end || i_tlb_miss_end || i_cache_miss_end){
@@ -146,14 +160,24 @@ int main(struct aw_pm_info *arg)
 	
 	/* disable watch-dog */
 	mem_tmr_disable_watchdog();
+	if(unlikely(pm_info.standby_para.debug_mask&PM_STANDBY_PRINT_STANDBY)){
+		printk("after mem_tmr_disable_watchdog. \n");
+	}
 
 	/* exit standby module */
 	mem_tmr_exit();
 	standby_clk_exit();
 	standby_ar100_exit();
 	
+	if(unlikely(pm_info.standby_para.debug_mask&PM_STANDBY_PRINT_STANDBY)){
+		printk("after standby_ar100_exit. \n");
+	}
 	/* restore stack pointer register, switch stack back to dram */
 	restore_sp(sp_backup);
+
+	if(unlikely(pm_info.standby_para.debug_mask&PM_STANDBY_PRINT_STANDBY)){
+		printk("after restore_sp. \n");
+	}
 
 	/* report which wake source wakeup system */
 	arg->standby_para.event = pm_info.standby_para.event;
@@ -196,6 +220,7 @@ static void standby(void)
 	standby_ar100_query_wakeup_src((unsigned long *)&(pm_info.standby_para.axp_event));
 	/* enable watch-dog to prevent in case dram training failed */
 	mem_tmr_enable_watchdog();
+	
 	/* notify for cpus to: restore cpus freq and volt, restore dram */
 	standby_ar100_notify_restore(STANDBY_AR100_ASYNC);	
 
