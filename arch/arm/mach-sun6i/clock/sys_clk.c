@@ -608,7 +608,9 @@ static __s32 sys_clk_set_rate(__aw_ccu_clk_id_e id, __u64 rate)
             aw_ccu_reg->Pll1Ctl = tmp_pll;
 
             #ifdef CONFIG_AW_ASIC_EVB_PLATFORM
-            while(!aw_ccu_reg->Pll1Ctl.Lock);
+            if(aw_ccu_reg->Pll1Ctl.PLLEn) {
+                while(!aw_ccu_reg->Pll1Ctl.Lock);
+            }
             #endif
 
             return 0;
@@ -633,7 +635,9 @@ static __s32 sys_clk_set_rate(__aw_ccu_clk_id_e id, __u64 rate)
             }
 
             #ifdef CONFIG_AW_ASIC_EVB_PLATFORM
-            while(!aw_ccu_reg->Pll2Ctl.Lock);
+            if(aw_ccu_reg->Pll2Ctl.PLLEn) {
+                while(!aw_ccu_reg->Pll2Ctl.Lock);
+            }
             #endif
 
             return 0;
@@ -694,7 +698,9 @@ static __s32 sys_clk_set_rate(__aw_ccu_clk_id_e id, __u64 rate)
                 }
 
                 #ifdef CONFIG_AW_ASIC_EVB_PLATFORM
-                while(!tmp_reg->Lock);
+                if(tmp_reg->PLLEn) {
+                    while(!tmp_reg->Lock);
+                }
                 #endif
 
                 return 0;
@@ -713,7 +719,9 @@ static __s32 sys_clk_set_rate(__aw_ccu_clk_id_e id, __u64 rate)
             aw_ccu_reg->Pll5Ctl = tmp_pll;
 
             #ifdef CONFIG_AW_ASIC_EVB_PLATFORM
-            while(!aw_ccu_reg->Pll5Ctl.Lock);
+            if(aw_ccu_reg->Pll5Ctl.PLLEn) {
+                while(!aw_ccu_reg->Pll5Ctl.Lock);
+            }
             #endif
 
             return 0;
@@ -752,7 +760,9 @@ static __s32 sys_clk_set_rate(__aw_ccu_clk_id_e id, __u64 rate)
             }
 
             #ifdef CONFIG_AW_ASIC_EVB_PLATFORM
-            while(!aw_ccu_reg->Pll6Ctl.Lock);
+            if(aw_ccu_reg->Pll6Ctl.PLLEn) {
+                while(!aw_ccu_reg->Pll6Ctl.Lock);
+            }
             #endif
 
             return 0;
