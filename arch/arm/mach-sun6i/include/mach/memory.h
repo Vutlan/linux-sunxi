@@ -24,17 +24,17 @@
 #define PLAT_PHYS_OFFSET	UL(0x40000000)
 #define PLAT_MEM_SIZE		SZ_1G
 
-#define SUPER_STANDBY_MEM_BASE	(PLAT_PHYS_OFFSET + SZ_64M + SZ_32M)
-#define SUPER_STANDBY_MEM_SIZE	(SZ_1K)
+#define SYS_CONFIG_MEMBASE      (PLAT_PHYS_OFFSET + SZ_32M + SZ_16M)		/* +48M */
+#define SYS_CONFIG_MEMSIZE      (SZ_64K)					/* 64K */
 
-#define SYS_CONFIG_MEMBASE      (PLAT_PHYS_OFFSET + SZ_32M + SZ_16M)
-#define SYS_CONFIG_MEMSIZE      (SZ_64K)
+#define SUPER_STANDBY_MEM_BASE	(PLAT_PHYS_OFFSET + SZ_64M + SZ_32M)		/* +96M */
+#define SUPER_STANDBY_MEM_SIZE	(SZ_1K)						/* 1K */
 
-#define VE_MEM_SIZE             (SZ_128M + SZ_64M + SZ_8M)
-#define VE_MEM_BASE             (PLAT_PHYS_OFFSET + PLAT_MEM_SIZE - VE_MEM_SIZE)
+#define VE_MEM_BASE             (PLAT_PHYS_OFFSET + SZ_64M + SZ_32M + SZ_4M)	/* +100M */
+#define VE_MEM_SIZE             (SZ_128M + SZ_64M + SZ_8M)			/* 200M */
 
 /* g2d memory reserve, same as a1x */
-#define G2D_MEM_BASE            (PLAT_PHYS_OFFSET + SZ_512M - SZ_64M - SZ_32M)
-#define G2D_MEM_SIZE            (SZ_16M)
+#define G2D_MEM_BASE            (PLAT_PHYS_OFFSET + SZ_512M - SZ_64M - SZ_32M)	/* +416M */
+#define G2D_MEM_SIZE            (SZ_16M)					/* 16M */
 
 #endif

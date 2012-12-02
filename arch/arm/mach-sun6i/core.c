@@ -82,17 +82,18 @@ static void sun6i_fixup(struct tag *tags, char **from,
 {
 	printk("[%s] enter\n", __FUNCTION__);
 	meminfo->bank[0].start = PLAT_PHYS_OFFSET;
-	meminfo->bank[0].size = PLAT_MEM_SIZE - VE_MEM_SIZE;
+	meminfo->bank[0].size = VE_MEM_BASE - PLAT_PHYS_OFFSET;
+	meminfo->bank[1].start = VE_MEM_BASE + VE_MEM_SIZE;
+	meminfo->bank[1].size = PLAT_PHYS_OFFSET + PLAT_MEM_SIZE - meminfo->bank[1].start;
 
+	/* for sys_config */
 	memblock_reserve(SYS_CONFIG_MEMBASE, SYS_CONFIG_MEMSIZE);
-	memblock_reserve(0x40000000 + 0x4000000, SZ_32M);
-	//for standby: 0x4600,0000-0x4600,0000+1k;
+	/* for standby: 0x4600,0000-0x4600,0000+1k; */
 	memblock_reserve(SUPER_STANDBY_MEM_BASE, SUPER_STANDBY_MEM_SIZE);
-
-	/* g2d memory reserve, same as a1x */
+	/* for g2d, same as a1x */
 	memblock_reserve(G2D_MEM_BASE, G2D_MEM_SIZE);
 
-	meminfo->nr_banks = 1;
+	meminfo->nr_banks = 2;
 }
 
 static void sun6i_restart(char mode, const char *cmd)

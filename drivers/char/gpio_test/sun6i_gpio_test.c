@@ -19,7 +19,7 @@
 #define TEST_RE_REQUEST_FREE	/* test for re-gpio_request/re-gpio_free, so get warning */
 #define TEST_GPIOLIB_API	/* test the standard linux gpio api */
 #define TEST_CONFIG_API		/* test gpio multi-function */
-//#define TEST_GPIO_EINT_API	/* test gpio external interrupt */
+#define TEST_GPIO_EINT_API	/* test gpio external interrupt */
 #define TEST_GPIO_SCRIPT_API	/* test gpio script api */
 
 /*
@@ -599,55 +599,50 @@ u32 __gtc_api(void)
 	 * test for request and free
 	 */
 #ifdef TEST_REQUEST_FREE
-	if(0 != __test_request_free()) {
-		uret = __LINE__;
-		goto end;
-	}
-	printk("%s: __test_request_free success\n", __func__);
+	if(0 != __test_request_free())
+		printk("%s: __test_request_free failed\n", __func__);
+	else
+		printk("%s: __test_request_free success\n", __func__);
 #endif /* TEST_REQUEST_FREE */
 
 	/*
 	 * test for re-request and re-free the same pio
 	 */
 #ifdef TEST_RE_REQUEST_FREE
-	if(0 != __test_re_request_free()) {
-		uret = __LINE__;
-		goto end;
-	}
-	printk("%s: __test_re_request_free success\n", __func__);
+	if(0 != __test_re_request_free())
+		printk("%s: __test_re_request_free failed\n", __func__);
+	else
+		printk("%s: __test_re_request_free success\n", __func__);
 #endif /* TEST_RE_REQUEST_FREE */
 
 	/*
 	 * test for gpiolib api
 	 */
 #ifdef TEST_GPIOLIB_API
-	if(0 != __test_standard_api()) {
-		uret = __LINE__;
-		goto end;
-	}
-	printk("%s: __test_standard_api success\n", __func__);
+	if(0 != __test_standard_api())
+		printk("%s: __test_standard_api failed\n", __func__);
+	else
+		printk("%s: __test_standard_api success\n", __func__);
 #endif /* TEST_GPIOLIB_API */
 
 	/*
 	 * test for cfg api
 	 */
 #ifdef TEST_CONFIG_API
-	if(0 != __test_mul_fun_api()) {
-		uret = __LINE__;
-		goto end;
-	}
-	printk("%s: __test_mul_fun_api success\n", __func__);
+	if(0 != __test_mul_fun_api())
+		printk("%s: __test_mul_fun_api failed\n", __func__);
+	else
+		printk("%s: __test_mul_fun_api success\n", __func__);
 #endif /* TEST_CONFIG_API */
 
 	/*
 	 * test for gpio external interrupt api
 	 */
 #ifdef TEST_GPIO_EINT_API
-	if(0 != __test_eint_api()) {
-		uret = __LINE__;
-		goto end;
-	}
-	printk("%s: __test_eint_api success\n", __func__);
+	if(0 != __test_eint_api())
+		printk("%s: __test_eint_api failed\n", __func__);
+	else
+		printk("%s: __test_eint_api success\n", __func__);
 #endif /* TEST_GPIO_EINT_API */
 
 	/*
