@@ -138,8 +138,6 @@ int clk_init(void)
             clk_set_rate(clk, script_item.val*1000000);
         }
     }
-
-#if 1
     if(script_get_item("clock", "pll10", &script_item) == SCIRPT_ITEM_VALUE_TYPE_INT) {
         CCU_INF("script config pll10 to %d Mhz\n", script_item.val);
         if(!((script_item.val < 30) || (script_item.val > 600))) {
@@ -148,9 +146,7 @@ int clk_init(void)
             clk_set_rate(clk, script_item.val*1000000);
         }
     }
-#endif
 
-#if 0
     /* switch ahb clock to pll6 */
     aw_ccu_switch_ahb_2_pll6();
     clk = &aw_clock[AW_SYS_CLK_AHB1];
@@ -167,7 +163,6 @@ int clk_init(void)
             clk_enable(clk);
         }
     }
-#endif
 
     return 0;
 }

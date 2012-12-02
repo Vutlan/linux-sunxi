@@ -28,7 +28,7 @@
 #include <linux/pda_power.h>
 #include <linux/io.h>
 #include <linux/i2c.h>
- 
+
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
 #include <asm/mach/time.h>
@@ -36,13 +36,15 @@
 #include <mach/hardware.h>
 #include <mach/system.h>
 #include <mach/platform.h>
+#include <mach/irqs.h>
+
 
 /* uart */
 static struct plat_serial8250_port debug_uart_platform_data[] = {
 	{
 		.membase        = (void __iomem *)(IO_ADDRESS(AW_UART0_BASE)),
 		.mapbase        = (resource_size_t)AW_UART0_BASE,
-		.irq            = 32,
+		.irq            = AW_IRQ_UART0,
 		.flags          = UPF_BOOT_AUTOCONF|UPF_IOREMAP,
 		.iotype         = UPIO_MEM32,
 		.regshift       = 2,
