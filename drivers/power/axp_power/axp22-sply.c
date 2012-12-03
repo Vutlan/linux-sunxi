@@ -1534,9 +1534,13 @@ static int axp_battery_probe(struct platform_device *pdev)
 		axp_write(charger->master,AXP22_RDC1,rdc & 0x00FF);
 		axp_write(charger->master, AXP22_RDC0, ((rdc >> 8) & 0x1F));
 	}
-  axp_set_bits(charger->master,0x8F,0x88);
-  axp_clr_bits(charger->master,0x81,0x04);
-
+  axp_set_bits(charger->master,0x8F,0x88); //enable IRQ waku and 16's restart up
+//  axp_clr_bits(charger->master,0x81,0x04);
+  /* set N_VBUSEN as an input 20121203 add by zhongweijin */
+  axp_set_bits(charger->master,0x8F,0x10);
+  /* set USB not current limit 2012-12-03 add by zhongweijin*/
+  axp_set_bits(charger->master,0x30,0x02);
+  
   axp_charger_update_state((struct axp_charger *)charger);
 
   axp_read(charger->master, AXP22_CAP,&val2);

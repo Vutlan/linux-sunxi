@@ -100,7 +100,7 @@ int axp_gpio_get_io(int gpio, int *io_mode)
 				else
 					return -EIO;	
 				break;
-		case 4: axp_read(&axp->dev,AXP22_GPIO4_CFG,&val);val &= 0x08;
+		case 4: axp_read(&axp->dev,AXP22_GPIO4_CFG,&val);val &= 0x10;
 				if(!val)
 					*io_mode = 1;
 				else
@@ -166,7 +166,7 @@ int axp_gpio_set_value(int gpio, int value)
 				case 3: axp_clr_bits(&axp->dev,AXP22_GPIO3_CFG, 0x08);
 						return axp_set_bits(&axp->dev,AXP22_GPIO3_CFG,0x30);
 				case 4: axp_clr_bits(&axp->dev,AXP22_GPIO4_CFG, 0x10);
-						return axp_set_bits(&axp->dev,AXP22_GPIO4_STA,0x04);
+						return axp_clr_bits(&axp->dev,AXP22_GPIO4_STA,0x04);
 				default:break;
 			}
 		}
