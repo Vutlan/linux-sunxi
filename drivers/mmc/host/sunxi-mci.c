@@ -243,8 +243,8 @@ struct sw_mmc_clk_dly {
 	u32 sclk_dly;
 } mmc_clk_dly [MMC_CLK_MOD_NUM] = {
 	{MMC_CLK_400K,        1, 1},
-	{MMC_CLK_25M,         2, 3},
-	{MMC_CLK_50M,         2, 3},
+	{MMC_CLK_25M,         3, 2},
+	{MMC_CLK_50M,         2, 2},
 	{MMC_CLK_50MDDR,      2, 4},
 	{MMC_CLK_50MDDR_8BIT, 2, 4},
 	{MMC_CLK_100M,        1, 4},
@@ -294,6 +294,7 @@ static void sw_mci_send_cmd(struct sunxi_mmc_host* smc_host, struct mmc_command*
 
 	if (cmd->opcode == SD_SWITCH_VOLTAGE) {
 		cmd_val |= SDXC_VolSwitch;
+		imask |= SDXC_VolChgDone;
 		smc_host->wait = SDC_WAIT_SWITCH1V8;
 	}
 
@@ -578,7 +579,7 @@ static int sw_mci_set_clk(struct sunxi_mmc_host* smc_host, u32 clk)
 {
 	struct clk *sclk = NULL;
 	u32 mod_clk = 0;
-	u32 idiv = 0;
+	u32 src_clk = 0;
 	u32 temp;
 	u32 oclk_dly = 3;
 	u32 sclk_dly = 4;
@@ -587,7 +588,7 @@ static int sw_mci_set_clk(struct sunxi_mmc_host* smc_host, u32 clk)
 	u32 rate;
 
 	if (clk <= 400000) {
-		mod_clk = 24000000;
+		mod_clk = smc_host->mod_clk;
 		sclk = clk_get(&smc_host->pdev->dev, MMC_SRCCLK_HOSC);
 	} else {
 		mod_clk = smc_host->mod_clk;
@@ -611,49 +612,43 @@ static int sw_mci_set_clk(struct sunxi_mmc_host* smc_host, u32 clk)
 		clk_put(sclk);
 		return -1;
 	}
+	src_clk = clk_get_rate(sclk);
 	clk_put(sclk);
 
 	sw_mci_oclk_onoff(smc_host, 0, 0);
-	/* set internal divider */
-	idiv = mod_clk / clk / 2;
+	/* clear internal divider */
 	temp = mci_readl(smc_host, REG_CLKCR);
 	temp &= ~0xff;
-	temp |= idiv | SDXC_CardClkOn;
 	mci_writel(smc_host, REG_CLKCR, temp);
-
 	sw_mci_oclk_onoff(smc_host, 0, 0);
-//	if (!idiv) {
-//		oclk_dly = 0;
-//		sclk_dly = 0;
-//	} else {
-		if (clk <= 400000) {
-			dly = &mmc_clk_dly[MMC_CLK_400K];
-		} else if (clk <= 25000000) {
-			dly = &mmc_clk_dly[MMC_CLK_25M];
-		} else if (clk <= 50000000) {
-			if (smc_host->ddr) {
-				if (smc_host->bus_width == 8)
-					dly = &mmc_clk_dly[MMC_CLK_50MDDR_8BIT];
-				else
-					dly = &mmc_clk_dly[MMC_CLK_50MDDR];
-			} else {
-				dly = &mmc_clk_dly[MMC_CLK_50M];
-			}
-		} else if (clk <= 104000000) {
-			dly = &mmc_clk_dly[MMC_CLK_100M];
-		} else if (clk <= 208000000) {
-			dly = &mmc_clk_dly[MMC_CLK_200M];
-		} else
+
+	if (clk <= 400000) {
+		dly = &mmc_clk_dly[MMC_CLK_400K];
+	} else if (clk <= 25000000) {
+		dly = &mmc_clk_dly[MMC_CLK_25M];
+	} else if (clk <= 50000000) {
+		if (smc_host->ddr) {
+			if (smc_host->bus_width == 8)
+				dly = &mmc_clk_dly[MMC_CLK_50MDDR_8BIT];
+			else
+				dly = &mmc_clk_dly[MMC_CLK_50MDDR];
+		} else {
 			dly = &mmc_clk_dly[MMC_CLK_50M];
-		oclk_dly = dly->oclk_dly;
-		sclk_dly = dly->sclk_dly;
-		if (mod_clk <= 400000000) {
-			if (oclk_dly)
-				oclk_dly--;
-			if (sclk_dly)
-				sclk_dly--;
 		}
-//	}
+	} else if (clk <= 104000000) {
+		dly = &mmc_clk_dly[MMC_CLK_100M];
+	} else if (clk <= 208000000) {
+		dly = &mmc_clk_dly[MMC_CLK_200M];
+	} else
+		dly = &mmc_clk_dly[MMC_CLK_50M];
+	oclk_dly = dly->oclk_dly;
+	sclk_dly = dly->sclk_dly;
+	if (src_clk >= 300000000 && src_clk <= 400000000) {
+		if (oclk_dly)
+			oclk_dly--;
+		if (sclk_dly)
+			sclk_dly--;
+	}
 	sw_mci_set_clk_dly(smc_host, oclk_dly, sclk_dly);
 	sw_mci_oclk_onoff(smc_host, 1, 1);
 	return 0;
@@ -1105,6 +1100,12 @@ modtimer:
 	return;
 }
 
+static u32 sw_mci_cd_irq(void *data)
+{
+	sw_mci_cd_cb((unsigned long)data);
+	return 0;
+}
+
 static int sw_mci_card_present(struct mmc_host *mmc)
 {
 	struct sunxi_mmc_host *smc_host = mmc_priv(mmc);
@@ -1205,6 +1206,14 @@ static void sw_mci_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 		smc_host->pdev->id, ios->clock, bus_mode[ios->bus_mode],
 		pwr_mode[ios->power_mode], vdd[ios->signal_voltage],
 		1 << ios->bus_width, timing[ios->timing], drv_type[ios->drv_type]);
+
+	/* Set Voltage */
+	if (ios->signal_voltage == MMC_SIGNAL_VOLTAGE_180)
+		sw_mci_set_vddio(smc_host, SDC_WOLTAGE_1V8);
+	else if (ios->signal_voltage == MMC_SIGNAL_VOLTAGE_120)
+		sw_mci_set_vddio(smc_host, SDC_WOLTAGE_1V2);
+	else
+		sw_mci_set_vddio(smc_host, SDC_WOLTAGE_3V3);
 
 	/* Set the power state */
 	switch (ios->power_mode) {
@@ -1613,8 +1622,8 @@ static int sw_mci_proc_hostinfo(char *page, char **start, off_t off,
 	char* cd_mode[] = {"None", "GPIO Check", "GPIO IRQ", "Always In", "Manual"};
 	char* state[] = {"Idle", "Sending CMD", "CMD Done"};
 	char* vol[] = {"3.3V", "1.8V", "1.2V", "off"};
-	u32 Fmclk_MHz = smc_host->mod_clk/1000000;
-	u32 Tmclk_ns = Fmclk_MHz ? 1000/Fmclk_MHz : 0;
+	u32 Fmclk_MHz = (smc_host->mod_clk == 24000000 ? 24000000 : 600000000)/1000000;
+	u32 Tmclk_ns = Fmclk_MHz ? 10000/Fmclk_MHz : 0;
 	u32 odly = smc_host->oclk_dly ? Tmclk_ns*smc_host->oclk_dly : Tmclk_ns >> 1;
 	u32 sdly = smc_host->sclk_dly ? Tmclk_ns*smc_host->sclk_dly : Tmclk_ns >> 1;
 
@@ -1623,8 +1632,8 @@ static int sw_mci_proc_hostinfo(char *page, char **start, off_t off,
 	p += sprintf(p, " DMA Desp  : %p(%08x)\n", smc_host->sg_cpu, smc_host->sg_dma);
 	p += sprintf(p, " Mod Clock : %d\n", smc_host->mod_clk);
 	p += sprintf(p, " Card Clock: %d\n", smc_host->card_clk);
-	p += sprintf(p, " Oclk Delay: %d(%dns)\n", smc_host->oclk_dly, odly);
-	p += sprintf(p, " Sclk Delay: %d(%dns)\n", smc_host->sclk_dly, sdly);
+	p += sprintf(p, " Oclk Delay: %d(%d.%dns)\n", smc_host->oclk_dly, odly/10, odly%10);
+	p += sprintf(p, " Sclk Delay: %d(%d.%dns)\n", smc_host->sclk_dly, sdly/10, odly%10);
 	p += sprintf(p, " Bus Width : %d\n", smc_host->bus_width);
 	p += sprintf(p, " DDR Mode  : %d\n", smc_host->ddr);
 	p += sprintf(p, " Voltage   : %s\n", vol[smc_host->voltage]);
@@ -1956,7 +1965,7 @@ static int __devinit sw_mci_probe(struct platform_device *pdev)
 	} else if (smc_host->cd_mode == CARD_DETECT_BY_GPIO_IRQ) {
 		u32 cd_hdle;
 		cd_hdle = sw_gpio_irq_request(smc_host->pdata->cd.gpio, TRIG_EDGE_DOUBLE,
-					(peint_handle)&sw_mci_cd_cb, smc_host);
+					&sw_mci_cd_irq, smc_host);
 		if (!cd_hdle) {
 			SMC_ERR(smc_host, "Failed to get gpio irq for card detection\n");
 		}
