@@ -3271,10 +3271,10 @@ int sw_usb_device_enable(void)
 	}
 
 	printk("request sw_udc_irq no:%d is ok\n", irq);
-	//if(udc->driver && is_udc_enable){
+	if(udc->driver && is_udc_enable){
 		sw_udc_enable(udc);
-		//cfg_udc_command(SW_UDC_P_ENABLE);
-	//}
+		cfg_udc_command(SW_UDC_P_ENABLE);
+	}
 
 	DMSG_INFO_UDC("sw_usb_device_enable end\n");
 
