@@ -15,10 +15,10 @@
 
 #include "sun6i_gpio_test.h"
 
-#define TEST_REQUEST_FREE	/* test for gpio_request/gpio_free */
-#define TEST_RE_REQUEST_FREE	/* test for re-gpio_request/re-gpio_free, so get warning */
-#define TEST_GPIOLIB_API	/* test the standard linux gpio api */
-#define TEST_CONFIG_API		/* test gpio multi-function */
+//#define TEST_REQUEST_FREE	/* test for gpio_request/gpio_free */
+//#define TEST_RE_REQUEST_FREE	/* test for re-gpio_request/re-gpio_free, so get warning */
+//#define TEST_GPIOLIB_API	/* test the standard linux gpio api */
+//#define TEST_CONFIG_API		/* test gpio multi-function */
 #define TEST_GPIO_EINT_API	/* test gpio external interrupt */
 #define TEST_GPIO_SCRIPT_API	/* test gpio script api */
 
@@ -53,7 +53,7 @@ static inline int gpio_chip_match(struct gpio_chip * chip, void * data)
  */
 u32 gpio_irq_handle_demo(void *para)
 {
-	printk("%s: para 0x%08x\n", __FUNCTION__, (u32)para);
+	printk("%s: para 0x%08x\n", __func__, (u32)para);
 	return 0;
 }
 
@@ -71,22 +71,14 @@ void __test_script_api(void)
 		{GPIOF(4)},
 		{GPIOF(5)},
 	};
-	struct gpio_config csi0_gpio[] = {
-		{GPIOE(0)},
-		{GPIOE(1)},
-		{GPIOE(2)},
-		{GPIOE(3)},
-		{GPIOE(4)},
-		{GPIOE(5)},
-		{GPIOE(6)},
-		{GPIOE(7)},
-		{GPIOE(8)},
-		{GPIOE(9)},
-		{GPIOE(10)},
-		{GPIOE(11)},
-		{GPIOH(13)},
-		{GPIOH(16)},
-		{GPIOH(18)},
+	struct gpio_config gpio_group[] = {
+		{GPIOF(2)},
+		{GPIOF(3)},
+		{GPIOF(1)},
+		{GPIOF(0)},
+		{GPIOF(5)},
+		{GPIOF(4)},
+		{GPIOA(8)},
 	};
 
 	/*
@@ -103,27 +95,22 @@ void __test_script_api(void)
 
 	[product]
 	version = "100"
-	machine = "evb_v12"
+	machine = "evb"
 
-	[csi0_para]
-	csi_used		= 1
-	csi_twi_id		= 1
-	csi_twi_addr		= 0x42
-	csi_pck 		= port:PE00<3><default><default><default>
-	csi_ck	 		= port:PE01<3><default><default><default>
-	csi_hsync 		= port:PE02<3><default><default><default>
-	csi_vsync		= port:PE03<3><default><default><default>
-	csi_d0	 		= port:PE04<3><default><default><default>
-	csi_d1	 		= port:PE05<3><default><default><default>
-	csi_d2  		= port:PE06<3><default><default><default>
-	csi_d3  		= port:PE07<3><default><default><default>
-	csi_d4  		= port:PE08<3><default><default><default>
-	csi_d5	 		= port:PE09<3><default><default><default>
-	csi_d6  		= port:PE10<3><default><default><default>
-	csi_d7  		= port:PE11<3><default><default><default>
-	csi_reset  		= port:PH13<1><default><default><0>
-	csi_power_en 		= port:PH16<1><default><default><0>
-	csi_stby	 	= port:PH18<1><default><default><0>
+	[mmc0_para]
+	sdc_used          = 1
+	sdc_detmode       = 2
+	sdc_buswidth      = 4
+	sdc_clk           = port:PF02<2><1><default><default>
+	sdc_cmd           = port:PF03<2><1><default><default>
+	sdc_d0            = port:PF01<2><1><default><default>
+	sdc_d1            = port:PF00<2><1><default><default>
+	sdc_d2            = port:PF05<2><1><default><default>
+	sdc_d3            = port:PF04<2><1><default><default>
+	sdc_det           = port:PA08<6><1><default><default>
+	sdc_use_wp        = 0
+	sdc_wp            =
+	sdc_isio          = 0
 
 	[lcd0_para]
 	lcd_power                = port:power1<1><0><default><1>
@@ -170,7 +157,7 @@ void __test_script_api(void)
 	/* test for str */
 	strcpy(main_key, "product");
 	strcpy(sub_key, "machine");
-	strcpy(str_cmp, "evb_v12");
+	strcpy(str_cmp, "evb");
 	script_dump_mainkey(main_key);
 	type_cmp = SCIRPT_ITEM_VALUE_TYPE_STR;
 	type_get = script_get_item(main_key, sub_key, &item_get);
@@ -182,12 +169,12 @@ void __test_script_api(void)
 		__func__, __LINE__, main_key, sub_key, str_cmp, item_get.str);
 	PIOTEST_DBG_FUN_LINE;
 
-	/* test for csi0_para */
-	strcpy(main_key, "csi0_para");
+	/* test for mmc0_para */
+	strcpy(main_key, "mmc0_para");
 	script_dump_mainkey(main_key);
 	/* test for int */
-	strcpy(sub_key, "csi_twi_addr");
-	item_cmp.val = 0x42;
+	strcpy(sub_key, "sdc_detmode");
+	item_cmp.val = 2;
 	type_cmp = SCIRPT_ITEM_VALUE_TYPE_INT;
 	type_get = script_get_item(main_key, sub_key, &item_get);
 	PIOTEST_DBG_FUN_LINE;
@@ -198,7 +185,7 @@ void __test_script_api(void)
 		__func__, __LINE__, main_key, sub_key, item_cmp.val, item_get.val);
 	PIOTEST_DBG_FUN_LINE;
 	/* test for gpio list */
-	gpio_cnt_cmp = 15;
+	gpio_cnt_cmp = 7;
 	gpio_cnt_get = script_get_pio_list(main_key, &list_get);
 	PIOTEST_DBG_FUN_LINE;
 	WARN(gpio_cnt_get != gpio_cnt_cmp, "%s err, line %d, %s->%s gpio cnt should be %d, but get %d\n",
@@ -222,18 +209,18 @@ void __test_script_api(void)
 	PIOTEST_DBG_FUN_LINE;
 
 	/* test for gpio config api */
-	strcpy(main_key, "csi0_para");
+	strcpy(main_key, "mmc0_para");
 	//script_dump_mainkey(main_key);
-	gpio_cnt_cmp = 15;
+	gpio_cnt_cmp = 7;
 	gpio_cnt_get = script_get_pio_list(main_key, &list_get);
 	PIOTEST_DBG_FUN_LINE;
 	WARN_ON(gpio_cnt_get != gpio_cnt_cmp);
 	PIOTEST_DBG_FUN_LINE;
 	WARN_ON(0 != sw_gpio_setall_range(&list_get[0].gpio, gpio_cnt_get));
 	PIOTEST_DBG_FUN_LINE;
-	WARN_ON(0 != sw_gpio_getall_range((struct gpio_config *)csi0_gpio, gpio_cnt_get));
+	WARN_ON(0 != sw_gpio_getall_range((struct gpio_config *)gpio_group, gpio_cnt_get));
 	PIOTEST_DBG_FUN_LINE;
-	sw_gpio_dump_config((struct gpio_config *)csi0_gpio, gpio_cnt_get);
+	sw_gpio_dump_config((struct gpio_config *)gpio_group, gpio_cnt_get);
 
 	/* test for axp pin */
 	strcpy(main_key, "lcd0_para");
@@ -247,7 +234,9 @@ void __test_script_api(void)
 	PIOTEST_DBG_FUN_LINE;
 	sw_gpio_dump_config((struct gpio_config *)&item_get.gpio, 1);
 	PIOTEST_DBG_FUN_LINE;
-	/* NOTE: axp gpio can only use standard linux gpio api */
+#if 1
+	WARN_ON(0 != sw_gpio_setall_range(&item_get.gpio, 1));
+#else
 	if(1 == item_get.gpio.mul_sel) {
 		if(0 != gpio_direction_output(item_get.gpio.gpio, item_get.gpio.data))
 			printk("%s err, set axp gpio output failed\n", __func__);
@@ -267,78 +256,100 @@ void __test_script_api(void)
 		}
 	} else
 		printk("%s err, line %d\n", __func__, __LINE__);
+#endif
 	PIOTEST_DBG_FUN_LINE;
+	item_cmp.gpio.gpio = item_get.gpio.gpio;
+	WARN_ON(0 != sw_gpio_getall_range(&item_cmp.gpio, 1));
+	PIOTEST_DBG_FUN_LINE;
+	sw_gpio_dump_config(&item_cmp.gpio, 1);
+	printk("%s, line %d, end\n", __func__, __LINE__);
 }
 
-u32 __test_request_free(void)
+void __test_request_free(void)
 {
-	u32 uret = 0;
+	u32	uindex;
+	char	name[256] = {0};
 
 	PIOTEST_DBG_FUN_LINE;
-	PIO_CHECK_RST(0 == gpio_request(GPIOA(0), "pa0"), uret, end);
-	PIO_CHECK_RST(0 == gpio_request(GPIOA(PA_NR / 2), "pa_mid"), uret, end);
-	PIO_CHECK_RST(0 == gpio_request(GPIOA(PA_NR - 1), "pa_end_sub_1"), uret, end);
+	uindex = GPIOE(16);
+	strcpy(name, "pe16");
+	if(0 != gpio_request(uindex, name))
+		printk("%s, line %d, request %s(%d) failed!\n", __func__, __LINE__, name, uindex);
+	else {
+		printk("%s, line %d, request %s(%d) success! now free it\n", __func__, __LINE__, name, uindex);
+		gpio_free(uindex);
+	}
+
+	PIOTEST_DBG_FUN_LINE;
+	uindex = GPIOA(5);
+	strcpy(name, "pa5");
+	if(0 != gpio_request(uindex, name))
+		printk("%s, line %d, request %s(%d) failed!\n", __func__, __LINE__, name, uindex);
+	else {
+		printk("%s, line %d, request %s(%d) success! now free it\n", __func__, __LINE__, name, uindex);
+		gpio_free(uindex);
+	}
+
+	PIOTEST_DBG_FUN_LINE;
+	uindex = GPIOB(2);
+	strcpy(name, "pb2");
+	if(0 != gpio_request(uindex, name))
+		printk("%s, line %d, request %s(%d) failed!\n", __func__, __LINE__, name, uindex);
+	else {
+		printk("%s, line %d, request %s(%d) success! now free it\n", __func__, __LINE__, name, uindex);
+		gpio_free(uindex);
+	}
+
 #if 0	/* request un-exist gpio, err */
-	PIO_CHECK_RST(0 == gpio_request(GPIOA(PA_NR), "pa_end"), uret, end); /* err */
-	PIO_CHECK_RST(0 == gpio_request(GPIOA(PA_NR + 1), "pa_end_plus_1"), uret, end); /* err */
+	PIOTEST_DBG_FUN_LINE;
+	uindex = GPIOA(0) + PA_NR;
+	strcpy(name, "pa_end");
+	if(0 != gpio_request(uindex, name))
+		printk("%s, line %d, request %s(%d) failed!\n", __func__, __LINE__, name, uindex);
+	else {
+		printk("%s, line %d, request %s(%d) success! now free it\n", __func__, __LINE__, name, uindex);
+		gpio_free(uindex);
+	}
 #endif
-	gpio_free(GPIOA(0));
-	gpio_free(GPIOA(PA_NR / 2));
-	gpio_free(GPIOA(PA_NR - 1));
-
-	PIO_CHECK_RST(0 == gpio_request(GPIOB(0), "pb0"), uret, end);
-	PIO_CHECK_RST(0 == gpio_request(GPIOB(PB_NR / 2), "pb_mid"), uret, end);
-	PIO_CHECK_RST(0 == gpio_request(GPIOB(PB_NR - 1), "pb_end_sub_1"), uret, end);
-
-	gpio_free(GPIOB(0));
-	gpio_free(GPIOB(PB_NR / 2));
-	gpio_free(GPIOB(PB_NR - 1));
-end:
-	if(0 != uret)
-		printk("%s err, line %d\n", __FUNCTION__, uret);
-	return uret;
 }
 
-u32 __test_re_request_free(void)
+void __test_re_request_free(void)
 {
-	u32 uret = 0;
+	u32	uindex;
+	char	name[256] = {0};
 
 	PIOTEST_DBG_FUN_LINE;
-#if 0	/* free an un-requested pio, err */
-	gpio_free(GPIOA(PA_NR / 2));
-	PIOTEST_DBG_FUN_LINE;
-#endif
-
-	PIO_CHECK_RST(0 == gpio_request(GPIOA(PA_NR / 2), "pa_mid"), uret, end);
-	PIOTEST_DBG_FUN_LINE;
-	gpio_free(GPIOA(PA_NR / 2));
-	PIOTEST_DBG_FUN_LINE;
-#if 0	/* re-free, err */
-	gpio_free(GPIOA(PA_NR / 2));
-	PIOTEST_DBG_FUN_LINE;
-#endif
-
-	PIO_CHECK_RST(0 == gpio_request(GPIOB(PB_NR / 2), "pb_mid"), uret, end);
-	PIOTEST_DBG_FUN_LINE;
+	uindex = GPIOE(16);
+	strcpy(name, "pe16");
+	if(0 != gpio_request(uindex, name))
+		printk("%s, line %d, request %s(%d) failed!\n", __func__, __LINE__, name, uindex);
+	else {
+		printk("%s, line %d, request %s(%d) success!\n", __func__, __LINE__, name, uindex);
 #if 0	/* re-request, err */
-	PIO_CHECK_RST(0 == gpio_request(GPIOB(PB_NR / 2), "pb_mid"), uret, end);
-	PIOTEST_DBG_FUN_LINE;
+		printk("%s, line %d, try to re-request %s(%d)!\n", __func__, __LINE__, name, uindex);
+		if(0 != gpio_request(uindex))
+			printk("%s, line %d, re-request %s(%d) failed! good!\n", __func__, __LINE__, name, uindex);
+		else
+			printk("%s, line %d, re-request %s(%d) pass! err!\n", __func__, __LINE__, name, uindex);
 #endif
-	gpio_free(GPIOB(PB_NR / 2));
+		printk("%s, line %d, start free %s(%d)\n", __func__, __LINE__, name, uindex);
+		gpio_free(uindex);
+#if 0	/* re-free, err */
+		printk("%s, line %d, try to refree %s(%d)\n", __func__, __LINE__, name, uindex);
+		gpio_free(uindex);
+		printk("%s, line %d, after refree %s(%d)\n", __func__, __LINE__, name, uindex);
+#endif
+	}
 	PIOTEST_DBG_FUN_LINE;
-
-end:
-	if(0 != uret)
-		printk("%s err, line %d\n", __FUNCTION__, uret);
-	return uret;
 }
 
 u32 __test_standard_api(void)
 {
 	u32 	uret = 0;
 	u32	utemp = 0;
-	u32	upio_index = 0;
 	u32	offset = 0;
+	u32	upio_index = 0;
+	char	name[256] = {0};
 	struct gpio_chip *pchip = NULL;
 	struct gpio gpio_arry[] = {
 		{GPIOA(0), GPIOF_OUT_INIT_HIGH, "pa0"},
@@ -355,15 +366,25 @@ u32 __test_standard_api(void)
 
 	PIOTEST_DBG_FUN_LINE;
 	/* test gpio_request_one */
-	PIO_CHECK_RST(0 == gpio_request_one(GPIOC(1), GPIOF_OUT_INIT_HIGH, "pc_1"), uret, end);
+	upio_index = GPIOE(16);
+	strcpy(name, "pe_16");
+	PIO_CHECK_RST(0 == gpio_request_one(upio_index, GPIOF_OUT_INIT_HIGH, name), uret, end);
 	PIOTEST_DBG_FUN_LINE;
-	PIO_CHECK_RST(1 == __gpio_get_value(GPIOC(1)), uret, end); /* check if data ok */
-	gpio_free(GPIOC(1));
+	if(1 != __gpio_get_value(upio_index)) { /* check if data ok */
+		gpio_free(upio_index);
+		uret = __LINE__;
+		goto end;
+	}
+	gpio_free(upio_index);
 
-	PIO_CHECK_RST(0 == gpio_request_one(GPIOC(1), GPIOF_OUT_INIT_LOW, "pc_1"), uret, end);
+	PIO_CHECK_RST(0 == gpio_request_one(upio_index, GPIOF_OUT_INIT_LOW, name), uret, end);
 	PIOTEST_DBG_FUN_LINE;
-	PIO_CHECK_RST(0 == __gpio_get_value(GPIOC(1)), uret, end); /* check if data ok */
-	gpio_free(GPIOC(1));
+	if(0 != __gpio_get_value(upio_index)) { /* check if data ok */
+		gpio_free(upio_index);
+		uret = __LINE__;
+		goto end;
+	}
+	gpio_free(upio_index);
 
 	/* test gpio_request_array */
 	PIO_CHECK_RST(0 == gpio_request_array(gpio_arry, ARRAY_SIZE(gpio_arry)), uret, end);
@@ -379,65 +400,99 @@ u32 __test_standard_api(void)
 
 	/* test gpiochip_find */
 	offset = 5;
-	utemp = GPIOB(offset);
-	PIO_CHECK_RST(0 == gpio_request(utemp, "pb5"), uret, end);
+	upio_index = GPIOB(offset);
+	strcpy(name, "pb_5");
+	PIO_CHECK_RST(0 == gpio_request(upio_index, name), uret, end);
 	PIOTEST_DBG_FUN_LINE;
-	PIO_CHECK_RST(NULL != (pchip = gpiochip_find(&utemp, gpio_chip_match)), uret, end);
-	PIOTEST_DBG_FUN_LINE;
-	printk("%s: gpiochip_find success, 0x%08x\n", __FUNCTION__, (u32)pchip);
-
+	if(NULL == (pchip = gpiochip_find(&upio_index, gpio_chip_match))) {
+		gpio_free(upio_index);
+		uret = __LINE__;
+		goto end;
+	} else
+		printk("%s: gpiochip_find success, pchip 0x%08x\n", __func__, (u32)pchip);
 	/* test gpiochip_is_requested */
-	PIO_CHECK_RST(NULL != gpiochip_is_requested(pchip, offset), uret, end);
+	if(NULL == gpiochip_is_requested(pchip, offset)) {
+		gpio_free(upio_index);
+		uret = __LINE__;
+		goto end;
+	}
 	PIOTEST_DBG_FUN_LINE;
-	gpio_free(utemp);
+	gpio_free(upio_index);
 	PIOTEST_DBG_FUN_LINE;
 
 	/* test gpio_direction_input/__gpio_get_value/gpio_get_value_cansleep */
 	upio_index = GPIOE(16);
-	PIO_CHECK_RST(0 == gpio_request(upio_index, "pe_16"), uret, end);
+	strcpy(name, "pe_16");
+	PIO_CHECK_RST(0 == gpio_request(upio_index, name), uret, end);
 	PIOTEST_DBG_FUN_LINE;
-	PIO_CHECK_RST(0 == gpio_direction_input(upio_index), uret, end); /* warn autorequest */
+	if(0 != gpio_direction_input(upio_index)) {
+		gpio_free(upio_index);
+		uret = __LINE__;
+		goto end;
+	}
 	PIOTEST_DBG_FUN_LINE;
 	utemp = __gpio_get_value(upio_index); /* __gpio_get_value */
-	printk("%s: __gpio_get_value pe16 value %d\n", __FUNCTION__, utemp);
+	printk("%s: __gpio_get_value %s return %d\n", __func__, name, utemp);
 	utemp = (u32)gpio_get_value_cansleep(upio_index); /* gpio_get_value_cansleep, success even can_sleep flag not set */
-	printk("%s: gpio_get_value_cansleep pe16 value %d\n", __FUNCTION__, utemp);
+	printk("%s: gpio_get_value_cansleep %s return %d\n", __func__, name, utemp);
 	gpio_free(upio_index);
 
 	/* test gpio_direction_output/__gpio_get_value/__gpio_set_value/gpio_set_value_cansleep */
-	upio_index = GPIOB(5);
-	PIO_CHECK_RST(0 == gpio_request(upio_index, "pb5"), uret, end);
+	upio_index = GPIOE(16);
+	strcpy(name, "pe_16");
+	PIO_CHECK_RST(0 == gpio_request(upio_index, name), uret, end);
 	PIOTEST_DBG_FUN_LINE;
-	PIO_CHECK_RST(0 == gpio_direction_output(upio_index, 1), uret, end); /* gpio_direction_output */
+	if(0 != gpio_direction_output(upio_index, 1)) { /* gpio_direction_output */
+		gpio_free(upio_index);
+		uret = __LINE__;
+		goto end;
+	}
 	PIOTEST_DBG_FUN_LINE;
-	PIO_CHECK_RST(1 == __gpio_get_value(upio_index), uret, end); /* __gpio_get_value */
+	if(1 != __gpio_get_value(upio_index)) { /* __gpio_get_value */
+		gpio_free(upio_index);
+		uret = __LINE__;
+		goto end;
+	}
 	PIOTEST_DBG_FUN_LINE;
-	PIO_CHECK_RST(0 == gpio_direction_output(upio_index, 0), uret, end);
+	if(0 != gpio_direction_output(upio_index, 0)) {
+		gpio_free(upio_index);
+		uret = __LINE__;
+		goto end;
+	}
 	PIOTEST_DBG_FUN_LINE;
-	PIO_CHECK_RST(0 == __gpio_get_value(upio_index), uret, end);
+	if(0 != __gpio_get_value(upio_index)) {
+		gpio_free(upio_index);
+		uret = __LINE__;
+		goto end;
+	}
 	PIOTEST_DBG_FUN_LINE;
 	__gpio_set_value(upio_index, 1); /* __gpio_set_value */
 	PIOTEST_DBG_FUN_LINE;
-	PIO_CHECK_RST(1 == __gpio_get_value(upio_index), uret, end);
+	if(1 != __gpio_get_value(upio_index)) {
+		gpio_free(upio_index);
+		uret = __LINE__;
+		goto end;
+	}
 	PIOTEST_DBG_FUN_LINE;
 	gpio_set_value_cansleep(upio_index, 0); /* gpio_set_value_cansleep */
 	PIOTEST_DBG_FUN_LINE;
 	/* test gpio_set_debounce, gpio_chip->set_debounce not impletment, so err here */
 	utemp = gpio_set_debounce(upio_index, 10);
-	printk("%s: gpio_set_debounce %d return %d\n", __FUNCTION__, upio_index, utemp);
+	printk("%s: gpio_set_debounce %d return %d\n", __func__, upio_index, utemp);
 	PIOTEST_DBG_FUN_LINE;
 	/* test __gpio_cansleep */
 	utemp = (u32)__gpio_cansleep(upio_index);
-	printk("%s: __gpio_cansleep %d return %d\n", __FUNCTION__, upio_index, utemp);
+	printk("%s: __gpio_cansleep %d return %d\n", __func__, upio_index, utemp);
 	/* test __gpio_to_irq */
 	utemp = (u32)__gpio_to_irq(upio_index);
-	printk("%s: __gpio_to_irq %d return %d\n", __FUNCTION__, upio_index, utemp);
+	printk("%s: __gpio_to_irq %d return %d\n", __func__, upio_index, utemp);
+	/* free gpio */
 	gpio_free(upio_index);
 	PIOTEST_DBG_FUN_LINE;
 
 end:
 	if(0 != uret)
-		printk("%s err, line %d\n", __FUNCTION__, uret);
+		printk("%s err, line %d\n", __func__, uret);
 	return uret;
 }
 
@@ -445,6 +500,7 @@ u32 __test_mul_fun_api(void)
 {
 	u32 	uret = 0;
 	u32	upio_index = 0;
+	char	name[256] = {0};
 	struct gpio_config gpio_cfg[] = {
 		/* use default if you donot care the pull or driver level status */
 		{GPIOE(10), 3, GPIO_PULL_DEFAULT, GPIO_DRVLVL_DEFAULT, 0},
@@ -454,71 +510,119 @@ u32 __test_mul_fun_api(void)
 	};
 
 	/* test sw_gpio_getcfg with gpio_direction_output */
-	upio_index = GPIOA(1);
-	PIO_CHECK_RST(0 == gpio_request(upio_index, "pa1"), uret, end);
+	upio_index = GPIOE(16);
+	strcpy(name, "pe_16");
+	PIO_CHECK_RST(0 == gpio_request(upio_index, name), uret, end);
 	PIOTEST_DBG_FUN_LINE;
-	PIO_CHECK_RST(0 == gpio_direction_output(upio_index, 0), uret, end);
+	if(0 != gpio_direction_output(upio_index, 0)) {
+		gpio_free(upio_index);
+		uret = __LINE__;
+		goto end;
+	}
 	PIOTEST_DBG_FUN_LINE;
-	gpio_free(upio_index);
-	PIOTEST_DBG_FUN_LINE;
-	PIO_CHECK_RST(1 == sw_gpio_getcfg(upio_index), uret, end); /* sw_gpio_getcfg output */
+	if(1 != sw_gpio_getcfg(upio_index)) { /* sw_gpio_getcfg output */
+		gpio_free(upio_index);
+		uret = __LINE__;
+		goto end;
+	}
 	PIOTEST_DBG_FUN_LINE;
 
 	/* test sw_gpio_getcfg with gpio_direction_input */
-	PIO_CHECK_RST(0 == gpio_request(upio_index, "pa1"), uret, end);
+	if(0 != gpio_direction_input(upio_index)) {
+		gpio_free(upio_index);
+		uret = __LINE__;
+		goto end;
+	}
 	PIOTEST_DBG_FUN_LINE;
-	PIO_CHECK_RST(0 == gpio_direction_input(upio_index), uret, end);
-	gpio_free(upio_index);
-	PIOTEST_DBG_FUN_LINE;
-	PIO_CHECK_RST(0 == sw_gpio_getcfg(upio_index), uret, end); /* sw_gpio_getcfg input */
+	if(0 != sw_gpio_getcfg(upio_index)) { /* sw_gpio_getcfg input */
+		gpio_free(upio_index);
+		uret = __LINE__;
+		goto end;
+	}
 	PIOTEST_DBG_FUN_LINE;
 
 	/* test sw_gpio_setcfg/sw_gpio_getcfg  */
-	PIO_CHECK_RST(0 == sw_gpio_setcfg(upio_index, 3), uret, end); /* sw_gpio_setcfg(PA1->LCD1_D1) */
+	if(0 != sw_gpio_setcfg(upio_index, 3)) { /* sw_gpio_setcfg */
+		gpio_free(upio_index);
+		uret = __LINE__;
+		goto end;
+	}
 	PIOTEST_DBG_FUN_LINE;
-	PIO_CHECK_RST(3 == sw_gpio_getcfg(upio_index), uret, end); /* sw_gpio_getcfg */
+	if(3 != sw_gpio_getcfg(upio_index)) { /* sw_gpio_getcfg */
+		gpio_free(upio_index);
+		uret = __LINE__;
+		goto end;
+	}
 	PIOTEST_DBG_FUN_LINE;
 
 	/* test sw_gpio_setpull/sw_gpio_getpull  */
-	PIO_CHECK_RST(0 == sw_gpio_setpull(upio_index, 2), uret, end); /* sw_gpio_setpull down */
+	if(0 != sw_gpio_setpull(upio_index, 2)) { /* sw_gpio_setpull down */
+		gpio_free(upio_index);
+		uret = __LINE__;
+		goto end;
+	}
 	PIOTEST_DBG_FUN_LINE;
-	PIO_CHECK_RST(2 == sw_gpio_getpull(upio_index), uret, end); /* sw_gpio_getpull */
+	if(2 != sw_gpio_getpull(upio_index)) { /* sw_gpio_getpull */
+		gpio_free(upio_index);
+		uret = __LINE__;
+		goto end;
+	}
 	PIOTEST_DBG_FUN_LINE;
 
 	/* test sw_gpio_setdrvlevel/sw_gpio_getdrvlevel  */
-	PIO_CHECK_RST(0 == sw_gpio_setdrvlevel(upio_index, 2), uret, end); /* sw_gpio_setdrvlevel level2 */
+	if(0 != sw_gpio_setdrvlevel(upio_index, 2)) { /* sw_gpio_setdrvlevel level2 */
+		gpio_free(upio_index);
+		uret = __LINE__;
+		goto end;
+	}
 	PIOTEST_DBG_FUN_LINE;
-	PIO_CHECK_RST(2 == sw_gpio_getdrvlevel(upio_index), uret, end); /* sw_gpio_getdrvlevel */
+	if(2 != sw_gpio_getdrvlevel(upio_index)) { /* sw_gpio_getdrvlevel */
+		gpio_free(upio_index);
+		uret = __LINE__;
+		goto end;
+	}
 	PIOTEST_DBG_FUN_LINE;
+	/* free gpio */
+	gpio_free(upio_index);
 
 	/* test sw_gpio_setall_range/sw_gpio_getall_range/sw_gpio_dump_config  */
-	PIO_CHECK_RST(0 == sw_gpio_setall_range(gpio_cfg, ARRAY_SIZE(gpio_cfg)), uret, end); /* sw_gpio_setall_range */
+	if(0 != sw_gpio_setall_range(gpio_cfg, ARRAY_SIZE(gpio_cfg))) { /* sw_gpio_setall_range */
+		uret = __LINE__;
+		goto end;
+	}
 	PIOTEST_DBG_FUN_LINE;
-	PIO_CHECK_RST(0 == sw_gpio_getall_range(gpio_cfg, ARRAY_SIZE(gpio_cfg)), uret, end); /* sw_gpio_getall_range */
+	if(0 != sw_gpio_getall_range(gpio_cfg, ARRAY_SIZE(gpio_cfg))) { /* sw_gpio_getall_range */
+		uret = __LINE__;
+		goto end;
+	}
 	PIOTEST_DBG_FUN_LINE;
 	sw_gpio_dump_config(gpio_cfg, ARRAY_SIZE(gpio_cfg)); /* sw_gpio_dump_config */
 
 end:
 	if(0 != uret)
-		printk("%s err, line %d\n", __FUNCTION__, uret);
+		printk("%s err, line %d\n", __func__, uret);
 	return uret;
 }
 
 u32 __test_eint_api(void)
 {
 	u32 	uret = 0;
-	u32	utemp = 0;
+	u32	upio_index = 0;
+	u32 	irq_handles[5] = {0};
 	struct gpio_config_eint_all cfg_eint[] = {
-		{GPIOA(0) , GPIO_PULL_DEFAULT, GPIO_DRVLVL_DEFAULT, true , 0, TRIG_EDGE_POSITIVE},
-		{GPIOA(26), 1                , 2                  , true , 0, TRIG_EDGE_DOUBLE  },
+		/*
+		 * NOTE: never set cfg_eint.enabled true, or there is warning:
+		 * irq 43: nobody cared (try booting with the "irqpoll" option)
+		 * gic_handle_irq->...->handle_irq_event_percpu->note_interrupt->__report_bad_irq
+		 */
+		{GPIOA(0) , GPIO_PULL_DEFAULT, GPIO_DRVLVL_DEFAULT, false, 0, TRIG_EDGE_POSITIVE},
+		{GPIOA(26), 1                , 2                  , false, 0, TRIG_EDGE_DOUBLE  },
 		{GPIOB(3) , GPIO_PULL_DEFAULT, 1                  , false, 0, TRIG_EDGE_NEGATIVE},
-		{GPIOE(14), 3                , 0                  , true , 0, TRIG_LEVL_LOW     },
-
+		{GPIOE(14), 3                , 0                  , false, 0, TRIG_LEVL_LOW     },
 		/* __para_check err in sw_gpio_eint_setall_range, because rpl3 cannot be eint */
 		//{GPIOL(3) , 1                , GPIO_DRVLVL_DEFAULT, false, 0, TRIG_LEVL_HIGH  },
-
 		{GPIOL(8) , 2                , GPIO_DRVLVL_DEFAULT, false, 0, TRIG_LEVL_HIGH    },
-		{GPIOM(4) , 1                , 2                  , true,  0, TRIG_LEVL_LOW     },
+		{GPIOM(4) , 1                , 2                  , false, 0, TRIG_LEVL_LOW     },
 	};
 	struct gpio_config_eint_all cfg_eint_temp[] = {
 		{GPIOA(0) },
@@ -528,7 +632,6 @@ u32 __test_eint_api(void)
 		{GPIOL(8) },
 		{GPIOM(4) },
 	};
-	u32 	handle_temp[5] = {0};
 
 	/* test sw_gpio_eint_setall_range/sw_gpio_eint_getall_range api */
 	sw_gpio_eint_dumpall_range(cfg_eint, ARRAY_SIZE(cfg_eint)); /* dump the orginal struct */
@@ -541,45 +644,39 @@ u32 __test_eint_api(void)
 	PIOTEST_DBG_FUN_LINE;
 
 	/* test sw_gpio_irq_request/sw_gpio_irq_free api */
-	utemp = GPIOA(0);
-	handle_temp[0] = sw_gpio_irq_request(utemp, TRIG_EDGE_POSITIVE,
-		(peint_handle)gpio_irq_handle_demo, (void *)utemp);
-	printk("%s: handle_temp[0] 0x%08x\n", __FUNCTION__, handle_temp[0]);
+	upio_index = GPIOA(0);
+	irq_handles[0] = sw_gpio_irq_request(upio_index, TRIG_EDGE_POSITIVE,
+		(peint_handle)gpio_irq_handle_demo, (void *)upio_index);
+	printk("%s, line %d, irq_handles[0] 0x%08x\n", __func__, __LINE__, irq_handles[0]);
+	upio_index = GPIOA(1);
+	irq_handles[1] = sw_gpio_irq_request(upio_index, TRIG_EDGE_NEGATIVE,
+		(peint_handle)gpio_irq_handle_demo, (void *)upio_index);
+	printk("%s, line %d, irq_handles[1] 0x%08x\n", __func__, __LINE__, irq_handles[1]);
+	upio_index = GPIOC(0);
+	irq_handles[2] = sw_gpio_irq_request(upio_index, TRIG_EDGE_DOUBLE,
+		(peint_handle)gpio_irq_handle_demo, (void *)upio_index);
+	printk("%s, line %d, irq_handles[2] 0x%08x\n", __func__, __LINE__, irq_handles[2]);
+	upio_index = GPIOE(2);
+	irq_handles[3] = sw_gpio_irq_request(upio_index, TRIG_LEVL_LOW,
+		(peint_handle)gpio_irq_handle_demo, (void *)upio_index);
+	printk("%s, line %d, irq_handles[3] 0x%08x\n", __func__, __LINE__, irq_handles[3]);
 
-	utemp = GPIOA(1);
-	handle_temp[1] = sw_gpio_irq_request(utemp, TRIG_EDGE_NEGATIVE,
-		(peint_handle)gpio_irq_handle_demo, (void *)utemp);
-	printk("%s: handle_temp[1] 0x%08x\n", __FUNCTION__, handle_temp[1]);
-
-	utemp = GPIOC(0);
-	handle_temp[2] = sw_gpio_irq_request(utemp, TRIG_EDGE_DOUBLE,
-		(peint_handle)gpio_irq_handle_demo, (void *)utemp);
-	printk("%s: handle_temp[2] 0x%08x\n", __FUNCTION__, handle_temp[2]);
-
-	utemp = GPIOE(2);
-	handle_temp[3] = sw_gpio_irq_request(utemp, TRIG_LEVL_LOW,
-		(peint_handle)gpio_irq_handle_demo, (void *)utemp);
-	printk("%s: handle_temp[3] 0x%08x\n", __FUNCTION__, handle_temp[3]);
-
-	if(0 != handle_temp[0])
-		sw_gpio_irq_free(handle_temp[0]);
+	if(0 != irq_handles[0])
+		sw_gpio_irq_free(irq_handles[0]);
 	PIOTEST_DBG_FUN_LINE;
-	if(0 != handle_temp[1])
-		sw_gpio_irq_free(handle_temp[1]);
+	if(0 != irq_handles[1])
+		sw_gpio_irq_free(irq_handles[1]);
 	PIOTEST_DBG_FUN_LINE;
-	if(0 != handle_temp[2])
-		sw_gpio_irq_free(handle_temp[2]);
+	if(0 != irq_handles[2])
+		sw_gpio_irq_free(irq_handles[2]);
 	PIOTEST_DBG_FUN_LINE;
-	if(0 != handle_temp[3])
-		sw_gpio_irq_free(handle_temp[3]);
+	if(0 != irq_handles[3])
+		sw_gpio_irq_free(irq_handles[3]);
 	PIOTEST_DBG_FUN_LINE;
-	//gpio_request(GPIOA(0), NULL);
-	//sw_gpio_irq_free(handle_temp[0]); /* WARNING: Trying to free already-free IRQ 43 */
-	//gpio_free(GPIOA(0));
 
 end:
 	if(0 != uret)
-		printk("%s err, line %d\n", __FUNCTION__, uret);
+		printk("%s err, line %d\n", __func__, uret);
 	return uret;
 }
 
@@ -590,34 +687,21 @@ end:
  */
 u32 __gtc_api(void)
 {
-	u32 	uret = 0;
-
 	/* wait for request and free */
 	msleep(4000);
 
-	/*
-	 * test for request and free
-	 */
+	/* test for request and free */
 #ifdef TEST_REQUEST_FREE
-	if(0 != __test_request_free())
-		printk("%s: __test_request_free failed\n", __func__);
-	else
-		printk("%s: __test_request_free success\n", __func__);
+	__test_request_free();
+	printk("%s: __test_request_free end\n", __func__);
 #endif /* TEST_REQUEST_FREE */
 
-	/*
-	 * test for re-request and re-free the same pio
-	 */
+	/* test for re-request and re-free the same pio */
 #ifdef TEST_RE_REQUEST_FREE
-	if(0 != __test_re_request_free())
-		printk("%s: __test_re_request_free failed\n", __func__);
-	else
-		printk("%s: __test_re_request_free success\n", __func__);
+	__test_re_request_free();
 #endif /* TEST_RE_REQUEST_FREE */
 
-	/*
-	 * test for gpiolib api
-	 */
+	/* test for gpiolib api */
 #ifdef TEST_GPIOLIB_API
 	if(0 != __test_standard_api())
 		printk("%s: __test_standard_api failed\n", __func__);
@@ -625,9 +709,7 @@ u32 __gtc_api(void)
 		printk("%s: __test_standard_api success\n", __func__);
 #endif /* TEST_GPIOLIB_API */
 
-	/*
-	 * test for cfg api
-	 */
+	/* test for gpio multi function config api */
 #ifdef TEST_CONFIG_API
 	if(0 != __test_mul_fun_api())
 		printk("%s: __test_mul_fun_api failed\n", __func__);
@@ -635,9 +717,7 @@ u32 __gtc_api(void)
 		printk("%s: __test_mul_fun_api success\n", __func__);
 #endif /* TEST_CONFIG_API */
 
-	/*
-	 * test for gpio external interrupt api
-	 */
+	/* test for gpio external interrupt api */
 #ifdef TEST_GPIO_EINT_API
 	if(0 != __test_eint_api())
 		printk("%s: __test_eint_api failed\n", __func__);
@@ -645,19 +725,12 @@ u32 __gtc_api(void)
 		printk("%s: __test_eint_api success\n", __func__);
 #endif /* TEST_GPIO_EINT_API */
 
-	/*
-	 * test for script gpio api
-	 */
+	/* test for script gpio api */
 #ifdef TEST_GPIO_SCRIPT_API
 	__test_script_api();
 #endif /* TEST_GPIO_SCRIPT_API */
 
-end:
-	if(0 == uret)
-		printk("%s: test success!\n", __FUNCTION__);
-	else
-		printk("%s: test failed! line %d\n", __FUNCTION__, uret);
-	return uret;
+	return 0;
 }
 
 /**
@@ -680,9 +753,9 @@ static int __gpio_test_thread(void * arg)
 	}
 
 	if(0 == uResult)
-		printk("%s: test success!\n", __FUNCTION__);
+		printk("%s: test success!\n", __func__);
 	else
-		printk("%s: test failed!\n", __FUNCTION__);
+		printk("%s: test failed!\n", __func__);
 
 	return uResult;
 }
@@ -692,7 +765,7 @@ static int __gpio_test_thread(void * arg)
  */
 static int __init sw_gpio_test_init(void)
 {
-	printk("%s enter\n", __FUNCTION__);
+	printk("%s enter\n", __func__);
 
 	/*
 	 * create the test thread

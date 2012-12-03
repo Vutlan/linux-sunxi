@@ -21,15 +21,11 @@
 #include "test_case_single_md.h"
 #include "test_case_single_conti_md.h"
 
-/*
- * cur test case
- */
-static enum dma_test_case_e g_cur_test_case = DTC_SINGLE_MODE;
+/* cur test case */
+static enum dma_test_case_e g_cur_test_case = DTC_SINGLE_CONT_MODE;
 //static enum dma_test_case_e g_cur_test_case = DTC_MAX;
 
-/*
- * wait dma done queue, used for wait dma done
- */
+/* wait dma done queue, used for wait dma done */
 wait_queue_head_t	g_dtc_queue[DTC_MAX];
 atomic_t 		g_adma_done = ATOMIC_INIT(0);	/* dma done flag */
 
@@ -52,11 +48,9 @@ static void __dma_test_init_waitqueue(void)
  */
 static int __dma_test_thread(void * arg)
 {
-	u32 	uResult = 0;
+	u32 uResult = 0;
 
-	/*
-	 * init dma wait queue
-	 */
+	/* init dma wait queue */
 	__dma_test_init_waitqueue();
 
 	switch(g_cur_test_case) {
@@ -81,37 +75,8 @@ static int __dma_test_thread(void * arg)
 	case DTC_1T_CMD_STOP:
 		uResult = __dtc_stopcmd();
 		break;
-	case DTC_1T_NAND_DMA_RW:
-		pr_err("%s err, cannot test, because open(/dev/nande... linked failed, \
-			please use nand_init -> __dma_rw_thread instead!\n", __FUNCTION__);
-		break;
 	case DTC_2T_MEM_2_MEM:
 		uResult = __dtc_2t_mem_2_mem();
-		break;
-
-	case DTC_2T_USB_COPY_MANUAL:
-		/*
-		 * dma test case two-thread usb read/write nand
-		 * eg: one thread copy files from PC to nand-udisk, the other thread
-		 * copy files from nand to PC, use beyond compare to check if transfer correct.
-		 *
-		 * Returns 0 if success, the err line number if failed.
-		 */
-		printk("%s: please test manually, make sure that usb and nand driver is ok!\n", __FUNCTION__);
-		break;
-	case DTC_2T_M2M_N2M_LOOP:
-		/*
-		 * dma test case two-thread loop, eg: one
-		 * thread memory to memory, the other thread nand to memory,
-		 * and loop the operation.
-		 *
-		 * Returns 0 if success, the err line number if failed.
-		 */
-		DBG_FUN_LINE_TODO;
-		break;
-	case DTC_1T_APP_CB_ENQUE:
-		printk("%s err: DTC_1T_APP_CB_ENQUE, not support yet!\n", __FUNCTION__);
-		uResult = __LINE__;
 		break;
 	default:
 		uResult = __LINE__;
@@ -119,25 +84,22 @@ static int __dma_test_thread(void * arg)
 	}
 
 	if(0 == uResult)
-		printk("%s: test success!\n", __FUNCTION__);
+		printk("%s: test success!\n", __func__);
 	else
-		printk("%s: test failed!\n", __FUNCTION__);
-
+		printk("%s: test failed!\n", __func__);
 	return uResult;
 }
 
 /**
  * sw_dma_test_init - enter the dma test module
+ * return 0
  */
 static int __init sw_dma_test_init(void)
 {
-	pr_info("%s enter\n", __FUNCTION__);
+	pr_info("%s enter\n", __func__);
 
-	/*
-	 * create the test thread
-	 */
+	/* create the test thread */
 	kernel_thread(__dma_test_thread, NULL, CLONE_FS | CLONE_SIGHAND);
-
 	return 0;
 }
 

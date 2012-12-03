@@ -391,12 +391,28 @@ u32 sw_gpio_setall_range(struct gpio_config *pcfg, u32 cfg_num)
 	struct aw_gpio_chip *pchip = NULL;
 
 	for(i = 0; i < cfg_num; i++, pcfg++) {
+		/* axp pin can only use linux standard gpio api */
+		if(pcfg->gpio >= AXP_NR_BASE && pcfg->gpio < AXP_NR_BASE + AXP_NR) {
+			req_success = (0 == gpio_request(pcfg->gpio, NULL));
+			if(0 == pcfg->mul_sel) /* intput */
+				WARN(0 != gpio_direction_input(pcfg->gpio),
+					"%s err, line %d, axp pin(%d) input failed!\n", __func__, __LINE__, pcfg->gpio);
+			else if(1 == pcfg->mul_sel) /* output */
+				WARN(0 != gpio_direction_output(pcfg->gpio, (pcfg->data ? 1 : 0)),
+					"%s err, line %d, axp pin(%d) output-%d failed!\n", __func__, __LINE__, pcfg->gpio, pcfg->data);
+			else
+				printk("%s err: line %d, axp pin(%d) but not input/output\n", __func__, __LINE__, pcfg->gpio);
+			if(req_success)
+				gpio_free(pcfg->gpio);
+			continue;
+		}
+		/* get aw_gpio_chip struct */
 		pchip = gpio_to_aw_gpiochip(pcfg->gpio);
 		if(!pchip || !pchip->cfg->set_cfg || !pchip->cfg->set_pull || !pchip->cfg->set_drvlevel) {
 			printk("%s err: line %d, gpio %d\n", __func__, __LINE__, pcfg->gpio);
 			continue;
 		}
-
+		/* request gpio and setting */
 		req_success = (0 == gpio_request(pcfg->gpio, NULL));
 		PIO_CHIP_LOCK(&pchip->lock, flags);
 		offset = pcfg->gpio - pchip->chip.base;
@@ -408,6 +424,7 @@ u32 sw_gpio_setall_range(struct gpio_config *pcfg, u32 cfg_num)
 		PIO_CHIP_UNLOCK(&pchip->lock, flags);
 		if(GPIO_CFG_OUTPUT == pcfg->mul_sel && GPIO_DATA_DEFAULT != pcfg->data)
 			__gpio_set_value(pcfg->gpio, (pcfg->data ? 1 : 0));
+		/* free gpio if requested success before */
 		if(req_success)
 			gpio_free(pcfg->gpio);
 	}
@@ -432,12 +449,25 @@ u32 sw_gpio_getall_range(struct gpio_config *pcfg, u32 cfg_num)
 	struct aw_gpio_chip *pchip = NULL;
 
 	for(i = 0; i < cfg_num; i++, pcfg++) {
+		/* axp pin not treated */
+		if(pcfg->gpio >= AXP_NR_BASE && pcfg->gpio < AXP_NR_BASE + AXP_NR) {
+			printk("%s maybe err: line %d, canonly get gpio_config.data item, axp pin(%d)\n",
+				__func__, __LINE__, pcfg->gpio);
+			req_success = (0 == gpio_request(pcfg->gpio, NULL));
+			pcfg->data = __gpio_get_value(pcfg->gpio);
+			printk("%s err: line %d\n", __func__, __LINE__);
+			if(req_success)
+				gpio_free(pcfg->gpio);
+			printk("%s err: line %d\n", __func__, __LINE__);
+			continue;
+		}
+		/* get aw_gpio_chip struct */
 		pchip = gpio_to_aw_gpiochip(pcfg->gpio);
 		if(!pchip || !pchip->cfg->get_cfg || !pchip->cfg->get_pull || !pchip->cfg->get_drvlevel) {
 			printk("%s err: line %d, gpio %d\n", __func__, __LINE__, pcfg->gpio);
 			continue;
 		}
-
+		/* request gpio and get setting */
 		req_success = (0 == gpio_request(pcfg->gpio, NULL));
 		PIO_CHIP_LOCK(&pchip->lock, flags);
 		offset = pcfg->gpio - pchip->chip.base;
@@ -447,6 +477,7 @@ u32 sw_gpio_getall_range(struct gpio_config *pcfg, u32 cfg_num)
 		PIO_CHIP_UNLOCK(&pchip->lock, flags);
 		if(GPIO_CFG_OUTPUT == pcfg->mul_sel || GPIO_CFG_INPUT == pcfg->mul_sel)
 			pcfg->data = __gpio_get_value(pcfg->gpio);
+		/* free gpio if requested success before */
 		if(req_success)
 			gpio_free(pcfg->gpio);
 	}

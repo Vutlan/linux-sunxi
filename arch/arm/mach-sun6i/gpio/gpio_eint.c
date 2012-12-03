@@ -639,6 +639,7 @@ u32 sw_gpio_eint_setall_range(struct gpio_config_eint_all *pcfg, u32 cfg_num)
 		/* set trig type */
 		pchip->cfg_eint->eint_set_trig(pchip, offset, pcfg->trig_type);
 		/* enable/disable eint */
+		WARN(0 != pcfg->enabled, "%s maybe err, line %d, enable gpio irq may lead to __report_bad_irq!\n", __func__, __LINE__);
 		pchip->cfg_eint->eint_set_enable(pchip, offset, pcfg->enabled);
 		/* clr the irqpd status */
 		if(0 != pcfg->irq_pd)

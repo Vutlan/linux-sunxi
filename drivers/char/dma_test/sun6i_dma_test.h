@@ -35,7 +35,6 @@
 #include <linux/platform_device.h>
 #include <linux/dma-mapping.h>
 #include <linux/slab.h>
-
 #include <asm/io.h>
 #include <asm/pgtable.h>
 #include <asm/dma.h>
@@ -43,50 +42,28 @@
 #include <linux/delay.h>
 #include <asm/dma-mapping.h>
 
-#include <mach/dma.h> /* how to search arch/arm/mach-sun6i/include/mach/dma.h? */
+#include <mach/dma.h>
 
 /*
  * dma test case id
  */
 enum dma_test_case_e {
-	DTC_1T_MEM_2_MEM,      /* dma test case one-thread from memory to memory */
-	DTC_SINGLE_MODE,       /* dma test case for single mode */
-	DTC_SINGLE_CONT_MODE,  /* dma test case for single mode & continue mode */
-	DTC_2T_MEM_2_MEM,      /* dma test case two-thread from memory to memory,
-				* memory range should not be conflict, eg: thread one
-				* from memory-A to memory-B, thread two from C to D.
-				*/
+	DTC_1T_MEM_2_MEM,	/* dma test case one-thread from memory to memory */
+	DTC_SINGLE_MODE,	/* dma test case for single mode */
+	DTC_SINGLE_CONT_MODE,	/* dma test case for single mode & continue mode */
+	DTC_2T_MEM_2_MEM,	/* dma test case two-thread from memory to memory,
+				 * memory range should not be conflict, eg: thread one
+				 * from memory-A to memory-B, thread two from C to D.
+				 */
 	DTC_1TM2M_MANY_ENQ, 	/* dma test case one-thread memory to memory, many enqueue */
-	DTC_1TM2M_CONTI_MOD,   /* dma test case one-thread memory to memory, continue mode */
-
-	DTC_1T_NAND_DMA_RW,    /* dma test case one-thread from memory to nand,
-				* 2012-5-16 09:13, as we cannot compile open(/dev/nanda...), read(...),
-				* we cannot open nand dev to raw read/write, so we
-				* test in nand driver (nand_init -> __dma_rw_thread)
-				*/
-
-	DTC_2T_USB_COPY_MANUAL,/* dma test case two-thread usb read/write nand, eg: one
-				* thread copy files from PC to nand-udisk, the other thread
-				* copy files from nand to PC, use beyond compare to check if
-				* transfer correct.
-				*/
-
-	DTC_2T_M2M_N2M_LOOP,   /* dma test case two-thread loop, eg: one
-				* thread memory to memory, the other thread nand to memory,
-				* and loop the operation. test in nand_init as DTC_1T_NAND_DMA_RW case
-				*/
-	DTC_1T_APP_CB_ENQUE,	/* app and callback enqueue simutanously */
-	DTC_1T_ENQ_AFT_DONE, 	/* test enqueue after done */
-	DTC_1T_CMD_STOP, 	/* stop when dma running */
+	DTC_1TM2M_CONTI_MOD,	/* dma test case one-thread memory to memory, continue mode */
+	DTC_1T_ENQ_AFT_DONE,	/* check if dma driver can continue transfer new enqueued buffer after done */
+	DTC_1T_CMD_STOP,	/* stop when dma running */
 	DTC_MAX
 };
 
 extern wait_queue_head_t g_dtc_queue[];
 extern atomic_t g_adma_done;
-
-#define DBG_FUN_LINE_TODO	printk("%s, line %d, todo############\n", __FUNCTION__, __LINE__)
-#define DBG_FUN_LINE 		printk("%s, line %d\n", __FUNCTION__, __LINE__)
-#define ERR_FUN_LINE 		printk("%s err, line %d\n", __FUNCTION__, __LINE__)
 
 #endif /* __SUN6I_DMA_TEST_H */
 
