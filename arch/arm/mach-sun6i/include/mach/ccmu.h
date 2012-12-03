@@ -373,9 +373,9 @@ typedef struct __CCMU_DISP_CLK
 {
     __u32   DivM:4;             //bit0,  clock divide ratio, divied by (m+1), 1~16 ex.
     __u32   reserved0:20;       //bit4,  reserved
-    __u32   ClkSrc:3;           //bit24, clock source select, 000-PLL3, 001-PLL7
-                                //       010-PLL6X2, 011-PLL8, 100-PLL9, 101-PLL10 110/111-reserved
-    __u32   reserved1:4;        //bit27, reserved
+    __u32   ClkSrc:2;           //bit24, clock source select, 00-PLL3, 01-PLL7
+                                //       10-PLL9, 11-PLL10
+    __u32   reserved1:5;        //bit26, reserved
     __u32   ClkGate:1;          //bit31, gating special clock, 0-clock off, 1-clock on
 
 } __ccmu_disp_clk_t;
