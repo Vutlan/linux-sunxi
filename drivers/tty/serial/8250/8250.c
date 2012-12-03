@@ -688,6 +688,7 @@ static void disable_rsa(struct uart_8250_port *up)
  */
 static int size_fifo(struct uart_8250_port *up)
 {
+#ifndef CONFIG_SERIAL_8250_SUNXI
 	unsigned char old_fcr, old_mcr, old_lcr;
 	unsigned short old_dl;
 	int count;
@@ -716,6 +717,9 @@ static int size_fifo(struct uart_8250_port *up)
 	serial_outp(up, UART_LCR, old_lcr);
 
 	return count;
+#else
+	return 64;
+#endif
 }
 
 /*
@@ -905,7 +909,7 @@ static void autoconfig_16550a(struct uart_8250_port *up)
 
 	up->port.type = PORT_16550A;
 	up->capabilities |= UART_CAP_FIFO;
-
+#ifndef CONFIG_SERIAL_8250_SUNXI
 	/*
 	 * Check for presence of the EFR when DLAB is set.
 	 * Only ST16C650V1 UARTs pass this test.
@@ -1041,7 +1045,7 @@ static void autoconfig_16550a(struct uart_8250_port *up)
 		up->port.type = PORT_XR17D15X;
 		up->capabilities |= UART_CAP_AFE | UART_CAP_EFR;
 	}
-
+#endif
 	/*
 	 * We distinguish between 16550A and U6 16550A by counting
 	 * how many bytes are in the FIFO.
