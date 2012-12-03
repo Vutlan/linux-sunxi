@@ -203,7 +203,7 @@ static int sw_serial_get_config(struct sw_serial_port *sport, u32 uart_id)
 	script_item_value_type_e  type;
 
 	memset(uart_para, 0, sizeof(uart_para));
-	snprintf(uart_para, sizeof(uart_para), "uart_para%d", sport->port_no);
+	snprintf(uart_para, sizeof(uart_para), "uart_para%d", uart_id);
 
 	type = script_get_item(uart_para, "uart_port", &val);
 	if(SCIRPT_ITEM_VALUE_TYPE_INT != type){
