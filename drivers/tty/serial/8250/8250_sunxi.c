@@ -201,17 +201,23 @@ static int sw_serial_get_config(struct sw_serial_port *sport, u32 uart_id)
     char uart_para[16] = {0};
 	script_item_u   val;
 	script_item_value_type_e  type;
-
+	sprintf(uart_para,"uart_para%d",sport->port_no);
 	type = script_get_item(uart_para, "uart_port", &val);
-	if(SCIRPT_ITEM_VALUE_TYPE_INT != type)
-        return -1;
+	if(SCIRPT_ITEM_VALUE_TYPE_INT != type){
+        printk("uart port err!\n");
+		return -1;
+	}
 	sport->port_no	= val.val;
-    if (sport->port_no != uart_id)
+    if (sport->port_no != uart_id){
+        printk("port_no%d uart_id %d  err!\n",sport->port_no,uart_id);
         return -1;
+	}
 
 	type = script_get_item(uart_para, "uart_type", &val);
-	if(SCIRPT_ITEM_VALUE_TYPE_INT != type)
+	if(SCIRPT_ITEM_VALUE_TYPE_INT != type){
+        printk("uart type err!\n");
 		return -1;
+	}
 	sport->pin_num	= val.val;
 
 	UART_MSG("uart_port %d  uart_type %d\n",sport->port_no,sport->pin_num);
