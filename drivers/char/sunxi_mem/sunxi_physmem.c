@@ -68,7 +68,7 @@ static u32 sunxi_init(struct sunxi_mem_allocator *this, u32 size, u32 va, u32 pa
 
 	this->normal_size = size;
 
-	SXM_DBG_FUN_LINE_TODO;
+	//SXM_DBG_FUN_LINE_TODO;
 	//memset((void *)va, 0x00, this->normal_size);
 
 	this->node_free_listh = this->create_new_node(this, 0, 0, 0);

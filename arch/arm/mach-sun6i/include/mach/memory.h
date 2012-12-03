@@ -34,7 +34,7 @@
 #define VE_MEM_SIZE             (SZ_128M + SZ_64M + SZ_8M)			/* 200M */
 
 /* g2d memory reserve, same as a1x */
-#define G2D_MEM_BASE            (PLAT_PHYS_OFFSET + SZ_512M - SZ_64M - SZ_32M)	/* +416M */
 #define G2D_MEM_SIZE            (SZ_16M)					/* 16M */
+#define G2D_MEM_BASE            (PLAT_PHYS_OFFSET + PLAT_MEM_SIZE - G2D_MEM_SIZE) /* +1008M */
 
 #endif

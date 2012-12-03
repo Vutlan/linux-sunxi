@@ -84,14 +84,15 @@ static void sun6i_fixup(struct tag *tags, char **from,
 	meminfo->bank[0].start = PLAT_PHYS_OFFSET;
 	meminfo->bank[0].size = VE_MEM_BASE - PLAT_PHYS_OFFSET;
 	meminfo->bank[1].start = VE_MEM_BASE + VE_MEM_SIZE;
-	meminfo->bank[1].size = PLAT_PHYS_OFFSET + PLAT_MEM_SIZE - meminfo->bank[1].start;
+	//meminfo->bank[1].size = PLAT_PHYS_OFFSET + PLAT_MEM_SIZE - meminfo->bank[1].start;
+	meminfo->bank[1].size = G2D_MEM_BASE - meminfo->bank[1].start;
 
 	/* for sys_config */
 	memblock_reserve(SYS_CONFIG_MEMBASE, SYS_CONFIG_MEMSIZE);
 	/* for standby: 0x4600,0000-0x4600,0000+1k; */
 	memblock_reserve(SUPER_STANDBY_MEM_BASE, SUPER_STANDBY_MEM_SIZE);
 	/* for g2d, same as a1x */
-	memblock_reserve(G2D_MEM_BASE, G2D_MEM_SIZE);
+	//memblock_reserve(G2D_MEM_BASE, G2D_MEM_SIZE);
 
 	meminfo->nr_banks = 2;
 }
