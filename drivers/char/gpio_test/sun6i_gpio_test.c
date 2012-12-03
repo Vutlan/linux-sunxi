@@ -234,7 +234,7 @@ void __test_script_api(void)
 	PIOTEST_DBG_FUN_LINE;
 	sw_gpio_dump_config((struct gpio_config *)&item_get.gpio, 1);
 	PIOTEST_DBG_FUN_LINE;
-#if 1
+#if 1	/* both ok, use sw_gpio_setall_range or standard linux gpio api */
 	WARN_ON(0 != sw_gpio_setall_range(&item_get.gpio, 1));
 #else
 	if(1 == item_get.gpio.mul_sel) {

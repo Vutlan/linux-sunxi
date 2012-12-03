@@ -29,6 +29,7 @@
 #include <linux/clk.h>
 #include <linux/pm.h>
 #include <asm-generic/gpio.h>
+#include <linux/mfd/axp-mfd.h>
 
 #include <mach/memory.h>
 #include <mach/platform.h>

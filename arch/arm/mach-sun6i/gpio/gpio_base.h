@@ -80,11 +80,13 @@ static inline struct aw_gpio_chip *gpio_to_aw_gpiochip(u32 gpio)
 		printk("%s err, line %d, invalid gpio index\n", __func__, __LINE__);
 		return NULL;
 	}
+#ifdef CONFIG_AW_AXP22
 	/* axp pin can only use linux stardard api */
 	if(gpio >= AXP_NR_BASE && gpio < AXP_NR_BASE + AXP_NR) {
 		printk("%s err, line %d, axp gpio cannot to aw_gpiochip\n", __func__, __LINE__);
 		return NULL;
 	}
+#endif /* CONFIG_AW_AXP22 */
 	pchip = to_gpiochip(gpio);
 	if(NULL == pchip) {
 		printk("%s err, line %d, gpio 0x%x\n", __func__, __LINE__, gpio);

@@ -42,8 +42,10 @@
 /* for R-PORT PIO */
 #define PL_NR			9
 #define PM_NR			9 /* spec: "Pin MultiPlex" is 8 while "PM Configure Register 1" is 9 */
+#ifdef CONFIG_AW_AXP22
 /* for axp power PIO */
 #define AXP_NR			5
+#endif /* CONFIG_AW_AXP22 */
 
 /*
  * base index for each pio
@@ -63,10 +65,13 @@ enum sun6i_gpio_number {
 	/* for R-PORT PIO */
 	PL_NR_BASE = AW_GPIO_NEXT(PH), /* last is PH */
 	PM_NR_BASE = AW_GPIO_NEXT(PL),
+#ifdef CONFIG_AW_AXP22
 	/* for axp power PIO */
 	AXP_NR_BASE = AW_GPIO_NEXT(PM), /* last is PM */
-
 	GPIO_INDEX_END = AW_GPIO_NEXT(AXP), /* last is AXP */
+#else
+	GPIO_INDEX_END = AW_GPIO_NEXT(PM), /* last is PM */
+#endif /* CONFIG_AW_AXP22 */
 };
 
 /* pio index definition */
@@ -80,8 +85,10 @@ enum sun6i_gpio_number {
 #define GPIOH(n)		(PH_NR_BASE + (n))
 #define GPIOL(n)		(PL_NR_BASE + (n))
 #define GPIOM(n)		(PM_NR_BASE + (n))
+#ifdef CONFIG_AW_AXP22
 /* for axp power PIO */
 #define GPIO_AXP(n)		(AXP_NR_BASE + (n))
+#endif /* CONFIG_AW_AXP22 */
 
 /* pio default macro */
 #define GPIO_PULL_DEFAULT	((u32)-1         )
