@@ -15,7 +15,7 @@ int g2d_openclk(void)
 	__u32 ret;
 	
 	/* ahb g2d gating */
-	g2d_ahbclk = clk_get(NULL,"ahb_mp");
+	g2d_ahbclk = clk_get(NULL,CLK_AHB_MP);
 	if(NULL == g2d_ahbclk || IS_ERR(g2d_ahbclk))
 	{
 		printk("%s err: clk_get %s failed\n", __func__, "ahb_mp");
@@ -23,7 +23,7 @@ int g2d_openclk(void)
 	}
 	
 	/* sdram g2d gating */
-	g2d_dramclk = clk_get(NULL,"dram_mp");
+	g2d_dramclk = clk_get(NULL,CLK_DRAM_MP);
 	if(NULL == g2d_dramclk || IS_ERR(g2d_dramclk))
 	{
 		printk("%s err: clk_get %s failed\n", __func__, "dram_mp");
@@ -31,7 +31,7 @@ int g2d_openclk(void)
 	}
 	
 	/* g2d gating */
-	g2d_mclk = clk_get(NULL,"mod_demp");
+	g2d_mclk = clk_get(NULL,CLK_MOD_DEMP);
 	if(NULL == g2d_mclk || IS_ERR(g2d_mclk))
 	{
 		printk("%s err: clk_get %s failed\n", __func__, "mod_demp");
@@ -46,20 +46,20 @@ int g2d_openclk(void)
 	}
 	
 	/* set g2d clk value */
-	g2d_src = clk_get(NULL,"sys_pll5");//sys_pll3 sys_pll5
+	g2d_src = clk_get(NULL,CLK_SYS_PLL10);//sys_pll3/7/9/10
 	if(NULL == g2d_src || IS_ERR(g2d_src))
 	{
-		printk("%s err: clk_get %s failed\n", __func__, "sys_pll5");
+		printk("%s err: clk_get %s failed\n", __func__, "sys_pll10");
 		return -EPERM;
 	}
 
 	if(clk_set_parent(g2d_mclk, g2d_src))
 	{
-		printk("%s:set g2d_mclk parent to sdram_pll failed!\n",__func__);
+		printk("%s:set g2d_mclk parent to sys_pll10 failed!\n",__func__);
 	}
 	ret = clk_get_rate(g2d_src);
-	if(clk_set_rate(g2d_mclk,ret/2))
-		printk("%s:set g2d_mclk rate to %dHZ failed!\n",__func__,ret/2);
+	if(clk_set_rate(g2d_mclk,ret))
+		printk("%s:set g2d_mclk rate to %dHZ failed!\n",__func__,ret);
 	clk_put(g2d_src);
 		
 	return 0;
