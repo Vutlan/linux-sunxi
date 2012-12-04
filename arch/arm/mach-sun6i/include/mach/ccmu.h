@@ -142,7 +142,9 @@ typedef struct __CCMU_MIPI_PLL_REG0040
 typedef struct __CCMU_SYSCLK_RATIO_REG0050
 {
     __u32   AXIClkDiv:3;        //bit0,  AXI clock divide ratio, 000-1, 001-2, 010-3, 011/1xx-4
-    __u32   reserved0:13;       //bit3,  reserved
+    __u32   reserved0:5;        //bit3,  reserved
+    __u32   AtbApbClkDiv:2;     //bit8,  ATB/APB clock div, 00-1, 01-2, 1x-4
+    __u32   reserved1:6;        //bit10, reserved
     __u32   CpuClkSrc:2;        //bit16, CPU1/2/3/4 clock source select, 00-internal LOSC, 01-HOSC, 10/11-PLL1
     __u32   reserved2:14;       //bit18, reserved
 } __ccmu_sysclk_ratio_reg0050_t;
@@ -160,7 +162,7 @@ typedef struct __CCMU_AHB1_RATIO_REG0054
     __u32   Apb1Div:2;          //bit8,  apb1 clock divide ratio 2/2/4/8, source is ahb1
     __u32   reserved1:2;        //bit10, reserved
     __u32   Ahb1ClkSrc:2;       //bit12, ahb1 clock source select, 00-LOSC, 01-OSC24M, 10-AXI, 11-PLL6/ahb1_pre_div
-    __u32   reserved2:6;        //bit26, reserved
+    __u32   reserved2:18;       //bit26, reserved
 } __ccmu_ahb1_ratio_reg0054_t;
 
 
@@ -253,7 +255,8 @@ typedef struct __CCMU_APB1_GATE_REG0068
 {
     __u32   Adda:1;             //bit0,  gating APB clock for audio codec, 0-mask, 1-pass
     __u32   Spdif:1;            //bit1,  gating APB clock for SPDIF, 0-mask, 1-pass
-    __u32   reserved0:3;        //bit2,  reserved
+    __u32   reserved0:2;        //bit2,  reserved
+    __u32   Dmic:1;             //bit4,  gating APB clock for digital mic 
     __u32   Pio:1;              //bit5,  gating APB clock for PIO, 0-mask, 1-pass
     __u32   reserved1:6;        //bit6,  reserved
     __u32   I2s0:1;             //bit12, gating APB clock for I2s-0, 0-mask, 1-pass
@@ -331,6 +334,18 @@ typedef struct __CCMU_USB_CLK_REG00CC
     __u32   Ohci2Gate:1;        //bit18, gating special clock for OHCI2, 0-CLOCK OFF, 1-CLOCK ON
     __u32   reserved2:13;       //bit19,  reserved
 } __ccmu_usb_clk_reg00cc_t;
+
+
+typedef struct __CCMU_GMAC_CLK_REG00D0
+{
+    __u32   Gtcs:2;            //bit0,  gmac transmit clock source, 00-transmit clk src for M2, 01-external transmit clk src for GM2 and RGM2,
+                               //  10-internal transmit clk src for GM2 and RGM2, 11-reserved
+    __u32   Gpit:1;            //bit2,  gmac phy interface type, 0-GM2/M2, 1-RGM2
+    __u32   Gtxie:1;           //bit3,  enable gmac transmit clock invertor, 0-disable, 1-enable
+    __u32   Grxie:1;           //bit4,  enable gmac recieve clock invertor, 0-disable, 1-enable
+    __u32   Grxdc:3;           //bit5,  config gmac recieve clock delay chain
+    __u32   reserved0:24;      //bit8,  reserved
+} __ccmu_gmac_clk_reg00d0_t;
 
 
 typedef struct __CCMU_DRAM_CFG_REG00F4
@@ -441,20 +456,20 @@ typedef struct __CCMU_PLLLOCK_REG0200
 
 typedef struct __CCMU_MOD_RST_REG02C0
 {
-    __u32   MipiCsi:1;          //bit0,  mipi csi reset, 0:assert, 1:de-assert
+    __u32   reserved0:1;        //bit0,  reserved
     __u32   MipiDsi:1;          //bit1,  mipi dsi reset, 0:assert, 1:de-assert
-    __u32   reserved0:3;        //bit2,  reserved
+    __u32   reserved1:3;        //bit2,  reserved
     __u32   Ss:1;               //bit5,  ss reset, 0:assert, 1:de-assert
     __u32   Dma:1;              //bit6,  dma reset, 0:assert, 1:de-assert
-    __u32   reserved1:1;        //bit7,  reserved
+    __u32   reserved2:1;        //bit7,  reserved
     __u32   Sd0:1;              //bit8,  sd/mmc0 reset, 0:assert, 1:de-assert
     __u32   Sd1:1;              //bit9,  sd/mmc1 reset, 0:assert, 1:de-assert
     __u32   Sd2:1;              //bit10, sd/mmc2 reset, 0:assert, 1:de-assert
     __u32   Sd3:1;              //bit11, sd/mmc3 reset, 0:assert, 1:de-assert
     __u32   Nand1:1;            //bit12, nand1 reset, 0:assert, 1:de-assert
-    __u32   Nand0:1;            //bit13, nand1 reset, 0:assert, 1:de-assert
-    __u32   Sdram:1;            //bit14, sdram reset, 0:assert, 1:de-assert
-    __u32   reserved2:2;        //bit15, reserved
+    __u32   Nand0:1;            //bit13, nand0 reset, 0:assert, 1:de-assert
+    __u32   Sdram:1;            //bit14, sdram AHB reset, 0:assert, 1:de-assert
+    __u32   reserved3:2;        //bit15, reserved
     __u32   Gmac:1;             //bit17, Gmac reset, 0:assert, 1:de-assert
     __u32   Ts:1;               //bit18, ts reset, 0:assert, 1:de-assert
     __u32   HsTmr:1;            //bit19, hstimer reset, 0:assert, 1:de-assert
@@ -463,10 +478,10 @@ typedef struct __CCMU_MOD_RST_REG02C0
     __u32   Spi2:1;             //bit22, spi2 reset, 0:assert, 1:de-assert
     __u32   Spi3:1;             //bit23, spi3 reset, 0:assert, 1:de-assert
     __u32   Otg:1;              //bit24, usb otg reset, 0:assert, 1:de-assert
-    __u32   reserved3:1;        //bit25, reserved
+    __u32   reserved4:1;        //bit25, reserved
     __u32   Ehci0:1;            //bit26, usb EHCI0 reset, 0:assert, 1:de-assert
     __u32   Ehci1:1;            //bit27, usb EHCI1 reset, 0:assert, 1:de-assert
-    __u32   reserved4:1;        //bit28, reserved
+    __u32   reserved5:1;        //bit28, reserved
     __u32   Ohci0:1;            //bit29, usb OHCI0 reset, 0:assert, 1:de-assert
     __u32   Ohci1:1;            //bit30, usb OHCI1 reset, 0:assert, 1:de-assert
     __u32   Ohci2:1;            //bit31, usb OHCI2 reset, 0:assert, 1:de-assert
@@ -609,7 +624,8 @@ typedef struct __CCMU_REG_LIST
     volatile __ccmu_module1_clk_t               Spdif;      //0x00c0, SPDIF clock
     volatile __u32                              reserved11[2];  //0x00c4, reserved
     volatile __ccmu_usb_clk_reg00cc_t           Usb;        //0x00cc, usb clock
-    volatile __u32                              reserved12[8];  //0x00d0, reserved
+    volatile __ccmu_gmac_clk_reg00d0_t          Gmac;       //0x00d0, gmac clock
+    volatile __u32                              reserved12[7];  //0x00d4, reserved
     volatile __ccmu_module0_clk_t               Mdfs;       //0x00f0, mdfs clock
     volatile __ccmu_dram_cfg_reg00f4_t          DramCfg;    //0x00f4, dram configuration clock
     volatile __u32                              reserved13[2];  //0x00f8, reserved
@@ -799,6 +815,19 @@ typedef struct __CCMU_CPU_PWRCLAMP
 } __ccmu_cpu_pwrclamp_t;
 
 
+typedef struct __CCMU_ONEWIRE_CLK_REG0050
+{
+    __u32   DivM:5;            //bit0,  clock divide ratio m, the pre-divided clock is divided by (m+1)
+    __u32   reserved0:11;      //bit5,  reserved
+    __u32   DivN:2;            //bit16,  clock pre-divide ratio n, 1/2/4/8
+    __u32   reserved1:6;       //bit18,  reserved
+    __u32   ClkSrc:2;          //bit24,  clock source select, 00-losc, 01-hosc, 10/11-/
+    __u32   reserved2:5;       //bit26,  reserved
+    __u32   ClkGate:1;         //bit31,  gating special clockd(max clock=100MHz), 0-off, 1-on
+
+} __ccmu_onewire_clk_reg0050_t;
+
+
 typedef struct __CCMU_REG_CPU0_LIST
 {
     volatile __ccmu_cpus_cfg_t               CpusCfg;       //0x0000, cpu0 clock configuration
@@ -814,7 +843,7 @@ typedef struct __CCMU_REG_CPU0_LIST
     volatile __ccmu_pll_ctl0_t               PllCtl0;       //0x0040, pll control register 0
     volatile __ccmu_pll_ctl1_t               PllCtl1;       //0x0044, pll control register 1
     volatile __u32                           reserved3[2];  //0x0048, reserved
-    volatile __ccmu_module0_clk_t            OneWire;       //0x0050, one wire clock
+    volatile __ccmu_onewire_clk_reg0050_t    OneWire;       //0x0050, one wire clock
     volatile __ccmu_module0_clk_t            Cir;           //0x0054, cir clock
     volatile __u32                           reserved4[22]; //0x0058, reserved
     volatile __ccmu_apb0_mod_rst_t           ModReset;      //0x00b0, apb0 module software reset register

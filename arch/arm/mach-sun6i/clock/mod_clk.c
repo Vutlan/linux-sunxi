@@ -49,70 +49,118 @@ static struct module0_div_tbl module0_clk_div_tbl[] = {
     {13, 0, 14 },
     {14, 0, 15 },
     {15, 0, 16 },
-    {16, 0, 17 },
-    {17, 0, 18 },
-    {18, 0, 19 },
-    {19, 0, 20 },
-    {20, 0, 21 },
-    {21, 0, 22 },
-    {22, 0, 23 },
-    {23, 0, 24 },
-    {24, 0, 25 },
-    {25, 0, 26 },
-    {26, 0, 27 },
-    {27, 0, 28 },
-    {28, 0, 29 },
-    {29, 0, 30 },
-    {30, 0, 31 },
-    {31, 0, 32 },
-    {10, 2, 33 },
-    {16, 1, 34 },
-    {17, 1, 36 },
-    {18, 1, 38 },
-    {12, 2, 39 },
-    {19, 1, 40 },
-    {20, 1, 42 },
-    {21, 1, 44 },
-    {14, 2, 45 },
-    {22, 1, 46 },
-    {23, 1, 48 },
-    {24, 1, 50 },
-    {16, 2, 51 },
-    {25, 1, 52 },
-    {26, 1, 54 },
-    {27, 1, 56 },
-    {18, 2, 57 },
-    {28, 1, 58 },
-    {29, 1, 60 },
-    {30, 1, 62 },
-    {20, 2, 63 },
-    {31, 1, 64 },
-    {21, 2, 66 },
-    {16, 3, 68 },
-    {22, 2, 69 },
-    {23, 2, 72 },
-    {24, 2, 75 },
-    {18, 3, 76 },
-    {25, 2, 78 },
-    {19, 3, 80 },
-    {26, 2, 81 },
-    {27, 2, 84 },
-    {28, 2, 87 },
-    {21, 3, 88 },
-    {29, 2, 90 },
-    {22, 3, 92 },
-    {30, 2, 93 },
-    {31, 2, 96 },
-    {24, 3, 100},
-    {25, 3, 104},
-    {26, 3, 108},
-    {27, 3, 112},
-    {28, 3, 116},
-    {29, 3, 120},
-    {30, 3, 124},
-    {31, 3, 128},
+    {8 , 1, 18 },
+    {9 , 1, 20 },
+    {10, 1, 22 },
+    {11, 1, 24 },
+    {12, 1, 26 },
+    {13, 1, 28 },
+    {14, 1, 30 },
+    {15, 1, 32 },
+    {8 , 2, 36 },
+    {9 , 2, 40 },
+    {10, 2, 44 },
+    {11, 2, 48 },
+    {12, 2, 52 },
+    {13, 2, 56 },
+    {14, 2, 60 },
+    {15, 2, 64 },
+    {8 , 3, 72 },
+    {9 , 3, 80 },
+    {10, 3, 88 },
+    {11, 3, 96 },
+    {12, 3, 104},
+    {13, 3, 112},
+    {14, 3, 120},
+    {15, 3, 128},
 };
-
+struct onewire_div_tbl{
+    __u8    FactorM;
+    __u8    FactorN;
+    __u16   Div;
+};
+static struct onewire_div_tbl onewire_clk_div_tbl[] = {
+    {0,  0, 1   },
+    {1,  0, 2   },
+    {2,  0, 3   },
+    {3,  0, 4   },
+    {4,  0, 5   },
+    {5,  0, 6   },
+    {6,  0, 7   },
+    {7,  0, 8   },
+    {8,  0, 9   },
+    {9,  0, 10  },
+    {10, 0, 11  },
+    {11, 0, 12  },
+    {12, 0, 13  },
+    {13, 0, 14  },
+    {14, 0, 15  },
+    {15, 0, 16  },
+    {16, 0, 17  },
+    {17, 0, 18  },
+    {18, 0, 19  },
+    {19, 0, 20  },
+    {20, 0, 21  },
+    {21, 0, 22  },
+    {22, 0, 23  },
+    {23, 0, 24  },
+    {24, 0, 25  },
+    {25, 0, 26  },
+    {26, 0, 27  },
+    {27, 0, 28  },
+    {28, 0, 29  },
+    {29, 0, 30  },
+    {30, 0, 31  },
+    {31, 0, 32  },
+    {16, 1, 34  },
+    {17, 1, 36  },
+    {18, 1, 38  },
+    {19, 1, 40  },
+    {20, 1, 42  },
+    {21, 1, 44  },
+    {22, 1, 46  },
+    {23, 1, 48  },
+    {24, 1, 50  },
+    {25, 1, 52  },
+    {26, 1, 54  },
+    {27, 1, 56  },
+    {28, 1, 58  },
+    {29, 1, 60  },
+    {30, 1, 62  },
+    {31, 1, 64  },
+    {16, 2, 68  },
+    {17, 2, 72  },
+    {18, 2, 76  },
+    {19, 2, 80  },
+    {20, 2, 84  },
+    {21, 2, 88  },
+    {22, 2, 92  },
+    {23, 2, 96  },
+    {24, 2, 100 },
+    {25, 2, 104 },
+    {26, 2, 108 },
+    {27, 2, 112 },
+    {28, 2, 116 },
+    {29, 2, 120 },
+    {30, 2, 124 },
+    {31, 2, 128 },
+    {16, 3, 136 },
+    {17, 3, 144 },
+    {18, 3, 152 },
+    {19, 3, 160 },
+    {20, 3, 168 },
+    {21, 3, 176 },
+    {22, 3, 184 },
+    {23, 3, 192 },
+    {24, 3, 200 },
+    {25, 3, 208 },
+    {26, 3, 216 },
+    {27, 3, 224 },
+    {28, 3, 232 },
+    {29, 3, 240 },
+    {30, 3, 248 },
+    {31, 3, 256 },
+};
 
 static inline __aw_ccu_clk_id_e _get_module0_clk_src(volatile __ccmu_module0_clk_t *reg)
 {
@@ -341,6 +389,29 @@ static inline __s32 _set_module0_clk_rate(volatile __ccmu_module0_clk_t *reg, __
             low = (low+high)/2;
             reg->DivM = module0_clk_div_tbl[low].FactorM;
             reg->DivN = module0_clk_div_tbl[low].FactorN;
+            return 0;
+        }
+    }
+
+    CCU_ERR("%s:%d, set rate of (%x) to %llu failed", __FILE__, __LINE__, (int)reg, rate);
+    return -1;
+}
+static inline __s32 _set_onewire_clk_rate(volatile __ccmu_onewire_clk_reg0050_t *reg, __s64 rate)
+{
+    int     low, high;
+
+    low = 0;
+    high = sizeof(onewire_clk_div_tbl)/sizeof(struct onewire_div_tbl) - 1;
+
+    while(low<=high){
+        if(onewire_clk_div_tbl[(low+high)/2].Div < rate) {
+            low = (low+high)/2+1;
+        } else if(onewire_clk_div_tbl[(low+high)/2].Div > rate) {
+            high = (low+high)/2-1;
+        } else {
+            low = (low+high)/2;
+            reg->DivM = onewire_clk_div_tbl[low].FactorM;
+            reg->DivN = onewire_clk_div_tbl[low].FactorN;
             return 0;
         }
     }
@@ -1146,7 +1217,7 @@ static __s64 mod_clk_get_rate(__aw_ccu_clk_id_e id)
             return _get_module0_clk_rate(&aw_ccu_reg->GpuHyd);
 
         case AW_MOD_CLK_R_1WIRE:
-            return _get_module0_clk_rate(&aw_cpus_reg->OneWire);
+	    return (1<<aw_cpus_reg->OneWire.DivN)*(aw_cpus_reg->OneWire.DivM+1);
         case AW_MOD_CLK_R_CIR:
             return _get_module0_clk_rate(&aw_cpus_reg->Cir);
 
@@ -1978,7 +2049,7 @@ static __s32 mod_clk_set_rate(__aw_ccu_clk_id_e id, __s64 rate)
             return _set_module0_clk_rate(&aw_ccu_reg->GpuHyd, rate);
 
         case AW_MOD_CLK_R_1WIRE:
-            return _set_module0_clk_rate(&aw_cpus_reg->OneWire, rate);
+            return _set_onewire_clk_rate(&aw_cpus_reg->OneWire, rate);
         case AW_MOD_CLK_R_CIR:
             return _set_module0_clk_rate(&aw_cpus_reg->Cir, rate);
 
@@ -2152,7 +2223,7 @@ static __aw_ccu_clk_reset_e mod_clk_get_reset(__aw_ccu_clk_id_e id)
             return GET_RESET(aw_ccu_reg->AhbReset0.MipiDsi);
         case AW_MOD_CLK_MIPICSIS:
         case AW_MOD_CLK_MIPICSIP:
-            return GET_RESET(aw_ccu_reg->AhbReset0.MipiCsi);
+            return AW_CCU_CLK_NRESET;
         case AW_MOD_CLK_IEPDRC0:
             return GET_RESET(aw_ccu_reg->AhbReset1.Drc0);
         case AW_MOD_CLK_IEPDRC1:
@@ -2324,7 +2395,7 @@ static __s32 mod_clk_set_reset(__aw_ccu_clk_id_e id, __aw_ccu_clk_reset_e reset)
             SET_RESET(aw_ccu_reg->AhbReset0.MipiDsi, reset);break;
         case AW_MOD_CLK_MIPICSIS:
         case AW_MOD_CLK_MIPICSIP:
-            SET_RESET(aw_ccu_reg->AhbReset0.MipiCsi, reset);break;
+            break;
         case AW_MOD_CLK_IEPDRC0:
             SET_RESET(aw_ccu_reg->AhbReset1.Drc0, reset);   break;
         case AW_MOD_CLK_IEPDRC1:

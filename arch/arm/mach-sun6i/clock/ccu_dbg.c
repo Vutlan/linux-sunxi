@@ -359,7 +359,6 @@ void clk_dbg_inf(void)
     print_clk_inf(PllLock, LockTime);
 
     printk("\nAhbReset0 clk infor:(0x%x)\n", (unsigned int)&aw_ccu_reg->AhbReset0);
-    print_clk_inf(AhbReset0, MipiCsi);
     print_clk_inf(AhbReset0, MipiDsi);
     print_clk_inf(AhbReset0, Ss);
     print_clk_inf(AhbReset0, Dma);
@@ -778,7 +777,6 @@ static int ccmu_stats_show(struct seq_file *m, void *unused)
     sprintf_clk_inf(m, PllLock, LockTime);
 
     seq_printf(m, "\nAhbReset0 clk infor:(0x%x)\n", (unsigned int)&aw_ccu_reg->AhbReset0);
-    sprintf_clk_inf(m, AhbReset0, MipiCsi);
     sprintf_clk_inf(m, AhbReset0, MipiDsi);
     sprintf_clk_inf(m, AhbReset0, Ss);
     sprintf_clk_inf(m, AhbReset0, Dma);
