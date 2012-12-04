@@ -4,6 +4,7 @@
 #include "../../bsp_display.h"
 
 #define DE_WB_END_IE    			(1<<7)      /*write back end interrupt */
+#define DE_FE_IE_REG_LOAD_FINISH    10
 #define DE_FE_INTEN_ALL             0x1ff     /*front-end all interrupt enable*/
 #define DE_IMG_REG_LOAD_FINISH  (1<<1)
 

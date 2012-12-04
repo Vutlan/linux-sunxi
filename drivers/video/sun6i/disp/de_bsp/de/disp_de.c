@@ -19,6 +19,20 @@ __s32 Image_init(__u32 sel)
     DE_BE_EnableINT(sel, DE_IMG_REG_LOAD_FINISH);
     DE_BE_reg_auto_load_en(sel, 0);
 	
+    if(sel == 0)
+    {
+        OSAL_RegISR(INTC_IRQNO_IMAGE0,0,Scaler_event_proc, (void *)sel,0,0);
+#ifndef __LINUX_OSAL__
+        OSAL_InterruptEnable(INTC_IRQNO_IMAGE0);
+#endif
+    }
+    else if(sel == 1)
+    {
+        OSAL_RegISR(INTC_IRQNO_IMAGE1,0,Scaler_event_proc, (void *)sel,0,0);
+#ifndef __LINUX_OSAL__
+        OSAL_InterruptEnable(INTC_IRQNO_IMAGE1);
+#endif
+    }
     return DIS_SUCCESS;
 }
       
