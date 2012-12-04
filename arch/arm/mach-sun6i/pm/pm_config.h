@@ -3,7 +3,8 @@
 
 #include "mach/memory.h"
 #include "asm-generic/sizes.h"
-#include <generated/autoconf.h>
+//#include <generated/autoconf.h>
+#define CONFIG_AW_ASIC_EVB_PLATFORM 1
 
 /*
 * Copyright (c) 2011-2015 yanggq.young@allwinnertech.com
