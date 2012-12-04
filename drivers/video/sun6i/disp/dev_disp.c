@@ -565,6 +565,8 @@ static int __init disp_probe(struct platform_device *pdev)//called when platform
 	__inf("PIO base 0x%08x\n", info->base_pioc);
 	__inf("PWM base 0x%08x\n", info->base_pwm);
 
+	(*((volatile __u32 *)(0xf1c6206c))=(0x00000003));
+
     pr_info("[DISP]==disp_probe finish==\n");
 
 	return 0;
