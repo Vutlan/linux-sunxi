@@ -156,40 +156,157 @@ static inline __s32 _set_module1_clk_src(volatile __ccmu_module1_clk_t *reg, __a
 }
 
 
-static inline __s32 _get_disp_clk_src(volatile __ccmu_disp_clk_t *reg)
+#define DE_BE_INDX          (0)
+#define DE_FE_INDX          (1)
+#define DE_MP_INDX          (2)
+#define LCD_CH0_INDX        (3)
+#define LCD_CH1_INDX        (4)
+
+
+static inline __s32 _get_disp_clk_src(volatile __ccmu_disp_clk_t *reg, int index)
 {
-    if(reg->ClkSrc == 0)
-        return AW_SYS_CLK_PLL3;
-    else if(reg->ClkSrc == 1)
-        return AW_SYS_CLK_PLL7;
-    else if(reg->ClkSrc == 2)
-        return AW_SYS_CLK_PLL6x2;
-    else if(reg->ClkSrc == 3)
-        return AW_SYS_CLK_PLL8;
-    else if(reg->ClkSrc == 4)
-        return AW_SYS_CLK_PLL9;
-    else if(reg->ClkSrc == 5)
-        return AW_SYS_CLK_PLL10;
-    else
-        return AW_SYS_CLK_NONE;
+    switch(index){
+        case DE_BE_INDX:
+        case DE_FE_INDX:
+        {
+            if(reg->ClkSrc == 0)
+                return AW_SYS_CLK_PLL3;
+            else if(reg->ClkSrc == 1)
+                return AW_SYS_CLK_PLL7;
+            else if(reg->ClkSrc == 2)
+                return AW_SYS_CLK_PLL6x2;
+            else if(reg->ClkSrc == 3)
+                return AW_SYS_CLK_PLL8;
+            else if(reg->ClkSrc == 4)
+                return AW_SYS_CLK_PLL9;
+            else if(reg->ClkSrc == 5)
+                return AW_SYS_CLK_PLL10;
+            else
+                return AW_SYS_CLK_NONE;
+        }
+
+        case DE_MP_INDX:
+        {
+            if(reg->ClkSrc == 0)
+                return AW_SYS_CLK_PLL3;
+            else if(reg->ClkSrc == 1)
+                return AW_SYS_CLK_PLL7;
+            else if(reg->ClkSrc == 2)
+                return AW_SYS_CLK_PLL9;
+            else if(reg->ClkSrc == 3)
+                return AW_SYS_CLK_PLL10;
+            else
+                return AW_SYS_CLK_NONE;
+        }
+
+        case LCD_CH0_INDX:
+        {
+            if(reg->ClkSrc == 0)
+                return AW_SYS_CLK_PLL3;
+            else if(reg->ClkSrc == 1)
+                return AW_SYS_CLK_PLL7;
+            else if(reg->ClkSrc == 2)
+                return AW_SYS_CLK_PLL3X2;
+            else if(reg->ClkSrc == 3)
+                return AW_SYS_CLK_PLL7X2;
+            else if(reg->ClkSrc == 4)
+                return AW_SYS_CLK_MIPIPLL;
+            else
+                return AW_SYS_CLK_NONE;
+        }
+
+        case LCD_CH1_INDX:
+        {
+            if(reg->ClkSrc == 0)
+                return AW_SYS_CLK_PLL3;
+            else if(reg->ClkSrc == 1)
+                return AW_SYS_CLK_PLL7;
+            else if(reg->ClkSrc == 2)
+                return AW_SYS_CLK_PLL3X2;
+            else if(reg->ClkSrc == 3)
+                return AW_SYS_CLK_PLL7X2;
+            else
+                return AW_SYS_CLK_NONE;
+        }
+
+        default:
+            return AW_SYS_CLK_NONE;
+    }
+
+    return AW_SYS_CLK_NONE;
 }
-static inline __s32 _set_disp_clk_src(volatile __ccmu_disp_clk_t *reg, __aw_ccu_clk_id_e parent)
+
+static inline __s32 _set_disp_clk_src(volatile __ccmu_disp_clk_t *reg, __aw_ccu_clk_id_e parent, int index)
 {
-    if(parent == AW_SYS_CLK_PLL3)
-        reg->ClkSrc = 0;
-    else if(parent == AW_SYS_CLK_PLL7)
-        reg->ClkSrc = 1;
-    else if(parent == AW_SYS_CLK_PLL6x2)
-        reg->ClkSrc = 2;
-    else if(parent == AW_SYS_CLK_PLL8)
-        reg->ClkSrc = 3;
-    else if(parent == AW_SYS_CLK_PLL9)
-        reg->ClkSrc = 4;
-    else if(parent == AW_SYS_CLK_PLL10)
-        reg->ClkSrc = 5;
-    else
-        return -1;
-    return 0;
+    switch(index){
+        case DE_BE_INDX:
+        case DE_FE_INDX:
+        {
+            if(parent == AW_SYS_CLK_PLL3)
+                reg->ClkSrc = 0;
+            else if(parent == AW_SYS_CLK_PLL7)
+                reg->ClkSrc = 1;
+            else if(parent == AW_SYS_CLK_PLL6x2)
+                reg->ClkSrc = 2;
+            else if(parent == AW_SYS_CLK_PLL8)
+                reg->ClkSrc = 3;
+            else if(parent == AW_SYS_CLK_PLL9)
+                reg->ClkSrc = 4;
+            else if(parent == AW_SYS_CLK_PLL10)
+                reg->ClkSrc = 5;
+            else
+                return -1;
+        }
+
+        case DE_MP_INDX:
+        {
+            if(parent == AW_SYS_CLK_PLL3)
+                reg->ClkSrc = 0;
+            else if(parent == AW_SYS_CLK_PLL7)
+                reg->ClkSrc = 1;
+            else if(parent == AW_SYS_CLK_PLL9)
+                reg->ClkSrc = 2;
+            else if(parent == AW_SYS_CLK_PLL10)
+                reg->ClkSrc = 3;
+            else
+                return -1;
+        }
+
+        case LCD_CH0_INDX:
+        {
+            if(parent == AW_SYS_CLK_PLL3)
+                reg->ClkSrc = 0;
+            else if(parent == AW_SYS_CLK_PLL7)
+                reg->ClkSrc = 1;
+            else if(parent == AW_SYS_CLK_PLL3X2)
+                reg->ClkSrc = 2;
+            else if(parent == AW_SYS_CLK_PLL7X2)
+                reg->ClkSrc = 3;
+            else if(parent == AW_SYS_CLK_MIPIPLL)
+                reg->ClkSrc = 4;
+            else
+                return -1;
+        }
+
+        case LCD_CH1_INDX:
+        {
+            if(parent == AW_SYS_CLK_PLL3)
+                reg->ClkSrc = 0;
+            else if(parent == AW_SYS_CLK_PLL7)
+                reg->ClkSrc = 1;
+            else if(parent == AW_SYS_CLK_PLL3X2)
+                reg->ClkSrc = 2;
+            else if(parent == AW_SYS_CLK_PLL7X2)
+                reg->ClkSrc = 3;
+            else
+                return -1;
+        }
+
+        default:
+            return -1;
+    }
+
+    return -1;
 }
 
 
@@ -294,23 +411,23 @@ static __aw_ccu_clk_id_e mod_clk_get_parent(__aw_ccu_clk_id_e id)
             }
         }
         case AW_MOD_CLK_DEBE0:
-            return _get_disp_clk_src(&aw_ccu_reg->Be0);
+            return _get_disp_clk_src(&aw_ccu_reg->Be0, DE_BE_INDX);
         case AW_MOD_CLK_DEBE1:
-            return _get_disp_clk_src(&aw_ccu_reg->Be1);
+            return _get_disp_clk_src(&aw_ccu_reg->Be1, DE_BE_INDX);
         case AW_MOD_CLK_DEFE0:
-            return _get_disp_clk_src(&aw_ccu_reg->Fe0);
+            return _get_disp_clk_src(&aw_ccu_reg->Fe0, DE_FE_INDX);
         case AW_MOD_CLK_DEFE1:
-            return _get_disp_clk_src(&aw_ccu_reg->Fe1);
+            return _get_disp_clk_src(&aw_ccu_reg->Fe1, DE_FE_INDX);
         case AW_MOD_CLK_DEMIX:
-            return _get_disp_clk_src(&aw_ccu_reg->Mp);
+            return _get_disp_clk_src(&aw_ccu_reg->Mp, DE_MP_INDX);
         case AW_MOD_CLK_LCD0CH0:
-            return _get_disp_clk_src(&aw_ccu_reg->Lcd0Ch0);
+            return _get_disp_clk_src(&aw_ccu_reg->Lcd0Ch0, LCD_CH0_INDX);
         case AW_MOD_CLK_LCD0CH1:
-            return _get_disp_clk_src(&aw_ccu_reg->Lcd0Ch1);
+            return _get_disp_clk_src(&aw_ccu_reg->Lcd0Ch1, LCD_CH1_INDX);
         case AW_MOD_CLK_LCD1CH0:
-            return _get_disp_clk_src(&aw_ccu_reg->Lcd1Ch0);
+            return _get_disp_clk_src(&aw_ccu_reg->Lcd1Ch0, LCD_CH0_INDX);
         case AW_MOD_CLK_LCD1CH1:
-            return _get_disp_clk_src(&aw_ccu_reg->Lcd1Ch1);
+            return _get_disp_clk_src(&aw_ccu_reg->Lcd1Ch1, LCD_CH1_INDX);
         case AW_MOD_CLK_VE:
             return AW_SYS_CLK_PLL4;
         case AW_MOD_CLK_ADDA:
@@ -1103,23 +1220,23 @@ static __s32 mod_clk_set_parent(__aw_ccu_clk_id_e id, __aw_ccu_clk_id_e parent)
             return 0;
         }
         case AW_MOD_CLK_DEBE0:
-            return _set_disp_clk_src(&aw_ccu_reg->Be0, parent);
+            return _set_disp_clk_src(&aw_ccu_reg->Be0, parent, DE_BE_INDX);
         case AW_MOD_CLK_DEBE1:
-            return _set_disp_clk_src(&aw_ccu_reg->Be1, parent);
+            return _set_disp_clk_src(&aw_ccu_reg->Be1, parent, DE_BE_INDX);
         case AW_MOD_CLK_DEFE0:
-            return _set_disp_clk_src(&aw_ccu_reg->Fe0, parent);
+            return _set_disp_clk_src(&aw_ccu_reg->Fe0, parent, DE_FE_INDX);
         case AW_MOD_CLK_DEFE1:
-            return _set_disp_clk_src(&aw_ccu_reg->Fe1, parent);
+            return _set_disp_clk_src(&aw_ccu_reg->Fe1, parent, DE_FE_INDX);
         case AW_MOD_CLK_DEMIX:
-            return _set_disp_clk_src(&aw_ccu_reg->Mp, parent);
+            return _set_disp_clk_src(&aw_ccu_reg->Mp, parent, DE_MP_INDX);
         case AW_MOD_CLK_LCD0CH0:
-            return _set_disp_clk_src(&aw_ccu_reg->Lcd0Ch0, parent);
+            return _set_disp_clk_src(&aw_ccu_reg->Lcd0Ch0, parent, LCD_CH0_INDX);
         case AW_MOD_CLK_LCD0CH1:
-            return _set_disp_clk_src(&aw_ccu_reg->Lcd0Ch1, parent);
+            return _set_disp_clk_src(&aw_ccu_reg->Lcd0Ch1, parent, LCD_CH1_INDX);
         case AW_MOD_CLK_LCD1CH0:
-            return _set_disp_clk_src(&aw_ccu_reg->Lcd1Ch0, parent);
+            return _set_disp_clk_src(&aw_ccu_reg->Lcd1Ch0, parent, LCD_CH0_INDX);
         case AW_MOD_CLK_LCD1CH1:
-            return _set_disp_clk_src(&aw_ccu_reg->Lcd1Ch1, parent);
+            return _set_disp_clk_src(&aw_ccu_reg->Lcd1Ch1, parent, LCD_CH1_INDX);
         case AW_MOD_CLK_ADDA:
             return _set_module1_clk_src(&aw_ccu_reg->Adda, parent);
         case AW_MOD_CLK_AVS:
