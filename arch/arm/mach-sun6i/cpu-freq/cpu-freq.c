@@ -32,6 +32,7 @@
 #include "cpu-freq.h"
 #include <linux/pm.h>
 #include <mach/ar100.h>
+#include <mach/clock.h>
 
 static struct sunxi_cpu_freq_t  cpu_cur;    /* current cpu frequency configuration  */
 static unsigned int last_target = ~0;       /* backup last target frequency         */
@@ -207,9 +208,6 @@ static int sunxi_cpufreq_init(struct cpufreq_policy *policy)
 {
     CPUFREQ_DBG("%s\n", __func__);
 
-    if (policy->cpu != 0)
-        return -EINVAL;
-
     policy->cur = sunxi_cpufreq_get(0);
     policy->min = policy->cpuinfo.min_freq = cpu_freq_min;
     policy->max = policy->cpuinfo.max_freq = cpu_freq_max;
@@ -228,7 +226,7 @@ static int sunxi_cpufreq_init(struct cpufreq_policy *policy)
      */
     policy->shared_type = CPUFREQ_SHARED_TYPE_ANY;
     cpumask_or(&sunxi_cpumask, cpumask_of(policy->cpu), &sunxi_cpumask);
-    cpumask_copy(policy->cpus, &sunxi_cpumask);
+    cpumask_copy(policy->related_cpus, &sunxi_cpumask);
     cpus_initialized++;
     #endif
 
@@ -299,7 +297,7 @@ static struct cpufreq_driver sunxi_cpufreq_driver = {
     .get        = sunxi_cpufreq_get,
     .getavg     = sunxi_cpufreq_getavg,
     .suspend    = sunxi_cpufreq_suspend,
-    .resume        = sunxi_cpufreq_resume,
+    .resume     = sunxi_cpufreq_resume,
 };
 
 
@@ -312,9 +310,9 @@ static int __init sunxi_cpufreq_initcall(void)
 
     cpumask_clear(&sunxi_cpumask);
 
-    clk_pll = clk_get(NULL, "sys_ac327");
-    clk_cpu = clk_get(NULL, "sys_cpu");
-    clk_axi = clk_get(NULL, "sys_axi");
+    clk_pll = clk_get(NULL, CLK_SYS_AC327);
+    clk_cpu = clk_get(NULL, CLK_SYS_PLL1);
+    clk_axi = clk_get(NULL, CLK_SYS_AXI);
 
     if (IS_ERR(clk_pll) || IS_ERR(clk_cpu) || IS_ERR(clk_axi)) {
         CPUFREQ_INF(KERN_ERR "%s: could not get clock(s)\n", __func__);
