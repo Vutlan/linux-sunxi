@@ -1177,6 +1177,8 @@ static __s64 mod_clk_get_rate(__aw_ccu_clk_id_e id)
             return aw_ccu_reg->Lcd1Ch0.DivM+1;
         case AW_MOD_CLK_LCD1CH1:
             return aw_ccu_reg->Lcd1Ch1.DivM+1;
+        case AW_MOD_CLK_HDMI:
+	    return aw_ccu_reg->Hdmi.ClkDiv+1;
         case AW_MOD_CLK_CSI0S:
             return aw_ccu_reg->Csi0.SClkDiv+1;
         case AW_MOD_CLK_CSI0M:
@@ -2005,6 +2007,8 @@ static __s32 mod_clk_set_rate(__aw_ccu_clk_id_e id, __s64 rate)
             aw_ccu_reg->Lcd0Ch0.DivM = rate-1;  break;
         case AW_MOD_CLK_LCD0CH1:
             aw_ccu_reg->Lcd0Ch1.DivM = rate-1;  break;
+        case AW_MOD_CLK_HDMI:
+            aw_ccu_reg->Hdmi.ClkDiv  = rate-1;  break;
         case AW_MOD_CLK_LCD1CH0:
             aw_ccu_reg->Lcd1Ch0.DivM = rate-1;  break;
         case AW_MOD_CLK_LCD1CH1:
@@ -2548,6 +2552,7 @@ static __u64 mod_clk_round_rate(__aw_ccu_clk_id_e id, __u64 rate)
         case AW_MOD_CLK_LCD0CH1:
         case AW_MOD_CLK_LCD1CH0:
         case AW_MOD_CLK_LCD1CH1:
+        case AW_MOD_CLK_HDMI:
         case AW_MOD_CLK_CSI0S:
         case AW_MOD_CLK_CSI0M:
         case AW_MOD_CLK_CSI1S:

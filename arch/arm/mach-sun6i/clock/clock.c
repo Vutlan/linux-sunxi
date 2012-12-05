@@ -33,7 +33,7 @@
 #include "ccm_i.h"
 
 // alloc memory for store clock informatioin
-__ccu_clk_t          aw_clock[AW_CCU_CLK_CNT]; /* liugang, for ccu test */
+__ccu_clk_t          aw_clock[AW_CCU_CLK_CNT];
 static struct clk_lookup    lookups[AW_CCU_CLK_CNT];
 
 /*

@@ -379,7 +379,6 @@ static inline __s32 ccu_clk_calc_hash(char *string)
 #define APB2_CLK_DIV    ((aw_ccu_reg->Apb2Div.DivM+1)*(1<<aw_ccu_reg->Apb2Div.DivN))
 
 
-/* liugang, for ccu test */
 extern __aw_ccu_clk_t aw_ccu_clk_tbl[];
 extern __ccu_clk_t    aw_clock[];
 

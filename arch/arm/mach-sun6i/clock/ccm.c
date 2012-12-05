@@ -28,8 +28,7 @@
 __ccmu_reg_list_t       *aw_ccu_reg;
 __ccmu_reg_cpu0_list_t  *aw_cpus_reg;
 
-//static __aw_ccu_clk_t aw_ccu_clk_tbl[] =
-__aw_ccu_clk_t aw_ccu_clk_tbl[] = /* liugang, for ccu test */
+__aw_ccu_clk_t aw_ccu_clk_tbl[] =
 {
     make_aw_clk_inf(AW_SYS_CLK_NONE,        "sys_none"          ),
     make_aw_clk_inf(AW_SYS_CLK_LOSC,        CLK_SYS_LOSC        ),
