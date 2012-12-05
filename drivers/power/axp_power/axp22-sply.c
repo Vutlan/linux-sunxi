@@ -1581,8 +1581,8 @@ static int axp_battery_probe(struct platform_device *pdev)
   else
   	axp_set_bits(charger->master,AXP22_PDBC,0x40);
   	
-  /*axp usb-pc limite*/
-  /*
+  axp usb-pc limite
+  
   var = script_parser_fetch("pmu_para", "pmu_usbvol_pc", &pmu_usbvolnew, sizeof(int));
   if (var)
   {
