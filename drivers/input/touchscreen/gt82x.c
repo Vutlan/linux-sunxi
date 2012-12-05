@@ -50,15 +50,13 @@
 #define FOR_TSLIB_TEST
 #define TEST_I2C_TRANSFER
 
-//#undef CONFIG_HAS_EARLYSUSPEND
 
 #ifndef GUITAR_GT80X
 #error The code does not match the hardware version.
 #endif
 
 extern struct ctp_config_info config_info;
-//#define CTP_IRQ_NO			(gpio_int_info[0].port_num)
-//static user_gpio_set_t  gpio_int_info[1];
+
 struct goodix_ts_data {
 	int retry;
 	int panel_type;
@@ -85,23 +83,17 @@ const char *f3x_ts_name = "gt82x";
 static struct workqueue_struct *goodix_wq;
 #define X_DIFF (800)
 
-static u32 ctp_debug = 0;
+static u32 debug_mask = 0;
 
-#define dprintk(level_mask,fmt,arg...)    if(unlikely(ctp_debug & level_mask)) \
+#define dprintk(level_mask,fmt,arg...)    if(unlikely(debug_mask & level_mask)) \
         printk("***CTP***"fmt, ## arg)
 
-#define CTP_IRQ_NUMBER                  (config_info.irq_gpio_number)
-#define CTP_IRQ_MODE			(TRIG_EDGE_NEGATIVE)
-#define CTP_NAME			GOODIX_I2C_NAME
-#define TS_RESET_LOW_PERIOD		(15)
-#define TS_INITIAL_HIGH_PERIOD		(15)
-#define TS_WAKEUP_LOW_PERIOD	(100)
-#define TS_WAKEUP_HIGH_PERIOD	(100)
-#define TS_POLL_DELAY			(10)	/* ms delay between samples */
-#define TS_POLL_PERIOD			(10)	/* ms delay between samples */
+#define CTP_IRQ_NUMBER          (config_info.irq_gpio_number)
+#define CTP_IRQ_MODE		(TRIG_EDGE_NEGATIVE)
+#define CTP_NAME		"gt82x"
 #define SCREEN_MAX_X		(screen_max_x)
 #define SCREEN_MAX_Y		(screen_max_y)
-#define PRESS_MAX			(255)
+#define PRESS_MAX		(255)
 
 
 #define READ_TOUCH_ADDR_H   0x0F
@@ -120,7 +112,7 @@ static __u32 twi_id = 0;
 /* Addresses to scan */
 
 static const unsigned short normal_i2c[2] = {0x5d,I2C_CLIENT_END};
-static const int chip_id_value[] = {0x13,0x27,0x28};
+static const int chip_id_value[3] = {0x13,0x27,0x28};
 static uint8_t read_chip_value[3] = {0x0f,0x7d,0};
 
 /*used by GT80X-IAP module */
@@ -229,20 +221,16 @@ static bool goodix_i2c_test(struct i2c_client * client)
 static int ctp_detect(struct i2c_client *client, struct i2c_board_info *info)
 {
 	struct i2c_adapter *adapter = client->adapter;
-	//uint8_t buf[3] = {0x0f,0x7d,0};
         int  i = 0;
-        printk("twi_id:%d\n",twi_id);                   
-        printk("%s: addr= %x\n",__func__,client->addr);        
+      
         if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE_DATA)){
         	      printk("======return=====\n");
                 return -ENODEV;
-              }
-         
-         
-	      if(twi_id == adapter->nr){
+        }
+        if(twi_id == adapter->nr){
                 pr_info("%s: addr= %x\n",__func__,client->addr);
                 msleep(50);
-	              i2c_read_bytes(client,read_chip_value,3);
+	        i2c_read_bytes(client,read_chip_value,3);
                 pr_info("chip_id_value:0x%x\n",read_chip_value[2]);
                 while(chip_id_value[i++]){
                         if(read_chip_value[2] == chip_id_value[i - 1]){
@@ -253,8 +241,8 @@ static int ctp_detect(struct i2c_client *client, struct i2c_board_info *info)
                 }
         	pr_info("%s:I2C connection might be something wrong ! \n",__func__);
         	return -ENODEV;
-	      }else{
-		return -ENODEV;
+	}else{
+	        return -ENODEV;
 	}
 }
 
@@ -357,26 +345,23 @@ Output:
 *******************************************************/
 static void goodix_touch_down(struct goodix_ts_data* ts,s32 id,s32 x,s32 y,s32 w)
 {
-	dprintk(DEBUG_X_Y_INFO,"source data :ID:%d, X:%d, Y:%d, W:%d", id, x, y, w);
-
-	if(1 == exchange_x_y_flag){
-	        swap(x, y);
-	}
-	if(1 == revert_x_flag){
-	        x = SCREEN_MAX_X - x;
-	}
-	if(1 == revert_y_flag){
-	        y = SCREEN_MAX_Y - y;
-	}
-	dprintk(DEBUG_X_Y_INFO,"report data:ID:%d, X:%d, Y:%d, W:%d", id, x, y, w);
-    input_report_abs(ts->input_dev, ABS_MT_POSITION_X, x);
-    input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, y);
-    input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, w);
-    input_report_abs(ts->input_dev, ABS_MT_WIDTH_MAJOR, w);
-    input_report_abs(ts->input_dev, ABS_MT_TRACKING_ID, id);
-    input_mt_sync(ts->input_dev);
-
-    
+        dprintk(DEBUG_X_Y_INFO,"source data:ID:%d, X:%d, Y:%d, W:%d\n", id, x, y, w);
+        if(1 == exchange_x_y_flag){
+                swap(x, y);
+        }
+        if(1 == revert_x_flag){
+                x = SCREEN_MAX_X - x;
+        }
+        if(1 == revert_y_flag){
+                y = SCREEN_MAX_Y - y;
+        }
+        dprintk(DEBUG_X_Y_INFO,"report data:ID:%d, X:%d, Y:%d, W:%d\n", id, x, y, w);
+        input_report_abs(ts->input_dev, ABS_MT_POSITION_X, x);
+        input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, y);
+        input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, w);
+        input_report_abs(ts->input_dev, ABS_MT_WIDTH_MAJOR, w);
+        input_report_abs(ts->input_dev, ABS_MT_TRACKING_ID, id);
+        input_mt_sync(ts->input_dev);
 }
 /*******************************************************
 Function:
@@ -592,7 +577,6 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 {
 	struct goodix_ts_data *ts;
 	int ret = 0;
-//        int err = -1;
 	printk("=============GT82x Probe==================\n");
         
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)){
@@ -647,7 +631,7 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 #endif
 
 	sprintf(ts->phys, "input/goodix-ts");
-	ts->input_dev->name = f3x_ts_name;
+	ts->input_dev->name = CTP_NAME;
 	ts->input_dev->phys = ts->phys;
 	ts->input_dev->id.bustype = BUS_I2C;
 	ts->input_dev->id.vendor = 0xDEAD;
@@ -741,7 +725,7 @@ static int goodix_ts_remove(struct i2c_client *client)
 //可用于该驱动的 设备名—设备ID 列表
 //only one client
 static const struct i2c_device_id goodix_ts_id[] = {
-	{ GOODIX_I2C_NAME, 0 },
+	{ CTP_NAME, 0 },
 	{ }
 };
 
@@ -752,7 +736,7 @@ static struct i2c_driver goodix_ts_driver = {
 	.remove		= goodix_ts_remove,
 	.id_table	= goodix_ts_id,
 	.driver = {
-		.name	= GOODIX_I2C_NAME,
+		.name	= CTP_NAME,
 		.owner = THIS_MODULE,
 	},
 	.address_list	= normal_i2c,
@@ -780,7 +764,11 @@ static int __devinit goodix_ts_init(void)
 	//int err = -1;
         printk("****************************************************************\n");
 	printk("===========================%s=====================\n", __func__);
-
+        if(config_info.ctp_used == 0){
+	        printk("*** ctp_used set to 0 !\n");
+	        printk("*** if use ctp,please put the sys_config.fex ctp_used set to 1. \n");
+	        return 0;
+	}
         if(!ctp_get_system_config()){
                 printk("%s:read config fail!\n",__func__);
                 return ret;
@@ -804,6 +792,6 @@ static void __exit goodix_ts_exit(void)
 
 late_initcall(goodix_ts_init);
 module_exit(goodix_ts_exit);
-module_param_named(ctp_debug,ctp_debug,int,S_IRUGO | S_IWUSR | S_IWGRP);
+module_param_named(debug_mask,debug_mask,int,S_IRUGO | S_IWUSR | S_IWGRP);
 MODULE_DESCRIPTION("Goodix Touchscreen Driver");
 MODULE_LICENSE("GPL v2");

@@ -17,7 +17,6 @@
 #include <linux/interrupt.h>
 #include <linux/i2c.h>
 #include <linux/delay.h>
-//#include <mach/gpio.h>
 #include <linux/jiffies.h>
 #include <linux/cdev.h>
 #include <asm/uaccess.h>
@@ -48,9 +47,11 @@
 #include <mach/system.h>
 #include <mach/hardware.h>
 #include <mach/sys_config.h>
-#include "gslX680.h"
+
 #include <mach/gpio.h> 
 #include <linux/ctp.h>
+
+#include "gslX3680.h" //resolution:2048*1536
 
 //#define GSL_TIMER
 //#define PRINT_POINT_INFO 
@@ -156,7 +157,6 @@ struct gsl_ts {
 	bool is_suspended;
 	bool int_pending;
 	struct mutex sus_lock;
-//	uint32_t gpio_irq;
 	int irq;
 #if defined(CONFIG_HAS_EARLYSUSPEND)
 	struct early_suspend early_suspend;
@@ -168,8 +168,8 @@ struct gsl_ts {
 };
 extern struct ctp_config_info config_info;
 
-static u32 ctp_debug = DEBUG_INIT;
-#define dprintk(level_mask,fmt,arg...)    if(unlikely(ctp_debug & level_mask)) \
+static u32 debug_mask = DEBUG_INIT;
+#define dprintk(level_mask,fmt,arg...)    if(unlikely(debug_mask & level_mask)) \
         printk("***CTP***"fmt, ## arg)
 
 static u32 id_sign[MAX_CONTACTS+1] = {0};
@@ -187,12 +187,6 @@ static u16 y_new = 0;
 #define CTP_IRQ_NUMBER                  (config_info.irq_gpio_number)
 #define CTP_IRQ_MODE			(TRIG_EDGE_NEGATIVE)
 #define CTP_NAME			GSLX680_I2C_NAME
-#define TS_RESET_LOW_PERIOD		(15)
-#define TS_INITIAL_HIGH_PERIOD		(15)
-#define TS_WAKEUP_LOW_PERIOD	(100)
-#define TS_WAKEUP_HIGH_PERIOD	(100)
-#define TS_POLL_DELAY			(10)	/* ms delay between samples */
-#define TS_POLL_PERIOD			(10)	/* ms delay between samples */
 #define SCREEN_MAX_HEIGHT		(screen_max_x)
 #define SCREEN_MAX_WIDTH		(screen_max_y)
 
@@ -268,10 +262,7 @@ static DEVICE_ATTR(debug_enable, 0666, gslX680_debug_enable_show, gslX680_debug_
 
 
 static int gslX680_chip_init(void)
-{
-//	sw_gpio_set_one_pin_io_status(gpio_wakeup_hdle, 1, "ctp_wakeup");		
-//        sw_gpio_write_one_pin_value(gpio_wakeup_hdle, 1, "ctp_wakeup");
-//	msleep(20);	
+{	
          ctp_wakeup(1,0);
          msleep(20);
          return 0;   
@@ -279,16 +270,12 @@ static int gslX680_chip_init(void)
 
 static int gslX680_shutdown_low(void)
 {
-//	sw_gpio_set_one_pin_io_status(gpio_wakeup_hdle, 1, "ctp_wakeup");
-//	sw_gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "ctp_wakeup");	
         ctp_wakeup(0,0);
 	return 0;
 }
 
 static int gslX680_shutdown_high(void)
 {
-//	sw_gpio_set_one_pin_io_status(gpio_wakeup_hdle, 1, "ctp_wakeup");
-//	sw_gpio_write_one_pin_value(gpio_wakeup_hdle, 1, "ctp_wakeup");	
         ctp_wakeup(1,0);
 	return 0;
 }
@@ -301,28 +288,6 @@ static inline u16 join_bytes(u8 a, u8 b)
 	return ab;
 }
 
-//static u32 gsl_read_interface(struct i2c_client *client, u8 reg, u8 *buf, u32 num)
-//{
-//	struct i2c_msg xfer_msg[2];
-//
-//	xfer_msg[0].addr = client->addr;
-//	xfer_msg[0].len = 1;
-//	xfer_msg[0].flags = client->flags & I2C_M_TEN;
-//	xfer_msg[0].buf = &reg;
-//
-//	xfer_msg[1].addr = client->addr;
-//	xfer_msg[1].len = num;
-//	xfer_msg[1].flags |= I2C_M_RD;
-//	xfer_msg[1].buf = buf;
-//
-//	if (reg < 0x80) {
-//		i2c_transfer(client->adapter, xfer_msg, ARRAY_SIZE(xfer_msg));
-//		msleep(5);
-//	}
-//
-//	return i2c_transfer(client->adapter, xfer_msg, ARRAY_SIZE(xfer_msg)) == ARRAY_SIZE(xfer_msg) ? 0 : -EFAULT;
-//}
-//
 static u32 gsl_write_interface(struct i2c_client *client, const u8 reg, u8 *buf, u32 num)
 {
 	struct i2c_msg xfer_msg[1];
@@ -418,38 +383,6 @@ static int gsl_ts_read(struct i2c_client *client, u8 addr, u8 *pdata, unsigned i
 	
 	return i2c_master_recv(client, pdata, datalen);
 }
-
-//static void test_i2c(struct i2c_client *client)
-//{
-//	u8 read_buf = 0;
-//	u8 write_buf = 0x12;
-//	int ret;
-//	ret = gsl_ts_read( client, 0xf0, &read_buf, sizeof(read_buf) );
-//	if  (ret  < 0) { 
-//		pr_info("I2C transfer error!\n");
-//	}else{
-//		pr_info("I read reg 0xf0 is %x\n", read_buf);
-//	}
-//	msleep(10);
-//
-//	ret = gsl_ts_write(client, 0xf0, &write_buf, sizeof(write_buf));
-//	if  (ret  < 0)  {
-//		pr_info("I2C transfer error!\n");
-//	}else{
-//		pr_info("I write reg 0xf0 0x12\n");
-//	}
-//	msleep(10);
-//
-//	ret = gsl_ts_read( client, 0xf0, &read_buf, sizeof(read_buf) );
-//	if  (ret  <  0 ){
-//		pr_info("I2C transfer error!\n");
-//	}
-//	else{
-//		pr_info("I read reg 0xf0 is 0x%x\n", read_buf);
-//	}
-//	msleep(10);
-//
-//}
 
 static void startup_chip(struct i2c_client *client)
 {
@@ -581,6 +514,7 @@ static void report_key(struct gsl_ts *ts, u16 x, u16 y)
 
 static void report_data(struct gsl_ts *ts, u16 x, u16 y, u8 pressure, u8 id)
 {
+	dprintk(DEBUG_X_Y_INFO,"source data :id=%d,x=%d,y=%d\n",id,x,y);
 	if(1 == exchange_x_y_flag){
                 swap(x, y);
         }
@@ -591,7 +525,7 @@ static void report_data(struct gsl_ts *ts, u16 x, u16 y, u8 pressure, u8 id)
                 y = SCREEN_MAX_Y - y;
         }
         
-	dprintk(DEBUG_X_Y_INFO,"#####id=%d,x=%d,y=%d######\n",id,x,y);
+	dprintk(DEBUG_X_Y_INFO,"report data :id=%d,x=%d,y=%d\n",id,x,y);
 
 	if(x>=SCREEN_MAX_X||y>=SCREEN_MAX_Y)
 	{
@@ -737,10 +671,6 @@ static void gsl_timer_handle(unsigned long data)
 #ifdef GSL_DEBUG	
 	printk("----------------gsl_timer_handle-----------------\n");	
 #endif
-
-//	reg_val = readl(gpio_addr + PIO_INT_CTRL_OFFSET);
-//	reg_val &=~(1<<CTP_IRQ_NO);
-//	writel(reg_val,gpio_addr + PIO_INT_CTRL_OFFSET);
         sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,1);
 	check_mem_data(ts->client);
 	ts->gsl_timer.expires = jiffies + 3 * HZ;
@@ -811,9 +741,6 @@ static int gsl_ts_init_ts(struct i2c_client *client, struct gsl_ts *ts)
 	input_set_abs_params(input_device,ABS_MT_TOUCH_MAJOR, 0, PRESS_MAX, 0, 0);
 	input_set_abs_params(input_device,ABS_MT_WIDTH_MAJOR, 0, 200, 0, 0);
 
-	//client->irq = IRQ_PORT,
-	//ts->irq = client->irq;
-
 	ts->wq = create_singlethread_workqueue("kworkqueue_ts");
 	if (!ts->wq) {
 		dev_err(&client->dev, "Could not create workqueue\n");
@@ -845,8 +772,7 @@ static int gsl_ts_suspend(struct device *dev)
 
   	dprintk(DEBUG_SUSPEND,"I'am in gsl_ts_suspend() start\n");
 	ts->is_suspended = true;
-	cancel_work_sync(&ts->work);	
-	
+
 #ifdef GSL_TIMER
 	dprintk(DEBUG_SUSPEND,"gsl_ts_suspend () : delete gsl_timer\n");
 	del_timer(&ts->gsl_timer);
@@ -854,9 +780,9 @@ static int gsl_ts_suspend(struct device *dev)
 
         sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,0);
 		   
-	reset_chip(ts->client);
-	gslX680_shutdown_low();
-	msleep(20); 		
+	cancel_work_sync(&ts->work);
+	flush_workqueue(ts->wq);	   
+	gslX680_shutdown_low(); 
 
 	return 0;
 }
@@ -864,12 +790,11 @@ static int gsl_ts_suspend(struct device *dev)
 static int gsl_ts_resume(struct device *dev)
 {
 	struct gsl_ts *ts = dev_get_drvdata(dev);
-	//int rc = 0;
 	
   	dprintk(DEBUG_SUSPEND,"I'am in gsl_ts_resume() start\n");
-	msleep(50); 	
+	
 	gslX680_shutdown_high();
-	msleep(20); 	
+	msleep(10); 	
 	reset_chip(ts->client);
 	startup_chip(ts->client);	
 	check_mem_data(ts->client);
@@ -1041,12 +966,16 @@ static int __init gsl_ts_init(void)
 	int ret = -1;
 	printk("****************************************************************\n");
 	printk("==gsl_ts_init==\n");
-
+        if(config_info.ctp_used == 0){
+	        printk("*** ctp_used set to 0 !\n");
+	        printk("*** if use ctp,please put the sys_config.fex ctp_used set to 1. \n");
+	        return 0;
+	}
 	if(!ctp_get_system_config()){
                 printk("%s:read config fail!\n",__func__);
                 return ret;
         }
-	
+	ctp_wakeup(1,0);
 	gsl_ts_driver.detect = ctp_detect;
 	ret = i2c_add_driver(&gsl_ts_driver);
 	printk("****************************************************************\n");
@@ -1060,9 +989,9 @@ static void __exit gsl_ts_exit(void)
 	return;
 }
 
-module_init(gsl_ts_init);
+late_initcall(gsl_ts_init);
 module_exit(gsl_ts_exit);
-module_param_named(ctp_debug,ctp_debug,int,S_IRUGO | S_IWUSR | S_IWGRP);
+module_param_named(debug_mask,debug_mask,int,S_IRUGO | S_IWUSR | S_IWGRP);
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("GSLX680 touchscreen controller driver");
 MODULE_AUTHOR("Guan Yuwei, guanyuwei@basewin.com");

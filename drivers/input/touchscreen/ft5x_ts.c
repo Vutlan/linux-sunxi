@@ -67,8 +67,8 @@
 
 //#define CONFIG_SUPPORT_FTS_CTP_UPG
 
-static u32 ctp_debug = DEBUG_INIT;
-#define dprintk(level_mask,fmt,arg...)    if(unlikely(ctp_debug & level_mask)) \
+static u32 debug_mask = DEBUG_INIT;
+#define dprintk(level_mask,fmt,arg...)    if(unlikely(debug_mask & level_mask)) \
         printk("***CTP***"fmt, ## arg)
         
 struct i2c_dev{
@@ -249,7 +249,7 @@ typedef unsigned char         FTS_BOOL;    //8 bit
 
 #define I2C_CTPM_ADDRESS        (0x70>>1)
 
-void delay_ms(FTS_WORD  w_ms)
+static void delay_ms(FTS_WORD  w_ms)
 {
 	//platform related, please implement this function
 	msleep( w_ms );
@@ -845,122 +845,89 @@ static int ft5x_read_data(void)
 		return 1; 
 	}
 
-#ifdef CONFIG_FT5X0X_MULTITOUCH
 	switch (event->touch_point) {
 	case 5:
 		event->x5 = (s16)(buf[0x1b] & 0x0F)<<8 | (s16)buf[0x1c];
 		event->y5 = (s16)(buf[0x1d] & 0x0F)<<8 | (s16)buf[0x1e];
+		dprintk(DEBUG_X_Y_INFO,"source data:event->x5 = %d, event->y5 = %d. \n", event->x5, event->y5);
+		if(1 == exchange_x_y_flag){
+			swap(event->x5, event->y5);
+		}
 		if(1 == revert_x_flag){
 			event->x5 = SCREEN_MAX_X - event->x5;
 		}
 		if(1 == revert_y_flag){
 			event->y5 = SCREEN_MAX_Y - event->y5;
 		}
-		if(1 == exchange_x_y_flag){
-			swap(event->x5, event->y5);
-		}
 		event->touch_ID5=(s16)(buf[0x1D] & 0xF0)>>4;
-		dprintk(DEBUG_X_Y_INFO,"event->x5 = %d, event->y5 = %d. \n", event->x5, event->y5);
+		
 		dprintk(DEBUG_X_Y_INFO,"touch id : %d. \n",event->touch_ID5);
 	case 4:
 		event->x4 = (s16)(buf[0x15] & 0x0F)<<8 | (s16)buf[0x16];
 		event->y4 = (s16)(buf[0x17] & 0x0F)<<8 | (s16)buf[0x18];
+		dprintk(DEBUG_X_Y_INFO,"source data:event->x4 = %d, event->y4 = %d. \n", event->x4, event->y4);
+		if(1 == exchange_x_y_flag){
+			swap(event->x4, event->y4);
+		}
 		if(1 == revert_x_flag){
 			event->x4 = SCREEN_MAX_X - event->x4;
 		}
 		if(1 == revert_y_flag){
 			event->y4 = SCREEN_MAX_Y - event->y4;
-		}
-		if(1 == exchange_x_y_flag){
-			swap(event->x4, event->y4);
 		}	
 		event->touch_ID4=(s16)(buf[0x17] & 0xF0)>>4;
-		dprintk(DEBUG_X_Y_INFO,"event->x4 = %d, event->y4 = %d. \n", event->x4, event->y4);
+		
 		dprintk(DEBUG_X_Y_INFO,"touch id : %d. \n",event->touch_ID4);
 	case 3:
 		event->x3 = (s16)(buf[0x0f] & 0x0F)<<8 | (s16)buf[0x10];
 		event->y3 = (s16)(buf[0x11] & 0x0F)<<8 | (s16)buf[0x12];
+		dprintk(DEBUG_X_Y_INFO,"source data:event->x3 = %d, event->y3 = %d. \n", event->x3, event->y3);
+		if(1 == exchange_x_y_flag){
+			swap(event->x3, event->y3);
+		}
 		if(1 == revert_x_flag){
 			event->x3 = SCREEN_MAX_X - event->x3;
 		}
 		if(1 == revert_y_flag){
 			event->y3 = SCREEN_MAX_Y - event->y3;
 		}
-		if(1 == exchange_x_y_flag){
-			swap(event->x3, event->y3);
-		}
 		event->touch_ID3=(s16)(buf[0x11] & 0xF0)>>4;
-		dprintk(DEBUG_X_Y_INFO,"event->x3 = %d, event->y3 = %d. \n", event->x3, event->y3);
 		dprintk(DEBUG_X_Y_INFO,"touch id : %d. \n",event->touch_ID3);
 	case 2:
 		event->x2 = (s16)(buf[9] & 0x0F)<<8 | (s16)buf[10];
 		event->y2 = (s16)(buf[11] & 0x0F)<<8 | (s16)buf[12];
+		dprintk(DEBUG_X_Y_INFO,"source data:event->x2 = %d, event->y2 = %d. \n", event->x2, event->y2);
+		if(1 == exchange_x_y_flag){
+			swap(event->x2, event->y2);
+		}
 		if(1 == revert_x_flag){
 			event->x2 = SCREEN_MAX_X - event->x2;
 		}
 		if(1 == revert_y_flag){
 			event->y2 = SCREEN_MAX_Y - event->y2;
 		}
-		if(1 == exchange_x_y_flag){
-			swap(event->x2, event->y2);
-		}
 		event->touch_ID2=(s16)(buf[0x0b] & 0xF0)>>4;
-		dprintk(DEBUG_X_Y_INFO,"event->x2 = %d, event->y2 = %d. \n", event->x2, event->y2);
+		
 		dprintk(DEBUG_X_Y_INFO,"touch id : %d. \n",event->touch_ID2);
 	case 1:
 		event->x1 = (s16)(buf[3] & 0x0F)<<8 | (s16)buf[4];
 		event->y1 = (s16)(buf[5] & 0x0F)<<8 | (s16)buf[6];
-#ifdef TOUCH_KEY_FOR_ANGDA
-		if(event->x1 < TOUCH_KEY_X_LIMIT)
-		{
-			if(1 == revert_x_flag){
-				event->x1 = SCREEN_MAX_X - event->x1;
-			}
-			if(1 == revert_y_flag){
-				event->y1 = SCREEN_MAX_Y - event->y1;
-			}
-			if(1 == exchange_x_y_flag){
-				swap(event->x1, event->y1);
-			}
+		dprintk(DEBUG_X_Y_INFO,"source data:event->x1 = %d, event->y1 = %d. \n", event->x1, event->y1);
+		if(1 == exchange_x_y_flag){
+			swap(event->x1, event->y1);
 		}
-#elif defined(TOUCH_KEY_FOR_EVB13)
-		if((event->x1 > TOUCH_KEY_LOWER_X_LIMIT)&&(event->x1<TOUCH_KEY_HIGHER_X_LIMIT))
-		{
-			if(1 == revert_x_flag){
-				event->x1 = SCREEN_MAX_X - event->x1;
-			}
-			if(1 == revert_y_flag){
-				event->y1 = SCREEN_MAX_Y - event->y1;
-			}
-			if(1 == exchange_x_y_flag){
-				swap(event->x1, event->y1);
-			}
-		}
-#else
 		if(1 == revert_x_flag){
 			event->x1 = SCREEN_MAX_X - event->x1;
 		}
 		if(1 == revert_y_flag){
 			event->y1 = SCREEN_MAX_Y - event->y1;
 		}
-		if(1 == exchange_x_y_flag){
-			swap(event->x1, event->y1);
-		}
-#endif
 		event->touch_ID1=(s16)(buf[0x05] & 0xF0)>>4;
-		dprintk(DEBUG_X_Y_INFO,"event->x1 = %d, event->y1 = %d. \n", event->x1, event->y1);
 		dprintk(DEBUG_X_Y_INFO,"touch id : %d. \n",event->touch_ID1);
 		break;
 	default:
 		return -1;
 	}
-#else
-	if (event->touch_point == 1) {
-		event->x1 = (s16)(buf[3] & 0x0F)<<8 | (s16)buf[4];
-		event->y1 = (s16)(buf[5] & 0x0F)<<8 | (s16)buf[6];
-	}
-	dprintk(DEBUG_X_Y_INFO,"event->x1 = %d, event->y1 = %d. \n", event->x1, event->y1);
-#endif
 	event->pressure = 200;
         return 0;
 }
@@ -992,7 +959,7 @@ static void ft5x_report_multitouch(void)
 		input_report_abs(data->input_dev, ABS_MT_POSITION_Y, event->y5);
 		input_report_abs(data->input_dev, ABS_MT_WIDTH_MAJOR, 1);
 		input_mt_sync(data->input_dev);
-		dprintk(DEBUG_X_Y_INFO,"report:===x5 = %d,y5 = %d ====\n",event->x5,event->y5);
+		dprintk(DEBUG_X_Y_INFO,"report data:===x5 = %d,y5 = %d ====\n",event->x5,event->y5);
 	case 4:
 		input_report_abs(data->input_dev, ABS_MT_TRACKING_ID, event->touch_ID4);	
 		input_report_abs(data->input_dev, ABS_MT_TOUCH_MAJOR, event->pressure);
@@ -1000,7 +967,7 @@ static void ft5x_report_multitouch(void)
 		input_report_abs(data->input_dev, ABS_MT_POSITION_Y, event->y4);
 		input_report_abs(data->input_dev, ABS_MT_WIDTH_MAJOR, 1);
 		input_mt_sync(data->input_dev);
-		dprintk(DEBUG_X_Y_INFO,"report:===x4 = %d,y4 = %d ====\n",event->x4,event->y4);
+		dprintk(DEBUG_X_Y_INFO,"report data:===x4 = %d,y4 = %d ====\n",event->x4,event->y4);
 	case 3:
 		input_report_abs(data->input_dev, ABS_MT_TRACKING_ID, event->touch_ID3);	
 		input_report_abs(data->input_dev, ABS_MT_TOUCH_MAJOR, event->pressure);
@@ -1008,7 +975,7 @@ static void ft5x_report_multitouch(void)
 		input_report_abs(data->input_dev, ABS_MT_POSITION_Y, event->y3);
 		input_report_abs(data->input_dev, ABS_MT_WIDTH_MAJOR, 1);
 		input_mt_sync(data->input_dev);
-		dprintk(DEBUG_X_Y_INFO,"report:===x3 = %d,y3 = %d ====\n",event->x3,event->y3);
+		dprintk(DEBUG_X_Y_INFO,"report data:===x3 = %d,y3 = %d ====\n",event->x3,event->y3);
 	case 2:
 		input_report_abs(data->input_dev, ABS_MT_TRACKING_ID, event->touch_ID2);	
 		input_report_abs(data->input_dev, ABS_MT_TOUCH_MAJOR, event->pressure);
@@ -1016,7 +983,7 @@ static void ft5x_report_multitouch(void)
 		input_report_abs(data->input_dev, ABS_MT_POSITION_Y, event->y2);
 		input_report_abs(data->input_dev, ABS_MT_WIDTH_MAJOR, 1);
 		input_mt_sync(data->input_dev);
-		dprintk(DEBUG_X_Y_INFO,"report:===x2 = %d,y2 = %d ====\n",event->x2,event->y2);
+		dprintk(DEBUG_X_Y_INFO,"report data:===x2 = %d,y2 = %d ====\n",event->x2,event->y2);
 	case 1:
 		input_report_abs(data->input_dev, ABS_MT_TRACKING_ID, event->touch_ID1);	
 		input_report_abs(data->input_dev, ABS_MT_TOUCH_MAJOR, event->pressure);
@@ -1024,10 +991,10 @@ static void ft5x_report_multitouch(void)
 		input_report_abs(data->input_dev, ABS_MT_POSITION_Y, event->y1);
 		input_report_abs(data->input_dev, ABS_MT_WIDTH_MAJOR, 1);
 		input_mt_sync(data->input_dev);
-		dprintk(DEBUG_X_Y_INFO,"report:===x1 = %d,y1 = %d ====\n",event->x1,event->y1);
+		dprintk(DEBUG_X_Y_INFO,"report data:===x1 = %d,y1 = %d ====\n",event->x1,event->y1);
 		break;
 	default:
-		dprintk(DEBUG_X_Y_INFO,"report:==touch_point default =\n");
+		dprintk(DEBUG_X_Y_INFO,"report data:==touch_point default =\n");
 		break;
 	}
 	
@@ -1145,7 +1112,6 @@ static void ft5x_ts_pen_irq_work(struct work_struct *work)
 
 static u32 ft5x_ts_interrupt(struct ft5x_ts_data *ft5x_ts)
 {
-	//struct ft5x_ts_data *ft5x_ts;
 	dprintk(DEBUG_INT_INFO,"==========ft5x_ts TS Interrupt============\n"); 
 	queue_work(ft5x_ts->ts_workqueue, &ft5x_ts->pen_event_work);
 	return 0;
@@ -1155,6 +1121,7 @@ static u32 ft5x_ts_interrupt(struct ft5x_ts_data *ft5x_ts)
 
 static void ft5x_ts_suspend(struct early_suspend *handler)
 {
+        struct ft5x_ts_data *data = i2c_get_clientdata(this_client);
         dprintk(DEBUG_SUSPEND,"==ft5x_ts_suspend=\n");
         dprintk(DEBUG_SUSPEND,"ft5x_ts_suspend: write FT5X0X_REG_PMODE .\n");
         sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,0);
@@ -1459,7 +1426,11 @@ static int __init ft5x_ts_init(void)
 	int ret = -1;      
 	printk("****************************************************************\n");
 	printk("***%s begin!***\n",__func__);
-	
+	if(config_info.ctp_used == 0){
+	        printk("*** ctp_used set to 0 !\n");
+	        printk("*** if use ctp,please put the sys_config.fex ctp_used set to 1. \n");
+	        return 0;
+	}
         if(!ctp_get_system_config()){
                 printk("%s:read config fail!\n",__func__);
                 return ret;
@@ -1492,7 +1463,7 @@ static void __exit ft5x_ts_exit(void)
 
 late_initcall(ft5x_ts_init);
 module_exit(ft5x_ts_exit);
-module_param_named(ctp_debug,ctp_debug,int,S_IRUGO | S_IWUSR | S_IWGRP);
+module_param_named(debug_mask,debug_mask,int,S_IRUGO | S_IWUSR | S_IWGRP);
 MODULE_AUTHOR("<wenfs@Focaltech-systems.com>");
 MODULE_DESCRIPTION("FocalTech ft5x TouchScreen driver");
 MODULE_LICENSE("GPL");

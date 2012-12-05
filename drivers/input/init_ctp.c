@@ -18,13 +18,10 @@ EXPORT_SYMBOL_GPL(config_info);
 
 #define CTP_IRQ_NUMBER     (config_info.irq_gpio_number)
 
-static u32 ctp_debug = 0;
+static u32 debug_mask = DEBUG_INIT;
 
-#define dprintk(level_mask,fmt,arg...)    if(unlikely(ctp_debug & level_mask)) \
+#define dprintk(level_mask,fmt,arg...)    if(unlikely(debug_mask & level_mask)) \
         printk("***CTP***"fmt, ## arg)
-
-
-
 
 int ctp_i2c_write_bytes(struct i2c_client *client, uint8_t *data, uint16_t len)
 {
@@ -218,13 +215,13 @@ int ctp_init_platform_resource(void)
 		return -1;
         }
         config_info.key_light_gpio_number = item.gpio.gpio;
-        ret = gpio_request_one(config_info.key_light_gpio_number,GPIOF_DIR_OUT,NULL);
+        ret = gpio_request_one(config_info.key_light_gpio_number,GPIOF_OUT_INIT_HIGH,NULL);
         if(ret != 0){
                 printk("key_light pin set to output function failure!\n");
         } 
 #endif
         
-        ret = gpio_request_one(config_info.wakeup_gpio_number,GPIOF_DIR_OUT,NULL);
+        ret = gpio_request_one(config_info.wakeup_gpio_number,GPIOF_OUT_INIT_HIGH,NULL);
         if(ret != 0){
                 printk("wakeup pin set to output function failure!\n");
         } 
@@ -239,9 +236,9 @@ void ctp_print_info(struct ctp_config_info info)
         dprintk(DEBUG_INIT,"info.twi_id:%d\n",info.twi_id);
         dprintk(DEBUG_INIT,"info.screen_max_x:%d\n",info.screen_max_x);
         dprintk(DEBUG_INIT,"info.screen_max_y:%d\n",info.screen_max_y);
-        dprintk(DEBUG_INIT,"info.revert_x_flag:%d",info.revert_x_flag);
-        dprintk(DEBUG_INIT,"info.revert_y_flag:%d",info.revert_y_flag);
-        dprintk(DEBUG_INIT,"info.exchange_x_y_flag:%d",info.exchange_x_y_flag); 
+        dprintk(DEBUG_INIT,"info.revert_x_flag:%d\n",info.revert_x_flag);
+        dprintk(DEBUG_INIT,"info.revert_y_flag:%d\n",info.revert_y_flag);
+        dprintk(DEBUG_INIT,"info.exchange_x_y_flag:%d\n",info.exchange_x_y_flag); 
         dprintk(DEBUG_INIT,"info.irq_gpio_number:%d\n",info.irq_gpio_number);
         dprintk(DEBUG_INIT,"info.wakeup_gpio_number:%d\n",info.wakeup_gpio_number);        
 }
@@ -256,7 +253,7 @@ static int ctp_fetch_sysconfig_para(void)
 {
 	int ret = -1;
 	script_item_u   val;
-        if(ctp_debug){
+        if(debug_mask == DEBUG_OTHERS_INFO){
 	        script_dump_mainkey("ctp_para");
         }
 	pr_info("=====%s=====. \n", __func__);
@@ -321,8 +318,13 @@ script_get_item_err:
  */
 int ctp_wakeup(int status,int ms)
 {
-        printk("***CTP*** %s:status:%d,ms = %d\n",__func__,status,ms); 
-
+       u32 gpio_status;
+       printk("***CTP*** %s:status:%d,ms = %d\n",__func__,status,ms); 
+        
+        gpio_status = sw_gpio_getcfg(config_info.wakeup_gpio_number);
+        if(gpio_status != 1){
+                sw_gpio_setcfg(config_info.wakeup_gpio_number,1);
+        }
         if(status == 0){
                 
                 if(ms == 0) {
@@ -343,6 +345,9 @@ int ctp_wakeup(int status,int ms)
                 }      
         }
         msleep(10);  
+        if(gpio_status != 1){
+                sw_gpio_setcfg(config_info.wakeup_gpio_number,gpio_status);
+        }
 	return 0;
 }
 EXPORT_SYMBOL(ctp_wakeup);
@@ -353,8 +358,13 @@ EXPORT_SYMBOL(ctp_wakeup);
 #ifdef TOUCH_KEY_LIGHT_SUPPORT 
 int ctp_key_light(int status,int ms)
 {
-        printk("***CTP*** %s:status:%d,ms = %d\n",__func__,status,ms); 
-
+       u32 gpio_status;
+       printk("***CTP*** %s:status:%d,ms = %d\n",__func__,status,ms); 
+        
+        gpio_status = sw_gpio_getcfg(config_info.key_light_gpio_number);
+        if(gpio_status != 1){
+                sw_gpio_setcfg(config_info.key_light_gpio_number,1);
+        }
         if(status == 0){
                  if(ms == 0) {
                          __gpio_set_value(config_info.key_light_gpio_number, 0);
@@ -373,7 +383,10 @@ int ctp_key_light(int status,int ms)
                         __gpio_set_value(config_info.key_light_gpio_number, 0); 
                 }      
         }
-        msleep(10);   
+        msleep(10);  
+        if(gpio_status != 1){
+                sw_gpio_setcfg(config_info.key_light_gpio_number,gpio_status);
+        } 
 	return 0;
 }
 EXPORT_SYMBOL(ctp_key_light);
@@ -406,7 +419,7 @@ static void __exit ctp_exit(void)
 
 module_init(ctp_init);
 module_exit(ctp_exit);
-module_param_named(ctp_debug,ctp_debug,int,S_IRUGO | S_IWUSR | S_IWGRP);
+module_param_named(debug_mask,debug_mask,int,S_IRUGO | S_IWUSR | S_IWGRP);
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("ctp init");
 MODULE_AUTHOR("Olina yin");
