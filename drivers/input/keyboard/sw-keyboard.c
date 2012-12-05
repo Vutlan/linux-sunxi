@@ -53,7 +53,7 @@
 #define LRADC_DATA0             (0x0c)
 #define LRADC_DATA1             (0x10)
 
-#define FIRST_CONCERT_DLY       (2<<24)
+#define FIRST_CONCERT_DLY       (0<<24)
 #define CHAN                    (0x3)
 #define ADC_CHAN_SELECT         (CHAN<<22)
 #define LRADC_KEY_MODE          (0)
@@ -164,7 +164,7 @@ static struct input_dev *sun4ikbd_dev;
 static unsigned char scancode;
 
 static unsigned char key_cnt = 0;
-static unsigned char cycle_buffer[REPORT_START_NUM] = {0};
+static unsigned char compare_buffer[REPORT_START_NUM] = {0};
 static unsigned char transfer_code = INITIAL_VALUE;
 
 enum {
@@ -213,13 +213,13 @@ static void sun4i_keyboard_resume(struct early_suspend *h)
 	/* process for normal standby */
 	if (NORMAL_STANDBY == standby_type) {
 		writel(FIRST_CONCERT_DLY|LEVELB_VOL|KEY_MODE_SELECT|LRADC_HOLD_EN|ADC_CHAN_SELECT \
-			|LRADC_SAMPLE_125HZ|LRADC_EN,KEY_BASSADDRESS + LRADC_CTRL);
+			|LRADC_SAMPLE_250HZ|LRADC_EN,KEY_BASSADDRESS + LRADC_CTRL);
 	/* process for super standby */	
 	} else if (SUPER_STANDBY == standby_type) {
 #ifdef ONE_CHANNEL
 		writel(LRADC_ADC0_DOWN_EN|LRADC_ADC0_UP_EN|LRADC_ADC0_DATA_EN,KEY_BASSADDRESS + LRADC_INTC);	
 		writel(FIRST_CONCERT_DLY|LEVELB_VOL|KEY_MODE_SELECT|LRADC_HOLD_EN|ADC_CHAN_SELECT \
-			|LRADC_SAMPLE_125HZ|LRADC_EN,KEY_BASSADDRESS + LRADC_CTRL);
+			|LRADC_SAMPLE_250HZ|LRADC_EN,KEY_BASSADDRESS + LRADC_CTRL);
 #else
 #endif
 	}
@@ -235,7 +235,6 @@ static irqreturn_t sun4i_isr_key(int irq, void *dummy)
 {
 	unsigned int  reg_val;
 	int judge_flag = 0;
-	int loop = 0;
 	 
 	dprintk(DEBUG_BASE_LEVEL0, "Key Interrupt\n");
 	
@@ -252,37 +251,28 @@ static irqreturn_t sun4i_isr_key(int irq, void *dummy)
 		
 		if (key_val < 0x3f) {
 
-			cycle_buffer[key_cnt%REPORT_START_NUM] = key_val&0x3f;
+			compare_buffer[key_cnt] = key_val&0x3f;
+		}
 
 		if ((key_cnt + 1) < REPORT_START_NUM) {
-
+			key_cnt++;
 			/* do not report key message */
 
 		} else {
-			// printk("key_cnt = %d \n",key_cnt);
-			//scancode = cycle_buffer[(key_cnt-2)%REPORT_START_NUM];
-			if (cycle_buffer[(key_cnt - REPORT_START_NUM + 1)%REPORT_START_NUM] \
-			== cycle_buffer[(key_cnt - REPORT_START_NUM + 2)%REPORT_START_NUM]) {
-				key_val = cycle_buffer[(key_cnt - REPORT_START_NUM + 1)%REPORT_START_NUM];
-				scancode = keypad_mapindex[key_val&0x3f];
-				judge_flag = 1;
-			}  
-				
-			dprintk(DEBUG_BASE_LEVEL0, "cycle_buffer[(key_cnt - 1)] = 0x%x,cycle_buffer[(key_cnt -  2)]) = 0x%x\n", \
-				cycle_buffer[(key_cnt -  1)],cycle_buffer[(key_cnt -  2)]);
-				
-			if ((!judge_flag) && (cycle_buffer[(key_cnt - REPORT_START_NUM + 1)%REPORT_START_NUM] \
-			== cycle_buffer[(key_cnt - REPORT_START_NUM + 2)%REPORT_START_NUM])){
-
-				key_val = cycle_buffer[(key_cnt - REPORT_START_NUM + 1)%REPORT_START_NUM];
-				scancode = keypad_mapindex[key_val&0x3f];
-				judge_flag = 1;			                           
-			} 
+			if(compare_buffer[0] == compare_buffer[1])
+			{
+			key_val = compare_buffer[1];
+			scancode = keypad_mapindex[key_val&0x3f];
+			judge_flag = 1;
+			key_cnt = 0;
+			} else {
+				key_cnt = 0;
+				judge_flag = 0;
+			}
 
 			if (1 == judge_flag) {
-					dprintk(DEBUG_BASE_LEVEL1, "report data: key_val :%8d transfer_code: %8d , scancode: %8d\n", \
+				dprintk(DEBUG_BASE_LEVEL0, "report data: key_val :%8d transfer_code: %8d , scancode: %8d\n", \
 					key_val, transfer_code, scancode);
-				}
 
 				if (transfer_code == scancode) {
 					/* report repeat key value */
@@ -310,36 +300,16 @@ static irqreturn_t sun4i_isr_key(int irq, void *dummy)
 				}
 			}
 		}
-		key_cnt++;
-		if (key_cnt > 2 * MAX_CYCLE_COUNTER ){
-			key_cnt -= MAX_CYCLE_COUNTER;
-		}
 	}
        
 	if (reg_val & LRADC_ADC0_UPPEND) {
-		if (key_cnt > REPORT_START_NUM) {
-			if(INITIAL_VALUE != transfer_code) {
+		
+		if(INITIAL_VALUE != transfer_code) {
 				
-				dprintk(DEBUG_BASE_LEVEL1, "report data: key_val :%8d transfer_code: %8d \n",key_val, transfer_code);
+			dprintk(DEBUG_BASE_LEVEL0, "report data: key_val :%8d transfer_code: %8d \n",key_val, transfer_code);
 					
-				input_report_key(sun4ikbd_dev, sun4i_scankeycodes[transfer_code], 0);
-				input_sync(sun4ikbd_dev);
-			}
-
-		} else if(key_cnt >= REPORT_KEY_LOW_LIMIT_COUNT) {   
-			/* rely on hardware first_delay work, need to be verified! */
-			if(cycle_buffer[0] == cycle_buffer[1]) {
-				key_val = cycle_buffer[0];
-				scancode = keypad_mapindex[key_val&0x3f];
-				
-				dprintk(DEBUG_BASE_LEVEL1, "report data: key_val :%8d scancode: %8d \n",key_val, scancode);
-				
-				input_report_key(sun4ikbd_dev, sun4i_scankeycodes[scancode], 1);
-				input_sync(sun4ikbd_dev);   
-				input_report_key(sun4ikbd_dev, sun4i_scankeycodes[scancode], 0);
-				input_sync(sun4ikbd_dev);  
-			}
-
+			input_report_key(sun4ikbd_dev, sun4i_scankeycodes[transfer_code], 0);
+			input_sync(sun4ikbd_dev);
 		}
 
 		dprintk(DEBUG_BASE_LEVEL0, "key up \n");
@@ -347,10 +317,6 @@ static irqreturn_t sun4i_isr_key(int irq, void *dummy)
 		key_cnt = 0;
 		judge_flag = 0;
 		transfer_code = INITIAL_VALUE;
-		for (loop = 0; loop < REPORT_START_NUM; loop++) {
-			cycle_buffer[loop] = 0; 
-		}
-
 	}
 	
 	writel(reg_val,KEY_BASSADDRESS + LRADC_INT_STA);
@@ -391,7 +357,7 @@ static int __init sun4ikbd_init(void)
 #ifdef ONE_CHANNEL
 	writel(LRADC_ADC0_DOWN_EN|LRADC_ADC0_UP_EN|LRADC_ADC0_DATA_EN,KEY_BASSADDRESS + LRADC_INTC);	
 	writel(FIRST_CONCERT_DLY|LEVELB_VOL|KEY_MODE_SELECT|LRADC_HOLD_EN|ADC_CHAN_SELECT \
-		|LRADC_SAMPLE_125HZ|LRADC_EN,KEY_BASSADDRESS + LRADC_CTRL);
+		|LRADC_SAMPLE_250HZ|LRADC_EN,KEY_BASSADDRESS + LRADC_CTRL);
 #else
 #endif
 

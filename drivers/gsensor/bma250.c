@@ -63,6 +63,7 @@ module_param_named(debug_mask, debug_mask, int, S_IRUGO | S_IWUSR | S_IWGRP);
 #define BMA250_MAX_DELAY                        200
 #define BMA150_CHIP_ID                          2
 #define BMA250_CHIP_ID                          3
+#define BMA250E_CHIP_ID                         0xF9
 #define BMA250_RANGE_SET                        0
 #define BMA250_BW_SET                           4
 
@@ -328,7 +329,13 @@ int gsensor_detect(struct i2c_client *client, struct i2c_board_info *info)
 					"BMA150 registered I2C driver!\n");  
 				strlcpy(info->type, SENSOR_NAME, I2C_NAME_SIZE);
 				return 0; 
-			}                                                                     
+			} else if((ret &0x00FF) == BMA250E_CHIP_ID) {
+            	  	
+				pr_info("Bosch Sensortec Device detected!\n" \
+					"BMA250E registered I2C driver!\n");  
+				strlcpy(info->type, SENSOR_NAME, I2C_NAME_SIZE);
+				return 0; 
+			}                                                                                                               
 		}
         
 		pr_info("%s:Bosch Sensortec Device not found, \
@@ -895,6 +902,10 @@ static int bma250_probe(struct i2c_client *client,
 	struct bma250_data *data;
 
 	dprintk(DEBUG_BASE_LEVEL1, "bma250: probe\n");
+
+	dprintk(DEBUG_BASE_LEVEL0, "bma250 probe i2c address is %d \n",i2c_address[i2c_num]);
+	client->addr =i2c_address[i2c_num];
+
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
 		printk(KERN_INFO "i2c_check_functionality error\n");
 		goto exit;

@@ -97,10 +97,10 @@ static int tp_flag = 0;
 
 #define STYLUS_UP_DEBOUNCE     (0<<12)
 #define STYLUS_UP_DEBOUCE_EN   (0<<9)
-#define TOUCH_PAN_CALI_EN      (1<<6)
-#define TP_DUAL_EN             (1<<5)
-#define TP_MODE_EN             (1<<4)
-#define TP_ADC_SELECT          (0<<3)
+#define TOUCH_PAN_CALI_EN      (1<<7)
+#define TP_DUAL_EN             (1<<6)
+#define TP_MODE_EN             (1<<5)
+#define TP_ADC_SELECT          (0<<4)
 #define ADC_CHAN_SELECT        (0)
 
 //#define TP_SENSITIVE_ADJUST    (0xf<<28)

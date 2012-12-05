@@ -436,6 +436,9 @@ static int __devinit mma8452_probe(struct i2c_client *client,
 	int result;
 	struct input_dev *idev;
 	struct i2c_adapter *adapter;
+
+	dprintk(DEBUG_BASE_LEVEL0, "mma8452 probe i2c address is %d \n",i2c_address[i2c_num-1]);
+	client->addr =i2c_address[i2c_num-1];
  
 	mma8452_i2c_client = client;
 	adapter = to_i2c_adapter(client->dev.parent);

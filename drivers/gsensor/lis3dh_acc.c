@@ -829,6 +829,7 @@ static int lis3dh_acc_get_acceleration_data(struct lis3dh_acc_data *acc,
 static void lis3dh_acc_report_values(struct lis3dh_acc_data *acc,
 					int *xyz)
 {
+	dprintk(DEBUG_BASE_LEVEL1, "x= 0x%hx, y = 0x%hx, z = 0x%hx\n", xyz[0], xyz[1], xyz[2]);
 	input_report_abs(acc->input_dev, ABS_X, xyz[0]);
 	input_report_abs(acc->input_dev, ABS_Y, xyz[1]);
 	input_report_abs(acc->input_dev, ABS_Z, xyz[2]);
@@ -1346,6 +1347,9 @@ static int lis3dh_acc_probe(struct i2c_client *client,
 	int err = -1;
 
 	pr_info("%s: probe start.\n", LIS3DH_ACC_DEV_NAME);
+
+	dprintk(DEBUG_BASE_LEVEL0, "lis3dh_acc probe i2c address is %d \n",i2c_address[i2c_num]);
+	client->addr =i2c_address[i2c_num];
 
 	if (client->dev.platform_data == NULL) {
 		dev_err(&client->dev, "platform data is NULL. exiting.\n");

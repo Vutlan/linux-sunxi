@@ -42,6 +42,7 @@
 #ifdef SYS_GPIO_CFG_EN
 //#include <mach/system.h>
 static struct clk *ir_clk;
+static struct clk *ir_clk_source;
 static struct gpio_hdle {
 	script_item_u	val;
 	script_item_value_type_e  type;		
@@ -179,18 +180,35 @@ static void ir_clk_cfg(void)
 #endif
 	
 #ifdef SYS_CLK_CFG_EN
-	ir_clk = clk_get(NULL, CLK_MOD_R_CIR);		
-	if (!ir_clk || IS_ERR(ir_clk)) {
-		printk(KERN_DEBUG "try to get ir0 clock failed!\n");
+	ir_clk_source = clk_get(NULL, CLK_SYS_HOSC);		
+	if (!ir_clk_source || IS_ERR(ir_clk_source)) {
+		printk(KERN_DEBUG "try to get ir_clk_source clock failed!\n");
 		return;
 	}
 
-	if (clk_enable(ir_clk)) {
-		printk(KERN_DEBUG "try to enable apb_ir_clk failed!\n");	
+	rate = clk_get_rate(ir_clk_source);
+	dprintk(DEBUG_BASE_LEVEL0, "%s: get ir_clk_source rate %dHZ\n", __func__, (__u32)rate);
+
+	ir_clk = clk_get(NULL, CLK_MOD_R_CIR);		
+	if (!ir_clk || IS_ERR(ir_clk)) {
+		printk(KERN_DEBUG "try to get ir clock failed!\n");
+		return;
 	}
 
-	if (clk_set_rate(ir_clk, rate)) {
-		printk(KERN_DEBUG "set ir0 clock freq to 3M failed!\n");
+	if(clk_set_parent(ir_clk, ir_clk_source))
+		printk("%s: set ir_clk parent to ir_clk_source failed!\n", __func__);
+
+	if (clk_set_rate(ir_clk, 3000000)) {
+		printk(KERN_DEBUG "set ir clock freq to 3M failed!\n");
+	}
+
+	
+	if (clk_enable(ir_clk)) {
+			printk(KERN_DEBUG "try to enable ir_clk failed!\n");	
+	}
+	
+	if (clk_reset(ir_clk, AW_CCU_CLK_NRESET)) {
+			printk(KERN_DEBUG "try to nreset ir_clk failed!\n");	
 	}
 #else	
 	/* Enable APB Clock for IR */	
@@ -217,8 +235,18 @@ static void ir_clk_uncfg(void)
 	if(NULL == ir_clk || IS_ERR(ir_clk)) {
 		printk("ir_clk handle is invalid, just return!\n");
 		return;
-	} else {	
+	} else {
+		clk_disable(ir_clk);
 		clk_put(ir_clk);
+		ir_clk = NULL;
+	}
+
+	if(NULL == ir_clk_source || IS_ERR(ir_clk_source)) {
+		printk("ir_clk_source handle is invalid, just return!\n");
+		return;
+	} else {	
+		clk_put(ir_clk_source);
+		ir_clk_source = NULL;
 	}
 #else	
 #endif
@@ -228,7 +256,7 @@ static void ir_clk_uncfg(void)
 static void ir_sys_cfg(void)
 {
 #ifdef SYS_GPIO_CFG_EN
-	ir_gpio_hdle.type = script_get_item("ir_para", "ir0_rx", &(ir_gpio_hdle.val));
+	ir_gpio_hdle.type = script_get_item("ir_para", "ir_rx", &(ir_gpio_hdle.val));
 	
 	if(SCIRPT_ITEM_VALUE_TYPE_PIO != ir_gpio_hdle.type)
 		printk(KERN_ERR "IR gpio type err! \n");
@@ -481,7 +509,7 @@ static irqreturn_t ir_irq_service(int irqno, void *dev_id)
 		for (i=0; i<dcnt; i++) {
 			if (ir_rawbuffer_full()) {
 			
-				dprintk(DEBUG_BASE_LEVEL0,"ir_irq_service: Raw Buffer Full!!\n");
+				dprintk(DEBUG_BASE_LEVEL0, "ir_irq_service: Raw Buffer Full!!\n");
 				
 				break;
 			} else {
