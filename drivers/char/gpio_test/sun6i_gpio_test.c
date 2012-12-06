@@ -327,7 +327,7 @@ void __test_re_request_free(void)
 		printk("%s, line %d, request %s(%d) success!\n", __func__, __LINE__, name, uindex);
 #if 0	/* re-request, err */
 		printk("%s, line %d, try to re-request %s(%d)!\n", __func__, __LINE__, name, uindex);
-		if(0 != gpio_request(uindex))
+		if(0 != gpio_request(uindex, name))
 			printk("%s, line %d, re-request %s(%d) failed! good!\n", __func__, __LINE__, name, uindex);
 		else
 			printk("%s, line %d, re-request %s(%d) pass! err!\n", __func__, __LINE__, name, uindex);

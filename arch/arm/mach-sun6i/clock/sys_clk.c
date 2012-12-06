@@ -238,6 +238,7 @@ static __u64 sys_clk_get_rate(__aw_ccu_clk_id_e id)
         case AW_SYS_CLK_PLL10:
         {
             volatile __ccmu_media_pll_t  *tmp_reg;
+	    __ccmu_media_pll_t  tmp_pll;
 
             if(id == AW_SYS_CLK_PLL3)
                 tmp_reg = &aw_ccu_reg->Pll3Ctl;
@@ -254,24 +255,24 @@ static __u64 sys_clk_get_rate(__aw_ccu_clk_id_e id)
 
             if(!tmp_reg->ModeSel)
             {
-                if(tmp_reg->FracMod)
-                    return 297000000;
-                else
-                    return 270000000;
+	    	tmp_rate = tmp_reg->FracMod ? 297000000 : 270000000;
+		ccm_get_pllx_para(&tmp_pll, tmp_rate);
+		tmp_reg->FactorM = tmp_pll.FactorM;
+		tmp_reg->FactorN = tmp_pll.FactorN;
+		return tmp_rate;
             }
             else
             {
                 tmp_rate = (__u64)24000000*(tmp_reg->FactorN+1);
                 do_div(tmp_rate, tmp_reg->FactorM+1);
-                if(tmp_rate == 297000000) {
-                    /* set pll to frac mode */
-                    tmp_reg->ModeSel = 0;
-                    tmp_reg->FracMod = 1;
-                } else if(tmp_rate == 270000000) {
-                    /* set pll to frac mode */
-                    tmp_reg->ModeSel = 0;
-                    tmp_reg->FracMod = 0;
-                }
+		if(tmp_rate == 297000000 || tmp_rate == 270000000) {
+		    /* set pll to frac mode */
+		    tmp_reg->ModeSel = 0;
+		    tmp_reg->FracMod = (tmp_rate == 297000000) ? 1 : 0;
+		    ccm_get_pllx_para(&tmp_pll, tmp_rate);
+		    tmp_reg->FactorM = tmp_pll.FactorM;
+		    tmp_reg->FactorN = tmp_pll.FactorN;
+		}
                 return tmp_rate;
             }
         }
@@ -650,6 +651,7 @@ static __s32 sys_clk_set_rate(__aw_ccu_clk_id_e id, __u64 rate)
         case AW_SYS_CLK_PLL10:
         {
             volatile __ccmu_media_pll_t  *tmp_reg;
+	     __ccmu_media_pll_t  tmp_pll;
 
             if(id == AW_SYS_CLK_PLL3)
                 tmp_reg = &aw_ccu_reg->Pll3Ctl;
@@ -676,6 +678,9 @@ static __s32 sys_clk_set_rate(__aw_ccu_clk_id_e id, __u64 rate)
             {
                 tmp_reg->ModeSel = 0;
                 tmp_reg->FracMod = (rate == 270000000)?0:1;
+		ccm_get_pllx_para(&tmp_pll, rate);
+		tmp_reg->FactorM = tmp_pll.FactorM;
+		tmp_reg->FactorN = tmp_pll.FactorN;
                 return 0;
             }
             else
