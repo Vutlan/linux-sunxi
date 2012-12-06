@@ -106,7 +106,6 @@ enum driver_level_e {
 							writel(0, 0xF1C20CF8);		\
 						else if(unlikely(0xF1C20918 == reg))	\
 							writel(0, 0xF1C20D18);		\
-						}					\
 					} while(0)
 /* read/write bits value from pos of reg */
 #define PIO_READ_BITS(reg, pos, width)		((PIO_READ_REG(reg) >> (pos)) & ((1 << (width)) - 1))
