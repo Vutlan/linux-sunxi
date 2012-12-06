@@ -30,12 +30,19 @@
 
 extern void sun6i_secondary_startup(void);
 
+/*
+ * control for which core is the next to come out of the secondary
+ * boot "holding pen"
+ */
+volatile int pen_release = -1;
+
+
 static DEFINE_SPINLOCK(boot_lock);
 
 /*
  * Initialise the CPU possible map early - this describes the CPUs
  * which may be present or become present in the system.
- * 
+ *
  * Note: for arch/arm/kernel/setup.csetup_arch(..)
  */
 static void __iomem *scu_base_addr(void)
@@ -44,35 +51,32 @@ static void __iomem *scu_base_addr(void)
 	return __io_address(AW_SCU_BASE);
 }
 
-#define AW_R_CPUCFG_BASE 0x01f01c00
 
 void enable_aw_cpu(int cpu)
 {
 	long paddr;
-/*
-	volatile long reg1 = 0x0;
-*/
+	u32 pwr_reg;
+
 	paddr = virt_to_phys(sun6i_secondary_startup);
-        writel(paddr, IO_ADDRESS(AW_R_CPUCFG_BASE) + AW_CPUCFG_P_REG0);
-	if(cpu)
-		writel(3, IO_ADDRESS(AW_R_CPUCFG_BASE) + (0x40 + cpu * 0x40));
-	/*the code only to debugging with direct download bimage 
-	 * you can open it to debugging but please don`t open it to commit*/
+    writel(paddr, IO_ADDRESS(AW_R_CPUCFG_BASE) + AW_CPUCFG_P_REG0);
+
 	/*
-	writel(1, IO_ADDRESS(AW_R_CPUCFG_BASE) + 0x80);
+	 * Clear the clamp control.
+	 */
+	writel(0x00, IO_ADDRESS(AW_R_PRCM_BASE) + AW_CPUX_PWR_CLAMP(cpu));
 
-	reg1 = readl(IO_ADDRESS(AW_R_CPUCFG_BASE) + AW_CPUCFG_P_REG1);
+	/*
+	 * Clear the poweroff gateing.
+	 */
+	pwr_reg = readl(IO_ADDRESS(AW_R_PRCM_BASE) + AW_CPU_PWROFF_REG);
+	pwr_reg &= ~(0x00000001<<cpu);
+	writel(pwr_reg, IO_ADDRESS(AW_R_PRCM_BASE) + AW_CPU_PWROFF_REG);
 
-	if (cpu == 1) {
-		reg1 |= 0x2;
-	} else if (cpu == 2) {
-		reg1 |= 0x4;
-	} else if (cpu == 3) {
-		reg1 |= 0x8;
-	}
-
-	writel(reg1, IO_ADDRESS(AW_R_CPUCFG_BASE) + AW_CPUCFG_P_REG1);
-	*/
+	/*
+	 * Set the reset Control
+	 */
+	writel(3, IO_ADDRESS(AW_R_CPUCFG_BASE) + CPUX_RESET_CTL(cpu));
+	printk("[boot_secondary]: open the cpu%d\n", cpu);
 }
 
 void __init smp_init_cpus(void)
@@ -82,8 +86,9 @@ void __init smp_init_cpus(void)
 	ncores =  scu_get_core_count(NULL);
 	printk("[%s] ncores=%d\n", __FUNCTION__, ncores);
 
-	for (i = 0; i < ncores; i++)
-                set_cpu_possible(i, true);
+	for (i = 0; i < ncores; i++) {
+	    set_cpu_possible(i, true);
+	}
 
 	set_smp_cross_call(gic_raise_softirq);
 }
@@ -107,14 +112,7 @@ extern int arch_timer_common_register(void);
 void __cpuinit platform_secondary_init(unsigned int cpu)
 {
 	printk("[%s] enter, cpu:%d\n", __FUNCTION__, cpu);
-
-		gic_secondary_init(0);
-
-        spin_lock(&boot_lock);
-        spin_unlock(&boot_lock);
-
-	printk("[%s] leave\n", __FUNCTION__);
-
+    gic_secondary_init(0);
 }
 
 /*
@@ -123,12 +121,9 @@ void __cpuinit platform_secondary_init(unsigned int cpu)
 int __cpuinit boot_secondary(unsigned int cpu, struct task_struct *idle)
 {
 	printk("[%s] enter\n", __FUNCTION__);
-
 	spin_lock(&boot_lock);
 	enable_aw_cpu(cpu);
 	spin_unlock(&boot_lock);
-
-	printk("[%s] leave\n", __FUNCTION__);
 	return 0;
 }
 

@@ -86,10 +86,10 @@
 #define AW_UART3_BASE				0x01c28c00 /* UART 3 */
 #define AW_UART4_BASE				0x01c29000 /* UART 4 */
 #define AW_UART5_BASE				0x01c29400 /* UART 5 */
-#define AW_TWI0_BASE				0x01c2ac00 
-#define AW_TWI1_BASE				0x01c2b000 
-#define AW_TWI2_BASE				0x01c2b400 
-#define	AW_TWI3_BASE				0x01c2b800 
+#define AW_TWI0_BASE				0x01c2ac00
+#define AW_TWI1_BASE				0x01c2b000
+#define AW_TWI2_BASE				0x01c2b400
+#define	AW_TWI3_BASE				0x01c2b800
 #define	AW_GMAC_BASE				0x01c30000
 #define	AW_GPU_BASE					0x01c40000
 #define	AW_HSTMR_BASE				0x01c60000
@@ -128,11 +128,11 @@
 #define	AW_R_WDOG_BASE				0x01f01000
 #define	AW_R_PRCM_BASE				0x01f01400
 #define AW_R_CPUCFG_BASE            0x01f01c00
-#define AW_R_CIR_BASE				0x01f02000 
+#define AW_R_CIR_BASE				0x01f02000
 #define	AW_R_TWI_BASE				0x01f02400
 #define AW_R_UART_BASE              0x01f02800 /* R_UART */
 #define AW_R_PIO_BASE               0x01f02c00 /* for r-pio */
-#define AW_R_ONE_WIRE_BASE			0x01f03000 
+#define AW_R_ONE_WIRE_BASE			0x01f03000
 #define	AW_R_P2WI_BASE				0x01f03400
 #define	AW_CDM_BASE					0x3f500000/*coresight debug module*/
 #define	AW_TSGEN_RO_BASE			0x3f506000
@@ -151,7 +151,7 @@
  * Peripheral addresses
  */
 #define AW_RTC_REG					AW_RTC_BASE
-#define	AW_RPIO_BASE				AW_R_PIO_BASE  
+#define	AW_RPIO_BASE				AW_R_PIO_BASE
 
 
 
@@ -208,10 +208,10 @@
 #define AW_VIR_UART3_BASE				0xf1c28c00 /* UART 3 */
 #define AW_VIR_UART4_BASE				0xf1c29000 /* UART 4 */
 #define AW_VIR_UART5_BASE				0xf1c29400 /* UART 5 */
-#define AW_VIR_TWI0_BASE				0xf1c2ac00 
-#define AW_VIR_TWI1_BASE				0xf1c2b000 
-#define AW_VIR_TWI2_BASE				0xf1c2b400 
-#define	AW_VIR_TWI3_BASE				0xf1c2b800 
+#define AW_VIR_TWI0_BASE				0xf1c2ac00
+#define AW_VIR_TWI1_BASE				0xf1c2b000
+#define AW_VIR_TWI2_BASE				0xf1c2b400
+#define	AW_VIR_TWI3_BASE				0xf1c2b800
 #define	AW_VIR_GMAC_BASE				0xf1c30000
 #define	AW_VIR_GPU_BASE					0xf1c40000
 #define	AW_VIR_HSTMR_BASE				0xf1c60000
@@ -250,11 +250,11 @@
 #define	AW_VIR_R_WDOG_BASE				0xf1f01000
 #define	AW_VIR_R_PRCM_BASE				0xf1f01400
 #define AW_VIR_R_CPUCFG_BASE            0xf1f01c00
-#define AW_VIR_R_CIR_BASE				0xf1f02000 
+#define AW_VIR_R_CIR_BASE				0xf1f02000
 #define	AW_VIR_R_TWI_BASE				0xf1f02400
 #define AW_VIR_R_UART_BASE              0xf1f02800 /* R_UART */
 #define AW_VIR_R_PIO_BASE               0xf1f02c00 /* for r-pio */
-#define AW_VIR_R_ONE_WIRE_BASE			0xf1f03000 
+#define AW_VIR_R_ONE_WIRE_BASE			0xf1f03000
 #define	AW_VIR_R_P2WI_BASE				0xf1f03400
 
 
@@ -285,6 +285,14 @@
  */
 #define AW_CPUCFG_P_REG0            0x01a4
 #define AW_CPUCFG_P_REG1            0x01a8
+#define CPUX_RESET_CTL(x) (0x40 + (x)*0x40)
+
+/*
+ * PRCM
+ */
+#define AW_CPU_PWROFF_REG			0x100
+/* cpu0 has no clmap register! */
+#define AW_CPUX_PWR_CLAMP(x)		(0x140 + (x)*0x04)
 
 /*
  * UART
