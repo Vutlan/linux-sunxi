@@ -189,7 +189,7 @@ __s32 DEU_EBIOS_LP_STR_Enable(__u32 sel, __u32 en)
 
 __s32 DEU_EBIOS_LP_Set_STR_Addr(__u32 sel, __u32 address)
 {
-	deu_dev[sel]->straddr.bits.straddr = address;
+	deu_dev[sel]->straddr.bits.straddr = address-0x40000000;
 	return 0;
 }
 

@@ -171,8 +171,7 @@ __s32 DRC_EBIOS_Drc_Cfg_Rdy(__u32 sel)
 
 __u32 DRC_EBIOS_Drc_Set_Lgc_Addr(__u32 sel, __u32 addr)
 {
-
-	drc_dev[sel]->drclgc_addr.bits.lgc_addr = addr;
+	drc_dev[sel]->drclgc_addr.bits.lgc_addr = addr-0x40000000;
 	return 0;
 
 }
