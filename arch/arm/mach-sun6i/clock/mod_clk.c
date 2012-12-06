@@ -74,6 +74,48 @@ static struct module0_div_tbl module0_clk_div_tbl[] = {
     {14, 3, 120},
     {15, 3, 128},
 };
+static struct module0_div_tbl mmc_clk_div_tbl[] = {
+    {0 , 0, 1  },
+    {1 , 0, 2  },
+    {2 , 0, 3  },
+    {3 , 0, 4  },
+    {4 , 0, 5  },
+    {5 , 0, 6  },
+    {6 , 0, 7  },
+    {7 , 0, 8  },
+    {9 , 0, 9  },
+    {9 , 0, 10 },
+    {11, 0, 11 },
+    {11, 0, 12 },
+    {13, 0, 13 },
+    {13, 0, 14 },
+    {15, 0, 15 },
+    {15, 0, 16 },
+    {9 , 1, 18 },
+    {9 , 1, 20 },
+    {11, 1, 22 },
+    {11, 1, 24 },
+    {13, 1, 26 },
+    {13, 1, 28 },
+    {15, 1, 30 },
+    {15, 1, 32 },
+    {9 , 2, 36 },
+    {9 , 2, 40 },
+    {11, 2, 44 },
+    {11, 2, 48 },
+    {13, 2, 52 },
+    {13, 2, 56 },
+    {15, 2, 60 },
+    {15, 2, 64 },
+    {9 , 3, 72 },
+    {9 , 3, 80 },
+    {11, 3, 88 },
+    {11, 3, 96 },
+    {13, 3, 104},
+    {13, 3, 112},
+    {15, 3, 120},
+    {15, 3, 128},
+};
 struct onewire_div_tbl{
     __u8    FactorM;
     __u8    FactorN;
@@ -393,6 +435,29 @@ static inline __s32 _set_module0_clk_rate(volatile __ccmu_module0_clk_t *reg, __
             low = (low+high)/2;
             reg->DivM = module0_clk_div_tbl[low].FactorM;
             reg->DivN = module0_clk_div_tbl[low].FactorN;
+            return 0;
+        }
+    }
+
+    CCU_ERR("%s:%d, set rate of (%x) to %llu failed", __FILE__, __LINE__, (int)reg, rate);
+    return -1;
+}
+static inline __s32 _set_mmc_clk_rate(volatile __ccmu_module0_clk_t *reg, __s64 rate)
+{
+    int     low, high;
+
+    low = 0;
+    high = sizeof(mmc_clk_div_tbl)/sizeof(struct module0_div_tbl) - 1;
+
+    while(low<=high){
+        if(mmc_clk_div_tbl[(low+high)/2].Div < rate) {
+            low = (low+high)/2+1;
+        } else if(mmc_clk_div_tbl[(low+high)/2].Div > rate) {
+            high = (low+high)/2-1;
+        } else {
+            low = (low+high)/2;
+            reg->DivM = mmc_clk_div_tbl[low].FactorM;
+            reg->DivN = mmc_clk_div_tbl[low].FactorN;
             return 0;
         }
     }
@@ -1972,13 +2037,13 @@ static __s32 mod_clk_set_rate(__aw_ccu_clk_id_e id, __s64 rate)
         case AW_MOD_CLK_NAND1:
             return _set_module0_clk_rate(&aw_ccu_reg->Nand1, rate);
         case AW_MOD_CLK_SDC0:
-            return _set_module0_clk_rate(&aw_ccu_reg->Sd0, rate);
+            return _set_mmc_clk_rate(&aw_ccu_reg->Sd0, rate);
         case AW_MOD_CLK_SDC1:
-            return _set_module0_clk_rate(&aw_ccu_reg->Sd1, rate);
+            return _set_mmc_clk_rate(&aw_ccu_reg->Sd1, rate);
         case AW_MOD_CLK_SDC2:
-            return _set_module0_clk_rate(&aw_ccu_reg->Sd2, rate);
+            return _set_mmc_clk_rate(&aw_ccu_reg->Sd2, rate);
         case AW_MOD_CLK_SDC3:
-            return _set_module0_clk_rate(&aw_ccu_reg->Sd3, rate);
+            return _set_mmc_clk_rate(&aw_ccu_reg->Sd3, rate);
         case AW_MOD_CLK_TS:
             return _set_module0_clk_rate(&aw_ccu_reg->Ts, rate);
         case AW_MOD_CLK_SS:
