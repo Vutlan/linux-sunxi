@@ -304,6 +304,7 @@ static inline __s32 _set_disp_clk_src(volatile __ccmu_disp_clk_t *reg, __aw_ccu_
                 reg->ClkSrc = 5;
             else
                 return -1;
+	    return 0;
         }
 
         case DE_MP_INDX:
@@ -318,6 +319,7 @@ static inline __s32 _set_disp_clk_src(volatile __ccmu_disp_clk_t *reg, __aw_ccu_
                 reg->ClkSrc = 3;
             else
                 return -1;
+	    return 0;
         }
 
         case LCD_CH0_INDX:
@@ -334,6 +336,7 @@ static inline __s32 _set_disp_clk_src(volatile __ccmu_disp_clk_t *reg, __aw_ccu_
                 reg->ClkSrc = 4;
             else
                 return -1;
+	    return 0;
         }
 
         case LCD_CH1_INDX:
@@ -348,13 +351,14 @@ static inline __s32 _set_disp_clk_src(volatile __ccmu_disp_clk_t *reg, __aw_ccu_
                 reg->ClkSrc = 3;
             else
                 return -1;
+	    return 0;
         }
 
         default:
             return -1;
     }
 
-    return 0;
+     return -1;
 }
 
 
@@ -1067,10 +1071,8 @@ static __aw_ccu_clk_onff_e mod_clk_get_status(__aw_ccu_clk_id_e id)
             return aw_ccu_reg->Apb2Gate.Uart5? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
         case AW_DRAM_CLK_VE:
             return aw_ccu_reg->DramGate.Ve? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
-        case AW_DRAM_CLK_CSI0:
-            return aw_ccu_reg->DramGate.Csi0? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
-        case AW_DRAM_CLK_CSI1:
-            return aw_ccu_reg->DramGate.Csi1? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
+        case AW_DRAM_CLK_CSI_ISP:
+            return aw_ccu_reg->DramGate.CsiIsp? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
         case AW_DRAM_CLK_TS:
             return aw_ccu_reg->DramGate.Ts? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
         case AW_DRAM_CLK_DRC0:
@@ -1890,10 +1892,8 @@ static __s32 mod_clk_set_status(__aw_ccu_clk_id_e id, __aw_ccu_clk_onff_e status
             aw_ccu_reg->Apb2Gate.Uart5 = STATUS_BIT(status); break;
         case AW_DRAM_CLK_VE:
             aw_ccu_reg->DramGate.Ve = STATUS_BIT(status); break;
-        case AW_DRAM_CLK_CSI0:
-            aw_ccu_reg->DramGate.Csi0 = STATUS_BIT(status); break;
-        case AW_DRAM_CLK_CSI1:
-            aw_ccu_reg->DramGate.Csi1 = STATUS_BIT(status); break;
+        case AW_DRAM_CLK_CSI_ISP:
+            aw_ccu_reg->DramGate.CsiIsp = STATUS_BIT(status); break;
         case AW_DRAM_CLK_TS:
             aw_ccu_reg->DramGate.Ts = STATUS_BIT(status); break;
         case AW_DRAM_CLK_DRC0:

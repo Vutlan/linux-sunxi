@@ -95,16 +95,22 @@ enum driver_level_e {
  * reg read write operation
  */
 #define PIO_READ_REG(reg)		readl(reg)
-#define PIO_WRITE_REG(reg, val)		writel((val), (reg))
-
-/*
- * read/write bits value from pos of reg
+/* fix watchdog hw bug:
+ * when write 01C208D8/01C208F8/01C20918, clear wd reg 01C20CD8/01C20CF8/01C20D18
  */
-#define PIO_READ_REG_BITS(reg, pos, width)		((PIO_READ_REG(reg) >> (pos)) & ((1 << (width)) - 1))
-#define PIO_WRITE_REG_BITS(reg, pos, width, val)	PIO_WRITE_REG(reg, (readl(reg) & (u32)(~(((1 << (width)) - 1) << (pos)))) \
+#define PIO_WRITE_REG(reg, val)		do {				\
+						writel((val), (void *)(reg));	\
+						if(unlikely(0xF1C208D8==reg || 0xF1C208F8==reg || 0xF1C20918==reg)) { \
+							writel(0, 0xF1C20CD8);writel(0, 0xF1C20CF8);writel(0, 0xF1C20D18); \
+						}			\
+					} while(0)
+/* read/write bits value from pos of reg */
+#define PIO_READ_BITS(reg, pos, width)		((PIO_READ_REG(reg) >> (pos)) & ((1 << (width)) - 1))
+#define PIO_WRITE_BITS(reg, pos, width, val)	PIO_WRITE_REG(reg, (readl(reg) & (u32)(~(((1 << (width)) - 1) << (pos)))) \
 								| (u32)(((val) & ((1 << (width)) - 1)) << (pos)))
-#define PIO_SET_BIT(reg, offset)	PIO_WRITE_REG_BITS(reg, offset, 1, 1)
-#define PIO_CLR_BIT(reg, offset)	PIO_WRITE_REG_BITS(reg, offset, 1, 0)
+/* set/clear one bit */
+#define PIO_SET_BIT(reg, offset)	PIO_WRITE_BITS(reg, offset, 1, 1)
+#define PIO_CLR_BIT(reg, offset)	PIO_WRITE_BITS(reg, offset, 1, 0)
 
 /*
  * gpio struct define below

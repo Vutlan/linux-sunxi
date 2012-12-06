@@ -234,8 +234,7 @@ typedef enum __AW_CCU_CLK_RESET
 
 /* define dram module gating clock */
 #define CLK_DRAM_VE         "dram_ve"
-#define CLK_DRAM_CSI0       "dram_csi0"
-#define CLK_DRAM_CSI1       "dram_csi1"
+#define CLK_DRAM_CSI_ISP    "dram_csi_isp"
 #define CLK_DRAM_TS         "dram_ts"
 #define CLK_DRAM_DRC0       "dram_drc0"
 #define CLK_DRAM_DRC1       "dram_drc1"

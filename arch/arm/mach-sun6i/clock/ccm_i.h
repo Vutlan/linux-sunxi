@@ -240,8 +240,7 @@ typedef enum __AW_CCU_CLK_ID
 
     /* dram module gating */
     AW_DRAM_CLK_VE,         /* "dram_ve"                        */
-    AW_DRAM_CLK_CSI0,       /* "dram_csi0"                      */
-    AW_DRAM_CLK_CSI1,       /* "dram_csi1"                      */
+    AW_DRAM_CLK_CSI_ISP,    /* "dram_csi_isp"                   */
     AW_DRAM_CLK_TS,         /* "dram_ts"                        */
     AW_DRAM_CLK_DRC0,       /* "dram_drc0"                      */
     AW_DRAM_CLK_DRC1,       /* "dram_drc1"                      */

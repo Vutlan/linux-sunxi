@@ -274,8 +274,7 @@ void clk_dbg_inf(void)
 
     printk("\nDramGate clk infor:(0x%x)\n", (unsigned int)&aw_ccu_reg->DramGate);
     print_clk_inf(DramGate, Ve      );
-    print_clk_inf(DramGate, Csi0);
-    print_clk_inf(DramGate, Csi1);
+    print_clk_inf(DramGate, CsiIsp);
     print_clk_inf(DramGate, Ts);
     print_clk_inf(DramGate, Drc0);
     print_clk_inf(DramGate, Drc1);
@@ -692,8 +691,7 @@ static int ccmu_stats_show(struct seq_file *m, void *unused)
 
     seq_printf(m, "\nDramGate clk infor:(0x%x)\n", (unsigned int)&aw_ccu_reg->DramGate);
     sprintf_clk_inf(m, DramGate, Ve      );
-    sprintf_clk_inf(m, DramGate, Csi0);
-    sprintf_clk_inf(m, DramGate, Csi1);
+    sprintf_clk_inf(m, DramGate, CsiIsp);
     sprintf_clk_inf(m, DramGate, Ts);
     sprintf_clk_inf(m, DramGate, Drc0);
     sprintf_clk_inf(m, DramGate, Drc1);

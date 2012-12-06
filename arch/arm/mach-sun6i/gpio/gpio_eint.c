@@ -85,7 +85,7 @@ u32 gpio_eint_set_trig(struct aw_gpio_chip *pchip, u32 offset, enum gpio_eint_tr
 	PIO_DBG("%s: chip 0x%08x, offset %d, write reg 0x%08x, bits off %d, val %d\n", __func__,
 		(u32)pchip, offset, (u32)pchip->vbase_eint + reg_off, bits_off, (u32)trig_val);
 #endif /* DBG_GPIO */
-	PIO_WRITE_REG_BITS(pchip->vbase_eint + reg_off, bits_off, 4, (u32)trig_val);
+	PIO_WRITE_BITS((u32)pchip->vbase_eint + reg_off, bits_off, 4, (u32)trig_val);
 	return 0;
 }
 
@@ -104,7 +104,7 @@ u32 gpio_eint_get_trig(struct aw_gpio_chip *pchip, u32 offset, enum gpio_eint_tr
 	reg_off = ((offset << 2) >> 5) << 2; /* (offset * 4) / 32 * 4 */
 	bits_off = (offset << 2) & ((1 << 5) - 1); /* (offset * 4) % 32 */
 
-	*pval = (enum gpio_eint_trigtype)PIO_READ_REG_BITS(pchip->vbase_eint + reg_off, bits_off, 4);
+	*pval = (enum gpio_eint_trigtype)PIO_READ_BITS((u32)pchip->vbase_eint + reg_off, bits_off, 4);
 #ifdef DBG_GPIO
 	PIO_DBG("%s: chip 0x%08x, offset %d, read reg 0x%08x - 0x%08x, bits off %d, ret val %d\n", __func__,
 		(u32)pchip, offset, (u32)pchip->vbase_eint + reg_off,
@@ -130,9 +130,9 @@ u32 gpio_eint_set_enable(struct aw_gpio_chip *pchip, u32 offset, u32 enable)
 #endif /* DBG_GPIO */
 
 	if(0 != enable)
-		PIO_SET_BIT(pchip->vbase_eint + PIO_EINT_OFF_REG_CTRL, offset);
+		PIO_SET_BIT((u32)pchip->vbase_eint + PIO_EINT_OFF_REG_CTRL, offset);
 	else
-		PIO_CLR_BIT(pchip->vbase_eint + PIO_EINT_OFF_REG_CTRL, offset);
+		PIO_CLR_BIT((u32)pchip->vbase_eint + PIO_EINT_OFF_REG_CTRL, offset);
 	return 0;
 }
 
@@ -147,7 +147,7 @@ u32 gpio_eint_set_enable(struct aw_gpio_chip *pchip, u32 offset, u32 enable)
 u32 gpio_eint_get_enable(struct aw_gpio_chip *pchip, u32 offset, u32 *penable)
 {
 	WARN_ON(NULL == penable);
-	*penable = PIO_READ_REG_BITS(pchip->vbase_eint + PIO_EINT_OFF_REG_CTRL, offset, 1);
+	*penable = PIO_READ_BITS((u32)pchip->vbase_eint + PIO_EINT_OFF_REG_CTRL, offset, 1);
 #ifdef DBG_GPIO
 	PIO_DBG("%s: chip 0x%08x, offset %d, read reg 0x%08x - 0x%08x, penable 0x%08x, *penable %d\n", __func__,
 		(u32)pchip, offset, (u32)pchip->vbase_eint + PIO_EINT_OFF_REG_CTRL,
@@ -167,11 +167,11 @@ u32 gpio_eint_get_irqpd_sta(struct aw_gpio_chip *pchip, u32 offset)
 {
 	u32	uret = 0;
 
-	uret = PIO_READ_REG_BITS(pchip->vbase_eint + PIO_EINT_OFF_REG_STATUS, offset, 1);
+	uret = PIO_READ_BITS((u32)pchip->vbase_eint + PIO_EINT_OFF_REG_STATUS, offset, 1);
 #ifdef DBG_GPIO
 	PIO_DBG("%s: chip 0x%08x, offset %d, read reg 0x%08x - 0x%08x, ret %d\n", __func__,
 		(u32)pchip, offset, (u32)pchip->vbase_eint + PIO_EINT_OFF_REG_STATUS,
-		PIO_READ_REG(pchip->vbase_eint + PIO_EINT_OFF_REG_STATUS), uret);
+		PIO_READ_REG((u32)pchip->vbase_eint + PIO_EINT_OFF_REG_STATUS), uret);
 #endif /* DBG_GPIO */
 	return uret;
 }
@@ -185,10 +185,10 @@ u32 gpio_eint_get_irqpd_sta(struct aw_gpio_chip *pchip, u32 offset)
  */
 u32 gpio_eint_clr_irqpd_sta(struct aw_gpio_chip *pchip, u32 offset)
 {
-	if(1 == PIO_READ_REG_BITS(pchip->vbase_eint + PIO_EINT_OFF_REG_STATUS, offset, 1))
+	if(1 == PIO_READ_BITS((u32)pchip->vbase_eint + PIO_EINT_OFF_REG_STATUS, offset, 1))
 		/* bug: clear all pending bits, but only need clear the offset bit here */
-		//PIO_WRITE_REG_BITS(pchip->vbase_eint + PIO_EINT_OFF_REG_STATUS, offset, 1, 1);
-		PIO_WRITE_REG(pchip->vbase_eint + PIO_EINT_OFF_REG_STATUS, 1 << offset);
+		//PIO_WRITE_BITS(pchip->vbase_eint + PIO_EINT_OFF_REG_STATUS, offset, 1, 1);
+		PIO_WRITE_REG((u32)pchip->vbase_eint + PIO_EINT_OFF_REG_STATUS, 1 << offset);
 	return 0;
 }
 
@@ -211,7 +211,7 @@ u32 gpio_eint_set_debounce(struct aw_gpio_chip *pchip, struct gpio_eint_debounce
 	PIO_DBG("%s: clk_sel %d, clk_pre_scl %d, write 0x%08x to reg 0x%08x\n", __func__, val.clk_sel,
 		val.clk_pre_scl, utemp, (u32)pchip->vbase_eint + PIO_EINT_OFF_REG_DEBOUNCE);
 #endif /* DBG_GPIO */
-	PIO_WRITE_REG(pchip->vbase_eint + PIO_EINT_OFF_REG_DEBOUNCE, utemp);
+	PIO_WRITE_REG((u32)pchip->vbase_eint + PIO_EINT_OFF_REG_DEBOUNCE, utemp);
 	return 0;
 }
 

@@ -365,21 +365,21 @@ typedef struct __CCMU_DRAM_CFG_REG00F4
 typedef struct __CCMU_DRAM_GATE_REG0100
 {
     __u32   Ve:1;               //bit0,  Gating dram clock for VE, 0-mask, 1-pass
-    __u32   Csi0:1;             //bit1,  Gating dram clock for CSI0, 0-mask, 1-pass
-    __u32   Csi1:1;             //bit2,  Gating dram clock for CSI1, 0-mask, 1-pass
+    __u32   CsiIsp:1;           //bit1,  Gating dram clock for CSI0, CSI1, MIPI_CSI0, ISP, 0-mask, 1-pass
+    __u32   reserved0:1;        //bit2,  reserved
     __u32   Ts:1;               //bit3,  Gating dram clock for TS, 0-mask, 1-pass
-    __u32   reserved0:12;       //bit4,  reserved
+    __u32   reserved1:12;       //bit4,  reserved
     __u32   Drc0:1;             //bit16, Gating dram clock for DRC0, 0-mask, 1-pass
     __u32   Drc1:1;             //bit17, Gating dram clock for DRC1, 0-mask, 1-pass
     __u32   Deu0:1;             //bit18, Gating dram clock for DEU0, 0-mask, 1-pass
     __u32   Deu1:1;             //bit19, Gating dram clock for DEU1, 0-mask, 1-pass
-    __u32   reserved1:4;        //bit20,  reserved
+    __u32   reserved2:4;        //bit20,  reserved
     __u32   Fe0:1;              //bit24, Gating dram clock for DE_FE0, 0-mask, 1-pass
     __u32   Fe1:1;              //bit25, Gating dram clock for DE_FE1, 0-mask, 1-pass
     __u32   Be0:1;              //bit26, Gating dram clock for DE_BE0, 0-mask, 1-pass
     __u32   Be1:1;              //bit27, Gating dram clock for DE_BE1, 0-mask, 1-pass
     __u32   Mp:1;               //bit28, Gating dram clock for MP, 0-mask, 1-pass
-    __u32   reserved2:3;        //bit29, reserved
+    __u32   reserved3:3;        //bit29, reserved
 } __ccmu_dram_gate_reg0100_t;
 
 
