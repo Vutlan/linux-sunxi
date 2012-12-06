@@ -364,8 +364,6 @@ u32 __handle_qd_sgmd(struct dma_channel_t *pchan)
 		index_put++;
 		if(index_put >= TEMP_DES_CNT)
 			index_put = 0;
-		//if(index_put == index_get)
-		//	printk("%s err: index_put %d > index_get %d", __func__, index_put, index_get);
 #endif /* TEMP_FOR_XJF_20121121 */
 		pchan->pcur_des = NULL;
 
