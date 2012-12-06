@@ -40,7 +40,7 @@ static unsigned int last_target = ~0;       /* backup last target frequency     
 static struct clk *clk_pll; /* pll clock handler */
 static struct clk *clk_cpu; /* cpu clock handler */
 static struct clk *clk_axi; /* axi clock handler */
-
+static DEFINE_MUTEX(sunxi_cpu_lock);
 
 static unsigned int cpu_freq_max = SUNXI_CPUFREQ_MAX / 1000;
 static unsigned int cpu_freq_min = SUNXI_CPUFREQ_MIN / 1000;
@@ -78,40 +78,44 @@ static void sunxi_cpufreq_show(const char *pfx, struct sunxi_cpu_freq_t *cfg)
  */
 static int sunxi_cpufreq_target(struct cpufreq_policy *policy, __u32 freq, __u32 relation)
 {
-    int                     i;
+    int                     i, ret = 0;
     unsigned int            index;
     struct sunxi_cpu_freq_t freq_cfg;
     struct cpufreq_freqs    freqs;
 
-    #ifdef CONFIG_SMP
+    mutex_lock(&sunxi_cpu_lock);
+
+#ifdef CONFIG_SMP
     /* Wait untill all CPU's are initialized */
-    if (unlikely(cpus_initialized < num_online_cpus()))
-        return -EINVAL;
-    #endif
+    if (unlikely(cpus_initialized < num_online_cpus())) {
+        ret = -EINVAL;
+        goto out;
+    }
+#endif
 
     /* avoid repeated calls which cause a needless amout of duplicated
      * logging output (and CPU time as the calculation process is
      * done) */
-    if (freq == last_target) {
-        return 0;
-    }
+    if (freq == last_target)
+        goto out;
 
     /* try to look for a valid frequency value from cpu frequency table */
     if (cpufreq_frequency_table_target(policy, sunxi_freq_tbl, freq, relation, &index)) {
-        CPUFREQ_ERR("%s: try to look for a valid frequency for %u failed!\n", __func__, freq);
-        return -EINVAL;
+        CPUFREQ_ERR("try to look for a valid frequency for %u failed!\n", freq);
+        ret = -EINVAL;
+        goto out;
     }
 
-    if (sunxi_freq_tbl[index].frequency == last_target) {
-        /* frequency is same as the value last set, need not adjust */
-        return 0;
-    }
+    /* frequency is same as the value last set, need not adjust */
+    if (sunxi_freq_tbl[index].frequency == last_target)
+        goto out;
+
     freq = sunxi_freq_tbl[index].frequency;
 
     /* update the target frequency */
     freq_cfg.pll = sunxi_freq_tbl[index].frequency * 1000;
     freq_cfg.div = *(struct sunxi_clk_div_t *)&sunxi_freq_tbl[index].index;
-    CPUFREQ_DBG("%s: target frequency find is %u, entry %u\n", __func__, freq_cfg.pll, index);
+    CPUFREQ_DBG("target frequency find is %u, entry %u\n", freq_cfg.pll, index);
 
     /* notify that cpu clock will be adjust if needed */
     if (policy) {
@@ -119,42 +123,44 @@ static int sunxi_cpufreq_target(struct cpufreq_policy *policy, __u32 freq, __u32
         freqs.old = last_target;
         freqs.new = freq;
 
-        #ifdef CONFIG_SMP
+#ifdef CONFIG_SMP
         /* notifiers */
         for_each_cpu(i, policy->cpus) {
             freqs.cpu = i;
             cpufreq_notify_transition(&freqs, CPUFREQ_PRECHANGE);
         }
-        #else
+#else
         cpufreq_notify_transition(&freqs, CPUFREQ_PRECHANGE);
-        #endif
+#endif
     }
 
     /* try to set cpu frequency */
     if (ar100_dvfs_set_cpufreq(freq, AR100_DVFS_SYN, NULL, NULL)) {
+        CPUFREQ_ERR("set cpu frequency to %uMHz failed!\n", freq / 1000);
         /* set cpu frequency failed */
         if (policy) {
             freqs.cpu = policy->cpu;
             freqs.old = freqs.new;
             freqs.new = last_target;
 
-            #ifdef CONFIG_SMP
+#ifdef CONFIG_SMP
             /* notifiers */
             for_each_cpu(i, policy->cpus) {
                 freqs.cpu = i;
                 cpufreq_notify_transition(&freqs, CPUFREQ_POSTCHANGE);
             }
-            #else
+#else
             cpufreq_notify_transition(&freqs, CPUFREQ_POSTCHANGE);
-            #endif
+#endif
         }
 
-        return -EINVAL;
+        ret = -EINVAL;
+        goto out;
     }
 
     /* notify that cpu clock will be adjust if needed */
     if (policy) {
-        #ifdef CONFIG_SMP
+#ifdef CONFIG_SMP
         /*
          * Note that loops_per_jiffy is not updated on SMP systems in
          * cpufreq driver. So, update the per-CPU loops_per_jiffy value
@@ -166,14 +172,18 @@ static int sunxi_cpufreq_target(struct cpufreq_policy *policy, __u32 freq, __u32
             freqs.cpu = i;
             cpufreq_notify_transition(&freqs, CPUFREQ_POSTCHANGE);
         }
-        #else
+#else
         cpufreq_notify_transition(&freqs, CPUFREQ_POSTCHANGE);
-        #endif
+#endif
     }
 
     last_target = freq;
+    CPUFREQ_DBG("set cpu frequency to %uMHz ok\n", freq / 1000);
 
-    return 0;
+out:
+    mutex_unlock(&sunxi_cpu_lock);
+
+    return ret;
 }
 
 
@@ -215,9 +225,9 @@ static int sunxi_cpufreq_init(struct cpufreq_policy *policy)
 
     /* feed the latency information from the cpu driver */
     policy->cpuinfo.transition_latency = SUNXI_FREQTRANS_LATENCY;
+    cpufreq_frequency_table_get_attr(sunxi_freq_tbl, policy->cpu);
 
-
-    #ifdef CONFIG_SMP
+#ifdef CONFIG_SMP
     /*
      * both processors share the same voltage and the same clock,
      * but have dedicated power domains. So both cores needs to be
@@ -226,9 +236,9 @@ static int sunxi_cpufreq_init(struct cpufreq_policy *policy)
      */
     policy->shared_type = CPUFREQ_SHARED_TYPE_ANY;
     cpumask_or(&sunxi_cpumask, cpumask_of(policy->cpu), &sunxi_cpumask);
-    cpumask_copy(policy->related_cpus, &sunxi_cpumask);
+    cpumask_copy(policy->cpus, &sunxi_cpumask);
     cpus_initialized++;
-    #endif
+#endif
 
     return 0;
 }
@@ -315,7 +325,7 @@ static int __init sunxi_cpufreq_initcall(void)
     clk_axi = clk_get(NULL, CLK_SYS_AXI);
 
     if (IS_ERR(clk_pll) || IS_ERR(clk_cpu) || IS_ERR(clk_axi)) {
-        CPUFREQ_INF(KERN_ERR "%s: could not get clock(s)\n", __func__);
+        CPUFREQ_ERR("%s: could not get clock(s)\n", __func__);
         return -ENOENT;
     }
 
@@ -328,8 +338,6 @@ static int __init sunxi_cpufreq_initcall(void)
 
     /* register cpu frequency driver */
     ret = cpufreq_register_driver(&sunxi_cpufreq_driver);
-    /* register cpu frequency table to cpufreq core */
-    cpufreq_frequency_table_get_attr(sunxi_freq_tbl, 0);
 
     return ret;
 }
