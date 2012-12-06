@@ -786,7 +786,7 @@ typedef struct
 
 //__s32 tcon0_cfg_mode_auto(__u32 sel, __panel_para_t * panel);
 //__s32 tcon0_cfg_mode_tri(__u32 sel, __panel_para_t * panel);
-__s32 tcon_cmap(__u32 sel, __u32 mode,__u32 lcd_cmap_tbl[2][4]);
+__s32 tcon_cmap(__u32 sel, __u32 mode,__lcd_cmap_color lcd_cmap_tbl[2][3][4]);
 __s32 tcon_gamma(__u32 sel, __u32 mode,__u32 gamma_tbl[256]);
 __s32 tcon_ceu(__u32 sel,__u32 mode,__s32 b,__s32 c,__s32 s,__s32 h);
 __s32 tcon0_frm(__u32 sel,__u32 mode);

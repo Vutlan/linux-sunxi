@@ -35,6 +35,7 @@ static int __init hdmi_probe(struct platform_device *pdev)
     memset(&ghdmi, 0, sizeof(hdmi_info_t));
 
 	ghdmi.base_hdmi = 0xf1c16000;
+    ghdmi.dev = &pdev->dev;
 
 	Hdmi_init();
     Fb_Init(1);

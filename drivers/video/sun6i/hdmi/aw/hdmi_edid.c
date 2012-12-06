@@ -1,5 +1,6 @@
 
 #include "hdmi_core.h"
+#if 0
 void DDC_Init(void)
 {    
     __inf("DDC_Init\n");
@@ -19,26 +20,7 @@ void DDC_Init(void)
 	//send_ini_sequence();
 	
 }
-/*
-void send_ini_sequence()
-{
-    int i,j;
-    set_wbit(HDMI_BASE + 0x524,BIT3);
-    for(i=0;i<9;i++)
-    {
-       for(j=0;j<200;j++);		//for simulation, delete it 
-       clr_wbit(HDMI_BASE + 0x524,BIT2);	
-       
-       for(j=0;j<200;j++);		//for simulation, delete it 
-       set_wbit(HDMI_BASE + 0x524,BIT2);   
-    	
-    }
-    clr_wbit(HDMI_BASE + 0x524,BIT3);
-    clr_wbit(HDMI_BASE + 0x524,BIT1);
-    
-    return;
-	
-}*/
+
 __s32 DDC_Read(char cmd,char pointer,char offset,int nbyte,char * pbuf)
 {
    __u8 i=0;
@@ -97,7 +79,71 @@ __s32 DDC_Read(char cmd,char pointer,char offset,int nbyte,char * pbuf)
 
    return 0;
 }
+#endif
 
+void DDC_Init()
+{	
+    HDMI_WUINT32(0x500,0x80000000);
+    HDMI_WUINT32(0x504,0x00000000);
+    HDMI_WUINT32(0x508,0x00000007);
+    HDMI_WUINT32(0x50c,0x006000a0);	//addr
+    HDMI_WUINT32(0x510,0x00000000);
+    HDMI_WUINT32(0x518,0x00000000);
+    HDMI_WUINT32(0x520,0x00000061);
+    HDMI_WUINT32(0x500,0x00000051);
+    
+    HDMI_WUINT32(0x504,HDMI_RUINT32(0x504)| 0x00000010);//set intial sequence
+    HDMI_WUINT32(0x500,HDMI_RUINT32(0x500)| 0x08000000);//start
+    while(HDMI_RUINT32(0x500)& 0x08000000);
+    HDMI_WUINT32(0x504,HDMI_RUINT32(0x504)& 0xffffffef);//clear intial sequence
+}
+
+
+__s32 DDC_Read(char cmd,char pointer,char offset,int nbyte,char * pbuf)
+{
+   char i=0;
+   char n=0;
+   char off = offset;
+   __u32 begin_ms, end_ms;
+    
+   while(nbyte >0)
+   {
+      if(nbyte > 16)
+        n = 16;
+      else
+        n = nbyte;
+      nbyte = nbyte -n;      
+      
+      HDMI_WUINT32(0x518,HDMI_RUINT32(0x518)| 0x00008000);		//FIFO address clear
+      HDMI_WUINT8(0x50f,pointer	);										//segment pointer
+      HDMI_WUINT8(0x50d,off  		);										//offset address 
+      HDMI_WUINT32(0x508,(n<<16) +cmd);									//nbyte to access and cmd type
+      HDMI_WUINT32(0x500,HDMI_RUINT32(0x500)| 0x08000000);		//start the command
+      
+      off   += n; 
+      begin_ms = (jiffies * 1000) / HZ;
+      while(HDMI_RUINT32(0x500) & 0x08000000)
+       { 
+          end_ms = (jiffies * 1000) / HZ;
+          if((end_ms - begin_ms) > 1000)
+          {
+              __wrn("ddc read timeout\n");
+              return -1;
+          }
+        }
+
+
+      i=0;
+      while(i<n)
+      {
+   	     * pbuf ++ = HDMI_RUINT8(0x580);
+   	     i++;
+      }
+   }
+
+   return 0;
+      	
+}
 
 
 void GetEDIDData(__u8 block,__u8 *buf)

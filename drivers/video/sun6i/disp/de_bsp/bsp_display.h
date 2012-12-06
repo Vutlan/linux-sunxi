@@ -46,6 +46,8 @@
 #include <mach/irqs.h>
 #include <linux/sunxi_physmem.h>
 #include <linux/gpio.h>
+#include <linux/regulator/consumer.h>
+
 
 
 typedef unsigned int __hdle;

@@ -85,10 +85,10 @@ __disp_clk_tab clk_tab = //record tv/vga/hdmi mode clock requirement
 {
 //LCDx_CH1_CLK2, CLK2/CLK1,    HDMI_CLK,	   PLL_CLK	 ,     PLLX2 req	  //	TV_VGA_MODE 		//INDEX, FOLLOW enum order
 	//TV mode and HDMI mode 
-   {{27000000	  ,	2	    , 	27000000,		297000000	,	0	},	 //    DISP_TV_MOD_480I 			        //0x0	   
-	{27000000	  ,	2	    ,	27000000,		297000000	,	0	},	 //    DISP_TV_MOD_576I 			        //0x1   
-	{54000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_480P 			        //0x2   
-	{54000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_576P 			        //0x3   
+   {{13500000	  ,	1	    , 	27000000,		297000000	,	0	},	 //    DISP_TV_MOD_480I 			        //0x0	   
+	{13500000	  ,	1	    ,	27000000,		297000000	,	0	},	 //    DISP_TV_MOD_576I 			        //0x1   
+	{27000000	  ,	1	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_480P 			        //0x2   
+	{27000000	  ,	1	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_576P 			        //0x3   
 	{74250000	  ,	1	    ,	74250000,		297000000	,	0	},	 //    DISP_TV_MOD_720P_50HZ		        //0x4   
 	{74250000	  ,	1	    ,	74250000,		297000000	,	0	},	 //    DISP_TV_MOD_720P_60HZ		        //0x5   
 	{74250000	  ,	1	    ,	74250000,		297000000	,	0	},	 //    DISP_TV_MOD_1080I_50HZ	        //0x6   

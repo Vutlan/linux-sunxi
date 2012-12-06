@@ -210,17 +210,21 @@ __s32 OSAL_CCMU_SetMclkSrc( __hdle hMclk, __u32 nSclkNo )
         __wrn("NULL hdle\n");
         return -1;
     }
+    
     if(osal_ccmu_get_clk_name(nSclkNo, clk_name) != 0)
     {
         __wrn("Fail to get clk name from clk id [%d].\n", nSclkNo);
         return -1;
     }
+
+    
+    __inf("OSAL_CCMU_SetMclkSrc, hMclk= hdl=0x%x, %s\n", (int)hModClk, clk_name);
     
     __inf("OSAL_CCMU_SetMclkSrc,  clk_name[%d]=%s\n", nSclkNo,clk_name);
     
     hSysClk = clk_get(NULL, clk_name);
 
-    if(NULL == hSysClk){
+    if((NULL == hSysClk) || (IS_ERR(hSysClk))){
         __wrn("Fail to get handle for system clock [%d].\n", nSclkNo);
         return -1;
     }
@@ -232,7 +236,7 @@ __s32 OSAL_CCMU_SetMclkSrc( __hdle hMclk, __u32 nSclkNo )
     }
     retCode = clk_set_parent(hModClk, hSysClk);
     if(0 != retCode){
-        __wrn("Fail to set parent for clk.\n");
+        __wrn("Fail to set parent %s for clk.\n", clk_name);
         clk_put(hSysClk);
         return -1;
     }
@@ -298,7 +302,8 @@ __s32 OSAL_CCMU_SetMclkDiv( __hdle hMclk, __s32 nDiv )
     }
 
     srcRate = clk_get_rate(hParentClk);
-        
+
+    __inf("clk_set_rate<0x%0x,%d>\n",(unsigned int)hModClk, srcRate/nDiv);
     return clk_set_rate(hModClk, srcRate/nDiv);
 }
 
@@ -353,6 +358,7 @@ __s32 OSAL_CCMU_MclkOnOff( __hdle hMclk, __s32 bOnOff )
         if(!hModClk->enable)
         {
             ret = clk_enable(hModClk);
+            __inf("OSAL_CCMU_MclkOnOff, clk_enable, ret=%d\n", ret);
         }
     }
     else

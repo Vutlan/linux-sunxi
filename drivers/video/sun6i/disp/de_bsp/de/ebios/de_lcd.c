@@ -15,16 +15,19 @@ __s32 dsi_src_sel(__u32 sel)
 	lcd_dev[0]->tcon_mul_ctl.bits.dsi_src = sel;
 	return 0;
 }
-
+extern void LCD_delay_us(__u32 ns);
 __s32 lvds_open(__u32 sel, __panel_para_t * panel)
 {
 	volatile __u32 i;
 	lcd_dev[sel]->tcon0_lvds_ctl.bits.tcon0_lvds_en = 1;
 	if(panel->lcd_lvds_if == LCD_LVDS_IF_DUAL_LINK)
 	{
-		lcd_dev[sel]->tcon0_lvds_ana[sel].bits.c = 2;
-		lcd_dev[sel]->tcon0_lvds_ana[sel].bits.v = 3;
-		lcd_dev[sel]->tcon0_lvds_ana[sel].bits.pd = 2;
+		lcd_dev[sel]->tcon0_lvds_ana[0].bits.c = 2;
+		lcd_dev[sel]->tcon0_lvds_ana[0].bits.v = 3;
+		lcd_dev[sel]->tcon0_lvds_ana[0].bits.pd = 2;
+        lcd_dev[sel]->tcon0_lvds_ana[1].bits.c = 2;
+		lcd_dev[sel]->tcon0_lvds_ana[1].bits.v = 3;
+		lcd_dev[sel]->tcon0_lvds_ana[1].bits.pd = 2;
 
         lcd_dev[sel]->tcon0_lvds_ana[0].bits.en_ldo = 1;
 		lcd_dev[sel]->tcon0_lvds_ana[1].bits.en_ldo = 1;
@@ -47,19 +50,16 @@ __s32 lvds_open(__u32 sel, __panel_para_t * panel)
 	}
 	else
 	{
-		lcd_dev[sel]->tcon0_lvds_ana[0].bits.c = 2;
-		lcd_dev[sel]->tcon0_lvds_ana[1].bits.c = 2;
-		lcd_dev[sel]->tcon0_lvds_ana[0].bits.v = 3;
-		lcd_dev[sel]->tcon0_lvds_ana[1].bits.v = 3;
-		lcd_dev[sel]->tcon0_lvds_ana[0].bits.pd = 2;
-		lcd_dev[sel]->tcon0_lvds_ana[1].bits.pd = 2;
+		lcd_dev[sel]->tcon0_lvds_ana[sel].bits.c = 2;
+		lcd_dev[sel]->tcon0_lvds_ana[sel].bits.v = 3;
+		lcd_dev[sel]->tcon0_lvds_ana[sel].bits.pd = 2;
 
         lcd_dev[sel]->tcon0_lvds_ana[sel].bits.en_ldo = 1;
-		for(i=0;i<1000;i++);    //1200ns
+		LCD_delay_us(5); //1200ns
 		lcd_dev[sel]->tcon0_lvds_ana[sel].bits.en_mb = 1;
-		for(i=0;i<1200;i++);	//1200ns
+		LCD_delay_us(5); //1200ns
 		lcd_dev[sel]->tcon0_lvds_ana[sel].bits.en_drvc = 1;
-		if(panel->lcd_lvds_colordepth== LCD_LVDS_8bit)
+		if(panel->lcd_lvds_colordepth== LCD_LVDS_6bit)
 		{
 			lcd_dev[sel]->tcon0_lvds_ana[sel].bits.en_drvd = 0x7;
 		}
@@ -77,8 +77,10 @@ __s32 lvds_close(__u32 sel)
 	lcd_dev[sel]->tcon0_lvds_ana[1].bits.en_drvd = 0;
 	lcd_dev[sel]->tcon0_lvds_ana[0].bits.en_drvc = 0;
 	lcd_dev[sel]->tcon0_lvds_ana[1].bits.en_drvc = 0;
+	LCD_delay_us(5); //1200ns
 	lcd_dev[sel]->tcon0_lvds_ana[0].bits.en_mb = 0;
 	lcd_dev[sel]->tcon0_lvds_ana[1].bits.en_mb = 0;
+	LCD_delay_us(5); //1200ns
 	lcd_dev[sel]->tcon0_lvds_ana[0].bits.en_ldo = 0;
 	lcd_dev[sel]->tcon0_lvds_ana[1].bits.en_ldo = 0;
 	lcd_dev[sel]->tcon0_lvds_ctl.bits.tcon0_lvds_en = 0;
@@ -328,8 +330,8 @@ __s32 tcon0_cfg_mode_tri(__u32 sel, __panel_para_t * panel)
 	}
 	else if((panel->lcd_if==LCD_IF_DSI) && 	(panel->lcd_dsi_if==LCD_DSI_IF_VIDEO_MODE))
 	{
-		//__u32 hfp = panel->lcd_ht-panel->lcd_x-panel->lcd_hbp-panel->lcd_hspw;
-		lcd_dev[sel]->tcon0_cpu_tri0.bits.block_space = panel->lcd_ht - panel->lcd_x - 2;
+		lcd_dev[sel]->tcon0_cpu_tri0.bits.block_space = (panel->lcd_ht+panel->lcd_x+panel->lcd_hbp)*297/panel->lcd_dclk_freq- (panel->lcd_x+20);
+		lcd_dev[sel]->tcon0_cpu_tri2.bits.trans_start_set = 10;
 	}
 	if(panel->lcd_fresh_mode == 1)
 	{
@@ -347,7 +349,7 @@ __s32 tcon0_cfg_mode_tri(__u32 sel, __panel_para_t * panel)
 	    }
 	    else
 	    {
-	        __u32 cntr_set = (panel->lcd_dclk_freq*1000*1000)/(4*5);//todo? panel->lcd_fps);
+	        __u32 cntr_set = (panel->lcd_dclk_freq*1000*1000);//todo? panel->lcd_fps);
 	        __u32 cntr_n,cntr_m;
 	        for(cntr_m=1;cntr_m<256;cntr_m++)
 	        {
@@ -606,9 +608,9 @@ __disp_timing_t tv_timing_tbl[30]	= {
 	{ 74250000, 1280,  720, 1650, 110,  40, 220,  750,   5,   5,  20,   1,   1,   0},	//DISP_TV_MOD_720P_60HZ
 	{ 74250000, 1920, 1080, 2640, 528,  44, 148, 1125,   2,   5,  15,   1,   1,   1},	//DISP_TV_MOD_1080I_50HZ
 	{ 74250000, 1920, 1080, 2200,  88,  44, 148, 1125,   2,   5,  15,   1,   1,   1},	//DISP_TV_MOD_1080I_60HZ
-	{ 74250000, 1920, 1080, 2750, 638,  44, 148, 1125,   4,   5,  36,   1,   1,   1},	//DISP_TV_MOD_1080P_24HZ
-	{148500000, 1920, 1080, 2640, 528,  44, 148, 1125,   4,   5,  36,   1,   1,   1},	//DISP_TV_MOD_1080P_50HZ
-	{148500000, 1920, 1080, 2200,  88,  44, 148, 1125,   4,   5,  36,   1,   1,   1},	//DISP_TV_MOD_1080P_60HZ
+	{ 74250000, 1920, 1080, 2750, 638,  44, 148, 1125,   4,   5,  36,   1,   1,   0},	//DISP_TV_MOD_1080P_24HZ
+	{148500000, 1920, 1080, 2640, 528,  44, 148, 1125,   4,   5,  36,   1,   1,   0},	//DISP_TV_MOD_1080P_50HZ
+	{148500000, 1920, 1080, 2200,  88,  44, 148, 1125,   4,   5,  36,   1,   1,   0},	//DISP_TV_MOD_1080P_60HZ
 //DISP_TV_MOD_1080P_24HZ_3D_FP:
 //DISP_TV_MOD_720P_50HZ_3D_FP:
 //DISP_TV_MOD_720P_60HZ_3D_FP:
@@ -622,9 +624,9 @@ __s32 tcon1_cfg(__u32 sel,__disp_timing_t* timing)
 	lcd_dev[sel]->tcon1_basic0.bits.x = timing->hor_pixels-1;
 	lcd_dev[sel]->tcon1_basic0.bits.y = timing->ver_pixels/(timing->interlace+1)-1;
 	lcd_dev[sel]->tcon1_basic1.bits.ls_xo = timing->hor_pixels-1;
-	lcd_dev[sel]->tcon1_basic1.bits.ls_yo = timing->ver_pixels-1;
+	lcd_dev[sel]->tcon1_basic1.bits.ls_yo = timing->ver_pixels/(timing->interlace+1)-1;
 	lcd_dev[sel]->tcon1_basic2.bits.xo = timing->hor_pixels-1;
-	lcd_dev[sel]->tcon1_basic2.bits.yo = timing->ver_pixels-1;
+	lcd_dev[sel]->tcon1_basic2.bits.yo = timing->ver_pixels/(timing->interlace+1)-1;
 	lcd_dev[sel]->tcon1_basic3.bits.ht = timing->hor_total_time-1;
 	lcd_dev[sel]->tcon1_basic3.bits.hbp = timing->hor_sync_time+timing->hor_back_time-1;
 	lcd_dev[sel]->tcon1_basic4.bits.vt = timing->ver_total_time*(2-timing->interlace);
@@ -654,6 +656,8 @@ __s32 tcon1_set_hdmi_mode(__u32 sel, __disp_tv_mode_t mode)
 	lcd_dev[sel]->tcon1_io_tri.bits.io2_output_tri_en = 1;
 	lcd_dev[sel]->tcon1_io_tri.bits.io3_output_tri_en = 1;
 	lcd_dev[sel]->tcon1_io_tri.bits.data_output_tri_en = 0xffffff;
+
+    hmdi_src_sel(sel);
     return 0;
 }
 
@@ -1011,7 +1015,7 @@ __s32 tcon_gamma(__u32 sel, __u32 en,__u32 *gamma_tbl)
     return 0;
 }
 
-__s32 tcon_cmap(__u32 sel, __u32 mode,__u32 lcd_cmap_tbl[2][4])
+__s32 tcon_cmap(__u32 sel, __u32 mode,__lcd_cmap_color lcd_cmap_tbl[2][3][4])
 {
 	if(!(mode==1))
 	{
@@ -1019,15 +1023,33 @@ __s32 tcon_cmap(__u32 sel, __u32 mode,__u32 lcd_cmap_tbl[2][4])
 	}
 	else
 	{
-		lcd_dev[sel]->tcon_cmap_odd0.bits.out0 = lcd_cmap_tbl[0][0];
-		lcd_dev[sel]->tcon_cmap_odd0.bits.out1 = lcd_cmap_tbl[0][1];
-		lcd_dev[sel]->tcon_cmap_odd1.bits.out2 = lcd_cmap_tbl[0][2];
-		lcd_dev[sel]->tcon_cmap_odd1.bits.out3 = lcd_cmap_tbl[0][3];
-		lcd_dev[sel]->tcon_cmap_even0.bits.out0 = lcd_cmap_tbl[1][0];
-		lcd_dev[sel]->tcon_cmap_even0.bits.out1 = lcd_cmap_tbl[1][1];
-		lcd_dev[sel]->tcon_cmap_even1.bits.out2 = lcd_cmap_tbl[1][2];
-		lcd_dev[sel]->tcon_cmap_even1.bits.out3 = lcd_cmap_tbl[1][3];
+#if 0
+	lcd_dev[sel]->tcon_cmap_odd0.bits.out0_r = lcd_cmap_tbl[0][0][0];
+	lcd_dev[sel]->tcon_cmap_odd0.bits.out0_g = lcd_cmap_tbl[0][1][0];
+	lcd_dev[sel]->tcon_cmap_odd0.bits.out0_b = lcd_cmap_tbl[0][2][0];
+	lcd_dev[sel]->tcon_cmap_odd0.bits.out1_r = lcd_cmap_tbl[0][0][1];
+	lcd_dev[sel]->tcon_cmap_odd0.bits.out1_g = lcd_cmap_tbl[0][1][1];
+	lcd_dev[sel]->tcon_cmap_odd0.bits.out1_b = lcd_cmap_tbl[0][2][1];
+	lcd_dev[sel]->tcon_cmap_odd1.bits.out2_r = lcd_cmap_tbl[0][0][2];
+	lcd_dev[sel]->tcon_cmap_odd1.bits.out2_g = lcd_cmap_tbl[0][1][2];
+	lcd_dev[sel]->tcon_cmap_odd1.bits.out2_b = lcd_cmap_tbl[0][2][2];
+	lcd_dev[sel]->tcon_cmap_odd1.bits.out3_r = lcd_cmap_tbl[0][0][3];
+	lcd_dev[sel]->tcon_cmap_odd1.bits.out3_g = lcd_cmap_tbl[0][1][3];
+	lcd_dev[sel]->tcon_cmap_odd1.bits.out3_b = lcd_cmap_tbl[0][2][3];
+	lcd_dev[sel]->tcon_cmap_even0.bits.out0_r = lcd_cmap_tbl[1][0][0];
+	lcd_dev[sel]->tcon_cmap_even0.bits.out0_g = lcd_cmap_tbl[1][1][0];
+	lcd_dev[sel]->tcon_cmap_even0.bits.out0_b = lcd_cmap_tbl[1][2][0];
+	lcd_dev[sel]->tcon_cmap_even0.bits.out1_r = lcd_cmap_tbl[1][0][1];
+	lcd_dev[sel]->tcon_cmap_even0.bits.out1_g = lcd_cmap_tbl[1][1][1];
+	lcd_dev[sel]->tcon_cmap_even0.bits.out1_b = lcd_cmap_tbl[1][2][1];
+	lcd_dev[sel]->tcon_cmap_even1.bits.out2_r = lcd_cmap_tbl[1][0][2];
+	lcd_dev[sel]->tcon_cmap_even1.bits.out2_g = lcd_cmap_tbl[1][1][2];
+	lcd_dev[sel]->tcon_cmap_even1.bits.out2_b = lcd_cmap_tbl[1][2][2];
+	lcd_dev[sel]->tcon_cmap_even1.bits.out3_r = lcd_cmap_tbl[1][0][3];
+	lcd_dev[sel]->tcon_cmap_even1.bits.out3_g = lcd_cmap_tbl[1][1][3];
+	lcd_dev[sel]->tcon_cmap_even1.bits.out3_b = lcd_cmap_tbl[1][2][3];
 		lcd_dev[sel]->tcon_cmap_ctl.bits.cmap_en = 1;
+#endif
 	}
     return 0;
 }

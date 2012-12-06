@@ -2,6 +2,8 @@
 
 
 extern struct device	*display_dev;
+extern fb_info_t g_fbi;
+
 extern __s32 disp_video_set_dit_mode(__u32 scaler_index, __u32 mode);
 extern __s32 disp_video_get_dit_mode(__u32 scaler_index);
 
@@ -976,6 +978,42 @@ static ssize_t disp_drc_enable_store(struct device *dev,
 static DEVICE_ATTR(drc_en, S_IRUGO|S_IWUSR|S_IWGRP,
 		disp_drc_enable_show, disp_drc_enable_store);
 
+#define ____SEPARATOR_COLORBAR____
+static ssize_t disp_colorbar_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%s", "there is nothing here!");
+}
+
+extern __s32 fb_draw_colorbar(__u32 base, __u32 width, __u32 height, struct fb_var_screeninfo *var);
+
+static ssize_t disp_colorbar_store(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+	int err;
+    unsigned long val;
+    
+	err = strict_strtoul(buf, 10, &val);
+	if (err) {
+		printk("Invalid size\n");
+		return err;
+	}
+
+    if((val>7)) {
+        printk("Invalid value, 0~7 is expected!\n");
+    }
+    else {
+        fb_draw_colorbar((__u32)g_fbi.fbinfo[val]->screen_base, g_fbi.fbinfo[val]->var.xres, 
+            g_fbi.fbinfo[val]->var.yres, &(g_fbi.fbinfo[val]->var));;
+	}
+    
+	return count;
+}
+
+static DEVICE_ATTR(colorbar, S_IRUGO|S_IWUSR|S_IWGRP,
+		disp_colorbar_show, disp_colorbar_store);
+
 
 
 static struct attribute *disp_attributes[] = {
@@ -1006,6 +1044,7 @@ static struct attribute *disp_attributes[] = {
     &dev_attr_lcd.attr,
     &dev_attr_hdmi.attr,
     &dev_attr_script_dump.attr,
+    &dev_attr_colorbar.attr,
 	NULL
 };
 

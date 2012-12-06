@@ -8,6 +8,23 @@ typedef struct {__s32 x; __s32 y; __u32 width; __u32 height;}__disp_rect_t;
 typedef struct {__u32 width;__u32 height;                   }__disp_rectsz_t;
 typedef struct {__s32 x; __s32 y;                           }__disp_pos_t;
 
+typedef enum
+{
+	LCD_CMAP_B0	= 0x0,
+	LCD_CMAP_G0	= 0x1,
+	LCD_CMAP_R0	= 0x2,
+	LCD_CMAP_B1	= 0x4,
+	LCD_CMAP_G1	= 0x5,
+	LCD_CMAP_R1	= 0x6,
+	LCD_CMAP_B2	= 0x8,
+	LCD_CMAP_G2	= 0x9,
+	LCD_CMAP_R2	= 0xa,
+	LCD_CMAP_B3	= 0xc,
+	LCD_CMAP_G3	= 0xd,
+	LCD_CMAP_R3	= 0xe,
+}__lcd_cmap_color;
+
+
 
 typedef enum
 {

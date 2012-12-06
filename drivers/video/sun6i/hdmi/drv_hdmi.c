@@ -228,14 +228,10 @@ __s32 Hdmi_set_pll(__u32 pll, __u32 clk)
     return 0;
 }
 
-int Hdmi_run_thread(void *parg)
+__s32 Hdmi_run_thread(void *parg)
 {
 	while (1)
 	{
-		//if(ghdmi.bopen == 0)
-		//{
-		//	down(run_sem);
-		//}
         if(kthread_should_stop())
         {
             break;
@@ -255,6 +251,38 @@ int Hdmi_run_thread(void *parg)
 	return 0;
 }
 
+void hdmi_report_hpd_work(struct work_struct *work)
+{
+	char buf[16];
+	char *envp[2];
+
+	if(Hdmi_get_HPD_status())
+    {
+        snprintf(buf, sizeof(buf), "HDMI_PLUGIN");
+    }
+    else
+    {
+        snprintf(buf, sizeof(buf), "HDMI_PLUGOUT");
+    }
+    
+	envp[0] = buf;
+	envp[1] = NULL;
+	kobject_uevent_env(&ghdmi.dev->kobj, KOBJ_CHANGE, envp);
+}
+
+
+/**
+ * hdmi_hpd_report - report hdmi hot plug state to user space
+ * @hotplug:	0: hdmi plug out;   1:hdmi plug in
+ *
+ * always return success.
+ */
+__s32 Hdmi_hpd_event()
+{
+    schedule_work(&ghdmi.hpd_work);
+
+    return 0;
+}
 extern void audio_set_hdmi_func(__audio_hdmi_func * hdmi_func);
 extern __s32 disp_set_hdmi_func(__disp_hdmi_func * func);
 
@@ -305,6 +333,8 @@ __s32 Hdmi_init(void)
             disp_func.hdmi_suspend = Hdmi_suspend;
             disp_func.hdmi_resume = Hdmi_resume;
             disp_set_hdmi_func(&disp_func);
+
+            INIT_WORK(&ghdmi.hpd_work, hdmi_report_hpd_work);
         }
     }
 
@@ -316,6 +346,7 @@ __s32 Hdmi_exit(void)
     if(hdmi_used)
 	{
         Hdmi_hal_exit();
+
     	if(run_sem)
         {
             kfree(run_sem);
