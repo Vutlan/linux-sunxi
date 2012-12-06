@@ -707,7 +707,7 @@ int disp_suspend(struct platform_device *pdev, pm_message_t state)
             BSP_disp_hdmi_close(i);
         }
     }
-#endif
+#else
 	if(2 == suspend_prestep)//suspend after resume,not  after early suspend
     {
         for(i=0; i<2; i++)
@@ -718,6 +718,7 @@ int disp_suspend(struct platform_device *pdev, pm_message_t state)
             }
         }
     }
+#endif
      if(SUPER_STANDBY == standby_type)
      {
         pr_info("[DISP]==disp super standby enter==\n");
