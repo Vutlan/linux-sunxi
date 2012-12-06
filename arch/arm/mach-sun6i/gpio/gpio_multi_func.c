@@ -44,9 +44,9 @@ u32 gpio_set_cfg(struct aw_gpio_chip *pchip, u32 offset, u32 val)
 	ubits_off = (offset << 2) % 32;		/* ubits_off = (offset * 4) % 32 */
 
 	PIO_DBG("%s: write cfg reg 0x%08x, bits_off %d, width %d, cfg_val %d\n", __func__,
-		(u32)(ureg_off + pchip->vbase), ubits_off, PIO_BITS_WIDTH_CFG, val);
+		ureg_off + (u32)pchip->vbase, ubits_off, PIO_BITS_WIDTH_CFG, val);
 
-	PIO_WRITE_BITS(ureg_off + pchip->vbase, ubits_off, PIO_BITS_WIDTH_CFG, val);
+	PIO_WRITE_BITS(ureg_off + (u32)pchip->vbase, ubits_off, PIO_BITS_WIDTH_CFG, val);
 	return 0;
 }
 
@@ -65,10 +65,10 @@ u32 gpio_get_cfg(struct aw_gpio_chip *pchip, u32 offset)
 	ubits_off = (offset << 2) % 32;		/* ubits_off = (offset * 4) % 32 */
 
 	PIO_DBG("%s: read cfg reg 0x%08x, bits_off %d, width %d, ret %d\n", __func__,
-		(u32)(ureg_off + pchip->vbase), ubits_off, PIO_BITS_WIDTH_CFG,
-		PIO_READ_BITS(ureg_off + pchip->vbase, ubits_off, PIO_BITS_WIDTH_CFG));
+		ureg_off + (u32)pchip->vbase, ubits_off, PIO_BITS_WIDTH_CFG,
+		PIO_READ_BITS(ureg_off + (u32)pchip->vbase, ubits_off, PIO_BITS_WIDTH_CFG));
 
-	return PIO_READ_BITS(ureg_off + pchip->vbase, ubits_off, PIO_BITS_WIDTH_CFG);
+	return PIO_READ_BITS(ureg_off + (u32)pchip->vbase, ubits_off, PIO_BITS_WIDTH_CFG);
 }
 
 /**
@@ -93,9 +93,9 @@ u32 gpio_set_pull(struct aw_gpio_chip *pchip, u32 offset, u32 val)
 	ubits_off = (offset << 1) % 32;					/* ubits_off = (offset * 2) % 32 */
 
 	PIO_DBG("%s: write pull reg 0x%08x, bits_off %d, width %d, pul_val %d\n", __func__,
-		(u32)(ureg_off + pchip->vbase), ubits_off, PIO_BITS_WIDTH_PULL, val);
+		ureg_off + (u32)pchip->vbase, ubits_off, PIO_BITS_WIDTH_PULL, val);
 
-	PIO_WRITE_BITS(ureg_off + pchip->vbase, ubits_off, PIO_BITS_WIDTH_PULL, val);
+	PIO_WRITE_BITS(ureg_off + (u32)pchip->vbase, ubits_off, PIO_BITS_WIDTH_PULL, val);
 	return 0;
 }
 
@@ -114,10 +114,10 @@ u32 gpio_get_pull(struct aw_gpio_chip *pchip, u32 offset)
 	ubits_off = (offset << 1) % 32;					/* ubits_off = (offset * 2) % 32 */
 
 	PIO_DBG("%s: read pul reg 0x%08x, bits_off %d, width %d, ret %d\n", __func__,
-		(u32)(ureg_off + pchip->vbase), ubits_off, PIO_BITS_WIDTH_PULL,
-		PIO_READ_BITS(ureg_off + pchip->vbase, ubits_off, PIO_BITS_WIDTH_PULL));
+		ureg_off + (u32)pchip->vbase, ubits_off, PIO_BITS_WIDTH_PULL,
+		PIO_READ_BITS(ureg_off + (u32)pchip->vbase, ubits_off, PIO_BITS_WIDTH_PULL));
 
-	return PIO_READ_BITS(ureg_off + pchip->vbase, ubits_off, PIO_BITS_WIDTH_PULL);
+	return PIO_READ_BITS(ureg_off + (u32)pchip->vbase, ubits_off, PIO_BITS_WIDTH_PULL);
 }
 
 /**
@@ -142,7 +142,7 @@ u32 gpio_set_drvlevel(struct aw_gpio_chip *pchip, u32 offset, u32 val)
 	ubits_off = (offset << 1) % 32;					/* ubits_off = (offset * 2) % 32 */
 
 	PIO_DBG("%s: write drvlevel reg 0x%08x, bits_off %d, width %d, drvlvl_val %d\n", __func__,
-		(u32)(ureg_off + pchip->vbase), ubits_off, PIO_BITS_WIDTH_DRVLVL, val);
+		ureg_off + (u32)pchip->vbase, ubits_off, PIO_BITS_WIDTH_DRVLVL, val);
 
 	PIO_WRITE_BITS(ureg_off + (u32)pchip->vbase, ubits_off, PIO_BITS_WIDTH_DRVLVL, val);
 	return 0;
@@ -163,10 +163,10 @@ u32 gpio_get_drvlevel(struct aw_gpio_chip *pchip, u32 offset)
 	ubits_off = (offset << 1) % 32;					/* ubits_off = (offset * 2) % 32 */
 
 	PIO_DBG("%s: read drvlevel reg 0x%08x, bits_off %d, width %d, ret %d\n", __func__,
-		(u32)(ureg_off + pchip->vbase), ubits_off, PIO_BITS_WIDTH_DRVLVL,
-		PIO_READ_BITS(ureg_off + pchip->vbase, ubits_off, PIO_BITS_WIDTH_DRVLVL));
+		ureg_off + (u32)pchip->vbase, ubits_off, PIO_BITS_WIDTH_DRVLVL,
+		PIO_READ_BITS(ureg_off + (u32)pchip->vbase, ubits_off, PIO_BITS_WIDTH_DRVLVL));
 
-	return PIO_READ_BITS(ureg_off + pchip->vbase, ubits_off, PIO_BITS_WIDTH_DRVLVL);
+	return PIO_READ_BITS(ureg_off + (u32)pchip->vbase, ubits_off, PIO_BITS_WIDTH_DRVLVL);
 }
 
 #ifdef DBG_GPIO

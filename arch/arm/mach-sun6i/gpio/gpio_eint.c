@@ -229,7 +229,7 @@ u32 gpio_eint_get_debounce(struct aw_gpio_chip *pchip, struct gpio_eint_debounce
 	u32 	utemp = 0;
 
 	WARN_ON(NULL == pval);
-	utemp = PIO_READ_REG(pchip->vbase_eint + PIO_EINT_OFF_REG_DEBOUNCE);
+	utemp = PIO_READ_REG((u32)pchip->vbase_eint + PIO_EINT_OFF_REG_DEBOUNCE);
 	pval->clk_sel = utemp & 1;
 	pval->clk_pre_scl = (utemp >> 4) & 0b111;
 #ifdef DBG_GPIO
