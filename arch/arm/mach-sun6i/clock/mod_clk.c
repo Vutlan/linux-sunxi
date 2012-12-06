@@ -354,7 +354,7 @@ static inline __s32 _set_disp_clk_src(volatile __ccmu_disp_clk_t *reg, __aw_ccu_
             return -1;
     }
 
-    return -1;
+    return 0;
 }
 
 
