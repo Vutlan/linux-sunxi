@@ -363,13 +363,6 @@ PVRSRV_ERROR EnableSystemClocks(SYS_DATA *psSysData)
 			printk("set gpu_coreclk parent to gpu_corepll failed!\n");
 		}
 
-		/*open pll, in EnableSystemClocks temporarily*/
-		if(clk_enable(h_gpu_hydpll)){
-			printk("try to enable gpu_hydpll output failed!\n");
-		}
-		if(clk_enable(h_gpu_corepll)){
-			printk("try to enable gpu_corepll output failed!\n");
-		}
 			
 		mutex_init(&psSysSpecData->sPowerLock);
 
@@ -378,6 +371,14 @@ PVRSRV_ERROR EnableSystemClocks(SYS_DATA *psSysData)
 		psSysSpecData->bSysClocksOneTimeInit = IMG_TRUE;
 	}
 
+	/*open pll, in EnableSystemClocks temporarily*/
+	if(clk_enable(h_gpu_hydpll)){
+		printk("try to enable gpu_hydpll output failed!\n");
+	}
+	if(clk_enable(h_gpu_corepll)){
+		printk("try to enable gpu_corepll output failed!\n");
+	}
+		
 	return AcquireGPTimer(psSysSpecData);
 }
 
