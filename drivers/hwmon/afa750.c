@@ -397,7 +397,7 @@ static int afa750_early_suspend(struct i2c_client *client,pm_message_t mesg)
 static int afa750_late_resume(struct i2c_client *client)
 {
 	int result = 0;
-	dprintk("CONFIG_PM:afa750 late resume\n");
+	dprintk(DEBUG_SUSPEND, "CONFIG_PM:afa750 late resume\n");
         afa750_data.suspended = false;
         assert(result==0);
 	return 0;
