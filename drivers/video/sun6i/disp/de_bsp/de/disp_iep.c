@@ -83,6 +83,8 @@ __s32 Bsp_disp_iep_resume(__u32 sel)
 //todo : csc->set_mode   or set_mode->csc?
 __s32 BSP_disp_drc_enable(__u32 sel, __u32 en)
 {
+    return 0;//todo
+
     if(DISP_OUTPUT_TYPE_LCD == BSP_disp_get_output_type(sel))
     {
         __iep_drc_t *drc;
@@ -226,6 +228,8 @@ __s32 BSP_disp_deu_enable(__u8 sel, __u32 hid,  __u32 enable)
 {
     __layer_man_t * layer_man;
     
+    return 0;//todo
+
     hid= HANDTOID(hid);
     HLID_ASSERT(hid, gdisp.screen[sel].max_layers);
 
@@ -589,6 +593,8 @@ __s32 BSP_disp_cmu_layer_enable(__u32 sel,__u32 hid, __bool en)
 	__layer_man_t * layer_man;
     __u32 layer_bright, layer_saturation, layer_hue, layer_mode;
     
+    return 0;//todo
+
     hid= HANDTOID(hid);
     HLID_ASSERT(hid, gdisp.screen[sel].max_layers);
 
@@ -888,6 +894,8 @@ __s32 BSP_disp_cmu_layer_get_mode(__u32 sel, __u32 hid)
 __s32 BSP_disp_cmu_enable(__u32 sel,__bool en)
 {
     __u32 screen_bright, screen_saturation, screen_hue, screen_mode;
+
+    return 0;//todo
 
     if(en)
     {
