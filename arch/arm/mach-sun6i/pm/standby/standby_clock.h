@@ -34,8 +34,9 @@ struct sun4i_clk_div_t {
 
 __s32 standby_clk_init(void);
 __s32 standby_clk_exit(void);
-__s32 standby_clk_hoscenable(void);
-__s32 standby_clk_ldoenable(void);
+void standby_clk_core2hosc(void);
+void standby_clk_pll1enable();
+void standby_clk_ldoenable(void);
 extern __u32   cpu_ms_loopcnt;
 
 #endif  /* __STANDBY_CLOCK_H__ */

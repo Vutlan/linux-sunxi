@@ -237,14 +237,13 @@ static void restore_ccu(void)
 {
 	
 #if(ALLOW_DISABLE_HOSC)
-		/* enable LDO, enable HOSC */
+		/* enable LDO, ldo1, enable HOSC */
 		standby_clk_ldoenable();
-		/* delay 1ms for power be stable */
-		//3ms
-		standby_delay_cycle(1);
-		standby_clk_hoscenable();
-		//3ms
-		standby_delay_cycle(1);
+		standby_clk_pll1enable();
+		/* delay 10ms for power be stable */
+		standby_delay_cycle(1); //?ms
+		//switch to 24M src
+		standby_clk_core2hosc();
 #endif
 	
 		return;

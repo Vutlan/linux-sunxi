@@ -80,27 +80,20 @@ __s32 standby_clk_exit(void)
     return 0;
 }
 
-
 /*
 *********************************************************************************************************
-*                                     standby_clk_hoscenable
+*                                     standby_clk_core2hosc
 *
-* Description: enable HOSC.
+* Description: switch core clock to 24M high osc.
 *
 * Arguments  : none
 *
-* Returns    : 0;
 *********************************************************************************************************
 */
-__s32 standby_clk_hoscenable(void)
-{
-	//cpus power domain, offset 0x40, how to enable?
-#if 1
+void standby_clk_core2hosc(void)
+{	
 	CmuReg->SysClkDiv.CpuClkSrc = 1;
-#endif
-
-	
-	return 0;
+	return ;
 }
 
 
@@ -108,45 +101,47 @@ __s32 standby_clk_hoscenable(void)
 *********************************************************************************************************
 *                                     standby_clk_ldoenable
 *
-* Description: enable LDO.
+* Description: enable LDO, ld01, hosc.
 *
 * Arguments  : none
 *
-* Returns    : 0;
 *********************************************************************************************************
 */
-__s32 standby_clk_ldoenable(void)
+void standby_clk_ldoenable(void)
 {
 	//cpus power domain, offset 0x44, how to enable?
-#if 0
-	CmuReg->HoscCtl.KeyField = 0x538;
-	CmuReg->HoscCtl.LDOEn = 1;
-	CmuReg->Pll5Ctl.LDO2En = 1;
-	CmuReg->HoscCtl.KeyField = 0x00;
-#endif
 	__u32 tmp;
 	tmp = readl(r_prcm + PLL_CTRL_REG1_OFFSET );
 	tmp &= ~(0xff000000);
 	tmp |= (0xa7000000);
 	writel(tmp, r_prcm + PLL_CTRL_REG1_OFFSET);
 
-	//enalbe ldo, ldo1
+	//enalbe ldo, ldo1,crystal
 	tmp = readl(r_prcm + PLL_CTRL_REG1_OFFSET );
-	tmp &= ~(0x00000003);
-	tmp |= (0x00000003);
-	writel(tmp, r_prcm + PLL_CTRL_REG1_OFFSET);
-
-	//enalbe crystal
-	tmp = readl(r_prcm + PLL_CTRL_REG1_OFFSET );
-	tmp &= ~(0x00000004);
-	tmp |= (0x00000004);
+	tmp &= ~(0x00000007);
+	tmp |= (0x00000007);
 	writel(tmp, r_prcm + PLL_CTRL_REG1_OFFSET);
 
 	//disable change.
 	tmp = readl(r_prcm + PLL_CTRL_REG1_OFFSET );
 	tmp &= ~(0xff000000);
 	writel(tmp, r_prcm + PLL_CTRL_REG1_OFFSET);
-
-	return 0;
+	
+	return ;
 }
 
+/*
+*********************************************************************************************************
+*                                     standby_clk_pll1enable
+*
+* Description: enable pll1.
+*
+* Arguments  : none
+*
+*********************************************************************************************************
+*/
+void standby_clk_pll1enable()
+{
+	CmuReg->Pll1Ctl.PLLEn = 1;
+	return ;
+}
