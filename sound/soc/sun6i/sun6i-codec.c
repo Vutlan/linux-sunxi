@@ -635,20 +635,11 @@ static void sun6i_pcm_enqueue(struct snd_pcm_substream *substream)
 			if ((play_pos + play_len) > play_prtd->dma_end) {
 				play_len  = play_prtd->dma_end - play_pos;
 			}
-<<<<<<< Updated upstream
-			if (play_buffdone_flag) {				
-				play_ret = sw_dma_enqueue(play_prtd->dma_hdl, play_pos, play_prtd->params->dma_addr, play_len, ENQUE_PHASE_QD);
-			} else {
-				play_ret = sw_dma_enqueue(play_prtd->dma_hdl, play_pos, play_prtd->params->dma_addr, play_len, ENQUE_PHASE_NORMAL);
-			}
-			
-=======
 			/*because dma enqueue the first buffer while config dma,so at the beginning, can't add the buffer*/
 			if (play_prtd->play_dma_flag) {
 				play_ret = sw_dma_enqueue(play_prtd->dma_hdl, play_pos, play_prtd->params->dma_addr, play_len, ENQUE_PHASE_NORMAL);
 			}
 			play_prtd->play_dma_flag = true;
->>>>>>> Stashed changes
 			if (play_ret == 0) {
 				play_prtd->dma_loaded++;
 				play_pos += play_prtd->dma_period;
@@ -721,13 +712,8 @@ static u32 sun6i_audio_play_buffdone(dm_hdl_t dma_hdl, void *parg,
 	
 	if ((result == DMA_CB_ABORT) || (parg == NULL)) {
 		return 0;
-<<<<<<< Updated upstream
-
-	play_buffdone_flag = true;
-=======
 	}
 	substream = parg;
->>>>>>> Stashed changes
 	play_prtd = substream->runtime->private_data;
 	if ((substream) && (play_prtd)) {
 		snd_pcm_period_elapsed(substream);
@@ -738,15 +724,7 @@ static u32 sun6i_audio_play_buffdone(dm_hdl_t dma_hdl, void *parg,
 	spin_lock(&play_prtd->lock);
 	{
 		play_prtd->dma_loaded--;
-<<<<<<< Updated upstream
-		if(true == play_buffdone_flag) {
-			sun6i_pcm_enqueue(substream);
-		} else {
-			printk("error:%s, line %d\n", __func__, __LINE__);
-		}		
-=======
 		sun6i_pcm_enqueue(substream);
->>>>>>> Stashed changes
 	}
 	spin_unlock(&play_prtd->lock);
 
