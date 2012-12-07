@@ -121,7 +121,7 @@ void rtl8189es_gpio_init(void)
 {
 	script_item_u val ;
 	script_item_value_type_e type;
-	struct wifi_pm_ops *ops = &wifi_card_pm_ops;
+	struct wifi_pm_ops *ops = &wifi_select_pm_ops;
 
 	rtl8189es_msg("exec rtl8189es_wifi_gpio_init\n");
 

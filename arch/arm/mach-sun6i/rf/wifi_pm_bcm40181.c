@@ -97,7 +97,7 @@ void bcm40181_gpio_init(void)
 {
 	script_item_u val ;
 	script_item_value_type_e type;
-	struct wifi_pm_ops *ops = &wifi_card_pm_ops;
+	struct wifi_pm_ops *ops = &wifi_select_pm_ops;
 
 	bcm40181_msg("exec bcm40181_wifi_gpio_init\n");
 

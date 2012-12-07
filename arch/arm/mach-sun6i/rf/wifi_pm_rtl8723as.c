@@ -7,6 +7,7 @@
 #include <linux/delay.h>
 #include <mach/sys_config.h>
 #include <mach/gpio.h>
+#include <linux/regulator/consumer.h>
 
 #include "wifi_pm.h"
 
@@ -15,27 +16,48 @@
 static int rtl8723as_wl_on = 0;
 static int rtl8723as_bt_on = 0;
 static int rtk_suspend = 0;
-static int rtk_rtl8723as_wb_pwr = 0;
 static int rtk_rtl8723as_wl_dis = 0;
 static int rtk_rtl8723as_bt_dis = 0;
+
+static int rtl8723as_module_power(int onoff)
+{
+	struct regulator* wifi_ldo = NULL;
+	static int first = 1;
+
+	rtl8723as_msg("rtl8723as module_power.\n");
+	wifi_ldo = regulator_get(NULL, "axp22_aldo1");
+	if (!wifi_ldo)
+		rtl8723as_msg("get power regulator failed.\n");
+	if (first) {
+		rtl8723as_msg("first time\n");
+		regulator_force_disable(wifi_ldo);
+		first = 0;
+	}
+	if (onoff) {
+		rtl8723as_msg("regulator on.\n");
+		regulator_set_voltage(wifi_ldo, 3300000, 3300000);
+		regulator_enable(wifi_ldo);
+	} else {
+		rtl8723as_msg("regulator off.\n");
+		regulator_disable(wifi_ldo);
+	}
+	return 0;
+}
 
 static int rtl8723as_gpio_ctrl(char* name, int level)
 {
 	int i = 0, ret = 0, gpio = 0;
 	unsigned long flags = 0;
-	char* gpio_name[3] = {"rtk_rtl8723as_wb_pwr", "rtk_rtl8723as_wl_dis", "rtk_rtl8723as_bt_dis"};
+	char* gpio_name[2] = {"rtk_rtl8723as_wl_dis", "rtk_rtl8723as_bt_dis"};
 
-	for (i=0; i<3; i++) {
+	for (i=0; i<2; i++) {
 		if (strcmp(name, gpio_name[i])==0) {
 			    switch (i)
 			    {
-			        case 0: /* rtk_rtl8723as_wb_pwr */
-						gpio = rtk_rtl8723as_wb_pwr;
-			            break;
-			        case 1: /* rtk_rtl8723as_wl_dis */
+			        case 0: /* rtk_rtl8723as_wl_dis */
 						gpio = rtk_rtl8723as_wl_dis;
 			            break;
-					case 2: /* rtk_rtl8723as_bt_dis */
+					case 1: /* rtk_rtl8723as_bt_dis */
 						gpio = rtk_rtl8723as_bt_dis;
 						break;
 					default:
@@ -45,7 +67,7 @@ static int rtl8723as_gpio_ctrl(char* name, int level)
 		}
 	}
 
-	if (i==3) {
+	if (i==2) {
 		rtl8723as_msg("No gpio %s for %s module\n", name, SDIO_MODULE_NAME);
 		return -1;
 	}
@@ -87,25 +109,18 @@ gpio_state_change:
 
 	ret = gpio_request_one(gpio, flags, NULL);
 	if (ret) {
-		rtl8723as_msg("failed to set gpio %d to %d !\n", gpio, level);
+		rtl8723as_msg("failed to set gpio %s to %d !\n", name, level);
 		return -1;
 	} else {
 		gpio_free(gpio);
-		rtl8723as_msg("succeed to set gpio %d to %d !\n", gpio, level);
+		rtl8723as_msg("succeed to set gpio %s to %d !\n", name, level);
 	}
 	
 	return 0;
 	
 power_change:
 
-	ret = gpio_request_one(rtk_rtl8723as_wb_pwr, flags, NULL);
-	if (ret) {
-		rtl8723as_msg("failed to set gpio rtk_rtl8723as_wb_pwr to %d !\n", level);
-		return -1;
-	} else {
-		gpio_free(gpio);
-		rtl8723as_msg("succeed to set gpio rtk_rtl8723as_wb_pwr to %d !\n", level);
-	}
+	rtl8723as_module_power(level);
 	udelay(500);
 	
 state_change:
@@ -147,7 +162,7 @@ static void rtl8723as_standby(int instadby)
 	} else {
 		if (rtk_suspend) {
 			rtl8723as_gpio_ctrl("rtk_rtl8723as_wl_dis", 1);
-			sw_mci_rescan_card(3, 1);
+			sw_mci_rescan_card(1, 1);
 			rtk_suspend = 0;
 		}
 	}
@@ -158,15 +173,9 @@ void rtl8723as_gpio_init(void)
 {
 	script_item_u val ;
 	script_item_value_type_e type;
-	struct wifi_pm_ops *ops = &wifi_card_pm_ops;
+	struct wifi_pm_ops *ops = &wifi_select_pm_ops;
 	
 	rtl8723as_msg("exec rt8723as_wifi_gpio_init\n");
-	
-	type = script_get_item(wifi_para, "rtk_rtl8723as_wb_pwr", &val);
-	if (SCIRPT_ITEM_VALUE_TYPE_PIO!=type) 
-		rtl8723as_msg("get rtl8723as rtk_rtl8723as_wb_pwr gpio failed\n");
-	else
-		rtk_rtl8723as_wb_pwr = val.gpio.gpio;
 
 	type = script_get_item(wifi_para, "rtk_rtl8723as_wl_dis", &val);
 	if (SCIRPT_ITEM_VALUE_TYPE_PIO!=type)

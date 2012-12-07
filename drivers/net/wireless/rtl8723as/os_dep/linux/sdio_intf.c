@@ -59,7 +59,7 @@
 #ifdef CONFIG_PLATFORM_ARM_SUNxI
 #if defined(CONFIG_MMC)
 #define SDIOID 1
-#define SUNXI_SDIO_WIFI_NUM_RTL8723AS  1
+#define SUNXI_SDIO_WIFI_NUM_RTL8723AS  3
 extern void sw_mci_rescan_card(unsigned id, unsigned insert);
 extern int wifi_pm_get_mod_type(void);
 extern void wifi_pm_power(int on);

@@ -11,21 +11,23 @@
 #define wifi_pm_msg(...)    do {printk("[wifi_pm]: "__VA_ARGS__);} while(0)
 
 
-struct wifi_pm_ops wifi_card_pm_ops;
+struct wifi_pm_ops wifi_select_pm_ops;
 static char* wifi_mod[] = {" ",
 	"bcm40181",   /* 1 - BCM40181(BCM4330)*/
 	"bcm40183",   /* 2 - BCM40183(BCM4330)*/
 	"rtl8723as",  /* 3 - RTL8723AS(RF-SM02B) */
 	"rtl8189es",  /* 4 - RTL8189ES(SM89E00) */
+	"rtl8192cu",  /* 5 - RTL8192CU*/
+	"rtl8188eu",  /* 6 - RTL8188EU*/
 };
 
 int wifi_pm_get_mod_type(void)
 {
-	struct wifi_pm_ops *ops = &wifi_card_pm_ops;
-	if (ops->sdio_card_used.val)
+	struct wifi_pm_ops *ops = &wifi_select_pm_ops;
+	if (ops->wifi_used.val)
 		return ops->module_sel.val;
 	else {
-		wifi_pm_msg("No sdio card, please check your config !!\n");
+		wifi_pm_msg("No select wifi, please check your config !!\n");
 		return 0;
 	}
 }
@@ -33,11 +35,11 @@ EXPORT_SYMBOL(wifi_pm_get_mod_type);
 
 int wifi_pm_gpio_ctrl(char* name, int level)
 {
-	struct wifi_pm_ops *ops = &wifi_card_pm_ops;	
-	if (ops->sdio_card_used.val && ops->gpio_ctrl)		
+	struct wifi_pm_ops *ops = &wifi_select_pm_ops;	
+	if (ops->wifi_used.val && ops->gpio_ctrl)		
 		return ops->gpio_ctrl(name, level);	
 	else {		
-		wifi_pm_msg("No sdio card, please check your config !!\n");		
+		wifi_pm_msg("No select wifi, please check your config !!\n");		
 		return -1;	
 	}
 }
@@ -45,12 +47,12 @@ EXPORT_SYMBOL(wifi_pm_gpio_ctrl);
 
 void wifi_pm_power(int on)
 {
-	struct wifi_pm_ops *ops = &wifi_card_pm_ops;
+	struct wifi_pm_ops *ops = &wifi_select_pm_ops;
 	int power = on;
-	if (ops->sdio_card_used.val && ops->power)
+	if (ops->wifi_used.val && ops->power)
 		return ops->power(1, &power);
 	else {
-		wifi_pm_msg("No sdio card, please check your config !!\n");
+		wifi_pm_msg("No select wifi, please check your config !!\n");
 		return;
 	}
 }
@@ -86,7 +88,7 @@ static int wifi_pm_power_ctrl(struct file *file, const char __user *buffer, unsi
 static inline void awwifi_procfs_attach(void)
 {
 	char proc_rootname[] = "driver/wifi-pm";
-	struct wifi_pm_ops *ops = &wifi_card_pm_ops;
+	struct wifi_pm_ops *ops = &wifi_select_pm_ops;
 
 	ops->proc_root = proc_mkdir(proc_rootname, NULL);
 	if (IS_ERR(ops->proc_root))
@@ -106,7 +108,7 @@ static inline void awwifi_procfs_attach(void)
 
 static inline void awwifi_procfs_remove(void)
 {
-	struct wifi_pm_ops *ops = &wifi_card_pm_ops;
+	struct wifi_pm_ops *ops = &wifi_select_pm_ops;
 	char proc_rootname[] = "driver/wifi-pm";
 
 	remove_proc_entry("power", ops->proc_root);
@@ -120,38 +122,44 @@ static inline void awwifi_procfs_remove(void) {}
 static int wifi_pm_get_res(void)
 {
 	script_item_value_type_e type;
-	struct wifi_pm_ops *ops = &wifi_card_pm_ops;
+	struct wifi_pm_ops *ops = &wifi_select_pm_ops;
 
-	type = script_get_item(wifi_para, "sdio_wifi_used", &ops->sdio_card_used);
+	type = script_get_item(wifi_para, "wifi_used", &ops->wifi_used);
 	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
-		wifi_pm_msg("failed to fetch sdio card configuration!\n");
+		wifi_pm_msg("failed to fetch wifi configuration!\n");
 		return -1;
 	}
-	if (!ops->sdio_card_used.val) {
-		wifi_pm_msg("no sdio card used in configuration\n");
+	if (!ops->wifi_used.val) {
+		wifi_pm_msg("no wifi used in configuration\n");
 		return -1;
 	}
 
-	type = script_get_item(wifi_para, "sdio_wifi_sdc_id", &ops->sdio_cardid);
+	type = script_get_item(wifi_para, "wifi_sdc_id", &ops->sdio_id);
 	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
 		wifi_pm_msg("failed to fetch sdio card's sdcid\n");
 		return -1;
 	}
+	
+	type = script_get_item(wifi_para, "wifi_usbc_id", &ops->usb_id);
+	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+		wifi_pm_msg("failed to fetch usb's id\n");
+		return -1;
+	}	
 
-	type = script_get_item(wifi_para, "sdio_wifi_mod_sel", &ops->module_sel);
+	type = script_get_item(wifi_para, "wifi_mod_sel", &ops->module_sel);
 	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
 		wifi_pm_msg("failed to fetch sdio module select\n");
 		return -1;
 	}
 	ops->mod_name = wifi_mod[ops->module_sel.val];
-	printk("[wifi]: select sdio wifi: %s !!\n", wifi_mod[ops->module_sel.val]);
+	printk("[wifi]: select wifi: %s !!\n", wifi_mod[ops->module_sel.val]);
 
 	return 0;
 }
 
 static int __devinit wifi_pm_probe(struct platform_device *pdev)
 {
-	struct wifi_pm_ops *ops = &wifi_card_pm_ops;
+	struct wifi_pm_ops *ops = &wifi_select_pm_ops;
 
 	switch (ops->module_sel.val) {
 		case 1: /* BCM40181 */
@@ -166,26 +174,32 @@ static int __devinit wifi_pm_probe(struct platform_device *pdev)
 		case 4: /* RTL8189ES */
 			rtl8189es_gpio_init();
 			break;
+		case 5: /* RTL8192CU */
+			rtl8192cu_gpio_init();
+			break;
+		case 6: /* RTL8188EU */
+			rtl8188eu_gpio_init();
+			break;
 		default:
 			wifi_pm_msg("wrong sdio module select %d !\n", ops->module_sel.val);
 	}
 
 	awwifi_procfs_attach();
-	wifi_pm_msg("SDIO card gpio init is OK !!\n");
+	wifi_pm_msg("wifi gpio init is OK !!\n");
 	return 0;
 }
 
 static int __devexit wifi_pm_remove(struct platform_device *pdev)
 {
 	awwifi_procfs_remove();
-	wifi_pm_msg("SDIO card gpio is released !!\n");
+	wifi_pm_msg("wifi gpio is released !!\n");
 	return 0;
 }
 
 #ifdef CONFIG_PM
 static int wifi_pm_suspend(struct device *dev)
 {
-	struct wifi_pm_ops *ops = &wifi_card_pm_ops;
+	struct wifi_pm_ops *ops = &wifi_select_pm_ops;
 
 	if (ops->standby)
 		ops->standby(1);
@@ -194,7 +208,7 @@ static int wifi_pm_suspend(struct device *dev)
 
 static int wifi_pm_resume(struct device *dev)
 {
-	struct wifi_pm_ops *ops = &wifi_card_pm_ops;
+	struct wifi_pm_ops *ops = &wifi_select_pm_ops;
 
 	if (ops->standby)
 		ops->standby(0);
@@ -223,11 +237,11 @@ static struct platform_driver wifi_pm_driver = {
 
 static int __init wifi_pm_init(void)
 {
-	struct wifi_pm_ops *ops = &wifi_card_pm_ops;
+	struct wifi_pm_ops *ops = &wifi_select_pm_ops;
 
 	memset(ops, 0, sizeof(struct wifi_pm_ops));
 	wifi_pm_get_res();
-	if (!ops->sdio_card_used.val)
+	if (!ops->wifi_used.val)
 		return 0;
 
 	platform_device_register(&wifi_pm_dev);
@@ -236,8 +250,8 @@ static int __init wifi_pm_init(void)
 
 static void __exit wifi_pm_exit(void)
 {
-	struct wifi_pm_ops *ops = &wifi_card_pm_ops;
-	if (!ops->sdio_card_used.val)
+	struct wifi_pm_ops *ops = &wifi_select_pm_ops;
+	if (!ops->wifi_used.val)
 		return;
 
 	memset(ops, 0, sizeof(struct wifi_pm_ops));

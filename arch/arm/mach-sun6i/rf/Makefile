@@ -6,7 +6,8 @@
 obj-$(CONFIG_MMC)    += wifi_gpio.o
 
 wifi_gpio-y := wifi_pm.o  wifi_pm_bcm40181.o wifi_pm_bcm40183.o \
-	           wifi_pm_rtl8723as.o wifi_pm_rtl8189es.o
+	           wifi_pm_rtl8723as.o wifi_pm_rtl8189es.o wifi_pm_rtl8192cu.o \
+	           wifi_pm_rtl8188eu.o
 
 obj-$(CONFIG_RFKILL)  += bt_gpio.o
 
