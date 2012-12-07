@@ -72,7 +72,20 @@ static void __init gic_init_irq(void)
 	gic_init(0, 29, (void *)IO_ADDRESS(AW_GIC_DIST_BASE), (void *)IO_ADDRESS(AW_GIC_CPU_BASE));
 }
 
-extern void __init sun6i_timer_init(void);
+
+void __init sun6i_clkevt_init(void);
+int __init sun6i_clksrc_init(void);
+int __init arch_timer_sched_clock_init(void);
+int arch_timer_common_register(void);
+
+static void __init sun6i_timer_init(void)
+{
+    sun6i_clkevt_init();
+    sun6i_clksrc_init();
+    arch_timer_common_register();
+}
+
+
 static struct sys_timer sun6i_timer = {
 	.init		= sun6i_timer_init,
 };

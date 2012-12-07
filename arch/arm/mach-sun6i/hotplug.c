@@ -63,8 +63,6 @@ int platform_cpu_kill(unsigned int cpu)
 
 void platform_cpu_die(unsigned int cpu)
 {
-	printk("[%s] cpu%d die\n", __FUNCTION__, cpu);
-
 	/* hardware shutdown code running on the CPU that is being offlined */
 	flush_cache_all();
 	dsb();

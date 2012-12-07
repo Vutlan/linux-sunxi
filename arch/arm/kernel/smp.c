@@ -337,9 +337,6 @@ void __init smp_prepare_boot_cpu(void)
 	per_cpu(cpu_data, cpu).idle = current;
 }
 
-extern int arch_timer_common_register(void);
-extern int __init arch_timer_sched_clock_init(void);
-
 void __init smp_prepare_cpus(unsigned int max_cpus)
 {
 	unsigned int ncores = num_possible_cpus();
@@ -354,9 +351,6 @@ void __init smp_prepare_cpus(unsigned int max_cpus)
 	if (max_cpus > ncores)
 		max_cpus = ncores;
 	if (ncores > 1 && max_cpus) {
-		arch_timer_common_register();
-
-		arch_timer_sched_clock_init();
 		/*
 		 * Enable the local timer or broadcast device for the
 		 * boot CPU, but only if we have more than one CPU.
