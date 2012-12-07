@@ -224,22 +224,22 @@ static int ctp_detect(struct i2c_client *client, struct i2c_board_info *info)
         int  i = 0;
       
         if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE_DATA)){
-        	      printk("======return=====\n");
+        	printk("======return=====\n");
                 return -ENODEV;
         }
         if(twi_id == adapter->nr){
-                pr_info("%s: addr= %x\n",__func__,client->addr);
+                printk("%s: addr= %x\n",__func__,client->addr);
                 msleep(50);
 	        i2c_read_bytes(client,read_chip_value,3);
-                pr_info("chip_id_value:0x%x\n",read_chip_value[2]);
+                printk("chip_id_value:0x%x\n",read_chip_value[2]);
                 while(chip_id_value[i++]){
                         if(read_chip_value[2] == chip_id_value[i - 1]){
-                                pr_info("I2C connection sucess!\n");
+                                printk("I2C connection sucess!\n");
             	                strlcpy(info->type, CTP_NAME, I2C_NAME_SIZE);
     		                return 0;
                         }                   
                 }
-        	pr_info("%s:I2C connection might be something wrong ! \n",__func__);
+        	printk("%s:I2C connection might be something wrong ! \n",__func__);
         	return -ENODEV;
 	}else{
 	        return -ENODEV;
@@ -466,7 +466,7 @@ static void goodix_ts_work_func(struct work_struct *work)
                 input_report_key(ts->input_dev, touch_key_array[idx], key_value & (0x01<<idx));   
         }
 #endif
-        input_report_key(ts->input_dev, BTN_TOUCH, (touch_num || key_value));
+        //input_report_key(ts->input_dev, BTN_TOUCH, (touch_num || key_value));
         input_sync(ts->input_dev);
 
 exit_work_func:
@@ -531,9 +531,41 @@ static void goodix_ts_suspend(struct early_suspend *h)
 {
 	int ret;
 	struct goodix_ts_data *ts = container_of(h, struct goodix_ts_data, early_suspend);
-        struct i2c_client * client = ts->client;
+	       
+        dprintk(DEBUG_SUSPEND,"CONFIG_HAS_EARLYSUSPEND:enter earlysuspend: goodix_ts_suspend. \n");                              
+        sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,0);
+        ret = cancel_work_sync(&ts->work);
+        if (ts->power) {
+        	ret = ts->power(ts,0);
+        	if (ret < 0)
+        		dprintk(DEBUG_SUSPEND,"%s power off failed\n", f3x_ts_name);
+        }
+        return ;
+}
+
+//重新唤醒
+static void goodix_ts_resume(struct early_suspend *h)
+{
+	int ret;
+	struct goodix_ts_data *ts = container_of(h, struct goodix_ts_data, early_suspend);
+
+        dprintk(DEBUG_SUSPEND,"CONFIG_HAS_EARLYSUSPEND:enter laterresume: goodix_ts_resume. \n");
+        sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,1);  
+	if (ts->power) {
+		ret = ts->power(ts, 1);
+		if (ret < 0)
+			dprintk(DEBUG_SUSPEND,"%s power on failed\n", f3x_ts_name);
+	}
+	return ;
+}
+#endif
+#ifdef CONFIG_PM
+static int goodix_ts_suspend(struct i2c_client *client, pm_message_t mesg)
+{
+	int ret;
+        struct goodix_ts_data *ts = i2c_get_clientdata(client);
         
-        dprintk(DEBUG_SUSPEND,"enter earlysuspend: goodix_ts_suspend. \n");
+        dprintk(DEBUG_SUSPEND,"CONFIG_PM:enter earlysuspend: goodix_ts_suspend. \n");
    	                                
        sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,0);
        ret = cancel_work_sync(&ts->work);
@@ -542,24 +574,23 @@ static void goodix_ts_suspend(struct early_suspend *h)
 		if (ret < 0)
 			dprintk(DEBUG_SUSPEND,"%s power off failed\n", f3x_ts_name);
 	}
-	return ;
+	return 0 ;
 }
 
 //重新唤醒
-static void goodix_ts_resume(struct early_suspend *h)
+static int goodix_ts_resume(struct i2c_client *client)
 {
 	int ret;
-	struct goodix_ts_data *ts = container_of(h, struct goodix_ts_data, early_suspend);
-        struct i2c_client * client = ts->client;
+	struct goodix_ts_data *ts = i2c_get_clientdata(client);
   
-        dprintk(DEBUG_SUSPEND,"enter laterresume: goodix_ts_resume. \n");
+        dprintk(DEBUG_SUSPEND,"CONFIG_PM:enter laterresume: goodix_ts_resume. \n");
         sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,1);  
 	if (ts->power) {
 		ret = ts->power(ts, 1);
 		if (ret < 0)
 			dprintk(DEBUG_SUSPEND,"%s power on failed\n", f3x_ts_name);
 	}
-	return ;
+	return 0;
 }
 #endif
 /*******************************************************	
@@ -596,7 +627,7 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 	
 	INIT_WORK(&ts->work, goodix_ts_work_func);
 	ts->client = client;
-	i2c_set_clientdata(client, ts);
+	i2c_set_clientdata(ts->client, ts);
 	
 	ts->input_dev = input_allocate_device();
 	if (ts->input_dev == NULL) 
@@ -735,6 +766,14 @@ static struct i2c_driver goodix_ts_driver = {
 	.probe		= goodix_ts_probe,
 	.remove		= goodix_ts_remove,
 	.id_table	= goodix_ts_id,
+#ifdef CONFIG_HAS_EARLYSUSPEND
+
+#else
+#ifdef CONFIG_PM
+	.suspend  =  goodix_ts_suspend,
+	.resume   =  goodix_ts_resume,
+#endif
+#endif
 	.driver = {
 		.name	= CTP_NAME,
 		.owner = THIS_MODULE,

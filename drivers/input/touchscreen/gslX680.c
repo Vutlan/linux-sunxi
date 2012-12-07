@@ -60,9 +60,6 @@ static u32 gslX680_debug_mask = 1;
 
 //#define HAVE_TOUCH_KEY
 
-#define SCREEN_MAX_X		(screen_max_x)
-#define SCREEN_MAX_Y		(screen_max_y)
-
 #define GSLX680_I2C_NAME 	"gslX680"
 #define GSLX680_I2C_ADDR 	0x40
 
@@ -187,8 +184,9 @@ static u16 y_new = 0;
 #define CTP_IRQ_NUMBER                  (config_info.irq_gpio_number)
 #define CTP_IRQ_MODE			(TRIG_EDGE_NEGATIVE)
 #define CTP_NAME			GSLX680_I2C_NAME
-#define SCREEN_MAX_HEIGHT		(screen_max_x)
-#define SCREEN_MAX_WIDTH		(screen_max_y)
+#define SCREEN_MAX_X		        (screen_max_x)
+#define SCREEN_MAX_Y		        (screen_max_y)
+
 
 static int screen_max_x = 0;
 static int screen_max_y = 0;
@@ -211,13 +209,13 @@ static int ctp_detect(struct i2c_client *client, struct i2c_board_info *info)
                 return -ENODEV;
     
 	if(twi_id == adapter->nr){
-                pr_info("%s: addr= %x\n",__func__,client->addr);
+                printk("%s: addr= %x\n",__func__,client->addr);
                 ret = ctp_i2c_test(client);
                 if(!ret){
-        		pr_info("%s:I2C connection might be something wrong \n",__func__);
+        		printk("%s:I2C connection might be something wrong \n",__func__);
         		return -ENODEV;
         	}else{           	    
-            	        pr_info("I2C connection sucess!\n");
+            	        printk("I2C connection sucess!\n");
             	        strlcpy(info->type, CTP_NAME, I2C_NAME_SIZE);
     		    return 0;	
 	             }
@@ -770,7 +768,7 @@ static int gsl_ts_suspend(struct device *dev)
 	struct gsl_ts *ts = dev_get_drvdata(dev);
 	//int rc = 0;
 
-  	dprintk(DEBUG_SUSPEND,"I'am in gsl_ts_suspend() start\n");
+  	dprintk(DEBUG_SUSPEND,"CONFIG_HAS_EARLYSUSPEND:%s,start\n",__func__);
 	ts->is_suspended = true;
 
 #ifdef GSL_TIMER
@@ -791,7 +789,7 @@ static int gsl_ts_resume(struct device *dev)
 {
 	struct gsl_ts *ts = dev_get_drvdata(dev);
 	
-  	dprintk(DEBUG_SUSPEND,"I'am in gsl_ts_resume() start\n");
+  	dprintk(DEBUG_SUSPEND,"CONFIG_HAS_EARLYSUSPEND:%s,start\n",__func__);
 	
 	gslX680_shutdown_high();
 	msleep(10); 	
@@ -816,18 +814,83 @@ static int gsl_ts_resume(struct device *dev)
 static void gsl_ts_early_suspend(struct early_suspend *h)
 {
 	struct gsl_ts *ts = container_of(h, struct gsl_ts, early_suspend);
-	dprintk(DEBUG_SUSPEND,"[GSL1680] Enter %s\n", __func__);
+	dprintk(DEBUG_SUSPEND,"CONFIG_HAS_EARLYSUSPEND:Enter %s\n", __func__);
 	gsl_ts_suspend(&ts->client->dev);
 }
 
 static void gsl_ts_late_resume(struct early_suspend *h)
 {
 	struct gsl_ts *ts = container_of(h, struct gsl_ts, early_suspend);
-	dprintk(DEBUG_SUSPEND,"[GSL1680] Enter %s\n", __func__);
+	dprintk(DEBUG_SUSPEND,"CONFIG_HAS_EARLYSUSPEND: Enter %s\n", __func__);
 	gsl_ts_resume(&ts->client->dev);
 }
 #endif
 
+#ifdef CONFIG_PM
+static int gsl_ts_suspend(struct device *dev)
+{
+	struct gsl_ts *ts = dev_get_drvdata(dev);
+	//int rc = 0;
+
+  	dprintk(DEBUG_SUSPEND,"CONFIG_PM:%s,start\n",__func__);
+	ts->is_suspended = true;
+
+#ifdef GSL_TIMER
+	dprintk(DEBUG_SUSPEND,"gsl_ts_suspend () : delete gsl_timer\n");
+	del_timer(&ts->gsl_timer);
+#endif
+
+        sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,0);
+		   
+	cancel_work_sync(&ts->work);
+	flush_workqueue(ts->wq);	   
+	gslX680_shutdown_low(); 
+
+	return 0;
+}
+
+static int gsl_ts_resume(struct device *dev)
+{
+	struct gsl_ts *ts = dev_get_drvdata(dev);
+	
+  	dprintk(DEBUG_SUSPEND,"CONFIG_PM:%s,start\n",__func__);
+	
+	gslX680_shutdown_high();
+	msleep(10); 	
+	reset_chip(ts->client);
+	startup_chip(ts->client);	
+	check_mem_data(ts->client);
+	
+#ifdef GSL_TIMER
+	dprintk(DEBUG_SUSPEND, "gsl_ts_resume () : add gsl_timer\n");
+	init_timer(&ts->gsl_timer);
+	ts->gsl_timer.expires = jiffies + 3 * HZ;
+	ts->gsl_timer.function = &gsl_timer_handle;
+	ts->gsl_timer.data = (unsigned long)ts;
+	add_timer(&ts->gsl_timer);
+#endif
+        sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,1);
+        ts->is_suspended = false;
+
+	return 0;
+}
+
+static int gsl_ts_early_suspend(struct i2c_client *client, pm_message_t mesg)
+{
+	struct gsl_ts *ts = i2c_get_clientdata(client);
+	dprintk(DEBUG_SUSPEND,"CONFIG_PM:Enter %s\n", __func__);
+	gsl_ts_suspend(&ts->client->dev);
+	return 0;
+}
+
+static int gsl_ts_late_resume(struct i2c_client *client)
+{
+	struct gsl_ts *ts = i2c_get_clientdata(client);
+	dprintk(DEBUG_SUSPEND,"CONFIG_PM:Enter %s\n", __func__);
+	gsl_ts_resume(&ts->client->dev);
+	return 0;
+}
+#endif
 static int __devinit gsl_ts_probe(struct i2c_client *client,
 			const struct i2c_device_id *id)
 {
@@ -847,7 +910,6 @@ static int __devinit gsl_ts_probe(struct i2c_client *client,
 	}
         
 	ts->client = client;
-	i2c_set_clientdata(client, ts);
 	ts->device_id = id->driver_data;
 
 	ts->is_suspended = false;
@@ -862,8 +924,7 @@ static int __devinit gsl_ts_probe(struct i2c_client *client,
 	gslX680_chip_init();    	
 	init_chip(ts->client);
 	check_mem_data(ts->client);
-	
-	
+	i2c_set_clientdata(ts->client,ts);
 	//rc=  request_irq(client->irq, gsl_ts_irq, IRQF_TRIGGER_RISING | IRQF_SHARED, client->name, ts);
 	int_handle = sw_gpio_irq_request(CTP_IRQ_NUMBER,CTP_IRQ_MODE,(peint_handle)gsl_ts_irq,ts);
 	if (!int_handle) {
@@ -945,6 +1006,14 @@ static struct i2c_driver gsl_ts_driver = {
 	.remove		= __devexit_p(gsl_ts_remove),
 	.id_table		= gsl_ts_id,
 	.address_list	= normal_i2c,
+#ifdef CONFIG_HAS_EARLYSUSPEND
+
+#else
+#ifdef CONFIG_PM
+	.suspend  =  gsl_ts_early_suspend,
+	.resume   =  gsl_ts_late_resume,
+#endif
+#endif
 };
 static int ctp_get_system_config(void)
 {   

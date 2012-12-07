@@ -56,6 +56,14 @@ config SENSORS_MMA8452
 	help
 	  If you say yes here you get support for the Freescale 3-Axis
 	  Orientation/Motion Detection Sensor.
+	  
+config SENSORS_AFA750
+	tristate "AFA750 3-Axis acceleration sensor support"
+	select I2C
+	depends on HWMON
+	default m
+	help
+	  If you say yes here you get support for acceleration sensors AFA750.
 
 config SENSORS_ABITUGURU
 	tristate "Abit uGuru (rev 1 & 2)"

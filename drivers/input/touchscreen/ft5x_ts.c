@@ -109,7 +109,7 @@ static u32 int_handle = 0;
 
 /* Addresses to scan */
 static const unsigned short normal_i2c[2] = {0x38,I2C_CLIENT_END};
-static const int chip_id_value[] = {0x55,0x06,0x08,0x02};
+static const int chip_id_value[] = {0x55,0x06,0x08,0x02,0xa3};
 static __u32 twi_id = 0;
 
 
@@ -1123,16 +1123,16 @@ static void ft5x_ts_suspend(struct early_suspend *handler)
 {
         struct ft5x_ts_data *data = i2c_get_clientdata(this_client);
         dprintk(DEBUG_SUSPEND,"==ft5x_ts_suspend=\n");
-        dprintk(DEBUG_SUSPEND,"ft5x_ts_suspend: write FT5X0X_REG_PMODE .\n");
+        dprintk(DEBUG_SUSPEND,"CONFIG_HAS_EARLYSUSPEND: write FT5X0X_REG_PMODE .\n");
         sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,0);
-        cancel_work_sync(&ft5x_ts->pen_event_work);
+        cancel_work_sync(&data->pen_event_work);
         ft5x_set_reg(FT5X0X_REG_PMODE, PMODE_HIBERNATE);
               
 }
 
 static void ft5x_ts_resume(struct early_suspend *handler)
 {
-	dprintk(DEBUG_SUSPEND,"==ft5x_ts_resume== \n");
+	dprintk(DEBUG_SUSPEND,"==CONFIG_HAS_EARLYSUSPEND:ft5x_ts_resume== \n");
 	ctp_wakeup(0,20);
 	sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,1);
 	if(STANDBY_WITH_POWER_OFF == standby_level){
@@ -1141,7 +1141,25 @@ static void ft5x_ts_resume(struct early_suspend *handler)
 		
 }
 #endif  //CONFIG_HAS_EARLYSUSPEND
-
+#ifdef CONFIG_PM
+static int ft5x_ts_suspend(struct i2c_client *client, pm_message_t mesg)
+{
+        struct ft5x_ts_data *data = i2c_get_clientdata(this_client);
+        dprintk(DEBUG_SUSPEND,"==ft5x_ts_suspend=\n");
+        dprintk(DEBUG_SUSPEND,"CONFIG_PM: write FT5X0X_REG_PMODE .\n");
+        sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,0);
+        cancel_work_sync(&data->pen_event_work);
+        ft5x_set_reg(FT5X0X_REG_PMODE, PMODE_HIBERNATE);
+        return 0;
+}
+static int ft5x_ts_resume(struct i2c_client *client)
+{
+	dprintk(DEBUG_SUSPEND,"==CONFIG_PM:ft5x_ts_resume== \n");
+	ctp_wakeup(0,20);
+	sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,1);
+	return 0;		
+}
+#endif
 static int 
 ft5x_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
@@ -1325,12 +1343,21 @@ static struct i2c_driver ft5x_ts_driver = {
 	.class = I2C_CLASS_HWMON,
 	.probe		= ft5x_ts_probe,
 	.remove		= __devexit_p(ft5x_ts_remove),
+#ifdef CONFIG_HAS_EARLYSUSPEND
+
+#else
+#ifdef CONFIG_PM
+	.suspend  =  ft5x_ts_suspend,
+	.resume   =  ft5x_ts_resume,
+#endif
+#endif
 	.id_table	= ft5x_ts_id,
 	.driver	= {
 		.name	= CTP_NAME,
 		.owner	= THIS_MODULE,
 	},
 	.address_list	= normal_i2c,
+
 };
 
 static int aw_open(struct inode *inode, struct file *file)
