@@ -1239,8 +1239,6 @@ static int exit_sw_hci(struct sw_hci_hcd *sw_hci, u32 ohci)
 static int __init sw_hci_sun6i_init(void)
 {
 
-	printk("Line:%d:%s\n", __LINE__, __func__);
-
     /* USB1 */
     init_sw_hci(&sw_ehci0, 1, 0, ehci_name);
     init_sw_hci(&sw_ohci0, 1, 1, ohci_name);

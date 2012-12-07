@@ -168,8 +168,7 @@ __s32 usbc0_platform_device_init(struct usb_port_info *port_info)
     /* host */
     sw_hcd_config.port_info = port_info;
 
-	printk("-------port_type = %d\n", port_info->port_type);
-    switch(port_info->port_type){
+     switch(port_info->port_type){
         case USB_PORT_TYPE_DEVICE:
             platform_device_register(&sw_udc_device);
         break;

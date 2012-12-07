@@ -319,7 +319,6 @@ static int ehci_reset (struct ehci_hcd *ehci)
 {
 	int	retval;
 	u32	command = ehci_readl(ehci, &ehci->regs->command);
-	printk("Line:%d:%s\n", __LINE__, __func__);
 
 	/* If the EHCI debug controller is active, special care must be
 	 * taken before and after a host controller reset */
@@ -733,7 +732,6 @@ static int ehci_run (struct usb_hcd *hcd)
 	u32			hcc_params;
 
 	hcd->uses_new_polling = 1;
-	printk("Line:%d:%s\n", __LINE__, __func__);
 
 	/* EHCI spec section 4.1 */
 
@@ -816,7 +814,6 @@ static int __maybe_unused ehci_setup (struct usb_hcd *hcd)
 {
 	struct ehci_hcd *ehci = hcd_to_ehci(hcd);
 	int retval;
-	printk("Line:%d:%s\n", __LINE__, __func__);
 
 	ehci->regs = (void __iomem *)ehci->caps +
 	    HC_LENGTH(ehci, ehci_readl(ehci, &ehci->caps->hc_capbase));
@@ -851,7 +848,6 @@ static irqreturn_t ehci_irq (struct usb_hcd *hcd)
 	int			bh;
 
 	spin_lock (&ehci->lock);
-	//printk("Line:%d:%s\n", __LINE__, __func__);
 
 	status = ehci_readl(ehci, &ehci->regs->status);
 

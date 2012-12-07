@@ -669,9 +669,8 @@ static int mass_storage_function_init(struct android_usb_function *f,
 	config->fsg.luns[0].removable = 1;
 #else
     if(g_android_usb_config.luns <= FSG_MAX_LUNS){
-        //config->fsg.nluns = g_android_usb_config.luns;
-		config->fsg.nluns = 1;
-    }else{
+        config->fsg.nluns = g_android_usb_config.luns;
+     }else{
 		config->fsg.nluns = FSG_MAX_LUNS;
         printk("err: g_android_usb_config.luns is too big, (%d, 8)\n", g_android_usb_config.luns);
     }

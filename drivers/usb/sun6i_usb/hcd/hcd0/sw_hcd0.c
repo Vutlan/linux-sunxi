@@ -1791,9 +1791,6 @@ static int __init sw_hcd_probe(struct platform_device *pdev)
 {
  #ifdef  CONFIG_USB_SW_SUN6I_USB0_OTG
 	struct sw_hcd_platform_data	*pdata = pdev->dev.platform_data;
-
-	printk("Line:%d:%s,type = %d\n", __LINE__, __func__,pdata->config->port_info->port_type);
-
     switch(pdata->config->port_info->port_type){
         case USB_PORT_TYPE_HOST:
             return sw_hcd_probe_host_only(pdev);

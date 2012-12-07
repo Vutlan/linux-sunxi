@@ -1145,8 +1145,6 @@ static int __init ohci_hcd_mod_init(void)
 {
 	int retval = 0;
 
-	printk("Line:%d:%s\n", __LINE__, __func__);
-
 	if (usb_disabled())
 		return -ENODEV;
 
