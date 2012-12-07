@@ -21,6 +21,11 @@
 
 #include "hwmsgbox_i.h"
 
+/* spinlock for syn and asyn channel */
+static spinlock_t syn_channel_lock;
+static spinlock_t asyn_channel_lock;
+
+
 /**
  * initialize hwmsgbox.
  * @para:  none.
@@ -38,6 +43,10 @@ int ar100_hwmsgbox_init(void)
 		AR100_ERR("request_irq error, return %d\n", ret);
 		return ret;
 	}
+	
+	/* initialize syn and asyn spinlock */
+	spin_lock_init(&(syn_channel_lock));
+	spin_lock_init(&(asyn_channel_lock));
 	
 	return 0;
 }
@@ -72,9 +81,12 @@ int ar100_hwmsgbox_send_message(struct ar100_message *pmessage, unsigned int tim
 	}
 	if (pmessage->attr & AR100_MESSAGE_ATTR_HARDSYN) {
 		/* use ac327 hwsyn transmit channel */
+		spin_lock(&syn_channel_lock);
 		while (readl(IO_ADDRESS(AW_MSGBOX_FIFO_STATUS_REG(AR100_HWMSGBOX_AC327_SYN_TX_CH))) == 1) {
 			/* message-queue fifo is full */
 			if (time_is_before_eq_jiffies(expire)) {
+				AR100_ERR("hw message queue fifo full timeout\n");
+				spin_unlock(&syn_channel_lock);
 				return -ETIMEDOUT;
 			}
 		}
@@ -83,23 +95,23 @@ int ar100_hwmsgbox_send_message(struct ar100_message *pmessage, unsigned int tim
 		writel(value, IO_ADDRESS(AW_MSGBOX_MSG_REG(AR100_HWMSGBOX_AC327_SYN_TX_CH)));
 		
 		/* hwsyn messsage must feedback use syn rx channel */
-		/* message not valid */
 		while (readl(IO_ADDRESS(AW_MSGBOX_MSG_STATUS_REG(AR100_HWMSGBOX_AC327_SYN_RX_CH))) == 0) {
 			if (time_is_before_eq_jiffies(expire)) {
+				AR100_ERR("wait hard syn message time out\n");
+				spin_unlock(&syn_channel_lock);
 				return -ETIMEDOUT;
 			}
 		}
 		/* check message valid */
 		if (value != (readl(IO_ADDRESS(AW_MSGBOX_MSG_REG(AR100_HWMSGBOX_AC327_SYN_RX_CH))))) {
-			AR100_ERR("hard syn message error\n");
+			AR100_ERR("hard syn message error [%x, %x]\n", (u32)value, (u32)(readl(IO_ADDRESS(AW_MSGBOX_MSG_REG(AR100_HWMSGBOX_AC327_SYN_RX_CH)))));
+			spin_unlock(&syn_channel_lock);
 			return -EINVAL;
 		}
 		AR100_INF("ac327 hard syn message [%x, %x] feedback\n", (unsigned int)value, (unsigned int)pmessage->type);
 		/* if error call the callback function. by superm */
-		if(pmessage->result != 0)
-		{
-			if (pmessage->cb.handler == NULL)
-			{
+		if(pmessage->result != 0) {
+			if (pmessage->cb.handler == NULL) {
 				AR100_WRN("callback not install\n");
 			} else {
 				/* call callback function */
@@ -107,13 +119,17 @@ int ar100_hwmsgbox_send_message(struct ar100_message *pmessage, unsigned int tim
 				(*(pmessage->cb.handler))(pmessage->cb.arg);
 			}
 		}
+		spin_unlock(&syn_channel_lock);
 		return 0;
 	}
 	
 	/* use ac327 asyn transmit channel */
+	spin_lock(&asyn_channel_lock);
 	while (readl(IO_ADDRESS(AW_MSGBOX_FIFO_STATUS_REG(AR100_HWMSGBOX_AR100_ASYN_RX_CH))) == 1) {
 		/* message-queue fifo is full */
 		if (time_is_before_eq_jiffies(expire)) {
+			AR100_ERR("wait asyn message time out\n");
+			spin_unlock(&asyn_channel_lock);
 			return -ETIMEDOUT;
 		}
 	}
@@ -122,11 +138,12 @@ int ar100_hwmsgbox_send_message(struct ar100_message *pmessage, unsigned int tim
 	AR100_INF("ac327 send message : %x\n", (unsigned int)value);
 	writel(value, IO_ADDRESS(AW_MSGBOX_MSG_REG(AR100_HWMSGBOX_AR100_ASYN_RX_CH)));
 	
+	spin_unlock(&asyn_channel_lock);
+	
 	/* syn messsage must wait message feedback */
 	if (pmessage->attr & AR100_MESSAGE_ATTR_SOFTSYN) {
 		ar100_hwmsgbox_wait_message_feedback(pmessage);
 	}
-	
 	return 0;
 }
 

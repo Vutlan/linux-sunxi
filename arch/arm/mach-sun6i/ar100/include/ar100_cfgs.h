@@ -37,10 +37,10 @@
 #define AR100_MESSAGE_POOL_END		(0x14000)
 
 /* spinlock max timeout, base on ms */
-#define AR100_SPINLOCK_TIMEOUT		(10)
+#define AR100_SPINLOCK_TIMEOUT		(100)
 
 /* send message max timeout, base on ms */
-#define AR100_SEND_MSG_TIMEOUT		(10)
+#define AR100_SEND_MSG_TIMEOUT		(4000)
 
 /* hwmsgbox channels configure */
 #define	AR100_HWMSGBOX_AR100_ASYN_TX_CH	(0)
