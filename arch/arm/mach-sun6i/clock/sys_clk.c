@@ -279,7 +279,7 @@ static __u64 sys_clk_get_rate(__aw_ccu_clk_id_e id)
 
         case AW_SYS_CLK_PLL5:
             tmp_rate = (__u64)24000000*PLL5_FACTOR_N*PLL5_FACTOR_K;
-            do_div(tmp_rate, (PLL5_FACTOR_M+1));
+            do_div(tmp_rate, PLL5_FACTOR_M);
             return tmp_rate;
         case AW_SYS_CLK_PLL6:
             tmp_rate = (__u64)24000000*PLL6_FACTOR_N*PLL6_FACTOR_K;
