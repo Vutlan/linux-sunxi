@@ -236,6 +236,8 @@ struct bma250_data {
 	struct work_struct irq_work;
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	struct early_suspend early_suspend;
+#endif
+#if defined(CONFIG_HAS_EARLYSUSPEND) || defined(CONFIG_PM)
 	unsigned char range_state;
 	unsigned char bandwidth_state;
 #endif
@@ -1002,7 +1004,6 @@ static void bma250_early_suspend(struct early_suspend *h)
 	}
 }
 
-
 static void bma250_late_resume(struct early_suspend *h)
 {
 	struct bma250_data *data =
@@ -1033,6 +1034,66 @@ static void bma250_late_resume(struct early_suspend *h)
 		
 	}
 }
+#else
+#ifdef CONFIG_PM
+static int bma250_resume(struct i2c_client *client)
+{
+	struct bma250_data *data = i2c_get_clientdata(client);
+	
+	if (NORMAL_STANDBY == standby_type) {
+		mutex_lock(&data->enable_mutex);
+		if (atomic_read(&data->enable)==1) {
+			bma250_set_mode(data->bma250_client, BMA250_MODE_NORMAL);
+			schedule_delayed_work(&data->work,
+				msecs_to_jiffies(atomic_read(&data->delay)));
+		}
+		mutex_unlock(&data->enable_mutex);
+	} else if (SUPER_STANDBY == standby_type) {
+		if (bma250_set_bandwidth(data->bma250_client,
+						 data->bandwidth_state) < 0)
+			printk("suspend: write bandwidth err\n");
+		if (bma250_set_range(data->bma250_client, data->range_state) < 0)
+			printk("suspend: write range err\n");
+			
+		mutex_lock(&data->enable_mutex);
+		if (atomic_read(&data->enable)==1) {
+			bma250_set_mode(data->bma250_client, BMA250_MODE_NORMAL);
+			schedule_delayed_work(&data->work,
+				msecs_to_jiffies(atomic_read(&data->delay)));
+		}
+		mutex_unlock(&data->enable_mutex);
+		
+	}
+	return 0;
+}
+
+static int bma250_suspend(struct i2c_client *client, pm_message_t mesg)
+{
+	struct bma250_data *data = i2c_get_clientdata(client);
+	
+	if (NORMAL_STANDBY == standby_type) {
+		mutex_lock(&data->enable_mutex);
+		if (atomic_read(&data->enable)==1) {
+			bma250_set_mode(data->bma250_client, BMA250_MODE_SUSPEND);
+			cancel_delayed_work_sync(&data->work);
+		}
+		mutex_unlock(&data->enable_mutex);
+	} else if (SUPER_STANDBY == standby_type) {
+		if (bma250_get_bandwidth(data->bma250_client, &data->bandwidth_state) < 0)
+			printk("suspend: read bandwidth err\n");
+		if (bma250_get_range(data->bma250_client, &data->range_state) < 0)
+			printk("suspend: read range err\n");
+
+		mutex_lock(&data->enable_mutex);
+		if (atomic_read(&data->enable)==1) {
+			bma250_set_mode(data->bma250_client, BMA250_MODE_SUSPEND);
+			cancel_delayed_work_sync(&data->work);
+		}
+		mutex_unlock(&data->enable_mutex);
+	}
+	return 0;
+}
+#endif
 #endif /* CONFIG_HAS_EARLYSUSPEND */
 
 static int bma250_remove(struct i2c_client *client)
@@ -1066,6 +1127,13 @@ static struct i2c_driver bma250_driver = {
 	.id_table	= bma250_id,
 	.probe		= bma250_probe,
 	.remove		= bma250_remove,
+#ifdef CONFIG_HAS_EARLYSUSPEND
+#else
+#ifdef CONFIG_PM
+	.suspend = bma250_suspend,
+	.resume = bma250_resume,
+#endif
+#endif
 	.address_list	= normal_i2c,
 };
 

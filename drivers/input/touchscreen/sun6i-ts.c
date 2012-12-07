@@ -297,7 +297,7 @@ DECLARE_TASKLET(tp_tasklet,tp_do_tasklet,0);
 static int  tp_init(void);
 /* 停用设备 */
 #ifdef CONFIG_HAS_EARLYSUSPEND
-static void sun4i_ts_suspend(struct early_suspend *h)
+static void sun4i_ts_early_suspend(struct early_suspend *h)
 {
 	dprintk(DEBUG_SUSPEND_INFO, "[%s] enter standby state: %d. \n", __FUNCTION__, (int)standby_type);
 	
@@ -309,7 +309,7 @@ static void sun4i_ts_suspend(struct early_suspend *h)
 }
 
 /* 重新唤醒 */
-static void sun4i_ts_resume(struct early_suspend *h)
+static void sun4i_ts_late_resume(struct early_suspend *h)
 {
 	dprintk(DEBUG_SUSPEND_INFO, "[%s] return from standby state: %d. \n", __FUNCTION__, (int)standby_type); 
 
@@ -327,18 +327,27 @@ static void sun4i_ts_resume(struct early_suspend *h)
 #ifdef CONFIG_PM
 static int sun4i_ts_suspend(struct platform_device *pdev, pm_message_t state)
 {
-	dprintk(DEBUG_SUSPEND_INFO, "enter: sun4i_ts_suspend. \n");
-
-	writel(0,TP_BASSADDRESS + TP_CTRL1);
-	return 0;
+	dprintk(DEBUG_SUSPEND_INFO, "[%s] enter standby state: %d. \n", __FUNCTION__, (int)standby_type);
+	
+	if (NORMAL_STANDBY == standby_type) {
+		writel(0,TP_BASSADDRESS + TP_CTRL1);
+	} 
+	/*process for super standby*/	
+	return ;
 }
 
 static int sun4i_ts_resume(struct platform_device *pdev)
 { 
-        dprintk(DEBUG_SUSPEND_INFO, "enter: sun4i_ts_resume. \n");
+        dprintk(DEBUG_SUSPEND_INFO, "[%s] return from standby state: %d. \n", __FUNCTION__, (int)standby_type); 
 
-	writel(STYLUS_UP_DEBOUNCE|STYLUS_UP_DEBOUCE_EN|TP_DUAL_EN|TP_MODE_EN,TP_BASSADDRESS + TP_CTRL1);
-	return 0;
+	/*process for normal standby*/
+	if (NORMAL_STANDBY == standby_type) {
+		 writel(STYLUS_UP_DEBOUNCE|STYLUS_UP_DEBOUCE_EN|TP_DUAL_EN|TP_MODE_EN,TP_BASSADDRESS + TP_CTRL1);
+	/*process for super standby*/	
+	} else if(SUPER_STANDBY == standby_type) {
+		tp_init();
+	}
+	return ;
 }
 #endif
 #endif
@@ -1417,8 +1426,8 @@ static int __devinit sun4i_ts_probe(struct platform_device *pdev)
 #ifdef CONFIG_HAS_EARLYSUSPEND	
 	printk("==register_early_suspend =\n");	
 	ts_data->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;	
-	ts_data->early_suspend.suspend = sun4i_ts_suspend;
-	ts_data->early_suspend.resume	= sun4i_ts_resume;	
+	ts_data->early_suspend.suspend = sun4i_ts_early_suspend;
+	ts_data->early_suspend.resume	= sun4i_ts_late_resume;	
 	register_early_suspend(&ts_data->early_suspend);
 #endif
 

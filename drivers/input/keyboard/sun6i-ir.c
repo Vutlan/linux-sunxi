@@ -24,8 +24,11 @@
 #include <linux/clk.h>
 #include <mach/gpio.h>
 #ifdef CONFIG_HAS_EARLYSUSPEND
-#include <linux/pm.h>
 #include <linux/earlysuspend.h>
+#endif
+
+#if defined(CONFIG_HAS_EARLYSUSPEND) || defined(CONFIG_PM)
+#include <linux/pm.h>
 #endif
 
 #include "ir-keymap.h"
@@ -122,6 +125,10 @@ static struct ir_raw_buffer	ir_rawbuf;
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 static struct sun6i_ir_data *ir_data;
+#else
+#ifdef CONFIG_PM
+struct dev_pm_domain ir_pm_domain;
+#endif
 #endif
 
 enum {
@@ -598,7 +605,7 @@ static void ir_timer_handle(unsigned long arg)
 
 /* 停用设备 */
 #ifdef CONFIG_HAS_EARLYSUSPEND
-static void sun6i_ir_suspend(struct early_suspend *h)
+static void sun6i_ir_early_suspend(struct early_suspend *h)
 {
 	//unsigned long tmp = 0;
 	//int ret;
@@ -621,7 +628,7 @@ static void sun6i_ir_suspend(struct early_suspend *h)
 }
 
 /* 重新唤醒 */
-static void sun6i_ir_resume(struct early_suspend *h)
+static void sun6i_ir_late_resume(struct early_suspend *h)
 {
 	//unsigned long tmp = 0;
 	//int ret;
@@ -638,6 +645,41 @@ static void sun6i_ir_resume(struct early_suspend *h)
 	return ; 
 }
 #else
+#ifdef CONFIG_PM
+static int sun6i_ir_suspend(struct device *dev)
+{
+
+	dprintk(DEBUG_SUSPEND, "enter earlysuspend: sun6i_ir_suspend. \n");
+
+	//tmp = readl(IR_BASE+IR_CTRL_REG);
+	//tmp &= 0xfffffffc;
+	//writel(tmp, IR_BASE+IR_CTRL_REG);
+
+	if(NULL == ir_clk || IS_ERR(ir_clk)) {
+		printk("ir_clk handle is invalid, just return!\n");
+		return -1;
+	} else {	
+		clk_disable(ir_clk);
+	}
+
+	return 0;
+}
+
+/* 重新唤醒 */
+static int sun6i_ir_resume(struct device *dev)
+{
+
+	dprintk(DEBUG_SUSPEND, "enter laterresume: sun6i_ir_resume. \n");
+
+	ir_code = 0;
+	timer_used = 0;	
+	ir_reset_rawbuffer();	
+	ir_clk_cfg();	
+	ir_reg_cfg();
+
+	return 0; 
+}
+#endif
 #endif
 
 static int __init ir_init(void)
@@ -685,6 +727,15 @@ static int __init ir_init(void)
 	init_timer(s_timer);
 	s_timer->function = &ir_timer_handle;
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
+#else
+#ifdef CONFIG_PM
+	ir_pm_domain.ops.suspend = sun6i_ir_suspend;
+	ir_pm_domain.ops.resume = sun6i_ir_resume;
+	ir_dev->dev.pm_domain = &ir_pm_domain;	
+#endif
+#endif
+
 	err = input_register_device(ir_dev);
 	if (err)
 		goto fail4;
@@ -699,8 +750,8 @@ static int __init ir_init(void)
 	}
 
 	ir_data->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;	
-	ir_data->early_suspend.suspend = sun6i_ir_suspend;
-	ir_data->early_suspend.resume	= sun6i_ir_resume;	
+	ir_data->early_suspend.suspend = sun6i_ir_early_suspend;
+	ir_data->early_suspend.resume	= sun6i_ir_late_resume;	
 	register_early_suspend(&ir_data->early_suspend);
 #endif
 

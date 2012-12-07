@@ -395,8 +395,7 @@ static void mma8452_dev_poll(struct input_polled_dev *dev)
 } 
 
 #ifdef CONFIG_HAS_EARLYSUSPEND	
-
-static void mma8452_suspend(struct early_suspend *h)
+static void mma8452_early_suspend(struct early_suspend *h)
 {
 	int result;
 	struct mma8452_data *mma8452_data = container_of(h, struct mma8452_data, early_suspend);
@@ -407,7 +406,7 @@ static void mma8452_suspend(struct early_suspend *h)
 	return ;
 }
 
-static void mma8452_resume(struct early_suspend *h) //(struct i2c_client *client)
+static void mma8452_late_resume(struct early_suspend *h) //(struct i2c_client *client)
 {
 	int result;
 
@@ -428,6 +427,37 @@ static void mma8452_resume(struct early_suspend *h) //(struct i2c_client *client
 	}	
 	return ;
 }
+#else
+#ifdef CONFIG_PM
+static int mma8452_resume(struct i2c_client *client)
+{
+	int result;
+	
+	if (NORMAL_STANDBY == standby_type) {
+		result = i2c_smbus_write_byte_data(mma8452_i2c_client, MMA8452_CTRL_REG1, mma_status.ctl_reg1);
+		assert(result==0);	
+	} else if (SUPER_STANDBY == standby_type) {
+		result = i2c_smbus_write_byte_data(mma8452_i2c_client, MMA8452_XYZ_DATA_CFG, mma_status.mode);
+		assert(result==0);
+
+		result = i2c_smbus_write_byte_data(mma8452_i2c_client, MMA8452_CTRL_REG1, mma_status.ctl_reg1);
+		assert(result==0);
+
+		mdelay(MODE_CHANGE_DELAY_MS);
+	}	
+	return 0;
+}
+
+static int mma8452_suspend(struct i2c_client *client, pm_message_t mesg)
+{
+	int result;
+		
+	mma_status.ctl_reg1 = i2c_smbus_read_byte_data(mma8452_i2c_client, MMA8452_CTRL_REG1);
+	result = i2c_smbus_write_byte_data(mma8452_i2c_client, MMA8452_CTRL_REG1,mma_status.ctl_reg1 & 0xFE);
+	assert(result==0);
+	return 0;
+}
+#endif
 #endif
 
 static int __devinit mma8452_probe(struct i2c_client *client,
@@ -500,8 +530,8 @@ static int __devinit mma8452_probe(struct i2c_client *client,
 	}
 
 	mma8452_data->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 3;	
-	mma8452_data->early_suspend.suspend = mma8452_suspend;
-	mma8452_data->early_suspend.resume	= mma8452_resume;
+	mma8452_data->early_suspend.suspend = mma8452_early_suspend;
+	mma8452_data->early_suspend.resume	= mma8452_late_resume;
 	register_early_suspend(&mma8452_data->early_suspend);
 #endif
 
@@ -543,6 +573,13 @@ static struct i2c_driver mma8452_driver = {
 	
 	.probe	= mma8452_probe,
 	.remove	= __devexit_p(mma8452_remove),
+#ifdef CONFIG_HAS_EARLYSUSPEND
+#else
+#ifdef CONFIG_PM
+	.suspend = mma8452_suspend,
+	.resume = mma8452_resume,
+#endif
+#endif
 	.id_table = mma8452_id,
 	.address_list	= normal_i2c,
 };

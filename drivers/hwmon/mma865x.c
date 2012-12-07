@@ -172,11 +172,13 @@ struct mma865x_data {
 	int mode;
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	struct early_suspend early_suspend;
+#endif
+#if defined(CONFIG_HAS_EARLYSUSPEND) || defined(CONFIG_PM)
 	volatile int suspend_indator;
 	volatile int local_active;
 	volatile int MMA865X_REG1;
 	volatile int MMA865X_DATA_REG;
-#endif		
+#endif
 } g_mma865x_data;
 
 
@@ -619,6 +621,58 @@ static void mma865x_late_resume(struct early_suspend *h)
 	return;
 	  
 }
+#else
+#ifdef CONFIG_PM
+static int mma865x_resume(struct i2c_client *client)
+{
+	int val = 0;
+	int result = 0;
+	g_mma865x_data.suspend_indator = 0;
+	dprintk(DEBUG_BASE_LEVEL1, "mma865x late resume\n");
+	if (NORMAL_STANDBY == standby_type) {
+		if (g_mma865x_data.local_active == MMA_ACTIVED) {
+	   		val = i2c_smbus_read_byte_data(mma865x_i2c_client,MMA865X_CTRL_REG1);
+	   		i2c_smbus_write_byte_data(mma865x_i2c_client, MMA865X_CTRL_REG1, val|0x01);
+			dprintk(DEBUG_BASE_LEVEL1, "mma865x active\n");
+		}
+	} else if(SUPER_STANDBY == standby_type) {
+		result = i2c_smbus_write_byte_data(mma865x_i2c_client, MMA865X_CTRL_REG1, 0);
+		if (result < 0)
+			printk("error when resume mma865x:(%d)", result);  
+
+		result = i2c_smbus_write_byte_data(mma865x_i2c_client, MMA865X_XYZ_DATA_CFG,
+						g_mma865x_data.MMA865X_DATA_REG);
+		if (result < 0)
+			printk("error when resume mma865x:(%d)", result);
+		
+		msleep(MODE_CHANGE_DELAY_MS);
+
+		if (g_mma865x_data.local_active == MMA_ACTIVED) {
+	   		val = i2c_smbus_read_byte_data(mma865x_i2c_client,MMA865X_CTRL_REG1);
+	   		i2c_smbus_write_byte_data(mma865x_i2c_client, MMA865X_CTRL_REG1, val|0x01);
+			dprintk(DEBUG_BASE_LEVEL1, "mma865x active\n");
+		}  
+	}
+	return result;
+}
+
+static int mma865x_suspend(struct i2c_client *client, pm_message_t mesg)
+{
+	dprintk(DEBUG_BASE_LEVEL1, "mma865x early suspend\n");
+	g_mma865x_data.suspend_indator = 1;
+
+	if (NORMAL_STANDBY == standby_type) {
+		if(g_mma865x_data.local_active == MMA_ACTIVED)
+			mma865x_device_stop(mma865x_i2c_client);
+	} else if (SUPER_STANDBY == standby_type) {
+		g_mma865x_data.MMA865X_DATA_REG = i2c_smbus_read_byte_data(mma865x_i2c_client,
+							MMA865X_XYZ_DATA_CFG);
+		if(g_mma865x_data.local_active == MMA_ACTIVED)
+			mma865x_device_stop(mma865x_i2c_client);
+	}
+	return 0;
+}
+#endif
 #endif
 
 static const struct i2c_device_id mma865x_id[] = {
@@ -635,6 +689,13 @@ static struct i2c_driver mma865x_driver = {
 	},
 	.probe	= mma865x_probe,
 	.remove	= __devexit_p(mma865x_remove),
+#ifdef CONFIG_HAS_EARLYSUSPEND
+#else
+#ifdef CONFIG_PM
+	.suspend = mma865x_suspend,
+	.resume = mma865x_resume,
+#endif
+#endif
 	.id_table = mma865x_id,
 	.address_list	= normal_i2c,
 };

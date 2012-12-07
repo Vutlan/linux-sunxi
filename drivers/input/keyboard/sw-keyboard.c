@@ -157,6 +157,10 @@ static unsigned int sun4i_scankeycodes[KEY_MAX_CNT] = {
 struct sun4i_keyboard_data {
 	struct early_suspend early_suspend;
 };
+#else
+#ifdef CONFIG_PM
+struct dev_pm_domain keyboard_pm_domain;
+#endif
 #endif
 
 static volatile unsigned int key_val;
@@ -186,7 +190,7 @@ static struct sun4i_keyboard_data *keyboard_data;
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 /* 停用设备 */
-static void sun4i_keyboard_suspend(struct early_suspend *h)
+static void sun4i_keyboard_early_suspend(struct early_suspend *h)
 {
 	//int ret;
 	//struct sun4i_keyboard_data *ts = container_of(h, struct sun4i_keyboard_data, early_suspend);
@@ -203,12 +207,12 @@ static void sun4i_keyboard_suspend(struct early_suspend *h)
 }
 
 /* 重新唤醒 */
-static void sun4i_keyboard_resume(struct early_suspend *h)
+static void sun4i_keyboard_late_resume(struct early_suspend *h)
 {
 	//int ret;
 	//struct sun4i_keyboard_data *ts = container_of(h, struct sun4i_keyboard_data, early_suspend);
 	
-	dprintk(DEBUG_SUSPEND, "[%s] return from standby state: %d. \n", __FUNCTION__, (int)standby_type) 
+	dprintk(DEBUG_SUSPEND, "[%s] return from standby state: %d. \n", __FUNCTION__, (int)standby_type); 
 
 	/* process for normal standby */
 	if (NORMAL_STANDBY == standby_type) {
@@ -227,7 +231,50 @@ static void sun4i_keyboard_resume(struct early_suspend *h)
 	return ; 
 }
 #else
+#ifdef CONFIG_PM
+static int sun4i_keyboard_suspend(struct device *dev)
+{
 
+	//int ret;
+	//struct sun4i_keyboard_data *ts = container_of(h, struct sun4i_keyboard_data, early_suspend);
+
+	dprintk(DEBUG_SUSPEND, "[%s] enter standby state: %d. \n", __FUNCTION__, (int)standby_type);
+    
+	if (NORMAL_STANDBY == standby_type) {
+		writel(0,KEY_BASSADDRESS + LRADC_CTRL);
+	/* process for super standby */	
+	} else if (SUPER_STANDBY == standby_type)
+		;
+	
+	return 0;
+}
+
+/* 重新唤醒 */
+static int sun4i_keyboard_resume(struct device *dev)
+{
+
+	//int ret;
+	//struct sun4i_keyboard_data *ts = container_of(h, struct sun4i_keyboard_data, early_suspend);
+	
+	dprintk(DEBUG_SUSPEND, "[%s] return from standby state: %d. \n", __FUNCTION__, (int)standby_type); 
+
+	/* process for normal standby */
+	if (NORMAL_STANDBY == standby_type) {
+		writel(FIRST_CONCERT_DLY|LEVELB_VOL|KEY_MODE_SELECT|LRADC_HOLD_EN|ADC_CHAN_SELECT \
+			|LRADC_SAMPLE_250HZ|LRADC_EN,KEY_BASSADDRESS + LRADC_CTRL);
+	/* process for super standby */	
+	} else if (SUPER_STANDBY == standby_type) {
+#ifdef ONE_CHANNEL
+		writel(LRADC_ADC0_DOWN_EN|LRADC_ADC0_UP_EN|LRADC_ADC0_DATA_EN,KEY_BASSADDRESS + LRADC_INTC);	
+		writel(FIRST_CONCERT_DLY|LEVELB_VOL|KEY_MODE_SELECT|LRADC_HOLD_EN|ADC_CHAN_SELECT \
+			|LRADC_SAMPLE_250HZ|LRADC_EN,KEY_BASSADDRESS + LRADC_CTRL);
+#else
+#endif
+	}
+	
+	return 0; 
+}
+#endif
 #endif
 
 
@@ -368,6 +415,16 @@ static int __init sun4ikbd_init(void)
 		goto fail2;
 	}
 
+	
+#ifdef CONFIG_HAS_EARLYSUSPEND
+#else
+#ifdef CONFIG_PM
+		keyboard_pm_domain.ops.suspend = sun4i_keyboard_suspend;
+		keyboard_pm_domain.ops.resume = sun4i_keyboard_resume;
+		sun4ikbd_dev->dev.pm_domain = &keyboard_pm_domain;	
+#endif
+#endif
+
 	err = input_register_device(sun4ikbd_dev);
 	if (err)
 		goto fail3;
@@ -381,8 +438,8 @@ static int __init sun4ikbd_init(void)
 	}
 
 	keyboard_data->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 3;	
-	keyboard_data->early_suspend.suspend = sun4i_keyboard_suspend;
-	keyboard_data->early_suspend.resume	= sun4i_keyboard_resume;
+	keyboard_data->early_suspend.suspend = sun4i_keyboard_early_suspend;
+	keyboard_data->early_suspend.resume	= sun4i_keyboard_late_resume;
 	register_early_suspend(&keyboard_data->early_suspend);
 #endif
 
