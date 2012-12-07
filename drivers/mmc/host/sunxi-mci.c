@@ -99,8 +99,7 @@ static s32 sw_mci_init_host(struct sunxi_mmc_host* smc_host)
 	mci_writel(smc_host, REG_GCTRL, rval);
 
 	smc_host->power_on = 1;
-	smc_host->debuglevel = CONFIG_MMC_PRE_DBGLVL_SUNXI;
-	smc_host->voltage = SDC_WOLTAGE_3V3;
+	smc_host->voltage = SDC_WOLTAGE_OFF;
 	if (smc_host->pdata->isiodev)
 		smc_host->io_flag = 1;
 	return 0;
@@ -111,6 +110,8 @@ s32 sw_mci_exit_host(struct sunxi_mmc_host* smc_host)
 	u32 rval;
 
 	SMC_DBG(smc_host, "MMC Driver exit host %d\n", smc_host->pdev->id);
+	smc_host->ferror = 0;
+	smc_host->voltage = SDC_WOLTAGE_OFF;
 
 	rval = mci_readl(smc_host, REG_GCTRL) | SDXC_HWReset;
 	mci_writel(smc_host, REG_GCTRL, SDXC_HWReset);
@@ -120,46 +121,45 @@ s32 sw_mci_exit_host(struct sunxi_mmc_host* smc_host)
 s32 sw_mci_set_vddio(struct sunxi_mmc_host* smc_host, u32 vdd)
 {
 	char* vddstr[] = {"3.3V", "1.8V", "1.2V", "OFF"};
-	struct regulator* mmc_ldo = NULL;
 	static u32 on = 0;
 
-	if (smc_host->pdata->regulator == NULL)
+	if (smc_host->regulator == NULL)
 		return 0;
-	mmc_ldo = regulator_get(NULL, smc_host->pdata->regulator);
-	if (!mmc_ldo) {
-		SMC_ERR(smc_host, "Get mmc_ldo failed\n");
-		return -1;
-	}
+	BUG_ON(vdd > SDC_WOLTAGE_OFF);
 	switch (vdd) {
 		case SDC_WOLTAGE_3V3:
-			regulator_set_voltage(mmc_ldo, 3300000, 3300000);
+			regulator_set_voltage(smc_host->regulator, 3300000, 3300000);
 			if (!on) {
-				regulator_enable(mmc_ldo);
+				SMC_DBG(smc_host, "regulator on\n");
+				regulator_enable(smc_host->regulator);
 				on = 1;
 			}
 			break;
 		case SDC_WOLTAGE_1V8:
-			regulator_set_voltage(mmc_ldo, 1800000, 1800000);
+			regulator_set_voltage(smc_host->regulator, 1800000, 1800000);
 			if (!on) {
-				regulator_enable(mmc_ldo);
+				SMC_DBG(smc_host, "regulator on\n");
+				regulator_enable(smc_host->regulator);
 				on = 1;
 			}
 			break;
 		case SDC_WOLTAGE_1V2:
-			regulator_set_voltage(mmc_ldo, 1200000, 1200000);
+			regulator_set_voltage(smc_host->regulator, 1200000, 1200000);
 			if (!on) {
-				regulator_enable(mmc_ldo);
+				SMC_DBG(smc_host, "regulator on\n");
+				regulator_enable(smc_host->regulator);
 				on = 1;
 			}
 			break;
 		case SDC_WOLTAGE_OFF:
 			if (on) {
-				regulator_force_disable(mmc_ldo);
+				SMC_DBG(smc_host->regulator, "regulator off\n");
+				regulator_force_disable(smc_host->regulator);
 				on = 0;
 			}
 			break;
 	}
-	SMC_MSG(smc_host, "Switch IO voltage to %s\n", vddstr[vdd]);
+	SMC_MSG(smc_host, "sdc%d switch io voltage to %s\n", smc_host->pdev->id, vddstr[vdd]);
 	return 0;
 }
 
@@ -168,26 +168,21 @@ s32 sw_mci_update_clk(struct sunxi_mmc_host* smc_host)
   	u32 rval;
   	s32 expire = jiffies + msecs_to_jiffies(1000);	//1000ms timeout
   	s32 ret = 0;
-  	u32 imask;
-
-  	imask = mci_readl(smc_host, REG_IMASK);
-  	mci_writew(smc_host, REG_IMASK, 0);
 
   	rval = SDXC_Start|SDXC_UPCLKOnly|SDXC_WaitPreOver;
+	if (smc_host->voltage_switching)
+		rval |= SDXC_VolSwitch;
 	mci_writel(smc_host, REG_CMDR, rval);
 
 	do {
 		rval = mci_readl(smc_host, REG_CMDR);
 	} while (jiffies < expire && (rval & SDXC_Start));
 
-	if (jiffies > expire) {
-	    smc_host->ferror = 1;
-	    SMC_ERR(smc_host, "update clock timeout, fatal error!!!\n");
+	if (rval & SDXC_Start) {
+		smc_host->ferror = 1;
+		SMC_ERR(smc_host, "update clock timeout, fatal error!!!\n");
 		ret = -1;
 	}
-
-	mci_writel(smc_host, REG_RINTR, 0xffff);
-  	mci_writew(smc_host, REG_IMASK, imask);
 
 	return ret;
 }
@@ -266,17 +261,17 @@ s32 sw_mci_set_clk_dly(struct sunxi_mmc_host* smc_host, u32 oclk_dly, u32 sclk_d
 
 	smc_host->oclk_dly = oclk_dly;
 	smc_host->sclk_dly = sclk_dly;
+	SMC_DBG(smc_host, "oclk_dly %d, sclk_dly %d\n", oclk_dly, sclk_dly);
 	return 0;
 }
 
 s32 sw_mci_oclk_onoff(struct sunxi_mmc_host* smc_host, u32 oclk_en, u32 pwr_save)
 {
 	u32 rval = mci_readl(smc_host, REG_CLKCR);
-
 	rval &= ~(SDXC_CardClkOn | SDXC_LowPowerOn);
 	if (oclk_en)
 		rval |= SDXC_CardClkOn;
-	if (pwr_save)
+	if (pwr_save || !smc_host->io_flag)
 		rval |= SDXC_LowPowerOn;
 	mci_writel(smc_host, REG_CLKCR, rval);
 	sw_mci_update_clk(smc_host);
@@ -295,7 +290,10 @@ static void sw_mci_send_cmd(struct sunxi_mmc_host* smc_host, struct mmc_command*
 	if (cmd->opcode == SD_SWITCH_VOLTAGE) {
 		cmd_val |= SDXC_VolSwitch;
 		imask |= SDXC_VolChgDone;
+		smc_host->voltage_switching = 1;
 		smc_host->wait = SDC_WAIT_SWITCH1V8;
+		/* switch controller to high power mode */
+		sw_mci_oclk_onoff(smc_host, 1, 0);
 	}
 
 	if (cmd->flags & MMC_RSP_PRESENT) {
@@ -476,7 +474,7 @@ int sw_mci_send_manual_stop(struct sunxi_mmc_host* smc_host, struct mmc_request*
 void sw_mci_dump_errinfo(struct sunxi_mmc_host* smc_host)
 {
 	SMC_ERR(smc_host, "smc %d err, cmd %d, %s%s%s%s%s%s%s%s%s%s !!\n",
-		smc_host->pdev->id, smc_host->mrq->cmd->opcode,
+		smc_host->pdev->id, smc_host->mrq->cmd ? smc_host->mrq->cmd->opcode : -1,
 		smc_host->int_sum & SDXC_RespErr     ? " RE"     : "",
 		smc_host->int_sum & SDXC_RespCRCErr  ? " RCE"    : "",
 		smc_host->int_sum & SDXC_DataCRCErr  ? " DCE"    : "",
@@ -581,8 +579,8 @@ static int sw_mci_set_clk(struct sunxi_mmc_host* smc_host, u32 clk)
 	u32 mod_clk = 0;
 	u32 src_clk = 0;
 	u32 temp;
-	u32 oclk_dly = 3;
-	u32 sclk_dly = 4;
+	u32 oclk_dly = 2;
+	u32 sclk_dly = 2;
 	struct sw_mmc_clk_dly* dly = NULL;
 	s32 err;
 	u32 rate;
@@ -614,7 +612,9 @@ static int sw_mci_set_clk(struct sunxi_mmc_host* smc_host, u32 clk)
 	}
 	src_clk = clk_get_rate(sclk);
 	clk_put(sclk);
+	smc_host->mod_clk = smc_host->card_clk = rate;
 
+	SMC_DBG(smc_host, "sdc%d set round clock %d\n", smc_host->pdev->id, rate);
 	sw_mci_oclk_onoff(smc_host, 0, 0);
 	/* clear internal divider */
 	temp = mci_readl(smc_host, REG_CLKCR);
@@ -650,7 +650,7 @@ static int sw_mci_set_clk(struct sunxi_mmc_host* smc_host, u32 clk)
 			sclk_dly--;
 	}
 	sw_mci_set_clk_dly(smc_host, oclk_dly, sclk_dly);
-	sw_mci_oclk_onoff(smc_host, 1, 1);
+	sw_mci_oclk_onoff(smc_host, 1, 0);
 	return 0;
 }
 
@@ -855,6 +855,28 @@ static int sw_mci_free_mmcio(struct sunxi_mmc_host *smc_host)
 	return 0;
 }
 
+static void sw_mci_update_io_driving(struct sunxi_mmc_host *smc_host, s32 driving)
+{
+	u32 smc_no = smc_host->pdev->id;
+	struct sunxi_mmc_platform_data *pdata = smc_host->pdata;
+	struct gpio_config *gpio = NULL;
+	u32 set_driving;
+	u32 i;
+	s32 ret;
+
+	for (i=0; i<pdata->width+2; i++) {
+		gpio = &pdata->mmcio[i];
+		set_driving = driving == -1 ? gpio->drv_level : driving;
+		ret = sw_gpio_setdrvlevel(gpio->gpio, set_driving);
+		if (ret) {
+			SMC_ERR(smc_host, "sdc%d set mmcio%d drvlel failed\n", smc_no, i);
+			return;
+		}
+	}
+	
+	SMC_DBG(smc_host, "sdc%d set mmcio driving to %d\n", smc_no, driving);
+}
+
 static int sw_mci_resource_request(struct sunxi_mmc_host *smc_host)
 {
 	struct platform_device *pdev = smc_host->pdev;
@@ -862,7 +884,7 @@ static int sw_mci_resource_request(struct sunxi_mmc_host *smc_host)
 	char hclk_name[16] = {0};
 	char mclk_name[8] = {0};
 	struct resource* res = NULL;
-	s32 ret = 0;
+	s32 ret;
 
 	/* request IO */
 	ret = sw_mci_request_mmcio(smc_host);
@@ -908,8 +930,20 @@ static int sw_mci_resource_request(struct sunxi_mmc_host *smc_host)
 		goto free_mclk;
 	}
 
-	ret = 0;
-	goto out;
+	/* get power regulator */
+	if (smc_host->pdata->regulator != NULL) {
+		smc_host->regulator = regulator_get(NULL, smc_host->pdata->regulator);
+		if (!smc_host->regulator) {
+			SMC_ERR(smc_host, "Get regulator %s failed\n", smc_host->pdata->regulator);
+			goto free_sgbuff;
+		}
+	}
+
+	return 0;
+free_sgbuff:
+	dma_free_coherent(NULL, PAGE_SIZE, smc_host->sg_cpu, smc_host->sg_dma);
+	smc_host->sg_cpu = NULL;
+	smc_host->sg_dma = 0;
 free_mclk:
 	clk_put(smc_host->mclk);
 	smc_host->mclk = NULL;
@@ -922,13 +956,18 @@ free_mem_region:
 	release_mem_region(SMC_BASE(smc_no), SMC_BASE_OS);
 release_pin:
 	sw_mci_free_mmcio(smc_host);
-out:
-	return ret;
+
+	return -1;
 }
 
 
 static int sw_mci_resource_release(struct sunxi_mmc_host *smc_host)
 {
+	/* free power regulator */
+	if (smc_host->regulator) {
+		regulator_put(smc_host->regulator);
+		smc_host->regulator = NULL;
+	}
 	/* free idma descriptor structrue */
 	if (smc_host->sg_cpu) {
 		dma_free_coherent(NULL, PAGE_SIZE,
@@ -1074,9 +1113,13 @@ static void sw_mci_cd_cb(unsigned long data)
 		gpio_val += __gpio_get_value(cd->gpio);
 		mdelay(1);
 	}
-	if (gpio_val==5)
+	if (gpio_val==5) {
 		present = 0;
-	else if (gpio_val==0)
+		/* if found some request is pending, do something */
+		smc_host->wait = SDC_WAIT_FINALIZE;
+		if (smc_host->state != SDC_STATE_IDLE)
+			sw_mci_finalize_request(smc_host);
+	} else if (gpio_val==0)
 		present = 1;
 	else
 		goto modtimer;
@@ -1090,12 +1133,12 @@ static void sw_mci_cd_cb(unsigned long data)
 		if (smc_host->present)
 			mmc_detect_change(smc_host->mmc, msecs_to_jiffies(300));
 		else
-			mmc_detect_change(smc_host->mmc, msecs_to_jiffies(10));
+			mmc_detect_change(smc_host->mmc, msecs_to_jiffies(50));
 	}
 
 modtimer:
 	if (smc_host->cd_mode == CARD_DETECT_BY_GPIO_POLL)
-		mod_timer(&smc_host->cd_timer, jiffies + 30);
+		mod_timer(&smc_host->cd_timer, jiffies + msecs_to_jiffies(300));
 
 	return;
 }
@@ -1154,10 +1197,10 @@ static irqreturn_t sw_mci_irq(int irq, void *dev_id)
 	}
 
 	if ((smc_host->wait == SDC_WAIT_AUTOCMD_DONE && (msk_int&SDXC_AutoCMDDone))
-		|| (smc_host->wait == SDC_WAIT_DATA_OVER && (msk_int&SDXC_DataOver))
-		|| (smc_host->wait == SDC_WAIT_CMD_DONE && (msk_int&SDXC_CmdDone)
-			&& !(smc_host->int_sum&SDXC_IntErrBit))
-		|| (smc_host->wait == SDC_WAIT_SWITCH1V8 && (msk_int&SDXC_VolChgDone))) {
+			|| (smc_host->wait == SDC_WAIT_DATA_OVER && (msk_int&SDXC_DataOver))
+			|| (smc_host->wait == SDC_WAIT_CMD_DONE && (msk_int&SDXC_CmdDone)
+				&& !(smc_host->int_sum&SDXC_IntErrBit))
+			|| (smc_host->wait == SDC_WAIT_SWITCH1V8 && (msk_int&SDXC_VolChgDone))) {
 		smc_host->wait = SDC_WAIT_FINALIZE;
 		smc_host->state = SDC_STATE_CMDDONE;
 	}
@@ -1207,14 +1250,6 @@ static void sw_mci_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 		pwr_mode[ios->power_mode], vdd[ios->signal_voltage],
 		1 << ios->bus_width, timing[ios->timing], drv_type[ios->drv_type]);
 
-	/* Set Voltage */
-	if (ios->signal_voltage == MMC_SIGNAL_VOLTAGE_180)
-		sw_mci_set_vddio(smc_host, SDC_WOLTAGE_1V8);
-	else if (ios->signal_voltage == MMC_SIGNAL_VOLTAGE_120)
-		sw_mci_set_vddio(smc_host, SDC_WOLTAGE_1V2);
-	else
-		sw_mci_set_vddio(smc_host, SDC_WOLTAGE_3V3);
-
 	/* Set the power state */
 	switch (ios->power_mode) {
 		case MMC_POWER_ON:
@@ -1259,6 +1294,7 @@ static void sw_mci_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 				sw_mci_hold_io(smc_host);
 				smc_host->power_on = 0;
 				smc_host->ferror = 0;
+				last_clock = 0;
 			}
 			break;
 	}
@@ -1283,14 +1319,19 @@ static void sw_mci_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 	if (ios->timing == MMC_TIMING_UHS_DDR50) {
 		temp |= SDXC_DDR_MODE;
 		smc_host->ddr = 1;
+		/* change io driving */
+		sw_mci_update_io_driving(smc_host, 3);
 	} else {
 		temp &= ~SDXC_DDR_MODE;
 		smc_host->ddr = 0;
+		sw_mci_update_io_driving(smc_host, -1);
 	}
 	mci_writel(smc_host, REG_GCTRL, temp);
 
 	/* set up clock */
 	if (ios->clock && ios->clock != last_clock) {
+		if (smc_host->ddr)
+			ios->clock = smc_host->pdata->f_ddr_max;
 		/* 8bit ddr, mod_clk = 2 * card_clk */
 		if (smc_host->ddr && smc_host->bus_width == 8)
 			smc_host->mod_clk = ios->clock << 1;
@@ -1397,24 +1438,28 @@ static int sw_mci_do_voltage_switch(struct mmc_host *mmc, struct mmc_ios *ios)
 		if (!(data_down & SDXC_CardPresent)) {
 			/* switch voltage of card vdd to 1.8V */
 			sw_mci_set_vddio(smc_host, SDC_WOLTAGE_1V8);
-			/* wait for 5ms */
-			usleep_range(5000, 5500);
+			/* the standard defines the time limit is 5ms, here we
+			   wait for 8ms to make sure that the card completes the
+			   voltage switching */
+			usleep_range(8000, 8500);
 			/* clock on again */
 			sw_mci_oclk_onoff(smc_host, 1, 0);
 			/* wait for 1ms */
-			usleep_range(1000, 1500);
+			usleep_range(2000, 2500);
+
 			/* check whether data[3:0] is 1111 */
 			data_down = mci_readl(smc_host, REG_STAS);
 			if (data_down & SDXC_CardPresent) {
 				u32 rval = mci_readl(smc_host, REG_RINTR);
 				if ((rval & SDXC_VolChgDone & SDXC_CmdDone)
-					== (SDXC_VolChgDone & SDXC_CmdDone)) {
+						== (SDXC_VolChgDone & SDXC_CmdDone)) {
 					smc_host->voltage = SDC_WOLTAGE_1V8;
 					mci_writew(smc_host, REG_RINTR,
-						SDXC_VolChgDone & SDXC_CmdDone);
+						SDXC_VolChgDone | SDXC_CmdDone);
+					smc_host->voltage_switching = 0;
+					return 0;
 				}
 			}
-			return 0;
 		}
 
 		/*
@@ -1427,6 +1472,10 @@ static int sw_mci_do_voltage_switch(struct mmc_host *mmc, struct mmc_ios *ios)
 		sw_mci_set_vddio(smc_host, SDC_WOLTAGE_3V3);
 		SMC_ERR(smc_host, ": Switching to 1.8V signalling "
 			"voltage failed, retrying with S18R set to 0\n");
+		mci_writel(smc_host, REG_GCTRL, mci_readl(smc_host, REG_GCTRL)|SDXC_HWReset);
+		mci_writew(smc_host, REG_RINTR, SDXC_VolChgDone | SDXC_CmdDone);
+		sw_mci_oclk_onoff(smc_host, 1, 0);
+		smc_host->voltage_switching = 0;
 		return -EAGAIN;
 	} else
 		return 0;
@@ -1468,14 +1517,14 @@ static int sw_mci_execute_tuning(struct mmc_host *mmc, u32 opcode)
 		0xff, 0x77, 0x77, 0xff, 0x77, 0xbb, 0xdd, 0xee
 	};
 	struct sunxi_mmc_host *smc_host = mmc_priv(mmc);
-	u32 sample_min = 0;
+	u32 sample_min = 1;
 	u32 sample_max = 0;
 	u32 sample_bak = smc_host->sclk_dly;
-	u32 sample_dly = smc_host->sclk_dly;
+	u32 sample_dly = 0;
 	u32 sample_win = 0;
-	u32 loops = 40;
+	u32 loops = 64;
 	u32 tuning_done = 0;
-	char* rcv_pattern = (char*)kmalloc(128, GFP_KERNEL);
+	char* rcv_pattern = (char*)kmalloc(128, GFP_KERNEL|GFP_DMA);
 	char* std_pattern = NULL;
 	int err = 0;
 
@@ -1492,18 +1541,22 @@ static int sw_mci_execute_tuning(struct mmc_host *mmc, u32 opcode)
 		struct mmc_request mrq = {0};
 		struct scatterlist sg;
 
+		sw_mci_set_clk_dly(smc_host, smc_host->oclk_dly, sample_dly);
 		cmd.opcode = opcode;
 		cmd.arg = 0;
 		cmd.flags = MMC_RSP_R1 | MMC_CMD_ADTC;
 		if (opcode == MMC_SEND_TUNING_BLOCK_HS200) {
 			if (mmc->ios.bus_width == MMC_BUS_WIDTH_8) {
+				sg.length = 128;
 				data.blksz = 128;
 				std_pattern = (char*)tuning_blk_8b;
 			} else if (mmc->ios.bus_width == MMC_BUS_WIDTH_4) {
+				sg.length = 64;
 				data.blksz = 64;
 				std_pattern = (char*)tuning_blk_4b;
 			}
 		} else {
+			sg.length = 64;
 			data.blksz = 64;
 			std_pattern = (char*)tuning_blk_4b;
 		}
@@ -1511,7 +1564,7 @@ static int sw_mci_execute_tuning(struct mmc_host *mmc, u32 opcode)
 		data.flags = MMC_DATA_READ;
 		data.sg = &sg;
 		data.sg_len = 1;
-		sg_init_one(&sg, rcv_pattern, 4);
+		sg_init_one(&sg, rcv_pattern, sg.length);
 
 		mrq.cmd = &cmd;
 		mrq.data = &data;
@@ -1525,33 +1578,50 @@ static int sw_mci_execute_tuning(struct mmc_host *mmc, u32 opcode)
 		 */
 		if (!cmd.error && !data.error) {
 			if (!memcmp(rcv_pattern, std_pattern, data.blksz)) {
+				SMC_MSG(smc_host, "sdc%d tuning ok, sclk_dly %d\n", 
+					smc_host->pdev->id, sample_dly);
 				if (!sample_win)
 					sample_min = sample_dly;
 				sample_win++;
+				if (sample_dly == 7) {
+					SMC_MSG(smc_host, "sdc%d tuning reach to max sclk_dly 7\n", 
+						smc_host->pdev->id);
+					tuning_done = 1;
+					sample_max = sample_dly;
+					break;
+				}
 			} else if (sample_win) {
+				SMC_MSG(smc_host, "sdc%d tuning data failed, sclk_dly %d\n", 
+					smc_host->pdev->id, sample_dly);
 				tuning_done = 1;
 				sample_max = sample_dly-1;
 				break;
 			}
 		} else if (sample_win) {
+			SMC_MSG(smc_host, "sdc%d tuning trans fail, sclk_dly %d\n", 
+				smc_host->pdev->id, sample_dly);
 			tuning_done = 1;
 			sample_max = sample_dly-1;
 			break;
 		}
 		sample_dly++;
-		sw_mci_set_clk_dly(smc_host, smc_host->oclk_dly, sample_dly);
+		/* if sclk_dly reach to 7(maximum), down the clock and tuning again */
+		if (sample_dly == 8 && loops)
+			break;
 	} while (!tuning_done && loops--);
 
 	/* select the best sampling point from the sampling window */
 	if (sample_win) {
 		sample_dly = sample_min + sample_win/2;
-		SMC_MSG(smc_host, "sdc%d sam_window:[%d, %d], sam_point %d\n",
+		SMC_MSG(smc_host, "sdc%d sample_window:[%d, %d], sample_point %d\n",
 				smc_host->pdev->id, sample_min, sample_max, sample_dly);
 		sw_mci_set_clk_dly(smc_host, smc_host->oclk_dly, sample_dly);
 		err = 0;
 	} else {
-		SMC_MSG(smc_host, "sdc%d cannot find a sampling point\n", smc_host->pdev->id);
+		SMC_ERR(smc_host, "sdc%d cannot find a sample point\n", smc_host->pdev->id);
 		sw_mci_set_clk_dly(smc_host, smc_host->oclk_dly, sample_bak);
+		mmc->ios.bus_width = MMC_BUS_WIDTH_1;
+		mmc->ios.timing = MMC_TIMING_LEGACY;
 		err = -EIO;
 	}
 
@@ -1559,10 +1629,6 @@ static int sw_mci_execute_tuning(struct mmc_host *mmc, u32 opcode)
 	return err;
 }
 
-int sw_mci_select_drive_strength(unsigned int max_dtr, int host_drv, int card_drv)
-{
-	return 0;
-}
 /*
  * Here provide a function to scan card, for some SDIO cards that
  * may stay in busy status after writing operations. MMC host does
@@ -1599,7 +1665,6 @@ static struct mmc_host_ops sw_mci_ops = {
 	.hw_reset	= sw_mci_hw_reset,
 	.start_signal_voltage_switch = sw_mci_do_voltage_switch,
 	.execute_tuning = sw_mci_execute_tuning,
-	.select_drive_strength = sw_mci_select_drive_strength,
 };
 
 #ifdef CONFIG_PROC_FS
@@ -1641,6 +1706,7 @@ static int sw_mci_proc_hostinfo(char *page, char **start, off_t off,
 	p += sprintf(p, " CD Mode   : %s\n", cd_mode[smc_host->cd_mode]);
 	p += sprintf(p, " Read Only : %d\n", smc_host->read_only);
 	p += sprintf(p, " State     : %s\n", state[smc_host->state]);
+	p += sprintf(p, " Regulator : %s\n", smc_host->pdata->regulator);
 
 	return p - page;
 }
@@ -1941,6 +2007,7 @@ static int __devinit sw_mci_probe(struct platform_device *pdev)
 	smc_host->pdev	= pdev;
 	smc_host->pdata	= pdev->dev.platform_data;
 	smc_host->cd_mode = smc_host->pdata->cdmode;
+	smc_host->debuglevel = CONFIG_MMC_PRE_DBGLVL_SUNXI;
 
 	spin_lock_init(&smc_host->lock);
 	tasklet_init(&smc_host->tasklet, sw_mci_tasklet, (unsigned long) smc_host);
@@ -2121,9 +2188,12 @@ static struct sunxi_mmc_platform_data sw_mci_pdata[4] = {
 		.ocr_avail = MMC_VDD_32_33 | MMC_VDD_33_34,
 		.caps = MMC_CAP_4_BIT_DATA | MMC_CAP_MMC_HIGHSPEED | MMC_CAP_SD_HIGHSPEED
 			| MMC_CAP_SDIO_IRQ
+			| MMC_CAP_UHS_SDR12 | MMC_CAP_UHS_SDR25 | MMC_CAP_UHS_SDR50
+			| MMC_CAP_UHS_DDR50
 			| MMC_CAP_SET_XPC_330 | MMC_CAP_DRIVER_TYPE_A,
 		.f_min = 400000,
-		.f_max = 120000000,
+		.f_max = 75000000,
+		.f_ddr_max = 47000000,
 		.dma_tl= 0x20070008,
 		.regulator=NULL,
 	},
@@ -2151,6 +2221,7 @@ static struct sunxi_mmc_platform_data sw_mci_pdata[4] = {
 		.caps2 = MMC_CAP2_HS200_1_8V_SDR,
 		.f_min = 400000,
 		.f_max = 120000000,
+		.f_ddr_max = 50000000,
 		.dma_tl= 0x20070008,
 		.regulator=NULL,
 	},
@@ -2161,11 +2232,13 @@ static struct sunxi_mmc_platform_data sw_mci_pdata[4] = {
 			| MMC_CAP_UHS_SDR12 | MMC_CAP_UHS_SDR25 | MMC_CAP_UHS_SDR50
 			| MMC_CAP_UHS_DDR50
 			| MMC_CAP_1_8V_DDR
+			| MMC_CAP_8_BIT_DATA
 			| MMC_CAP_SDIO_IRQ
 			| MMC_CAP_SET_XPC_330 | MMC_CAP_DRIVER_TYPE_A,
 		.caps2 = MMC_CAP2_HS200_1_8V_SDR,
 		.f_min = 400000,
 		.f_max = 120000000,
+		.f_ddr_max = 50000000,
 		.dma_tl= MMC3_DMA_TL,
 		.regulator=NULL,
 	},
@@ -2272,6 +2345,18 @@ static int sw_mci_get_devinfo(void)
 			goto fail;
 		}
 		mmcinfo->isiodev = val.val;
+		
+		/* get regulator information */
+		type = script_get_item(mmc_para, "sdc_regulator", &val);
+		if (type != SCIRPT_ITEM_VALUE_TYPE_STR) {
+			SMC_MSG(NULL, "get mmc%d's sdc_regulator failed\n", i);
+			mmcinfo->regulator = NULL;
+		} else {
+			if (!strcmp(val.str, "none"))
+				mmcinfo->regulator = NULL;
+			else
+				mmcinfo->regulator = val.str;
+		}
 	}
 
 	return 0;

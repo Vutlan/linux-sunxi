@@ -20,9 +20,10 @@
 #endif
 
 #define DRIVER_NAME "sunxi-mmc"
-#define DRIVER_RIVISION "Rev3.0"
+#define DRIVER_RIVISION "Rev3.1"
 #define DRIVER_VERSION " SD/MMC/SDIO Host Controller Driver(" DRIVER_RIVISION ")\n" \
 			" Compatible with SD3.0/eMMC4.5/SDIO2.0\n" \
+			" Add DDR50 and UHS-SDR50 mode support\n" \
 			" Compiled in " __DATE__ " at " __TIME__ ""
 /*========== platform define ==========*/
 /*---------- for sun6i ----------*/
@@ -256,6 +257,7 @@ struct sunxi_mmc_platform_data {
 	u32 caps2;
 	u32 f_min;
 	u32 f_max;
+	u32 f_ddr_max;
 	u32 dma_tl;
 	char* regulator;
 
@@ -299,6 +301,8 @@ struct sunxi_mmc_host {
 #define SDC_WOLTAGE_1V8 (1)
 #define SDC_WOLTAGE_1V2 (2)
 #define SDC_WOLTAGE_OFF (3)
+	u32 		voltage_switching;
+	struct regulator *regulator;
 	u32 		present;
 
 	/* irq */
