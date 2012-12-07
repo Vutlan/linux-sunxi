@@ -28,7 +28,6 @@
 #include <mach/dma.h>
 #include "sun6i-hdmipcm.h"
 
-static bool buffdone_flag = false;
 static unsigned int dmasrc = 0;
 static unsigned int dmadst = 0;
 
@@ -45,7 +44,7 @@ static const struct snd_pcm_hardware sun6i_pcm_hardware = {
 	.buffer_bytes_max	= 128*1024,    /* value must be (2^n)Kbyte size */
 	.period_bytes_min	= 1024*4,
 	.period_bytes_max	= 1024*32,
-	.periods_min		= 4,
+	.periods_min		= 2,
 	.periods_max		= 8,
 	.fifo_size			= 128,
 };
@@ -53,13 +52,14 @@ static const struct snd_pcm_hardware sun6i_pcm_hardware = {
 struct sun6i_runtime_data {
 	spinlock_t lock;
 	int state;
-	unsigned int dma_loaded;
-	unsigned int dma_limit;
-	unsigned int dma_period;
-	dma_addr_t dma_start;
-	dma_addr_t dma_pos;
-	dma_addr_t dma_end;
-	dm_hdl_t	dma_hdl;
+	unsigned int 	dma_loaded;
+	unsigned int 	dma_limit;
+	unsigned int 	dma_period;
+	dma_addr_t 		dma_start;
+	dma_addr_t 		dma_pos;
+	dma_addr_t 		dma_end;
+	dm_hdl_t		dma_hdl;
+	bool 			play_dma_flag;
 	struct dma_cb_t play_done_cb;
 	struct sun6i_dma_params *params;
 };
@@ -76,15 +76,12 @@ static void sun6i_pcm_enqueue(struct snd_pcm_substream *substream)
 		if ((pos + len) > prtd->dma_end) {
 			len  = prtd->dma_end - pos;			
 		}
-
-		if (buffdone_flag) {
-			ret = sw_dma_enqueue(prtd->dma_hdl, pos,
-								prtd->params->dma_addr, len, ENQUE_PHASE_QD);
-		} else {
+		/*because dma enqueue the first buffer while config dma,so at the beginning, can't add the buffer*/
+		if (prtd->play_dma_flag) {
 			ret = sw_dma_enqueue(prtd->dma_hdl, pos,
 								prtd->params->dma_addr, len, ENQUE_PHASE_NORMAL);
 		}
-
+		prtd->play_dma_flag = true;
 		if (ret == 0) {
 			prtd->dma_loaded++;
 			pos += prtd->dma_period;
@@ -103,31 +100,21 @@ static u32 sun6i_audio_buffdone(dm_hdl_t dma_hdl, void *parg, enum dma_cb_cause_
 	struct sun6i_runtime_data *prtd 	= NULL;
 	struct snd_pcm_substream *substream = parg;
 
-	if (result == DMA_CB_ABORT) {
+	if ((result == DMA_CB_ABORT) || (parg == NULL)) {
 		return 0;
 	}
-
-	buffdone_flag = true;
-
+	substream = parg;
 	prtd = substream->runtime->private_data;
-	if (substream) {
+	if ((substream) && (prtd)) {
 		snd_pcm_period_elapsed(substream);
 	}
 
 	spin_lock(&prtd->lock);
 	{
 		prtd->dma_loaded--;
-
-		if (true == buffdone_flag) { /* trigger stopped */	
-			sun6i_pcm_enqueue(substream);
-		} else {
-			printk("%s err, line %d\n", __func__, __LINE__);
-		}
+		sun6i_pcm_enqueue(substream);
 	}
 	spin_unlock(&prtd->lock);
-
-	buffdone_flag = false;
-	
 	return 0;
 }
 
@@ -233,17 +220,15 @@ static int sun6i_pcm_prepare(struct snd_pcm_substream *substream)
 		hdmiaudio_dma_conf.bconti_mode  = false;
 		hdmiaudio_dma_conf.src_drq_type = DRQSRC_SDRAM;
 		hdmiaudio_dma_conf.dst_drq_type = DRQDST_HDMI_AUDIO;
-
 		dmasrc = prtd->dma_start;
-		
 		if (0 != sw_dma_config(prtd->dma_hdl, &hdmiaudio_dma_conf, ENQUE_PHASE_NORMAL)) {
 			return -EINVAL;
 		}
 	} 
-   
+
 	prtd->dma_loaded = 0;
 	prtd->dma_pos = prtd->dma_start;
-
+	prtd->play_dma_flag = false;
 	/* enqueue dma buffers */
 	sun6i_pcm_enqueue(substream);
 

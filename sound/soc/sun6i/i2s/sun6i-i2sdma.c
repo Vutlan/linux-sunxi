@@ -32,8 +32,6 @@
 #include "sun6i-i2s.h"
 #include "sun6i-i2sdma.h"
 
-static bool play_buffdone_flag = false;
-static bool capture_buffdone_flag = false;
 static unsigned int capture_dmadst = 0;
 static unsigned int play_dmasrc = 0;
 
@@ -50,7 +48,7 @@ static const struct snd_pcm_hardware sun6i_pcm_play_hardware = {
 	.buffer_bytes_max	= 128*1024,    /* value must be (2^n)Kbyte size */
 	.period_bytes_min	= 1024*4,
 	.period_bytes_max	= 1024*16,
-	.periods_min		= 4,
+	.periods_min		= 2,
 	.periods_max		= 8,
 	.fifo_size		= 128,
 };
@@ -68,7 +66,7 @@ static const struct snd_pcm_hardware sun6i_pcm_capture_hardware = {
 	.buffer_bytes_max	= 128*1024,    /* value must be (2^n)Kbyte size */
 	.period_bytes_min	= 1024*4,
 	.period_bytes_max	= 1024*16,
-	.periods_min		= 4,
+	.periods_min		= 2,
 	.periods_max		= 8,
 	.fifo_size		= 128,
 };
@@ -79,10 +77,11 @@ struct sun6i_playback_runtime_data {
 	unsigned int dma_loaded;
 	unsigned int dma_limit;
 	unsigned int dma_period;
-	dma_addr_t dma_start;
-	dma_addr_t dma_pos;
-	dma_addr_t dma_end;
+	dma_addr_t 	dma_start;
+	dma_addr_t 	dma_pos;
+	dma_addr_t 	dma_end;
 	dm_hdl_t	dma_hdl;
+	bool 		play_dma_flag;
 	struct dma_cb_t play_done_cb;
 	struct sun6i_dma_params *params;	
 };
@@ -97,6 +96,7 @@ struct sun6i_capture_runtime_data {
 	dma_addr_t dma_pos;
 	dma_addr_t dma_end;
 	dm_hdl_t	dma_hdl;
+	bool		capture_dma_flag;
 	struct dma_cb_t capture_done_cb;	
 	struct sun6i_dma_params *params;
 };
@@ -119,16 +119,11 @@ static void sun6i_pcm_enqueue(struct snd_pcm_substream *substream)
 			if ((play_pos + play_len) > play_prtd->dma_end) {
 				play_len  = play_prtd->dma_end - play_pos;
 			}
-			
-		if (play_buffdone_flag) 
-		{				
-			play_ret = sw_dma_enqueue(play_prtd->dma_hdl, play_pos, play_prtd->params->dma_addr, play_len, ENQUE_PHASE_QD);
-		} 
-		else 
-		{
-			play_ret = sw_dma_enqueue(play_prtd->dma_hdl, play_pos, play_prtd->params->dma_addr, play_len, ENQUE_PHASE_NORMAL);
-		}		
-		
+			/*because dma enqueue the first buffer while config dma,so at the beginning, can't add the buffer*/
+			if (play_prtd->play_dma_flag) {
+				play_ret = sw_dma_enqueue(play_prtd->dma_hdl, play_pos, play_prtd->params->dma_addr, play_len, ENQUE_PHASE_NORMAL);
+			}
+			play_prtd->play_dma_flag = true;
 			if (play_ret == 0) {
 				play_prtd->dma_loaded++;
 				play_pos += play_prtd->dma_period;
@@ -148,14 +143,10 @@ static void sun6i_pcm_enqueue(struct snd_pcm_substream *substream)
 			if ((capture_pos + capture_len) > capture_prtd->dma_end) {
 				capture_len  = capture_prtd->dma_end - capture_pos;
 			}
-		if (capture_buffdone_flag) 
-		{				
-			capture_ret = sw_dma_enqueue(capture_prtd->dma_hdl, capture_prtd->params->dma_addr, capture_pos, capture_len, ENQUE_PHASE_QD);
-		} 
-		else 
-		{
-			capture_ret = sw_dma_enqueue(capture_prtd->dma_hdl, capture_prtd->params->dma_addr, capture_pos, capture_len, ENQUE_PHASE_NORMAL);
-		}	
+			if (capture_prtd->capture_dma_flag) {
+				capture_ret = sw_dma_enqueue(capture_prtd->dma_hdl, capture_prtd->params->dma_addr, capture_pos, capture_len, ENQUE_PHASE_NORMAL);
+			}
+			capture_prtd->capture_dma_flag = true;
 			if (capture_ret == 0) {
 			capture_prtd->dma_loaded++;
 			capture_pos += capture_prtd->dma_period;
@@ -172,71 +163,51 @@ static void sun6i_pcm_enqueue(struct snd_pcm_substream *substream)
 static u32 sun6i_audio_capture_buffdone(dm_hdl_t dma_hdl, void *parg,
 		                                  enum dma_cb_cause_e result)		                                  
 {
-	struct sun6i_capture_runtime_data *capture_prtd;
-	struct snd_pcm_substream *substream = parg;
+	struct sun6i_capture_runtime_data *capture_prtd = NULL;
+	struct snd_pcm_substream *substream = NULL;
 
-	if (result == DMA_CB_ABORT) {		
+	if ((result == DMA_CB_ABORT) || (parg == NULL)) {	
 		return 0;
 	}
-	
-	capture_buffdone_flag = true;
-	
+
+	substream = parg;
 	capture_prtd = substream->runtime->private_data;
-	if (substream) {				
+	if ((substream) && (capture_prtd)) {	
 		snd_pcm_period_elapsed(substream);
 	}	
 
 	spin_lock(&capture_prtd->lock);
 	{
 		capture_prtd->dma_loaded--;
-		
-		if(true == capture_buffdone_flag) { 
-			sun6i_pcm_enqueue(substream);
-		} else {
-			printk("%s err, line %d\n", __func__, __LINE__);
-		}
+		sun6i_pcm_enqueue(substream);
 	}
 	spin_unlock(&capture_prtd->lock);	
-	
-	capture_buffdone_flag = false;
-	
 	return 0;
 }
 
 static u32 sun6i_audio_play_buffdone(dm_hdl_t dma_hdl, void *parg,
 		                                  enum dma_cb_cause_e result)
 {
-	struct sun6i_playback_runtime_data *play_prtd;
-	struct snd_pcm_substream *substream = parg;
+	struct sun6i_playback_runtime_data *play_prtd = NULL;
+	struct snd_pcm_substream *substream = NULL;
 	
-	if (result == DMA_CB_ABORT)
+	if ((result == DMA_CB_ABORT) || (parg == NULL)) {
 		return 0;
-	
-	play_buffdone_flag = true;
-	
+	}
+	substream = parg;
 	play_prtd = substream->runtime->private_data;
-	if (substream) {
+	if ((substream) && (play_prtd)) {
 		snd_pcm_period_elapsed(substream);
 	}
 
 	spin_lock(&play_prtd->lock);
 	{
 		play_prtd->dma_loaded--;
-		
-		if(true == play_buffdone_flag) { 
-			sun6i_pcm_enqueue(substream);
-		} else {
-			printk("%s err, line %d\n", __func__, __LINE__);
-		}
+		sun6i_pcm_enqueue(substream);
 	}
 	spin_unlock(&play_prtd->lock);
-	
-	play_buffdone_flag = false;
-
 	return 0;
 }
-
-
 
 static int sun6i_pcm_hw_params(struct snd_pcm_substream *substream,
 	struct snd_pcm_hw_params *params)
@@ -434,7 +405,7 @@ static int sun6i_pcm_prepare(struct snd_pcm_substream *substream)
 		}
 		play_prtd->dma_loaded = 0;
 		play_prtd->dma_pos = play_prtd->dma_start;
-
+		play_prtd->play_dma_flag = false;
 		/* enqueue dma buffers */
 		sun6i_pcm_enqueue(substream);
 		
@@ -463,7 +434,7 @@ static int sun6i_pcm_prepare(struct snd_pcm_substream *substream)
 		}
 		capture_prtd->dma_loaded = 0;
 		capture_prtd->dma_pos = capture_prtd->dma_start;
-
+		capture_prtd->capture_dma_flag = false;
 		/* enqueue dma buffers */
 		sun6i_pcm_enqueue(substream);
 		
