@@ -814,9 +814,25 @@ static int do_read(struct fsg_common *common)
 
 		/* Perform the read */
 		file_offset_tmp = file_offset;
-		nread = vfs_read(curlun->filp,
-				 (char __user *)bh->buf,
-				 amount, &file_offset_tmp);
+#ifdef CONFIG_USB_SW_SUN6I_USB
+        if(curlun->zero_disk){
+            if(file_offset_tmp == 0){
+        		nread = vfs_read(curlun->filp,
+        				 (char __user *)bh->buf,
+        				 amount, &file_offset_tmp);
+            }else{
+                nread = amount;
+            }
+        }else{
+            nread = vfs_read(curlun->filp,
+                     (char __user *)bh->buf,
+                     amount, &file_offset_tmp);
+        }
+#else
+        nread = vfs_read(curlun->filp,
+                 (char __user *)bh->buf,
+                 amount, &file_offset_tmp);
+#endif
 		VLDBG(curlun, "file read %u @ %llu -> %d\n", amount,
 		      (unsigned long long)file_offset, (int)nread);
 		if (signal_pending(current))
@@ -1007,9 +1023,19 @@ static int do_write(struct fsg_common *common)
 
 			/* Perform the write */
 			file_offset_tmp = file_offset;
-			nwritten = vfs_write(curlun->filp,
-					     (char __user *)bh->buf,
-					     amount, &file_offset_tmp);
+#ifdef CONFIG_USB_SW_SUN6I_USB
+            if(curlun->zero_disk){
+                nwritten = amount;
+            }else{
+                nwritten = vfs_write(curlun->filp,
+                             (char __user *)bh->buf,
+                             amount, &file_offset_tmp);
+            }
+#else
+            nwritten = vfs_write(curlun->filp,
+                         (char __user *)bh->buf,
+                         amount, &file_offset_tmp);
+#endif
 			VLDBG(curlun, "file write %u @ %llu -> %d\n", amount,
 			      (unsigned long long)file_offset, (int)nwritten);
 			if (signal_pending(current))
@@ -1089,7 +1115,9 @@ static int do_verify(struct fsg_common *common)
 	struct fsg_lun		*curlun = common->curlun;
 	u32			lba;
 	u32			verification_length;
+#ifndef CONFIG_USB_SW_SUN6I_USB
 	struct fsg_buffhd	*bh = common->next_buffhd_to_fill;
+#endif
 	loff_t			file_offset, file_offset_tmp;
 	u32			amount_left;
 	unsigned int		amount;
@@ -1153,9 +1181,13 @@ static int do_verify(struct fsg_common *common)
 
 		/* Perform the read */
 		file_offset_tmp = file_offset;
+#ifndef CONFIG_USB_SW_SUN6I_USB
 		nread = vfs_read(curlun->filp,
 				(char __user *) bh->buf,
 				amount, &file_offset_tmp);
+#else
+        nread = amount;
+#endif
 		VLDBG(curlun, "file read %u @ %llu -> %d\n", amount,
 				(unsigned long long) file_offset,
 				(int) nread);
@@ -2692,7 +2724,9 @@ static int fsg_main_thread(void *common_)
 static DEVICE_ATTR(ro, 0644, fsg_show_ro, fsg_store_ro);
 static DEVICE_ATTR(nofua, 0644, fsg_show_nofua, fsg_store_nofua);
 static DEVICE_ATTR(file, 0644, fsg_show_file, fsg_store_file);
-
+#ifdef CONFIG_USB_SW_SUN6I_USB
+static DEVICE_ATTR(zero_disk, 0644, fsg_show_zero_disk, fsg_zero_disk);
+#endif
 
 /****************************** FSG COMMON ******************************/
 
@@ -2789,7 +2823,10 @@ static struct fsg_common *fsg_common_init(struct fsg_common *common,
 		curlun->ro = lcfg->cdrom || lcfg->ro;
 		curlun->initially_ro = curlun->ro;
 		curlun->removable = lcfg->removable;
+#ifdef CONFIG_USB_SW_SUN6I_USB
 		curlun->nofua = lcfg->nofua;
+		curlun->zero_disk = 0;
+#endif
 		curlun->dev.release = fsg_lun_release;
 		curlun->dev.parent = &gadget->dev;
 		/* curlun->dev.driver = &fsg_driver.driver; XXX */
@@ -2817,7 +2854,11 @@ static struct fsg_common *fsg_common_init(struct fsg_common *common,
 		rc = device_create_file(&curlun->dev, &dev_attr_nofua);
 		if (rc)
 			goto error_luns;
-
+#ifdef CONFIG_USB_SW_SUN6I_USB
+        rc = device_create_file(&curlun->dev, &dev_attr_zero_disk);
+        if (rc)
+            goto error_luns;
+#endif
 		if (lcfg->filename) {
 			rc = fsg_lun_open(curlun, lcfg->filename);
 			if (rc)
@@ -2963,6 +3004,9 @@ static void fsg_common_release(struct kref *ref)
 			device_remove_file(&lun->dev, &dev_attr_nofua);
 			device_remove_file(&lun->dev, &dev_attr_ro);
 			device_remove_file(&lun->dev, &dev_attr_file);
+#ifdef CONFIG_USB_SW_SUN6I_USB
+			device_remove_file(&lun->dev, &dev_attr_zero_disk);
+#endif
 			fsg_lun_close(lun);
 			device_unregister(&lun->dev);
 		}

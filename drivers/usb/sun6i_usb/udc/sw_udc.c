@@ -239,9 +239,12 @@ static __u32 is_peripheral_active(void)
  * 2、非ep0
  * 3、大于一个包
  */
+#define  big_req(req, ep) ((req->req.length != req->req.actual) \
+                            ? ((req->req.length - req->req.actual) > ep->ep.maxpacket) \
+                            : (req->req.length > ep->ep.maxpacket))
 #define  is_sw_udc_dma_capable(req, ep)		(is_udc_support_dma() \
-                                                            && ((req->req.length - req->req.actual) > ep->ep.maxpacket) \
-                                                            && ep->num)
+                                            && big_req(req, ep) \
+                                            && ep->num)
 
 #define is_buffer_mapped(req, ep) (is_sw_udc_dma_capable(req, ep) && (req->map_state != UN_MAPPED))
 
@@ -277,7 +280,7 @@ static inline void sw_udc_map_dma_buffer(struct sw_udc_request *req, struct sw_u
 static inline void sw_udc_unmap_dma_buffer(struct sw_udc_request *req, struct sw_udc *udc, struct sw_udc_ep *ep)
 {
 	if(!is_buffer_mapped(req, ep)){
-	    DMSG_PANIC("err: need not to dma ummap\n");
+	    //DMSG_PANIC("err: need not to dma ummap\n");
 		return;
     }
 
@@ -1664,7 +1667,7 @@ void sw_udc_clean_dma_status(struct sw_udc_ep *ep)
 *
 *******************************************************************************
 */
-static void sw_udc_stop_dma_work(struct sw_udc *dev)
+static void sw_udc_stop_dma_work(struct sw_udc *dev, u32 unlock)
 {
 	__u32 i = 0;
 	struct sw_udc_ep *ep = NULL;
@@ -1675,9 +1678,13 @@ static void sw_udc_stop_dma_work(struct sw_udc *dev)
 		if(sw_udc_dma_is_busy(ep)){
 			DMSG_PANIC("wrn: ep(%d) must stop working\n", i);
 
-			spin_unlock(&ep->dev->lock);
+			if(unlock){
+			    spin_unlock(&ep->dev->lock);
+			}
 			sw_udc_dma_stop(ep);
-			spin_lock(&ep->dev->lock);
+			if(unlock){
+    			spin_lock(&ep->dev->lock);
+			}
 
             ep->dev->sw_udc_dma[ep->num].is_start = 0;
             ep->dma_transfer_len = 0;
@@ -1760,7 +1767,7 @@ static irqreturn_t sw_udc_irq(int dummy, void *_dev)
 		USBC_Dev_SetAddress_default(g_sw_udc_io.usb_bsp_hdle);
 
 		if(is_udc_support_dma()){
-			sw_udc_stop_dma_work(dev);
+			sw_udc_stop_dma_work(dev, 1);
 		}
 
         throw_away_all_urb(dev);
@@ -3318,7 +3325,7 @@ __acquires(sw_udc.lock)
 	}
 
 	if(is_udc_support_dma()){
-	    sw_udc_stop_dma_work(udc);
+	    sw_udc_stop_dma_work(udc, 0);
 		sw_udc_dma_remove(udc);
 	}
 
@@ -3544,7 +3551,7 @@ static int sw_udc_remove_device_only(struct platform_device *pdev)
     }
 
 	if(is_udc_support_dma()){
-	    sw_udc_stop_dma_work(udc);
+	    sw_udc_stop_dma_work(udc, 0);
 		sw_udc_dma_remove(udc);
 	}
 
