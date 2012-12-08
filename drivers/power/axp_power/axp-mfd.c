@@ -31,17 +31,13 @@ static void axp_mfd_irq_work(struct work_struct *work)
 	struct axp_mfd_chip *chip = container_of(work, struct axp_mfd_chip, irq_work);
 	uint64_t irqs = 0;
 	
-	printk("axp_mfd_irq_work enter...\n");
 	while (1) {
 		if (chip->ops->read_irqs(chip, &irqs)){
 			printk("read irq fail\n");
 			break;
 		}
-		printk("irqs %x %x\n", (u32)irqs, (u32)(irqs>>32));
-		printk("irq enable %x %x\n", (u32)(chip->irqs_enabled), (u32)((chip->irqs_enabled)>>32));
 		irqs &= chip->irqs_enabled;
 		if (irqs == 0){
-			printk("no  irq enable\n");
 			break;
 		}
 		
@@ -72,7 +68,6 @@ static irqreturn_t axp_mfd_irq_handler(int irq, void *data)
 static int axp_mfd_irq_cb(void *arg)
 {
 	struct axp_mfd_chip *chip = (struct axp_mfd_chip *)arg;
-	printk("axp_mfd_irq_cb enter...\n");
 	/* when process axp irq, the axp irq ar100 cpu must disable now,
 	 * we just need re-enable axp irq when process finished.
 	 * by sunny at 2012-11-29 10:25:30.
@@ -225,7 +220,6 @@ static int __devinit axp_mfd_add_subdevs(struct axp_mfd_chip *chip,
 		goto failed;
 	}
 
-
 	return 0;
 
 failed:
@@ -370,8 +364,7 @@ static int __devinit axp_mfd_probe(struct i2c_client *client,
 	struct axp_platform_data *pdata = client->dev.platform_data;
 	struct axp_mfd_chip *chip;
 	int ret;
-	
-	printk("axp_mfd_probe enter...\n");
+
 	chip = kzalloc(sizeof(struct axp_mfd_chip), GFP_KERNEL);
 	if (chip == NULL)
 		return -ENOMEM;
@@ -423,14 +416,14 @@ static int __devinit axp_mfd_probe(struct i2c_client *client,
 	}
 	
 	/* set ac/usb_in shutdown mean restart */
-/*  	ret = axp_script_parser_fetch("target", "power_start", &power_start, sizeof(int));
+  	ret = axp_script_parser_fetch("pmu_para", "power_start", &power_start, sizeof(int));
   	if (ret)
   	{
     	printk("[AXP]axp driver uning configuration failed(%d)\n", __LINE__);
      	power_start = 0;
      	printk("[AXP]power_start = %d\n",power_start);
   	}
- */ 	
+  	
 	return 0;
 
 out_free_irq:
@@ -478,5 +471,5 @@ static void __exit axp_mfd_exit(void)
 module_exit(axp_mfd_exit);
 
 MODULE_DESCRIPTION("PMIC MFD Driver for AXP");
-MODULE_AUTHOR("King Zhong X-POWERS");
+MODULE_AUTHOR("Weijin Zhong X-POWERS");
 MODULE_LICENSE("GPL");

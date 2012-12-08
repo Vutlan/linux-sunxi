@@ -1721,7 +1721,7 @@ static void __exit sun6i_i2c_adap_exit(void)
 }
 #endif
 
-module_init(sun6i_i2c_adap_init);
+subsys_initcall(sun6i_i2c_adap_init);
 module_exit(sun6i_i2c_adap_exit);
 
 MODULE_LICENSE("GPL");

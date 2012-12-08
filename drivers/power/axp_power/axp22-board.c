@@ -9,106 +9,95 @@
 #include <linux/apm-emulation.h>
 #include <linux/mfd/axp-mfd.h>
 #include <linux/module.h>
-//#include <linux/archarm/mach-sun7i/include/mach/irqs-sun7i.h>
 
 #include "axp-cfg.h"
 #include <mach/sys_config.h>
 
-
-int pmu_used;
-int pmu_twi_id;
-int pmu_irq_id;
-int pmu_twi_addr;
-int pmu_battery_rdc;
-int pmu_battery_cap;
-int pmu_runtime_chgcur;
-int pmu_suspend_chgcur;
-int pmu_resume_chgcur;
-int pmu_shutdown_chgcur;
-int pmu_init_chgvol;
-int pmu_init_chgend_rate;
-int pmu_init_chg_enabled;
-int pmu_init_adc_freq;
-int pmu_init_adcts_freq;
-int pmu_init_adc_freqc;
-int pmu_init_chg_pretime;
-int pmu_init_chg_csttime;
-
-int pmu_bat_para1;
-int pmu_bat_para2;
-int pmu_bat_para3;
-int pmu_bat_para4;
-int pmu_bat_para5;
-int pmu_bat_para6;
-int pmu_bat_para7;
-int pmu_bat_para8;
-int pmu_bat_para9;
-int pmu_bat_para10;
-int pmu_bat_para11;
-int pmu_bat_para12;
-int pmu_bat_para13;
-int pmu_bat_para14;
-int pmu_bat_para15;
-int pmu_bat_para16;
-int pmu_bat_para17;
-int pmu_bat_para18;
-int pmu_bat_para19;
-int pmu_bat_para20;
-int pmu_bat_para21;
-int pmu_bat_para22;
-int pmu_bat_para23;
-int pmu_bat_para24;
-int pmu_bat_para25;
-int pmu_bat_para26;
-int pmu_bat_para27;
-int pmu_bat_para28;
-int pmu_bat_para29;
-int pmu_bat_para30;
-int pmu_bat_para31;
-int pmu_bat_para32;
-
-
-int pmu_usbvol_limit;
-int pmu_usbvol;
-int pmu_usbcur_limit;
-int pmu_usbcur;
-
-int pmu_pwroff_vol;
-int pmu_pwron_vol;
-
-int dcdc1_vol;
-int dcdc2_vol;
-int dcdc3_vol;
-int dcdc4_vol;
-int dcdc5_vol;
-
-//int ldo1_vol;
-//int ldo2_vol;
-int ldo3_vol;
-int ldo4_vol;
-/*
-int ldo5_vol;
-int ldo6_vol;
-int ldo7_vol;
-int ldo8_vol;
-int ldo9_vol;
-int ldo10_vol;
-int ldo11_vol;
-int ldo12_vol;
-int ldoio0_vol;
-int ldoio1_vol;
-*/
-int pmu_pokoff_time;
-int pmu_pokoff_en;
-int pmu_poklong_time;
-int pmu_pokon_time;
-int pmu_pwrok_time;
-int pmu_battery_warning_level1;
-int pmu_battery_warning_level2;
-int pmu_restvol_adjust_time;
-int pmu_ocv_cou_adjust_time;
-int pmu_chgled_func;
-int pmu_chgled_type;
+int		pmu_used;                  
+int		pmu_twi_addr;              
+int		pmu_twi_id;                
+int		pmu_irq_id;                
+int		pmu_battery_rdc;           
+int		pmu_battery_cap;           
+int		pmu_batdeten;							
+int		pmu_runtime_chgcur;        
+int		pmu_earlysuspend_chgcur;   
+int		pmu_suspend_chgcur;        
+int		pmu_shutdown_chgcur;       
+int		pmu_init_chgvol;           
+int		pmu_init_chgend_rate;      
+int		pmu_init_chg_enabled;			
+int		pmu_init_adc_freq;         
+int		pmu_init_adcts_freq;       
+int		pmu_init_chg_pretime;      
+int		pmu_init_chg_csttime;      
+                          
+int		pmu_bat_para1;             
+int		pmu_bat_para2;            
+int		pmu_bat_para3;            
+int		pmu_bat_para4;            
+int		pmu_bat_para5;           
+int		pmu_bat_para6;           
+int		pmu_bat_para7;           
+int		pmu_bat_para8;           
+int		pmu_bat_para9;           
+int		pmu_bat_para10;         
+int		pmu_bat_para11;          
+int		pmu_bat_para12;          
+int		pmu_bat_para13;          
+int		pmu_bat_para14;          
+int		pmu_bat_para15;          
+int		pmu_bat_para16;          
+int		pmu_bat_para17;          
+int		pmu_bat_para18;          
+int		pmu_bat_para19;          
+int		pmu_bat_para20;          
+int		pmu_bat_para21;          
+int		pmu_bat_para22;          
+int		pmu_bat_para23;         
+int		pmu_bat_para24;          
+int		pmu_bat_para25;          
+int		pmu_bat_para26;          
+int		pmu_bat_para27;          
+int		pmu_bat_para28;          
+int		pmu_bat_para29;          
+int		pmu_bat_para30;          
+int		pmu_bat_para31;          
+int		pmu_bat_para32;          
+	                          
+int		pmu_usbvol_limit;       
+int		pmu_usbcur_limit;        
+int		pmu_usbvol;        
+int		pmu_usbcur;              
+int		pmu_usbvol_pc;            
+int		pmu_usbcur_pc;           
+int		pmu_pwroff_vol;           
+int		pmu_pwron_vol;          
+int		dcdc1_vol;           
+int		dcdc2_vol;               
+int		dcdc3_vol;               
+int		dcdc4_vol;               
+int		dcdc5_vol;               
+int		aldo2_vol;               
+int		aldo3_vol;               
+int		pmu_pekoff_time;
+int		pmu_pekoff_en;          
+int		pmu_pekoff_func;          
+int		pmu_peklong_time;         
+int		pmu_pekon_time;        
+int		pmu_pwrok_time;          
+int		pmu_battery_warning_level1;
+int		pmu_battery_warning_level2;
+int		pmu_restvol_adjust_time;
+int		pmu_ocv_cou_adjust_time; 
+int		pmu_chgled_func; 
+int		pmu_chgled_type;         
+int		pmu_vbusen_func;			  
+int		pmu_reset;					
+int		pmu_IRQ_wakeup;					
+int		pmu_hot_shutdowm;				
+int		pmu_inshort;
+int		power_start;					
 
 /* Reverse engineered partly from Platformx drivers */
 enum axp_regls{
@@ -281,7 +270,7 @@ static struct regulator_init_data axp_regl_init_data[] = {
 			.initial_state = PM_SUSPEND_STANDBY,
 			.state_standby = {
 				//.uV = ldo2_vol * 1000,
-				//.enabled = 1,
+				.enabled = 0,
 			}
 		},
 		.num_consumer_supplies = ARRAY_SIZE(ldo2_data),
@@ -296,7 +285,7 @@ static struct regulator_init_data axp_regl_init_data[] = {
 			.initial_state = PM_SUSPEND_STANDBY,
 			.state_standby = {
 				//.uV = ldo3_vol * 1000,
-				//.enabled = 1,
+				.enabled = 1,
 			}
 		},
 		.num_consumer_supplies = ARRAY_SIZE(ldo3_data),
@@ -311,7 +300,7 @@ static struct regulator_init_data axp_regl_init_data[] = {
 			.initial_state = PM_SUSPEND_STANDBY,
 			.state_standby = {
 				//.uV = ldo4_vol * 1000,
-				//.enabled = 1,
+				.enabled = 1,
 			}
 		},
 		.num_consumer_supplies = ARRAY_SIZE(ldo4_data),
@@ -326,7 +315,7 @@ static struct regulator_init_data axp_regl_init_data[] = {
 			.initial_state = PM_SUSPEND_STANDBY,
 			.state_standby = {
 				//.uV = ldo5_vol * 1000,
-				//.enabled = 1,
+				.enabled = 0,
 			}
 		},
 		.num_consumer_supplies = ARRAY_SIZE(ldo5_data),
@@ -341,7 +330,7 @@ static struct regulator_init_data axp_regl_init_data[] = {
 			.initial_state = PM_SUSPEND_STANDBY,
 			.state_standby = {
 				//.uV = ldo6_vol * 1000,
-				//.enabled = 1,
+				.enabled = 0,
 			}
 		},
 		.num_consumer_supplies = ARRAY_SIZE(ldo6_data),
@@ -356,7 +345,7 @@ static struct regulator_init_data axp_regl_init_data[] = {
 			.initial_state = PM_SUSPEND_STANDBY,
 			.state_standby = {
 				//.uV = ldo7_vol * 1000,
-				//.enabled = 1,
+				.enabled = 0,
 			}
 		},
 		.num_consumer_supplies = ARRAY_SIZE(ldo7_data),
@@ -371,7 +360,7 @@ static struct regulator_init_data axp_regl_init_data[] = {
 			.initial_state = PM_SUSPEND_STANDBY,
 			.state_standby = {
 				//.uV = ldo8_vol * 1000,
-				//.enabled = 1,
+				.enabled = 0,
 			}
 		},
 		.num_consumer_supplies = ARRAY_SIZE(ldo8_data),
@@ -386,7 +375,7 @@ static struct regulator_init_data axp_regl_init_data[] = {
 			.initial_state = PM_SUSPEND_STANDBY,
 			.state_standby = {
 				//.uV = ldo9_vol * 1000,
-				//.enabled = 1,
+				.enabled = 0,
 			}
 		},
 		.num_consumer_supplies = ARRAY_SIZE(ldo9_data),
@@ -401,7 +390,7 @@ static struct regulator_init_data axp_regl_init_data[] = {
 			.initial_state = PM_SUSPEND_STANDBY,
 			.state_standby = {
 				//.uV = ldo10_vol * 1000,
-				//.enabled = 1,
+				.enabled = 0,
 			}
 		},
 		.num_consumer_supplies = ARRAY_SIZE(ldo10_data),
@@ -416,7 +405,7 @@ static struct regulator_init_data axp_regl_init_data[] = {
 			.initial_state = PM_SUSPEND_STANDBY,
 			.state_standby = {
 				//.uV = ldo11_vol * 1000,
-				//.enabled = 1,
+				.enabled = 0,
 			}
 		},
 		.num_consumer_supplies = ARRAY_SIZE(ldo11_data),
@@ -431,7 +420,7 @@ static struct regulator_init_data axp_regl_init_data[] = {
 			.initial_state = PM_SUSPEND_STANDBY,
 			.state_standby = {
 				//.uV = ldo12_vol * 1000,
-				//.enabled = 1,
+				.enabled = 1,
 			}
 		},
 		.num_consumer_supplies = ARRAY_SIZE(ldo12_data),
@@ -446,7 +435,7 @@ static struct regulator_init_data axp_regl_init_data[] = {
 			.initial_state = PM_SUSPEND_STANDBY,
 			.state_standby = {
 				//.uV = dcdc1_vol * 1000,
-				//.enabled = 1,
+				.enabled = 1,
 			}
 		},
 		.num_consumer_supplies = ARRAY_SIZE(DCDC1_data),
@@ -461,7 +450,7 @@ static struct regulator_init_data axp_regl_init_data[] = {
 			.initial_state = PM_SUSPEND_STANDBY,
 			.state_standby = {
 				//.uV = dcdc3_vol * 1000,
-				//.enabled = 1,
+				.enabled = 1,
 			}
 		},
 		.num_consumer_supplies = ARRAY_SIZE(DCDC2_data),
@@ -476,7 +465,7 @@ static struct regulator_init_data axp_regl_init_data[] = {
 			.initial_state = PM_SUSPEND_STANDBY,
 			.state_standby = {
 				//.uV = dcdc3_vol * 1000,
-				//.enabled = 1,
+				.enabled = 1,
 			}
 		},
 		.num_consumer_supplies = ARRAY_SIZE(DCDC3_data),
@@ -491,7 +480,7 @@ static struct regulator_init_data axp_regl_init_data[] = {
 			.initial_state = PM_SUSPEND_STANDBY,
 			.state_standby = {
 				//.uV = dcdc4_vol * 1000,
-				//.enabled = 1,
+				.enabled = 1,
 			}
 		},
 		.num_consumer_supplies = ARRAY_SIZE(DCDC4_data),
@@ -506,7 +495,7 @@ static struct regulator_init_data axp_regl_init_data[] = {
 			.initial_state = PM_SUSPEND_STANDBY,
 			.state_standby = {
 				//.uV = dcdc5_vol * 1000,
-				//.enabled = 1,
+				.enabled = 1,
 			}
 		},
 		.num_consumer_supplies = ARRAY_SIZE(DCDC5_data),
@@ -663,7 +652,7 @@ static struct axp_platform_data axp_pdata = {
 static struct i2c_board_info __initdata axp_mfd_i2c_board_info[] = {
 	{
 		.type = "axp22_mfd",
-		.addr = 0x34,
+		//.addr = 0x34,
 		.platform_data = &axp_pdata,
 		//.irq = pmu_irq_id,
 	},
@@ -682,56 +671,6 @@ int axp_script_parser_fetch(char *main, char *sub, u32 *val, u32 size)
 		return 0;
 }
 
-int axp_rw_register(void)
-{
-	int i;
-	int ret;
-	u8 data[32];
-	u8 data_out[32];
-	
-	data[0] = 0x50;
-	data[1] = 0xc1;
-	data[2] = 0x50;
-	data[3] = 0xc2;
-	data[4] = 0x50;
-	data[5] = 0xc3;
-	data[6] = 0x50;
-	data[7] = 0xc4;
-	data[8] = 0x50;
-	data[9] = 0xc5;
-	data[10] = 0x50;
-	data[11] = 0xc6;
-	data[12] = 0x50;
-	data[13] = 0xc7;
-	data[14] = 0x50;
-	data[15] = 0xc8;
-	data[16] = 0x50;
-	data[17] = 0xc9;
-	data[18] = 0x50;
-	
-	printk("-----------------------------------------------------------------\n");
-	printk("axp write registers\n");
-	ret = axp_writes(NULL, 0xc0, 18, data);
-	if (ret) {
-		printk("axp write fail\n");
-	} else {
-		printk("axp write succeeded\n");
-	}
-	
-	printk("axp write registers\n");
-	ret = axp_reads(NULL, 0xc0, 18, data_out);
-	if (ret) {
-		printk("axp reads fail\n");
-	} else {
-		printk("axp reads succeeded\n");
-	}
-	printk("readout data:\n");
-	for (i = 0; i < 18; i++) {
-		printk("reg %x, : %x\n", 0xc0 + i, data_out[i]);
-	}
-	printk("-----------------------------------------------------------------\n");
-	return 0;
-}
 
 static int __init axp22_board_init(void)
 {
@@ -751,40 +690,67 @@ static int __init axp22_board_init(void)
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
             pmu_twi_id = 0;
         }
+        
+        ret = axp_script_parser_fetch("pmu_para", "pmu_twi_addr", &pmu_twi_addr, sizeof(int));
+        if (ret)
+        {
+            printk("axp driver uning configuration failed(%d)\n", __LINE__);
+            pmu_twi_addr = 34;
+        }
+        
         ret = axp_script_parser_fetch("pmu_para", "pmu_battery_rdc", &pmu_battery_rdc, sizeof(int));
         if (ret)
         {
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
             pmu_battery_rdc = BATRDC;
         }
+        
         ret = axp_script_parser_fetch("pmu_para", "pmu_battery_cap", &pmu_battery_cap, sizeof(int));
         if (ret)
         {
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
             pmu_battery_cap = BATTERYCAP;
         }
-        ret = axp_script_parser_fetch("pmu_para", "pmu_init_chgcur", &pmu_runtime_chgcur, sizeof(int));
+        
+        ret = axp_script_parser_fetch("pmu_para", "pmu_batdeten", &pmu_batdeten, sizeof(int));
+        if (ret)
+        {
+            printk("axp driver uning configuration failed(%d)\n", __LINE__);
+            pmu_batdeten = 1;
+        }
+        
+        ret = axp_script_parser_fetch("pmu_para", "pmu_runtime_chgcur", &pmu_runtime_chgcur, sizeof(int));
         if (ret)
         {
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
             pmu_runtime_chgcur = INTCHGCUR / 1000;
         }
-		pmu_runtime_chgcur = pmu_runtime_chgcur * 1000;
+        pmu_runtime_chgcur = pmu_runtime_chgcur * 1000;
+        
+        ret = axp_script_parser_fetch("pmu_para", "pmu_earlysuspend_chgcur", &pmu_earlysuspend_chgcur, sizeof(int));
+        if (ret)
+        {
+            printk("axp driver uning configuration failed(%d)\n", __LINE__);
+            pmu_earlysuspend_chgcur = 500;
+        }
+        pmu_earlysuspend_chgcur = pmu_earlysuspend_chgcur * 1000,
+        
         ret = axp_script_parser_fetch("pmu_para", "pmu_suspend_chgcur", &pmu_suspend_chgcur, sizeof(int));
         if (ret)
         {
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
-            pmu_suspend_chgcur = SUSCHGCUR / 1000;
+            pmu_suspend_chgcur = 1200;
         }
         pmu_suspend_chgcur = pmu_suspend_chgcur * 1000;
-
+        
         ret = axp_script_parser_fetch("pmu_para", "pmu_shutdown_chgcur", &pmu_shutdown_chgcur, sizeof(int));
         if (ret)
         {
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
-            pmu_shutdown_chgcur = CLSCHGCUR / 1000;
+            pmu_shutdown_chgcur = 1200;
         }
-        pmu_shutdown_chgcur = pmu_shutdown_chgcur * 1000;
+				pmu_shutdown_chgcur = pmu_shutdown_chgcur *1000;
+        
         ret = axp_script_parser_fetch("pmu_para", "pmu_init_chgvol", &pmu_init_chgvol, sizeof(int));
         if (ret)
         {
@@ -792,30 +758,42 @@ static int __init axp22_board_init(void)
             pmu_init_chgvol = INTCHGVOL / 1000;
         }
         pmu_init_chgvol = pmu_init_chgvol * 1000;
+        
         ret = axp_script_parser_fetch("pmu_para", "pmu_init_chgend_rate", &pmu_init_chgend_rate, sizeof(int));
         if (ret)
         {
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
             pmu_init_chgend_rate = INTCHGENDRATE;
         }
+        
+        ret = axp_script_parser_fetch("pmu_para", "pmu_init_chg_enabled", &pmu_init_chg_enabled, sizeof(int));
+        if (ret)
+        {
+            printk("axp driver uning configuration failed(%d)\n", __LINE__);
+            pmu_init_chg_enabled = 1;
+        }
+        
         ret = axp_script_parser_fetch("pmu_para", "pmu_init_adc_freq", &pmu_init_adc_freq, sizeof(int));
         if (ret)
         {
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
             pmu_init_adc_freq = INTADCFREQ;
         }
+        
         ret = axp_script_parser_fetch("pmu_para", "pmu_init_adcts_freq", &pmu_init_adcts_freq, sizeof(int));
         if (ret)
         {
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
             pmu_init_adcts_freq = INTADCFREQC;
         }
+        
         ret = axp_script_parser_fetch("pmu_para", "pmu_init_chg_pretime", &pmu_init_chg_pretime, sizeof(int));
         if (ret)
         {
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
             pmu_init_chg_pretime = INTCHGPRETIME;
         }
+        
         ret = axp_script_parser_fetch("pmu_para", "pmu_init_chg_csttime", &pmu_init_chg_csttime, sizeof(int));
         if (ret)
         {
@@ -944,73 +922,73 @@ static int __init axp22_board_init(void)
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
             pmu_bat_para20 = OCVREG13;
         }
-        ret = axp_script_parser_fetch("pmu_para", "pmu_bat_para16", &pmu_bat_para21, sizeof(int));
+        ret = axp_script_parser_fetch("pmu_para", "pmu_bat_para21", &pmu_bat_para21, sizeof(int));
         if (ret)
         {
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
             pmu_bat_para21 = OCVREG14;
         }
-        ret = axp_script_parser_fetch("pmu_para", "pmu_bat_para16", &pmu_bat_para22, sizeof(int));
+        ret = axp_script_parser_fetch("pmu_para", "pmu_bat_para22", &pmu_bat_para22, sizeof(int));
         if (ret)
         {
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
             pmu_bat_para22 = OCVREG15;
         }
-        ret = axp_script_parser_fetch("pmu_para", "pmu_bat_para16", &pmu_bat_para23, sizeof(int));
+        ret = axp_script_parser_fetch("pmu_para", "pmu_bat_para23", &pmu_bat_para23, sizeof(int));
         if (ret)
         {
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
             pmu_bat_para23 = OCVREG16;
         }
-        ret = axp_script_parser_fetch("pmu_para", "pmu_bat_para16", &pmu_bat_para24, sizeof(int));
+        ret = axp_script_parser_fetch("pmu_para", "pmu_bat_para24", &pmu_bat_para24, sizeof(int));
         if (ret)
         {
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
             pmu_bat_para24 = OCVREG17;
         }
-        ret = axp_script_parser_fetch("pmu_para", "pmu_bat_para16", &pmu_bat_para25, sizeof(int));
+        ret = axp_script_parser_fetch("pmu_para", "pmu_bat_para25", &pmu_bat_para25, sizeof(int));
         if (ret)
         {
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
             pmu_bat_para25 = OCVREG18;
         }
-        ret = axp_script_parser_fetch("pmu_para", "pmu_bat_para16", &pmu_bat_para26, sizeof(int));
+        ret = axp_script_parser_fetch("pmu_para", "pmu_bat_para26", &pmu_bat_para26, sizeof(int));
         if (ret)
         {
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
             pmu_bat_para26 = OCVREG19;
         }
-        ret = axp_script_parser_fetch("pmu_para", "pmu_bat_para16", &pmu_bat_para27, sizeof(int));
+        ret = axp_script_parser_fetch("pmu_para", "pmu_bat_para27", &pmu_bat_para27, sizeof(int));
         if (ret)
         {
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
             pmu_bat_para27 = OCVREG1A;
         }
-        ret = axp_script_parser_fetch("pmu_para", "pmu_bat_para16", &pmu_bat_para28, sizeof(int));
+        ret = axp_script_parser_fetch("pmu_para", "pmu_bat_para28", &pmu_bat_para28, sizeof(int));
         if (ret)
         {
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
             pmu_bat_para28 = OCVREG1B;
         }
-        ret = axp_script_parser_fetch("pmu_para", "pmu_bat_para16", &pmu_bat_para29, sizeof(int));
+        ret = axp_script_parser_fetch("pmu_para", "pmu_bat_para29", &pmu_bat_para29, sizeof(int));
         if (ret)
         {
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
             pmu_bat_para29 = OCVREG1C;
         }
-        ret = axp_script_parser_fetch("pmu_para", "pmu_bat_para16", &pmu_bat_para30, sizeof(int));
+        ret = axp_script_parser_fetch("pmu_para", "pmu_bat_para30", &pmu_bat_para30, sizeof(int));
         if (ret)
         {
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
             pmu_bat_para30 = OCVREG1D;
         }
-        ret = axp_script_parser_fetch("pmu_para", "pmu_bat_para16", &pmu_bat_para31, sizeof(int));
+        ret = axp_script_parser_fetch("pmu_para", "pmu_bat_para31", &pmu_bat_para31, sizeof(int));
         if (ret)
         {
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
             pmu_bat_para31 = OCVREG1E;
         }
-        ret = axp_script_parser_fetch("pmu_para", "pmu_bat_para16", &pmu_bat_para32, sizeof(int));
+        ret = axp_script_parser_fetch("pmu_para", "pmu_bat_para32", &pmu_bat_para32, sizeof(int));
         if (ret)
         {
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
@@ -1029,6 +1007,12 @@ static int __init axp22_board_init(void)
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
             pmu_usbvol = 4400;
         }
+        ret = axp_script_parser_fetch("pmu_para", "pmu_usbvol_pc", &pmu_usbvol_pc, sizeof(int));
+        if (ret)
+        {
+            printk("axp driver uning configuration failed(%d)\n", __LINE__);
+            pmu_usbvol_pc = 4400;
+        }
         ret = axp_script_parser_fetch("pmu_para", "pmu_usbcur_limit", &pmu_usbcur_limit, sizeof(int));
         if (ret)
         {
@@ -1041,6 +1025,13 @@ static int __init axp22_board_init(void)
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
             pmu_usbcur = 0;
         }
+        ret = axp_script_parser_fetch("pmu_para", "pmu_usbcur_pc", &pmu_usbcur_pc, sizeof(int));
+        if (ret)
+        {
+            printk("axp driver uning configuration failed(%d)\n", __LINE__);
+            pmu_usbcur_pc = 0;
+        }
+        
         ret = axp_script_parser_fetch("pmu_para", "pmu_pwroff_vol", &pmu_pwroff_vol, sizeof(int));
         if (ret)
         {
@@ -1053,135 +1044,77 @@ static int __init axp22_board_init(void)
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
             pmu_pwron_vol = 2900;
         }
-				ret = axp_script_parser_fetch("target", "dcdc1_vol", &dcdc1_vol, sizeof(int));
+        
+				ret = axp_script_parser_fetch("pmu_para", "dcdc1_vol", &dcdc1_vol, sizeof(int));
 				if (ret)
 				{
 					printk("axp driver uning configuration failed(%d)\n", __LINE__);
 					dcdc1_vol = 3300;
 				}
-				ret = axp_script_parser_fetch("target", "dcdc2_vol", &dcdc2_vol, sizeof(int));
+				ret = axp_script_parser_fetch("pmu_para", "dcdc2_vol", &dcdc2_vol, sizeof(int));
 				if (ret)
 				{
 						printk("axp driver uning configuration failed(%d)\n", __LINE__);
-						dcdc2_vol = 1150;
+						dcdc2_vol = 1200;
 				}
-        ret = axp_script_parser_fetch("target", "dcdc3_vol", &dcdc3_vol, sizeof(int));
+        ret = axp_script_parser_fetch("pmu_para", "dcdc3_vol", &dcdc3_vol, sizeof(int));
         if (ret)
         {
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
             dcdc3_vol = 1200;
         }
-        ret = axp_script_parser_fetch("target", "dcdc4_vol", &dcdc4_vol, sizeof(int));
+        ret = axp_script_parser_fetch("pmu_para", "dcdc4_vol", &dcdc4_vol, sizeof(int));
         if (ret)
         {
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
-            dcdc4_vol = 1150;
+            dcdc4_vol = 1200;
         }
-				ret = axp_script_parser_fetch("target", "dcdc5_vol", &dcdc5_vol, sizeof(int));
+				ret = axp_script_parser_fetch("pmu_para", "dcdc5_vol", &dcdc5_vol, sizeof(int));
         if (ret)
         {
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
             dcdc5_vol = 1500;
         }
-/*        
-        ret = axp_script_parser_fetch("target", "ldo2_vol", &ldo2_vol, sizeof(int));
+    
+        ret = axp_script_parser_fetch("pmu_para", "aldo2_vol", &aldo2_vol, sizeof(int));
         if (ret)
         {
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
-            ldo2_vol = 3000;
+            aldo2_vol = 1800;
         }
-*/        
-        ret = axp_script_parser_fetch("target", "ldo3_vol", &ldo3_vol, sizeof(int));
+        ret = axp_script_parser_fetch("pmu_para", "aldo3_vol", &aldo3_vol, sizeof(int));
         if (ret)
         {
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
-            ldo3_vol = 2800;
+            aldo3_vol = 3000;
         }
-        ret = axp_script_parser_fetch("target", "ldo4_vol", &ldo4_vol, sizeof(int));
+       
+				ret = axp_script_parser_fetch("pmu_para", "pmu_pekoff_time", &pmu_pekoff_time, sizeof(int));
         if (ret)
         {
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
-            ldo4_vol = 2800;
+            pmu_pekoff_time = 6000;
         }
-/*        
-				ret = axp_script_parser_fetch("target", "ldo5_vol", &ldo5_vol, sizeof(int));
+        //offlevel restart or not 0:not restart 1:restart
+        ret = axp_script_parser_fetch("pmu_para", "pmu_pekoff_func", &pmu_pekoff_func, sizeof(int));
         if (ret)
         {
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
-            ldo5_vol = 3000;
+            pmu_pekoff_func   = 0;
         }
-        ret = axp_script_parser_fetch("target", "ldo6_vol", &ldo6_vol, sizeof(int));
+        //16's power restart or not 0:not restart 1:restart
+        ret = axp_script_parser_fetch("pmu_para", "pmu_pekoff_en", &pmu_pekoff_en, sizeof(int));
         if (ret)
         {
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
-            ldo6_vol = 2800;
+            pmu_pekoff_en   = 1;
         }
-        ret = axp_script_parser_fetch("target", "ldo7_vol", &ldo7_vol, sizeof(int));
+        
+        ret = axp_script_parser_fetch("pmu_para", "pmu_peklong_time", &pmu_peklong_time, sizeof(int));
         if (ret)
         {
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
-            ldo7_vol = 2800;
-        }
-				ret = axp_script_parser_fetch("target", "ldo8_vol", &ldo8_vol, sizeof(int));
-        if (ret)
-        {
-            printk("axp driver uning configuration failed(%d)\n", __LINE__);
-            ldo8_vol = 3000;
-        }
-        ret = axp_script_parser_fetch("target", "ldo9_vol", &ldo9_vol, sizeof(int));
-        if (ret)
-        {
-            printk("axp driver uning configuration failed(%d)\n", __LINE__);
-            ldo9_vol = 2800;
-        }
-        ret = axp_script_parser_fetch("target", "ldo10_vol", &ldo10_vol, sizeof(int));
-        if (ret)
-        {
-            printk("axp driver uning configuration failed(%d)\n", __LINE__);
-            ldo10_vol = 2800;
-        }
-				ret = axp_script_parser_fetch("target", "ldo11_vol", &ldo11_vol, sizeof(int));
-        if (ret)
-        {
-            printk("axp driver uning configuration failed(%d)\n", __LINE__);
-            ldo11_vol = 3000;
-        }
-        ret = axp_script_parser_fetch("target", "ldo12vol", &ldo12_vol, sizeof(int));
-        if (ret)
-        {
-            printk("axp driver uning configuration failed(%d)\n", __LINE__);
-            ldo12_vol = 2800;
-        }
-        ret = axp_script_parser_fetch("target", "ldoio0_vol", &ldoio0_vol, sizeof(int));
-        if (ret)
-        {
-            printk("axp driver uning configuration failed(%d)\n", __LINE__);
-            ldoio0_vol = 2800;
-        }
-				ret = axp_script_parser_fetch("target", "ldoio1_vol", &ldoio1_vol, sizeof(int));
-        if (ret)
-        {
-            printk("axp driver uning configuration failed(%d)\n", __LINE__);
-            ldoio1_vol = 2800;
-        }
-*/        
-				ret = axp_script_parser_fetch("pmu_para", "pmu_pokoff_time", &pmu_pokoff_time, sizeof(int));
-        if (ret)
-        {
-            printk("axp driver uning configuration failed(%d)\n", __LINE__);
-            pmu_pokoff_time = 6000;
-        }
-        ret = axp_script_parser_fetch("pmu_para", "pmu_pokoff_en", &pmu_pokoff_en, sizeof(int));
-        if (ret)
-        {
-            printk("axp driver uning configuration failed(%d)\n", __LINE__);
-            pmu_pokoff_en   = 1;
-        }
-        ret = axp_script_parser_fetch("pmu_para", "pmu_poklong_time", &pmu_poklong_time, sizeof(int));
-        if (ret)
-        {
-            printk("axp driver uning configuration failed(%d)\n", __LINE__);
-            pmu_poklong_time = 1500;
+            pmu_peklong_time = 1500;
         }
         ret = axp_script_parser_fetch("pmu_para", "pmu_pwrok_time", &pmu_pwrok_time, sizeof(int));
         if (ret)
@@ -1190,11 +1123,11 @@ static int __init axp22_board_init(void)
            pmu_pwrok_time    = 64;
         }
 
-        ret = axp_script_parser_fetch("pmu_para", "pmu_pokon_time", &pmu_pokon_time, sizeof(int));
+        ret = axp_script_parser_fetch("pmu_para", "pmu_pekon_time", &pmu_pekon_time, sizeof(int));
         if (ret)
         {
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
-            pmu_pokon_time = 1000;
+            pmu_pekon_time = 1000;
         }           
         ret = axp_script_parser_fetch("pmu_para", "pmu_battery_warning_level1", &pmu_battery_warning_level1, sizeof(int));
         if (ret)
@@ -1212,13 +1145,13 @@ static int __init axp22_board_init(void)
         if (ret)
         {
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
-            pmu_restvol_adjust_time = 0;
+            pmu_restvol_adjust_time = 30;
         }  
         ret = axp_script_parser_fetch("pmu_para", "pmu_ocv_cou_adjust_time", &pmu_ocv_cou_adjust_time, sizeof(int));
         if (ret)
         {
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
-            pmu_ocv_cou_adjust_time = 0;
+            pmu_ocv_cou_adjust_time = 60;
         } 
         ret = axp_script_parser_fetch("pmu_para", "pmu_chgled_func", &pmu_chgled_func, sizeof(int));
         if (ret)
@@ -1231,8 +1164,91 @@ static int __init axp22_board_init(void)
         {
             printk("axp driver uning configuration failed(%d)\n", __LINE__);
             pmu_chgled_type = 0;
+        }
+        ret = axp_script_parser_fetch("pmu_para", "pmu_vbusen_func", &pmu_vbusen_func, sizeof(int));
+        if (ret)
+        {
+            printk("axp driver uning configuration failed(%d)\n", __LINE__);
+            pmu_vbusen_func = 1;
+        } 
+        
+        ret = axp_script_parser_fetch("pmu_para", "pmu_reset", &pmu_reset, sizeof(int));
+        if (ret)
+        {
+            printk("axp driver uning configuration failed(%d)\n", __LINE__);
+            pmu_reset = 0;
+        } 
+        
+        ret = axp_script_parser_fetch("pmu_para", "pmu_IRQ_wakeup", &pmu_IRQ_wakeup, sizeof(int));
+        if (ret)
+        {
+            printk("axp driver uning configuration failed(%d)\n", __LINE__);
+            pmu_IRQ_wakeup = 0;
+        } 
+        
+        ret = axp_script_parser_fetch("pmu_para", "pmu_hot_shutdowm", &pmu_hot_shutdowm, sizeof(int));
+        if (ret)
+        {
+            printk("axp driver uning configuration failed(%d)\n", __LINE__);
+            pmu_hot_shutdowm = 1;
+        } 
+        
+        ret = axp_script_parser_fetch("pmu_para", "pmu_inshort", &pmu_inshort, sizeof(int));
+        if (ret)
+        {
+            printk("axp driver uning configuration failed(%d)\n", __LINE__);
+            pmu_inshort = 0;
+        }
+        
+        ret = axp_script_parser_fetch("pmu_para", "power_start", &power_start, sizeof(int));
+        if (ret)
+        {
+            printk("axp driver uning configuration failed(%d)\n", __LINE__);
+            power_start = 0;
         }  
-        axp_rw_register();
+        
+        axp_regl_init_data[1].constraints.state_standby.uV = 700 * 1000;
+        axp_regl_init_data[2].constraints.state_standby.uV = aldo2_vol * 1000;
+        axp_regl_init_data[3].constraints.state_standby.uV = aldo3_vol * 1000;
+        axp_regl_init_data[5].constraints.state_standby.uV = 700 * 1000;
+        axp_regl_init_data[6].constraints.state_standby.uV = 700 * 1000;
+        axp_regl_init_data[7].constraints.state_standby.uV = 700 * 1000;
+        axp_regl_init_data[8].constraints.state_standby.uV = 700 * 1000;
+        axp_regl_init_data[9].constraints.state_standby.uV = 700 * 1000;
+        axp_regl_init_data[10].constraints.state_standby.uV = 700 * 1000;
+        axp_regl_init_data[11].constraints.state_standby.uV = 1100 * 1000;
+        axp_regl_init_data[12].constraints.state_standby.uV = dcdc1_vol * 1000;
+        axp_regl_init_data[13].constraints.state_standby.uV = dcdc2_vol * 1000;
+        axp_regl_init_data[14].constraints.state_standby.uV = dcdc3_vol * 1000;
+        axp_regl_init_data[15].constraints.state_standby.uV = dcdc4_vol * 1000;
+        axp_regl_init_data[16].constraints.state_standby.uV = dcdc5_vol * 1000;
+        axp_regl_init_data[2].constraints.state_standby.enabled = (aldo2_vol)?1:0;
+        axp_regl_init_data[2].constraints.state_standby.disabled = (aldo2_vol)?0:1;
+        axp_regl_init_data[3].constraints.state_standby.enabled = (aldo3_vol)?1:0;
+        axp_regl_init_data[3].constraints.state_standby.disabled = (aldo3_vol)?0:1;
+        axp_regl_init_data[12].constraints.state_standby.enabled = (dcdc1_vol)?1:0;
+        axp_regl_init_data[12].constraints.state_standby.disabled = (dcdc1_vol)?0:1;
+        axp_regl_init_data[13].constraints.state_standby.enabled = (dcdc2_vol)?1:0;
+        axp_regl_init_data[13].constraints.state_standby.disabled = (dcdc2_vol)?0:1;
+        axp_regl_init_data[14].constraints.state_standby.enabled = (dcdc3_vol)?1:0;
+        axp_regl_init_data[14].constraints.state_standby.disabled = (dcdc3_vol)?0:1;
+        axp_regl_init_data[15].constraints.state_standby.enabled = (dcdc4_vol)?1:0;
+        axp_regl_init_data[15].constraints.state_standby.disabled = (dcdc4_vol)?0:1;
+        axp_regl_init_data[16].constraints.state_standby.enabled = (dcdc5_vol)?1:0;
+        axp_regl_init_data[16].constraints.state_standby.disabled = (dcdc5_vol)?0:1;
+        battery_data.voltage_max_design = pmu_init_chgvol;
+        battery_data.voltage_min_design = pmu_pwroff_vol;
+        battery_data.energy_full_design = pmu_battery_cap;
+        axp_sply_init_data.chgcur = pmu_runtime_chgcur;
+        axp_sply_init_data.chgvol = pmu_init_chgvol;
+        axp_sply_init_data.chgend = pmu_init_chgend_rate;
+        axp_sply_init_data.chgen = pmu_init_chg_enabled;
+        axp_sply_init_data.sample_time = pmu_init_adc_freq;
+        axp_sply_init_data.chgpretime = pmu_init_chg_pretime;
+        axp_sply_init_data.chgcsttime = pmu_init_chg_csttime;
+        axp_mfd_i2c_board_info[0].addr = pmu_twi_addr;
+//        axp_mfd_i2c_board_info[0].irq = pmu_irq_id;
+          
         return i2c_register_board_info(1, axp_mfd_i2c_board_info, ARRAY_SIZE(axp_mfd_i2c_board_info));
 	}
 	else
@@ -1240,7 +1256,7 @@ static int __init axp22_board_init(void)
         return -1;
     }
 }
-fs_initcall(axp22_board_init);
+arch_initcall(axp22_board_init);
 
 MODULE_DESCRIPTION("X-powers axp board");
 MODULE_AUTHOR("Weijin Zhong");

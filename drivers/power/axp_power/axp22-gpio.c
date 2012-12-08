@@ -33,8 +33,6 @@ struct virtual_gpio_data {
 
 int axp_gpio_set_io(int gpio, int io_mode)
 {
-	printk("==============================================================================\n\n\n");
-	printk("%s: line %d,%d,%d\n", __func__, __LINE__,gpio,io_mode);
 	if(io_mode == 1){//output
 		switch(gpio)
 		{
@@ -73,7 +71,6 @@ EXPORT_SYMBOL_GPL(axp_gpio_set_io);
 int axp_gpio_get_io(int gpio, int *io_mode)
 {
 	uint8_t val;
-	printk("%s: line %d,%d\n", __func__, __LINE__,gpio);
 	switch(gpio)
 	{
 		case 0: axp_read(&axp->dev,AXP22_GPIO0_CFG,&val);val &= 0x07;
@@ -119,33 +116,26 @@ int axp_gpio_set_value(int gpio, int value)
 {
 	int io_mode,ret;
 	ret = axp_gpio_get_io(gpio,&io_mode);
-	printk("%s: line %d,%d,%d, %d\n", __func__, __LINE__, gpio, value, io_mode);
 	if(ret)
 		return ret;
 	if(1 == io_mode){//output
 		if(value){//high
 			switch(gpio) {
 				case 0: {
-					printk("axp xxset gpio0 to output high\n");
 					axp_clr_bits(&axp->dev,AXP22_GPIO0_CFG,0x06);
 					return axp_set_bits(&axp->dev,AXP22_GPIO0_CFG,0x01);
 				}
 				case 1: {
-						printk("axp xxset gpio1 to output high\n");
 						axp_clr_bits(&axp->dev,AXP22_GPIO1_CFG,0x06);
 						ret = axp_set_bits(&axp->dev,AXP22_GPIO1_CFG,0x01);
-						printk("axp_clr_bits ret = %d\n", ret);
 						return ret;
 				}
 				case 2: {
-					printk("axp xxset gpio2 to output high\n");
 					return axp_set_bits(&axp->dev,AXP22_GPIO2_CFG,0x80);
 				}
 				case 3: {
-					printk("axp xxset gpio3 to output high\n");
 					axp_clr_bits(&axp->dev,AXP22_GPIO3_CFG, 0x08);
 					ret = axp_clr_bits(&axp->dev,AXP22_GPIO3_CFG,0x30);
-					printk("axp_clr_bits ret = %d\n", ret);
 					return ret;
 				}
 				case 4: {
@@ -489,8 +479,7 @@ static int __devinit axp_gpio_probe(struct platform_device *pdev)
 	//struct axp_mfd_chip *axp_chip = dev_get_drvdata(pdev->dev.parent);
 	struct virtual_gpio_data *drvdata;
 	int ret, i;
-	
-	printk("axp_gpio_probe enter...\n");
+
 	drvdata = kzalloc(sizeof(struct virtual_gpio_data), GFP_KERNEL);
 	if (drvdata == NULL) {
 		ret = -ENOMEM;

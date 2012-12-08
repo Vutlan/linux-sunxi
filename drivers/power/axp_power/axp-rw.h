@@ -124,7 +124,6 @@ static inline int __axp_writes(struct i2c_client *client, int reg,
 	uint8_t data[AXP_TRANS_BYTE_MAX];
 	
 	if ((reg == 0x48) && (len == 9)) {
-		printk("clear axp pending\n");
 	}
 	
 	/* fetch first register address */
@@ -211,12 +210,12 @@ EXPORT_SYMBOL_GPL(axp_reads);
 
 int axp_set_bits(struct device *dev, int reg, uint8_t bit_mask)
 {
-	struct axp_mfd_chip *chip = dev_get_drvdata(dev);
 	uint8_t reg_val;
 	int ret = 0;
+	struct axp_mfd_chip *chip;
 
+	chip = dev_get_drvdata(dev);
 	mutex_lock(&chip->lock);
-
 	ret = __axp_read(chip->client, reg, &reg_val);
 	if (ret)
 		goto out;
@@ -233,9 +232,11 @@ EXPORT_SYMBOL_GPL(axp_set_bits);
 
 int axp_clr_bits(struct device *dev, int reg, uint8_t bit_mask)
 {
-	struct axp_mfd_chip *chip = dev_get_drvdata(dev);
 	uint8_t reg_val;
 	int ret = 0;
+	struct axp_mfd_chip *chip;
+	
+	chip = dev_get_drvdata(dev);
 
 	mutex_lock(&chip->lock);
 

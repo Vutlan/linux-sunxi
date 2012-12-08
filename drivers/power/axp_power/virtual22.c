@@ -280,9 +280,7 @@ static int regulator_virtual_consumer_probe(struct platform_device *pdev)
 
 	mutex_init(&drvdata->lock);
 
-	//drvdata->regulator = regulator_get(&pdev->dev, reg_id);
 	drvdata->regulator = regulator_get(NULL, reg_id);
-	//drvdata->regulator = regulator_get(NULL, "axp20_analog/fm");
 	if (IS_ERR(drvdata->regulator)) {
 		ret = PTR_ERR(drvdata->regulator);
 		goto err;
@@ -304,6 +302,7 @@ err:
 	for (i = 0; i < ARRAY_SIZE(attributes_virtual); i++)
 		device_remove_file(&pdev->dev, attributes_virtual[i]);
 	kfree(drvdata);
+	printk("axp22 regulator  virtual get drvdata->regulator = %d err\n",drvdata->regulator);
 	return ret;
 }
 
@@ -328,25 +327,73 @@ static struct platform_driver regulator_virtual_consumer_driver[] = {
 		.probe		= regulator_virtual_consumer_probe,
 		.remove		= regulator_virtual_consumer_remove,
 		.driver		= {
-			.name		= "reg-22-cs-ldo1",
+			.name		= "reg-22-cs-rtc",
 		},
 	},{
 		.probe		= regulator_virtual_consumer_probe,
 		.remove		= regulator_virtual_consumer_remove,
 		.driver		= {
-			.name		= "reg-22-cs-ldo2",
+			.name		= "reg-22-cs-aldo1",
 		},
 	},{
 		.probe		= regulator_virtual_consumer_probe,
 		.remove		= regulator_virtual_consumer_remove,
 		.driver		= {
-			.name		= "reg-22-cs-ldo3",
+			.name		= "reg-22-cs-aldo2",
 		},
 	},{
 		.probe		= regulator_virtual_consumer_probe,
 		.remove		= regulator_virtual_consumer_remove,
 		.driver		= {
-			.name		= "reg-22-cs-ldo4",
+			.name		= "reg-22-cs-aldo3",
+		},
+	},{
+		.probe		= regulator_virtual_consumer_probe,
+		.remove		= regulator_virtual_consumer_remove,
+		.driver		= {
+			.name		= "reg-22-cs-dldo1",
+		},
+	},{
+		.probe		= regulator_virtual_consumer_probe,
+		.remove		= regulator_virtual_consumer_remove,
+		.driver		= {
+			.name		= "reg-22-cs-dldo2",
+		},
+	},{
+		.probe		= regulator_virtual_consumer_probe,
+		.remove		= regulator_virtual_consumer_remove,
+		.driver		= {
+			.name		= "reg-22-cs-dldo3",
+		},
+	},{
+		.probe		= regulator_virtual_consumer_probe,
+		.remove		= regulator_virtual_consumer_remove,
+		.driver		= {
+			.name		= "reg-22-cs-dldo4",
+		},
+	},{
+		.probe		= regulator_virtual_consumer_probe,
+		.remove		= regulator_virtual_consumer_remove,
+		.driver		= {
+			.name		= "reg-22-cs-eldo1",
+		},
+	},{
+		.probe		= regulator_virtual_consumer_probe,
+		.remove		= regulator_virtual_consumer_remove,
+		.driver		= {
+			.name		= "reg-22-cs-eldo2",
+		},
+	},{
+		.probe		= regulator_virtual_consumer_probe,
+		.remove		= regulator_virtual_consumer_remove,
+		.driver		= {
+			.name		= "reg-22-cs-eldo3",
+		},
+	},{
+		.probe		= regulator_virtual_consumer_probe,
+		.remove		= regulator_virtual_consumer_remove,
+		.driver		= {
+			.name		= "reg-22-cs-dcdc1",
 		},
 	},{
 		.probe		= regulator_virtual_consumer_probe,
@@ -372,7 +419,20 @@ static struct platform_driver regulator_virtual_consumer_driver[] = {
 		.driver		= {
 			.name		= "reg-22-cs-dcdc5",
 		},
+	},{
+		.probe		= regulator_virtual_consumer_probe,
+		.remove		= regulator_virtual_consumer_remove,
+		.driver		= {
+			.name		= "reg-22-cs-gpio0ldo",
+		},
+	},{
+		.probe		= regulator_virtual_consumer_probe,
+		.remove		= regulator_virtual_consumer_remove,
+		.driver		= {
+			.name		= "reg-22-cs-gpio1ldo",
+		},
 	},
+	
 };
 
 

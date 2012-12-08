@@ -14,14 +14,14 @@ static int __devinit axp22_init_chip(struct axp_mfd_chip *chip)
 	/*read chip id*/	//???which int should enable must check with SD4
 	err =  __axp_read(chip->client, AXP22_IC_TYPE, &chip_id);
 	if (err) {
-	    printk("[AXP20-MFD] try to read chip id failed!\n");
+	    printk("[AXP22-MFD] try to read chip id failed!\n");
 		return err;
 	}
 
 	/*enable irqs and clear*/
 	err =  __axp_writes(chip->client, AXP22_INTEN1, 19, v);
 	if (err) {
-	    printk("[AXP20-MFD] try to clear irq failed!\n");
+	    printk("[AXP22-MFD] try to clear irq failed!\n");
 		return err;
 	}
 

@@ -47,13 +47,9 @@ static int axp_set_voltage(struct regulator_dev *rdev,
 		pr_err("invalid voltage range (%d, %d) uV\n", min_uV, max_uV);
 		return -EINVAL;
 	}
-	printk("step_uv = %d,info->min_uv = %d,max_uv = %d,min_uv = %d,vol_shift = %d\n",info->step_uV,info->min_uV,max_uV,min_uV,info->vol_shift);
 	val = (min_uV - info->min_uV + info->step_uV - 1) / info->step_uV;
-	printk("val1 = %d\n",val);
 	val <<= info->vol_shift;
-	printk("val2 = %d\n",val);
 	mask = ((1 << info->vol_nbits) - 1)  << info->vol_shift;
-	printk("mask = %d\n",mask);
 
 	return axp_update(axp_dev, info->vol_reg, val, mask);
 }
@@ -412,7 +408,6 @@ static int __devinit axp_regulator_probe(struct platform_device *pdev)
 	struct regulator_dev *rdev;
 	int ret;
 	
-	printk("axp_regulator_probe enter...\n");
 	ri = find_regulator_info(pdev->id);
 	if (ri == NULL) {
 		dev_err(&pdev->dev, "invalid regulator ID specified\n");
@@ -475,7 +470,7 @@ static int __init axp_regulator_init(void)
 {
 	return platform_driver_register(&axp_regulator_driver);
 }
-module_init(axp_regulator_init);
+subsys_initcall(axp_regulator_init);
 
 static void __exit axp_regulator_exit(void)
 {

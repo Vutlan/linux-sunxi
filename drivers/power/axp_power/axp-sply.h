@@ -357,16 +357,8 @@ const unsigned int AXP20_NOTIFIER_ON = 		//AXP20_IRQ_USBOV |
 
 #define AXP22_ADC_CONTROL3                 (0x84)
 
-#define AXP22_VACH_RES						AXP22_ACIN_VOL_H8
-#define AXP22_VACL_RES						AXP22_ACIN_VOL_L4
-#define AXP22_IACH_RES						AXP22_ACIN_CUR_H8
-#define AXP22_IACL_RES						AXP22_ACIN_CUR_L4
-#define AXP22_VUSBH_RES						AXP22_VBUS_VOL_H8
-#define AXP22_VUSBL_RES						AXP22_VBUS_VOL_L4
-#define AXP22_IUSBH_RES						AXP22_VBUS_CUR_H8
-#define AXP22_IUSBL_RES						AXP22_VBUS_CUR_L4
-#define AXP22_VBATH_RES						0x78
-#define AXP22_VBATL_RES						0x79
+#define AXP22_VBATH_RES						    (0x78)
+#define AXP22_VBATL_RES						    (0x79)
 
 #define AXP22_INTTEMP                      (0x56)
 #define AXP22_DATA_BUFFER0					AXP22_BUFFER1
@@ -494,13 +486,10 @@ struct axp_charger {
 };
 
 static struct task_struct *main_task;
-static uint8_t coulomb_flag;
 static struct axp_charger *axp_charger;
 static int Total_Cap = 0;
-static int Cap_Index = 0;
 static int flag_state_change = 0;
 static int Bat_Cap_Buffer[AXP20_VOL_MAX];
-static int counter = 0;
 static int bat_cap = 0;
 
 #endif
