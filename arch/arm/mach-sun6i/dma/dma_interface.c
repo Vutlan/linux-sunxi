@@ -277,18 +277,18 @@ u32 dma_check_handle(dm_hdl_t dma_hdl)
 
 	if(NULL == pchan) {
 		uret = __LINE__;
-		goto End;
+		goto end;
 	}
 	if(0 == pchan->used) {	/* already released? */
 		uret = __LINE__;
-		goto End;
+		goto end;
 	}
 	if(DMA_WORK_MODE_INVALID == pchan->work_mode) {
 		uret = __LINE__;
-		goto End;
+		goto end;
 	}
 
-End:
+end:
 	if(0 != uret) {
 		DMA_ERR("%s err, line %d\n", __func__, uret);
 	}
@@ -376,7 +376,7 @@ u32 dma_chan_des_mgr_init(struct dma_channel_t *pchan)
 	pdes = (struct cofig_des_t *)dma_pool_alloc(g_pool_ch, GFP_ATOMIC, &des_paddr);
 	if (NULL == pdes) {
 		uRet = __LINE__;
-		goto End;
+		goto end;
 	}
 
 	DMA_DBG("%s: dma_pool_alloc return va 0x%08x, pa 0x%08x, virt_to_phys(va) 0x%08x\n", __func__, \
@@ -390,10 +390,10 @@ u32 dma_chan_des_mgr_init(struct dma_channel_t *pchan)
 #endif /* USE_UNCACHED_FOR_DESMGR */
 	if (NULL == pdes_mgr) {
 		uRet = __LINE__;
-		goto End;
+		goto end;
 	}
 
-End:
+end:
 	if(0 != uRet) {
 		DMA_ERR("%s err, line %d\n", __func__, uRet);
 		if (NULL != pdes) {
@@ -485,7 +485,7 @@ dm_hdl_t sw_dma_request(char * name, enum dma_work_mode_e work_mode)
 	if(NULL != name) {
 		if(true == __dma_channel_already_exist(name)) {
 			usign = __LINE__;
-			goto End;
+			goto end;
 		}
 	}
 
@@ -506,14 +506,14 @@ dm_hdl_t sw_dma_request(char * name, enum dma_work_mode_e work_mode)
 	/* cannot get a free channel */
 	if(DMA_CHAN_TOTAL == i) {
 		usign = __LINE__;
-		goto End;
+		goto end;
 	}
 
 	/* init channel */
 	if(DMA_WORK_MODE_CHAIN == work_mode) {
 		if(0 != dma_chan_des_mgr_init(pchan)) {
 			usign = __LINE__;
-			goto End;
+			goto end;
 		}
 	} else if(DMA_WORK_MODE_SINGLE == work_mode) {
 		INIT_LIST_HEAD(&pchan->buf_list_head);
@@ -532,7 +532,7 @@ dm_hdl_t sw_dma_request(char * name, enum dma_work_mode_e work_mode)
 		strcpy(pchan->owner, name);
 	pchan->work_mode = work_mode;
 
-End:
+end:
 	mutex_unlock(&dma_mutex);
 
 	if(0 != usign) {
@@ -656,25 +656,25 @@ u32 sw_dma_ctl(dm_hdl_t dma_hdl, enum dma_op_type_e op, void *parg)
 	case DMA_OP_START:
 		if(0 != dma_start(dma_hdl)) {
 			uRet = __LINE__;
-			goto End;
+			goto end;
 		}
 		break;
 	case DMA_OP_PAUSE:
 		if(0 != dma_pause(dma_hdl)) {
 			uRet = __LINE__;
-			goto End;
+			goto end;
 		}
 		break;
 	case DMA_OP_RESUME:
 		if(0 != dma_resume(dma_hdl)) {
 			uRet = __LINE__;
-			goto End;
+			goto end;
 		}
 		break;
 	case DMA_OP_STOP:
 		if(0 != dma_stop(dma_hdl)) {
 			uRet = __LINE__;
-			goto End;
+			goto end;
 		}
 		break;
 
@@ -700,33 +700,33 @@ u32 sw_dma_ctl(dm_hdl_t dma_hdl, enum dma_op_type_e op, void *parg)
 	case DMA_OP_SET_OP_CB:
 		if(0 != dma_set_op_cb(dma_hdl, (struct dma_op_cb_t *)parg)) {
 			uRet = __LINE__;
-			goto End;
+			goto end;
 		}
 		break;
 	case DMA_OP_SET_HD_CB:
 		if(0 != dma_set_hd_cb(dma_hdl, (struct dma_cb_t *)parg)) {
 			uRet = __LINE__;
-			goto End;
+			goto end;
 		}
 		break;
 	case DMA_OP_SET_FD_CB:
 		if(0 != dma_set_fd_cb(dma_hdl, (struct dma_cb_t *)parg)) {
 			uRet = __LINE__;
-			goto End;
+			goto end;
 		}
 		break;
 	case DMA_OP_SET_QD_CB:
 		if(0 != dma_set_qd_cb(dma_hdl, (struct dma_cb_t *)parg)) {
 			uRet = __LINE__;
-			goto End;
+			goto end;
 		}
 		break;
 	default:
 		uRet = __LINE__;
-		goto End;
+		goto end;
 	}
 
-End:
+end:
 	DMA_CHAN_UNLOCK(&pchan->lock, flags);
 	if(0 != uRet) {
 		DMA_ERR("%s err, line %d, dma_hdl 0x%08x\n", __func__, uRet, (u32)dma_hdl);
@@ -761,9 +761,8 @@ u32 sw_dma_config(dm_hdl_t dma_hdl, struct dma_config_t *pcfg, enum dma_enque_ph
 
 	/* handle single mode first */
 	if(DMA_WORK_MODE_SINGLE == pchan->work_mode) {
-		if(true == pcfg->bconti_mode) {
+		if(true == pcfg->bconti_mode)
 			DMA_INF("%s to check##########, line %d\n", __func__, __LINE__); /* single mode, continue mode, to test */
-		}
 		return dma_config_single(dma_hdl, pcfg, phase);
 	}
 
@@ -803,11 +802,10 @@ u32 sw_dma_config(dm_hdl_t dma_hdl, struct dma_config_t *pcfg, enum dma_enque_ph
 	/*
 	 * when called in irq, just use spin_lock, not spin_lock_irqsave
 	 */
-	if(ENQUE_PHASE_NORMAL == phase) {
+	if(ENQUE_PHASE_NORMAL == phase)
 		DMA_CHAN_LOCK(&pchan->lock, flags);
-	} else {
+	else
 		DMA_CHAN_LOCK_IN_IRQHD(&pchan->lock);
-	}
 
 	/* irq enable */
 	csp_dma_chan_irq_enable(pchan, pcfg->irq_spt);
@@ -815,19 +813,17 @@ u32 sw_dma_config(dm_hdl_t dma_hdl, struct dma_config_t *pcfg, enum dma_enque_ph
 	/* des enqueue */
 	if(0 != dma_enqueue(dma_hdl, &des, phase)) {
 		uret = __LINE__;
-		goto End;
+		goto end;
 	}
 
-End:
-	if(ENQUE_PHASE_NORMAL == phase) {
+end:
+	if(ENQUE_PHASE_NORMAL == phase)
 		DMA_CHAN_UNLOCK(&pchan->lock, flags);
-	} else {
+	else
 		DMA_CHAN_UNLOCK_IN_IRQHD(&pchan->lock);
-	}
 
-	if(0 != uret) {
+	if(0 != uret)
 		DMA_ERR("%s err, line %d\n", __func__, uret);
-	}
 	return uret;
 }
 EXPORT_SYMBOL(sw_dma_config);
@@ -872,27 +868,24 @@ u32 sw_dma_enqueue(dm_hdl_t dma_hdl, u32 src_addr, u32 dst_addr, u32 byte_cnt,
 	/*
 	 * when called in irq, just use spin_lock, not spin_lock_irqsave
 	 */
-	if(ENQUE_PHASE_NORMAL == phase) {
+	if(ENQUE_PHASE_NORMAL == phase)
 		DMA_CHAN_LOCK(&pchan->lock, flags);
-	} else {
+	else
 		DMA_CHAN_LOCK_IN_IRQHD(&pchan->lock);
-	}
 
 	if(0 != dma_enqueue(dma_hdl, &des, phase)) {
 		uret = __LINE__;
-		goto End;
+		goto end;
 	}
 
-End:
-	if(ENQUE_PHASE_NORMAL == phase) {
+end:
+	if(ENQUE_PHASE_NORMAL == phase)
 		DMA_CHAN_UNLOCK(&pchan->lock, flags);
-	} else {
+	else
 		DMA_CHAN_UNLOCK_IN_IRQHD(&pchan->lock);
-	}
 
-	if(0 != uret) {
+	if(0 != uret)
 		DMA_ERR("%s err, line %d\n", __func__, uret);
-	}
 	return uret;
 }
 EXPORT_SYMBOL(sw_dma_enqueue);
@@ -914,11 +907,10 @@ u32 sw_dma_getsoftsta(dm_hdl_t dma_hdl)
 	DMA_INF("%s to check##########, line %d\n", __func__, __LINE__);
 	DMA_CHAN_LOCK(&pchan->lock, flags);
 
-	if(DMA_WORK_MODE_CHAIN == pchan->work_mode) {
+	if(DMA_WORK_MODE_CHAIN == pchan->work_mode)
 		uret =  pchan->state.st_md_ch;
-	} else if(DMA_WORK_MODE_SINGLE == pchan->work_mode) {
+	else if(DMA_WORK_MODE_SINGLE == pchan->work_mode)
 		uret =  pchan->state.st_md_sg;
-	}
 
 	DMA_CHAN_UNLOCK(&pchan->lock, flags);
 	return uret;

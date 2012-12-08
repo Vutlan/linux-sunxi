@@ -213,7 +213,8 @@ u32 __dtc_stopcmd(void)
 		u32 	ucur_saddr = 0, ucur_daddr = 0;
 		u32	uindex = 0;
 
-		uindex  = get_random_int() % (DTC_1T_TOTAL_LEN / DTC_1T_ONE_LEN); /* the data section to be transfered */
+		get_random_bytes(&uindex, sizeof(uindex));
+		uindex  %= (DTC_1T_TOTAL_LEN / DTC_1T_ONE_LEN);
 		ucur_saddr = g_src_addr + uindex * DTC_1T_ONE_LEN;
 		ucur_daddr = g_dst_addr + uindex * DTC_1T_ONE_LEN;
 		if(0 != sw_dma_enqueue(dma_hdl, ucur_saddr, ucur_daddr, DTC_1T_ONE_LEN, ENQUE_PHASE_NORMAL)) {

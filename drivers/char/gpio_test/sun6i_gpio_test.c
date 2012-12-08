@@ -688,7 +688,7 @@ end:
 u32 __gtc_api(void)
 {
 	/* wait for request and free */
-	msleep(4000);
+	msleep(1000);
 
 	/* test for request and free */
 #ifdef TEST_REQUEST_FREE

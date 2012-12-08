@@ -81,7 +81,7 @@ u32 dma_clk_deinit(void)
 		clk_put(g_dma_mod_clk);
 		g_dma_mod_clk = NULL;
 	}
-	
+
 	/* release dma ahb clock */
 	if(NULL == g_dma_ahb_clk || IS_ERR(g_dma_ahb_clk)) {
 		DMA_INF("%s: g_dma_ahb_clk 0x%08x invalid, just return\n", __func__, (u32)g_dma_ahb_clk);

@@ -50,10 +50,10 @@ u32 __dump_cur_mem_info(void)
 	memset(&s_info, 0, sizeof(s_info));
 	error = do_sysinfo(&s_info);
 	pr_info("%s: cur time 0x%08xs, total mem %dM, free mem %dM, total high %dM, free high %dM\n", \
-		__func__, (u32)s_info.uptime, 	\
-		(u32)(s_info.totalram / 1024 / 1024), 	\
-		(u32)(s_info.freeram / 1024 / 1024), 	\
-		(u32)(s_info.totalhigh / 1024 / 1024), 	\
+		__func__, (u32)s_info.uptime,
+		(u32)(s_info.totalram / 1024 / 1024),
+		(u32)(s_info.freeram / 1024 / 1024),
+		(u32)(s_info.totalhigh / 1024 / 1024),
 		(u32)(s_info.freehigh / 1024 / 1024));
 	return 0;
 }

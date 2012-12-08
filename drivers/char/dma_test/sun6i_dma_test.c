@@ -22,8 +22,7 @@
 #include "test_case_single_conti_md.h"
 
 /* cur test case */
-static enum dma_test_case_e g_cur_test_case = DTC_SINGLE_CONT_MODE;
-//static enum dma_test_case_e g_cur_test_case = DTC_MAX;
+static enum dma_test_case_e g_cur_test_case = DTC_SINGLE_MODE;
 
 /* wait dma done queue, used for wait dma done */
 wait_queue_head_t	g_dtc_queue[DTC_MAX];

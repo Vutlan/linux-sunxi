@@ -172,9 +172,8 @@ int dma_deinit(void)
 	}
 #endif /* USE_UNCACHED_FOR_DESMGR */
 	/* deinit lock for each channel */
-	for(i = 0; i < DMA_CHAN_TOTAL; i++) {
+	for(i = 0; i < DMA_CHAN_TOTAL; i++)
 		DMA_CHAN_LOCK_DEINIT(&g_dma_mgr.chnl[i].lock);
-	}
 	/* clear dma manager */
 	memset(&g_dma_mgr, 0, sizeof(g_dma_mgr));
 	/* unmap dma reg base */

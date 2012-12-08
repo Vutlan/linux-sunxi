@@ -371,7 +371,7 @@ u32 __dtc_1t_mem_2_mem(void)
 	 * NOTE: must sleep here, becase when __waitdone_1t_mem_2_mem return, buffer enqueue complete, but
 	 * data might not transfer complete, 2012-11-14
 	 */
-	msleep(9000);
+	msleep(1000);
 
 	/* check if data ok */
 	if(0 == memcmp(src_vaddr, dst_vaddr, DTC_1T_TOTAL_LEN))

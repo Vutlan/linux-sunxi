@@ -16,8 +16,6 @@
 #ifndef __GPIO_COMMON_H
 #define __GPIO_COMMON_H
 
-#define DBG_GPIO /* debug gpio driver */
-
 /*
  * gpio print macro
  */
@@ -28,12 +26,12 @@
 	#define PIO_INF(format,args...)   printk("[gpio-inf] "format,##args)
 	#define PIO_ERR(format,args...)   printk("[gpio-err] "format,##args)
 #elif (PIO_DBG_LEVEL == 2)
-	#define PIO_DBG(format,args...)
+	#define PIO_DBG(format,args...)   do{}while(0)
 	#define PIO_INF(format,args...)   printk("[gpio-inf] "format,##args)
 	#define PIO_ERR(format,args...)   printk("[gpio-err] "format,##args)
 #elif (PIO_DBG_LEVEL == 3)
-	#define PIO_DBG(format,args...)
-	#define PIO_INF(format,args...)
+	#define PIO_DBG(format,args...)   do{}while(0)
+	#define PIO_INF(format,args...)   do{}while(0)
 	#define PIO_ERR(format,args...)   printk("[gpio-err] "format,##args)
 #endif
 

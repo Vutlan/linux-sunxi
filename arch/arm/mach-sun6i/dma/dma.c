@@ -26,9 +26,8 @@ static int __devinit dma_drv_probe(struct platform_device *dev)
 	int 	ret = 0;
 
 	ret = dma_init(dev);
-	if(ret) {
+	if(ret)
 		DMA_ERR("%s err, line %d\n", __func__, __LINE__);
-	}
 	return ret;
 }
 
@@ -43,9 +42,8 @@ static int __devexit dma_drv_remove(struct platform_device *dev)
 	int 	ret = 0;
 
 	ret = dma_deinit();
-	if(ret) {
+	if(ret)
 		DMA_ERR("%s err, line %d\n", __func__, __LINE__);
-	}
 	return ret;
 }
 
@@ -56,7 +54,7 @@ static int __devexit dma_drv_remove(struct platform_device *dev)
  *
  * Returns 0 if success, otherwise means err.
  */
-static int dma_drv_suspend(struct platform_device *dev, pm_message_t state)
+int dma_drv_suspend(struct device *dev)
 {
 	if(NORMAL_STANDBY == standby_type) { /* process for normal standby */
  		DMA_INF("%s: normal standby, line %d\n", __func__, __LINE__);
@@ -84,7 +82,7 @@ static int dma_drv_suspend(struct platform_device *dev, pm_message_t state)
  *
  * Returns 0 if success, otherwise means err.
  */
-static int dma_drv_resume(struct platform_device *dev)
+int dma_drv_resume(struct device *dev)
 {
 	if(NORMAL_STANDBY == standby_type) { /* process for normal standby */
  		DMA_INF("%s: normal standby, line %d\n", __func__, __LINE__);
@@ -106,14 +104,17 @@ static int dma_drv_resume(struct platform_device *dev)
 	return 0;
 }
 
+static const struct dev_pm_ops sw_dmac_pm = {
+	.suspend	= dma_drv_suspend,
+	.resume		= dma_drv_resume,
+};
 static struct platform_driver sw_dmac_driver = {
 	.probe          = dma_drv_probe,
 	.remove         = __devexit_p(dma_drv_remove),
-	.suspend        = dma_drv_suspend,
-	.resume         = dma_drv_resume,
 	.driver         = {
 		.name   = "sw_dmac",
 		.owner  = THIS_MODULE,
+		.pm 	= &sw_dmac_pm,
 		},
 };
 
@@ -124,7 +125,8 @@ static struct platform_driver sw_dmac_driver = {
  */
 static int __init drv_dma_init(void)
 {
-	platform_driver_register(&sw_dmac_driver);
+	if(platform_driver_register(&sw_dmac_driver))
+		printk("%s(%d) err: platform_driver_register failed\n", __func__, __LINE__);
 	return 0;
 }
 

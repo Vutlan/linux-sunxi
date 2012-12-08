@@ -15,6 +15,8 @@
 
 #include "gpio_include.h"
 
+//#define GPIO_SUPPORT_STANDBY /* noramlly, gpio need not deal standby */
+
 static struct clk *g_apb_pio_clk = NULL;
 
 /**
@@ -209,9 +211,8 @@ u32 gpio_clk_init(void)
 	PIO_INF("%s todo: cpus pio clock init, line %d\n", __func__, __LINE__);
 	//r_gpio_clk_init();
 
-	if(NULL != g_apb_pio_clk) {
+	if(NULL != g_apb_pio_clk)
 		PIO_INF("%s maybe err: g_apb_pio_clk not NULL, line %d\n", __func__, __LINE__);
-	}
 
 	g_apb_pio_clk = clk_get(NULL, CLK_APB_PIO);
 	PIO_DBG("%s: get g_apb_pio_clk 0x%08x\n", __func__, (u32)g_apb_pio_clk);
@@ -238,9 +239,7 @@ err:
 
 u32 gpio_clk_deinit(void)
 {
-	PIO_INF("%s todo: cpus pio clock deinit, line %d\n", __func__, __LINE__);
-	//r_gpio_clk_deinit();
-
+	//r_gpio_clk_deinit(); /* cpus pio clock deinit here */
 	if(NULL == g_apb_pio_clk || IS_ERR(g_apb_pio_clk)) {
 		PIO_INF("%s: g_apb_pio_clk 0x%08x invalid, just return\n", __func__, (u32)g_apb_pio_clk);
 		return 0;
@@ -256,11 +255,12 @@ u32 gpio_clk_deinit(void)
 	return 0;
 }
 
-static int gpio_drv_suspend(struct platform_device *dev, pm_message_t state)
+#ifdef GPIO_SUPPORT_STANDBY
+int gpio_drv_suspend(struct device *dev)
 {
-	if(NORMAL_STANDBY == standby_type) { /* process for normal standby */
+	if(NORMAL_STANDBY == standby_type) /* process for normal standby */
  		PIO_INF("%s: normal standby, line %d\n", __func__, __LINE__);
-	} else if(SUPER_STANDBY == standby_type) { /* process for super standby */
+	else if(SUPER_STANDBY == standby_type) { /* process for super standby */
  		PIO_INF("%s: super standby, line %d\n", __func__, __LINE__);
 		if(0 != gpio_clk_deinit())
 			printk("%s err, gpio_clk_deinit failed\n", __func__);
@@ -268,11 +268,11 @@ static int gpio_drv_suspend(struct platform_device *dev, pm_message_t state)
 	return 0;
 }
 
-static int gpio_drv_resume(struct platform_device *dev)
+int gpio_drv_resume(struct device *dev)
 {
-	if(NORMAL_STANDBY == standby_type) { /* process for normal standby */
+	if(NORMAL_STANDBY == standby_type) /* process for normal standby */
  		PIO_INF("%s: normal standby, line %d\n", __func__, __LINE__);
-	} else if(SUPER_STANDBY == standby_type) { /* process for super standby */
+	else if(SUPER_STANDBY == standby_type) { /* process for super standby */
  		PIO_INF("%s: super standby, line %d\n", __func__, __LINE__);
 		if(0 != gpio_clk_init())
 			printk("%s err, gpio_clk_init failed\n", __func__);
@@ -280,13 +280,21 @@ static int gpio_drv_resume(struct platform_device *dev)
 	return 0;
 }
 
+static const struct dev_pm_ops sw_gpio_pm = {
+	.suspend	= gpio_drv_suspend,
+	.resume		= gpio_drv_resume,
+};
+#endif /* GPIO_SUPPORT_STANDBY */
+
+static struct platform_device sw_gpio_device = {
+	.name = "sw_gpio",
+};
 static struct platform_driver sw_gpio_driver = {
-	.suspend        = gpio_drv_suspend,
-	.resume         = gpio_drv_resume,
-	.driver         = {
-		.name   = "sw_gpio",
-		.owner  = THIS_MODULE,
-		},
+	.driver.name 	= "sw_gpio",
+	.driver.owner 	= THIS_MODULE,
+#ifdef GPIO_SUPPORT_STANDBY
+	.driver.pm 	= &sw_gpio_pm,
+#endif /* GPIO_SUPPORT_STANDBY */
 };
 
 /**
@@ -308,12 +316,15 @@ static __init int aw_gpio_init(void)
 		/* register gpio_chip */
 		if(0 != aw_gpiochip_add(&gpio_chips[i].chip)) {
 			uret = __LINE__;
-			goto End;
+			goto end;
 		}
 	}
 	/* register gpio platform driver */
-	platform_driver_register(&sw_gpio_driver);
-End:
+	if(platform_device_register(&sw_gpio_device))
+		printk("%s(%d) err: platform_device_register failed\n", __func__, __LINE__);
+	if(platform_driver_register(&sw_gpio_driver))
+		printk("%s(%d) err: platform_driver_register failed\n", __func__, __LINE__);
+end:
 	if(0 != uret)
 		printk("%s err, line %d\n", __func__, uret);
 	return uret;

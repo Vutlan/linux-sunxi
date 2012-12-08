@@ -28,7 +28,6 @@ u32 __dma_chan_handle_hd(struct dma_channel_t *pchan)
 
 	if(NULL != func)
 		return func((dm_hdl_t)pchan, parg, DMA_CB_OK);
-
 	return 0;
 }
 
@@ -45,7 +44,6 @@ u32 __dma_chan_handle_fd(struct dma_channel_t *pchan)
 
 	if(NULL != func)
 		return func((dm_hdl_t)pchan, parg, DMA_CB_OK);
-
 	return 0;
 }
 
@@ -102,7 +100,7 @@ u32 __dma_chan_handle_qd(struct dma_channel_t *pchan)
 		/* free the extra des, clear des */
 		if(0 != dma_clean_des(pchan)) {
 			uRet = __LINE__;
-			goto End;
+			goto end;
 		}
 
 		/* change state to done */
@@ -123,12 +121,12 @@ u32 __dma_chan_handle_qd(struct dma_channel_t *pchan)
 		if(NULL != pchan->op_cb.func) {
 			if(0 != pchan->op_cb.func((dm_hdl_t)pchan, pchan->op_cb.parg, DMA_OP_START)) {
 				uRet = __LINE__;
-				goto End;
+				goto end;
 			}
 		}
 		if(0 != dma_start(pchan)) {
 			uRet = __LINE__;
-			goto End;
+			goto end;
 		}
 
 		/* change state to running */
@@ -143,15 +141,13 @@ u32 __dma_chan_handle_qd(struct dma_channel_t *pchan)
 	 */
 	if(DMA_CHAN_STA_DONE == STATE_CHAIN(pchan)) {
 		uRet = __LINE__;
-		goto End;
+		goto end;
 	}
 
-End:
+end:
 	DMA_CHAN_UNLOCK(&pchan->lock, flags);
-	if(0 != uRet) {
+	if(0 != uRet)
 		DMA_ERR("%s err, line %d\n", __func__, uRet);
-	}
-
 	return 0;
 }
 
@@ -192,7 +188,7 @@ irqreturn_t dma_irq_hdl(int irq, void *dev)
 		if(DMA_WORK_MODE_SINGLE == pchan->work_mode) {
 			if(0 != dma_irq_hdl_sgmd(pchan, upend_bits)) {
 				uline = __LINE__;
-				goto End;
+				goto end;
 			}
 			continue;
 		}
@@ -205,7 +201,7 @@ irqreturn_t dma_irq_hdl(int irq, void *dev)
 			if(uirq_spt & CHAN_IRQ_HD) {
 				if(0 != __dma_chan_handle_hd(pchan)) {
 					uline = __LINE__;
-					goto End;
+					goto end;
 				}
 			}
 		}
@@ -216,7 +212,7 @@ irqreturn_t dma_irq_hdl(int irq, void *dev)
 			if(uirq_spt & CHAN_IRQ_FD) {
 				if(0 != __dma_chan_handle_fd(pchan)) {
 					uline = __LINE__;
-					goto End;
+					goto end;
 				}
 			}
 		}
@@ -227,17 +223,15 @@ irqreturn_t dma_irq_hdl(int irq, void *dev)
 			if(uirq_spt & CHAN_IRQ_QD) {
 				if(0 != __dma_chan_handle_qd(pchan)) {
 					uline = __LINE__;
-					goto End;
+					goto end;
 				}
 			}
 		}
 	}
 
-End:
-	if(0 != uline) {
+end:
+	if(0 != uline)
 		DMA_ERR("%s err, line %d\n", __func__, uline);
-	}
-
 	return IRQ_HANDLED;
 }
 

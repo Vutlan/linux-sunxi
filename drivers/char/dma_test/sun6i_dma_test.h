@@ -41,6 +41,7 @@
 #include <linux/kthread.h>
 #include <linux/delay.h>
 #include <asm/dma-mapping.h>
+#include <linux/wait.h>
 
 #include <mach/dma.h>
 

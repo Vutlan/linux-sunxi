@@ -300,12 +300,10 @@ u32 __dtc_single_mode(void)
 		u32	uloop_cnt = DTC_1T_TOTAL_LEN / DTC_1T_ONE_LEN;
 
 		while((ucur_cnt = atomic_add_return(1, &g_acur_cnt)) < uloop_cnt) {
-			printk("aha\n");
 			ucur_saddr = g_src_addr + ucur_cnt * DTC_1T_ONE_LEN;
 			ucur_daddr = g_dst_addr + ucur_cnt * DTC_1T_ONE_LEN;
 			if(0 != sw_dma_enqueue(dma_hdl, ucur_saddr, ucur_daddr, DTC_1T_ONE_LEN, ENQUE_PHASE_NORMAL))
 				printk("%s err, line %d\n", __func__, __LINE__);
-			printk("aha2\n");
 
 			uqueued_normal++;
 		}

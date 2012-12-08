@@ -344,17 +344,8 @@ end:
 
 ssize_t compare_show(struct class *class, struct class_attribute *attr, char *buf)
 {
-	ssize_t cnt = 0;
-
 	/* dump the items */
-	cnt = sunxi_compare_regs_ex(cmp_group, buf);
-
-	/* reled_addrse struct memory */
-	if(NULL != cmp_group) {
-		compare_item_deinit(cmp_group);
-		cmp_group = NULL;
-	}
-	return cnt;
+	return sunxi_compare_regs_ex(cmp_group, buf);
 }
 
 /**
@@ -514,17 +505,8 @@ end:
 
 ssize_t write_show(struct class *class, struct class_attribute *attr, char *buf)
 {
-	ssize_t cnt = 0;
-
 	/* write the items */
-	cnt = sunxi_write_regs_ex(wt_group, buf);
-
-	/* reled_addrse struct memory */
-	if(NULL != wt_group) {
-		write_item_deinit(wt_group);
-		wt_group = NULL;
-	}
-	return cnt;
+	return sunxi_write_regs_ex(wt_group, buf);
 }
 
 /**

@@ -30,12 +30,12 @@
 	#define DMA_INF(format,args...)   printk("[dma-inf] "format,##args)
 	#define DMA_ERR(format,args...)   printk("[dma-err] "format,##args)
 #elif (DMA_DBG_LEVEL == 2)
-	#define DMA_DBG(format,args...)
+	#define DMA_DBG(format,args...)   do{}while(0)
 	#define DMA_INF(format,args...)   printk("[dma-inf] "format,##args)
 	#define DMA_ERR(format,args...)   printk("[dma-err] "format,##args)
 #elif (DMA_DBG_LEVEL == 3)
-	#define DMA_DBG(format,args...)
-	#define DMA_INF(format,args...)
+	#define DMA_DBG(format,args...)   do{}while(0)
+	#define DMA_INF(format,args...)   do{}while(0)
 	#define DMA_ERR(format,args...)   printk("[dma-err] "format,##args)
 #endif
 
