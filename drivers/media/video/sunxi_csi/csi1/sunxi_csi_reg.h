@@ -14,7 +14,7 @@
 #define CSI1_REGS_BASE        0X01cb3000
 #define CSI1_REG_SIZE 				0x1000
 
-#define SW_INTC_IRQNO_CSI1			35
+#define SW_INTC_IRQNO_CSI1			AW_IRQ_CSI1
 
 #define CSI_EN           (0x00)
 #define CSI_IF_CFG       (0x04)

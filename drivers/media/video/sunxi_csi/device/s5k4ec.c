@@ -25,34 +25,15 @@ MODULE_AUTHOR("raymonxiu");
 MODULE_DESCRIPTION("A low-level driver for samsung s5k4ec sensors");
 MODULE_LICENSE("GPL");
 
-#ifdef CSI_VER_FOR_FPGA
-int gpio_write_one_pin_value(int hdl, int status, char *name)
-{
-  return 0;
-}
-int gpio_set_one_pin_io_status(int hdl, int status, char *name)
-{
-  return 0;
-}
-int axp_gpio_set_io(int num, int val)
-{
-  return 0;
-}
-int axp_gpio_set_value(int num, int sta)
-{
-  return 0;
-}
-#endif
-
 //for internel driver debug
 #define DEV_DBG_EN   		0 
 #if(DEV_DBG_EN == 1)		
-#define csi_dev_dbg(x,arg...) printk(KERN_INFO"[CSI_DEBUG][s5k4ec]"x,##arg)
+#define csi_dev_dbg(x,arg...) printk("[CSI_DEBUG][s5k4ec]"x,##arg)
 #else
 #define csi_dev_dbg(x,arg...) 
 #endif
-#define csi_dev_err(x,arg...) printk(KERN_INFO"[CSI_ERR][s5k4ec]"x,##arg)
-#define csi_dev_print(x,arg...) printk(KERN_INFO"[CSI][s5k4ec]"x,##arg)
+#define csi_dev_err(x,arg...) printk("[CSI_ERR][s5k4ec]"x,##arg)
+#define csi_dev_print(x,arg...) printk("[CSI][s5k4ec]"x,##arg)
 
 #define MCLK (24*1000*1000)
 #define VREF_POL	CSI_HIGH
@@ -2545,21 +2526,12 @@ static struct regval_list sensor_default_regs[] = {
 	
 //System Clock & Output clock (Pclk)		
 {{0x00,0x2A},{0x02,0x1A}},	
-#ifdef CSI_VER_FOR_FPGA
-{{0x0F,0x12},{0x34,0xBC}},   //REG_TC_IPRM_OpClk4KHz_0 
-{{0x0F,0x12},{0x27,0x8d}},   //REG_TC_IPRM_MinOutRate4KHz_0
-{{0x0F,0x12},{0x27,0x8d}},   //REG_TC_IPRM_MaxOutRate4KHz_0
-{{0x0F,0x12},{0x27,0x8d}},   //REG_TC_IPRM_OpClk4KHz_1	SCLK 	 : 81Mhz
-{{0x0F,0x12},{0x27,0x8d}},   //REG_TC_IPRM_MinOutRate4KHz_1	PCLK Min : 81Mhz
-{{0x0F,0x12},{0x27,0x8d}},   //REG_TC_IPRM_MaxOutRate4KHz_1 PCLK Max : 81Mhz
-#else
 {{0x0F,0x12},{0x34,0xBC}},   //REG_TC_IPRM_OpClk4KHz_0 
 {{0x0F,0x12},{0x4F,0x1A}},   //REG_TC_IPRM_MinOutRate4KHz_0
 {{0x0F,0x12},{0x4F,0x1A}},   //REG_TC_IPRM_MaxOutRate4KHz_0
 {{0x0F,0x12},{0x4F,0x1A}},   //REG_TC_IPRM_OpClk4KHz_1	SCLK 	 : 81Mhz
 {{0x0F,0x12},{0x4F,0x1A}},   //REG_TC_IPRM_MinOutRate4KHz_1	PCLK Min : 81Mhz
 {{0x0F,0x12},{0x4F,0x1A}},   //REG_TC_IPRM_MaxOutRate4KHz_1 PCLK Max : 81Mhz
-#endif
 
 //==================================================================================
 // 11.Auto Flicker Detection

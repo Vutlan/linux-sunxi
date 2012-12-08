@@ -32,12 +32,12 @@ MODULE_LICENSE("GPL");
 //for internel driver debug
 #define DEV_DBG_EN   		0 
 #if(DEV_DBG_EN == 1)		
-#define csi_dev_dbg(x,arg...) printk(KERN_INFO"[CSI_DEBUG][GC0307]"x,##arg)
+#define csi_dev_dbg(x,arg...) printk("[CSI_DEBUG][GC0307]"x,##arg)
 #else
 #define csi_dev_dbg(x,arg...) 
 #endif
-#define csi_dev_err(x,arg...) printk(KERN_INFO"[CSI_ERR][GC0307]"x,##arg)
-#define csi_dev_print(x,arg...) printk(KERN_INFO"[CSI][GC0307]"x,##arg)
+#define csi_dev_err(x,arg...) printk("[CSI_ERR][GC0307]"x,##arg)
+#define csi_dev_print(x,arg...) printk("[CSI][GC0307]"x,##arg)
 
 #define MCLK (12*1000*1000)
 #define VREF_POL	CSI_HIGH

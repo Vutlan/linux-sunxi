@@ -22,24 +22,10 @@
 #include "../csi0/mipi_csi/dphy/dphy_reg.h"
 #include "../csi0/mipi_csi/protocol/protocol_reg.h"
 
-#undef CSI_VER_FOR_FPGA
-
-#if defined (CONFIG_AW_FPGA_V4_PLATFORM)
-  #define CSI_VER_FOR_FPGA
-#elif defined (CONFIG_AW_FPGA_V7_PLATFORM)
-  #define CSI_VER_FOR_FPGA
-#elif defined (CONFIG_AW_ASIC_EVB_PLATFORM)
-  #undef CSI_VER_FOR_FPGA
-#endif
-
 //for internel driver debug
-#ifdef  CSI_VER_FOR_FPGA
-#define DBG_EN   		1 	
-#else
 #define DBG_EN   		0
-#endif
 //debug level 0~3
-#define DBG_LEVEL 	3
+#define DBG_LEVEL 	1
 
 //for internel driver debug
 #if(DBG_EN==1)		
@@ -49,10 +35,10 @@
 #endif
 
 //print when error happens
-#define csi_err(x,arg...) printk(KERN_INFO"[CSI_ERR]"x,##arg)
+#define csi_err(x,arg...) printk("[CSI_ERR]"x,##arg)
 
 //print unconditional, for important info
-#define csi_print(x,arg...) printk(KERN_INFO"[CSI]"x,##arg)
+#define csi_print(x,arg...) printk("[CSI]"x,##arg)
 
 #define MAX_NUM_INPUTS 2
 
@@ -389,6 +375,11 @@ struct ccm_config {
 	struct regulator 	 *iovdd;		  /*interface voltage source of sensor module*/
 	struct regulator 	 *avdd;			/*anlog voltage source of sensor module*/
 	struct regulator 	 *dvdd;			/*core voltage source of sensor module*/
+	
+	uint vol_iovdd;
+	uint vol_avdd;
+	uint vol_dvdd;
+	
 	__csi_subdev_info_t ccm_info;  
 	struct v4l2_subdev			*sd;
 };
@@ -450,6 +441,10 @@ struct csi_dev {
 	struct regulator 	 *iovdd;		  /*interface voltage source of sensor module*/
   struct regulator 	 *avdd;			/*anlog voltage source of sensor module*/
   struct regulator 	 *dvdd;			/*core voltage source of sensor module*/
+	
+	uint vol_iovdd;
+	uint vol_avdd;
+	uint vol_dvdd;
 	
 	/* attribution */
 	unsigned int interface;

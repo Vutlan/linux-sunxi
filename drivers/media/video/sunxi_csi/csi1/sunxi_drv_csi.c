@@ -339,9 +339,9 @@ static struct csi_fmt *get_format(struct csi_dev *dev, struct v4l2_format *f)
 	for (k = 0; k < ARRAY_SIZE(formats); k++) {
 		fmt = &formats[k];
 		if (fmt->csi_if == dev->interface) {
-			csi_dbg(0,"interface ok dev->interface = %d!\n",dev->interface);
+			csi_dbg(2,"interface ok dev->interface = %d!\n",dev->interface);
 			if (fmt->fourcc == f->fmt.pix.pixelformat) {
-				csi_dbg(0,"fourcc fmt ok!\n");
+				csi_dbg(2,"fourcc fmt ok!\n");
 				ccm_fmt.code = fmt->ccm_fmt;//linux-3.0
 				ccm_fmt.field = f->fmt.pix.field;
 				ccm_fmt.width = f->fmt.pix.width;//linux-3.0
@@ -359,7 +359,7 @@ static struct csi_fmt *get_format(struct csi_dev *dev, struct v4l2_format *f)
 //				f->fmt.pix.sizeimage = ccm_fmt.fmt.pix.sizeimage;//linux-3.0
 				
 				if(ccm_fmt.field == fmt->field) {
-					csi_dbg(0,"field ok!\n");
+					csi_dbg(2,"field ok!\n");
 					break;
 				}
 				else
@@ -381,9 +381,16 @@ static inline void csi_set_addr(struct csi_dev *dev,struct csi_buffer *buffer)
 	struct csi_buffer *buf = buffer;	
 	dma_addr_t addr_org;
 	
-	csi_dbg(3,"buf ptr=%p\n",buf);
+	//csi_dbg(3,"buf ptr=%p\n",buf);
 		
 	addr_org = videobuf_to_dma_contig((struct videobuf_buffer *)buf);
+	//csi_dbg(3,"csi use mem_addr=%p\n",addr_org);
+	
+	if( (addr_org&0x40000000)!=0 )
+	{
+		addr_org-=0x40000000;
+		csi_dbg(3,"csi recal mem_addr=%p\n",addr_org);
+	}
 	
 	dev->csi_buf_addr.y = addr_org;
 	dev->csi_buf_addr.cb = addr_org + dev->csi_plane.p0_size;
@@ -446,12 +453,12 @@ static int csi_clk_get(struct csi_dev *dev)
   }
   
   
-	dev->csi_dram_clk = clk_get(NULL, CLK_DRAM_CSI1);//"dram_csi1"
+	dev->csi_dram_clk = clk_get(NULL, CLK_DRAM_CSI_ISP);//"dram_csi0"
 	if (dev->csi_dram_clk == NULL || IS_ERR(dev->csi_isp_clk)) {
     csi_err("get csi1 dram clk error!\n");
 		return -1;
   }
-
+	
 	return 0;
 }
 
@@ -495,32 +502,41 @@ static int csi_clk_out_set(struct csi_dev *dev)
 
 static void csi_reset_enable(struct csi_dev *dev)
 {
-	clk_reset(dev->csi_module_clk, AW_CCU_CLK_RESET);
+	csi_dbg(2,"csi_reset_enable\n");
+	clk_reset(dev->csi_isp_clk, AW_CCU_CLK_RESET);
+	clk_reset(dev->csi_ahb_clk, AW_CCU_CLK_RESET);
 }
 
 static void csi_reset_disable(struct csi_dev *dev)
 {
-	clk_reset(dev->csi_module_clk, AW_CCU_CLK_NRESET);
+	csi_dbg(2,"csi_reset_disable\n");
+	clk_reset(dev->csi_isp_clk, AW_CCU_CLK_NRESET);
+	clk_reset(dev->csi_ahb_clk, AW_CCU_CLK_NRESET);
 }
 
 static int csi_clk_enable(struct csi_dev *dev)
 {
+	csi_dbg(2,"csi_clk_enable\n");
 	clk_enable(dev->csi_ahb_clk);
 	clk_enable(dev->csi_dram_clk);
+	clk_enable(dev->csi_isp_clk);
 	
 	return 0;
 }
 
 static int csi_clk_disable(struct csi_dev *dev)
 {
+	csi_dbg(2,"csi_clk_disable\n");
 	clk_disable(dev->csi_ahb_clk);
 	clk_disable(dev->csi_dram_clk);
+	clk_disable(dev->csi_isp_clk);
 
 	return 0;
 }
 
 static int csi_clk_release(struct csi_dev *dev)
 {
+	csi_dbg(2,"csi_clk_release\n");
 	clk_put(dev->csi_ahb_clk);        
     dev->csi_ahb_clk = NULL;
 
@@ -565,6 +581,9 @@ static int update_ccm_info(struct csi_dev *dev , struct ccm_config *ccm_cfg)
 	 dev->iovdd = ccm_cfg->iovdd;
 	 dev->avdd = ccm_cfg->avdd;
 	 dev->dvdd = ccm_cfg->dvdd;
+	 dev->vol_iovdd = ccm_cfg->vol_iovdd;
+	 dev->vol_avdd =  ccm_cfg->vol_avdd;
+	 dev->vol_dvdd =  ccm_cfg->vol_dvdd;
 	 dev->reset_io    = ccm_cfg->reset_io;    
 	 dev->standby_io  = ccm_cfg->standby_io;  
 	 dev->power_io    = ccm_cfg->power_io;    
@@ -640,7 +659,7 @@ static irqreturn_t csi_isr(int irq, void *priv)
 		/* Nobody is waiting on this buffer*/	
 	
 		if (!waitqueue_active(&buf->vb.done)) {
-			csi_dbg(1," Nobody is waiting on this buffer,buf = 0x%p\n",buf);					
+			csi_dbg(3," Nobody is waiting on this buffer,buf = 0x%p\n",buf);					
 		}
 		
 		list_del(&buf->vb.queue);
@@ -648,7 +667,7 @@ static irqreturn_t csi_isr(int irq, void *priv)
 		do_gettimeofday(&buf->vb.ts);
 		buf->vb.field_count++;
 #if DBG_EN == 1		
-		csi_dbg(1,"frame interval = %ld\n",buf->vb.ts.tv_sec*1000000+buf->vb.ts.tv_usec - (sec*1000000+usec));
+		csi_dbg(3,"frame interval = %ld\n",buf->vb.ts.tv_sec*1000000+buf->vb.ts.tv_usec - (sec*1000000+usec));
 		sec = buf->vb.ts.tv_sec;
 		usec = buf->vb.ts.tv_usec;
 #endif
@@ -660,12 +679,12 @@ static irqreturn_t csi_isr(int irq, void *priv)
 		
 		//judge if the frame queue has been written to the last
 		if (list_empty(&dma_q->active)) {		
-			csi_dbg(1,"No more free frame\n");		
+			csi_dbg(3,"No more free frame\n");		
 			goto unlock;	
 		}
 		
 		if ((&dma_q->active) == dma_q->active.next->next) {
-			csi_dbg(1,"No more free frame on next time\n");		
+			csi_dbg(3,"No more free frame on next time\n");		
 			goto unlock;	
 		}
 	}
@@ -717,7 +736,7 @@ static int buffer_setup(struct videobuf_queue *vq, unsigned int *count, unsigned
 	struct csi_dev *dev = vq->priv_data;
 	int buf_max_flag = 0;
 	
-	csi_dbg(1,"buffer_setup\n");
+	csi_dbg(3,"buffer_setup\n");
 	
 	*size = dev->csi_plane.p0_size + dev->csi_plane.p1_size + dev->csi_plane.p1_size;
 	
@@ -751,13 +770,13 @@ static int buffer_setup(struct videobuf_queue *vq, unsigned int *count, unsigned
 
 static void free_buffer(struct videobuf_queue *vq, struct csi_buffer *buf)
 {
-	csi_dbg(1,"%s, state: %i\n", __func__, buf->vb.state);
+	csi_dbg(3,"%s, state: %i\n", __func__, buf->vb.state);
 
 #ifdef USE_DMA_CONTIG	
 	videobuf_dma_contig_free(vq, &buf->vb);
 #endif
 	
-	csi_dbg(1,"free_buffer: freed\n");
+	csi_dbg(3,"free_buffer: freed\n");
 	
 	buf->vb.state = VIDEOBUF_NEEDS_INIT;
 }
@@ -769,7 +788,7 @@ static int buffer_prepare(struct videobuf_queue *vq, struct videobuf_buffer *vb,
 	struct csi_buffer *buf = container_of(vb, struct csi_buffer, vb);
 	int rc;
 
-	csi_dbg(1,"buffer_prepare\n");
+	csi_dbg(3,"buffer_prepare\n");
 
 	BUG_ON(NULL == dev->fmt);
 
@@ -813,7 +832,7 @@ static void buffer_queue(struct videobuf_queue *vq, struct videobuf_buffer *vb)
 	struct csi_buffer *buf = container_of(vb, struct csi_buffer, vb);
 	struct csi_dmaqueue *vidq = &dev->vidq;
 
-	csi_dbg(1,"buffer_queue\n");
+	csi_dbg(3,"buffer_queue\n");
 	buf->vb.state = VIDEOBUF_QUEUED;
 	list_add_tail(&buf->vb.queue, &vidq->active);
 }
@@ -823,7 +842,7 @@ static void buffer_release(struct videobuf_queue *vq,
 {
 	struct csi_buffer *buf  = container_of(vb, struct csi_buffer, vb);
 
-	csi_dbg(1,"buffer_release\n");
+	csi_dbg(3,"buffer_release\n");
 	
 	free_buffer(vq, buf);
 }
@@ -858,7 +877,7 @@ static int vidioc_enum_fmt_vid_cap(struct file *file, void  *priv,
 {
 	struct csi_fmt *fmt;
 
-	csi_dbg(0,"vidioc_enum_fmt_vid_cap\n");
+	csi_dbg(1,"vidioc_enum_fmt_vid_cap\n");
 
 	if (f->index > ARRAY_SIZE(formats)-1) {
 		return -EINVAL;
@@ -891,7 +910,7 @@ static int vidioc_try_fmt_vid_cap(struct file *file, void *priv,
 	struct csi_dev *dev = video_drvdata(file);
 	struct csi_fmt *csi_fmt;
 	
-	csi_dbg(0,"vidioc_try_fmt_vid_cap\n");
+	csi_dbg(1,"vidioc_try_fmt_vid_cap\n");
 
 	/*judge the resolution*/
 	if(f->fmt.pix.width > MAX_WIDTH || f->fmt.pix.height > MAX_HEIGHT) {
@@ -906,8 +925,8 @@ static int vidioc_try_fmt_vid_cap(struct file *file, void *priv,
 		return -EINVAL;
 	}
 	
-	csi_dbg(0,"pix->width=%d\n",f->fmt.pix.width);
-	csi_dbg(0,"pix->height=%d\n",f->fmt.pix.height);
+	csi_dbg(2,"pix->width=%d\n",f->fmt.pix.width);
+	csi_dbg(2,"pix->height=%d\n",f->fmt.pix.height);
 
 	return 0;
 }
@@ -922,7 +941,7 @@ static int vidioc_s_fmt_vid_cap(struct file *file, void *priv,
 	struct csi_fmt *csi_fmt;
 	unsigned int width,height;
 	
-	csi_dbg(0,"vidioc_s_fmt_vid_cap\n");	
+	csi_dbg(1,"vidioc_s_fmt_vid_cap\n");	
 	
 	if (csi_is_generating(dev)) {
 		csi_err("%s device busy\n", __func__);
@@ -1010,6 +1029,8 @@ static int vidioc_s_fmt_vid_cap(struct file *file, void *priv,
 	} else if(dev->fmt->input_fmt==CSI_YUV422 || dev->fmt->input_fmt==CSI_YUV420) {
 		dev->csi_size.width = width;
 		dev->csi_size.height = height;
+		//assumes image horizontal size and y stride is 16pix aligned 
+		//but c maybe not
 		
 		if(dev->fmt->output_fmt == CSI_FRAME_PLANAR_YUV422 ||
 			 dev->fmt->output_fmt == CSI_FRAME_PLANAR_YUV420 ||
@@ -1024,18 +1045,18 @@ static int vidioc_s_fmt_vid_cap(struct file *file, void *priv,
 			case CSI_FIELD_PLANAR_YUV422:
 			case CSI_FRAME_PLANAR_YUV422:	
 				dev->csi_plane.p0_size = width * height;
-				dev->csi_plane.p1_size = width * height * 1/2;
+				dev->csi_plane.p1_size = (width/2+31)&(~31) * height;
 				dev->csi_plane.p2_size = dev->csi_plane.p1_size;
 				dev->csi_size.buf_len_y = width;
-				dev->csi_size.buf_len_c = width/2;
+				dev->csi_size.buf_len_c = (width/2+31)&(~31);
 				break;
 			case CSI_FIELD_PLANAR_YUV420:
 			case CSI_FRAME_PLANAR_YUV420:		
 				dev->csi_plane.p0_size = width * height;
-				dev->csi_plane.p1_size = width * height * 1/4;
+				dev->csi_plane.p1_size = (width/2+31)&(~31) * height/2;
 				dev->csi_plane.p2_size = dev->csi_plane.p1_size;
 				dev->csi_size.buf_len_y = width;
-				dev->csi_size.buf_len_c = width/2;
+				dev->csi_size.buf_len_c = (width/2+31)&(~31);
 				break;
 			case CSI_FIELD_UV_CB_YUV422:	
 			case CSI_FIELD_MB_YUV422:	
@@ -1052,7 +1073,7 @@ static int vidioc_s_fmt_vid_cap(struct file *file, void *priv,
 			case CSI_FRAME_UV_CB_YUV420:
 			case CSI_FRAME_MB_YUV420:
 				dev->csi_plane.p0_size = width * height;
-				dev->csi_plane.p1_size = dev->csi_plane.p0_size/2;
+				dev->csi_plane.p1_size = width * height/2;
 				dev->csi_plane.p2_size = 0;
 				dev->csi_size.buf_len_y = width;
 				dev->csi_size.buf_len_c = width;
@@ -1069,14 +1090,21 @@ static int vidioc_s_fmt_vid_cap(struct file *file, void *priv,
 				dev->csi_plane.p1_size = dev->csi_plane.p0_size/2;
 				dev->csi_plane.p2_size = 0;
 				dev->csi_size.buf_len_y = width * 2;
-				dev->csi_size.buf_len_c = width * 2;
+				dev->csi_size.buf_len_c = width * 1;
 				break;
 			default:
 				dev->csi_plane.p0_size = width * height;
 				dev->csi_plane.p1_size = width * height * 1/4;
 				dev->csi_plane.p2_size = dev->csi_plane.p1_size;
+				dev->csi_size.buf_len_y = width * 1;
+				dev->csi_size.buf_len_c = width * 1/2;
 				break;
 		}
+		csi_dbg(0,"p0_size=%d\n",dev->csi_plane.p0_size);
+		csi_dbg(0,"p1_size=%d\n",dev->csi_plane.p0_size);
+		csi_dbg(0,"p2_size=%d\n",dev->csi_plane.p0_size);
+		csi_dbg(0,"buf_len_y=%d\n",dev->csi_size.buf_len_y);
+		csi_dbg(0,"buf_len_c=%d\n",dev->csi_size.buf_len_c);
 	} else {
 		dev->csi_plane.p0_size = 0;
 		dev->csi_plane.p1_size = 0;
@@ -1561,6 +1589,8 @@ static int csi_close(struct file *file)
 	struct csi_dev *dev = video_drvdata(file);
 	int ret,input_num;
 	
+//	csi_dbg(0,"csi_close\n");
+//	return 0;
 	csi_dbg(0,"csi_close\n");
 
 	bsp_csi_int_disable(dev->cur_ch,CSI_INT_FRAME_DONE);
@@ -1574,8 +1604,7 @@ static int csi_close(struct file *file)
 
 	csi_clk_disable(dev);
 	csi_reset_enable(dev);
-
-
+	
 	videobuf_stop(&dev->vb_vidq);
 	videobuf_mmap_free(&dev->vb_vidq);
 
@@ -1769,6 +1798,29 @@ static int fetch_config(struct csi_dev *dev)
 		  strcpy(dev->ccm_cfg[0]->dvdd_str,val.str);
 		}
 		
+		type = script_get_item("csi1_para","csi_vol_iovdd", &val);
+		if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+	    dev->ccm_cfg[0]->vol_iovdd=0;
+			csi_dbg(0,"fetch csi_vol_iovdd from sys_config failed, default =0\n");
+		} else {
+	    dev->ccm_cfg[0]->vol_iovdd=val.val;
+	  }
+		type = script_get_item("csi1_para","csi_vol_dvdd", &val);
+		if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+	    dev->ccm_cfg[0]->vol_dvdd=0;
+			csi_dbg(0,"fetch csi_vol_dvdd from sys_config failed, default =0\n");
+		} else {
+	    dev->ccm_cfg[0]->vol_dvdd=val.val;
+	  }
+		type = script_get_item("csi1_para","csi_vol_avdd", &val);
+		if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+	    dev->ccm_cfg[0]->vol_avdd=0;
+			csi_dbg(0,"fetch csi_vol_avdd from sys_config failed, default =0\n");
+		} else {
+	    dev->ccm_cfg[0]->vol_avdd=val.val;
+	  }
+	  /* fetch power issue*/
+	  
 //		/* fetch standby mode */
 //		type = script_get_item("csi0_para","csi_stby_mode", &dev->ccm_cfg[0]->stby_mode , sizeof(int));
 //		if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
@@ -1922,6 +1974,27 @@ static int fetch_config(struct csi_dev *dev)
 		  strcpy(dev->ccm_cfg[1]->dvdd_str,val.str);
 		}
 		
+		type = script_get_item("csi1_para","csi_vol_iovdd_b", &val);
+		if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+	    dev->ccm_cfg[1]->vol_iovdd=0;
+			csi_dbg(0,"fetch csi_vol_iovdd_b from sys_config failed, default =0\n");
+		} else {
+	    dev->ccm_cfg[1]->vol_iovdd=val.val;
+	  }
+		type = script_get_item("csi1_para","csi_vol_dvdd_b", &val);
+		if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+	    dev->ccm_cfg[1]->vol_dvdd=0;
+			csi_dbg(0,"fetch csi_vol_dvdd_b from sys_config failed, default =0\n");
+		} else {
+	    dev->ccm_cfg[1]->vol_dvdd=val.val;
+	  }
+		type = script_get_item("csi1_para","csi_vol_avdd_b", &val);
+		if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+	    dev->ccm_cfg[1]->vol_avdd=0;
+			csi_dbg(0,"fetch csi_vol_avdd_b from sys_config failed, default =0\n");
+		} else {
+	    dev->ccm_cfg[1]->vol_avdd=val.val;
+	  }
 //		/* fetch standby mode */
 //		type = script_get_item("csi0_para","csi_stby_mode", &dev->ccm_cfg[0]->stby_mode , sizeof(int));
 //		if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
@@ -2288,10 +2361,25 @@ reg_sd:
 		dev->ccm_cfg[input_num]->dvdd = NULL;
 	
 		if(strcmp(dev->ccm_cfg[input_num]->iovdd_str,"")) {
-			dev->ccm_cfg[input_num]->iovdd = regulator_get(NULL, dev->ccm_cfg[input_num]->iovdd_str);
+			dev->ccm_cfg[input_num]->iovdd = regulator_get(NULL, dev->ccm_cfg[input_num]->iovdd_str);//"axp22_eldo3"
+			//printk("get regulator csi_iovdd = 0x%x\n",dev->ccm_cfg[input_num]->iovdd);
 			if (dev->ccm_cfg[input_num]->iovdd == NULL) {
 				csi_err("get regulator csi_iovdd error!input_num = %d\n",input_num);
 				goto free_dev;
+			}
+			else {
+				int vret;
+				uint vol=dev->ccm_cfg[input_num]->vol_iovdd;
+				if(vol>3300) {
+					vol=3300;
+					csi_print("csi iovdd force 3V3\n");
+				} else if(vol<1800) {
+					vol=1800;
+					csi_print("csi iovdd force 1V8\n");
+				}
+				dev->ccm_cfg[input_num]->vol_iovdd=vol;
+				vret=regulator_set_voltage(dev->ccm_cfg[input_num]->iovdd, vol*1000, 3300*1000);
+				csi_dbg(0,"set regulator csi_iovdd[%d] = 0x%x\n",vol,vret);
 			}
 		}
 
@@ -2301,6 +2389,20 @@ reg_sd:
 				csi_err("get regulator csi_avdd error!input_num = %d\n",input_num);
 				goto free_dev;
 			}
+			else {
+				int vret;
+				uint vol=dev->ccm_cfg[input_num]->vol_avdd;
+				if(vol>3300) {
+					vol=3300;
+					csi_print("csi avdd force 3V3\n");
+				} else if(vol<2800) {
+					vol=2800;
+					csi_print("csi avdd force 2V8\n");
+				}
+				dev->ccm_cfg[input_num]->vol_avdd=vol;
+				vret=regulator_set_voltage(dev->ccm_cfg[input_num]->avdd, vol*1000, 3300*1000);
+				csi_dbg(0,"set regulator csi_avdd[%d] = 0x%x\n",vol,vret);
+			}
 		}
 	
 		if(strcmp(dev->ccm_cfg[input_num]->dvdd_str,"")) {
@@ -2308,6 +2410,20 @@ reg_sd:
 			if (dev->ccm_cfg[input_num]->dvdd == NULL) {
 				csi_err("get regulator csi_dvdd error!input_num = %d\n",input_num);
 				goto free_dev;
+			}
+			else {
+				int vret;
+				uint vol=dev->ccm_cfg[input_num]->vol_dvdd;
+				if(vol>2000) {
+					vol=2000;
+					csi_print("csi dvdd force 2V0\n");
+				} else if(vol<1200) {
+					vol=1200;
+					csi_print("csi dvdd force 1V2\n");
+				}
+				dev->ccm_cfg[input_num]->vol_dvdd=vol;
+				vret=regulator_set_voltage(dev->ccm_cfg[input_num]->dvdd, vol*1000, 2000*1000);
+				csi_dbg(0,"set regulator csi_dvdd[%d] = 0x%x\n",vol,vret);
 			}
 		}	
 	}
@@ -2324,6 +2440,9 @@ reg_sd:
 		csi_dbg(0,"dev->ccm_cfg[%d]->iovdd = %p\n",input_num,dev->ccm_cfg[input_num]->iovdd);
 		csi_dbg(0,"dev->ccm_cfg[%d]->avdd = %p\n",input_num,dev->ccm_cfg[input_num]->avdd);
 		csi_dbg(0,"dev->ccm_cfg[%d]->dvdd = %p\n",input_num,dev->ccm_cfg[input_num]->dvdd);
+		csi_dbg(0,"dev->ccm_cfg[%d]->vol_iovdd = %d\n",input_num,dev->ccm_cfg[input_num]->vol_iovdd);
+		csi_dbg(0,"dev->ccm_cfg[%d]->vol_avdd = %d\n",input_num,dev->ccm_cfg[input_num]->vol_avdd);
+		csi_dbg(0,"dev->ccm_cfg[%d]->vol_dvdd = %d\n",input_num,dev->ccm_cfg[input_num]->vol_dvdd);
 		csi_dbg(0,"dev->ccm_cfg[%d]->reset_io.gpio = %d\n",input_num,dev->ccm_cfg[input_num]->reset_io.gpio);
 		csi_dbg(0,"dev->ccm_cfg[%d]->standby_io.gpio = %d\n",input_num,dev->ccm_cfg[input_num]->standby_io.gpio);
 		csi_dbg(0,"dev->ccm_cfg[%d]->power_io.gpio = %d\n",input_num,dev->ccm_cfg[input_num]->power_io.gpio);
@@ -2442,6 +2561,38 @@ static int csi_release(void)
 		list_del(list);
 		dev = list_entry(list, struct csi_dev, csi_devlist);
 	  csi_gpio_release(dev->csi_pin_cnt);//added for 33
+	  
+	  csi_dbg(0,"csi shut axp power\n"); 
+	  if(1)
+	 	{
+		  if(dev->iovdd) {
+		  	regulator_disable(dev->iovdd);
+				regulator_put(dev->iovdd);
+			}
+			if(dev->avdd)	{
+				regulator_disable(dev->avdd);
+				regulator_put(dev->avdd);
+			}
+			if(dev->dvdd) {
+				regulator_disable(dev->dvdd);
+				regulator_put(dev->dvdd);
+			}
+		}
+		else {
+		  if(dev->iovdd) {
+		  	regulator_force_disable(dev->iovdd);
+				regulator_put(dev->iovdd);
+			}
+			if(dev->avdd)	{
+				regulator_force_disable(dev->avdd);
+				regulator_put(dev->avdd);
+			}
+			if(dev->dvdd) {
+				regulator_force_disable(dev->dvdd);
+				regulator_put(dev->dvdd);
+			}
+		}
+
 		v4l2_info(&dev->v4l2_dev, "unregistering %s\n", video_device_node_name(dev->vfd));
 		video_unregister_device(dev->vfd);
 		csi_clk_release(dev);	

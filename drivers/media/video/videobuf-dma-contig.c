@@ -114,7 +114,7 @@ static void videobuf_vm_close(struct vm_area_struct *vma)
 #endif // USE_DMA_CONTIG
 
 #ifdef USE_SUNXI_MEM_ALLOCATOR
-				printk("videobuf_vm_close: 0x%08x\n", mem->dma_handle);
+				//printk("videobuf_vm_close: 0x%08x\n", mem->dma_handle);
 				sunxi_mem_free(mem->dma_handle);
 #endif // USE_DMA_CONTIG
 				mem->vaddr = NULL;
@@ -319,16 +319,17 @@ static int __videobuf_mmap_mapper(struct videobuf_queue *q,
 
 #ifdef USE_SUNXI_MEM_ALLOCATOR
 	mem->dma_handle = sunxi_mem_alloc(mem->size);
+	//printk("sunxi_mem_alloc phy addr: 0x%08x\n", mem->dma_handle);
 	if (mem->dma_handle)
 	{
 		mem->vaddr = (void *)(mem->dma_handle + 0x80000000);	// not used
+		//mem->vaddr =  (void*)ioremap((unsigned long)mem->dma_handle, mem->size);//ioremap_nocache
+		//printk("sunxi_mem_alloc vir addr: 0x%08x\n", mem->vaddr);
 	}
 	else
 	{
 		mem->vaddr = NULL;
 	}
-	
-	// printk("sunxi_mem_alloc phy addr: 0x%08x\n", mem->dma_handle);
 #endif					
 					
 	if (!mem->vaddr) {
@@ -359,6 +360,7 @@ static int __videobuf_mmap_mapper(struct videobuf_queue *q,
 #ifdef USE_SUNXI_MEM_ALLOCATOR
 		// printk("__videobuf_mmap_mapper: 0x%08x\n", mem->dma_handle);
 		sunxi_mem_free(mem->dma_handle);
+		//iounmap(mem->vaddr);
 #endif
 		goto error;
 	}
@@ -450,6 +452,7 @@ void videobuf_dma_contig_free(struct videobuf_queue *q,
 #ifdef USE_SUNXI_MEM_ALLOCATOR
 		// printk("videobuf_dma_contig_free: 0x%08x\n", mem->dma_handle);
 		sunxi_mem_free(mem->dma_handle);
+		//iounmap(mem->vaddr);
 #endif
 		mem->vaddr = NULL;
 	}

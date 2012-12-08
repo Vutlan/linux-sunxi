@@ -28,14 +28,14 @@ MODULE_LICENSE("GPL");
 
 
 //for internel driver debug
-#define DEV_DBG_EN   		1
+#define DEV_DBG_EN   		0
 #if(DEV_DBG_EN == 1)		
-#define csi_dev_dbg(x,arg...) printk(KERN_INFO"[CSI_DEBUG][OV5640]"x,##arg)
+#define csi_dev_dbg(x,arg...) printk("[CSI_DEBUG][OV5640]"x,##arg)
 #else
 #define csi_dev_dbg(x,arg...) 
 #endif
-#define csi_dev_err(x,arg...) printk(KERN_INFO"[CSI_ERR][OV5640]"x,##arg)
-#define csi_dev_print(x,arg...) printk(KERN_INFO"[CSI][OV5640]"x,##arg)
+#define csi_dev_err(x,arg...) printk("[CSI_ERR][OV5640]"x,##arg)
+#define csi_dev_print(x,arg...) printk("[CSI][OV5640]"x,##arg)
 
 #define MCLK (24*1000*1000)
 #define VREF_POL	CSI_HIGH
@@ -4516,7 +4516,6 @@ static int sensor_queryctrl(struct v4l2_subdev *sd,
 	/* Fill in min, max, step and default value for these controls. */
 	/* see include/linux/videodev2.h for details */
 	/* see sensor_s_parm and sensor_g_parm for the meaning of value */
-	csi_dev_dbg("sensor_queryctrl qc->id=0x%x\n",qc->id);
 	switch (qc->id) {
 //	case V4L2_CID_BRIGHTNESS:
 //		return v4l2_ctrl_query_fill(qc, -4, 4, 1, 1);
@@ -4607,7 +4606,6 @@ static int sensor_g_ctrl(struct v4l2_subdev *sd, struct v4l2_control *ctrl)
 
 static int sensor_s_ctrl(struct v4l2_subdev *sd, struct v4l2_control *ctrl)
 {
-  csi_dev_dbg("sensor_s_ctrl ctrl->id=%d\n",ctrl->id);
   
 	switch (ctrl->id) {
 	case V4L2_CID_BRIGHTNESS:
