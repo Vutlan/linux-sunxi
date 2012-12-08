@@ -3063,9 +3063,6 @@ int sw_udc_start(struct usb_gadget_driver *driver,
 		goto register_error;
 	}
 
-	/* Enable udc */
-	sw_udc_enable(udc);
-
 	return 0;
 
 register_error:
