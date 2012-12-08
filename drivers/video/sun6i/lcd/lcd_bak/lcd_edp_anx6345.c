@@ -66,6 +66,7 @@ void anx6345_init(__panel_para_t * info)
 {
 		__u8 c;
 		int i;
+        __u32 count = 0;
 		
 	/*   
 	   lcd_reset_set_output();
@@ -176,6 +177,12 @@ void anx6345_init(__panel_para_t * info)
 		{
 			//debug_puts("Waiting...\n");
 			LCD_delay_ms(5);
+            count ++;
+            if(count > 100)
+            {
+                OSAL_PRINTF("ANX6345 Link training fail\n");
+                break;
+            }
 			SP_TX_Read_Reg(0x70, SP_TX_LINK_TRAINING_CTRL_REG, &c);
 		}
 	

@@ -5,6 +5,7 @@ void anx9804_init(__panel_para_t * info)
 {
 	__u8 c;
   __s32 i;
+  __u32 count = 0;
 
 	//HW reset
 	lcd_iic_write(0x72, DP_TX_RST_CTRL_REG, DP_TX_RST_HW_RST);
@@ -146,6 +147,12 @@ void anx9804_init(__panel_para_t * info)
 	{
 		OSAL_PRINTF("ANX9804 Waiting...\n");
 		LCD_delay_ms(5);
+        count ++;
+        if(count > 100)
+        {
+            OSAL_PRINTF("ANX9804 Link training fail\n");
+            break;
+        }
 		lcd_iic_read(0x70, DP_TX_LINK_TRAINING_CTRL_REG, &c);
 	}
 	//lcd_iic_write(0x7a, 0x7c, 0x02);  	

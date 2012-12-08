@@ -20,7 +20,7 @@ int OSAL_Script_FetchParser_Data(char *main_name, char *sub_name, int value[], i
         else
         {
             ret = -1;
-            __wrn("fetch script data %s.%s fail\n", main_name, sub_name);
+            __inf("fetch script data %s.%s fail\n", main_name, sub_name);
         }
     }
     else if(count == sizeof(disp_gpio_set_t)/sizeof(int))
@@ -42,7 +42,7 @@ int OSAL_Script_FetchParser_Data(char *main_name, char *sub_name, int value[], i
         else
         {
             ret = -1;
-            __wrn("fetch script data %s.%s fail\n", main_name, sub_name);
+            __inf("fetch script data %s.%s fail\n", main_name, sub_name);
         }
     }
 
