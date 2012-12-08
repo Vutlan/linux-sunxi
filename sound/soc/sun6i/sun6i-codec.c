@@ -323,6 +323,8 @@ static  void codec_init(void)
 	codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTL_EN, 0x0);
 	codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTR_EN, 0x0);
 
+	/*fix the init blaze blaze noise*/
+	codec_wr_control(SUN6I_ADDAC_TUNE, 0x1, PA_SLOPE_SECECT, 0x1);
 	/*enable pa*/
 	codec_wr_control(SUN6I_PA_CTRL, 0x1, HPPAEN, 0x1);
 	/*set HPCOM control as direct driver for HPL & HPR*/
@@ -366,10 +368,6 @@ static int codec_play_open(struct snd_pcm_substream *substream)
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, DACALEN, 0x1);
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, DACAREN, 0x1);
 
-	/*set the default output is HPOUTL/R for pad ¶ú»ú*/
-	codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPPA_MUTE, 0x1);
-	codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPPA_MUTE, 0x1);
-
 	#ifdef CONFIG_3G_PAD
 	/*set the default output is HPOUTL/R for 3gpad ÌýÍ²: HPL inverting output*/
 	codec_wr_control(SUN6I_PA_CTRL, 0x3, HPCOM_CTL, 0x1);
@@ -405,6 +403,7 @@ static int codec_capture_open(void)
 
 static int codec_play_start(void)
 {
+//	codec_wr_control(SUN6I_DAC_ACTL, 0x3f, VOLUME, 0x3b);
 	/*enable dac drq*/
 	codec_wr_control(SUN6I_DAC_FIFOC ,0x1, DAC_DRQ, 0x1);
 	/*DAC FIFO Flush,Write '1' to flush TX FIFO, self clear to '0'*/
@@ -626,7 +625,7 @@ static void sun6i_pcm_enqueue(struct snd_pcm_substream *substream)
 	dma_addr_t play_pos = 0, capture_pos = 0;
 	unsigned long play_len = 0, capture_len = 0;
 	unsigned int play_limit = 0, capture_limit = 0;
-	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {  
+	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		play_prtd = substream->runtime->private_data;
 		play_pos = play_prtd->dma_pos;
 		play_len = play_prtd->dma_period;
@@ -1305,7 +1304,13 @@ static int snd_sun6i_codec_trigger(struct snd_pcm_substream *substream, int cmd)
 				if (0 != sw_dma_ctl(play_prtd->dma_hdl, DMA_OP_START, NULL)) {
 					return -EINVAL;
 				}
-				/*pa unmute*/
+				if(substream->runtime->rate >=192000){
+				}else if(substream->runtime->rate > 22050){
+					mdelay(2);
+				}else{
+					mdelay(7);
+				}
+				/*set the default output is HPOUTL/R for pad ¶ú»ú*/
 				codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPPA_MUTE, 0x1);
 				codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPPA_MUTE, 0x1);
 				break;
@@ -1318,7 +1323,7 @@ static int snd_sun6i_codec_trigger(struct snd_pcm_substream *substream, int cmd)
 					return -EINVAL;
 				}
 				break;
-			case SNDRV_PCM_TRIGGER_STOP:			 				
+			case SNDRV_PCM_TRIGGER_STOP:
 				play_prtd->state &= ~ST_RUNNING;
 				codec_play_stop();
 				/*
@@ -1661,6 +1666,9 @@ static int snd_sun6i_codec_resume(struct platform_device *pdev)
 	if (clk_enable(codec_moduleclk)) {
 		printk("open codec_moduleclk failed; \n");
 	}
+
+	/*fix the resume blaze blaze noise*/
+	codec_wr_control(SUN6I_ADDAC_TUNE, 0x1, PA_SLOPE_SECECT, 0x1);
 	codec_wr_control(SUN6I_PA_CTRL, 0x1, HPPAEN, 0x1);
 	/*process for normal standby*/
 	if (NORMAL_STANDBY == standby_type) {

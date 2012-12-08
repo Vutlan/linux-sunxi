@@ -106,6 +106,7 @@
 #define HPPAEN					  (31)
 #define HPCOM_CTL				  (29)
 #define HPCOM_PRO				  (28)
+#define PA_ANTI_POP_CTL			  (26)
 #define LTRNMUTE				  (25)
 #define RTLNMUTE				  (24)
 #define MIC1G					  (15)
@@ -153,6 +154,7 @@
 /*ADDA Analog Performance Tuning Register
 * codecbase+0x30
 */
+#define PA_SLOPE_SECECT			  (30)
 #define DITHER				   	  (25)
 
 /*bias&DA16 Calibration verify register
