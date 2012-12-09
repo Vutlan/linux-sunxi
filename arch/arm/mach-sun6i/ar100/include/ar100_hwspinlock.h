@@ -57,4 +57,7 @@ int ar100_hwspin_lock_timeout(int hwid, unsigned int timeout);
  */
 int ar100_hwspin_unlock(int hwid);
 
+int ar100_hwspinlock_standby_suspend(void);
+int ar100_hwspinlock_standby_resume(void);
+
 #endif	/* __AR100_HW_SPINLOCK_H */

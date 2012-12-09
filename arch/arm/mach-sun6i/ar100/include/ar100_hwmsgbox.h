@@ -57,6 +57,11 @@ int ar100_hwmsgbox_send_message(struct ar100_message *pmessage, unsigned int tim
 struct ar100_message *ar100_hwmsgbox_query_message(void);
 
 int ar100_hwmsgbox_enable_receiver_int(int queue, int user);
+int ar100_hwmsgbox_disable_receiver_int(int queue, int user);
+
 int ar100_hwmsgbox_feedback_message(struct ar100_message *pmessage, unsigned int timeout);
+
+int ar100_hwmsgbox_standby_resume(void);
+int ar100_hwmsgbox_standby_suspend(void);
 
 #endif	/* __AR100_HWMSGBOX_H */

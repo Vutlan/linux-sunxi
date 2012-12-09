@@ -111,3 +111,13 @@ int ar100_hwspin_unlock(int hwid)
 	
 	return 0;
 }
+
+int ar100_hwspinlock_standby_suspend(void)
+{
+	return 0;
+}
+
+int ar100_hwspinlock_standby_resume(void)
+{
+	return 0;
+}

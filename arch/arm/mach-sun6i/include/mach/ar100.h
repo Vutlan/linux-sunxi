@@ -105,4 +105,6 @@ void ar100_axp_cb_unregister(ar100_cb_t func);
 int ar100_disable_axp_irq(void);
 int ar100_enable_axp_irq(void);
 
+int ar100_message_loopback(void);
+
 #endif	/* __ASM_ARCH_A100_H */

@@ -206,6 +206,24 @@ int ar100_hwmsgbox_enable_receiver_int(int queue, int user)
 }
 
 /**
+ * disbale the receiver interrupt of message-queue.
+ * @queue:  the number of message-queue which we want to enable interrupt.
+ * @user:   the user which we want to enable interrupt.
+ *
+ * returns:  0 if disable interrupt succeeded, others if failed.
+ */
+int ar100_hwmsgbox_disable_receiver_int(int queue, int user)
+{
+	volatile unsigned int value;
+	
+	value  =  readl(IO_ADDRESS(AW_MSGBOX_IRQ_EN_REG(user)));
+	value &= ~(0x1 << (queue * 2));
+	writel(value, IO_ADDRESS(AW_MSGBOX_IRQ_EN_REG(user)));
+	
+	return 0;
+}
+
+/**
  * query the receiver interrupt pending of message-queue.
  * @queue:  the number of message-queue which we want to query.
  * @user:   the user which we want to query.
@@ -412,6 +430,28 @@ int ar100_message_valid(struct ar100_message *pmessage)
 		/* valid message */
 		return 1;
 	}
+	
+	return 0;
+}
+
+int ar100_hwmsgbox_standby_suspend(void)
+{
+	/* enable ar100 asyn tx interrupt */
+	ar100_hwmsgbox_disable_receiver_int(AR100_HWMSGBOX_AR100_ASYN_TX_CH, AW_HWMSG_QUEUE_USER_AC327);
+	
+	/* enable ar100 syn tx interrupt */
+	ar100_hwmsgbox_disable_receiver_int(AR100_HWMSGBOX_AR100_SYN_TX_CH, AW_HWMSG_QUEUE_USER_AC327);
+	
+	return 0;
+}
+
+int ar100_hwmsgbox_standby_resume(void)
+{
+	/* enable ar100 asyn tx interrupt */
+	ar100_hwmsgbox_enable_receiver_int(AR100_HWMSGBOX_AR100_ASYN_TX_CH, AW_HWMSG_QUEUE_USER_AC327);
+	
+	/* enable ar100 syn tx interrupt */
+	ar100_hwmsgbox_enable_receiver_int(AR100_HWMSGBOX_AR100_SYN_TX_CH, AW_HWMSG_QUEUE_USER_AC327);
 	
 	return 0;
 }

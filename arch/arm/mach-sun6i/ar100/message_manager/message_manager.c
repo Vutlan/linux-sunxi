@@ -265,12 +265,12 @@ int ar100_message_coming_notify(struct ar100_message *pmessage)
 	int   ret;
 	
 	/* ac327 receive message to ar100 */
-	AR100_LOG("-------------------------------------------------------------\n");
-	AR100_LOG("                MESSAGE FROM AR100                           \n");
-	AR100_LOG("message addr : %x\n", (u32)pmessage);
-	AR100_LOG("message type : %x\n", pmessage->type);
-	AR100_LOG("message attr : %x\n", pmessage->attr);
-	AR100_LOG("-------------------------------------------------------------\n");
+	AR100_INF("-------------------------------------------------------------\n");
+	AR100_INF("                MESSAGE FROM AR100                           \n");
+	AR100_INF("message addr : %x\n", (u32)pmessage);
+	AR100_INF("message type : %x\n", pmessage->type);
+	AR100_INF("message attr : %x\n", pmessage->attr);
+	AR100_INF("-------------------------------------------------------------\n");
 	
 	/* message per-process */
 	pmessage->state = AR100_MESSAGE_PROCESSING;

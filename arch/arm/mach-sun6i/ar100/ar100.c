@@ -34,7 +34,7 @@ extern char *ar100_binary_end;
 unsigned long ar100_sram_a2_vbase = (unsigned long)IO_ADDRESS(AW_SRAM_A2_BASE);
 
 struct attribute ar100_attr = {
-	.name = "ar100_debug_level",
+	.name = "debug_mask",
 	.mode = S_IRWXUGO
 };
 
@@ -115,6 +115,11 @@ int ar100_init(void)
 	
 	/* enable ar100 syn tx interrupt */
 	ar100_hwmsgbox_enable_receiver_int(AR100_HWMSGBOX_AR100_SYN_TX_CH, AW_HWMSG_QUEUE_USER_AC327);
+	
+	/* config dvfs v-f table */
+	if (ar100_dvfs_cfg_vf_table()) {
+		AR100_WRN("config dvfs v-f table failed\n");
+	}
 	
 	/* register ar100 debug device node */
 	ret = kobject_init_and_add(&ar100_kobj, &ar100_ktype, NULL, "ar100");

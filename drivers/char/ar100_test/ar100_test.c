@@ -14,6 +14,14 @@
  */
 
 #include "ar100_test.h"
+#include <asm/div64.h> 
+
+u32 __ar100_counter_read(void)
+{
+	u64 clock = cpu_clock(0);
+	do_div(clock, 1000);
+	return (u32)(clock);
+}
 
 int __ar100_dvfs_cb(void *arg)
 {
@@ -23,21 +31,31 @@ int __ar100_dvfs_cb(void *arg)
 
 void __ar100_dvfs_test(void)
 {
-	unsigned int i;
-	unsigned int freq_table[] = {
-		120000000,
-		240000000, 
-		300000000,
-		360000000,
-		300000000,
-		240000000,
-		120000000,
+	u32 i;
+	u32 total_time;
+	u32 begin_time;
+	u32 times;
+	u32 freq_table[] = {
+		120000,
+		240000, 
+		300000,
+		360000,
+		300000,
+		240000,
+		120000,
 	};
-	
-	for (i = 0; i < sizeof(freq_table) / sizeof(unsigned int); i++) {
+	total_time = 0;
+	times = sizeof(freq_table) / sizeof(unsigned int);
+	for (i = 0; i < times; i++) {
 		printk("dvfs request freq: %d\n", freq_table[i]);
+		begin_time = __ar100_counter_read();
 		ar100_dvfs_set_cpufreq(freq_table[i], AR100_DVFS_SYN, NULL, __ar100_dvfs_cb);
+		total_time += (__ar100_counter_read() - begin_time);
 	}
+	
+	/* dump time information */
+	printk("dvfs times %d: total time: %dus, once: %dus\n", times, total_time, total_time / times);
+	
 	/* test succeeded */
 	printk("dvfs test succeeded\n");
 }
@@ -82,6 +100,27 @@ static int __ar100_axp_cb(void *arg)
 	return 0;
 }
 
+static void __ar100_loopback_test(void)
+{
+	u32 i;
+	u32 times;
+	u32 total_time;
+	u32 begin_time;
+	
+	total_time = 0;
+	times = 1000000;
+	for (i = 0; i < times; i++) {
+		begin_time = __ar100_counter_read();
+		ar100_message_loopback();
+		total_time += (__ar100_counter_read() - begin_time);
+	}
+	
+	/* dump time information */
+	printk("loopback times %d: total time: %dus, once: %dus\n", times, total_time, total_time / times);
+	
+	/* test succeeded */
+	printk("loopback test succeeded\n");
+}
 
 static void __ar100_axp_test(void)
 {
@@ -90,6 +129,8 @@ static void __ar100_axp_test(void)
 	unsigned int  len;
 	int           ret;
 	int           i;
+	u32 total_time;
+	u32 begin_time;
 	
 	/* test write regs */
 	printk("test axp write regs begin...\n");
@@ -104,11 +145,14 @@ static void __ar100_axp_test(void)
 			printk("addr%x : %x\n", (unsigned int)addr_table[i], 
 									(unsigned int)data_table[i]);
 		}
+		begin_time = __ar100_counter_read();
 		ret = ar100_axp_write_reg(addr_table, data_table, len);
+		total_time = (__ar100_counter_read() - begin_time);
 		if (ret) {
 			printk("test axp write failed, len = %d, ret = %d\n", len, ret);
 		}
 		printk("write axp regs data [len = %d] succeeded\n", len);
+		printk("write axp regs time: %dus\n", total_time);
 	}
 	printk("test axp write regs succeeded\n");
 	
@@ -119,7 +163,9 @@ static void __ar100_axp_test(void)
 		addr_table[i] = 0xc0 + i;
 	}
 	for (len = 1; len <= AXP_TRANS_BYTE_MAX; len++) {
+		begin_time = __ar100_counter_read();
 		ret = ar100_axp_read_reg(addr_table, data_table, len);
+		total_time = (__ar100_counter_read() - begin_time);
 		if (ret) {
 			printk("test axp read failed, len = %d, ret = %d\n", len, ret);
 		}
@@ -129,6 +175,7 @@ static void __ar100_axp_test(void)
 									(unsigned int)data_table[i]);
 		}
 		printk("read axp regs data [len = %d] succeeded\n", len);
+		printk("read axp regs time: %dus\n", total_time);
 	}
 	printk("test axp read regs succeeded\n");
 	
@@ -160,6 +207,10 @@ static int __ar100_test_thread(void * arg)
 	printk("axp test begin....\n");
 	__ar100_axp_test();
 	printk("axp test end....\n");
+	
+	printk("ar100 message loopback test begin....\n");
+	__ar100_loopback_test();
+	printk("ar100 message loopback test end....\n");
 	
 	return 0;
 }

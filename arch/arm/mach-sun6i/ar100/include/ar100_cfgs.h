@@ -50,4 +50,7 @@
 #define	AR100_HWMSGBOX_AC327_SYN_TX_CH	(4)
 #define	AR100_HWMSGBOX_AC327_SYN_RX_CH	(5)
 
+/* dvfs config */
+#define AR100_DVFS_VF_TABLE_MAX			(16)
+
 #endif /* __AR100_CFGS_H */

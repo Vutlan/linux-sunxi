@@ -56,6 +56,10 @@ int ar100_standby_super(struct super_standby_para *para)
 	memcpy(pmessage->paras, para, sizeof(struct super_standby_para));
 	pmessage->state    = AR100_MESSAGE_INITIALIZED;
 	
+	/* notify hwspinlock and hwmsgbox will enter super-standby */
+	ar100_hwspinlock_standby_suspend();
+	ar100_hwmsgbox_standby_suspend();
+	
 	/* before creating mapping, build the coherent between cache and memory */
 	/* clean and flush */
 	__cpuc_flush_kern_all();
@@ -63,6 +67,10 @@ int ar100_standby_super(struct super_standby_para *para)
 	
 	/* send enter super-standby request to ar100 */
 	ar100_hwmsgbox_send_message(pmessage, AR100_SEND_MSG_TIMEOUT);
+	
+	/* enter super-standby fail, notify hwspinlock and hwmsgbox resume */
+	ar100_hwmsgbox_standby_resume();
+	ar100_hwspinlock_standby_resume();
 	
 	return 0;
 }
@@ -94,6 +102,10 @@ EXPORT_SYMBOL(ar100_query_wakeup_source);
 int ar100_cpux_ready_notify(void)
 {
 	struct ar100_message *pmessage;
+	
+	/* notify hwspinlock and hwmsgbox resume first */
+	ar100_hwmsgbox_standby_resume();
+	ar100_hwspinlock_standby_resume();
 	
 	/* allocate a message frame */
 	pmessage = ar100_message_allocate(AR100_MESSAGE_ATTR_HARDSYN);
