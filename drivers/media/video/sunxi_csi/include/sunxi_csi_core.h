@@ -17,11 +17,6 @@
 #include <../arch/arm/mach-sun6i/include/mach/gpio.h>
 #include <../arch/arm/mach-sun6i/include/mach/sys_config.h>
 
-#include "../csi0/mipi_csi/dphy/dphy.h"
-#include "../csi0/mipi_csi/protocol/protocol.h"
-#include "../csi0/mipi_csi/dphy/dphy_reg.h"
-#include "../csi0/mipi_csi/protocol/protocol_reg.h"
-
 //for internel driver debug
 #define DBG_EN   		0
 //debug level 0~3
@@ -312,7 +307,7 @@ struct csi_fmt {
 	enum v4l2_field							field;
 	__csi_input_fmt_t						input_fmt;	
 	__csi_output_fmt_t 					output_fmt;	
-	enum pkt_fmt 								mipi_pkt_fmt;
+	//enum pkt_fmt 								mipi_pkt_fmt;
 	__csi_field_sel_t						csi_field;
 	int   											depth;
 	u16	  											planes_cnt;
@@ -329,7 +324,7 @@ struct csi_channel
 {
 	struct csi_size size;
 	unsigned char vc;
-	enum pkt_fmt mipi_pkt_fmt;
+	//enum pkt_fmt mipi_pkt_fmt;
 };
 
 /* buffer for one video frame */
