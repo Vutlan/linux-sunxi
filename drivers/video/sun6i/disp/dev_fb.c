@@ -140,7 +140,7 @@ __s32 parser_disp_init_para(__disp_init_t * init_para)
     }
 
 //fb0
-    init_para->buffer_num[0]= 2;
+    init_para->buffer_num[0]= 5;
 
     if(OSAL_Script_FetchParser_Data("disp_init", "fb0_format", &value, 1) < 0)
     {
@@ -178,7 +178,7 @@ __s32 parser_disp_init_para(__disp_init_t * init_para)
     init_para->fb_height[0]= value;
 
 //fb1
-    init_para->buffer_num[1]= 2;
+    init_para->buffer_num[1]= 3;
 
     if(OSAL_Script_FetchParser_Data("disp_init", "fb1_format", &value, 1) < 0)
     {

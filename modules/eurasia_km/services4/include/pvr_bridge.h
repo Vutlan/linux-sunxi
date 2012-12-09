@@ -1281,7 +1281,7 @@ typedef struct PVRSRV_BRIDGE_IN_UNWRAP_EXT_MEMORY_TAG
 
 #define PVRSRV_MAX_DC_DISPLAY_FORMATS			10
 #define PVRSRV_MAX_DC_DISPLAY_DIMENSIONS		10
-#define PVRSRV_MAX_DC_SWAPCHAIN_BUFFERS			4
+#define PVRSRV_MAX_DC_SWAPCHAIN_BUFFERS			5
 #define PVRSRV_MAX_DC_CLIP_RECTS				32
 
 /******************************************************************************
