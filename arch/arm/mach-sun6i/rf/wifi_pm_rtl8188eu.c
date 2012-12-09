@@ -10,7 +10,7 @@
 #include "wifi_pm.h"
 
 #define rtl8188eu_msg(...)    do {printk("[rtl8188eu]: "__VA_ARGS__);} while(0)
-#define PLATFORM_33_EVB
+//#define PLATFORM_33_EVB
 
 static int rtl8188eu_powerup = 0;
 static int rtl8188eu_power_pin = 0;

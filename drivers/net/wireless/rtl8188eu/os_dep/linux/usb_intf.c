@@ -1241,6 +1241,7 @@ extern void rtd2885_wlan_netlink_sendMsg(char *action_string, char *name);
 #include <mach/sys_config.h>
 extern int sw_usb_disable_hcd(__u32 usbc_no);
 extern int sw_usb_enable_hcd(__u32 usbc_no);
+extern void wifi_pm_power(int on);
 static script_item_u item;
 #endif
 
@@ -1754,12 +1755,13 @@ static int __init rtw_drv_entry(void)
 	script_item_value_type_e type;
 	
 	/* ----------get usb_wifi_usbc_num------------- */	
-	type = script_get_item("usb_wifi_para", "usb_wifi_usbc_num", &item);	
+	type = script_get_item("wifi_para", "wifi_usbc_id", &item);
 	if(SCIRPT_ITEM_VALUE_TYPE_INT != type){		
-		DBG_8192C("ERR: script_get_item usb_wifi_usbc_num failed\n");			
+		printk("ERR: script_get_item wifi_usbc_id failed\n");			
 		return -ENOMEM;	
 	}	
-	DBG_8192C("sw_usb_enable_hcd: usbc_num = %d\n", item.val);	
+	printk("sw_usb_enable_hcd: usbc_num = %d\n", item.val);	
+	wifi_pm_power(1);
 	sw_usb_enable_hcd(item.val);
 #endif //CONFIG_RTL8723A	
 #endif //CONFIG_PLATFORM_ARM_SUNxI
@@ -1806,8 +1808,9 @@ static void __exit rtw_drv_halt(void)
 #endif
 #ifdef CONFIG_PLATFORM_ARM_SUNxI
 #ifndef CONFIG_RTL8723A
-	DBG_8192C("sw_usb_disable_hcd: usbc_num = %d\n", item.val);
+	printk("sw_usb_disable_hcd: usbc_num = %d\n", item.val);
 	sw_usb_disable_hcd(item.val);
+	wifi_pm_power(0);
 #endif //ifndef CONFIG_RTL8723A	
 #endif	//CONFIG_PLATFORM_ARM_SUNxI
 
