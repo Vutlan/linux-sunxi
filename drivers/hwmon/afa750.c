@@ -218,10 +218,7 @@ static ssize_t afa750_delay_store(struct device *dev,struct device_attribute *at
 {
         unsigned long data;
 	int error;
-	struct i2c_client *client = afa750_i2c_client;
-	struct afa750_data_s *afa750 = NULL;
 
-        afa750   = i2c_get_clientdata(client);
         dprintk(DEBUG_BASE_LEVEL0,"delay store %d\n", __LINE__);
 
 	error = strict_strtoul(buf, 10, &data);
@@ -229,10 +226,9 @@ static ssize_t afa750_delay_store(struct device *dev,struct device_attribute *at
 		return error;
 	if (data > POLL_INTERVAL_MAX)
 		data = POLL_INTERVAL_MAX;
-    
-        mutex_lock(&afa750->interval_mutex);
-        afa750->pollDev->poll_interval = data;
-        mutex_unlock(&afa750->interval_mutex);
+
+         afa750_idev->poll_interval = data;
+
 
 	return count;
 }
@@ -282,10 +278,7 @@ static int __devinit afa750_probe(struct i2c_client *client, const struct i2c_de
 	int result;
 	struct input_dev *idev;
 	struct i2c_adapter *adapter;
-        struct afa750_data_s* data = &afa750_data;
-      
-    
-        client->addr = 0x3d;
+
 	printk("======afa750 probe=====\n");
 	afa750_i2c_client = client;
 	adapter = to_i2c_adapter(client->dev.parent);
@@ -331,10 +324,10 @@ static int __devinit afa750_probe(struct i2c_client *client, const struct i2c_de
 		dev_err(&client->dev, "create sys failed\n");
 	}
 	
-	data->client  = client;
-        data->pollDev = afa750_idev;
-        data->suspended = false;
-	i2c_set_clientdata(client, data);
+	afa750_data.client  = client;
+        afa750_data.pollDev = afa750_idev;
+        afa750_data.suspended = false;
+	
 	
 
 #ifdef CONFIG_HAS_EARLYSUSPEND

@@ -535,6 +535,7 @@ static void goodix_ts_suspend(struct early_suspend *h)
         dprintk(DEBUG_SUSPEND,"CONFIG_HAS_EARLYSUSPEND:enter earlysuspend: goodix_ts_suspend. \n");                              
         sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,0);
         ret = cancel_work_sync(&ts->work);
+        flush_workqueue(goodix_wq);
         if (ts->power) {
         	ret = ts->power(ts,0);
         	if (ret < 0)
@@ -549,13 +550,13 @@ static void goodix_ts_resume(struct early_suspend *h)
 	int ret;
 	struct goodix_ts_data *ts = container_of(h, struct goodix_ts_data, early_suspend);
 
-        dprintk(DEBUG_SUSPEND,"CONFIG_HAS_EARLYSUSPEND:enter laterresume: goodix_ts_resume. \n");
-        sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,1);  
+        dprintk(DEBUG_SUSPEND,"CONFIG_HAS_EARLYSUSPEND:enter laterresume: goodix_ts_resume. \n"); 
 	if (ts->power) {
 		ret = ts->power(ts, 1);
 		if (ret < 0)
 			dprintk(DEBUG_SUSPEND,"%s power on failed\n", f3x_ts_name);
 	}
+	sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,1); 
 	return ;
 }
 #endif
@@ -565,16 +566,16 @@ static int goodix_ts_suspend(struct i2c_client *client, pm_message_t mesg)
 	int ret;
         struct goodix_ts_data *ts = i2c_get_clientdata(client);
         
-        dprintk(DEBUG_SUSPEND,"CONFIG_PM:enter earlysuspend: goodix_ts_suspend. \n");
-   	                                
-       sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,0);
-       ret = cancel_work_sync(&ts->work);
-	if (ts->power) {
-		ret = ts->power(ts,0);
-		if (ret < 0)
-			dprintk(DEBUG_SUSPEND,"%s power off failed\n", f3x_ts_name);
-	}
-	return 0 ;
+        dprintk(DEBUG_SUSPEND,"CONFIG_PM:enter earlysuspend: goodix_ts_suspend. \n");                               
+        sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,0);
+        ret = cancel_work_sync(&ts->work);
+        flush_workqueue(goodix_wq);
+        if (ts->power) {
+        	ret = ts->power(ts,0);
+        	if (ret < 0)
+        		dprintk(DEBUG_SUSPEND,"%s power off failed\n", f3x_ts_name);
+        }
+        return 0 ;
 }
 
 //ÖØÐÂ»½ÐÑ
@@ -584,12 +585,13 @@ static int goodix_ts_resume(struct i2c_client *client)
 	struct goodix_ts_data *ts = i2c_get_clientdata(client);
   
         dprintk(DEBUG_SUSPEND,"CONFIG_PM:enter laterresume: goodix_ts_resume. \n");
-        sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,1);  
+
 	if (ts->power) {
 		ret = ts->power(ts, 1);
 		if (ret < 0)
 			dprintk(DEBUG_SUSPEND,"%s power on failed\n", f3x_ts_name);
 	}
+	sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,1);  
 	return 0;
 }
 #endif
