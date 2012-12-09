@@ -36,6 +36,7 @@
 #include <sound/pcm_params.h>
 #include <sound/control.h>
 #include <sound/initval.h>
+#include <sound/soc.h>
 #include <linux/clk.h>
 #include <linux/timer.h>
 #include <mach/clock.h>
@@ -171,18 +172,13 @@ static struct snd_pcm_hw_constraint_list hw_constraints_rates = {
 */
 int codec_wrreg_bits(unsigned short reg, unsigned int	mask,	unsigned int value)
 {
-	int change;
 	unsigned int old, new;
 		
 	old	=	codec_rdreg(reg);
 	new	=	(old & ~mask) | value;
-	change = old != new;
+	codec_wrreg(reg,new);
 
-	if (change){
-		codec_wrreg(reg,new);
-	}
-
-	return change;
+	return 0;
 }
 
 /**
@@ -350,8 +346,8 @@ static int codec_play_open(struct snd_pcm_substream *substream)
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPPA_MUTE, 0x0);
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPPA_MUTE, 0x0);
 
-	codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTL_EN, 0x0);
-	codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTR_EN, 0x0);
+	//codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTL_EN, 0x0);
+	//codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTR_EN, 0x0);
 
 	/*enable dac digital*/
 	codec_wr_control(SUN6I_DAC_DPC, 0x1, DAC_EN, 0x1);
@@ -367,6 +363,15 @@ static int codec_play_open(struct snd_pcm_substream *substream)
 	/*enable dac_l and dac_r*/
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, DACALEN, 0x1);
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, DACAREN, 0x1);
+	
+	codec_wr_control(SUN6I_DAC_ACTL, 0x1, LMIXEN, 0x1);
+	codec_wr_control(SUN6I_DAC_ACTL, 0x1, RMIXEN, 0x1);
+	
+	codec_wr_control(SUN6I_DAC_ACTL, 0x7f, RMIXMUTE, 0x2);
+	codec_wr_control(SUN6I_DAC_ACTL, 0x7f, LMIXMUTE, 0x2);
+
+	codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPIS, 0x1);
+	codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPIS, 0x1);
 
 	#ifdef CONFIG_3G_PAD
 	/*set the default output is HPOUTL/R for 3gpad 听筒: HPL inverting output*/
@@ -403,7 +408,6 @@ static int codec_capture_open(void)
 
 static int codec_play_start(void)
 {
-//	codec_wr_control(SUN6I_DAC_ACTL, 0x3f, VOLUME, 0x3b);
 	/*enable dac drq*/
 	codec_wr_control(SUN6I_DAC_FIFOC ,0x1, DAC_DRQ, 0x1);
 	/*DAC FIFO Flush,Write '1' to flush TX FIFO, self clear to '0'*/
@@ -465,6 +469,41 @@ static int codec_dev_free(struct snd_device *device)
 {
 	return 0;
 };
+
+static int codec_speaker_enabled;
+
+static int codec_set_spk(struct snd_kcontrol *kcontrol,
+	struct snd_ctl_elem_value *ucontrol)
+{
+	codec_speaker_enabled = ucontrol->value.integer.value[0];
+	if (codec_speaker_enabled) {
+		/*config gpio info of audio_pa_ctrl open*/
+//		if (0 != sw_gpio_setall_range(&item.gpio, 1)) {
+//			printk("sw_gpio_setall_range failed\n");
+//		}
+		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTR_EN, 0x1);
+		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTL_EN, 0x1);
+		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTL_SRC_SEL, 0x0);
+		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTR_SRC_SEL, 0x0);
+		codec_wr_control(SUN6I_MIC_CTRL, 0x1f, LINEOUT_VOL, 0x1f);
+	} else {
+		codec_wr_control(SUN6I_MIC_CTRL, 0x1f, LINEOUT_VOL, 0x0);
+		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTL_EN, 0x0);
+		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTR_EN, 0x0);
+		/*config gpio info of audio_pa_ctrl close*/
+//		if (0 != sw_gpio_setall_range(&item.gpio, 1)) {
+//			printk("sw_gpio_setall_range failed\n");
+//		}
+	}
+	return 0;
+}
+
+static int codec_get_spk(struct snd_kcontrol *kcontrol,
+	struct snd_ctl_elem_value *ucontrol)
+{
+	ucontrol->value.integer.value[0] = codec_speaker_enabled;
+	return 0;
+}
 
 /*	对sun6i-codec.c各寄存器的各种设定，或读取。主要实现函数有三个.
 * 	.info = snd_codec_info_volsw, .get = snd_codec_get_volsw,\.put = snd_codec_put_volsw, 
@@ -593,6 +632,7 @@ static const struct snd_kcontrol_new codec_snd_controls[] = {
 	CODEC_SINGLE("DAP Right hysteresis setting", SUN6I_ADC_DAP_VOL,8,0x3,0),
 	CODEC_SINGLE("DAP Right noise-debounce time", SUN6I_ADC_DAP_VOL,4,0xf,0),
 	CODEC_SINGLE("DAP Right signal-debounce time", SUN6I_ADC_DAP_VOL,0,0xf,0),
+	SOC_SINGLE_BOOL_EXT("Audio Spk Switch", 0, codec_get_spk, codec_set_spk),
 };
 
 int __init snd_chip_codec_mixer_new(struct sun6i_codec *chip)
@@ -1313,6 +1353,12 @@ static int snd_sun6i_codec_trigger(struct snd_pcm_substream *substream, int cmd)
 				/*set the default output is HPOUTL/R for pad 耳机*/
 				codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPPA_MUTE, 0x1);
 				codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPPA_MUTE, 0x1);
+				printk("trigger start\n");
+				printk("0xf1c22c00 is:%x\n", *(volatile int *)0xf1c22c00);
+				printk("0xf1c22c20 is:%x\n", *(volatile int *)0xf1c22c20);
+				printk("0xf1c22c24 is:%x\n", *(volatile int *)0xf1c22c24);
+				printk("0xf1c22c28 is:%x\n", *(volatile int *)0xf1c22c28);
+				printk("trigger end\n");
 				break;
 			case SNDRV_PCM_TRIGGER_SUSPEND:
 				codec_play_stop();
