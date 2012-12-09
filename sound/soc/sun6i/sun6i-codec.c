@@ -1353,12 +1353,6 @@ static int snd_sun6i_codec_trigger(struct snd_pcm_substream *substream, int cmd)
 				/*set the default output is HPOUTL/R for pad ¶ú»ú*/
 				codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPPA_MUTE, 0x1);
 				codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPPA_MUTE, 0x1);
-				printk("trigger start\n");
-				printk("0xf1c22c00 is:%x\n", *(volatile int *)0xf1c22c00);
-				printk("0xf1c22c20 is:%x\n", *(volatile int *)0xf1c22c20);
-				printk("0xf1c22c24 is:%x\n", *(volatile int *)0xf1c22c24);
-				printk("0xf1c22c28 is:%x\n", *(volatile int *)0xf1c22c28);
-				printk("trigger end\n");
 				break;
 			case SNDRV_PCM_TRIGGER_SUSPEND:
 				codec_play_stop();

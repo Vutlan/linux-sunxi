@@ -116,7 +116,6 @@ static long pa_dev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		case PA_OPEN:
 			gpio_pa_count = true;
 			item.gpio.data = 1;
-			printk("%s,line:%d\n", __func__, __LINE__);
 			/*config gpio info of audio_pa_ctrl open*/
 			if (0 != sw_gpio_setall_range(&item.gpio, 1)) {
 				printk("sw_gpio_setall_range failed\n");
@@ -131,7 +130,6 @@ static long pa_dev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			default:
 			gpio_pa_count = false;
 			item.gpio.data = 0;
-			printk("%s,line:%d\n", __func__, __LINE__);
 			pa_wr_control(SUN6I_MIC_CTRL, 0x1f, LINEOUT_VOL, 0x0);
 			pa_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTL_EN, 0x0);
 			pa_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTR_EN, 0x0);
