@@ -65,6 +65,9 @@
 #define CONFIG_SW_SYSMEM_RESERVED_BASE 0x43000000
 #define CONFIG_SW_SYSMEM_RESERVED_SIZE 75776
 
+#define VE_CLK_HIGH_WATER  (500)//400MHz
+#define VE_CLK_LOW_WATER   (100) //160MHz
+
 int g_dev_major = CEDARDEV_MAJOR;
 int g_dev_minor = CEDARDEV_MINOR;
 module_param(g_dev_major, int, S_IRUGO);//S_IRUGO represent that g_dev_major can be read,but canot be write
@@ -77,7 +80,7 @@ struct clk *dram_veclk = NULL;
 struct clk *avs_moduleclk = NULL;
 struct clk *hosc_clk = NULL;
 
-static unsigned long pll4clk_rate = 960000000;
+static unsigned long pll4clk_rate = 300000000;
 
 extern unsigned long ve_start;
 extern unsigned long ve_size;
@@ -670,6 +673,7 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			{
 				int arg_rate = (int)arg;
 				int v_div = 0;
+#if 0
 				v_div = (pll4clk_rate/1000000 + (arg_rate-1))/arg_rate;
 				if (v_div <= 8 && v_div >= 1) {
 					if (clk_set_rate(ve_moduleclk, pll4clk_rate/v_div)) {
@@ -679,8 +683,24 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 						*/
 						printk("try to set ve_rate fail\n");
 					}
-				break;
 				}
+#else
+				if(arg_rate >= VE_CLK_LOW_WATER && 
+						arg_rate <= VE_CLK_HIGH_WATER &&
+						clk_get_rate(ve_moduleclk)/1000000 != arg_rate) {
+					if(!clk_set_rate(ve_pll4clk, arg_rate*1000000)) {
+						pll4clk_rate = clk_get_rate(ve_pll4clk);
+						v_div = (pll4clk_rate/1000000 + (arg_rate-1))/arg_rate;
+						if(clk_set_rate(ve_moduleclk, pll4clk_rate/v_div)) {
+							printk("set ve clock failed\n");
+						}
+					} else {
+						printk("set pll4 clock failed\n");
+					}
+				}
+				ret = clk_get_rate(ve_moduleclk);
+#endif
+				break;
 			}
         case IOCTL_GETVALUE_AVS2:
 			/* Return AVS1 counter value */
@@ -1041,7 +1061,7 @@ static int __init cedardev_init(void)
 		return -EFAULT;
 	}
 	/*default the ve freq to 160M by lys 2011-12-23 15:25:34*/
-	if (clk_set_rate(ve_moduleclk, pll4clk_rate/6)) {
+	if (clk_set_rate(ve_moduleclk, pll4clk_rate)) {
 		/*
 		* while set the rate fail, don't return the fail value,
 		* we can still set the other rate of ve module clk.
