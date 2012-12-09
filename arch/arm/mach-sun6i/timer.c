@@ -198,7 +198,8 @@ static DEFINE_SPINLOCK(clksrc_lock);
 */
 static cycle_t sun6i_clksrc_read(struct clocksource *cs)
 {
-    __u32   reg, lower, upper, flags;
+    __u32   reg, lower, upper;
+    unsigned long   flags;
 
     spin_lock_irqsave(&clksrc_lock, flags);
     /* latch 64bit counter and wait ready for read */
@@ -218,7 +219,8 @@ static cycle_t sun6i_clksrc_read(struct clocksource *cs)
 
 __u32 sched_clock_read(void)
 {
-    __u32   reg, lower, flags;
+    __u32   reg, lower;
+    unsigned long   flags;
 
     spin_lock_irqsave(&clksrc_lock, flags);
     /* latch 64bit counter and wait ready for read */

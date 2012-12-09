@@ -22,15 +22,15 @@
 //#include <mach/memory.h>
 #include "sunxi_physmem_i.h"
 
-#define	BUFFER_PADDR			VE_MEM_BASE
-#define	BUFFER_VADDR			BUFFER_PADDR
-#define	BUFFER_SIZE			VE_MEM_SIZE
+#define	BUFFER_PADDR        HW_RESERVED_MEM_BASE
+#define	BUFFER_VADDR        BUFFER_PADDR
+#define	BUFFER_SIZE         HW_RESERVED_MEM_SIZE
 
-#define	MEMORY_GAP_MIN			0x10000
+#define	MEMORY_GAP_MIN      0x10000
 
-#define IS_LIST_EMPTY(listh)		((bool)((listh)->next == listh))
-#define LIST_REACH_END(listh, entry)	((bool)(listh == entry))
-#define NEXT_PHYS_ADDR(pnode)		(pnode->phys_addr + pnode->size)
+#define IS_LIST_EMPTY(listh)            ((bool)((listh)->next == listh))
+#define LIST_REACH_END(listh, entry)    ((bool)(listh == entry))
+#define NEXT_PHYS_ADDR(pnode)           (pnode->phys_addr + pnode->size)
 
 static struct sunxi_mem_allocator	*g_allocator = NULL;
 static DEFINE_SPINLOCK(sunxi_memlock);

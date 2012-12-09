@@ -62,10 +62,6 @@ static void __init sun6i_map_io(void)
 	iotable_init(sun6i_io_desc, ARRAY_SIZE(sun6i_io_desc));
 }
 
-#if 0
-static struct amba_device *amba_devs[] __initdata = {
-};
-#endif
 
 static void __init gic_init_irq(void)
 {
@@ -95,17 +91,14 @@ static void sun6i_fixup(struct tag *tags, char **from,
 {
 	printk("[%s] enter\n", __FUNCTION__);
 	meminfo->bank[0].start = PLAT_PHYS_OFFSET;
-	meminfo->bank[0].size = VE_MEM_BASE - PLAT_PHYS_OFFSET;
-	meminfo->bank[1].start = VE_MEM_BASE + VE_MEM_SIZE;
-	//meminfo->bank[1].size = PLAT_PHYS_OFFSET + PLAT_MEM_SIZE - meminfo->bank[1].start;
-	meminfo->bank[1].size = G2D_MEM_BASE - meminfo->bank[1].start;
+	meminfo->bank[0].size = HW_RESERVED_MEM_BASE - meminfo->bank[0].start;
+	meminfo->bank[1].start = G2D_MEM_BASE + G2D_MEM_SIZE;
+	meminfo->bank[1].size = (PLAT_PHYS_OFFSET+PLAT_MEM_SIZE) - meminfo->bank[1].start;
 
 	/* for sys_config */
 	memblock_reserve(SYS_CONFIG_MEMBASE, SYS_CONFIG_MEMSIZE);
 	/* for standby: 0x4600,0000-0x4600,0000+1k; */
 	memblock_reserve(SUPER_STANDBY_MEM_BASE, SUPER_STANDBY_MEM_SIZE);
-	/* for g2d, same as a1x */
-	//memblock_reserve(G2D_MEM_BASE, G2D_MEM_SIZE);
 
 	meminfo->nr_banks = 2;
 }
