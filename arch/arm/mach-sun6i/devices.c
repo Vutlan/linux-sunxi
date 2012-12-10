@@ -59,7 +59,7 @@ static struct platform_device debug_uart = {
 	.id = PLAT8250_DEV_PLATFORM,
 	.dev = {
 		.platform_data = &debug_uart_platform_data[0],
-	},
+	}
 };
 
 /* dma */
@@ -74,7 +74,7 @@ static struct resource sw_dmac_resources[] = {
 	[1] = {
 		.start 	= AW_IRQ_DMA,
 		.end 	= AW_IRQ_DMA,
-		.flags 	= IORESOURCE_IRQ
+		.flags 	= IORESOURCE_IRQ,
 	}
 };
 
@@ -87,18 +87,24 @@ static struct platform_device sw_dmac_device = {
 				.dma_mask = &sw_dmac_dmamask,
 				.coherent_dma_mask = DMA_BIT_MASK(32),	/* validate dma_pool_alloc */
 				// .platform_data = (void *) &sw_dmac_pdata,
-			  },
+	}
 };
+
+struct platform_device sw_pdev_nand =
+{
+	.name = "sw_nand",
+	.id = -1,
+};
+
 
 static struct platform_device *sw_pdevs[] __initdata = {
 	&debug_uart,
 	&sw_dmac_device,
+	&sw_pdev_nand,
 };
 
 void sw_pdev_init(void)
 {
-	AW_UART_LOG("enter");
 	platform_add_devices(sw_pdevs, ARRAY_SIZE(sw_pdevs));
-	AW_UART_LOG("leave");
 }
 
