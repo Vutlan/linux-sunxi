@@ -1493,6 +1493,10 @@ static long sensor_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
 			
 			break;
 		}
+		case CSI_SUBDEV_CMD_DETECT:
+		{
+			ret=sensor_detect(sd);
+		}
 		default:
 			return -EINVAL;
 	}		

@@ -25,7 +25,6 @@ MODULE_AUTHOR("raymonxiu");
 MODULE_DESCRIPTION("A low-level driver for GalaxyCore GC0307 sensors");
 MODULE_LICENSE("GPL");
 
-#define CSI_VER_FOR_FPGA
 
 
 
@@ -1414,6 +1413,10 @@ static long sensor_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
 			csi_dev_dbg("ccm_info.clock=%x\n ",info->ccm_info->clock);
 			csi_dev_dbg("ccm_info.iocfg=%x\n ",info->ccm_info->iocfg);
 			break;
+		}
+		case CSI_SUBDEV_CMD_DETECT:
+		{
+			ret=sensor_detect(sd);
 		}
 		default:
 			return -EINVAL;

@@ -3878,6 +3878,11 @@ static long sensor_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
 			csi_dev_dbg("ccm_info.stby_mode=%x\n ",info->ccm_info->stby_mode);
 			break;
 		}
+		case CSI_SUBDEV_CMD_DETECT:
+		{
+			ret=sensor_detect(sd);
+			break;
+		}
 		default:
 			return -EINVAL;
 	}		
