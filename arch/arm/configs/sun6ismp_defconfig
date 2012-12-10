@@ -871,6 +871,8 @@ CONFIG_INPUT_MOUSE=y
 # CONFIG_INPUT_TABLET is not set
 # CONFIG_INPUT_TOUCHSCREEN is not set
 # CONFIG_INPUT_MISC is not set
+# CONFIG_INPUT_GYR is not set
+# CONFIG_INPUT_E_COMPASS is not set
 
 #
 # Hardware I/O ports
