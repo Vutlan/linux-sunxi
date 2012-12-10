@@ -88,14 +88,14 @@
 #define TIME_SET_MIN_VALUE(x)       		(((x)&0x0000003f) << 8 )
 #define TIME_SET_HOUR_VALUE(x)      		(((x)&0x0000001f) << 16)
 
-#define F23_ALARM
+#define A31_ALARM
 
 static void __iomem *sun6i_rtc_base;
 
 static int sun6i_rtc_alarmno = NO_IRQ;
 static int losc_err_flag   = 0;
 
-#ifdef F23_ALARM
+#ifdef A31_ALARM
 /* IRQ Handlers, irq no. is shared with timer2 */
 static irqreturn_t sun6i_rtc_alarmirq(int irq, void *id)
 {
@@ -352,7 +352,7 @@ static int sun6i_rtc_settime(struct device *dev, struct rtc_time *tm)
 	return 0;
 }
 
-#ifdef F23_ALARM
+#ifdef A31_ALARM
 static int sun6i_rtc_getalarm(struct device *dev, struct rtc_wkalrm *alrm)
 {
 	struct rtc_time *alm_tm = &alrm->time;
@@ -491,7 +491,7 @@ static int sun6i_rtc_alarm_irq_enable(struct device *dev, unsigned int enabled)
 static const struct rtc_class_ops sun6i_rtcops = {	
 	.read_time			= sun6i_rtc_gettime,
 	.set_time			= sun6i_rtc_settime,
-#ifdef F23_ALARM
+#ifdef A31_ALARM
 	.read_alarm			= sun6i_rtc_getalarm,
 	.set_alarm			= sun6i_rtc_setalarm,
 	.alarm_irq_enable 	= sun6i_rtc_alarm_irq_enable,
@@ -502,14 +502,14 @@ static int __devexit sun6i_rtc_remove(struct platform_device *pdev)
 {
 	struct rtc_device *rtc = platform_get_drvdata(pdev);
 
-#ifdef F23_ALARM
+#ifdef A31_ALARM
     free_irq(sun6i_rtc_alarmno, rtc);
 #endif
 
     rtc_device_unregister(rtc);
 	platform_set_drvdata(pdev, NULL);
 
-#ifdef F23_ALARM
+#ifdef A31_ALARM
 	sun6i_rtc_setaie(0);
 #endif
 
@@ -543,6 +543,7 @@ static int __devinit sun6i_rtc_probe(struct platform_device *pdev)
 		losc_err_flag = 1;
 	}
 
+	device_init_wakeup(&pdev->dev, 1);
 	/* register RTC and exit */
 	rtc = rtc_device_register("rtc", &pdev->dev, &sun6i_rtcops, THIS_MODULE);
 	if (IS_ERR(rtc)) {
@@ -551,7 +552,7 @@ static int __devinit sun6i_rtc_probe(struct platform_device *pdev)
 		goto err_out;
 	}
 
-#ifdef F23_ALARM
+#ifdef A31_ALARM
 	ret = request_irq(sun6i_rtc_alarmno, sun6i_rtc_alarmirq,
 			  IRQF_DISABLED,  "sun6i-rtc alarm", rtc);
 	if (ret) {
