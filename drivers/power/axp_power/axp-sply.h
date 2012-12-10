@@ -360,6 +360,10 @@ const unsigned int AXP20_NOTIFIER_ON = 		//AXP20_IRQ_USBOV |
 #define AXP22_VBATH_RES						    (0x78)
 #define AXP22_VBATL_RES						    (0x79)
 
+#define AXP22_OCVBATH_RES						 (0xBC)
+#define AXP22_OCVBATL_RES						 (0xBD)
+
+
 #define AXP22_INTTEMP                      (0x56)
 #define AXP22_DATA_BUFFER0					AXP22_BUFFER1
 #define AXP22_DATA_BUFFER1					AXP22_BUFFER2
@@ -391,6 +395,7 @@ const uint64_t AXP22_NOTIFIER_ON = (AXP22_IRQ_USBIN | AXP22_IRQ_USBRE |
 
 struct axp_adc_res {//struct change
 	uint16_t vbat_res;
+	uint16_t ocvbat_res;
 	uint16_t ibat_res;
 	uint16_t ichar_res;
 	uint16_t idischar_res;

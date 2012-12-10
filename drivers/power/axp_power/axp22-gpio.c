@@ -173,7 +173,7 @@ int axp_gpio_get_value(int gpio, int *value)
 	int ret;
 	uint8_t val;
 	ret = axp_gpio_get_io(gpio,&io_mode);
-	printk("%s: line %d,%d,0x%x\n", __func__, __LINE__,gpio,(int)value);
+//	printk("%s: line %d,%d,0x%x\n", __func__, __LINE__,gpio,(int)value);
 	if(ret)
 		return ret;
 	if(1 == io_mode){//output
@@ -258,7 +258,7 @@ EXPORT_SYMBOL_GPL(axp_gpio_get_value);
 static int __axp_gpio_input(struct gpio_chip *chip, unsigned offset)
 {
 	u32  index = chip->base + offset;
-	printk("%s: line %d,%d,\n", __func__, __LINE__,offset);
+//	printk("%s: line %d,%d,\n", __func__, __LINE__,offset);
 
 	if(GPIO_AXP(0) == index)
 		return axp_gpio_set_io(0, 0);
@@ -278,7 +278,7 @@ static int __axp_gpio_output(struct gpio_chip *chip, unsigned offset, int value)
 	int  ret = 0;
 	int  id = index - GPIO_AXP(0);
 	
-	printk("%s: line %d,%d,%d\n", __func__, __LINE__,offset,value);
+//	printk("%s: line %d,%d,%d\n", __func__, __LINE__,offset,value);
 	switch(id) {
 		case 0: 
 			ret = axp_gpio_set_io(0, 1); /* set to output */
@@ -312,7 +312,7 @@ static void __axp_gpio_set(struct gpio_chip *chip, unsigned offset, int value)
 {
 	u32  index = chip->base + offset;
 	int id = index - GPIO_AXP(0);
-	printk("%s: line %d,%d,%d\n", __func__, __LINE__,offset,value);
+//	printk("%s: line %d,%d,%d\n", __func__, __LINE__,offset,value);
 
 	switch (id) {
 		case 0:axp_gpio_set_value(0, value);break;
@@ -327,7 +327,7 @@ static int __axp_gpio_get(struct gpio_chip *chip, unsigned offset)
 {
 	u32  index = chip->base + offset;
 	int  value = 0;
-	printk("%s: line %d,%d,\n", __func__, __LINE__,offset);
+//	printk("%s: line %d,%d,\n", __func__, __LINE__,offset);
 
 	if(GPIO_AXP(0) == index) {
 		WARN_ON(0 != axp_gpio_get_value(0, &value));
