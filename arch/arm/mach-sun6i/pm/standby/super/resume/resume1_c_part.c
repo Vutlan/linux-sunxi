@@ -55,17 +55,22 @@ int resume1_c_part(void)
 	//move other storage to sram: saved_resume_pointer(virtual addr), saved_mmu_state
 	mem_memcpy((void *)&mem_para_info, (void *)(DRAM_BACKUP_BASE_ADDR1), sizeof(mem_para_info));
 #else
-	/*switch stack*/
+	//config uart
+	serial_init_nommu();
+	//config jtag gpio
+	*(volatile __u32 * )(0x01c20800 + 0x100) = 0x00033330;
+
 	save_mem_status_nommu(RESUME1_START |0x02);
 
 	//move other storage to sram: saved_resume_pointer(virtual addr), saved_mmu_state
 	mem_memcpy((void *)&mem_para_info, (void *)(DRAM_BACKUP_BASE_ADDR1_PA), sizeof(mem_para_info));
+	
 	if(unlikely(mem_para_info.debug_mask&PM_STANDBY_PRINT_RESUME)){
-		serial_init_nommu();
 		serial_puts_nommu("resume1: 0. \n");
 	}
 #if 1
-	/*restore freq from 384 to orignal freq.*/
+	/*restore freq from 408M to orignal freq.*/
+	//busy_waiting();
 	mem_clk_setdiv(&mem_para_info.clk_div);
 	mem_clk_set_pll_factor(&mem_para_info.pll_factor);
 	change_runtime_env(0);
@@ -123,21 +128,26 @@ void set_pll( void )
 	 */
 	__ccmu_reg_list_t   *CmuReg;
 
-	CmuReg = mem_clk_init();
-	
+	CmuReg = (__ccmu_reg_list_t   *)mem_clk_init(0);
+
+	save_mem_status_nommu(RESUME1_START |0x26);
 	//switch to 24M
 	*(volatile __u32 *)(&CmuReg->SysClkDiv) = 0x00010000;
-	//setting PLL1 to 384M
-	*(volatile __u32 *)(&CmuReg->Pll1Ctl) = (0x00001000) | (0x80000000); //N = 16, K=M=1
+	//enable pll1 and setting PLL1 to 408M
+	*(volatile __u32 *)(&CmuReg->Pll1Ctl) = (0x00001000) | (0x80000000); //N = 16, K=M=1 -> pll1 = 17*24 = 408M
+	//setting pll6 to 600M
+	//enable pll6
+	*(volatile __u32 *)(&CmuReg->Pll6Ctl) = 0x80041811;
 	//delay 
 	//need reconstruction!!
+	save_mem_status_nommu(RESUME1_START |0x27);
 	init_perfcounters(1, 0); //need double check..
 	change_runtime_env(0);
 	delay_ms(10);
+
+	save_mem_status_nommu(RESUME1_START |0x28);
 	//switch to PLL1
 	*(volatile __u32 *)(&CmuReg->SysClkDiv) = 0x00020000;
-	change_runtime_env(0);
-	delay_ms(10);
 	
 	return ;
 }

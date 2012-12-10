@@ -122,7 +122,7 @@ void change_runtime_env(__u32 mmu_flag)
 		
 		//cpu_freq = (24000*factor_n*factor_k)/(factor_p*factor_m);
 		cpu_freq = raw_lib_udiv(24000*factor_n*factor_k, factor_m);
-		printk("cpu_freq = dec(%d). \n", cpu_freq);
+		//printk("cpu_freq = dec(%d). \n", cpu_freq);
 		//busy_waiting();
 	}
 	

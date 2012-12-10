@@ -41,7 +41,7 @@ struct pll_factor_t {
 __s32 mem_clk_save(struct clk_state *pclk_state);
 __s32 mem_clk_restore(struct clk_state *pclk_state);
 
-__ccmu_reg_list_t * mem_clk_init(void);
+__ccmu_reg_list_t * mem_clk_init(__u32 mmu_flag);
 __s32 mem_clk_setdiv(struct clk_div_t *clk_div);
 __s32 mem_clk_getdiv(struct clk_div_t  *clk_div);
 __s32 mem_clk_set_pll_factor(struct pll_factor_t *pll_factor);

@@ -347,7 +347,7 @@ static int aw_early_suspend(void)
 #endif
 
 #if 1
-	mem_clk_init();
+	mem_clk_init(1);
 	/*backup bus ratio*/
 	mem_clk_getdiv(&mem_para_info.clk_div);
 	/*backup pll ratio*/
@@ -638,8 +638,15 @@ static int aw_pm_enter(suspend_state_t state)
 		
 		mem_int_exit();
 
+		PM_DBG("platform wakeup, normal standby cpu0 wakesource is:0x%x\n, normal standby cpus wakesource is:0x%x. \n", \
+			standby_info.standby_para.event, standby_info.standby_para.axp_event);
+		
 	}else if(SUPER_STANDBY == standby_type){
 		aw_super_standby(state);
+		
+		ar100_cpux_ready_notify();
+		ar100_query_wakeup_source((unsigned long *)(&(mem_para_info.axp_event)));			
+		PM_DBG("platform wakeup, super standby wakesource is:0x%x\n", mem_para_info.axp_event);
 	}
 	
 	return 0;
@@ -663,20 +670,6 @@ static int aw_pm_enter(suspend_state_t state)
 */
 static void aw_pm_wake(void)
 {
-	if(NORMAL_STANDBY == standby_type){
-		PM_DBG("platform wakeup, normal standby cpu0 wakesource is:0x%x\n, normal standby cpus wakesource is:0x%x. \n", \
-			standby_info.standby_para.event, standby_info.standby_para.axp_event);
-	}else if(SUPER_STANDBY == standby_type){
-#if 1
-		//busy_waiting();
-		ar100_cpux_ready_notify();
-		ar100_query_wakeup_source((unsigned long *)(&(mem_para_info.axp_event)));			
-		PM_DBG("platform wakeup, super standby wakesource is:0x%x\n", mem_para_info.axp_event);
-
-#endif
-
-	}
-
 	return;
 }
 

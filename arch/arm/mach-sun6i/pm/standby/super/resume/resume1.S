@@ -24,37 +24,38 @@
 ; gq.Yang       2012.7.11      1.1.0        build the file
 ;
 ***********************************************************************************************************************/
+#define  ARMV7_USR_MODE        0x10
+#define  ARMV7_FIQ_MODE        0x11
+#define  ARMV7_IRQ_MODE        0x12
+#define  ARMV7_SVC_MODE        0x13
+#define  ARMV7_MON_MODE        0x16
+#define  ARMV7_ABT_MODE        0x17
+#define  ARMV7_UND_MODE        0x1b
+#define  ARMV7_SYSTEM_MODE     0x1f
+#define  ARMV7_MODE_MASK       0x1f
+#define  ARMV7_FIQ_MASK        0x40
+#define  ARMV7_IRQ_MASK        0x80
 
-#define ARMV7_USR_MODE        (0x10)
-#define ARMV7_FIQ_MODE        (0x11)
-#define ARMV7_IRQ_MODE        (0x12)
-#define ARMV7_SVC_MODE        (0x13)
-#define ARMV7_MON_MODE        (0x16)
-#define ARMV7_ABT_MODE        (0x17)
-#define ARMV7_UND_MODE        (0x1b)
-#define ARMV7_SYSTEM_MODE     (0x1f)
-#define ARMV7_MODE_MASK       (0x1f)
-#define ARMV7_FIQ_MASK        (0x40)
-#define ARMV7_IRQ_MASK        (0x80)
 
-//coprocessor CP15
-//C1
-#define ARMV7_THUMB_MASK    (1<<5)
-#define ARMV7_END_MASK      (1<<9)
-#define ARMV7_IT_MASK       ((0x3f<<10)|(0x03<<25))
-#define ARMV7_GE_MASK       (0x0f<<16)
-#define ARMV7_JAVA_MASK     (1<<24)
-#define ARMV7_QFLAG_BIT     (1 << 27)
-#define ARMV7_CC_V_BIT      (1 << 28)
-#define ARMV7_CC_C_BIT      (1 << 29)
-#define ARMV7_CC_Z_BIT      (1 << 30)
-#define ARMV7_CC_N_BIT      (1 << 31)
-#define ARMV7_CC_E_BIT      (1 << 9)
-#define ARMV7_C1_M_BIT      ( 1 << 0 )
-#define ARMV7_C1_A_BIT      ( 1 << 1 )
-#define ARMV7_C1_C_BIT      ( 1 << 2 )
-#define ARMV7_C1_Z_BIT      ( 1 << 11 )
-#define ARMV7_C1_I_BIT      ( 1 << 12 )
+#define   ARMV7_THUMB_MASK    (1<<5)
+#define   ARMV7_END_MASK      (1<<9)
+
+#define   ARMV7_IT_MASK       ((0x3f<<10)|(0x03<<25))
+#define   ARMV7_GE_MASK       (0x0f<<16)
+#define   ARMV7_JAVA_MASK     (1<<24)
+
+#define   ARMV7_QFLAG_BIT     (1 << 27)
+#define   ARMV7_CC_V_BIT      (1 << 28)
+#define   ARMV7_CC_C_BIT      (1 << 29)
+#define   ARMV7_CC_Z_BIT      (1 << 30)
+#define   ARMV7_CC_N_BIT      (1 << 31)
+#define   ARMV7_CC_E_BIT      (1 << 9)
+
+#define   ARMV7_C1_M_BIT         ( 1 << 0 )
+#define   ARMV7_C1_A_BIT         ( 1 << 1 )
+#define   ARMV7_C1_C_BIT         ( 1 << 2 )
+#define   ARMV7_C1_Z_BIT         ( 1 << 11 )
+#define   ARMV7_C1_I_BIT         ( 1 << 12 )
 
     	.extern resume1_c_part
 	.text
@@ -76,10 +77,13 @@ _start:
 	bic r0, r0, #( ARMV7_C1_A_BIT)                    ;// disable align
 	mcr p15, 0, r0, c1, c0
 
-/*------------------------------------------    end    ------------------------------------------*/
+    ldr r0, =0x01c00044
+    ldr r1,[r0]
+    orr r1,#0x1800
+    str r1,[r0]
 
 // set SP for C language
-	bl save_sp_nommu
+	ldr sp, =0x00007ffc
 
 /**********************************the end of initializing system*********************************/
 	bl set_pll

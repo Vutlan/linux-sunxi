@@ -43,6 +43,8 @@
 
 #define SUART_BAUDRATE	(115200)
 #define CCU_UART_PA		(0x01c2006C)
+#define CCU_UART_RESET_PA		(0x01c202D8)
+
 #define CCU_UART_VA		(0xF1c2006C)
 
 void serial_init(void);
