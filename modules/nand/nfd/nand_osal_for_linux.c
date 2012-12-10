@@ -56,7 +56,7 @@ int seq=0;
 int nand_handle=0;
 
 
-#ifdef __OS_NAND_SUPPORT_INT__
+#ifdef __LINUX_NAND_SUPPORT_INT__
 static int nandrb_ready_flag[2] = {1, 1};
 static int nanddma_ready_flag[2] = {1, 1};
 static DECLARE_WAIT_QUEUE_HEAD(NAND_RB_WAIT_CH0);
@@ -117,7 +117,7 @@ int NAND_ClkRequest(__u32 nand_index)
 	}
 
 	rate = clk_get_rate(pll6);
-		printk("%s: get pll6 rate %dHZ\n", __func__, (__u32)rate);
+		//printk("%s: get pll6 rate %dHZ\n", __func__, (__u32)rate);
 
 	if(nand_index == 0) {
 		nand0_clk = clk_get(NULL, "mod_nand0");
@@ -375,7 +375,7 @@ __u32 NAND_DMASingleUnmap(__u32 rw, __u32 buff_addr, __u32 len)
 
 
 
-#ifdef __OS_NAND_SUPPORT_INT__
+#ifdef __LINUX_SUPPORT_DMA_INT__
 void NAND_EnDMAInt(void)
 {
 	__u32 nand_index;
@@ -457,7 +457,6 @@ __s32 NAND_WaitDmaFinish(void)
 	if(nand_index >1)
 		printk("NAND_ClearDMAInt, nand_index error: 0x%x\n", nand_index);
 
-#ifdef __OS_SUPPORT_DMA_INT__    
 	NAND_EnDMAInt();
 	
 	//wait_event(NAND_RB_WAIT, nandrb_ready_flag);
@@ -510,10 +509,19 @@ __s32 NAND_WaitDmaFinish(void)
 		printk("NAND_WaitDmaFinish, error nand_index: 0x%x\n", nand_index);
 	}
     	
-#endif	
     return 0;
 }
 
+#else
+__s32 NAND_WaitDmaFinish(void)
+{
+    return 0;
+}
+
+#endif
+
+
+#ifdef __LINUX_SUPPORT_RB_INT__
 void NAND_EnRbInt(void)
 {
 	__u32 nand_index;
@@ -524,11 +532,6 @@ void NAND_EnRbInt(void)
 	
 	//clear interrupt
 	NFC_RbIntClearStatus();
-	
-	if(NFC_RbIntGetStatus())
-	{
-		dbg_rbint_wrn("nand clear rb int status error in int enable \n");
-	}
 	
 	nandrb_ready_flag[nand_index] = 0;
 
@@ -558,7 +561,7 @@ void NAND_ClearRbInt(void)
 	//check rb int status
 	if(NFC_RbIntGetStatus())
 	{
-		dbg_rbint_wrn("nand clear rb int status error in int clear \n");
+		dbg_rbint_wrn("nand %d clear rb int status error in int clear \n", nand_index);
 	}
 	
 	nandrb_ready_flag[nand_index] = 0;
@@ -591,7 +594,6 @@ void NAND_RbInterrupt(void)
 
 __s32 NAND_WaitRbReady(void)
 {
-#ifdef __OS_SUPPORT_RB_INT__ 
 	__u32 rb;
 	__u32 nand_index;
 	
@@ -615,11 +617,12 @@ __s32 NAND_WaitRbReady(void)
 	rb=  NFC_GetRbSelect();
 	if(NFC_GetRbStatus(rb))
 	{
-		dbg_rbint_wrn("rb %u fast ready \n", rb);
+		dbg_rbint("rb %u fast ready \n", rb);
 		NAND_ClearRbInt();
 		return 0;
 	}
 
+	//printk("NAND_WaitRbReady, ch %d\n", nand_index);
 
 	if(nand_index == 0)
 	{
@@ -629,7 +632,7 @@ __s32 NAND_WaitRbReady(void)
 			NAND_ClearRbInt();
 		}
 		else
-		{
+		{	NAND_ClearRbInt();
 			dbg_rbint("nand wait rb ready ok\n");
 		}
 	}
@@ -641,26 +644,85 @@ __s32 NAND_WaitRbReady(void)
 			NAND_ClearRbInt();
 		}
 		else
-		{
+		{	NAND_ClearRbInt();
 			dbg_rbint("nand wait rb ready ok\n");
 		}
 	}
 		
 	
-#endif	
     return 0;
 }
 #else
-__s32 NAND_WaitDmaFinish(void)
-{
-    return 0;
-}
-
 __s32 NAND_WaitRbReady(void)
 {
     return 0;
 }
 #endif
+
+#define NAND_CH0_INT_EN_REG    (0xf1c03000+0x8)
+#define NAND_CH1_INT_EN_REG    (0xf1c05000+0x8)
+#define NAND_CH0_INT_ST_REG    (0xf1c03000+0x4)
+#define NAND_CH1_INT_ST_REG    (0xf1c05000+0x4)
+#define NAND_RB_INT_BITMAP     (0x1)
+#define NAND_DMA_INT_BITMAP    (0x4)
+#define __NAND_REG(x)    (*(volatile unsigned int   *)(x))
+
+
+void NAND_Interrupt(__u32 nand_index)
+{
+	if(nand_index >1)
+		printk("NAND_Interrupt, nand_index error: 0x%x\n", nand_index);
+#ifdef __LINUX_NAND_SUPPORT_INT__   
+
+    //printk("nand interrupt!\n");
+#ifdef __LINUX_SUPPORT_RB_INT__    
+#if 0
+
+    if(NFC_RbIntOccur())
+    {
+        dbg_rbint("nand rb int\n");
+        NAND_RbInterrupt();
+    }
+#else
+    if(nand_index == 0)
+    {
+    	if((__NAND_REG(NAND_CH0_INT_EN_REG)&NAND_RB_INT_BITMAP)&&(__NAND_REG(NAND_CH0_INT_ST_REG)&NAND_RB_INT_BITMAP))
+		NAND_RbInterrupt();	
+    }
+    else if(nand_index == 1)
+    {
+    	if((__NAND_REG(NAND_CH1_INT_EN_REG)&NAND_RB_INT_BITMAP)&&(__NAND_REG(NAND_CH1_INT_ST_REG)&NAND_RB_INT_BITMAP))
+		NAND_RbInterrupt();	
+    }	
+#endif
+#endif    
+
+#ifdef __LINUX_SUPPORT_DMA_INT__  
+#if 0
+    if(NFC_DmaIntOccur())
+    {
+        dbg_dmaint("nand dma int\n");
+        NAND_DMAInterrupt();    
+    }
+#else
+    if(nand_index == 0)
+    {
+    	if((__NAND_REG(NAND_CH0_INT_EN_REG)&NAND_DMA_INT_BITMAP)&&(__NAND_REG(NAND_CH0_INT_ST_REG)&NAND_DMA_INT_BITMAP))
+		NAND_DMAInterrupt();	
+    }
+    else if(nand_index == 1)
+    {
+    	if((__NAND_REG(NAND_CH1_INT_EN_REG)&NAND_DMA_INT_BITMAP)&&(__NAND_REG(NAND_CH1_INT_ST_REG)&NAND_DMA_INT_BITMAP))
+		NAND_DMAInterrupt();	
+    }
+	
+#endif
+
+#endif
+
+#endif
+}
+
 
 __u32 NAND_VA_TO_PA(__u32 buff_addr)
 {
@@ -755,28 +817,6 @@ void NAND_PIORelease(__u32 nand_index)
 	
 }
 
-
-void NAND_Interrupt(void)
-{
-#ifdef __OS_NAND_SUPPORT_INT__   
-
-    //printk("nand interrupt!\n");
-    if(NFC_RbIntOccur())
-    {
-        dbg_rbint("nand rb int\n");
-        NAND_RbInterrupt();
-    }
-    else if(NFC_DmaIntOccur())
-    {
-        dbg_dmaint("nand dma int\n");
-        NAND_DMAInterrupt();    
-    }
-    else
-    {
-    	printk("error, no interrupt\n");
-    }
-#endif
-}
 
 void NAND_Memset(void* pAddr, unsigned char value, unsigned int len)
 {

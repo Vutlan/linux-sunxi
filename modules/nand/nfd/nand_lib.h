@@ -79,6 +79,7 @@ extern __s32 BMM_WriteBackAllMapTbl(void);
 extern __s32 NAND_CacheFlush(void);
 extern __s32 NAND_CacheFlushDev(__u32 dev_num);
 extern __s32 NAND_CacheRead(__u32 blk, __u32 nblk, void *buf);
+extern __s32 NAND_CacheReadSecs(__u32 blk, __u32 nblk, void *buf);
 extern __s32 NAND_CacheWrite(__u32 blk, __u32 nblk, void *buf);
 extern __s32 NAND_CacheOpen(void);
 extern __s32 NAND_CacheClose(void);
@@ -123,8 +124,17 @@ extern __u32 NAND_GetDiskSize(void);
 extern void  NAND_SetSrcClkName(__u32 pll_name);
 extern __u32 NAND_GetChannelCnt(void);
 extern __u32 NAND_GetCurrentCH(void);
+extern __u32 NAND_SetCurrentCH(void);
 extern __u32 NAND_GetChipConnect(void);
 extern __u32 NAND_GetChipCnt(void);
+extern __u32 NAND_GetPageSize(void);
+extern __u32 NAND_GetLogicPageSize(void);
+extern __u32 NAND_GetPageCntPerBlk(void);
+extern __u32 NAND_GetBlkCntPerChip(void);
+extern __u32 NAND_GetChipCnt(void);
+extern __u32 NAND_GetChipConnect(void);
+extern __u32 NAND_GetBadBlockFlagPos(void);
+extern __u32 NAND_GetReadRetryType(void);
 
 
 //for lsb mode

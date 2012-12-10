@@ -2,9 +2,9 @@
 #include "nand_lib.h"
 
 #define __FPGA_TEST__
-//#define __OS_NAND_SUPPORT_INT__
-//#define __OS_SUPPORT_DMA_INT__
-//#define __OS_SUPPORT_RB_INT__
+#define __LINUX_NAND_SUPPORT_INT__
+#define __LINUX_SUPPORT_DMA_INT__
+#define __LINUX_SUPPORT_RB_INT__
 
 
 struct nand_blk_ops;
