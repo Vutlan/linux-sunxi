@@ -31,7 +31,7 @@
  * dbs is used in this file as a shortform for demandbased switching
  * It helps to keep variable names smaller, simpler
  */
-#define FANTASY_DEBUG_LEVEL     (2)
+#define FANTASY_DEBUG_LEVEL     (1)
 
 #if (FANTASY_DEBUG_LEVEL == 0 )
     #define FANTASY_DBG(format,args...)
@@ -137,7 +137,7 @@ static int hotplug_freq_def[4][2] = {
     {0         , 800000*100},
     {400000*100, 800000*100},
     {500000*100, 800000*100},
-    {600000*100, 0       },
+    {600000*100, 0         },
 };
 
 #ifdef CONFIG_CPU_FREQ_USR_EVNT_NOTIFY
@@ -695,7 +695,8 @@ static int check_down(void)
 
     /* check loading and running for spec cpu */
     for_each_online_cpu(cpu) {
-        if((cpus_load_max[cpu] < SINGLE_CPU_DOWN_LOADING) && (cpus_rq_max[cpu] < SINGLE_CPU_DOWN_RUNNING)) {
+        if(((cpus_load_max[cpu] < SINGLE_CPU_DOWN_LOADING) || (max_freq <= down_freq))  \
+            && (cpus_rq_max[cpu] < SINGLE_CPU_DOWN_RUNNING)) {
             FANTASY_WRN("cpu need plugout, cpus_load_max:%d<%d && cpus_rq_max: %d<%d\n",    \
                     cpus_load_max[cpu], SINGLE_CPU_DOWN_LOADING, cpus_rq_max[cpu], SINGLE_CPU_DOWN_RUNNING);
             hotplug_history->num_hist = 0;
@@ -722,7 +723,12 @@ static int check_down(void)
  * define frequency limit for io-wait rate, cpu frequency should be limit to higher if io-wait higher
  */
 #define FANTASY_CPUFREQ_IOW_LIMIT_RATE(iow)         \
-    (iow<10? 20 : (iow<20? 40 : (iow<40? 60 : (iow<60? 80 : 100))))
+    (iow<10? (iow>0? 20 : 0) : (iow<20? 40 : (iow<40? 60 : (iow<60? 80 : 100))))
+
+#define DECRASE_FREQ_STEP_LIMIT1    (300000)   /* decrase frequency limited to 300Mhz when frequency is [900Mhz, 1008Mhz] */
+#define DECRASE_FREQ_STEP_LIMIT2    (200000)   /* decrase frequency limited to 200Mhz when frequency is [600Mhz,  900Mhz) */
+#define DECRASE_FREQ_STEP_LIMIT3    (100000)   /* decrase frequency limited to 100Mhz when frequency is [300Mhz,  600Mhz) */
+#define DECRASE_FREQ_STEP_LIMIT4    (30000)    /* decrase frequency limited to  20Mhz when frequency is [60Mhz,   200Mhz) */
 
 static int check_freq_up(struct cpufreq_policy *policy, unsigned int *target)
 {
@@ -773,7 +779,7 @@ static int check_freq_down(struct cpufreq_policy *policy, unsigned int *target)
 {
     int i, cpu;
     struct cpu_usage *usage;
-    unsigned int avg_load[NR_CPUS], avg_iow[NR_CPUS], max_load, max_iow, freq_load, freq_iow;
+    unsigned int avg_load[NR_CPUS], avg_iow[NR_CPUS], max_load, max_iow, freq_load, freq_iow, freq_cur, freq_target;
     int down_rate = dbs_tuners_ins.freq_down_rate;
     int num_hist = hotplug_history->num_hist;
 
@@ -807,22 +813,46 @@ static int check_freq_down(struct cpufreq_policy *policy, unsigned int *target)
     }
 
     /* check cpu loading */
-    freq_load = policy->cur;
-    if(max_load < FANTASY_CPUFREQ_LOAD_MIN_RATE(policy->cur)) {
-        freq_load = (policy->cur*max_load) / FANTASY_CPUFREQ_LOAD_MAX_RATE((policy->cur*max_load)/100);
-    }
+    if (max_load >= FANTASY_CPUFREQ_LOAD_MIN_RATE(policy->cur))
+        return 0;
+
+    freq_load = (policy->cur*max_load) / FANTASY_CPUFREQ_LOAD_MAX_RATE((policy->cur*max_load)/100);
+
     /* check cpu io-waiting */
     freq_iow = (policy->max*FANTASY_CPUFREQ_IOW_LIMIT_RATE(max_iow))/100;
 
     if (dbs_tuners_ins.dvfs_debug) {
-        printk("%s(%d): max_load=%d, cur_freq=%d, load_rate=%d\n",  \
-            __func__, __LINE__, max_load, policy->cur, FANTASY_CPUFREQ_LOAD_MIN_RATE(policy->cur));
-        printk("%s(%d): max_iow=%d, limit_rate=%d, freq_iow=%d\n",    \
+        printk("%s(%d): max_load=%d, cur_freq=%d, load_rate=%d, freq_load=%d\n", \
+            __func__, __LINE__, max_load, policy->cur, FANTASY_CPUFREQ_LOAD_MIN_RATE(policy->cur), freq_load);
+        printk("%s(%d): max_iow=%d, limit_rate=%d, freq_iow=%d\n", \
             __func__, __LINE__, max_iow, FANTASY_CPUFREQ_IOW_LIMIT_RATE(max_iow), freq_iow);
     }
 
     /* select target frequency */
-    *target = max(freq_load, freq_iow);
+    freq_target = max(freq_load, freq_iow);
+    freq_cur = cpufreq_quick_get(policy->cpu);
+    if (freq_cur >= 900000) {
+        if (freq_cur - freq_target > DECRASE_FREQ_STEP_LIMIT1) {
+            freq_target = freq_cur - DECRASE_FREQ_STEP_LIMIT1;
+        }
+    }
+    else if (freq_cur >= 600000) {
+        if(freq_cur - freq_target > DECRASE_FREQ_STEP_LIMIT2){
+            freq_target = freq_cur - DECRASE_FREQ_STEP_LIMIT2;
+        }
+    }
+    else if (freq_cur >= 300000) {
+        if(freq_cur - freq_target > DECRASE_FREQ_STEP_LIMIT3){
+            freq_target = freq_cur - DECRASE_FREQ_STEP_LIMIT3;
+        }
+    }
+    else if (freq_cur >= 60000) {
+        if(freq_cur - freq_target > DECRASE_FREQ_STEP_LIMIT4){
+            freq_target = freq_cur - DECRASE_FREQ_STEP_LIMIT4;
+        }
+    }
+
+    *target = freq_target;
 
     return 1;
 }
@@ -923,7 +953,7 @@ static inline cputime64_t get_cpu_iowait_time(unsigned int cpu, cputime64_t *wal
  */
 static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 {
-    unsigned int cpu, freq_target;
+    unsigned int index, cpu, freq_target;
     struct cpufreq_policy *policy;
     int num_hist = hotplug_history->num_hist;
     int max_hotplug_rate = max((int)dbs_tuners_ins.cpu_up_rate, (int)dbs_tuners_ins.cpu_down_rate);
@@ -1015,15 +1045,13 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
     if (hotplug_history->num_hist == max_hotplug_rate)
         hotplug_history->num_hist = 0;
 
-    if(policy->cur != freq_target) {
-        int     index;
+	if (cpufreq_frequency_table_target(policy, this_dbs_info->freq_table, freq_target, CPUFREQ_RELATION_L, &index)) {
+		FANTASY_ERR("%s: failed to get next lowest frequency\n", __func__);
+		return;
+	}
+	freq_target = this_dbs_info->freq_table[index].frequency;
 
-        if (cpufreq_frequency_table_target(policy, this_dbs_info->freq_table, freq_target, CPUFREQ_RELATION_L, &index)) {
-            FANTASY_ERR("%s: failed to get next lowest frequency\n", __func__);
-            return;
-        }
-        freq_target = this_dbs_info->freq_table[index].frequency;
-
+    if (policy->cur != freq_target) {
         /* set target frequency */
         FANTASY_WRN("%s, %d : try to switch cpu freq to %d \n", __func__, __LINE__, freq_target);
         __cpufreq_driver_target(policy, freq_target, CPUFREQ_RELATION_L);
@@ -1177,20 +1205,22 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy, unsigned int even
         {
             unsigned int freq_trig;
             /* cpu frequency limitation has changed, adjust current frequency */
-            if(!mutex_trylock(&this_dbs_info->timer_mutex)) {
+            if (!mutex_trylock(&this_dbs_info->timer_mutex)) {
                 FANTASY_WRN("CPUFREQ_GOV_USRENET try to lock mutex failed!\n");
                 break;
             }
 
-            freq_trig = (this_dbs_info->cur_policy->max*usrevent_freq[num_online_cpus()])/100;
-            if(this_dbs_info->cur_policy->cur < freq_trig) {
+            freq_trig = (this_dbs_info->cur_policy->max*usrevent_freq[num_online_cpus() - 1])/100;
+            if (this_dbs_info->cur_policy->cur < freq_trig) {
                 /* set cpu frequenc to the max value, and reset state machine */
+                printk("CPUFREQ_GOV_USRENET\n");
                 __cpufreq_driver_target(this_dbs_info->cur_policy, freq_trig, CPUFREQ_RELATION_H);
-                mutex_unlock(&this_dbs_info->timer_mutex);
             }
+            mutex_unlock(&this_dbs_info->timer_mutex);
             break;
         }
         #endif
+
     }
     return 0;
 }

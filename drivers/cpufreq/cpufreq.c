@@ -1926,6 +1926,15 @@ void cpufreq_user_event_notify(void)
 EXPORT_SYMBOL_GPL(cpufreq_user_event_notify);
 #endif
 
+/* large scale thread event notification */
+void cpufreq_mass_thread_event_notify(void)
+{
+	struct cpufreq_policy *policy = cpufreq_cpu_get(0);
+	if (policy && policy->governor)
+        policy->governor->governor(policy, CPUFREQ_GOV_MASS_THREAD_EVENT);
+}
+EXPORT_SYMBOL_GPL(cpufreq_mass_thread_event_notify);
+
 static int __init cpufreq_core_init(void)
 {
 	int cpu;
