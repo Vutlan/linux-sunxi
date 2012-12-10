@@ -38,11 +38,11 @@ static inline void arch_idle(void)
 
 static inline void arch_reset(char mode, const char *cmd)
 {
-	/* use watch dog reset */
-	printk("arch_reset enterint!\n");
-	writel(1,(AW_VIR_TIMER_BASE + AW_WDOG1_IRQ_EN_REG));
-	writel(1,(AW_VIR_TIMER_BASE + AW_WDOG1_CFG_REG));
-	writel(1,(AW_VIR_TIMER_BASE + AW_WDOG1_MODE_REG));
+	printk("[%s] enter\n", __func__);
+	writel(0, (AW_VIR_R_WDOG_BASE + AW_WDOG0_IRQ_EN_REG));
+	writel(1, (AW_VIR_R_WDOG_BASE + AW_WDOG0_CFG_REG));
+	writel(1, (AW_VIR_R_WDOG_BASE + AW_WDOG0_MODE_REG)); /* interval is 0.5 sec */
+	while(1); /* never return */
 }
 
 /*

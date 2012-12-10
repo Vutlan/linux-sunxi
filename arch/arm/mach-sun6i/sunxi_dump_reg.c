@@ -1,5 +1,5 @@
 /*
- * arch/arm/mach-sun6i/clock/sunxi_dump_reg.c
+ * arch/arm/mach-sun6i/sunxi_dump_reg.c
  * (C) Copyright 2010-2015
  * Reuuimlla Technology Co., Ltd. <www.reuuimllatech.com>
  * liugang <liugang@reuuimllatech.com>

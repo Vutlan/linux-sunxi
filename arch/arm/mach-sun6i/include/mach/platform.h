@@ -280,6 +280,13 @@
 #define	AW_WDOG1_CFG_REG			0xb4
 #define	AW_WDOG1_MODE_REG			0xb8
 
+/* r-watchdog0 reg offset define */
+#define	AW_WDOG0_IRQ_EN_REG		0x0
+#define	AW_WDOG0_IRQ_STA_REG		0x4
+#define	AW_WDOG0_CTRL_REG		0x10
+#define	AW_WDOG0_CFG_REG		0x14
+#define	AW_WDOG0_MODE_REG		0x18
+
 /*
  * CPUCFG
  */
