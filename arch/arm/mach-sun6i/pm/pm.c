@@ -514,9 +514,6 @@ mem_enter:
 		save_mem_status(BEFORE_LATE_RESUME |0x5);
 		mem_arch_resume();
 		save_mem_status(BEFORE_LATE_RESUME |0x6);
-		if(unlikely(debug_mask&PM_STANDBY_PRINT_RESUME)){
-			print_call_info();
-		}
 		goto resume;
 	}
 	
@@ -550,9 +547,6 @@ mem_enter:
 	}
 	
 resume:
-	if(unlikely(debug_mask&PM_STANDBY_PRINT_RESUME)){
-		print_call_info();
-	}
 	aw_late_resume();
 
 	//have been disable dcache in resume1
@@ -790,8 +784,6 @@ static int __init aw_pm_init(void)
 		}
 	}
 
-	pr_err("Notice: not support super standby right now, just waiting for next version....\n");
-	standby_mode = 0;
 	suspend_set_ops(&aw_pm_ops);
 
 	return 0;
