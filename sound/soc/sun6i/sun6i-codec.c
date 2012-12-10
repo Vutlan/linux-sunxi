@@ -555,14 +555,13 @@ static const struct snd_kcontrol_new codec_snd_controls[] = {
 	CODEC_SINGLE("MIC2 boost stage to phone out mute", SUN6I_MIC_CTRL,2,0x1,0),
 	CODEC_SINGLE("Right output mixer to phone out mute", SUN6I_MIC_CTRL,1,0x1,0),
 	CODEC_SINGLE("Left output mixer to phone out mute", SUN6I_MIC_CTRL,1,0x1,0),
-	
+
 	/*SUN6I_ADC_ACTL = 0x2c*/
-	CODEC_SINGLE("ADC Right channel en", SUN6I_MIC_CTRL,31,0x1,0),
-	CODEC_SINGLE("ADC Left channel en", SUN6I_MIC_CTRL,30,0x1,0),
-	CODEC_SINGLE("ADC right channel input gain ctrl", SUN6I_MIC_CTRL,27,0x7,0),
-	CODEC_SINGLE("ADC left channel input gain ctrl", SUN6I_MIC_CTRL,24,0x7,0),
-	CODEC_SINGLE("Right ADC mixer mute ctrl", SUN6I_MIC_CTRL,7,0x7f,0),
-	CODEC_SINGLE("Left ADC mixer mute ctrl", SUN6I_MIC_CTRL,0,0x7f,0),
+	CODEC_SINGLE("ADC Right channel en", SUN6I_ADC_ACTL,31,0x1,0),
+	CODEC_SINGLE("ADC Left channel en", SUN6I_ADC_ACTL,30,0x1,0),
+	CODEC_SINGLE("ADC input gain ctrl", SUN6I_ADC_ACTL,27,0x7,0),
+	CODEC_SINGLE("Right ADC mixer mute ctrl", SUN6I_ADC_ACTL,7,0x7f,0),
+	CODEC_SINGLE("Left ADC mixer mute ctrl", SUN6I_ADC_ACTL,0,0x7f,0),
 	/*SUN6I_ADDAC_TUNE = 0x30*/
 	CODEC_SINGLE("ADC dither on_off ctrl", SUN6I_ADDAC_TUNE,25,0x7f,0),
 	
