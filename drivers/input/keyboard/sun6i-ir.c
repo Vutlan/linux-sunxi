@@ -616,14 +616,14 @@ static void sun6i_ir_early_suspend(struct early_suspend *h)
 	//tmp = readl(IR_BASE+IR_CTRL_REG);
 	//tmp &= 0xfffffffc;
 	//writel(tmp, IR_BASE+IR_CTRL_REG);
-
+#ifdef SYS_CLK_CFG_EN
 	if(NULL == ir_clk || IS_ERR(ir_clk)) {
 		printk("ir_clk handle is invalid, just return!\n");
 		return;
 	} else {	
 		clk_disable(ir_clk);
 	}
-
+#endif
 	return ;
 }
 
@@ -654,14 +654,14 @@ static int sun6i_ir_suspend(struct device *dev)
 	//tmp = readl(IR_BASE+IR_CTRL_REG);
 	//tmp &= 0xfffffffc;
 	//writel(tmp, IR_BASE+IR_CTRL_REG);
-
+#ifdef SYS_CLK_CFG_EN
 	if(NULL == ir_clk || IS_ERR(ir_clk)) {
 		printk("ir_clk handle is invalid, just return!\n");
 		return -1;
 	} else {	
 		clk_disable(ir_clk);
 	}
-
+#endif 
 	return 0;
 }
 
