@@ -172,6 +172,11 @@ void __init sun6i_clkevt_init(void)
     sun6i_timer0_clockevent.cpumask = cpu_all_mask;
     sun6i_timer0_clockevent.irq = sun6i_timer_irq.irq;
     clockevents_register_device(&sun6i_timer0_clockevent);
+
+#ifdef CONFIG_AW_TIME_DELAY
+	use_time_delay();
+#endif
+
 }
 
 

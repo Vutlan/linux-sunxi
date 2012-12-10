@@ -8,9 +8,10 @@ obj-y += dma/
 obj-y += gpio/
 obj-y += ar100/
 obj-y += sys_config.o
-obj-$(CONFIG_CPU_FREQ)			+= cpu-freq/
+obj-$(CONFIG_CPU_FREQ) += cpu-freq/
 obj-$(CONFIG_PM) += pm/
 obj-$(CONFIG_NET) += rf/
+obj-$(CONFIG_AW_TIME_DELAY)	+= delay.o
 ifeq ($(CONFIG_SMP),y)
 obj-y += platsmp.o headsmp.o
 obj-$(CONFIG_HOTPLUG_CPU)		+= hotplug.o
