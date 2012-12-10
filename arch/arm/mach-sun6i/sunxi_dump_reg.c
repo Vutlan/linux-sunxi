@@ -20,27 +20,35 @@
 #include <linux/clk.h>
 #include <linux/io.h>
 #include <linux/slab.h>
+#include <linux/miscdevice.h>
 
 #include <mach/platform.h>
 #include <mach/hardware.h>
 #include <mach/sunxi_dump_reg.h>
+
+#define ADD_MISC_DRIVER		/* add misc driver, for open("/sys/class/...") call */
 
 typedef struct __dump_struct {
 	u32 	st_addr;	/* start reg physical addr */
 	u32 	ed_addr;	/* end reg physical addr */
 }dump_struct;
 
+/* for sunxi_dump class */
 static dump_struct dump_para;
 struct compare_group *cmp_group = NULL;
 struct write_group *wt_group = NULL;
+/* for sunxi-reg misc driver */
+static dump_struct misc_dump_para;
+struct compare_group *misc_cmp_group = NULL;
+struct write_group *misc_wt_group = NULL;
 
 /**
- * addr_valid - check if the addr is valid
+ * __addr_valid - check if the addr is valid
  * @addr: addr to judge
  * 
  * return true if the addr is register addr, false if not.
  */
-bool addr_valid(u32 addr)
+bool __addr_valid(u32 addr)
 {
 	if(addr >= AW_IO_PHYS_BASE && addr < AW_IO_PHYS_BASE + AW_IO_SIZE)
 		return true;
@@ -60,7 +68,7 @@ bool addr_valid(u32 addr)
  *
  * return the first occurance of ch in pstr on success, NULL if failed.
  */
-char * first_str_to_u32(char *pstr, char ch, u32 *pout)
+char * __first_str_to_u32(char *pstr, char ch, u32 *pout)
 {
 	char 	*pret = NULL;
 	char 	str_tmp[260] = {0};
@@ -79,7 +87,7 @@ char * first_str_to_u32(char *pstr, char ch, u32 *pout)
 }
 
 /**
- * parse_dump_str - parse the input string for dump attri.
+ * __parse_dump_str - parse the input string for dump attri.
  * @buf:     the input string, eg: "0x01c20000,0x01c20300".
  * @size:    buf size.
  * @start:   store the start reg's addr parsed from buf, eg 0x01c20000.
@@ -87,7 +95,7 @@ char * first_str_to_u32(char *pstr, char ch, u32 *pout)
  *
  * return 0 if success, otherwise failed.
  */
-int parse_dump_str(const char *buf, size_t size, u32 *start, u32 *end)
+int __parse_dump_str(const char *buf, size_t size, u32 *start, u32 *end)
 {
 	char 	*ptr = (char *)buf;
 
@@ -98,7 +106,7 @@ int parse_dump_str(const char *buf, size_t size, u32 *start, u32 *end)
 		return 0;
 	}
 
-	ptr = first_str_to_u32(ptr, ',', start);
+	ptr = __first_str_to_u32(ptr, ',', start);
 	if(NULL == ptr)
 		return -EINVAL;
 
@@ -110,26 +118,27 @@ int parse_dump_str(const char *buf, size_t size, u32 *start, u32 *end)
 }
 
 /**
- * sunxi_dump_regs_ex - dump a range of registers' value, copy to buf.
+ * __sunxi_dump_regs_ex - dump a range of registers' value, copy to buf.
  * @start_reg:   physcal address of start reg.
  * @end_reg:     physcal address of end reg.
  * @buf:         store the dump info.
  * 
  * return bytes written to buf, <=0 indicate err
  */
-ssize_t sunxi_dump_regs_ex(u32 start_reg, u32 end_reg, char *buf)
+ssize_t __sunxi_dump_regs_ex(u32 start_reg, u32 end_reg, char *buf)
 {
 	int 	i;
 	ssize_t cnt = 0;
 	u32 	first_addr = 0, end_addr = 0;
 
-	if(!addr_valid(start_reg) || !addr_valid(end_reg) || NULL == buf) {
+	if(!__addr_valid(start_reg) || !__addr_valid(end_reg) || NULL == buf) {
 		printk(KERN_ERR "%s err, invalid para, start 0x%08x, end 0x%08x, buf 0x%08x\n", __func__, start_reg, end_reg, (u32)buf);
 		return -EIO;
 	}
 	/* only one to dump */
 	if(start_reg == end_reg)
-		return sprintf(buf, "0x%08x: 0x%08x\n", start_reg, readl(IO_ADDRESS(start_reg)));
+		//return sprintf(buf, "0x%08x: 0x%08x\n", start_reg, readl(IO_ADDRESS(start_reg)));
+		return sprintf(buf, "0x%08x\n", readl(IO_ADDRESS(start_reg))); /* for open("/sys/class/...") app call */
 
 	first_addr = start_reg & (~0xf);
 	end_addr   = (end_reg   & (~0xf)) + 0xf;
@@ -160,7 +169,7 @@ ssize_t sunxi_dump_regs_ex(u32 start_reg, u32 end_reg, char *buf)
  */
 ssize_t dump_show(struct class *class, struct class_attribute *attr, char *buf)
 {
-	return sunxi_dump_regs_ex(dump_para.st_addr, dump_para.ed_addr, buf);
+	return __sunxi_dump_regs_ex(dump_para.st_addr, dump_para.ed_addr, buf);
 }
 
 /**
@@ -177,12 +186,12 @@ ssize_t dump_store(struct class *class, struct class_attribute *attr,
 {
 	u32 	start_reg = 0, end_reg = 0;
 
-	if(0 != parse_dump_str((char *)buf, size, &start_reg, &end_reg)) {
-		printk(KERN_ERR "%s err, invalid para, parse_dump_str failed\n", __func__);
+	if(0 != __parse_dump_str((char *)buf, size, &start_reg, &end_reg)) {
+		printk(KERN_ERR "%s err, invalid para, __parse_dump_str failed\n", __func__);
 		goto err;
 	}
 	//printk(KERN_INFO "%s: get start_reg 0x%08x, end_reg 0x%08x\n", __func__, start_reg, end_reg);
-	if(!addr_valid(start_reg) || !addr_valid(end_reg)) {
+	if(!__addr_valid(start_reg) || !__addr_valid(end_reg)) {
 		printk(KERN_ERR "%s err, invalid para, the addr is not reg\n", __func__);
 		goto err;
 	}
@@ -196,7 +205,7 @@ err:
 }
 
 /**
- * parse_compare_str - parse the input string for compare attri.
+ * __parse_compare_str - parse the input string for compare attri.
  * @str:     string to be parsed, eg: "0x01c20000 0x80000011 0x00000011".
  * @reg_addr:   store the reg address. eg: 0x01c20000.
  * @val_expect: store the expect value. eg: 0x80000011.
@@ -204,17 +213,17 @@ err:
  * 
  * return 0 if success, otherwise failed.
  */
-int parse_compare_str(char *str, u32 *reg_addr,
+int __parse_compare_str(char *str, u32 *reg_addr,
 		u32 *val_expect, u32 *val_mask)
 {
 	char *ptr = str;
 
-	ptr = first_str_to_u32(ptr, ' ', reg_addr);
+	ptr = __first_str_to_u32(ptr, ' ', reg_addr);
 	if(NULL == ptr)
 		return -EINVAL;
 
 	ptr += 1;
-	ptr = first_str_to_u32(ptr, ' ', val_expect);
+	ptr = __first_str_to_u32(ptr, ' ', val_expect);
 	if(NULL == ptr)
 		return -EINVAL;
 
@@ -226,14 +235,14 @@ int parse_compare_str(char *str, u32 *reg_addr,
 }
 
 /**
- * compare_item_init - init for compare attri. parse input string, and construct compare struct.
+ * __compare_item_init - init for compare attri. parse input string, and construct compare struct.
  * @buf:     the input string, eg: "0x01c20000 0x80000011 0x00000011,0x01c20004 0x0000c0a4 0x0000c0a0...".
  * @size:    buf size.
  * @ppgroup: store the struct allocated, the struct contains items parsed from input buf.
  * 
  * return 0 if success, otherwise failed.
  */
-int compare_item_init(const char *buf, size_t size, struct compare_group **ppgroup)
+int __compare_item_init(const char *buf, size_t size, struct compare_group **ppgroup)
 {
 	int 	i = 0;
 	char 	str_temp[256] = {0};
@@ -259,7 +268,7 @@ int compare_item_init(const char *buf, size_t size, struct compare_group **ppgro
 		i = ptr2 - ptr;
 		memcpy(str_temp, ptr, i);
 		str_temp[i] = 0;
-		if(0 != parse_compare_str(str_temp, &reg_addr, &val_expect, &val_mask))
+		if(0 != __parse_compare_str(str_temp, &reg_addr, &val_expect, &val_mask))
 			printk(KERN_ERR "%s err, line %d, str_temp %s\n", __func__, __LINE__, str_temp);
 		else {
 			//printk(KERN_DEBUG "%s: reg_addr 0x%08x, val_expect 0x%08x, val_mask 0x%08x\n",
@@ -280,7 +289,7 @@ int compare_item_init(const char *buf, size_t size, struct compare_group **ppgro
 	}
 
 	/* the last item */
-	if(0 != parse_compare_str(ptr, &reg_addr, &val_expect, &val_mask))
+	if(0 != __parse_compare_str(ptr, &reg_addr, &val_expect, &val_mask))
 		printk(KERN_ERR "%s err, line %d, ptr %s\n", __func__, __LINE__, ptr);
 	else {
 		//printk(KERN_DEBUG "%s: line %d, reg_addr 0x%08x, val_expect 0x%08x, val_mask 0x%08x\n",
@@ -305,10 +314,10 @@ int compare_item_init(const char *buf, size_t size, struct compare_group **ppgro
 }
 
 /**
- * compare_item_deinit - reled_addrse memory that cred_addrted by compare_item_init.
- * @pgroup: the compare struct allocated in compare_item_init.
+ * __compare_item_deinit - reled_addrse memory that cred_addrted by __compare_item_init.
+ * @pgroup: the compare struct allocated in __compare_item_init.
  */
-void compare_item_deinit(struct compare_group *pgroup)
+void __compare_item_deinit(struct compare_group *pgroup)
 {
 	if(NULL != pgroup) {
 		if(NULL != pgroup->pitem)
@@ -317,7 +326,7 @@ void compare_item_deinit(struct compare_group *pgroup)
 	}
 }
 
-ssize_t sunxi_compare_regs_ex(struct compare_group *pgroup, char *buf)
+ssize_t __sunxi_compare_regs_ex(struct compare_group *pgroup, char *buf)
 {
 	int 	i = 0;
 	ssize_t cnt = 0;
@@ -345,7 +354,7 @@ end:
 ssize_t compare_show(struct class *class, struct class_attribute *attr, char *buf)
 {
 	/* dump the items */
-	return sunxi_compare_regs_ex(cmp_group, buf);
+	return __sunxi_compare_regs_ex(cmp_group, buf);
 }
 
 /**
@@ -361,28 +370,28 @@ ssize_t compare_store(struct class *class, struct class_attribute *attr,
 {
 	/* free if struct not null */
 	if(NULL != cmp_group) {
-		compare_item_deinit(cmp_group);
+		__compare_item_deinit(cmp_group);
 		cmp_group = NULL;
 	}
 	/* parse input buf for items that will be dumped */
-	if(compare_item_init(buf, size, &cmp_group) < 0)
+	if(__compare_item_init(buf, size, &cmp_group) < 0)
 		return -EINVAL;
 	return size;
 }
 
 /**
- * parse_write_str - parse the input string for write attri.
+ * __parse_write_str - parse the input string for write attri.
  * @str:     string to be parsed, eg: "0x01c20818 0x55555555".
  * @reg_addr:   store the reg address. eg: 0x01c20818.
  * @val: store the expect value. eg: 0x55555555.
  * 
  * return 0 if success, otherwise failed.
  */
-int parse_write_str(char *str, u32 *reg_addr, u32 *val)
+int __parse_write_str(char *str, u32 *reg_addr, u32 *val)
 {
 	char *ptr = str;
 
-	ptr = first_str_to_u32(ptr, ' ', reg_addr);
+	ptr = __first_str_to_u32(ptr, ' ', reg_addr);
 	if(NULL == ptr)
 		return -EINVAL;
 
@@ -394,14 +403,14 @@ int parse_write_str(char *str, u32 *reg_addr, u32 *val)
 }
 
 /**
- * write_item_init - init for write attri. parse input string, and construct write struct.
+ * __write_item_init - init for write attri. parse input string, and construct write struct.
  * @buf:     the input string, eg: "0x01c20800 0x00000031,0x01c20818 0x55555555,...".
  * @size:    buf size.
  * @ppgroup: store the struct allocated, the struct contains items parsed from input buf.
  * 
  * return 0 if success, otherwise failed.
  */
-int write_item_init(const char *buf, size_t size, struct write_group **ppgroup)
+int __write_item_init(const char *buf, size_t size, struct write_group **ppgroup)
 {
 	int 	i = 0;
 	char 	str_temp[256] = {0};
@@ -427,7 +436,7 @@ int write_item_init(const char *buf, size_t size, struct write_group **ppgroup)
 		i = ptr2 - ptr;
 		memcpy(str_temp, ptr, i);
 		str_temp[i] = 0;
-		if(0 != parse_write_str(str_temp, &reg_addr, &val))
+		if(0 != __parse_write_str(str_temp, &reg_addr, &val))
 			printk(KERN_ERR "%s err, line %d, str_temp %s\n", __func__, __LINE__, str_temp);
 		else {
 			//printk(KERN_DEBUG "%s: reg_addr 0x%08x, val 0x%08x\n", __func__, reg_addr, val);
@@ -446,7 +455,7 @@ int write_item_init(const char *buf, size_t size, struct write_group **ppgroup)
 	}
 
 	/* the last item */
-	if(0 != parse_write_str(ptr, &reg_addr, &val))
+	if(0 != __parse_write_str(ptr, &reg_addr, &val))
 		printk(KERN_ERR "%s err, line %d, ptr %s\n", __func__, __LINE__, ptr);
 	else {
 		//printk(KERN_DEBUG "%s: line %d, reg_addr 0x%08x, val 0x%08x\n", __func__, __LINE__, reg_addr, val);
@@ -469,10 +478,10 @@ int write_item_init(const char *buf, size_t size, struct write_group **ppgroup)
 }
 
 /**
- * write_item_deinit - reled_addrse memory that cred_addrted by write_item_init.
- * @pgroup: the write struct allocated in write_item_init.
+ * __write_item_deinit - reled_addrse memory that cred_addrted by __write_item_init.
+ * @pgroup: the write struct allocated in __write_item_init.
  */
-void write_item_deinit(struct write_group *pgroup)
+void __write_item_deinit(struct write_group *pgroup)
 {
 	if(NULL != pgroup) {
 		if(NULL != pgroup->pitem)
@@ -481,7 +490,7 @@ void write_item_deinit(struct write_group *pgroup)
 	}
 }
 
-ssize_t sunxi_write_regs_ex(struct write_group *pgroup, char *buf)
+ssize_t __sunxi_write_regs_ex(struct write_group *pgroup, char *buf)
 {
 	int 	i = 0;
 	ssize_t cnt = 0;
@@ -506,7 +515,7 @@ end:
 ssize_t write_show(struct class *class, struct class_attribute *attr, char *buf)
 {
 	/* write the items */
-	return sunxi_write_regs_ex(wt_group, buf);
+	return __sunxi_write_regs_ex(wt_group, buf);
 }
 
 /**
@@ -522,11 +531,11 @@ ssize_t write_store(struct class *class, struct class_attribute *attr,
 {
 	/* free if not NULL */
 	if(NULL != wt_group) {
-		write_item_deinit(wt_group);
+		__write_item_deinit(wt_group);
 		wt_group = NULL;
 	}
 	/* parse input buf for items that will be dumped */
-	if(write_item_init(buf, size, &wt_group) < 0)
+	if(__write_item_init(buf, size, &wt_group) < 0)
 		return -EINVAL;
 
 	return size;
@@ -636,4 +645,119 @@ void sunxi_dump_regs(u32 start_reg, u32 end_reg)
 	}
 }
 EXPORT_SYMBOL(sunxi_dump_regs);
+
+#ifdef ADD_MISC_DRIVER
+static ssize_t misc_dump_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return __sunxi_dump_regs_ex(misc_dump_para.st_addr, misc_dump_para.ed_addr, buf);
+}
+static ssize_t misc_dump_store(struct device *dev,struct device_attribute *attr,
+		const char *buf, size_t size)
+{
+	u32 	start_reg = 0, end_reg = 0;
+
+	if(0 != __parse_dump_str((char *)buf, size, &start_reg, &end_reg)) {
+		printk(KERN_ERR "%s err, invalid para, __parse_dump_str failed\n", __func__);
+		goto err;
+	}
+	if(!__addr_valid(start_reg) || !__addr_valid(end_reg)) {
+		printk(KERN_ERR "%s err, invalid para, the addr is not reg\n", __func__);
+		goto err;
+	}
+
+	misc_dump_para.st_addr = start_reg;
+	misc_dump_para.ed_addr = end_reg;
+	printk(KERN_INFO "%s: get start_reg 0x%08x, end_reg 0x%08x\n", __func__, start_reg, end_reg);
+	return size;
+err:
+	misc_dump_para.st_addr = misc_dump_para.ed_addr = 0;
+	return -EINVAL;
+}
+
+static ssize_t misc_compare_store(struct device *dev,struct device_attribute *attr,
+		const char *buf, size_t size)
+{
+	/* free if struct not null */
+	if(NULL != misc_cmp_group) {
+		__compare_item_deinit(misc_cmp_group);
+		misc_cmp_group = NULL;
+	}
+	/* parse input buf for items that will be dumped */
+	if(__compare_item_init(buf, size, &misc_cmp_group) < 0)
+		return -EINVAL;
+	return size;
+}
+
+static ssize_t misc_compare_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	/* dump the items */
+	return __sunxi_compare_regs_ex(misc_cmp_group, buf);
+}
+static ssize_t misc_write_store(struct device *dev,struct device_attribute *attr,
+		const char *buf, size_t size)
+{
+	/* free if not NULL */
+	if(NULL != misc_wt_group) {
+		__write_item_deinit(misc_wt_group);
+		misc_wt_group = NULL;
+	}
+	/* parse input buf for items that will be dumped */
+	if(__write_item_init(buf, size, &misc_wt_group) < 0)
+		return -EINVAL;
+
+	return size;
+}
+static ssize_t misc_write_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	/* write the items */
+	return __sunxi_write_regs_ex(misc_wt_group, buf);
+}
+
+static DEVICE_ATTR(dump, 0644, misc_dump_show, misc_dump_store);
+static DEVICE_ATTR(compare, 0644, misc_compare_show, misc_compare_store);
+static DEVICE_ATTR(write, 0644, misc_write_show, misc_write_store);
+static struct attribute *misc_attributes[] = {
+	&dev_attr_dump.attr,
+	&dev_attr_compare.attr,
+	&dev_attr_write.attr,
+	NULL
+};
+static struct attribute_group misc_attribute_group = {
+	.name  = "rw",
+	.attrs = misc_attributes
+};
+static struct miscdevice sunxi_reg_dev = {
+	.minor = MISC_DYNAMIC_MINOR,
+	.name  = "sunxi-reg",
+};
+
+static int __init sunxi_reg_init(void) {
+	int 	err;
+
+	printk(KERN_INFO "sunxi_reg_init enter\n");
+	err = misc_register(&sunxi_reg_dev);
+	if(err) {
+		printk(KERN_ERR "%s register sunxi debug register driver as misc device error\n", __func__);
+		goto exit;
+	}
+
+	err = sysfs_create_group(&sunxi_reg_dev.this_device->kobj, &misc_attribute_group);
+	if(err)
+		printk("%s err: sysfs_create_group failed\n", __func__);
+exit:
+	return err;
+}
+
+static void __exit sunxi_reg_exit(void) {
+	printk("sunxi_reg_exit enter\n");
+	WARN_ON(0 != misc_deregister(&sunxi_reg_dev));
+	sysfs_remove_group(&sunxi_reg_dev.this_device->kobj, &misc_attribute_group);
+}
+
+module_init(sunxi_reg_init);
+module_exit(sunxi_reg_exit);
+#endif /* ADD_MISC_DRIVER */
 
