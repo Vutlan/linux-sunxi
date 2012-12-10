@@ -146,6 +146,8 @@ int NAND_ClkRequest(__u32 nand_index)
 		if(clk_enable(nand0_clk))
 			printk("%s: enable nand0_clk failed!\n", __func__);
 		/* 放开NAND0 的复位 */
+		if(clk_reset(nand0_clk, AW_CCU_CLK_RESET))
+			printk("%s: RESET nand0_clk failed!\n", __func__);
 		if(clk_reset(nand0_clk, AW_CCU_CLK_NRESET))
 			printk("%s: NRESET nand0_clk failed!\n", __func__);
 	} else if(nand_index == 1) {
@@ -175,6 +177,8 @@ int NAND_ClkRequest(__u32 nand_index)
 		if(clk_enable(nand1_clk))
 			printk("%s: enable nand1_clk failed!\n", __func__);
 		/* 放开NAND1 的复位 */
+		if(clk_reset(nand1_clk, AW_CCU_CLK_RESET))
+			printk("%s: RESET nand1_clk failed!\n", __func__);
 		if(clk_reset(nand1_clk, AW_CCU_CLK_NRESET))
 			printk("%s: NRESET nand1_clk failed!\n", __func__);
 	} else {

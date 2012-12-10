@@ -1809,13 +1809,13 @@ static int nand_suspend(struct platform_device *plat_dev, pm_message_t state)
 	int i=0,j=0;
 	int nand_ch_cnt=NAND_GetChannelCnt();
 
-	pr_debug("[NAND] nand_suspend \n");
 	if(nand_ch_cnt>2)
 		printk("error nand_ch_cnt: 0x%x\n", nand_ch_cnt);
 	
 
 	if(NORMAL_STANDBY== standby_type)
 	{
+		printk("[NAND] nand_suspend normal\n");
 	if(!IS_IDLE){
 		for(i=0;i<10;i++){
 			msleep(200);
@@ -1834,7 +1834,7 @@ static int nand_suspend(struct platform_device *plat_dev, pm_message_t state)
 	}
 	else if(SUPER_STANDBY == standby_type)
 	{
-		pr_debug("nand super standy mode suspend\n");
+		printk("[NAND] nand_suspend super\n");
 			if(!IS_IDLE){
 				for(i=0;i<10;i++){
 					msleep(200);
@@ -1854,13 +1854,31 @@ static int nand_suspend(struct platform_device *plat_dev, pm_message_t state)
 		{
 			for(i=0; i<(NAND_REG_LENGTH); i++){
 				if(j==0)	
+				{
 					nand_reg_state.nand_reg_back[j][i] = *(volatile u32 *)(NAND_GetIOBaseAddrCH0() + i*0x04);
+					//printk("nand ch %d, reg 0x%x, value: 0x%x\n", j, NAND_GetIOBaseAddrCH0() + i*0x04, *(volatile u32 *)(NAND_GetIOBaseAddrCH0() + i*0x04));
+				}	
 				else if(j==1)
+				{
 					nand_reg_state.nand_reg_back[j][i] = *(volatile u32 *)(NAND_GetIOBaseAddrCH1() + i*0x04);
-				//pr_info("reg addr 0x%x : 0x%x \n", i, nand_reg_state.nand_reg_back[i]);
+					//printk("nand ch %d, reg 0x%x, value: 0x%x\n", j, NAND_GetIOBaseAddrCH1() + i*0x04, *(volatile u32 *)(NAND_GetIOBaseAddrCH0() + i*0x04));
+				}
+				
 			}
 		}
-		
+
+		//printk("reg 0xf1c20028, value: 0x%x\n", *(volatile __u32 *)(0xf1c20028));
+		//printk("reg 0xf1c20060, value: 0x%x\n", *(volatile __u32 *)(0xf1c20060));
+		//printk("reg 0xf1c20080, value: 0x%x\n", *(volatile __u32 *)(0xf1c20080));
+		//printk("reg 0xf1c20084, value: 0x%x\n", *(volatile __u32 *)(0xf1c20084));
+		//printk("reg 0xf1c202c0, value: 0x%x\n", *(volatile __u32 *)(0xf1c202c0));
+		//printk("reg 0xf1c20848, value: 0x%x\n", *(volatile __u32 *)(0xf1c20848));
+		//printk("reg 0xf1c2084c, value: 0x%x\n", *(volatile __u32 *)(0xf1c2084c));
+		//printk("reg 0xf1c20854, value: 0x%x\n", *(volatile __u32 *)(0xf1c20854));
+		//printk("reg 0xf1c20850, value: 0x%x\n", *(volatile __u32 *)(0xf1c20850));
+		//printk("reg 0xf1c208fc, value: 0x%x\n", *(volatile __u32 *)(0xf1c208fc));
+		//printk("reg 0xf1c20900, value: 0x%x\n", *(volatile __u32 *)(0xf1c20900));
+		//printk("reg 0xf1c20908, value: 0x%x\n", *(volatile __u32 *)(0xf1c20908));
 			
 		for(j=0;j<nand_ch_cnt;j++)
 		{
@@ -1882,15 +1900,21 @@ static int nand_resume(struct platform_device *plat_dev)
 {
     __s32 ret;
         int nand_ch_cnt=NAND_GetChannelCnt();
+	__u32 nand_index_bak = NAND_GetCurrentCH();
 	
-	printk(KERN_INFO"[NAND] nand_resume \n");
 	if(NORMAL_STANDBY== standby_type){
+		printk("[NAND] nand_resume normal\n");
 	//NAND_PIORequest();
 	//NAND_ClkEnable();
 
 	up(&mytr.nand_ops_mutex);
 	}else if(SUPER_STANDBY == standby_type){
 		int i, j;
+
+		printk("[NAND] nand_resume super\n");
+	if(nand_index_bak!=0)
+		printk("[NAND] currnt index: %d\n", nand_index_bak);
+	
 	for(j=0;j<nand_ch_cnt;j++)
 	{
 		NAND_PIORequest(j);
@@ -1901,41 +1925,53 @@ static int nand_resume(struct platform_device *plat_dev)
 		//restore reg state
 	for(j=0;j<nand_ch_cnt;j++)
 	{
+		
+		
 		for(i=0; i<(NAND_REG_LENGTH); i++){
 			if(0x9 == i){
 				continue;
 			}
 			if(j==0)
+			{
 				*(volatile u32 *)(NAND_GetIOBaseAddrCH0() + i*0x04) = nand_reg_state.nand_reg_back[j][i];
+			}
 			else if(j==1)
+			{
 				*(volatile u32 *)(NAND_GetIOBaseAddrCH1() + i*0x04) = nand_reg_state.nand_reg_back[j][i]; 
-				
+			}	
 		}
 	}
 		
         //reset all chip
         for(j=0;j<nand_ch_cnt;j++)
         {
-        	for(i=1; i<4; i++)
+        	NAND_SetCurrentCH(j);
+		//printk("nand ch %d, chipconnectinfo: 0x%x\n ", j, NAND_GetChipConnect());
+		
+        	for(i=0; i<4; i++)
 	        {
 	            if(NAND_GetChipConnect()&(0x1<<i)) //chip valid
 	            {
-	            	/* need to Select NandIndex here */
-
-			/********************************/
-			
-	                pr_info("nand reset chip %d!\n",i);
+	                //printk("nand reset ch %d, chip %d!\n",j, i);
 	                ret = PHY_ResetChip(i);
 	                ret |= PHY_SynchBank(i, 0);
 	                if(ret)
-	                    pr_info("nand reset chip %d failed!\n",i);
+	                    printk("nand reset ch %d, chip %d failed!\n",j, i);
+			
 	            }
+		    else
+		    {
+		    	//printk("nand skip ch %d, chip %d!\n",j, i);
+		    }
+				
+		    
 	        }
 
-		/* need to Set back NandIndex here */
+		PHY_ChangeMode(1);
 
-		/********************************/
         }
+
+	NAND_SetCurrentCH(nand_index_bak);
     	
     	//init retry count
     	for(i=0;i<4;i++)
@@ -1953,12 +1989,36 @@ static int nand_resume(struct platform_device *plat_dev)
 				continue;
 			}
 			if(j==0)
+			{
 				*(volatile u32 *)(NAND_GetIOBaseAddrCH0() + i*0x04) = nand_reg_state.nand_reg_back[j][i];
+				//printk("nand ch %d, reg 0x%x, value: 0x%x\n", j, NAND_GetIOBaseAddrCH0() + i*0x04, *(volatile u32 *)(NAND_GetIOBaseAddrCH0() + i*0x04));	
+			}
 			else if(j==1)
-				*(volatile u32 *)(NAND_GetIOBaseAddrCH1() + i*0x04) = nand_reg_state.nand_reg_back[j][i]; 
+			{
+				*(volatile u32 *)(NAND_GetIOBaseAddrCH1() + i*0x04) = nand_reg_state.nand_reg_back[j][i];
+				//printk("nand ch %d, reg 0x%x, value: 0x%x\n", j, NAND_GetIOBaseAddrCH1() + i*0x04, *(volatile u32 *)(NAND_GetIOBaseAddrCH0() + i*0x04));	
+			}
+		
 				
 		}
 	}
+
+	//printk("reg 0xf1c20028, value: 0x%x\n", *(volatile __u32 *)(0xf1c20028));
+	//printk("reg 0xf1c20060, value: 0x%x\n", *(volatile __u32 *)(0xf1c20060));
+	//printk("reg 0xf1c20080, value: 0x%x\n", *(volatile __u32 *)(0xf1c20080));
+	//printk("reg 0xf1c20084, value: 0x%x\n", *(volatile __u32 *)(0xf1c20084));
+	//printk("reg 0xf1c202c0, value: 0x%x\n", *(volatile __u32 *)(0xf1c202c0));
+	//printk("reg 0xf1c20848, value: 0x%x\n", *(volatile __u32 *)(0xf1c20848));
+	//printk("reg 0xf1c2084c, value: 0x%x\n", *(volatile __u32 *)(0xf1c2084c));
+	//printk("reg 0xf1c20854, value: 0x%x\n", *(volatile __u32 *)(0xf1c20854));
+	//printk("reg 0xf1c20850, value: 0x%x\n", *(volatile __u32 *)(0xf1c20850));
+	//printk("reg 0xf1c208fc, value: 0x%x\n", *(volatile __u32 *)(0xf1c208fc));
+	//printk("reg 0xf1c20900, value: 0x%x\n", *(volatile __u32 *)(0xf1c20900));
+	//printk("reg 0xf1c20908, value: 0x%x\n", *(volatile __u32 *)(0xf1c20908));
+	
+	
+
+	
 	
 
 		up(&mytr.nand_ops_mutex);

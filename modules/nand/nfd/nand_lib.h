@@ -124,7 +124,7 @@ extern __u32 NAND_GetDiskSize(void);
 extern void  NAND_SetSrcClkName(__u32 pll_name);
 extern __u32 NAND_GetChannelCnt(void);
 extern __u32 NAND_GetCurrentCH(void);
-extern __u32 NAND_SetCurrentCH(void);
+extern __u32 NAND_SetCurrentCH(__u32 nand_index);
 extern __u32 NAND_GetChipConnect(void);
 extern __u32 NAND_GetChipCnt(void);
 extern __u32 NAND_GetPageSize(void);
