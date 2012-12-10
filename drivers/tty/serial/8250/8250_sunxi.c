@@ -84,6 +84,7 @@ struct sw_serial_port {
     struct platform_device* pdev;
 };
 
+struct sw_serial_port *sw_serial_uart[6];
 backup_reg_t sunxi_serial_reg_back[MAX_PORTS];
 
 static char	*mod_clock_name[]={
@@ -124,14 +125,16 @@ static int sw_serial_get_resource(struct sw_serial_port *sport)
         goto iounmap;
     }
 
-    sport->sclk = clk_get_rate(sport->bus_clk);
-
+	printk("sport->sclk %d %d\n",sport->sclk,__LINE__);
     sport->mod_clk_name	= mod_clock_name[sport->port_no];
     sport->mod_clk = clk_get(NULL, sport->mod_clk_name);
     if (IS_ERR(sport->mod_clk)) {
         ret = PTR_ERR(sport->mod_clk);
         goto iounmap;
     }
+
+	sport->sclk = clk_get_rate(sport->mod_clk);
+
 	clk_enable(sport->bus_clk);
     clk_enable(sport->mod_clk);
 	clk_reset(sport->mod_clk,AW_CCU_CLK_NRESET);
@@ -231,8 +234,8 @@ static void
 sw_serial_pm(struct uart_port *port, unsigned int state,
           unsigned int oldstate)
 {
-    struct sw_serial_port *up = (struct sw_serial_port *)port;
-
+	struct sw_serial_port *up = sw_serial_uart[port->irq-32];
+	printk("irq is %d\n",port->irq);
     if (!state){
         clk_enable(up->bus_clk);
 		clk_enable(up->mod_clk);
@@ -242,6 +245,7 @@ sw_serial_pm(struct uart_port *port, unsigned int state,
 		clk_disable(up->mod_clk);
         clk_disable(up->bus_clk);
 	}
+	printk("enter sw_serial_pm!\n");
 }
 
 static void sunxi_serial_out(struct uart_port *p, int offset, int value)
@@ -277,7 +281,7 @@ sw_serial_probe(struct platform_device *dev)
 	sdata = devm_kzalloc(&dev->dev, sizeof(*sdata), GFP_KERNEL);
 	if (!sdata)
 		return -ENOMEM;
-
+	sw_serial_uart[dev->id]=sport;
 	sport->port_no  = dev->id;
     sport->pdev     = dev;
 
@@ -310,16 +314,18 @@ sw_serial_probe(struct platform_device *dev)
     sport->port.dev     	= &dev->dev;
 	sport->port.membase 	= (unsigned char __iomem    *)sport->mmres->start + OFFSET;
     sport->port.mapbase 	= sport->mmres->start;
-
+/*
 	if(sport->port_no) 
 		sdata->line = serial8250_register_port(&sport->port);
 	else
 		sdata->line = 0;
+*/
+	sdata->line = serial8250_register_port(&sport->port);
 	if(sdata->line<0){
 		ret = sdata->line;
 		goto free_dev;	
 	}
-	
+	printk("line %d port_no %d\n",sdata->line,sport->port_no);
 	UART_MSG("\nserial line %d probe %d, membase %p irq %d mapbase 0x%08x\n", 
              sdata->line,dev->id, sport->port.membase, sport->port.irq, sport->port.mapbase);
 		
@@ -402,22 +408,24 @@ static int __devexit sw_serial_remove(struct platform_device *dev)
 static int sw_serial_suspend(struct platform_device *dev, pm_message_t state)
 {
 	int i;
-	struct uart_8250_port *up;
+	struct sw_serial_port *up;
 	struct uart_port *port;
+	struct sw_serial_data *sdata;
 	UART_MSG("sw_serial_suspend uart suspend\n");
 	UART_MSG("&dev->dev is 0x%x\n",&dev->dev);
 
 	for (i = 1; i < MAX_PORTS; i++) {
-		up	= &serial8250_ports[i];
-		port= &(up->port);
+		up		= sw_serial_uart[i];
+		port	= &(up->port);
+		sdata	= port->private_data;
 		if (port->type != PORT_UNKNOWN){
 		UART_MSG("type is 0x%x  PORT_UNKNOWN is 0x%x\n",port->type,PORT_UNKNOWN);
 		UART_MSG("port.dev is 0x%x  &dev->dev is 0x%x\n",port->dev,&dev->dev);
 		}
 
 		if ((port->type != PORT_UNKNOWN)&& (port->dev == &dev->dev)){
-			sunxi_8250_backup_reg(i,port);
-			serial8250_suspend_port(i);
+			sunxi_8250_backup_reg(sdata->line,port);
+			serial8250_suspend_port(sdata->line);
 
 		}
 	}
@@ -428,21 +436,23 @@ static int sw_serial_suspend(struct platform_device *dev, pm_message_t state)
 static int sw_serial_resume(struct platform_device *dev)
 {
 	int i;
-	struct uart_8250_port *up;
+	struct sw_serial_port *up;
 	struct uart_port *port;
+	struct sw_serial_data *sdata;
 	UART_MSG("sw_serial_resume SUPER_STANDBY resume\n");
 	UART_MSG("&dev->dev is 0x%x\n",&dev->dev);
 
 	for (i = 1; i < MAX_PORTS; i++) {
-		up	= &serial8250_ports[i];
-		port= &(up->port);
+		up		= sw_serial_uart[i];
+		port	= &(up->port);
+		sdata	= port->private_data;
 		if (port->type != PORT_UNKNOWN){
 		UART_MSG("type is 0x%x  PORT_UNKNOWN is 0x%x\n",port->type,PORT_UNKNOWN);
 		UART_MSG("port.dev is 0x%x  &dev->dev is 0x%x\n",port->dev,&dev->dev);
 		}
 		if ((port->type != PORT_UNKNOWN) && (port->dev == &dev->dev)){
-			serial8250_resume_port(i);
-			sunxi_8250_comeback_reg(i,port);
+			serial8250_resume_port(sdata->line);
+			sunxi_8250_comeback_reg(sdata->line,port);
 		}	
 
 	}
