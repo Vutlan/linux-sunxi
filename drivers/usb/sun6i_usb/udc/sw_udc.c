@@ -3322,7 +3322,9 @@ __acquires(sw_udc.lock)
 	}
 
 	if(is_udc_support_dma()){
+		spin_lock_irqsave(&udc->lock, flags);
 	    sw_udc_stop_dma_work(udc, 0);
+		spin_unlock_irqrestore(&udc->lock, flags);
 		sw_udc_dma_remove(udc);
 	}
 
