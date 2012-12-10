@@ -32,6 +32,8 @@ modules.builtin
 *.lzo
 *.patch
 *.gcno
+*.bak
+*.symvers
 
 #
 # Top-level generic files
@@ -86,10 +88,10 @@ GTAGS
 *~
 \#*#
 modules/wifi/usi-bcm4329/v4.218.248.15/open-src/src/dhd/linux/dhd-cdc-sdmmc-gpl-3.3
-modules/example/Module.symvers
 modules/mali/DX910-BU-00000-r2p4-02rel1/devicedrv/mali/arch
 modules/mali/DX910-BU-00000-r2p4-02rel1/devicedrv/ump/arch
-modules/mali/DX910-BU-00000-r2p4-02rel1/devicedrv/mali/Module.symvers
-modules/mali/DX910-BU-00000-r2p4-02rel1/devicedrv/ump/Module.symvers
-modules/wifi/ar6302/AR6K_SDK_ISC.build_3.1_RC.329/host/os/linux/Module.symvers
 modules/wifi/bcm4018*/5.90.125*/open-src/src/dhd/linux/dhd-cdc-sdmmc-gpl-*
+modules/eurasia_km/eurasiacon/binary2_sunxi_android_release/
+modules/eurasia_km/eurasiacon/binary2_sunxi_android_debug/
+samples/hidraw/hid-example
+skel/
