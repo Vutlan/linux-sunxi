@@ -51,7 +51,7 @@
 #include <mach/gpio.h> 
 #include <linux/ctp.h>
 
-#include "gslX3680.h" //resolution:2048*1536
+#include "gslX2680.h" //resolution:1024*768
 
 //#define GSL_TIMER
 //#define PRINT_POINT_INFO 
