@@ -56,6 +56,8 @@ bool __addr_valid(u32 addr)
 		return true;
 	if(addr >= AW_SRAM_A2_BASE && addr < AW_SRAM_A2_BASE + AW_SRAM_A2_SIZE)
 		return true;
+	if(addr >= AW_BROM_BASE && addr < AW_BROM_BASE + AW_BROM_SIZE)
+		return true;
 	return false;
 }
 

@@ -55,6 +55,7 @@ static struct map_desc sun6i_io_desc[] __initdata = {
 	{IO_ADDRESS(AW_SRAM_A1_BASE), __phys_to_pfn(AW_SRAM_A1_BASE),  AW_SRAM_A1_SIZE, MT_MEMORY_ITCM},
 	{IO_ADDRESS(AW_SRAM_A2_BASE), __phys_to_pfn(AW_SRAM_A2_BASE),  AW_SRAM_A2_SIZE, MT_DEVICE_NONSHARED},
 	{IO_ADDRESS(AW_IO_PHYS_BASE), __phys_to_pfn(AW_IO_PHYS_BASE),  AW_IO_SIZE, MT_DEVICE_NONSHARED},
+	{IO_ADDRESS(AW_BROM_BASE),    __phys_to_pfn(AW_BROM_BASE),     AW_BROM_SIZE, MT_DEVICE_NONSHARED},
 };
 
 static void __init sun6i_map_io(void)
