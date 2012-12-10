@@ -25,6 +25,8 @@
 #include <linux/slab.h>
 #include <linux/threads.h>
 #include <linux/reboot.h>
+#include <linux/suspend.h>
+#include <linux/delay.h>
 
 
 /*
@@ -1045,11 +1047,11 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
     if (hotplug_history->num_hist == max_hotplug_rate)
         hotplug_history->num_hist = 0;
 
-	if (cpufreq_frequency_table_target(policy, this_dbs_info->freq_table, freq_target, CPUFREQ_RELATION_L, &index)) {
-		FANTASY_ERR("%s: failed to get next lowest frequency\n", __func__);
-		return;
-	}
-	freq_target = this_dbs_info->freq_table[index].frequency;
+    if (cpufreq_frequency_table_target(policy, this_dbs_info->freq_table, freq_target, CPUFREQ_RELATION_L, &index)) {
+        FANTASY_ERR("%s: failed to get next lowest frequency\n", __func__);
+        return;
+    }
+    freq_target = this_dbs_info->freq_table[index].frequency;
 
     if (policy->cur != freq_target) {
         /* set target frequency */
@@ -1111,6 +1113,46 @@ static struct notifier_block reboot_notifier = {
     .notifier_call = reboot_notifier_call,
 };
 
+static int apm_suspend_notifier(struct notifier_block *nb,
+                unsigned long event,
+                void *dummy)
+{
+    int     cpu, timeout = 20;
+
+    switch (event) {
+        case PM_SUSPEND_PREPARE:
+        {
+            /* off no-boot cpus */
+            for_each_online_cpu(cpu) {
+                if (cpu == 0)
+                    continue;
+                cpu_down(cpu);
+            }
+            /* lock policy */
+            cpufreq_fantasys_cpu_lock(1);
+
+            if(1==num_online_cpus())
+                return NOTIFY_OK;
+            else
+                return NOTIFY_BAD;
+        }
+
+        case PM_POST_SUSPEND:
+        {
+            cpufreq_fantasys_cpu_unlock(1);
+            return NOTIFY_OK;
+        }
+
+        default:
+            return NOTIFY_DONE;
+    }
+}
+
+static struct notifier_block suspend_notifier = {
+    .notifier_call = apm_suspend_notifier,
+};
+
+
 /*
  * cpufreq dbs governor
  */
@@ -1162,6 +1204,8 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy, unsigned int even
 
             /* register reboot notifier for process cpus when reboot */
             register_reboot_notifier(&reboot_notifier);
+            /* register suspend notifier for process cpus when suspend */
+            register_pm_notifier(&suspend_notifier);
 
             mutex_init(&this_dbs_info->timer_mutex);
             dbs_timer_init(this_dbs_info);
@@ -1177,6 +1221,7 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy, unsigned int even
             mutex_destroy(&this_dbs_info->timer_mutex);
 
             unregister_reboot_notifier(&reboot_notifier);
+            unregister_pm_notifier(&suspend_notifier);
 
             dbs_enable--;
             mutex_unlock(&dbs_mutex);
