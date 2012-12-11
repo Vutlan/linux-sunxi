@@ -325,6 +325,13 @@ static int nand_transfer(struct nand_blk_dev * dev, unsigned long start,unsigned
 #if NAND_TEST_TICK
 static unsigned long nand_rw_time = 0;
 #endif
+
+#if (USE_BIO_MERGE == 4)
+unsigned int rw_io[256][4]; //  0: blk, 1: nblk, 2: buf, 3: rw flag
+int io_cnt_for_page[64],sec_cnt_for_page[64];
+
+#endif
+
 static int nand_blktrans_thread(void *arg)
 {
 	struct nand_blk_ops *nandr = arg;
@@ -340,12 +347,13 @@ static int nand_blktrans_thread(void *arg)
 	unsigned long rq_len = 0;
 	char *buffer=NULL;
 	int rw_flag = 0, partial_flag = 0;
-	unsigned int rw_io[256][4]; //  0: blk, 1: nblk, 2: buf, 3: rw flag
+	#if (USE_BIO_MERGE == 4)
 	int i,j,io_cnt, io_sec_cnt, temp_sec, temp_len, temp_buf, sec_blank;
-	int io_cnt_for_page[64],sec_cnt_for_page[64], page_index, io_index, logicpagenum;
+	int page_index, io_index, logicpagenum;
 	int sector_cnt_of_single_page, sector_cnt_of_logic_page;
 
-	//static int call_count = 0;
+	static int call_count = 0;
+	#endif
 #endif
 	
 	/* we might get involved when memory gets low, so use PF_MEMALLOC */
@@ -1628,7 +1636,7 @@ static int nand_logrelease(struct nand_blk_dev *dev)
 		log_cnt = BMM_RleaseLogBlock(NAND_LOG_RELEASE_LEVEL);
 		up(&mytr.nand_ops_mutex);
 		IS_IDLE = 1;
-		dbg_inf("nand_log_release: %x \n", log_cnt);
+		//printk("nand_log_release: %x \n", log_cnt);
 		if(log_cnt == NAND_LOG_RELEASE_LEVEL)
 			return 0;
 		else
