@@ -148,9 +148,9 @@ static int hotplug_freq_def[4][2] = {
  */
 static int usrevent_freq_def[4] = {
     100,        /* switch cpu frequency to policy->max * 100% if single core currently */
-    80 ,        /* switch cpu frequency to policy->max * 80% if dule core currently    */
-    70 ,        /* switch cpu frequency to policy->max * 70% if dule core currently    */
-    60 ,        /* switch cpu frequency to policy->max * 60% if dule core currently    */
+    90 ,        /* switch cpu frequency to policy->max * 80% if dule core currently    */
+    80 ,        /* switch cpu frequency to policy->max * 70% if dule core currently    */
+    80 ,        /* switch cpu frequency to policy->max * 60% if dule core currently    */
 };
 #endif
 
