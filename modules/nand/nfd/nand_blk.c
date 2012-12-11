@@ -345,7 +345,7 @@ static int nand_blktrans_thread(void *arg)
 	int io_cnt_for_page[64],sec_cnt_for_page[64], page_index, io_index, logicpagenum;
 	int sector_cnt_of_single_page, sector_cnt_of_logic_page;
 
-	static int call_count = 0;
+	//static int call_count = 0;
 #endif
 	
 	/* we might get involved when memory gets low, so use PF_MEMALLOC */
