@@ -359,9 +359,7 @@ SUNXILFB_ERROR SUNXILFBDisableLFBEventNotification(SUNXILFB_DEVINFO *psDevInfo)
 
 /* Insert the driver into the kernel */
 static int __init SUNXILFB_Init(void)
-{
-    printk("####%s::%d\n", __FUNCTION__, __LINE__);
-    
+{    
 	if(SUNXILFBInit() != SUNXILFB_OK)
 	{
 		printk(KERN_ERR DRIVER_PREFIX ": %s: SUNXILFBInit failed\n", __FUNCTION__);

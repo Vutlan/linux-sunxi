@@ -1130,8 +1130,6 @@ static SUNXILFB_ERROR SUNXILFBInitFBDev(SUNXILFB_DEVINFO *psDevInfo)
 	psDevInfo->sFBInfo.sSysAddr.uiAddr = psPVRFBInfo->sSysAddr.uiAddr;
 	psDevInfo->sFBInfo.sCPUVAddr = psPVRFBInfo->sCPUVAddr;
 
-	printk("####sysaddr:%x,cpuaddr:%x\n", psDevInfo->sFBInfo.sSysAddr.uiAddr, (unsigned int)psDevInfo->sFBInfo.sCPUVAddr);
-
 	eError = SUNXILFB_OK;
 	goto ErrorRelSem;
 
