@@ -96,10 +96,8 @@ enum {
 	DEBUG_SUSPEND = 1U << 2,
 };
 static u32 debug_mask = 0;
-#define dprintk(level_mask, fmt, arg...)	if (unlikely(debug_mask & level_mask)) \
-	printk(KERN_DEBUG fmt , ## arg)
-
-module_param_named(debug_mask, debug_mask, int, S_IRUGO | S_IWUSR | S_IWGRP);
+#define dprintk(level_mask,fmt,arg...)    if(unlikely(debug_mask & level_mask)) \
+        printk("***GSENSOR***"fmt, ## arg)
 
 /* Addresses to scan */
 
@@ -172,12 +170,12 @@ static int gsensor_detect(struct i2c_client *client, struct i2c_board_info *info
 		ret = i2c_smbus_read_byte_data(client,WHO_AM_I);
 	        printk("%s:addr:0x%x,Read ID value is: 0x%x\n",__func__,client->addr,ret);
 	        if (((ret &0x00FF) == WHO_AM_I_VALUE1)|| ((ret &0x00FF) == WHO_AM_I_VALUE2)) {
-	                pr_info("afa750 Sensortec Device detected!\n" );
+	                printk("afa750 Sensortec Device detected!\n" );
     			strlcpy(info->type, SENSOR_NAME, I2C_NAME_SIZE);
                         return 0; 
 	    
 	        }else{
-	                pr_info("afa750 not found!\n" );
+	                printk("afa750 not found!\n" );
 	                return -ENODEV;
 	        }
 	}else{
@@ -272,7 +270,47 @@ static void afa750_dev_poll(struct input_polled_dev *dev)
 	}
 
 } 
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static void afa750_early_suspend(struct early_suspend *h)
+{
+	int result = 0;
+	dprintk(DEBUG_SUSPEND,"CONFIG_HAS_EARLYSUSPEND:afa750 early suspend\n");
+	afa750_data.suspended = true;
+        assert(result==0);
 
+	return;
+}
+
+static void afa750_late_resume(struct early_suspend *h)
+{
+	int result = 0;
+	dprintk(DEBUG_SUSPEND,"CONFIG_HAS_EARLYSUSPEND:afa750 late resume\n");
+        afa750_data.suspended = false;
+        assert(result==0);
+	return;
+}
+#else
+#ifdef CONFIG_PM
+static int afa750_early_suspend(struct i2c_client *client,pm_message_t mesg)
+{
+	int result = 0;
+	dprintk(DEBUG_SUSPEND,"CONFIG_PM:afa750 early suspend\n");
+	afa750_data.suspended = true;
+        assert(result==0);
+
+	return 0;
+}
+
+static int afa750_late_resume(struct i2c_client *client)
+{
+	int result = 0;
+	dprintk(DEBUG_SUSPEND, "CONFIG_PM:afa750 late resume\n");
+        afa750_data.suspended = false;
+        assert(result==0);
+	return 0;
+}
+#endif
+#endif /* CONFIG_HAS_EARLYSUSPEND */
 static int __devinit afa750_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
 	int result;
@@ -356,47 +394,7 @@ static int __devexit afa750_remove(struct i2c_client *client)
 	return result;
 }
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-static void afa750_early_suspend(struct early_suspend *h)
-{
-	int result = 0;
-	dprintk(DEBUG_SUSPEND,"CONFIG_HAS_EARLYSUSPEND:afa750 early suspend\n");
-	afa750_data.suspended = true;
-        assert(result==0);
 
-	return;
-}
-
-static void afa750_late_resume(struct early_suspend *h)
-{
-	int result = 0;
-	dprintk("CONFIG_HAS_EARLYSUSPEND:afa750 late resume\n");
-        afa750_data.suspended = false;
-        assert(result==0);
-	return;
-}
-#else
-#ifdef CONFIG_PM
-static int afa750_early_suspend(struct i2c_client *client,pm_message_t mesg)
-{
-	int result = 0;
-	dprintk(DEBUG_SUSPEND,"CONFIG_PM:afa750 early suspend\n");
-	afa750_data.suspended = true;
-        assert(result==0);
-
-	return 0;
-}
-
-static int afa750_late_resume(struct i2c_client *client)
-{
-	int result = 0;
-	dprintk(DEBUG_SUSPEND, "CONFIG_PM:afa750 late resume\n");
-        afa750_data.suspended = false;
-        assert(result==0);
-	return 0;
-}
-#endif
-#endif /* CONFIG_HAS_EARLYSUSPEND */
 
 static const struct i2c_device_id afa750_id[] = {
 	{ AFA750_DRV_NAME, 1 },
@@ -456,7 +454,7 @@ MODULE_AUTHOR("Chen Gang <gang.chen@freescale.com>");
 MODULE_DESCRIPTION("afa750 3-Axis Orientation/Motion Detection Sensor driver");
 MODULE_LICENSE("GPL");
 MODULE_VERSION("1.1");
-
+module_param_named(debug_mask,debug_mask,int,S_IRUGO | S_IWUSR | S_IWGRP);
 module_init(afa750_init);
 module_exit(afa750_exit);
 
