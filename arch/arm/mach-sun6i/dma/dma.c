@@ -16,6 +16,144 @@
 #include "dma_include.h"
 
 /**
+ * __dma_irq_hdl - dma irq process function
+ * @irq:	dma physical irq num
+ * @dev:	para passed in request_irq function
+ *
+ * Returns 0 if sucess, the err line number if failed.
+ *
+ * we cannot lock __dma_irq_hdl through,
+ * because sw_dma_enqueue maybe called in cb,
+ * which will result in deadlock
+ */
+irqreturn_t __dma_irq_hdl(int irq, void *dev)
+{
+	u32 		i = 0;
+	u32 		uline = 0;
+	u32 		upend_bits = 0;
+	struct dma_channel_t *pchan = NULL;
+	struct dma_mgr_t *pdma_mgr = NULL;
+
+	DMA_DBG("%s, line %d, dma en0 0x%08x, en1 0x%08x, pd0 0x%08x, pd1 0x%08x\n", __func__, __LINE__, \
+		DMA_READ_REG(DMA_IRQ_EN_REG0), DMA_READ_REG(DMA_IRQ_EN_REG1), \
+		DMA_READ_REG(DMA_IRQ_PEND_REG0), DMA_READ_REG(DMA_IRQ_PEND_REG1));
+
+	pdma_mgr = (struct dma_mgr_t *)dev;
+	for(i = 0; i < DMA_CHAN_TOTAL; i++) {
+		pchan = &pdma_mgr->chnl[i];
+		/* get channel irq pend bits */
+		upend_bits = csp_dma_chan_get_irqpend(pchan);
+		if(0 == upend_bits)
+			continue;
+
+		if(DMA_WORK_MODE_SINGLE == pchan->work_mode) {
+			if(0 != dma_irq_hdl_single(pchan, upend_bits)) {
+				uline = __LINE__;
+				goto end;
+			}
+		} else if(DMA_WORK_MODE_CHAIN == pchan->work_mode)
+			dma_irq_hdl_chain(pchan, upend_bits);
+	}
+
+end:
+	if(0 != uline)
+		DMA_ERR("%s err, line %d\n", __func__, uline);
+	return IRQ_HANDLED;
+}
+
+/**
+ * __dma_init - initial the dma manager, request irq
+ * @device:	platform device pointer
+ *
+ * Returns 0 if sucess, the err line number if failed.
+ */
+int __dma_init(struct platform_device *device)
+{
+	int 		ret = 0;
+	int 		i = 0;
+	struct dma_channel_t *pchan = NULL;
+
+	/* init dma controller */
+	csp_dma_init();
+
+	/* initial the dma manager */
+	memset(&g_dma_mgr, 0, sizeof(g_dma_mgr));
+	for(i = 0; i < DMA_CHAN_TOTAL; i++) {
+		pchan 		= &g_dma_mgr.chnl[i];
+		pchan->used 	= 0;
+		pchan->id 	= i;
+		pchan->reg_base = (u32)DMA_EN_REG(i);
+		pchan->irq_spt 	= CHAN_IRQ_NO;
+		pchan->bconti_mode = false;
+		pchan->work_mode = DMA_WORK_MODE_INVALID;
+		DMA_CHAN_LOCK_INIT(&pchan->lock);
+		//pchan->state = DMA_CHAN_STA_IDLE; /* initial when request */
+
+		/* these has cleared in memset-g_dma_mgr-0 */
+		/*memset(pchan->owner, 0, sizeof(pchan->owner));
+		memset(&pchan->hd_cb, 0, sizeof(struct dma_cb_t));
+		memset(&pchan->fd_cb, 0, sizeof(struct dma_cb_t));
+		memset(&pchan->qd_cb, 0, sizeof(struct dma_cb_t));
+		memset(&pchan->op_cb, 0, sizeof(struct dma_op_cb_t));
+		memset(&pchan->des_info_save, 0, sizeof(pchan->des_info_save));
+		pchan->pdes_mgr = NULL;*/
+	}
+
+	/* alloc dma pool for des list */
+	g_des_pool = dmam_pool_create("dma_des_pool", &device->dev, sizeof(des_item), 4, 0);
+	if(NULL == g_des_pool) {
+		ret = __LINE__;
+		goto end;
+	}
+	DMA_INF("%s(%d): g_des_pool 0x%08x\n", __func__, __LINE__, (u32)g_des_pool);
+
+	/* register dma interrupt */
+	ret = request_irq(AW_IRQ_DMA, __dma_irq_hdl, IRQF_DISABLED, "dma_irq", (void *)&g_dma_mgr);
+	if(ret) {
+		DMA_ERR("%s err: request_irq return %d\n", __func__, ret);
+		ret = __LINE__;
+		goto end;
+	}
+	DMA_INF("%s, line %d\n", __func__, __LINE__);
+
+end:
+	if(0 != ret) {
+		DMA_ERR("%s err, line %d\n", __func__, ret);
+		if (NULL != g_des_pool) {
+			dma_pool_destroy(g_des_pool);
+			g_des_pool = NULL;
+		}
+		for(i = 0; i < DMA_CHAN_TOTAL; i++)
+			DMA_CHAN_LOCK_DEINIT(&g_dma_mgr.chnl[i].lock);
+	}
+	return ret;
+}
+
+/**
+ * __dma_deinit - deinit the dma manager, free irq
+ *
+ * Returns 0 if sucess, the err line number if failed.
+ */
+int __dma_deinit(void)
+{
+	u32 	i = 0;
+
+	DMA_INF("%s, line %d\n", __func__, __LINE__);
+	/* free dma irq */
+	free_irq(AW_IRQ_DMA, (void *)&g_dma_mgr);
+
+	if (NULL != g_des_pool) {
+		dma_pool_destroy(g_des_pool);
+		g_des_pool = NULL;
+	}
+	for(i = 0; i < DMA_CHAN_TOTAL; i++)
+		DMA_CHAN_LOCK_DEINIT(&g_dma_mgr.chnl[i].lock);
+	/* clear dma manager */
+	memset(&g_dma_mgr, 0, sizeof(g_dma_mgr));
+	return 0;
+}
+
+/**
  * dma_drv_probe - dma driver inital function.
  * @dev:	platform device pointer
  *
@@ -23,12 +161,7 @@
  */
 static int __devinit dma_drv_probe(struct platform_device *dev)
 {
-	int 	ret = 0;
-
-	ret = dma_init(dev);
-	if(ret)
-		DMA_ERR("%s err, line %d\n", __func__, __LINE__);
-	return ret;
+	return __dma_init(dev);
 }
 
 /**
@@ -39,12 +172,7 @@ static int __devinit dma_drv_probe(struct platform_device *dev)
  */
 static int __devexit dma_drv_remove(struct platform_device *dev)
 {
-	int 	ret = 0;
-
-	ret = dma_deinit();
-	if(ret)
-		DMA_ERR("%s err, line %d\n", __func__, __LINE__);
-	return ret;
+	return __dma_deinit();
 }
 
 /**
@@ -129,7 +257,5 @@ static int __init drv_dma_init(void)
 		printk("%s(%d) err: platform_driver_register failed\n", __func__, __LINE__);
 	return 0;
 }
-
-
 arch_initcall(drv_dma_init);
 

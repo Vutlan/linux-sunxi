@@ -492,7 +492,7 @@ void __write_item_deinit(struct write_group *pgroup)
 	}
 }
 
-ssize_t __sunxi_write_regs_ex(struct write_group *pgroup, char *buf)
+ssize_t __sunxi_write_show(struct write_group *pgroup, char *buf)
 {
 	int 	i = 0;
 	ssize_t cnt = 0;
@@ -506,7 +506,6 @@ ssize_t __sunxi_write_regs_ex(struct write_group *pgroup, char *buf)
 	for(i = 0; i < pgroup->num; i++) {
 		reg    	= pgroup->pitem[i].reg_addr;
 		val 	= pgroup->pitem[i].val;
-		writel(val, IO_ADDRESS(reg));
 		red_addrdback = readl(IO_ADDRESS(reg));
 		cnt += sprintf(buf + cnt, "0x%08x  0x%08x  0x%08x\n", reg, val, red_addrdback);
 	}
@@ -516,8 +515,8 @@ end:
 
 ssize_t write_show(struct class *class, struct class_attribute *attr, char *buf)
 {
-	/* write the items */
-	return __sunxi_write_regs_ex(wt_group, buf);
+	/* display write result */
+	return __sunxi_write_show(wt_group, buf);
 }
 
 /**
@@ -531,6 +530,9 @@ ssize_t write_show(struct class *class, struct class_attribute *attr, char *buf)
 ssize_t write_store(struct class *class, struct class_attribute *attr,
 			const char *buf, size_t size)
 {
+	int i = 0;
+	u32 reg = 0, val= 0;
+
 	/* free if not NULL */
 	if(NULL != wt_group) {
 		__write_item_deinit(wt_group);
@@ -539,6 +541,12 @@ ssize_t write_store(struct class *class, struct class_attribute *attr,
 	/* parse input buf for items that will be dumped */
 	if(__write_item_init(buf, size, &wt_group) < 0)
 		return -EINVAL;
+	/* write reg */
+	for(i = 0; i < wt_group->num; i++) {
+		reg    	= wt_group->pitem[i].reg_addr;
+		val 	= wt_group->pitem[i].val;
+		writel(val, IO_ADDRESS(reg));
+	}
 
 	return size;
 }
@@ -700,6 +708,9 @@ static ssize_t misc_compare_show(struct device *dev,
 static ssize_t misc_write_store(struct device *dev,struct device_attribute *attr,
 		const char *buf, size_t size)
 {
+	int i = 0;
+	u32 reg = 0, val= 0;
+
 	/* free if not NULL */
 	if(NULL != misc_wt_group) {
 		__write_item_deinit(misc_wt_group);
@@ -708,14 +719,20 @@ static ssize_t misc_write_store(struct device *dev,struct device_attribute *attr
 	/* parse input buf for items that will be dumped */
 	if(__write_item_init(buf, size, &misc_wt_group) < 0)
 		return -EINVAL;
+	/* write reg */
+	for(i = 0; i < misc_wt_group->num; i++) {
+		reg    	= misc_wt_group->pitem[i].reg_addr;
+		val 	= misc_wt_group->pitem[i].val;
+		writel(val, IO_ADDRESS(reg));
+	}
 
 	return size;
 }
 static ssize_t misc_write_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	/* write the items */
-	return __sunxi_write_regs_ex(misc_wt_group, buf);
+	/* display write result */
+	return __sunxi_write_show(misc_wt_group, buf);
 }
 
 static DEVICE_ATTR(dump, 0666, misc_dump_show, misc_dump_store);

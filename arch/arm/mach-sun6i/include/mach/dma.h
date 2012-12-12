@@ -183,23 +183,18 @@ struct dma_config_t {
 	 * eg: DMAXFER_D_SWORD_S_SWORD, DMAXFER_D_SBYTE_S_BBYTE
 	 */
 	enum xferunit_e	xfer_type;
-
 	/*
 	 * NDMA/DDMA src/dst address type
 	 * eg: DMAADDRT_D_INC_S_INC(NDMA addr type),
 	 *     DMAADDRT_D_LN_S_LN / DMAADDRT_D_LN_S_IO(DDMA addr type)
 	 */
 	enum addrt_e	address_type;
-
 	u32		para;		/* dma para reg */
 	u32 		irq_spt;	/* channel irq supported, eg: CHAN_IRQ_HD | CHAN_IRQ_FD */
-
 	u32		src_addr;	/* src phys addr */
 	u32		dst_addr;	/* dst phys addr */
 	u32		byte_cnt;	/* byte cnt for src_addr/dst_addr transfer */
-
 	bool		bconti_mode;	/* continue mode */
-
 	u8		src_drq_type;	/* src drq type */
 	u8		dst_drq_type;	/* dst drq type */
 };
@@ -405,7 +400,6 @@ u32 sw_dma_config(dm_hdl_t dma_hdl, struct dma_config_t *pcfg, enum dma_enque_ph
 u32 sw_dma_ctl(dm_hdl_t dma_hdl, enum dma_op_type_e op, void *parg);
 int sw_dma_getposition(dm_hdl_t dma_hdl, u32 *pSrc, u32 *pDst);
 void sw_dma_dump_chan(dm_hdl_t dma_hdl);
-u32 sw_dma_get_cur_bytes(dm_hdl_t dma_hdl);
 
 #if 0
 u32 sw_dma_getsoftsta(dm_hdl_t dma_hdl);

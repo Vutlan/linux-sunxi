@@ -32,7 +32,6 @@
 #include <linux/clk.h>
 #include <linux/pm.h>
 
-#define USE_UNCACHED_FOR_DESMGR /* use uncached for des manager, 2012-6-20 */
 //#define TEMP_FOR_XJF_20121121 	/* alloc des buf in request, temp for xujinfeng, 2012-11-21 */
 
 #include <mach/dma.h>
@@ -40,12 +39,9 @@
 #include "dma_regs.h"
 #include "dma_common.h"
 #include "dma_csp.h"
-#include "dma_ctrl.h"
-#include "dma_enqueue.h"
-#include "dma_init.h"
 #include "dma_interface.h"
-#include "dma_irq_hd.h"
 #include "dma_single.h"
+#include "dma_chain.h"
 
 #ifdef TEMP_FOR_XJF_20121121
 #define TEMP_DES_CNT	20

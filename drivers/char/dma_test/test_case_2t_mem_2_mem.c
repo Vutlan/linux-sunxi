@@ -20,8 +20,8 @@
 #define THREAD1_DMA_NAME 	"m2m_dma_thread1"
 #define THREAD2_DMA_NAME 	"m2m_dma_thread2"
 /* total transfer length */
-#define DTC_2T_TOTAL_LEN	SIZE_64K
-#define DTC_2T_ONE_LEN		SIZE_8K
+#define DTC_2T_TOTAL_LEN	SIZE_512K
+#define DTC_2T_ONE_LEN		SIZE_4K
 /* test time for each thread */
 #define TEST_TIME_THREAD1 	0x0fffffff	/* ms */
 #define TEST_TIME_THREAD2 	0x0fffffff
@@ -190,7 +190,7 @@ u32 __cb_op_2(dm_hdl_t dma_hdl, void *parg, enum dma_op_type_e op)
 u32 __waitdone_2(void)
 {
 	long 	ret = 0;
-	long 	timeout = 50 * HZ; /* 50 */
+	long 	timeout = 2 * HZ;
 
 	ret = wait_event_interruptible_timeout(g_dtc_queue[2],
 		atomic_read(&g_adma_done2)== 1, timeout);
@@ -499,7 +499,7 @@ u32 __cb_op_1(dm_hdl_t dma_hdl, void *parg, enum dma_op_type_e op)
 u32 __waitdone_1(void)
 {
 	long 	ret = 0;
-	long 	timeout = 50 * HZ; /* 50 */
+	long 	timeout = 2 * HZ;
 
 	ret = wait_event_interruptible_timeout(g_dtc_queue[1], \
 		atomic_read(&g_adma_done1)== 1, timeout);

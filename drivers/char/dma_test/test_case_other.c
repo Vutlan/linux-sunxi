@@ -142,8 +142,8 @@ u32 __dtc_stopcmd(void)
 	g_src_addr = usrc_paddr;
 	g_dst_addr = udst_paddr;
 
-	//dma_hdl = sw_dma_request("case_stp_dma", DMA_WORK_MODE_CHAIN);
-	dma_hdl = sw_dma_request("case_stp_dma", DMA_WORK_MODE_SINGLE);
+	dma_hdl = sw_dma_request("case_stp_dma", DMA_WORK_MODE_CHAIN);
+	//dma_hdl = sw_dma_request("case_stp_dma", DMA_WORK_MODE_SINGLE);
 	if(NULL == dma_hdl) {
 		uret = __LINE__;
 		goto end;
@@ -198,7 +198,6 @@ u32 __dtc_stopcmd(void)
 		goto end;
 	}
 	pr_info("%s: sw_dma_config success\n", __func__);
-	sw_dma_dump_chan(dma_hdl);
 
 	atomic_set(&g_adma_done, 0);
 	if(0 != sw_dma_ctl(dma_hdl, DMA_OP_START, NULL)) {
@@ -254,6 +253,7 @@ u32 __dtc_stopcmd(void)
 	}
 	pr_info("%s: __waitdone_stopcmd sucess\n", __func__);
 #endif
+	sw_dma_dump_chan(dma_hdl);
 
 	/* stop and release dma channel */
 	if(0 != sw_dma_ctl(dma_hdl, DMA_OP_STOP, NULL)) {
@@ -670,26 +670,11 @@ end:
 u32 __cb_fd_conti_mode(dm_hdl_t dma_hdl, void *parg, enum dma_cb_cause_e cause)
 {
 	u32 	uret = 0;
-	u32	ucur_saddr = 0, ucur_daddr = 0;
-	u32	uloop_cnt = DTC_1T_TOTAL_LEN / DTC_1T_ONE_LEN;
-	u32 	ucur_cnt = 0;
 
 	pr_info("%s: called!\n", __func__);
 	switch(cause) {
 	case DMA_CB_OK:
 		pr_info("%s: DMA_CB_OK!\n", __func__);
-		/* enqueue if not done */
-		ucur_cnt = atomic_add_return(1, &g_acur_cnt);
-		if(ucur_cnt < uloop_cnt){
-			pr_info("%s, line %d\n", __func__, __LINE__);
-			ucur_saddr = g_src_addr + ucur_cnt * DTC_1T_ONE_LEN;
-			ucur_daddr = g_dst_addr + ucur_cnt * DTC_1T_ONE_LEN;
-			if(0 != sw_dma_enqueue(dma_hdl, ucur_saddr, ucur_daddr, DTC_1T_ONE_LEN, ENQUE_PHASE_FD))
-				printk("%s err, line %d\n", __func__, __LINE__);
-		} else {
-			/* do nothing */
-			pr_info("%s, line %d\n", __func__, __LINE__);
-		}
 		break;
 	case DMA_CB_ABORT:
 		pr_info("%s: DMA_CB_ABORT!\n", __func__);
@@ -708,24 +693,11 @@ end:
 u32 __cb_hd_conti_mode(dm_hdl_t dma_hdl, void *parg, enum dma_cb_cause_e cause)
 {
 	u32 	uret = 0;
-	u32	ucur_saddr = 0, ucur_daddr = 0;
-	u32	uloop_cnt = DTC_1T_TOTAL_LEN / DTC_1T_ONE_LEN;
-	u32 	ucur_cnt = 0;
 
 	pr_info("%s: called!\n", __func__);
 	switch(cause) {
 	case DMA_CB_OK:
 		pr_info("%s: DMA_CB_OK!\n", __func__);
-		/* enqueue if not done */
-		ucur_cnt = atomic_add_return(1, &g_acur_cnt);
-		if(ucur_cnt < uloop_cnt){
-			pr_info("%s, line %d\n", __func__, __LINE__);
-			ucur_saddr = g_src_addr + ucur_cnt * DTC_1T_ONE_LEN;
-			ucur_daddr = g_dst_addr + ucur_cnt * DTC_1T_ONE_LEN;
-			if(0 != sw_dma_enqueue(dma_hdl, ucur_saddr, ucur_daddr, DTC_1T_ONE_LEN, ENQUE_PHASE_HD))
-				printk("%s err, line %d\n", __func__, __LINE__);
-		} else
-			pr_info("%s, line %d\n", __func__, __LINE__); /* do nothing */
 		break;
 	case DMA_CB_ABORT:
 		pr_info("%s: DMA_CB_ABORT!\n", __func__);
@@ -772,7 +744,7 @@ u32 __cb_op_conti_mode(dm_hdl_t dma_hdl, void *parg, enum dma_op_type_e op)
 u32 __waitdone_conti_mode(void)
 {
 	long 	ret = 0;
-	long 	timeout = 50 * HZ; /* 50s */
+	long 	timeout = 3 * HZ; /* 3s */
 
 	ret = wait_event_interruptible_timeout(g_dtc_queue[0], \
 		atomic_read(&g_adma_done)== 1, timeout);
@@ -869,12 +841,13 @@ u32 __dtc_conti_mode(void)
 
 	memset(&dma_config, 0, sizeof(dma_config));
 	dma_config.xfer_type 	= DMAXFER_D_BWORD_S_BWORD;
-	dma_config.address_type 	= DMAADDRT_D_LN_S_LN;
-	dma_config.para 		= 0;
+	dma_config.address_type = DMAADDRT_D_LN_S_LN;
+	dma_config.para 	= 0;
 	dma_config.irq_spt 	= CHAN_IRQ_HD | CHAN_IRQ_FD | CHAN_IRQ_QD;
 	dma_config.src_addr 	= usrc_paddr;
 	dma_config.dst_addr 	= udst_paddr;
-	dma_config.byte_cnt 	= DTC_1T_ONE_LEN;
+	//dma_config.byte_cnt 	= DTC_1T_ONE_LEN;
+	dma_config.byte_cnt 	= DTC_1T_TOTAL_LEN; /* only enqueue one buf */
 	dma_config.bconti_mode 	= true;
 	dma_config.src_drq_type 	= DRQSRC_SDRAM;
 	dma_config.dst_drq_type 	= DRQDST_SDRAM;
@@ -891,7 +864,7 @@ u32 __dtc_conti_mode(void)
 		goto end;
 	}
 	/* let callback go on enqueueing... */
-	msleep(0);
+	msleep(8000);
 
 	/* check if data ok */
 	if(0 == memcmp(src_vaddr, dst_vaddr, DTC_1T_TOTAL_LEN))

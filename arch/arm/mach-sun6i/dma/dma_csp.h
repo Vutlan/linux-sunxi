@@ -16,6 +16,12 @@
 #ifndef __DMA_CSP_H
 #define __DMA_CSP_H
 
+extern struct clk *g_dma_ahb_clk;
+extern struct clk *g_dma_mod_clk;
+
+u32 dma_clk_init(void);
+u32 dma_clk_deinit(void);
+
 void csp_dma_init(void);
 u32  csp_dma_clear_irqpend(u32 index);
 
@@ -32,12 +38,6 @@ u32  csp_dma_chan_get_status(struct dma_channel_t * pchan);
 void csp_dma_chan_irq_enable(struct dma_channel_t * pchan, u32 irq_type);
 void csp_dma_chan_clear_irqpend(struct dma_channel_t * pchan, u32 irq_type);
 u32  csp_dma_chan_get_irqpend(struct dma_channel_t * pchan);
-
-u32 dma_clk_init(void);
-u32 dma_clk_deinit(void);
-
-extern struct clk *g_dma_ahb_clk;
-extern struct clk *g_dma_mod_clk;
 
 #endif  /* __DMA_CSP_H */
 

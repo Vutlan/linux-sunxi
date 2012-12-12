@@ -120,10 +120,8 @@ u32 __cb_fd_1t_mem_2_mem(dm_hdl_t dma_hdl, void *parg, enum dma_cb_cause_e cause
 			ucur_daddr = g_dst_addr + ucur_cnt * DTC_1T_ONE_LEN;
 			if(0 != sw_dma_enqueue(dma_hdl, ucur_saddr, ucur_daddr, DTC_1T_ONE_LEN, ENQUE_PHASE_FD))
 				printk("%s err, line %d\n", __func__, __LINE__);
-		} else {
-			/* do nothing */
+		} else /* do nothing */
 			printk("%s, line %d\n", __func__, __LINE__);
-		}
 		break;
 	case DMA_CB_ABORT:
 		pr_info("%s: DMA_CB_ABORT!\n", __func__);
@@ -216,7 +214,7 @@ u32 __cb_op_1t_mem_2_mem(dm_hdl_t dma_hdl, void *parg, enum dma_op_type_e op)
 u32 __waitdone_1t_mem_2_mem(void)
 {
 	long 	ret = 0;
-	long 	timeout = 50 * HZ; /* 50s */
+	long 	timeout = 10 * HZ; /* 10s */
 
 	/* wait dma done */
 	ret = wait_event_interruptible_timeout(g_dtc_queue[DTC_1T_MEM_2_MEM], \
@@ -691,7 +689,7 @@ u32 __dtc_case_enq_aftdone(void)
 		}
 		msleep(1);
 	}
-	msleep(5000);
+	msleep(2000);
 
 	if(0 == memcmp(src_vaddr, dst_vaddr, DTC_1T_TOTAL_LEN))
 		pr_info("%s: data check ok!\n", __func__);

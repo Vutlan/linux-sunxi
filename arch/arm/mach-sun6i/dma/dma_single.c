@@ -19,65 +19,55 @@
 u32 __dma_start(dm_hdl_t dma_hdl)
 {
 	u32	uret = 0;
-	struct des_item_t	*pdes_item = NULL;
+	des_item *pdes_item = NULL;
 	struct dma_channel_t 	*pchan = (struct dma_channel_t *)dma_hdl;
 
 	if(list_empty(&pchan->buf_list_head)) {
 		uret = __LINE__;
-		goto End;
+		goto end;
 	}
 
 	/* remove from list */
-	pdes_item = list_entry(pchan->buf_list_head.next, struct des_item_t, list);
+	pdes_item = list_entry(pchan->buf_list_head.next, des_item, list);
 	list_del(&pdes_item->list); /* 只是从链表移除, 未释放空间 */
 
-	//udes_paddr = pchan->pdes_mgr->des_pa;
-	//DMA_WRITE_REG(udes_paddr, pchan->reg_base + DMA_OFF_REG_START);
 	DMA_WRITE_REG(pdes_item->paddr, pchan->reg_base + DMA_OFF_REG_START);
-
 	csp_dma_chan_start(pchan);
-
 	STATE_SGL(pchan) = SINGLE_STA_RUNING;
-
 	pchan->pcur_des = pdes_item;
 
-End:
-	if(0 != uret) {
+end:
+	if(0 != uret)
 		DMA_ERR("%s err, line %d, dma_hdl 0x%08x\n", __func__, uret, (u32)dma_hdl);
-	}
 	return uret;
 }
 
-u32 __dma_pause(dm_hdl_t dma_hdl)
+void __dma_pause(dm_hdl_t dma_hdl)
 {
 	csp_dma_chan_pause((struct dma_channel_t *)dma_hdl);
-	return 0;
 }
 
-u32 __dma_resume(dm_hdl_t dma_hdl)
+void __dma_resume(dm_hdl_t dma_hdl)
 {
 	csp_dma_chan_resume((struct dma_channel_t *)dma_hdl);
-	return 0;
 }
 
 /* not include cur buf */
 u32 __dma_free_buflist(struct dma_channel_t *pchan)
 {
 	u32	utemp = 0;
-	struct des_item_t *pdes_item = NULL;
+	des_item *pdes_item = NULL;
 
 	while (!list_empty(&pchan->buf_list_head)) {
-		pdes_item = list_entry(pchan->buf_list_head.next, struct des_item_t, list);
+		pdes_item = list_entry(pchan->buf_list_head.next, des_item, list);
 		utemp = pdes_item->paddr;
 		list_del(&pdes_item->list);
 #ifndef TEMP_FOR_XJF_20121121
-		dma_pool_free(g_pool_sg, pdes_item, utemp);
+		dma_pool_free(g_des_pool, pdes_item, utemp);
 #else
 		index_put++;
 		if(index_put >= TEMP_DES_CNT)
 			index_put = 0;
-		//if(index_put > index_get)
-		//	printk("%s err: index_put %d > index_get %d", __func__, index_put, index_get);
 #endif /* TEMP_FOR_XJF_20121121 */
 	}
 	return 0;
@@ -91,7 +81,7 @@ u32 __dma_free_allbuf(struct dma_channel_t *pchan)
 	if(NULL != pchan->pcur_des) {
 		utemp = pchan->pcur_des->paddr;
 #ifndef TEMP_FOR_XJF_20121121
-		dma_pool_free(g_pool_sg, pchan->pcur_des, utemp);
+		dma_pool_free(g_des_pool, pchan->pcur_des, utemp);
 #else
 		index_put++;
 		if(index_put >= TEMP_DES_CNT)
@@ -106,22 +96,6 @@ u32 __dma_free_allbuf(struct dma_channel_t *pchan)
 	return 0;
 }
 
-void __dump_buf_list_sgmd(struct dma_channel_t *pchan)
-{
-	struct list_head *p, *n;
-	struct des_item_t *pitem = NULL;
-#if (DMA_DBG_LEVEL != 3)
-	int i = 0;
-#endif /* (DMA_DBG_LEVEL != 3) */
-
-	DMA_INF("+++++++++++%s+++++++++++\n", __func__);
-	list_for_each_safe(p, n, &pchan->buf_list_head) {
-		pitem = list_entry(p, struct des_item_t, list);
-		DMA_INF("des[%d]: 0x%08x\n", i++, (u32)&pitem->des);
-	}
-	DMA_INF("-----------%s-----------\n", __func__);
-}
-
 /* abort回调, 硬件上stop, 释放当前buffer(如果有), 释放list buffer */
 u32 __dma_stop(dm_hdl_t dma_hdl)
 {
@@ -129,7 +103,7 @@ u32 __dma_stop(dm_hdl_t dma_hdl)
 	struct dma_channel_t *pchan = (struct dma_channel_t *)dma_hdl;
 
 	DMA_INF("%s: state %d, buf chain: \n", __func__, (u32)STATE_SGL(pchan));
-	__dump_buf_list_sgmd(pchan);
+	//dma_dump_chain(pchan);
 
 	switch(STATE_SGL(pchan)) {
 	case SINGLE_STA_IDLE:
@@ -147,27 +121,12 @@ u32 __dma_stop(dm_hdl_t dma_hdl)
 		break;
 	default:
 		uret = __LINE__;
-		goto End;
+		goto end;
 	}
 
-	/*
-	 * stop dma channle and clear irq pending
-	 */
+	/* stop dma channle and clear irq pending */
 	csp_dma_chan_stop(pchan);
 	csp_dma_chan_clear_irqpend(pchan, CHAN_IRQ_HD | CHAN_IRQ_FD | CHAN_IRQ_QD);
-
-	/*
-	 * abort dma transfer if state is running or last done
-	 */
-	if(SINGLE_STA_RUNING == STATE_SGL(pchan)
-		|| SINGLE_STA_LAST_DONE == STATE_SGL(pchan)) {
-		if(NULL != pchan->qd_cb.func) {
-			if(0 != pchan->qd_cb.func(dma_hdl, pchan->qd_cb.parg, DMA_CB_ABORT)) {
-				uret = __LINE__;
-				goto End;
-			}
-		}
-	}
 
 	/* free buffer list */
 	__dma_free_allbuf(pchan);
@@ -175,10 +134,9 @@ u32 __dma_stop(dm_hdl_t dma_hdl)
 	/* change channel state to idle */
 	STATE_SGL(pchan) = SINGLE_STA_IDLE;
 
-End:
-	if(0 != uret) {
+end:
+	if(0 != uret)
 		DMA_ERR("%s err, line %d\n", __func__, uret);
-	}
 	return uret;
 }
 
@@ -210,9 +168,8 @@ u32 __dma_set_op_cb(dm_hdl_t dma_hdl, struct dma_op_cb_t *pcb)
 {
 	struct dma_channel_t *pchan = (struct dma_channel_t *)dma_hdl;
 
-	if(SINGLE_STA_IDLE != STATE_SGL(pchan)) {
+	if(SINGLE_STA_IDLE != STATE_SGL(pchan))
 		DMA_ERR("%s err, line %d\n", __func__, __LINE__);
-	}
 	pchan->op_cb.func = pcb->func;
 	pchan->op_cb.parg = pcb->parg;
 	return 0;
@@ -222,9 +179,8 @@ u32 __dma_set_hd_cb(dm_hdl_t dma_hdl, struct dma_cb_t *pcb)
 {
 	struct dma_channel_t *pchan = (struct dma_channel_t *)dma_hdl;
 
-	if(SINGLE_STA_IDLE != STATE_SGL(pchan)) {
+	if(SINGLE_STA_IDLE != STATE_SGL(pchan))
 		DMA_ERR("%s err, line %d\n", __func__, __LINE__);
-	}
 	pchan->hd_cb.func = pcb->func;
 	pchan->hd_cb.parg = pcb->parg;
 	return 0;
@@ -234,9 +190,8 @@ u32 __dma_set_fd_cb(dm_hdl_t dma_hdl, struct dma_cb_t *pcb)
 {
 	struct dma_channel_t *pchan = (struct dma_channel_t *)dma_hdl;
 
-	if(SINGLE_STA_IDLE != STATE_SGL(pchan)) {
+	if(SINGLE_STA_IDLE != STATE_SGL(pchan))
 		DMA_ERR("%s err, line %d\n", __func__, __LINE__);
-	}
 	pchan->fd_cb.func = pcb->func;
 	pchan->fd_cb.parg = pcb->parg;
 	return 0;
@@ -246,9 +201,8 @@ u32 __dma_set_qd_cb(dm_hdl_t dma_hdl, struct dma_cb_t *pcb)
 {
 	struct dma_channel_t *pchan = (struct dma_channel_t *)dma_hdl;
 
-	if(SINGLE_STA_IDLE != STATE_SGL(pchan)) {
+	if(SINGLE_STA_IDLE != STATE_SGL(pchan))
 		DMA_ERR("%s err, line %d\n", __func__, __LINE__);
-	}
 	pchan->qd_cb.func = pcb->func;
 	pchan->qd_cb.parg = pcb->parg;
 	return 0;
@@ -259,12 +213,12 @@ u32 __dma_enqueue(dm_hdl_t dma_hdl, struct cofig_des_t *pdes, enum dma_enque_pha
 	u32 	uret = 0;
 	u32 	utemp = 0;
 	struct dma_channel_t 	*pchan = (struct dma_channel_t *)dma_hdl;
-	struct des_item_t	*pdes_itm = NULL;
+	des_item	*pdes_itm = NULL;
 
 #ifdef TEMP_FOR_XJF_20121121
 	u32 offset = 0;
-	offset = sizeof(struct des_item_t) * index_get;
-	pdes_itm = (struct des_item_t *)(v_addr + offset);
+	offset = sizeof(des_item) * index_get;
+	pdes_itm = (des_item *)(v_addr + offset);
 	utemp = p_addr + offset;
 	index_get++;
 	if(index_get >= TEMP_DES_CNT)
@@ -272,10 +226,10 @@ u32 __dma_enqueue(dm_hdl_t dma_hdl, struct cofig_des_t *pdes, enum dma_enque_pha
 	if(index_get == index_put)
 		printk("%s err: des buffer full, to check!", __func__);
 #else
-	pdes_itm = (struct des_item_t *)dma_pool_alloc(g_pool_sg, GFP_ATOMIC, &utemp);
+	pdes_itm = (des_item *)dma_pool_alloc(g_des_pool, GFP_ATOMIC, &utemp);
 	if (NULL == pdes_itm) {
 		uret = __LINE__;
-		goto End;
+		goto end;
 	}
 #endif /* TEMP_FOR_XJF_20121121 */
 	pdes_itm->des = *pdes;
@@ -290,13 +244,12 @@ u32 __dma_enqueue(dm_hdl_t dma_hdl, struct cofig_des_t *pdes, enum dma_enque_pha
 		DMA_INF("%s, line %d\n", __func__, __LINE__);
 		if(0 != __dma_start(dma_hdl)) {
 			uret = __LINE__;
-			goto End;
+			goto end;
 		}
 	}
-End:
-	if(0 != uret) {
+end:
+	if(0 != uret)
 		DMA_ERR("%s err, line %d\n", __func__, uret);
-	}
 	return uret;
 }
 
@@ -307,7 +260,6 @@ u32 __handle_hd_sgmd(struct dma_channel_t *pchan)
 
 	if(NULL != func)
 		return func((dm_hdl_t)pchan, parg, DMA_CB_OK);
-
 	return 0;
 }
 
@@ -318,7 +270,6 @@ u32 __handle_fd_sgmd(struct dma_channel_t *pchan)
 
 	if(NULL != func)
 		return func((dm_hdl_t)pchan, parg, DMA_CB_OK);
-
 	return 0;
 }
 
@@ -345,21 +296,21 @@ u32 __handle_qd_sgmd(struct dma_channel_t *pchan)
 	if(SINGLE_STA_IDLE == cur_state) {
 		WARN(NULL != pchan->pcur_des, "%s err, line %d!\n", __func__, __LINE__);
 		DMA_INF("%s: state idle, stopped in cb before? just return ok!\n", __func__);
-		goto End;
+		goto end;
 	} else if(SINGLE_STA_RUNING == cur_state) {
 		/* for continue mode, just re start the cur buffer */
 		if(unlikely(true == pchan->bconti_mode)) {
 			WARN(!list_empty(&pchan->buf_list_head), "%s err, line %d!\n", __func__, __LINE__);
 			list_add_tail(&pchan->pcur_des->list, &pchan->buf_list_head);
 			uret = __dma_start((dm_hdl_t)pchan);
-			goto End;
+			goto end;
 		}
 
 		/* for no-continue mode, free cur buf and start the next buf in chain */
 		WARN(NULL == pchan->pcur_des, "%s err, line %d!\n", __func__, __LINE__);
 		utemp = pchan->pcur_des->paddr;
 #ifndef TEMP_FOR_XJF_20121121
-		dma_pool_free(g_pool_sg, pchan->pcur_des, utemp);
+		dma_pool_free(g_des_pool, pchan->pcur_des, utemp);
 #else
 		index_put++;
 		if(index_put >= TEMP_DES_CNT)
@@ -371,25 +322,34 @@ u32 __handle_qd_sgmd(struct dma_channel_t *pchan)
 		if(!list_empty(&pchan->buf_list_head)) {
 			if(0 != __dma_start((dm_hdl_t)pchan)) {
 				uret = __LINE__;
-				goto End;
+				goto end;
 			}
 		} else {
 			DMA_INF("%s, line %d\n", __func__, __LINE__);
 			STATE_CHAIN(pchan) = SINGLE_STA_LAST_DONE; /* change state to done */
 		}
-		goto End;
-	} else { /* should never be last done) */
+		goto end;
+	} else { /* should never be last done */
 		uret = __LINE__;
-		goto End;
+		goto end;
 	}
 
-End:
+end:
 	DMA_CHAN_UNLOCK(&pchan->lock, flags);
-	if(0 != uret) {
+	if(0 != uret)
 		DMA_ERR("%s err, line %d\n", __func__, uret);
-	}
-
 	return uret;
+}
+
+u32 dma_request_init_single(struct dma_channel_t *pchan)
+{
+	INIT_LIST_HEAD(&pchan->buf_list_head);
+	STATE_SGL(pchan) = SINGLE_STA_IDLE;
+
+	/* init for chain mode, incase err access by someone */
+	INIT_LIST_HEAD(&pchan->cur_list);
+	INIT_LIST_HEAD(&pchan->next_list);
+	return 0;
 }
 
 /**
@@ -417,9 +377,8 @@ u32 dma_release_single(dm_hdl_t dma_hdl)
 	if(SINGLE_STA_IDLE != STATE_SGL(pchan)) {
 		DMA_INF("%s maybe err: line %d, state(%d) not idle, call stop dma first!\n", \
 			__func__, __LINE__, STATE_SGL(pchan));
-		if(0 != __dma_stop(dma_hdl)) {
+		if(0 != __dma_stop(dma_hdl))
 			DMA_ERR("%s err, line %d\n", __func__, __LINE__);
-		}
 	}
 
 	//memset(pchan, 0, sizeof(*pchan)); /* donot do that, because id...shouldnot be cleared */
@@ -490,28 +449,26 @@ u32 dma_ctrl_single(dm_hdl_t dma_hdl, enum dma_op_type_e op, void *parg)
 		uret = __dma_start(dma_hdl);
 		break;
 	case DMA_OP_PAUSE:
-		uret = __dma_pause(dma_hdl);
+		__dma_pause(dma_hdl);
 		break;
 	case DMA_OP_RESUME:
-		uret = __dma_resume(dma_hdl);
+		__dma_resume(dma_hdl);
 		break;
 	case DMA_OP_STOP:
 		uret = __dma_stop(dma_hdl);
 		break;
-
 	case DMA_OP_GET_STATUS:
-		dma_get_status(dma_hdl, parg);
+		*(u32 *)parg = csp_dma_chan_get_status(pchan);
 		break;
 	case DMA_OP_GET_CUR_SRC_ADDR:
-		dma_get_cur_src_addr(dma_hdl, parg);
+		*(u32 *)parg = csp_dma_chan_get_cur_srcaddr(pchan);
 		break;
 	case DMA_OP_GET_CUR_DST_ADDR:
-		dma_get_cur_dst_addr(dma_hdl, parg);
+		*(u32 *)parg = csp_dma_chan_get_cur_dstaddr(pchan);
 		break;
 	case DMA_OP_GET_BYTECNT_LEFT:
-		dma_get_left_bytecnt(dma_hdl, parg);
+		*(u32 *)parg = csp_dma_chan_get_left_bytecnt(pchan);
 		break;
-
 	case DMA_OP_SET_OP_CB:
 		uret = __dma_set_op_cb(dma_hdl, (struct dma_op_cb_t *)parg);
 		break;
@@ -526,14 +483,13 @@ u32 dma_ctrl_single(dm_hdl_t dma_hdl, enum dma_op_type_e op, void *parg)
 		break;
 	default:
 		uret = __LINE__;
-		goto End;
+		goto end;
 	}
 
-End:
+end:
 	DMA_CHAN_UNLOCK(&pchan->lock, flags);
-	if(0 != uret) {
+	if(0 != uret)
 		DMA_ERR("%s err, line %d, dma_hdl 0x%08x\n", __func__, uret, (u32)dma_hdl);
-	}
 	return uret;
 }
 
@@ -567,31 +523,25 @@ u32 dma_config_single(dm_hdl_t dma_hdl, struct dma_config_t *pcfg, enum dma_enqu
 	des.bcnt  = pcfg->byte_cnt;
 	des.param = pcfg->para;
 	des.pnext = (struct cofig_des_t *)DMA_END_DES_LINK;
-
 	/* get continue mode flag */
 	pchan->bconti_mode = pcfg->bconti_mode;
-
 	/* get irq surport type for channel handle */
 	pchan->irq_spt = pcfg->irq_spt;
-
 	/* bkup config/param */
 	pchan->des_info_save.cofig = uConfig;
 	pchan->des_info_save.param = pcfg->para;
+	pchan->des_info_save.bconti_mode = pcfg->bconti_mode;
 
 	/*
 	 * when called in irq, just use spin_lock, not spin_lock_irqsave
 	 */
-	if(ENQUE_PHASE_NORMAL == phase) {
-		DMA_CHAN_LOCK(&pchan->lock, flags);
-	} else {
-		DMA_CHAN_LOCK_IN_IRQHD(&pchan->lock);
-	}
+	DMA_CHAN_LOCK(&pchan->lock, flags);
 
 	/* cannot enqueue more than one buffer in single_continue mode */
 	if(true == pcfg->bconti_mode
 		&& !list_empty(&pchan->buf_list_head)) {
 		uret = __LINE__;
-		goto End;
+		goto end;
 	}
 
 	/* irq enable */
@@ -600,19 +550,13 @@ u32 dma_config_single(dm_hdl_t dma_hdl, struct dma_config_t *pcfg, enum dma_enqu
 	/* des enqueue */
 	if(0 != __dma_enqueue(dma_hdl, &des, phase)) {
 		uret = __LINE__;
-		goto End;
+		goto end;
 	}
 
-End:
-	if(ENQUE_PHASE_NORMAL == phase) {
-		DMA_CHAN_UNLOCK(&pchan->lock, flags);
-	} else {
-		DMA_CHAN_UNLOCK_IN_IRQHD(&pchan->lock);
-	}
-
-	if(0 != uret) {
+end:
+	DMA_CHAN_UNLOCK(&pchan->lock, flags);
+	if(0 != uret)
 		DMA_ERR("%s err, line %d\n", __func__, uret);
-	}
 	return uret;
 }
 
@@ -645,34 +589,25 @@ u32 dma_enqueue_single(dm_hdl_t dma_hdl, u32 src_addr, u32 dst_addr, u32 byte_cn
 	/*
 	 * when called in irq, just use spin_lock, not spin_lock_irqsave
 	 */
-	if(ENQUE_PHASE_NORMAL == phase) {
-		DMA_CHAN_LOCK(&pchan->lock, flags);
-	} else {
-		DMA_CHAN_LOCK_IN_IRQHD(&pchan->lock);
-	}
+	DMA_CHAN_LOCK(&pchan->lock, flags);
 
 	/* cannot enqueue more than one buffer in single_continue mode */
 	if(true == pchan->bconti_mode
 		&& !list_empty(&pchan->buf_list_head)) {
 		uret = __LINE__;
-		goto End;
+		goto end;
 	}
 
 	if(0 != __dma_enqueue(dma_hdl, &des, phase)) {
 		uret = __LINE__;
-		goto End;
+		goto end;
 	}
 
-End:
-	if(ENQUE_PHASE_NORMAL == phase) {
-		DMA_CHAN_UNLOCK(&pchan->lock, flags);
-	} else {
-		DMA_CHAN_UNLOCK_IN_IRQHD(&pchan->lock);
-	}
+end:
+	DMA_CHAN_UNLOCK(&pchan->lock, flags);
 
-	if(0 != uret) {
+	if(0 != uret)
 		DMA_ERR("%s err, line %d\n", __func__, uret);
-	}
 	return uret;
 }
 
@@ -683,7 +618,7 @@ End:
  *
  * Returns 0 if sucess, the err line number if failed.
  */
-u32 dma_irq_hdl_sgmd(struct dma_channel_t *pchan, u32 upend_bits)
+u32 dma_irq_hdl_single(struct dma_channel_t *pchan, u32 upend_bits)
 {
 	u32	uirq_spt = 0;
 	u32	uret = 0;
@@ -697,37 +632,34 @@ u32 dma_irq_hdl_sgmd(struct dma_channel_t *pchan, u32 upend_bits)
 		if(uirq_spt & CHAN_IRQ_HD) {
 			if(0 != __handle_hd_sgmd(pchan)) {
 				uret = __LINE__;
-				goto End;
+				goto end;
 			}
 		}
 	}
-
 	/* deal full done */
 	if(upend_bits & CHAN_IRQ_FD) {
 		csp_dma_chan_clear_irqpend(pchan, CHAN_IRQ_FD);
 		if(uirq_spt & CHAN_IRQ_FD) {
 			if(0 != __handle_fd_sgmd(pchan)) {
 				uret = __LINE__;
-				goto End;
+				goto end;
 			}
 		}
 	}
-
 	/* deal queue done */
 	if(upend_bits & CHAN_IRQ_QD) {
 		csp_dma_chan_clear_irqpend(pchan, CHAN_IRQ_QD);
 		if(uirq_spt & CHAN_IRQ_QD) {
 			if(0 != __handle_qd_sgmd(pchan)) {
 				uret = __LINE__;
-				goto End;
+				goto end;
 			}
 		}
 	}
 
-End:
-	if(0 != uret) {
+end:
+	if(0 != uret)
 		DMA_ERR("%s err, line %d\n", __func__, uret);
-	}
 	return uret;
 }
 

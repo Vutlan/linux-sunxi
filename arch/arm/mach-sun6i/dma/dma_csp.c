@@ -104,9 +104,8 @@ void csp_dma_init(void)
 	u32 	i = 0;
 
 	/* init dma clock */
-	if(0 != dma_clk_init()) {
+	if(0 != dma_clk_init())
 		DMA_ERR("%s err, dma_clk_init failed, line %d\n", __func__, __LINE__);
-	}
 
 	/* Disable & clear all interrupts */
 	DMA_WRITE_REG(0, DMA_IRQ_EN_REG0);
@@ -115,9 +114,8 @@ void csp_dma_init(void)
 	DMA_WRITE_REG(0xffffffff, DMA_IRQ_PEND_REG1);
 
 	/* init enable reg */
-	for(i = 0; i < DMA_CHAN_TOTAL; i++) {
+	for(i = 0; i < DMA_CHAN_TOTAL; i++)
 		DMA_WRITE_REG(0, DMA_EN_REG(i));
-	}
 }
 
 /**
@@ -260,40 +258,8 @@ u32 csp_dma_chan_get_irqpend(struct dma_channel_t * pchan)
 		utemp = DMA_READ_REG(DMA_IRQ_PEND_REG1);
 		uret = (utemp >> ((pchan->id - 8) << 2)) & 0x7;
 	}
-
 	return uret;
 }
-
-#if 0
-/**
- * csp_dma_chan_config - config the dma channel, then can start dma
- * @pchan:	dma channel handle
- * @pCfg:	dma config para
- *
- * should be called before start dma.
- */
-void csp_dma_chan_config(struct dma_channel_t * pchan, struct dma_config_t * pCfg)
-{
-	u32	uConfig = 0;
-
-	/* src/dst burst length and data width */
-	uConfig |= xfer_arr[pCfg->xfer_type];
-
-	/* src/dst address mode */
-	uConfig |= addrtype_arr[pCfg->address_type];
-
-	/* src/dst drq type */
-	uConfig |= (pCfg->src_drq_type << DMA_OFF_BITS_SDRQ) | (pCfg->dst_drq_type << DMA_OFF_BITS_DDRQ);
-
-	DMA_WRITE_REG(uConfig, pchan->reg_base + DMA_OFF_REG_CFG);
-
-	/* irq enable */
-	csp_dma_chan_irq_enable(pchan, pCfg->irq_spt);
-
-	/* para reg */
-	DMA_WRITE_REG(pCfg->para, pchan->reg_base + DMA_OFF_REG_PARA);
-}
-#endif
 
 /**
  * csp_dma_chan_clear_irqpend - clear the dma channel irq pending
@@ -326,18 +292,17 @@ u32 csp_dma_clear_irqpend(u32 index)
 	u32 	uret = 0;
 	u32 	ureg_addr = 0;
 
-	if(0 == index) {
+	if(0 == index)
 		ureg_addr = (u32)DMA_IRQ_PEND_REG0;
-	} else if(1 == index){
+	else if(1 == index)
 		ureg_addr = (u32)DMA_IRQ_PEND_REG1;
-	} else {
+	else {
 		DMA_ERR("%s err, line %d\n", __func__, __LINE__);
 		return 0xffffffff;
 	}
 
 	uret = DMA_READ_REG(ureg_addr);
 	DMA_WRITE_REG(uret, ureg_addr);
-
 	return uret;
 }
 
