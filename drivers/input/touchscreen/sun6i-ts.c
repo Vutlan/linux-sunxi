@@ -44,9 +44,13 @@
 #include <mach/sys_config.h>
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
-#include <linux/pm.h>
 #include <linux/earlysuspend.h>
 #endif
+
+#if defined(CONFIG_HAS_EARLYSUSPEND) || defined(CONFIG_PM)
+#include <linux/pm.h>
+#endif
+
 
 static int tp_flag = 0;
 
@@ -333,7 +337,7 @@ static int sun4i_ts_suspend(struct platform_device *pdev, pm_message_t state)
 		writel(0,TP_BASSADDRESS + TP_CTRL1);
 	} 
 	/*process for super standby*/	
-	return ;
+	return 0;
 }
 
 static int sun4i_ts_resume(struct platform_device *pdev)
@@ -347,7 +351,7 @@ static int sun4i_ts_resume(struct platform_device *pdev)
 	} else if(SUPER_STANDBY == standby_type) {
 		tp_init();
 	}
-	return ;
+	return 0;
 }
 #endif
 #endif

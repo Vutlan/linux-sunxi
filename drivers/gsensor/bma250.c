@@ -30,9 +30,13 @@
 #include <mach/sys_config.h>
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
-#include <linux/pm.h>
 #include <linux/earlysuspend.h>
 #endif
+
+#if defined(CONFIG_HAS_EARLYSUSPEND) || defined(CONFIG_PM)
+#include <linux/pm.h>
+#endif
+
 
 enum {
 	DEBUG_BASE_LEVEL0 = 1U << 0,
@@ -307,7 +311,7 @@ script_get_err:
  *                    = 0; success;
  *                    < 0; err
  */
-int gsensor_detect(struct i2c_client *client, struct i2c_board_info *info)
+static int gsensor_detect(struct i2c_client *client, struct i2c_board_info *info)
 {
 	struct i2c_adapter *adapter = client->adapter;
 	int ret;
