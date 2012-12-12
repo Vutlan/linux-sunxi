@@ -47,6 +47,10 @@ Revision 1-0-7 26/11/2010
 #ifndef	__LIS3DH_H__
 #define	__LIS3DH_H__
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
+    #include <linux/pm.h>
+    #include <linux/earlysuspend.h>
+#endif
 
 #define SAD0L			0x00
 #define SAD0H			0x01

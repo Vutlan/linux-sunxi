@@ -682,8 +682,8 @@ static __u32 image1_reg_bak,scaler1_reg_bak;
 
 int disp_suspend(struct platform_device *pdev, pm_message_t state)
 {
-#ifndef CONFIG_HAS_EARLYSUSPEND
     int i = 0;
+#ifndef CONFIG_HAS_EARLYSUSPEND
 
     pr_info("[DISP]disp_suspend call==\n");
 
