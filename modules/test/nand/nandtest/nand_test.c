@@ -40,16 +40,33 @@
 #include <linux/cpufreq.h>
 #include <linux/sched.h>
 
-//#include "../lib/src/include/nand_type.h"
-//#include "../lib/src/include/nand_drv_cfg.h"
-//#include "../lib/src/include/nand_format.h"
-//#include "../lib/src/include/nand_logic.h"
-//#include "../lib/osal/nand_osal.h"
-//#include "../lib/src/include/nand_physic.h"
-//#include "../lib/src/include/nand_scan.h"
-//#include "../lib/src/include/nand_simple.h"
 
-////#include "../nfd/nand_blk.h"
+
+#include <linux/list.h>
+#include <linux/fs.h>
+#include <linux/blkdev.h>
+#include <linux/blkpg.h>
+#include <linux/spinlock.h>
+#include <linux/hdreg.h>
+#include <linux/init.h>
+#include <linux/semaphore.h>
+
+#include <asm/uaccess.h>
+#include <linux/timer.h>
+
+#include <linux/mutex.h>
+#include <mach/clock.h>
+#include <mach/dma.h>
+#include <linux/wait.h>
+
+#include <asm/cacheflush.h>
+#include <linux/pm.h>
+
+#include <mach/sys_config.h>
+
+
+
+#include "../../../nand/nfd/nand_blk.h"
 //#include "../lib/src/include/mbr.h"
 
 #include "../../../nand/nfd/nand_lib.h"			//nand驱动编译成库时，用此头文件代替 
@@ -62,6 +79,93 @@
 typedef unsigned char	BYTE;
 typedef unsigned short	WORD;
 typedef unsigned long	DWORD;
+
+//for CLK
+extern int NAND_ClkRequest(__u32 nand_index);
+extern void NAND_ClkRelease(__u32 nand_index);
+extern int NAND_SetClk(__u32 nand_index, __u32 nand_clk);
+extern int NAND_GetClk(__u32 nand_index);
+
+//for DMA
+extern int NAND_RequestDMA(void);
+extern int NAND_ReleaseDMA(void);
+extern void NAND_DMAConfigStart(int rw, unsigned int buff_addr, int len);
+extern int NAND_QueryDmaStat(void);
+extern int NAND_WaitDmaFinish(void);
+//for PIO
+extern void NAND_PIORequest(__u32 nand_index);
+extern void NAND_PIORelease(__u32 nand_index);
+
+//for Int
+extern void NAND_EnRbInt(void);
+extern void NAND_ClearRbInt(void);
+extern int NAND_WaitRbReady(void);
+extern void NAND_EnDMAInt(void);
+extern void NAND_ClearDMAInt(void);
+extern void NAND_DMAInterrupt(void);
+
+extern void NAND_Interrupt(__u32 nand_index);
+
+extern __u32 NAND_GetIOBaseAddrCH0(void);
+extern __u32 NAND_GetIOBaseAddrCH1(void);
+
+spinlock_t     nand_test_int_lock;    
+
+
+static struct nand_blk_ops nand_mytr = {
+	.name 			=  "nand",
+	.major 			= 93,
+	.minorbits 		= 3,
+	.owner 			= THIS_MODULE,
+};
+
+#ifdef __LINUX_NAND_SUPPORT_INT__	   
+    static irqreturn_t nand_test_interrupt_ch0(int irq, void *dev_id)
+    {
+        unsigned long iflags;
+	__u32 nand_index;
+
+	//printk("nand_interrupt_ch0!\n");
+	
+	spin_lock_irqsave(&nand_test_int_lock, iflags);
+
+	nand_index = NAND_GetCurrentCH();
+	if(nand_index!=0)
+	{
+		//printk(" ch %d int in ch0\n", nand_index);
+	}
+	else
+	{
+		NAND_Interrupt(nand_index);
+	}
+	
+        spin_unlock_irqrestore(&nand_test_int_lock, iflags);
+    
+    	return IRQ_HANDLED;
+    }
+
+    static irqreturn_t nand_test_interrupt_ch1(int irq, void *dev_id)
+    {
+        unsigned long iflags;
+    	__u32 nand_index;
+
+	//printk("nand_interrupt_ch1!\n");
+	
+        spin_lock_irqsave(&nand_test_int_lock, iflags);
+        nand_index = NAND_GetCurrentCH();
+	if(nand_index!=1)
+	{
+		//printk(" ch %d int in ch1\n", nand_index);
+	}
+	else
+	{
+		NAND_Interrupt(nand_index);
+	}
+        spin_unlock_irqrestore(&nand_test_int_lock, iflags);
+    
+    	return IRQ_HANDLED;
+    }
+#endif
 
 /*
 typedef enum
@@ -1414,6 +1518,9 @@ NAND_TEST_STORE_EXIT:
 static int __init nand_test_init(void)
 {
   int ret;
+  #ifdef __LINUX_NAND_SUPPORT_INT__	
+	unsigned long irqflags_ch0, irqflags_ch1;
+	#endif
 
 	printk(KERN_INFO "nand_test_init start...\n");
 
@@ -1421,12 +1528,6 @@ static int __init nand_test_init(void)
   	return ret; 
   }
 
-
-#ifdef INIT_NAND_IN_TESTDRIVER
-
-#ifdef __OS_NAND_SUPPORT_INT__	
-	unsigned long irqflags;
-#endif
 	ClearNandStruct();
 
 	ret = PHY_Init();
@@ -1439,23 +1540,38 @@ static int __init nand_test_init(void)
 	if (ret < 0)
 		return ret;
 	
-#ifdef __OS_NAND_SUPPORT_INT__	
+#ifdef __LINUX_NAND_SUPPORT_INT__	
     printk("[NAND] nand driver version: 0x%x 0x%x, support int! \n", NAND_VERSION_0,NAND_VERSION_1);
+#ifdef __LINUX_SUPPORT_RB_INT__
     NAND_ClearRbInt();
+#endif
+#ifdef __LINUX_SUPPORT_DMA_INT__
     NAND_ClearDMAInt();
-  
-    spin_lock_init(&nand_int_lock);
-	irqflags = IRQF_DISABLED;
+#endif
 
-	if (request_irq(SW_INT_IRQNO_NAND, nand_interrupt, irqflags, mytr.name, &mytr))
+	spin_lock_init(&nand_test_int_lock);
+	irqflags_ch0 = IRQF_DISABLED;
+	irqflags_ch1 = IRQF_DISABLED;
+
+	if (request_irq(AW_IRQ_NAND0, nand_test_interrupt_ch0, IRQF_DISABLED, nand_mytr.name, &nand_mytr))
 	{
-	    printk("nand interrupte register error\n");
+	    printk("nand interrupte ch0 irqno: %d register error\n", AW_IRQ_NAND0);
 	    return -EAGAIN;
 	}
 	else
 	{
-	    printk("nand interrupte register ok\n");
+	    printk("nand interrupte ch0 irqno: %d register ok\n", AW_IRQ_NAND0);
 	}	
+
+	if (request_irq(AW_IRQ_NAND1, nand_test_interrupt_ch1, IRQF_DISABLED, nand_mytr.name, &nand_mytr))
+	{
+	    printk("nand interrupte ch1, irqno: %d register error\n", AW_IRQ_NAND1);
+	    return -EAGAIN;
+	}
+	else
+	{
+	    printk("nand interrupte ch1, irqno: %d register ok\n", AW_IRQ_NAND1);
+	}
 #endif		
 
 	ret = PHY_ChangeMode(1);
@@ -1484,8 +1600,6 @@ static int __init nand_test_init(void)
 		NAND_CacheOpen();
 	#endif
 
-#endif
-
    printk(KERN_INFO "nand_test_init ok\n");
 
    return 0;  // init success 
@@ -1500,21 +1614,19 @@ static void __exit nand_test_exit(void)
     kobject_del(&kobj);
 	kobject_put(&kobj); 
 	
-    
-#ifdef INIT_NAND_IN_TESTDRIVER
+
     //LML_FlushPageCache();	
     //BMM_WriteBackAllMapTbl();
     
     //nand_flush(NULL);
 #ifdef NAND_CACHE_RW
-    //NAND_CacheClose();
+    NAND_CacheClose();
 #endif
     LML_Exit();
     FMT_Exit();
     PHY_Exit(); 
 
 
-#endif
 
 	printk(KERN_INFO "nand_test_exit ok\n");
 
