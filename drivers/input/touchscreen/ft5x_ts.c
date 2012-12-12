@@ -1126,6 +1126,7 @@ static void ft5x_ts_suspend(struct early_suspend *handler)
         dprintk(DEBUG_SUSPEND,"CONFIG_HAS_EARLYSUSPEND: write FT5X0X_REG_PMODE .\n");
         sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,0);
         cancel_work_sync(&data->pen_event_work);
+        flush_workqueue(data->ts_workqueue);
         ft5x_set_reg(FT5X0X_REG_PMODE, PMODE_HIBERNATE);
               
 }
@@ -1140,7 +1141,7 @@ static void ft5x_ts_resume(struct early_suspend *handler)
 	}
 		
 }
-#endif  //CONFIG_HAS_EARLYSUSPEND
+#else //CONFIG_HAS_EARLYSUSPEND
 #ifdef CONFIG_PM
 static int ft5x_ts_suspend(struct i2c_client *client, pm_message_t mesg)
 {
@@ -1149,6 +1150,7 @@ static int ft5x_ts_suspend(struct i2c_client *client, pm_message_t mesg)
         dprintk(DEBUG_SUSPEND,"CONFIG_PM: write FT5X0X_REG_PMODE .\n");
         sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,0);
         cancel_work_sync(&data->pen_event_work);
+        flush_workqueue(data->ts_workqueue);
         ft5x_set_reg(FT5X0X_REG_PMODE, PMODE_HIBERNATE);
         return 0;
 }
@@ -1159,6 +1161,7 @@ static int ft5x_ts_resume(struct i2c_client *client)
 	sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,1);
 	return 0;		
 }
+#endif
 #endif
 static int 
 ft5x_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)

@@ -559,7 +559,7 @@ static void goodix_ts_resume(struct early_suspend *h)
 	sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,1); 
 	return ;
 }
-#endif
+#else
 #ifdef CONFIG_PM
 static int goodix_ts_suspend(struct i2c_client *client, pm_message_t mesg)
 {
@@ -594,6 +594,7 @@ static int goodix_ts_resume(struct i2c_client *client)
 	sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,1);  
 	return 0;
 }
+#endif
 #endif
 /*******************************************************	
 ¹¦ÄÜ£º

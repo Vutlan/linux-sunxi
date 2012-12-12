@@ -824,14 +824,12 @@ static void gsl_ts_late_resume(struct early_suspend *h)
 	dprintk(DEBUG_SUSPEND,"CONFIG_HAS_EARLYSUSPEND: Enter %s\n", __func__);
 	gsl_ts_resume(&ts->client->dev);
 }
-#endif
-
+#else
 #ifdef CONFIG_PM
 static int gsl_ts_suspend(struct device *dev)
 {
 	struct gsl_ts *ts = dev_get_drvdata(dev);
-	//int rc = 0;
-
+	
   	dprintk(DEBUG_SUSPEND,"CONFIG_PM:%s,start\n",__func__);
 	ts->is_suspended = true;
 
@@ -890,6 +888,7 @@ static int gsl_ts_late_resume(struct i2c_client *client)
 	gsl_ts_resume(&ts->client->dev);
 	return 0;
 }
+#endif
 #endif
 static int __devinit gsl_ts_probe(struct i2c_client *client,
 			const struct i2c_device_id *id)

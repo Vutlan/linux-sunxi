@@ -375,7 +375,7 @@ static void afa750_late_resume(struct early_suspend *h)
         assert(result==0);
 	return;
 }
-#endif /* CONFIG_HAS_EARLYSUSPEND */
+#else
 #ifdef CONFIG_PM
 static int afa750_early_suspend(struct i2c_client *client,pm_message_t mesg)
 {
@@ -395,7 +395,9 @@ static int afa750_late_resume(struct i2c_client *client)
         assert(result==0);
 	return 0;
 }
+#endif
 #endif /* CONFIG_HAS_EARLYSUSPEND */
+
 static const struct i2c_device_id afa750_id[] = {
 	{ AFA750_DRV_NAME, 1 },
 	{ }
