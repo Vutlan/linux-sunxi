@@ -422,8 +422,7 @@ __s32 BSP_disp_layer_release(__u32 sel, __u32 hid)
           
             BSP_disp_cmu_layer_enable(sel, IDTOHAND(hid),FALSE);
             disp_cmu_layer_clear(sel);
-                
-          
+
             BSP_disp_deu_enable(sel, IDTOHAND(hid), FALSE);
             disp_deu_clear(sel, IDTOHAND(hid));
 
@@ -442,6 +441,8 @@ __s32 BSP_disp_layer_release(__u32 sel, __u32 hid)
     DE_BE_Layer_Set_Framebuffer(sel, hid, &layer_src);
 
     memset(layer_man, 0 ,sizeof(__layer_man_t));
+    layer_man->para.scn_win.width  = 0x1;
+    layer_man->para.scn_win.height = 0x1;
     DE_BE_Layer_Enable(sel, hid, FALSE);
     DE_BE_Layer_Video_Enable(sel, hid, FALSE);
     DE_BE_Layer_Video_Ch_Sel(sel, hid, 0);
@@ -773,7 +774,7 @@ __s32 BSP_disp_layer_set_screen_window(__u32 sel, __u32 hid,__disp_rect_t * regn
             outsize.width = regn->width;
 
             ret = Scaler_Set_Output_Size(layer_man->scaler_index, &outsize);
-            if(BSP_disp_cmu_layer_get_enable(sel, IDTOHAND(hid)))
+            if(BSP_disp_cmu_layer_get_enable(sel, IDTOHAND(hid)) ==1)
             {
                 IEP_CMU_Set_Imgsize(sel, regn->width, regn->height);
             }
@@ -875,12 +876,12 @@ __s32 BSP_disp_layer_set_para(__u32 sel, __u32 hid,__disp_layer_info_t *player)
         {
             if(layer_man->para.mode == DISP_LAYER_WORK_MODE_SCALER)
             {
-                if(BSP_disp_cmu_layer_get_enable(sel, IDTOHAND(hid)))
+                if(BSP_disp_cmu_layer_get_enable(sel, IDTOHAND(hid)) ==1)
                 {
                     BSP_disp_cmu_layer_enable(sel, IDTOHAND(hid), FALSE);
                     disp_cmu_layer_clear(sel);
                 }
-                if(BSP_disp_deu_get_enable(sel,IDTOHAND(hid)))
+                if(BSP_disp_deu_get_enable(sel,IDTOHAND(hid)) ==1)
                 {
                     BSP_disp_deu_enable(sel,IDTOHAND(hid),FALSE);
                     disp_deu_clear(sel, IDTOHAND(hid));
@@ -976,7 +977,7 @@ __s32 BSP_disp_layer_set_para(__u32 sel, __u32 hid,__disp_layer_info_t *player)
             DE_SCAL_Output_Select(layer_man->scaler_index, sel);
             disp_deu_output_select(sel, IDTOHAND(hid), sel);
             Scaler_Set_Para(layer_man->scaler_index, scaler);
-            if(BSP_disp_cmu_layer_get_enable(sel, IDTOHAND(hid)))
+            if(BSP_disp_cmu_layer_get_enable(sel, IDTOHAND(hid)) ==1)
             {
                 IEP_CMU_Set_Imgsize(sel, player->scn_win.width, player->scn_win.height);
             }

@@ -448,7 +448,7 @@ __s32 LCD_parse_panel_para(__u32 sel, __panel_para_t * info)
 
 void LCD_get_sys_config(__u32 sel, __disp_lcd_cfg_t *lcd_cfg)
 {
-    char io_name[28][20] = {"lcdd0", "lcdd1", "lcdd2", "lcdd3", "lcdd4", "lcdd5", "lcdd6", "lcdd7", "lcdd8", "lcdd9", "lcdd10", "lcdd11", 
+    static char io_name[28][20] = {"lcdd0", "lcdd1", "lcdd2", "lcdd3", "lcdd4", "lcdd5", "lcdd6", "lcdd7", "lcdd8", "lcdd9", "lcdd10", "lcdd11", 
                          "lcdd12", "lcdd13", "lcdd14", "lcdd15", "lcdd16", "lcdd17", "lcdd18", "lcdd19", "lcdd20", "lcdd21", "lcdd22",
                          "lcdd23", "lcdclk", "lcdde", "lcdhsync", "lcdvsync"};
     disp_gpio_set_t  *gpio_info;
@@ -828,7 +828,7 @@ __s32 pwm_set_para(__u32 channel, __pwm_info_t * pwm_info)
 
     if(pwm_info->period_ns != 0)
     {
-        freq = 1000000 / pwm_info->period_ns;
+        freq = 1000000000 / pwm_info->period_ns;
     }else
     {
         DE_WRN("pwm%d period_ns is ZERO\n", channel);
@@ -842,7 +842,7 @@ __s32 pwm_set_para(__u32 channel, __pwm_info_t * pwm_info)
     }
     entire_cycle = 24000000 / freq;
 
-    for(i=0; entire_cycle >= 0x10000; i++)//entire_cycle must smaller than 65536
+    for(i=1; entire_cycle >= 0x10000; i++)//entire_cycle must smaller than 65536
     {
         entire_cycle >>= 1;
         pre_scal_id = i;
@@ -1257,11 +1257,11 @@ __s32 Disp_lcdc_init(__u32 sel)
             pwm_info.active_state = 1;
             if(gpanel_info[sel].lcd_pwm_freq != 0)
             {
-                pwm_info.period_ns = 1000000 / gpanel_info[sel].lcd_pwm_freq;
+                pwm_info.period_ns = 1000000000 / gpanel_info[sel].lcd_pwm_freq;
             }else
             {
                 DE_WRN("lcd%d.lcd_pwm_freq is ZERO\n", sel);
-                pwm_info.period_ns = 1000000 / 1000;  //default 1khz
+                pwm_info.period_ns = 1000000000 / 1000;  //default 1khz
             } 
             if(gpanel_info[sel].lcd_pwm_pol == 0)
             {
@@ -1692,7 +1692,7 @@ __s32 BSP_disp_lcd_open_before(__u32 sel)
     DE_BE_set_display_size(sel, gpanel_info[sel].lcd_x, gpanel_info[sel].lcd_y);
     DE_BE_Output_Select(sel, sel);
 
-    if(BSP_disp_cmu_get_enable(sel))
+    if(BSP_disp_cmu_get_enable(sel) ==1)
     {
         IEP_CMU_Set_Imgsize(sel, BSP_disp_get_screen_width(sel), BSP_disp_get_screen_height(sel));
     }
@@ -1710,6 +1710,7 @@ __s32 BSP_disp_lcd_open_after(__u32 sel)
     gdisp.screen[sel].status |= LCD_ON;
     gdisp.screen[sel].output_type = DISP_OUTPUT_TYPE_LCD;
     Lcd_Panel_Parameter_Check(sel);
+    BSP_disp_drc_enable(sel, TRUE);
 #ifdef __LINUX_OSAL__
     Display_set_fb_timming(sel);
 #endif
@@ -1900,6 +1901,19 @@ __s32 BSP_disp_get_timming(__u32 sel, __disp_tcon_timing_t * tt)
     {
         tcon_get_timing(sel, 0, tt);
         tt->pixel_clk = gpanel_info[sel].lcd_dclk_freq * 1000;
+        if(gpanel_info[sel].lcd_if == LCD_IF_DSI)
+        {
+            tt->hor_pixels = gpanel_info[sel].lcd_x;
+            tt->ver_pixels = gpanel_info[sel].lcd_y;
+            tt->hor_total_time= gpanel_info[sel].lcd_ht;
+            tt->hor_sync_time= gpanel_info[sel].lcd_hspw;  
+            tt->hor_back_porch= gpanel_info[sel].lcd_hbp-gpanel_info[sel].lcd_hspw; 
+            tt->hor_front_porch= gpanel_info[sel].lcd_ht-gpanel_info[sel].lcd_hbp - gpanel_info[sel].lcd_x;           
+            tt->ver_total_time= gpanel_info[sel].lcd_vt;
+            tt->ver_sync_time= gpanel_info[sel].lcd_vspw;  
+            tt->ver_back_porch= gpanel_info[sel].lcd_vbp-gpanel_info[sel].lcd_vspw; 
+            tt->ver_front_porch= gpanel_info[sel].lcd_vt-gpanel_info[sel].lcd_vbp -gpanel_info[sel].lcd_y;          
+        }
     }
     else if((gdisp.screen[sel].status & TV_ON )|| (gdisp.screen[sel].status & HDMI_ON))
     {
@@ -1910,7 +1924,7 @@ __s32 BSP_disp_get_timming(__u32 sel, __disp_tcon_timing_t * tt)
     }
     else if(gdisp.screen[sel].status & VGA_ON )
     {
-        __disp_tv_mode_t mode = gdisp.screen[sel].vga_mode;;
+        __disp_tv_mode_t mode = gdisp.screen[sel].vga_mode;
         
         tcon_get_timing(sel, 1, tt);
         tt->pixel_clk = (clk_tab.tv_clk_tab[mode].tve_clk / clk_tab.vga_clk_tab[mode].pre_scale) / 1000;

@@ -47,7 +47,7 @@ static ssize_t disp_sel_store(struct device *dev,
 static ssize_t disp_hid_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%d", hid);
+	return sprintf(buf, "%d", HANDTOID(hid));
 }
 
 static ssize_t disp_hid_store(struct device *dev,
@@ -63,13 +63,13 @@ static ssize_t disp_hid_store(struct device *dev,
 		return err;
 	}
 
-    if((val>103) || (val < 100))
+    if((val>3) || (val < 0))
     {
-        printk("Invalid value, 100~103 is expected!\n");
+        printk("Invalid value, 0~3 is expected!\n");
     }else
     {
         printk("%ld\n", val);
-        hid = val;
+        hid = IDTOHAND(val);
 	}
     
 	return count;
@@ -196,14 +196,16 @@ static ssize_t disp_hdmi_store(struct device *dev,
 		return err;
 	}
 
-    if((val==0))
+    if((val==0xff))
     {
         BSP_disp_hdmi_close(sel);
     }else
     {
         BSP_disp_hdmi_close(sel);
-        BSP_disp_hdmi_set_mode(sel,(__disp_tv_mode_t)val);
-        BSP_disp_hdmi_open(sel);
+        if(BSP_disp_hdmi_set_mode(sel,(__disp_tv_mode_t)val) == 0)
+        {
+            BSP_disp_hdmi_open(sel);
+        }
 	}
     
 	return count;
@@ -258,10 +260,10 @@ static ssize_t disp_layer_mode_show(struct device *dev,
     ret = BSP_disp_layer_get_para(sel, hid, &para);
     if(0 == ret)
 	{
-	    return sprintf(buf, "%d", para.mode);
+	    return sprintf(buf, "%d\n", para.mode);
     }else
     {
-        return sprintf(buf, "%s", "not used!");
+        return sprintf(buf, "%s\n", "not used!");
     }
 }
 
@@ -289,7 +291,12 @@ static ssize_t disp_layer_mode_store(struct device *dev,
         ret = BSP_disp_layer_get_para(sel, hid, &para);
         if(0 == ret)
         {
-            para.mode = val;
+            para.mode = (__disp_layer_work_mode_t)val;
+            if(para.mode == DISP_LAYER_WORK_MODE_SCALER)
+            {
+                para.scn_win.width = BSP_disp_get_screen_width(sel);
+                para.scn_win.height = BSP_disp_get_screen_height(sel);
+            }
             BSP_disp_layer_set_para(sel, hid, &para);
         }else
         {
