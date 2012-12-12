@@ -20,6 +20,14 @@ typedef struct
 	
 }__disp_clk_tab;
 
+typedef struct
+{
+	__u32 factor_n;
+	__u32 factor_k;
+	__u32 divider_m;
+}__disp_ccmu_coef;
+
+
 
 __s32 image_clk_init(__u32 sel);
 __s32 image_clk_exit(__u32 sel);

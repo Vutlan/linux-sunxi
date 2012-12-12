@@ -41,10 +41,10 @@ __s32 drc_clk_init(__u32 sel)
 
 		OSAL_CCMU_MclkReset(h_drcmclk0, RST_INVAILD);
 
-		OSAL_CCMU_SetMclkSrc(h_drcmclk0, SYS_CLK_PLL7);
+		OSAL_CCMU_SetMclkSrc(h_drcmclk0, SYS_CLK_PLL10);
 
-		pll_freq = OSAL_CCMU_GetSrcFreq(SYS_CLK_PLL7);
-		if(pll_freq < 300000000)
+		pll_freq = OSAL_CCMU_GetSrcFreq(SYS_CLK_PLL10);
+		if(pll_freq < 350000000)
 		{
 			OSAL_CCMU_SetMclkDiv(h_drcmclk0, 1);
 		}
@@ -66,10 +66,10 @@ __s32 drc_clk_init(__u32 sel)
 
 		OSAL_CCMU_MclkReset(h_drcmclk1, RST_INVAILD);
 
-		OSAL_CCMU_SetMclkSrc(h_drcmclk1, SYS_CLK_PLL7);
+		OSAL_CCMU_SetMclkSrc(h_drcmclk1, SYS_CLK_PLL10);
 		
-		pll_freq = OSAL_CCMU_GetSrcFreq(SYS_CLK_PLL7);
-		if(pll_freq < 300000000)
+		pll_freq = OSAL_CCMU_GetSrcFreq(SYS_CLK_PLL10);
+		if(pll_freq < 350000000)
 		{
 			OSAL_CCMU_SetMclkDiv(h_drcmclk1, 1);
 		}

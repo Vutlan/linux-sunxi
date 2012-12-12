@@ -330,7 +330,8 @@ __s32 tcon0_cfg_mode_tri(__u32 sel, __panel_para_t * panel)
 	}
 	else if((panel->lcd_if==LCD_IF_DSI) && 	(panel->lcd_dsi_if==LCD_DSI_IF_VIDEO_MODE))
 	{
-		lcd_dev[sel]->tcon0_cpu_tri0.bits.block_space = (panel->lcd_ht+panel->lcd_x+panel->lcd_hbp)*297/panel->lcd_dclk_freq- (panel->lcd_x+20);
+//		lcd_dev[sel]->tcon0_cpu_tri0.bits.block_space = (panel->lcd_ht+panel->lcd_x+panel->lcd_hbp)*297/panel->lcd_dclk_freq- (panel->lcd_x+20);
+        lcd_dev[sel]->tcon0_cpu_tri0.bits.block_space = (panel->lcd_ht+panel->lcd_x+panel->lcd_hbp)/2- (panel->lcd_x+20);
 		lcd_dev[sel]->tcon0_cpu_tri2.bits.trans_start_set = 10;
 	}
 	if(panel->lcd_fresh_mode == 1)

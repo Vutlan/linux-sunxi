@@ -57,7 +57,7 @@ __s32 BSP_disp_hdmi_open(__u32 sel)
     	DE_BE_set_display_size(sel, tv_mode_to_width(tv_mod), tv_mode_to_height(tv_mod));
     	DE_BE_Output_Select(sel, sel);
 
-        if(BSP_disp_cmu_get_enable(sel))
+        if(BSP_disp_cmu_get_enable(sel) ==1)
         {
             IEP_CMU_Set_Imgsize(sel, BSP_disp_get_screen_width(sel), BSP_disp_get_screen_height(sel));
         }

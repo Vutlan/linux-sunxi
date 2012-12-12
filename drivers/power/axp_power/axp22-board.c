@@ -30,7 +30,9 @@ int		pmu_init_chg_enabled;
 int		pmu_init_adc_freq;         
 int		pmu_init_adcts_freq;       
 int		pmu_init_chg_pretime;      
-int		pmu_init_chg_csttime;      
+int		pmu_init_chg_csttime;
+int		pmu_batt_cap_correct;
+
                           
 int		pmu_bat_para1;             
 int		pmu_bat_para2;            
@@ -667,7 +669,7 @@ int axp_script_parser_fetch(char *main, char *sub, u32 *val, u32 size)
 			printk("type err!");
 		}
 		*val = script_val.val;
-//		printk("axp config [%s] [%s] : %d\n", main, sub, *val);
+		printk("axp config [%s] [%s] : %d\n", main, sub, *val);
 		return 0;
 }
 
@@ -799,6 +801,13 @@ static int __init axp22_board_init(void)
         {
  //           printk("axp driver uning configuration failed(%d)\n", __LINE__);
             pmu_init_chg_csttime = INTCHGCSTTIME;
+        }
+
+		ret = axp_script_parser_fetch("pmu_para", "pmu_batt_cap_correct", &pmu_batt_cap_correct, sizeof(int));
+        if (ret)
+        {
+ //           printk("axp driver uning configuration failed(%d)\n", __LINE__);
+            pmu_batt_cap_correct = 1;
         }
 
         ret = axp_script_parser_fetch("pmu_para", "pmu_bat_para1", &pmu_bat_para1, sizeof(int));
@@ -1045,44 +1054,44 @@ static int __init axp22_board_init(void)
             pmu_pwron_vol = 2900;
         }
         
-				ret = axp_script_parser_fetch("pmu_para", "dcdc1_vol", &dcdc1_vol, sizeof(int));
+				ret = axp_script_parser_fetch("power_sply", "dcdc1_vol", &dcdc1_vol, sizeof(int));
 				if (ret)
 				{
 //					printk("axp driver uning configuration failed(%d)\n", __LINE__);
-					dcdc1_vol = 3300;
+					dcdc1_vol = 3000;
 				}
-				ret = axp_script_parser_fetch("pmu_para", "dcdc2_vol", &dcdc2_vol, sizeof(int));
+				ret = axp_script_parser_fetch("power_sply", "dcdc2_vol", &dcdc2_vol, sizeof(int));
 				if (ret)
 				{
 //						printk("axp driver uning configuration failed(%d)\n", __LINE__);
-						dcdc2_vol = 1200;
+						dcdc2_vol = 1100;
 				}
-        ret = axp_script_parser_fetch("pmu_para", "dcdc3_vol", &dcdc3_vol, sizeof(int));
+        ret = axp_script_parser_fetch("power_sply", "dcdc3_vol", &dcdc3_vol, sizeof(int));
         if (ret)
         {
  //           printk("axp driver uning configuration failed(%d)\n", __LINE__);
             dcdc3_vol = 1200;
         }
-        ret = axp_script_parser_fetch("pmu_para", "dcdc4_vol", &dcdc4_vol, sizeof(int));
+        ret = axp_script_parser_fetch("power_sply", "dcdc4_vol", &dcdc4_vol, sizeof(int));
         if (ret)
         {
  //           printk("axp driver uning configuration failed(%d)\n", __LINE__);
             dcdc4_vol = 1200;
         }
-				ret = axp_script_parser_fetch("pmu_para", "dcdc5_vol", &dcdc5_vol, sizeof(int));
+				ret = axp_script_parser_fetch("power_sply", "dcdc5_vol", &dcdc5_vol, sizeof(int));
         if (ret)
         {
  //           printk("axp driver uning configuration failed(%d)\n", __LINE__);
             dcdc5_vol = 1500;
         }
     
-        ret = axp_script_parser_fetch("pmu_para", "aldo2_vol", &aldo2_vol, sizeof(int));
+        ret = axp_script_parser_fetch("power_sply", "aldo2_vol", &aldo2_vol, sizeof(int));
         if (ret)
         {
  //           printk("axp driver uning configuration failed(%d)\n", __LINE__);
             aldo2_vol = 1800;
         }
-        ret = axp_script_parser_fetch("pmu_para", "aldo3_vol", &aldo3_vol, sizeof(int));
+        ret = axp_script_parser_fetch("power_sply", "aldo3_vol", &aldo3_vol, sizeof(int));
         if (ret)
         {
  //           printk("axp driver uning configuration failed(%d)\n", __LINE__);

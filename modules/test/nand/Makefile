@@ -10,15 +10,14 @@
 #################################################################################
 PWD=$(shell pwd)
 obj-m+=nandtest.o 
-nandtest-objs := ../../nand/nfd/nand_blk.o ../../nand/nfd/nand_osal_for_linux.o ../../nand/libnand	\
-nandtest/nand_test.o
+nandtest-objs := nandtest/nand_test.o ../../nand/nfd/nand_osal_for_linux.o  libnand.a
 
 install: build
 	cp nandtest.ko $(LICHEE_MOD_DIR)/
 
 build:
 	@echo $(LICHEE_KDIR)
-# cp libnand libnand.a
+	cp ../../nand/libnand libnand.a
 	$(MAKE) -C $(LICHEE_KDIR) M=$(PWD)
 
 

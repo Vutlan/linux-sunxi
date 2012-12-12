@@ -203,8 +203,6 @@ __s32 dsi_dcs_wr(__u32 sel,__u8 cmd,__u8* para_p,__u32 para_num)
 	{
 		dsi_dev[sel]->dsi_cmd_ctl.bits.tx_size = 4-1;
 	}
-//	__inf("enter delay 5 s\n");
-//	DSI_delay_ms(5000);
 	dsi_start(sel,DSI_START_LPTX);
 	return 0;
 }
@@ -316,11 +314,66 @@ __s32 dsi_dcs_wr_memory(__u32 sel,__u32* p_data,__u32 length)
 }
 
 
-//lcd_dsi_set_max_ret_pkt_size
-__s32 dsi_set_max_ret_size(__u32 sel, __u32 size)
+__s32 dsi_set_max_ret_size(__u32 sel,__u32 size)
 {
-    return 0;
+	dsi_dev[sel]->dsi_cmd_tx[0].bits.byte0 = DSI_DT_MAX_RET_SIZE;
+	dsi_dev[sel]->dsi_cmd_tx[0].bits.byte1 = (size>>0) & 0xff;
+	dsi_dev[sel]->dsi_cmd_tx[0].bits.byte2 = (size>>8) & 0xff;
+	dsi_dev[sel]->dsi_cmd_tx[0].bits.byte3 =  dsi_ecc_pro(dsi_dev[sel]->dsi_cmd_tx[0].dwval);
+	dsi_dev[sel]->dsi_cmd_ctl.bits.tx_size = 4-1;
+	dsi_start(sel,DSI_START_LPTX);
+	return 0;
 }
+
+__s32 dsi_dcs_rd(__u32 sel,__u8 cmd,__u8* para_p,__u32* num_p)
+{
+	__u32 num,i;
+	dsi_dev[sel]->dsi_cmd_tx[0].bits.byte0 = DSI_DT_DCS_RD_P0;
+	dsi_dev[sel]->dsi_cmd_tx[0].bits.byte1 = cmd;
+	dsi_dev[sel]->dsi_cmd_tx[0].bits.byte2 = 0x00;
+	dsi_dev[sel]->dsi_cmd_tx[0].bits.byte3 = dsi_ecc_pro(dsi_dev[sel]->dsi_cmd_tx[0].dwval);
+	dsi_dev[sel]->dsi_cmd_ctl.bits.tx_size = 4-1;
+
+	dsi_start(sel,DSI_START_LPRX);
+
+	while(dsi_dev[sel]->dsi_basic_ctl0.bits.inst_st == 1);
+	if(dsi_dev[sel]->dsi_cmd_ctl.bits.rx_flag)
+	{
+		if(dsi_dev[sel]->dsi_cmd_ctl.bits.rx_overflow)
+			return -1;
+		if(dsi_dev[sel]->dsi_cmd_rx[0].bits.byte0==DSI_DT_ACK_ERR)
+			return -1;
+
+		if(dsi_dev[sel]->dsi_cmd_rx[0].bits.byte0==DSI_DT_DCS_RD_R1)
+		{
+			num = 1;
+			*(para_p+0) = dsi_dev[sel]->dsi_cmd_rx[0].bits.byte1;
+		}
+		else if(dsi_dev[sel]->dsi_cmd_rx[0].bits.byte0==(__u8)DSI_DT_DCS_RD_R2)
+		{
+			num = 2;
+			*(para_p+0) = dsi_dev[sel]->dsi_cmd_rx[0].bits.byte1;
+			*(para_p+1) = dsi_dev[sel]->dsi_cmd_rx[0].bits.byte2;
+		}
+		else if(dsi_dev[sel]->dsi_cmd_rx[0].bits.byte0==(__u8)DSI_DT_DCS_LONG_RD_R)
+		{
+			num = dsi_dev[sel]->dsi_cmd_ctl.bits.rx_size+1-6;
+			for(i=0;i<num;i++)
+			{
+				*(para_p+i) = *((__u8*)dsi_dev[sel]->dsi_cmd_rx+4+i);
+			}
+		}
+        else
+        {
+            num = 0;
+            return -1;
+        }
+		*num_p = num;
+	}
+
+	return 0;
+}
+
 
 __s32 dsi_dcs_rd_memory(__u32 sel,__u32* p_data,__u32 length)
 {
@@ -350,12 +403,12 @@ __s32 dsi_dcs_rd_memory(__u32 sel,__u32* p_data,__u32 length)
 
 		if(start)
 		{
-			//dsi_dcs_rd(sel,DSI_DCS_READ_MEMORY_START,rx_bf,&rx_num);
+			dsi_dcs_rd(sel,DSI_DCS_READ_MEMORY_START,rx_bf,&rx_num);
 			start = 0;
 		}
 		else
 		{
-			//dsi_dcs_rd(sel,DSI_DCS_READ_MEMORY_CONTINUE,rx_bf,&rx_num);
+			dsi_dcs_rd(sel,DSI_DCS_READ_MEMORY_CONTINUE,rx_bf,&rx_num);
 		}
 
 		if(rx_num != rx_curr*3)
@@ -398,13 +451,13 @@ __s32 dsi_dphy_cfg(__u32 sel,__panel_para_t * panel)
 
 	dphy_dev[sel]->dphy_tx_ctl.bits.hstx_clk_cont = 1;
 
-	if(panel->lcd_dsi_dphy_timing_en==2)
+//	if(panel->lcd_dsi_dphy_timing_en==2)
 	{
 		dphy_timing_p = &dphy_timing_cfg1;
 	}
-	else
+//	else
 	{
-		dphy_timing_p = panel->lcd_dsi_dphy_timing_p;
+//		dphy_timing_p = panel->lcd_dsi_dphy_timing_p;
 	}
 
 	dphy_dev[sel]->dphy_tx_time0.bits.lpx_tm_set = dphy_timing_p->lp_clk_div;
@@ -510,18 +563,26 @@ __s32 dsi_basic_cfg(__u32 sel,__panel_para_t * panel)
 
 	if(panel->lcd_dsi_if==LCD_DSI_IF_VIDEO_MODE)
 	{
-		__s32 start_delay = panel->lcd_vbp-10;
-		if(start_delay<1)
-			start_delay = 1;
+		__s32 start_delay = panel->lcd_vt - panel->lcd_y -10;
+        __u32 vfp = panel->lcd_vt - panel->lcd_y - panel->lcd_vbp;
+        __u32 dsi_start_delay;
+        
+		if(start_delay<8)
+			start_delay = 8;
 		else if(start_delay>31)
 			start_delay = 31;
+
+        if(start_delay-vfp<1)
+            dsi_start_delay = 1;
+        else
+            dsi_start_delay = start_delay - vfp;
+        
 		dsi_dev[sel]->dsi_basic_ctl0.bits.ecc_en = 1;
 		dsi_dev[sel]->dsi_basic_ctl0.bits.crc_en = 1;
 		dsi_dev[sel]->dsi_basic_ctl0.bits.hs_eotp_en = 0;	
-		dsi_dev[sel]->dsi_basic_ctl1.bits.video_start_delay = start_delay;	
+		dsi_dev[sel]->dsi_basic_ctl1.bits.video_start_delay = dsi_start_delay;	
 		dsi_dev[sel]->dsi_basic_ctl1.bits.video_precision_mode_align = 0;
 		dsi_dev[sel]->dsi_basic_ctl1.bits.video_frame_start = 1;
-	    dsi_dev[sel]->dsi_basic_ctl1.bits.video_start_delay = start_delay;
 		dsi_dev[sel]->dsi_basic_ctl1.bits.dsi_mode = 1;
 		dsi_dev[sel]->dsi_trans_start.bits.trans_start_set = 10;
 		dsi_dev[sel]->dsi_trans_zero.bits.hs_zero_reduce_set = 0;
@@ -592,6 +653,7 @@ __s32 dsi_packet_cfg(__u32 sel,__panel_para_t * panel)
 		dsi_dev[sel]->dsi_pixel_ctl0.bits.pd_plug_dis = 1;
 		dsi_dev[sel]->dsi_pixel_ph.bits.vc = panel->lcd_dsi_vc;
 		dsi_dev[sel]->dsi_pixel_ph.bits.wc = panel->lcd_x*dsi_pixel_bits[panel->lcd_dsi_format]/8;
+        dsi_dev[sel]->dsi_pixel_ph.bits.ecc = dsi_ecc_pro(dsi_dev[sel]->dsi_pixel_ph.dwval);
 		dsi_dev[sel]->dsi_pixel_pf0.bits.crc_force = 0xffff;
 		dsi_dev[sel]->dsi_pixel_pf1.bits.crc_init_line0 = 0xffff;
 		dsi_dev[sel]->dsi_pixel_pf1.bits.crc_init_linen = 0xffff;
@@ -604,6 +666,7 @@ __s32 dsi_packet_cfg(__u32 sel,__panel_para_t * panel)
 		dsi_dev[sel]->dsi_pixel_ph.bits.vc = panel->lcd_dsi_vc;
 		dsi_dev[sel]->dsi_pixel_ph.bits.dt = DSI_DT_DCS_LONG_WR;
 		dsi_dev[sel]->dsi_pixel_ph.bits.wc = 1+panel->lcd_x*panel->lcd_dsi_format/8;
+        dsi_dev[sel]->dsi_pixel_ph.bits.ecc = dsi_ecc_pro(dsi_dev[sel]->dsi_pixel_ph.dwval);
 		dsi_dev[sel]->dsi_pixel_pd.bits.pd_tran0 = DSI_DCS_WRITE_MEMORY_START;
 		dsi_dev[sel]->dsi_pixel_pd.bits.pd_trann = DSI_DCS_WRITE_MEMORY_CONTINUE;
 		dsi_dev[sel]->dsi_pixel_pf0.bits.crc_force = 0xffff;
@@ -784,3 +847,13 @@ __u16 dsi_crc_pro_pd_repeat(__u8 pd,__u32 pd_bytes)
 
 
 EXPORT_SYMBOL(dsi_dcs_wr);
+EXPORT_SYMBOL(dsi_dcs_wr_0para);
+EXPORT_SYMBOL(dsi_dcs_wr_1para);
+EXPORT_SYMBOL(dsi_dcs_wr_2para);
+EXPORT_SYMBOL(dsi_dcs_wr_3para);
+EXPORT_SYMBOL(dsi_dcs_wr_4para);
+EXPORT_SYMBOL(dsi_dcs_wr_5para);
+
+
+
+

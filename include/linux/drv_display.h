@@ -608,7 +608,7 @@ typedef struct
 	__u32   lcd_gamma_en;
 	__u32   lcd_gamma_tbl[256];
 	__u32 	lcd_cmap;
-	__u32	lcd_cmap_tbl[2][4];
+	__u32	lcd_cmap_tbl[2][3][4];
 
 	__u32   tcon_index; //not need to config for user
 	__u32	lcd_fresh_mode;//not need to config for user
