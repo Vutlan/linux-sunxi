@@ -22,17 +22,6 @@
 #ifndef	__AR100_MESSAGE_MANAGER_H
 #define	__AR100_MESSAGE_MANAGER_H
 
-/*
- * the strcuture of message queue,
- * main for messages management.
- */
-typedef struct ar100_message_queue
-{
-	struct ar100_message *head;    /* the head message of this queue         */
-	struct ar100_message *tail;    /* the tail message of this queue         */
-	unsigned int	      number;  /* the total message number of this queue */
-} ar100_message_queue_t;
-
 /**
  * initialize message manager.
  * @para:  none.

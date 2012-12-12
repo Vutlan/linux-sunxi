@@ -22,12 +22,6 @@
 
 #include "message_manager_i.h"
 
-/*
- * the queue of freed message, 
- * mainly for allocate message performance.
- */
-static struct ar100_message_queue free_list;
-
 /* the start and end of message pool */
 static struct ar100_message *message_start;
 static struct ar100_message *message_end;
@@ -36,15 +30,11 @@ static struct ar100_message *message_end;
 static spinlock_t    msg_mgr_lock;
 static unsigned long msg_mgr_flag;
 
-#define AR100_SEM_CACHE_MAX	(8)
+/* message cache manager */
+static struct ar100_message_cache message_cache;
 
-struct ar100_semaphore_allocator
-{
-	unsigned int	  sem_number;
-	struct semaphore *sem_cache[AR100_SEM_CACHE_MAX];
-};
-
-static struct ar100_semaphore_allocator sem_allocator;
+/* semaphore cache manager */
+static struct ar100_semaphore_cache sem_cache;
 
 /**
  * initialize message manager.
@@ -54,17 +44,23 @@ static struct ar100_semaphore_allocator sem_allocator;
  */
 int ar100_message_manager_init(void)
 {
+	int i;
+	
 	/* initialize message pool start and end */
 	message_start = (struct ar100_message *)(ar100_sram_a2_vbase + AR100_MESSAGE_POOL_START);
 	message_end   = (struct ar100_message *)(ar100_sram_a2_vbase + AR100_MESSAGE_POOL_END);
 	
-	/* initialize free list */
-	free_list.head   = NULL;
-	free_list.tail   = NULL;
-	free_list.number = 0;
+	/* initialize message_cache */
+	for (i = 0; i < AR100_MESSAGE_CACHED_MAX; i++) {
+		message_cache.cache[i] = NULL;
+	}
+	message_cache.number = 0;
 	
 	/* initialzie semaphore allocator */
-	sem_allocator.sem_number = 0;
+	for (i = 0; i < AR100_SEM_CACHE_MAX; i++) {
+		sem_cache.cache[i] = NULL;
+	}
+	sem_cache.number = 0;
 	
 	/* initialize message manager spinlock */
 	spin_lock_init(&(msg_mgr_lock));
@@ -86,39 +82,43 @@ int ar100_message_manager_exit(void)
 
 static struct semaphore *ar100_semaphore_allocate(void)
 {
-	struct semaphore *sem;
+	struct semaphore *sem = NULL;
 	
-	if (sem_allocator.sem_number) {
-		/* allocate from cache */
+	if (sem_cache.number) {
+		/* allocate from cache first */
 		spin_lock_irqsave(&(msg_mgr_lock), msg_mgr_flag);
-		sem_allocator.sem_number--;
-		sem = sem_allocator.sem_cache[sem_allocator.sem_number];
-		sem_allocator.sem_cache[sem_allocator.sem_number] = NULL;
+		sem_cache.number--;
+		sem = sem_cache.cache[sem_cache.number];
+		sem_cache.cache[sem_cache.number] = NULL;
 		spin_unlock_irqrestore(&(msg_mgr_lock), msg_mgr_flag);
-	} else {
-		/* allocate from kmem */
+	}
+	if (sem == NULL) {
+		/* cache allocate fail, allocate from kmem */
 		sem = kmalloc(sizeof(struct semaphore), GFP_KERNEL);
 	}
-	
-	/* initialize allocated semaphore */
-	sema_init(sem, 0);
-	
+	if (sem) {
+		/* initialize allocated semaphore */
+		sema_init(sem, 0);
+	}
 	return sem;
 }
 
 static int ar100_semaphore_free(struct semaphore *sem)
 {
-	if (sem_allocator.sem_number < AR100_SEM_CACHE_MAX) {
+	if (sem == NULL) {
+		AR100_WRN("free null semaphore\n");
+		return -EINVAL;
+	}
+	if (sem_cache.number < AR100_SEM_CACHE_MAX) {
 		/* free to cache */
 		spin_lock_irqsave(&(msg_mgr_lock), msg_mgr_flag);
-		sem_allocator.sem_cache[sem_allocator.sem_number] = sem;
-		sem_allocator.sem_number++;
+		sem_cache.cache[sem_cache.number] = sem;
+		sem_cache.number++;
 		spin_unlock_irqrestore(&(msg_mgr_lock), msg_mgr_flag);
 	} else {
 		/* free to kmem */
 		kfree(sem);
 	}
-	
 	return 0;
 }
 
@@ -134,72 +134,52 @@ struct ar100_message *ar100_message_allocate(unsigned int msg_attr)
 	struct ar100_message *pmessage = NULL;
 	struct ar100_message *palloc   = NULL;
 	
-	/* first find in free_list */
-	if (free_list.number) {
-		/*
-		 * free_list have cached message,
-		 * allocate the head node.
-		 */
-		AR100_INF("free_list.head   = 0x%x.\n", (unsigned int)free_list.head);
-		AR100_INF("free_list.number = %d\n", free_list.number);
+	/* first find in message_cache */
+	if (message_cache.number) {
+		AR100_INF("ar100 message_cache.number = 0x%x.\n", message_cache.number);
 		spin_lock_irqsave(&(msg_mgr_lock), msg_mgr_flag);
-		palloc = free_list.head;
-		free_list.head = palloc->next;
-		free_list.number--;
-		palloc->next   = 0;
-		palloc->attr   = msg_attr;
+		message_cache.number--;
+		palloc = message_cache.cache[message_cache.number];
+		palloc->next = 0;
+		palloc->attr = msg_attr;
 		spin_unlock_irqrestore(&(msg_mgr_lock), msg_mgr_flag);
-		if (msg_attr & AR100_MESSAGE_ATTR_SOFTSYN) {
-			/* syn message,allocate one semaphore for private */
-			palloc->private = ar100_semaphore_allocate();
-		} else {
-			palloc->private = NULL;
-		}
-		AR100_INF("message allocate from free_list\n");
-		return palloc;
+		AR100_INF("message [%x] allocate from message_cache\n", (u32)palloc);
 	}
-	
-	/*
-	 * cached free_list finded fail, 
-	 * use spinlock 0 to exclusive with ac327.
-	 */
-	ar100_hwspin_lock_timeout(0, AR100_SPINLOCK_TIMEOUT);
-	
-	/*
-	 * seach from the start of message pool every time.
-	 * maybe have other more good choice.
-	 * by sunny at 2012-5-13 10:36:50.
-	 */
-	pmessage = message_start;
-	while (pmessage < message_end) {
-		if (pmessage->state == AR100_MESSAGE_FREED) {
-			/* find free message in message pool, allocate it */
-			palloc = pmessage;
-			palloc->state  = AR100_MESSAGE_ALLOCATED;
-			palloc->next   = 0;
-			palloc->attr   = msg_attr;
-			AR100_INF("message allocate from message pool\n");
-			AR100_INF("ar100_message_allocate:palloc:0x%x\n", (unsigned int)palloc);
-			break;
+	if (palloc == NULL) {
+		/*
+		 * cached message_cache finded fail, 
+		 * use spinlock 0 to exclusive with ar100.
+		 */
+		ar100_hwspin_lock_timeout(0, AR100_SPINLOCK_TIMEOUT);
+		
+		/* seach from the start of message pool every time. */
+		pmessage = message_start;
+		while (pmessage < message_end) {
+			if (pmessage->state == AR100_MESSAGE_FREED) {
+				/* find free message in message pool, allocate it */
+				palloc = pmessage;
+				palloc->state  = AR100_MESSAGE_ALLOCATED;
+				palloc->next   = 0;
+				palloc->attr   = msg_attr;
+				AR100_INF("message [%x] allocate from message pool\n", (u32)palloc);
+				break;
+			}
+			/* next message frame */
+			pmessage++;
 		}
-		/* next message frame */
-		pmessage++;
+		/* unlock hwspinlock 0 */
+		ar100_hwspin_unlock(0);
 	}
-	
-	/* unlock hwspinlock 0 */
-	ar100_hwspin_unlock(0);
-	
 	if (palloc == NULL) {
 		AR100_ERR("allocate message frame fail\n");
+		return NULL;
 	}
-	
 	if (msg_attr & AR100_MESSAGE_ATTR_SOFTSYN) {
 		/* syn message,allocate one semaphore for private */
 		palloc->private = ar100_semaphore_allocate();
 	} else {
 		palloc->private = NULL;
 	}
-	
 	return palloc;
 }
 
@@ -212,37 +192,27 @@ struct ar100_message *ar100_message_allocate(unsigned int msg_attr)
  */
 void ar100_message_free(struct ar100_message *pmessage)
 {
+	if (pmessage == NULL) {
+		AR100_WRN("free null message\n");
+		return;
+	}
+	if (pmessage->attr & AR100_MESSAGE_ATTR_SOFTSYN) {
+		/* free message semaphore first */
+		ar100_semaphore_free((struct semaphore *)(pmessage->private));
+		pmessage->private = NULL;
+	}
 	/* try to add free_list first */
-	if (free_list.number < AR100_MESSAGE_CACHED_MAX) {
-		if (pmessage->attr & AR100_MESSAGE_ATTR_SOFTSYN) {
-			/* free message semaphore first */
-			ar100_semaphore_free((struct semaphore *)(pmessage->private));
-			pmessage->private = NULL;
-		}
-		
-		AR100_INF("insert message [%x] to free_list\n", (unsigned int)pmessage);
-		AR100_INF("free_list number : %d\n", free_list.number);
-		
+	if (message_cache.number < AR100_MESSAGE_CACHED_MAX) {
+		AR100_INF("insert message [%x] to message_cache\n", (unsigned int)pmessage);
+		AR100_INF("message_cache number : %d\n", message_cache.number);
 		/* cached this message, message state: ALLOCATED */
 		spin_lock_irqsave(&(msg_mgr_lock), msg_mgr_flag);
-		if (free_list.number) {
-			/* add to the tail of free_list */
-			free_list.tail->next = pmessage;
-		} else {
-			/* add to head of free_list */
-			free_list.head = pmessage;
-		}
-		free_list.tail = pmessage;
-		free_list.number++;
-		pmessage->next  = NULL;
+		message_cache.cache[message_cache.number] = pmessage;
+		message_cache.number++;
+		pmessage->next = NULL;
 		pmessage->state = AR100_MESSAGE_ALLOCATED;
 		spin_unlock_irqrestore(&(msg_mgr_lock), msg_mgr_flag);
 	} else {
-		if (pmessage->attr & AR100_MESSAGE_ATTR_SOFTSYN) {
-			/* free message semaphore first */
-			ar100_semaphore_free((struct semaphore *)(pmessage->private));
-			pmessage->private = NULL;
-		}
 		/*
 		 * free to message pool,
 		 * set message state as FREED.

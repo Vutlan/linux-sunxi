@@ -24,4 +24,22 @@
 
 #include "../include/ar100_includes.h"
 
+#define AR100_SEM_CACHE_MAX	(8)
+
+struct ar100_semaphore_cache
+{
+	volatile unsigned int number;
+	struct semaphore     *cache[AR100_SEM_CACHE_MAX];
+};
+
+/*
+ *the strcuture of message cache,
+ *main for messages cache management.
+ */
+typedef struct ar100_message_cache
+{
+	volatile unsigned int number;							/* valid message number */
+	struct ar100_message *cache[AR100_MESSAGE_CACHED_MAX];	/* message cache table */
+} ar100_message_cache_t;
+
 #endif	/* __AR100_MESSAGE_MANAGER_I_H */

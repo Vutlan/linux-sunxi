@@ -156,22 +156,27 @@ int ar100_hwmsgbox_feedback_message(struct ar100_message *pmessage, unsigned int
 	
 	if (pmessage->attr & AR100_MESSAGE_ATTR_HARDSYN) {
 		/* use ac327 hard syn receiver channel */
+		spin_lock(&syn_channel_lock);
 		while (readl(IO_ADDRESS(AW_MSGBOX_FIFO_STATUS_REG(AR100_HWMSGBOX_AR100_SYN_RX_CH))) == 1) {
 			/* message-queue fifo is full */
 			if (time_is_before_eq_jiffies(expire)) {
+				AR100_ERR("wait syn message-queue fifo full timeout\n");
 				return -ETIMEDOUT;
 			}
 		}
 		value = ((volatile unsigned long)pmessage) - ar100_sram_a2_vbase;
 		AR100_INF("ar100 feedback hard syn message : %x\n", (unsigned int)value);
 		writel(value, IO_ADDRESS(AW_MSGBOX_MSG_REG(AR100_HWMSGBOX_AR100_SYN_RX_CH)));
+		spin_unlock(&syn_channel_lock);
 		return 0;
 	}
 	/* soft syn use asyn tx channel */
 	if (pmessage->attr & AR100_MESSAGE_ATTR_SOFTSYN) {
+		spin_lock(&asyn_channel_lock);
 		while (readl(IO_ADDRESS(AW_MSGBOX_FIFO_STATUS_REG(AR100_HWMSGBOX_AR100_ASYN_RX_CH))) == 1) {
 			/* fifo is full */
 			if (time_is_before_eq_jiffies(expire)) {
+				AR100_ERR("wait asyn message-queue fifo full timeout\n");
 				return -ETIMEDOUT;
 			}
 		}
@@ -179,6 +184,7 @@ int ar100_hwmsgbox_feedback_message(struct ar100_message *pmessage, unsigned int
 		value = ((volatile unsigned long)pmessage) - ar100_sram_a2_vbase;
 		AR100_INF("ar100 send asyn or soft syn message : %x\n", (unsigned int)value);
 		writel(value, IO_ADDRESS(AW_MSGBOX_MSG_REG(AR100_HWMSGBOX_AR100_ASYN_RX_CH)));
+		spin_unlock(&asyn_channel_lock);
 		return 0;
 	}
 	
