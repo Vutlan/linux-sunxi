@@ -170,6 +170,8 @@ extern int pmu_init_adc_freq;
 extern int pmu_init_adc_freqc;
 extern int pmu_init_chg_pretime;
 extern int pmu_init_chg_csttime;
+extern int pmu_batt_cap_correct;
+
 
 extern int pmu_bat_para1;
 extern int pmu_bat_para2;

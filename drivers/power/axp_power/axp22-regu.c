@@ -215,8 +215,8 @@ static struct axp_regulator_info axp_regulator_info[] = {
 	AXP22_DCDC(3,	600,		1860,		20,		DCDC3,	0,	6,	DCDC3EN,3),//buck3 for gpu
 	AXP22_DCDC(4,	600,		1540,		20,		DCDC4,	0,	6,	DCDC4EN,4),//buck4 for core
 	AXP22_DCDC(5,	1000,		2550,		50,		DCDC5,	0,	5,	DCDC5EN,5),//buck5 for ddr
-	AXP22_LDO(	IO0,700,		3300,		100,	LDOIO0,	4,	5,	LDOIO0EN,0),//ldoio0 
-	AXP22_LDO(	IO1,700,		3300,		100,	LDOIO1,	4,	5,	LDOIO1EN,0),//ldoio1
+	AXP22_LDO(	IO0,700,		3300,		100,	LDOIO0,	0,	5,	LDOIO0EN,0),//ldoio0 
+	AXP22_LDO(	IO1,700,		3300,		100,	LDOIO1,	0,	5,	LDOIO1EN,0),//ldoio1
 };
 
 static ssize_t workmode_show(struct device *dev,

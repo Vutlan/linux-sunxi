@@ -1699,6 +1699,16 @@ static int axp_battery_probe(struct platform_device *pdev)
 		{
 			axp_clr_bits(charger->master,0x8f,0x04); //disable
 		}
+
+		/*Init battery capacity correct function*/
+		if(pmu_batt_cap_correct)
+		{
+			axp_set_bits(charger->master,0xb8,0x20); //enable
+		}
+		else
+		{
+			axp_clr_bits(charger->master,0xb8,0x20); //disable
+		}
  
   if(!pmu_batdeten)
   	axp_clr_bits(charger->master,AXP22_PDBC,0x40);
