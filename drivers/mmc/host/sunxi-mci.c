@@ -2218,7 +2218,7 @@ static const struct dev_pm_ops sw_mci_pm = {
 
 static struct sunxi_mmc_platform_data sw_mci_pdata[4] = {
 	[0] = {
-		.ocr_avail = MMC_VDD_32_33 | MMC_VDD_33_34,
+		.ocr_avail = MMC_VDD_28_29 | MMC_VDD_29_30 | MMC_VDD_30_31 | MMC_VDD_31_32,
 		.caps = MMC_CAP_4_BIT_DATA | MMC_CAP_MMC_HIGHSPEED | MMC_CAP_SD_HIGHSPEED
 			| MMC_CAP_SDIO_IRQ
 			| MMC_CAP_UHS_SDR12 | MMC_CAP_UHS_SDR25 | MMC_CAP_UHS_SDR50
@@ -2231,7 +2231,7 @@ static struct sunxi_mmc_platform_data sw_mci_pdata[4] = {
 		.regulator=NULL,
 	},
 	[1] = {
-		.ocr_avail = MMC_VDD_32_33 | MMC_VDD_33_34,
+		.ocr_avail = MMC_VDD_28_29 | MMC_VDD_29_30 | MMC_VDD_30_31 | MMC_VDD_31_32,
 		.caps = MMC_CAP_4_BIT_DATA | MMC_CAP_MMC_HIGHSPEED | MMC_CAP_SD_HIGHSPEED
 			| MMC_CAP_SDIO_IRQ,
 		.f_min = 400000,
