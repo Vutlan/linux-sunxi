@@ -52,7 +52,7 @@
 #include <linux/ctp.h>
 
 #include "gslX2680.h" //resolution:1024*768
-
+#define FOR_TSLIB_TEST
 //#define GSL_TIMER
 //#define PRINT_POINT_INFO 
 //#define REPORT_DATA_ANDROID_4_0
@@ -587,7 +587,8 @@ static void process_gslX680_data(struct gsl_ts *ts)
 		id_state_old_flag[i] = id_state_flag[i];
 	}
 #ifndef REPORT_DATA_ANDROID_4_0
-	if(0 == touches){	
+	if(0 == touches){
+	        input_report_abs(ts->input, ABS_MT_TOUCH_MAJOR, 0);	
 		input_mt_sync(ts->input);
 	#ifdef HAVE_TOUCH_KEY
 		if(key_state_flag){
@@ -722,7 +723,9 @@ static int gsl_ts_init_ts(struct i2c_client *client, struct gsl_ts *ts)
 	set_bit(EV_ABS, input_device->evbit);
 	set_bit(EV_KEY, input_device->evbit);
 #endif
-
+#ifdef FOR_TSLIB_TEST
+	set_bit(BTN_TOUCH, input_device->keybit);
+#endif
 #ifdef HAVE_TOUCH_KEY
 	input_device->evbit[0] = BIT_MASK(EV_KEY);
 	for (i = 1; i <= MAX_KEY_NUM; i++)
