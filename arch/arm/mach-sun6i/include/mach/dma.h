@@ -18,33 +18,19 @@
 
 #include <mach/hardware.h>
 
-/*
- * burst length
- */
+/* burst length */
 #define X_SIGLE   0
 #define X_BURST   1
 #define X_TIPPL	  2
 
-/*
- * data width
- */
+/* data width */
 #define X_BYTE    0
 #define X_HALF    1
 #define X_WORD    2
 
-/*
- * address mode
- */
+/* address mode */
 #define A_LN      0x0
 #define A_IO      0x1
-
-/*
- * dma channel status
- */
-enum dmachan_status_e {
-	CHAN_STA_IDLE,
-	CHAN_STA_BUSY
-};
 
 /*
  * data width and burst length combination
@@ -164,9 +150,7 @@ enum addrt_e {
 	DMAADDRT_MAX
 };
 
-/*
- * dma channel irq type
- */
+/* dma channel irq type */
 enum dma_chan_irq_type {
 	CHAN_IRQ_NO 	= 0,			/* none */
 	CHAN_IRQ_HD	= (0b001	),	/* package half done irq */
@@ -199,9 +183,7 @@ struct dma_config_t {
 	u8		dst_drq_type;	/* dst drq type */
 };
 
-/*
- * src drq type
- */
+/* src drq type */
 enum drqsrc_type_e {
 	DRQSRC_SRAM		= 0,
 	DRQSRC_SDRAM		= 1,
@@ -234,9 +216,7 @@ enum drqsrc_type_e {
 	DRQSRC_DIGITAL_MIC	= 30
 };
 
-/*
- * dst drq type
- */
+/* dst drq type */
 enum drqdst_type_e {
 	DRQDST_SRAM		= 0,
 	DRQDST_SDRAM		= 1,
@@ -270,9 +250,7 @@ enum drqdst_type_e {
 	DRQDST_DIGITAL_MIC	= 30
 };
 
-/*
- * dma operation type
- */
+/* dma operation type */
 enum dma_op_type_e {
 	DMA_OP_START,  			/* start dma */
 	DMA_OP_PAUSE,  			/* pause transferring */
@@ -290,9 +268,7 @@ enum dma_op_type_e {
 	DMA_OP_SET_QD_CB,		/* set queue done callback */
 };
 
-/*
- * dma call back cause
- */
+/* dma call back cause */
 enum dma_cb_cause_e {
 	DMA_CB_OK,		/* call back because success, eg: buf done */
 	DMA_CB_ABORT		/* call back because abort, eg: if stop the channel,
@@ -310,36 +286,26 @@ enum dma_enque_phase_e {
 	ENQUE_PHASE_QD		/* enqueued by queue_done callback function */
 };
 
-/*
- * dma handle type defination
- */
+/* dma handle type defination */
 typedef void * dm_hdl_t;
 
-/*
- * dma callback func
- */
+/* dma callback func */
 typedef u32 (* dma_cb)(dm_hdl_t dma_hdl, void *parg, enum dma_cb_cause_e cause);
 typedef u32 (* dma_op_cb)(dm_hdl_t dma_hdl, void *parg, enum dma_op_type_e op);
 
-/*
- * dma callback struct
- */
+/* dma callback struct */
 struct dma_cb_t {
 	dma_cb 		func;	/* dma callback fuction */
 	void 		*parg;	/* args of func */
 };
 
-/*
- * dma operation callback struct
- */
+/* dma operation callback struct */
 struct dma_op_cb_t {
 	dma_op_cb 	func;	/* dma operation callback fuction */
 	void 		*parg;	/* args of func */
 };
 
-/*
- * dma channle work mode:
- */
+/* dma channle work mode */
 enum dma_work_mode_e {
 	DMA_WORK_MODE_INVALID,	/* invalid work mode */
 	DMA_WORK_MODE_CHAIN,	/* chain mode
@@ -352,59 +318,14 @@ enum dma_work_mode_e {
 				 */
 };
 
-/*
- * size macros
- */
-#define SIZE_1			(1)
-#define SIZE_2			(2)
-#define SIZE_4			(4)
-#define SIZE_8			(8)
-#define SIZE_16			(16)
-#define SIZE_32			(32)
-#define SIZE_64			(64)
-#define SIZE_128		(128)
-#define SIZE_256		(256)
-#define SIZE_512		(512)
-
-#define SIZE_1K			(1024 * 1)
-#define SIZE_2K			(1024 * 2)
-#define SIZE_4K			(1024 * 4)
-#define SIZE_8K			(1024 * 8)
-#define SIZE_16K		(1024 * 16)
-#define SIZE_32K		(1024 * 32)
-#define SIZE_64K		(1024 * 64)
-#define SIZE_128K		(1024 * 128)
-#define SIZE_256K		(1024 * 256)
-#define SIZE_512K		(1024 * 512)
-
-#define SIZE_1M			(1024 * 1024 * 1)
-#define SIZE_2M			(1024 * 1024 * 2)
-#define SIZE_4M			(1024 * 1024 * 4)
-#define SIZE_8M			(1024 * 1024 * 8)
-#define SIZE_10M		(1024 * 1024 * 10)
-#define SIZE_16M		(1024 * 1024 * 16)
-#define SIZE_32M		(1024 * 1024 * 32)
-#define SIZE_64M		(1024 * 1024 * 64)
-#define SIZE_128M		(1024 * 1024 * 128)
-#define SIZE_256M		(1024 * 1024 * 256)
-#define SIZE_512M		(1024 * 1024 * 512)
-
-/*
- * dma export symbol
- */
+/* dma export symbol */
 dm_hdl_t sw_dma_request(char * name, enum dma_work_mode_e work_mode);
 u32 sw_dma_release(dm_hdl_t dma_hdl);
-u32 sw_dma_enqueue(dm_hdl_t dma_hdl, u32 src_addr, u32 dst_addr, u32 byte_cnt,
-				enum dma_enque_phase_e phase);
+u32 sw_dma_enqueue(dm_hdl_t dma_hdl, u32 src_addr, u32 dst_addr, u32 byte_cnt,	enum dma_enque_phase_e phase);
 u32 sw_dma_config(dm_hdl_t dma_hdl, struct dma_config_t *pcfg, enum dma_enque_phase_e phase);
 u32 sw_dma_ctl(dm_hdl_t dma_hdl, enum dma_op_type_e op, void *parg);
 int sw_dma_getposition(dm_hdl_t dma_hdl, u32 *pSrc, u32 *pDst);
 void sw_dma_dump_chan(dm_hdl_t dma_hdl);
-
-#if 0
-u32 sw_dma_getsoftsta(dm_hdl_t dma_hdl);
-u32 sw_dma_sgmd_buflist_empty(dm_hdl_t dma_hdl);
-#endif
 
 #endif /* __SW_DMA_H */
 

@@ -20,8 +20,8 @@
 #define THREAD1_DMA_NAME 	"m2m_dma_thread1"
 #define THREAD2_DMA_NAME 	"m2m_dma_thread2"
 /* total transfer length */
-#define DTC_2T_TOTAL_LEN	SIZE_512K
-#define DTC_2T_ONE_LEN		SIZE_4K
+#define DTC_2T_TOTAL_LEN	SZ_512K
+#define DTC_2T_ONE_LEN		SZ_4K
 /* test time for each thread */
 #define TEST_TIME_THREAD1 	0x0fffffff	/* ms */
 #define TEST_TIME_THREAD2 	0x0fffffff

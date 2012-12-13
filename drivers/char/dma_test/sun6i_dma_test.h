@@ -42,6 +42,7 @@
 #include <linux/delay.h>
 #include <asm/dma-mapping.h>
 #include <linux/wait.h>
+#include <linux/random.h>
 
 #include <mach/dma.h>
 

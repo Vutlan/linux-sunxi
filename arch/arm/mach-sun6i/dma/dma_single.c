@@ -253,26 +253,6 @@ end:
 	return uret;
 }
 
-u32 __handle_hd_sgmd(struct dma_channel_t *pchan)
-{
-	dma_cb 		func = pchan->hd_cb.func;
-	void 		*parg = pchan->hd_cb.parg;
-
-	if(NULL != func)
-		return func((dm_hdl_t)pchan, parg, DMA_CB_OK);
-	return 0;
-}
-
-u32 __handle_fd_sgmd(struct dma_channel_t *pchan)
-{
-	dma_cb 		func = pchan->fd_cb.func;
-	void 		*parg = pchan->fd_cb.parg;
-
-	if(NULL != func)
-		return func((dm_hdl_t)pchan, parg, DMA_CB_OK);
-	return 0;
-}
-
 u32 __handle_qd_sgmd(struct dma_channel_t *pchan)
 {
 	u32 		uret = 0;
@@ -282,10 +262,8 @@ u32 __handle_qd_sgmd(struct dma_channel_t *pchan)
 
 	/* cannot lock fd_cb function, in case sw_dma_enqueue called and locked agin */
 	if(NULL != pchan->qd_cb.func) {
-		if(0 != pchan->qd_cb.func((dm_hdl_t)pchan, pchan->qd_cb.parg, DMA_CB_OK)) {
+		if(0 != pchan->qd_cb.func((dm_hdl_t)pchan, pchan->qd_cb.parg, DMA_CB_OK))
 			DMA_ERR("%s err, line %d\n", __func__, __LINE__);
-			return 0;
-		}
 	}
 
 	DMA_CHAN_LOCK(&pchan->lock, flags);
@@ -325,10 +303,9 @@ u32 __handle_qd_sgmd(struct dma_channel_t *pchan)
 				goto end;
 			}
 		} else {
-			DMA_INF("%s, line %d\n", __func__, __LINE__);
+			DMA_INF("%s(%d), all buf done, change state to last done\n", __func__, __LINE__);
 			STATE_CHAIN(pchan) = SINGLE_STA_LAST_DONE; /* change state to done */
 		}
-		goto end;
 	} else { /* should never be last done */
 		uret = __LINE__;
 		goto end;
@@ -616,12 +593,10 @@ end:
  * @pchan:	dma channel handle
  * @upend_bits:	irq pending for the channel
  *
- * Returns 0 if sucess, the err line number if failed.
  */
-u32 dma_irq_hdl_single(struct dma_channel_t *pchan, u32 upend_bits)
+void dma_irq_hdl_single(struct dma_channel_t *pchan, u32 upend_bits)
 {
 	u32	uirq_spt = 0;
-	u32	uret = 0;
 
 	WARN(0 == upend_bits, "%s err, line %d!\n", __func__, __LINE__);
 	uirq_spt = pchan->irq_spt;
@@ -629,37 +604,20 @@ u32 dma_irq_hdl_single(struct dma_channel_t *pchan, u32 upend_bits)
 	/* deal half done */
 	if(upend_bits & CHAN_IRQ_HD) {
 		csp_dma_chan_clear_irqpend(pchan, CHAN_IRQ_HD);
-		if(uirq_spt & CHAN_IRQ_HD) {
-			if(0 != __handle_hd_sgmd(pchan)) {
-				uret = __LINE__;
-				goto end;
-			}
-		}
+		if((uirq_spt & CHAN_IRQ_HD) && NULL != pchan->hd_cb.func)
+			pchan->hd_cb.func((dm_hdl_t)pchan, pchan->hd_cb.parg, DMA_CB_OK);
 	}
 	/* deal full done */
 	if(upend_bits & CHAN_IRQ_FD) {
 		csp_dma_chan_clear_irqpend(pchan, CHAN_IRQ_FD);
-		if(uirq_spt & CHAN_IRQ_FD) {
-			if(0 != __handle_fd_sgmd(pchan)) {
-				uret = __LINE__;
-				goto end;
-			}
-		}
+		if((uirq_spt & CHAN_IRQ_FD) && NULL != pchan->fd_cb.func)
+			pchan->fd_cb.func((dm_hdl_t)pchan, pchan->fd_cb.parg, DMA_CB_OK);
 	}
 	/* deal queue done */
 	if(upend_bits & CHAN_IRQ_QD) {
 		csp_dma_chan_clear_irqpend(pchan, CHAN_IRQ_QD);
-		if(uirq_spt & CHAN_IRQ_QD) {
-			if(0 != __handle_qd_sgmd(pchan)) {
-				uret = __LINE__;
-				goto end;
-			}
-		}
+		if(uirq_spt & CHAN_IRQ_QD)
+			__handle_qd_sgmd(pchan);
 	}
-
-end:
-	if(0 != uret)
-		DMA_ERR("%s err, line %d\n", __func__, uret);
-	return uret;
 }
 
