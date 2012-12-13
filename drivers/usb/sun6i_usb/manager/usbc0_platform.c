@@ -113,7 +113,6 @@ static struct platform_device sw_hcd_device = {
 #ifdef  SW_USB_FPGA
 static ssize_t device_chose(struct device * dev,struct device_attribute * attr,char * buf)
 {
-	printk("device_chose:id_state=3\n");
 	set_vbus_id_state(3);
 
 	return sprintf(buf, "%s\n", "device_chose finished!");
@@ -122,7 +121,6 @@ static ssize_t device_chose(struct device * dev,struct device_attribute * attr,c
 static ssize_t host_chose(struct device * dev,struct device_attribute * attr,char * buf)
 {
 	set_vbus_id_state(2);
-	printk("device_chose:id_state=2 \n");
 
 	return sprintf(buf, "%s\n", "device_chose finished!");
 }
@@ -130,7 +128,6 @@ static ssize_t host_chose(struct device * dev,struct device_attribute * attr,cha
 static ssize_t null_chose(struct device * dev,struct device_attribute * attr,char * buf)
 {
 	set_vbus_id_state(1);
-	printk("device_chose:id_state=1 \n");
 
 	return sprintf(buf, "%s\n", "device_chose finished!");
 }

@@ -1084,6 +1084,7 @@ static int do_write(struct fsg_common *common)
 
 /*-------------------------------------------------------------------------*/
 
+#ifndef CONFIG_USB_SW_SUN6I_USB
 static int do_synchronize_cache(struct fsg_common *common)
 {
 	struct fsg_lun	*curlun = common->curlun;
@@ -1096,10 +1097,16 @@ static int do_synchronize_cache(struct fsg_common *common)
 		curlun->sense_data = SS_WRITE_ERROR;
 	return 0;
 }
-
+#else
+static int do_synchronize_cache(struct fsg_common *common)
+{
+	return 0;
+}
+#endif
 
 /*-------------------------------------------------------------------------*/
 
+#ifndef CONFIG_USB_SW_SUN6I_USB
 static void invalidate_sub(struct fsg_lun *curlun)
 {
 	struct file	*filp = curlun->filp;
@@ -1214,7 +1221,12 @@ static int do_verify(struct fsg_common *common)
 	}
 	return 0;
 }
-
+#else
+static int do_verify(struct fsg_common *common)
+{
+	return 0;
+}
+#endif
 
 /*-------------------------------------------------------------------------*/
 
@@ -1531,8 +1543,11 @@ static int do_prevent_allow(struct fsg_common *common)
 		return -EINVAL;
 	}
 
-	if (curlun->prevent_medium_removal && !prevent)
+	if (curlun->prevent_medium_removal && !prevent){
+#ifndef CONFIG_USB_SW_SUN6I_USB
 		fsg_lun_fsync_sub(curlun);
+#endif
+	}
 	curlun->prevent_medium_removal = prevent;
 	return 0;
 }

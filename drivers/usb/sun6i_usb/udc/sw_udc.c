@@ -3274,7 +3274,6 @@ int sw_usb_device_enable(void)
 		goto err;
 	}
 
-	printk("request sw_udc_irq no:%d is ok\n", irq);
 	if(udc->driver && is_udc_enable){
 		sw_udc_enable(udc);
 		cfg_udc_command(SW_UDC_P_ENABLE);
@@ -3501,8 +3500,6 @@ static int sw_udc_probe_device_only(struct platform_device *pdev)
 		retval = -EBUSY;
 		goto err;
 	}
-
-	printk("request sw_udc_irq no:%d is ok\n", irq);
 
 	retval = usb_add_gadget_udc(&pdev->dev, &udc->gadget);
 

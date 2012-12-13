@@ -51,7 +51,7 @@
 #include  "usb_msg_center.h"
 
 static struct usb_scan_info g_usb_scan_info;
-
+extern int axp_usb_det(void);
 void (*__usb_hw_scan) (struct usb_scan_info *);
 
 #ifndef  SW_USB_FPGA
@@ -203,20 +203,29 @@ static u32 get_detect_vbus_state(struct usb_scan_info *info)
 	enum usb_det_vbus_state det_vbus_state = USB_DET_VBUS_INVALID;
 	__u32 pin_data = 0;
 
-	if(info->cfg->port[0].det_vbus.valid){
-		if(!PIODataIn_debounce(&info->cfg->port[0].det_vbus, &pin_data)){
-			if(pin_data){
-				det_vbus_state = USB_DET_VBUS_VALID;
+	if(info->cfg->port[0].det_vbus_type == USB_DET_VBUS_TYPE_GIPO){
+		if(info->cfg->port[0].det_vbus.valid){
+			if(!PIODataIn_debounce(&info->cfg->port[0].det_vbus, &pin_data)){
+				if(pin_data){
+					det_vbus_state = USB_DET_VBUS_VALID;
+				}else{
+					det_vbus_state = USB_DET_VBUS_INVALID;
+				}
+
+				info->det_vbus_old_state = det_vbus_state;
 			}else{
-				det_vbus_state = USB_DET_VBUS_INVALID;
+				det_vbus_state = info->det_vbus_old_state;
 			}
-
-			info->det_vbus_old_state = det_vbus_state;
-		}else{
-			det_vbus_state = info->det_vbus_old_state;
 		}
+	}else if(info->cfg->port[0].det_vbus_type == USB_DET_VBUS_TYPE_AXP){
+		if(axp_usb_det()){
+			det_vbus_state = USB_DET_VBUS_VALID;
+		}else{
+			det_vbus_state = USB_DET_VBUS_INVALID;
+		}
+	}else{
+		det_vbus_state = info->det_vbus_old_state;
 	}
-
     return det_vbus_state;
 }
 
@@ -240,8 +249,6 @@ static u32 get_dp_dm_status_normal(struct usb_scan_info *info)
 	dp = (reg_val >> USBC_BP_ISCR_EXT_DP_STATUS) & 0x01;
 	dm = (reg_val >> USBC_BP_ISCR_EXT_DM_STATUS) & 0x01;
 
-	//printk("USBC_REG_ISCR = 0x%x\n", reg_val);
-
 	return ((dp << 1) | dm);
 }
 
@@ -262,13 +269,11 @@ static u32 get_dp_dm_status(struct usb_scan_info *info)
 	}else if(ret2 == 0x11){
 	    if(get_usb_role() == USB_ROLE_DEVICE){
             ret = 0x11;
-			printk("ERR: dp/dm status is continuous(0x11)\n");
+			DMSG_PANIC("ERR: dp/dm status is continuous(0x11)\n");
 		}
 	}else{
 	    ret = ret2;
 	}
-
-	//printk("dp/dm: %d, (%d, %d, %d)\n", ret, ret0, ret1, ret2);
 
 	return ret;
 }
@@ -685,51 +690,56 @@ __s32 usb_hw_scan_init(struct usb_cfg *cfg)
 				{
 					__u32 need_pull_pio = 1;
 
-					if((port_info->id.valid == 0) || (port_info->det_vbus.valid == 0)){
-						DMSG_PANIC("ERR: usb detect tpye is vbus/id, but id(%d)/vbus(%d) is invalid\n",
-							       port_info->id.valid, port_info->det_vbus.valid);
-						ret = -1;
-						goto failed;
+					if(port_info->det_vbus_type == USB_DET_VBUS_TYPE_GIPO){
+						if((port_info->id.valid == 0) || (port_info->det_vbus.valid == 0)){
+							DMSG_PANIC("ERR: usb detect tpye is vbus/id, but id(%d)/vbus(%d) is invalid\n",
+								       port_info->id.valid, port_info->det_vbus.valid);
+							ret = -1;
+							goto failed;
+						}
+
+	                    /* 如果id和vbus的pin相同, 就不需要拉pio了 */
+						if(port_info->id.gpio_set.gpio.gpio == port_info->det_vbus.gpio_set.gpio.gpio){
+							need_pull_pio = 0;
+						}
 					}
 
-                    /* 如果id和vbus的pin相同, 就不需要拉pio了 */
-					if(port_info->id.gpio_set.gpio.gpio == port_info->det_vbus.gpio_set.gpio.gpio){
-						need_pull_pio = 0;
-					}
+						/* request id gpio */
+					if(port_info->id.valid){
+						ret = gpio_request(port_info->id.gpio_set.gpio.gpio, "otg_id");
+						if(ret != 0){
+							DMSG_PANIC("ERR: id gpio_request failed\n");
+							ret = -1;
+							port_info->id.valid = 0;
+							goto failed;
+						}
 
-					/* request id gpio */
-					ret = gpio_request(port_info->id.gpio_set.gpio.gpio, "otg_id");
-					if(ret != 0){
-						DMSG_PANIC("ERR: id gpio_request failed\n");
-						ret = -1;
-						port_info->id.valid = 0;
-						goto failed;
-					}
+						/* set config, input */
+						sw_gpio_setcfg(port_info->id.gpio_set.gpio.gpio, 0);
 
-					/* set config, input */
-					sw_gpio_setcfg(port_info->id.gpio_set.gpio.gpio, 0);
-
-					/* reserved is pull up */
-					if(need_pull_pio){
-						sw_gpio_setpull(port_info->id.gpio_set.gpio.gpio, 1);
+						/* reserved is pull up */
+						if(need_pull_pio){
+							sw_gpio_setpull(port_info->id.gpio_set.gpio.gpio, 1);
+						}
 					}
 
 					/* request det_vbus gpio */
+					if(port_info->det_vbus.valid){
+						ret = gpio_request(port_info->det_vbus.gpio_set.gpio.gpio, "otg_det");
+						if(ret != 0){
+							DMSG_PANIC("ERR: det_vbus gpio_request failed\n");
+							ret = -1;
+							port_info->det_vbus.valid = 0;
+							goto failed;
+						}
 
-					ret = gpio_request(port_info->det_vbus.gpio_set.gpio.gpio, "otg_det");
-					if(ret != 0){
-						DMSG_PANIC("ERR: det_vbus gpio_request failed\n");
-						ret = -1;
-						port_info->det_vbus.valid = 0;
-						goto failed;
-					}
+						/* set config, input */
+						sw_gpio_setcfg(port_info->det_vbus.gpio_set.gpio.gpio, 0);
 
-					/* set config, input */
-					sw_gpio_setcfg(port_info->det_vbus.gpio_set.gpio.gpio, 0);
-
-					/* reserved is disable */
-					if(need_pull_pio){
-						sw_gpio_setpull(port_info->det_vbus.gpio_set.gpio.gpio, 0);
+						/* reserved is disable */
+						if(need_pull_pio){
+							sw_gpio_setpull(port_info->det_vbus.gpio_set.gpio.gpio, 0);
+						}
 					}
 
 					__usb_hw_scan = vbus_id_hw_scan;
