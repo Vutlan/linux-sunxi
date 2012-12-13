@@ -4,6 +4,8 @@
 #endif
 #include <linux/linkage.h>
 #include <asm/assembler.h>
+
+
 /*
     c code declared as follows:
     int flush_clean_user_range(long start, long end);
@@ -18,6 +20,7 @@ ENTRY(flush_clean_user_range)
 
     .text
     .globl flush_clean_user_range
+    .globl flush_dcache_all
 flush_clean_user_range:
     dcache_line_size r2, r3
     sub	r3, r2, #1

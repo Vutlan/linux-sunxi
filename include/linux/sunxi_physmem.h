@@ -33,4 +33,8 @@ unsigned int sunxi_mem_alloc(unsigned int size);
 void sunxi_mem_free(unsigned int phymem);
 unsigned int sunxi_mem_get_rest_size(void);
 
+/* sunxi flush cache api */
+int flush_dcache_all(void);
+int flush_clean_user_range(long start, long end);
+
 #endif /* __SUNXI_PHYSMEM_H */

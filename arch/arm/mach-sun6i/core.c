@@ -93,7 +93,7 @@ static void sun6i_fixup(struct tag *tags, char **from,
 	printk("[%s] enter\n", __func__);
 	meminfo->bank[0].start = PLAT_PHYS_OFFSET;
 	meminfo->bank[0].size = HW_RESERVED_MEM_BASE - meminfo->bank[0].start;
-	meminfo->bank[1].start = G2D_MEM_BASE + G2D_MEM_SIZE;
+	meminfo->bank[1].start = HW_RESERVED_MEM_BASE + HW_RESERVED_MEM_SIZE;
 	meminfo->bank[1].size = (PLAT_PHYS_OFFSET+PLAT_MEM_SIZE) - meminfo->bank[1].start;
 
 	/* for sys_config */

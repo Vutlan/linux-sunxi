@@ -31,10 +31,6 @@
 #define SUPER_STANDBY_MEM_SIZE  (SZ_1K)                                 /* 1K */
 
 #define HW_RESERVED_MEM_BASE    (PLAT_PHYS_OFFSET + SZ_64M + SZ_32M + SZ_4M)    /* +100M */
-#define HW_RESERVED_MEM_SIZE    (SZ_128M + SZ_64M + SZ_8M)              /* 200M */
-
-#define G2D_MEM_BASE            (HW_RESERVED_MEM_BASE + HW_RESERVED_MEM_SIZE)   /* +1008M */
-#define G2D_MEM_SIZE            (SZ_16M)                                /* 16M */
-
+#define HW_RESERVED_MEM_SIZE    (SZ_128M + SZ_64M + + SZ_32M + SZ_8M)   /* 232M(DE+VE(CSI)+MP) */
 
 #endif
