@@ -1069,7 +1069,7 @@ static int vidioc_s_fmt_vid_cap(struct file *file, void *priv,
 			case CSI_FIELD_PLANAR_YUV422:
 			case CSI_FRAME_PLANAR_YUV422:	
 				dev->csi_plane.p0_size = width * height;
-				dev->csi_plane.p1_size = (width/2+31)&(~31) * height;
+				dev->csi_plane.p1_size = ((width/2+31)&(~31)) * height;
 				dev->csi_plane.p2_size = dev->csi_plane.p1_size;
 				dev->csi_size.buf_len_y = width;
 				dev->csi_size.buf_len_c = (width/2+31)&(~31);
@@ -1077,7 +1077,7 @@ static int vidioc_s_fmt_vid_cap(struct file *file, void *priv,
 			case CSI_FIELD_PLANAR_YUV420:
 			case CSI_FRAME_PLANAR_YUV420:		
 				dev->csi_plane.p0_size = width * height;
-				dev->csi_plane.p1_size = (width/2+31)&(~31) * height/2;
+				dev->csi_plane.p1_size = ((width/2+31)&(~31)) * height/2;
 				dev->csi_plane.p2_size = dev->csi_plane.p1_size;
 				dev->csi_size.buf_len_y = width;
 				dev->csi_size.buf_len_c = (width/2+31)&(~31);
