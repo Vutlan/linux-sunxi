@@ -123,6 +123,18 @@ static struct csi_fmt formats[] = {
 		.planes_cnt		= 3,
 	},
 	{
+		.name     		= "planar YVU 420",
+		.csi_if				= CSI_IF_INTLV,
+		.ccm_fmt			= V4L2_MBUS_FMT_UYVY8_2X8,	//linux-3.0
+		.fourcc   		= V4L2_PIX_FMT_YVU420,
+		.field				= V4L2_FIELD_NONE,
+		.input_fmt		= CSI_YUV422,
+		.output_fmt		= CSI_FIELD_PLANAR_YUV420,
+		.csi_field		= CSI_ODD,
+		.depth    		= 12,
+		.planes_cnt		= 3,
+	},
+	{
 		.name     		= "planar YUV 422 UV combined",
 		.csi_if				= CSI_IF_INTLV,
 		.ccm_fmt			= V4L2_MBUS_FMT_UYVY8_2X8,	//linux-3.0
@@ -260,6 +272,18 @@ static struct csi_fmt formats[] = {
 		.csi_if				= CSI_IF_CCIR656_1CH,
 		.ccm_fmt			= V4L2_MBUS_FMT_UYVY8_2X8,	//linux-3.0
 		.fourcc   		= V4L2_PIX_FMT_YUV420,
+		.field				= V4L2_FIELD_INTERLACED,
+		.input_fmt		= CSI_YUV422,
+		.output_fmt		= CSI_FRAME_PLANAR_YUV420,
+		.csi_field		= CSI_ODD,
+		.depth    		= 12,
+		.planes_cnt		= 3,
+	},
+	{
+		.name     		= "planar YVU 420",
+		.csi_if				= CSI_IF_CCIR656_1CH,
+		.ccm_fmt			= V4L2_MBUS_FMT_UYVY8_2X8,	//linux-3.0
+		.fourcc   		= V4L2_PIX_FMT_YVU420,
 		.field				= V4L2_FIELD_INTERLACED,
 		.input_fmt		= CSI_YUV422,
 		.output_fmt		= CSI_FRAME_PLANAR_YUV420,
@@ -1116,13 +1140,17 @@ static int vidioc_s_fmt_vid_cap(struct file *file, void *priv,
 		csi_err("no correct format found at s_fmt!\n");
 	}
 	
-	if ((dev->fmt->fourcc == V4L2_PIX_FMT_NV61) || (dev->fmt->fourcc == V4L2_PIX_FMT_NV21))
+	if ((dev->fmt->fourcc == V4L2_PIX_FMT_NV61) ||
+		  (dev->fmt->fourcc == V4L2_PIX_FMT_NV21) ||
+		  (dev->fmt->fourcc == V4L2_PIX_FMT_YVU420))
 		dev->csi_fmt_cfg.seq = CSI_VYUY;
 	else
 		dev->csi_fmt_cfg.seq = CSI_UYVY;
 	
+	bsp_csi_close();
 	bsp_csi_if_configure(&dev->csi_if_cfg);
 	bsp_csi_fmt_configure(dev->cur_ch,&dev->csi_fmt_cfg);
+	bsp_csi_open();
 
 	//horizontal and vertical offset are constant zero
 	bsp_csi_set_size(dev->cur_ch,dev->csi_size.width,dev->csi_size.height,dev->csi_size.buf_len_y,dev->csi_size.buf_len_c);

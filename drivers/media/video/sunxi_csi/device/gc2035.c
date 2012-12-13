@@ -43,7 +43,7 @@ MODULE_LICENSE("GPL");
 #define MCLK (24*1000*1000)
 #define VREF_POL	CSI_HIGH
 #define HREF_POL	CSI_HIGH
-#define CLK_POL		CSI_RISING
+#define CLK_POL		CSI_FALLING
 #define IO_CFG		0						//0:csi back 1:csi front
 #define V4L2_IDENT_SENSOR 0x2035
 
@@ -1341,23 +1341,30 @@ static struct regval_list sensor_ev_pos4_regs[] = {
  */
 
 static struct regval_list sensor_fmt_yuv422_yuyv[] = {
+	{{0x84},{0x02}}, //output put foramat
 
 };
 
 
 static struct regval_list sensor_fmt_yuv422_yvyu[] = {
+	{{0x84},{0x03}}, //output put foramat
 
 };
 
 static struct regval_list sensor_fmt_yuv422_vyuy[] = {
+	{{0x84},{0x01}}, //output put foramat
 
 };
 
 static struct regval_list sensor_fmt_yuv422_uyvy[] = {
+	{{0x84},{0x00}}, //output put foramat
 
 };
 
 static struct regval_list sensor_fmt_raw[] = {
+
+	{{0x84},{0x18}}, //output put foramat
+
 
 };
 
@@ -1542,7 +1549,7 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
 			//inactive mclk after stadby in
 			clk_disable(dev->csi_module_clk);
 			//reset on io
-			csi_gpio_write(sd,&dev->reset_io,CSI_RST_ON);
+//			csi_gpio_write(sd,&dev->reset_io,CSI_RST_ON);
 			mdelay(10);
 			break;
 		case CSI_SUBDEV_STBY_OFF:
@@ -1554,12 +1561,12 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
 			csi_gpio_write(sd,&dev->standby_io,CSI_STBY_OFF);
 			mdelay(10);
 			//reset off io
-			csi_gpio_write(sd,&dev->reset_io,CSI_RST_OFF);
-			mdelay(10);
-			csi_gpio_write(sd,&dev->reset_io,CSI_RST_ON);
-			mdelay(10);
-			csi_gpio_write(sd,&dev->reset_io,CSI_RST_OFF);
-			mdelay(10);
+//			csi_gpio_write(sd,&dev->reset_io,CSI_RST_OFF);
+//			mdelay(10);
+//			csi_gpio_write(sd,&dev->reset_io,CSI_RST_ON);
+//			mdelay(10);
+//			csi_gpio_write(sd,&dev->reset_io,CSI_RST_OFF);
+//			mdelay(10);
 			break;
 		case CSI_SUBDEV_PWR_ON:
 			csi_dev_dbg("CSI_SUBDEV_PWR_ON\n");
@@ -2197,7 +2204,8 @@ static int sensor_s_parm(struct v4l2_subdev *sd, struct v4l2_streamparm *parms)
 //	tpf->denominator = sensor_FRAME_RATE/div;
 //	
 //	sensor_write(sd, REG_CLKRC, info->clkrc);
-	return -EINVAL;
+	//return -EINVAL;
+	return 0;
 }
 
 
