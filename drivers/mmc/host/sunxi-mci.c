@@ -282,8 +282,8 @@ struct sw_mmc_clk_dly {
 	u32 oclk_dly;
 	u32 sclk_dly;
 } mmc_clk_dly [MMC_CLK_MOD_NUM] = {
-	{MMC_CLK_400K,        1, 7},
-	{MMC_CLK_25M,         3, 4},
+	{MMC_CLK_400K,        0, 7},
+	{MMC_CLK_25M,         0, 5},
 	{MMC_CLK_50M,         3, 5},
 	{MMC_CLK_50MDDR,      2, 4},
 	{MMC_CLK_50MDDR_8BIT, 2, 4},
@@ -509,10 +509,12 @@ int sw_mci_send_manual_stop(struct sunxi_mmc_host* smc_host, struct mmc_request*
 		SMC_ERR(smc_host, "sdc %d send stop command failed\n", smc_host->pdev->id);
 		ret = -1;
 	}
-	mci_writew(smc_host, REG_RINTR, iflags);
+	
 	if (req->stop)
 		req->stop->resp[0] = mci_readl(smc_host, REG_RESP0);
 
+	mci_writew(smc_host, REG_RINTR, iflags);
+	
 	/* enable interrupt */
 	mci_writew(smc_host, REG_IMASK, imask);
 
@@ -1201,8 +1203,13 @@ static irqreturn_t sw_mci_irq(int irq, void *dev_id)
 
 	idma_int  = mci_readl(smc_host, REG_IDST);
 	idma_inte = mci_readl(smc_host, REG_IDIE);
-	msk_int   = mci_readl(smc_host, REG_MISTA);
 	raw_int   = mci_readl(smc_host, REG_RINTR);
+	msk_int   = mci_readl(smc_host, REG_MISTA);
+	if (!msk_int && !idma_int) {
+		spin_unlock_irqrestore(&smc_host->lock, iflags);
+		return IRQ_HANDLED;
+	}
+	
 	smc_host->int_sum |= raw_int;
 	SMC_DBG(smc_host, "smc %d irq, ri %08x(%08x) mi %08x ie %08x idi %08x\n",
 		smc_host->pdev->id, raw_int, smc_host->int_sum,

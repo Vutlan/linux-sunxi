@@ -362,9 +362,9 @@ struct sunxi_mmc_host {
 	struct sunxi_mmc_ctrl_regs bak_regs;
 };
 
-#define SMC_MSG(d, ...)    do { pr_warning("[mmc]: "__VA_ARGS__); } while(0)
-#define SMC_ERR(d, ...)    do { pr_warning("[mmc]: *** %s(L%d): ", __FUNCTION__, __LINE__); \
-				pr_warning(__VA_ARGS__);} while(0)
+#define SMC_MSG(d, ...)    do { printk("[mmc]: "__VA_ARGS__); } while(0)
+#define SMC_ERR(d, ...)    do { printk("[mmc]: *** %s(L%d): ", __FUNCTION__, __LINE__); \
+					printk(__VA_ARGS__);} while(0)
 
 #define SMC_DEBUG_INFO	BIT(0)
 #define SMC_DEBUG_DBG	BIT(1)
