@@ -1214,7 +1214,7 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy, unsigned int even
             }
 
             freq_trig = (this_dbs_info->cur_policy->max*usrevent_freq[num_online_cpus() - 1])/100;
-            if (!cpufreq_frequency_table_target(policy, this_dbs_info->freq_table, freq_trig, CPUFREQ_RELATION_H, &index)) {
+            if (!cpufreq_frequency_table_target(policy, this_dbs_info->freq_table, policy->cur, CPUFREQ_RELATION_H, &index)) {
                 if (this_dbs_info->freq_table[index].frequency < freq_trig) {
                     /* set cpu frequenc to the max value, and reset state machine */
                     printk("CPUFREQ_GOV_USRENET\n");
