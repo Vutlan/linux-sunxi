@@ -2100,6 +2100,7 @@ static int sensor_write_im(struct v4l2_subdev *sd, unsigned int addr,
 static int sensor_write_array(struct v4l2_subdev *sd, struct regval_list *vals , uint size)
 {
 	int i,ret;
+	unsigned int cnt;
 //	unsigned char rd;
 	if (size == 0)
 		return 0;
@@ -2110,12 +2111,20 @@ static int sensor_write_array(struct v4l2_subdev *sd, struct regval_list *vals ,
 			mdelay(vals->value[0]);
 		}	
 		else {	
+			cnt=0;
 			ret = sensor_write(sd, vals->reg_num, vals->value);
-			if (ret < 0)
+			while( ret < 0 && cnt < 3)
 			{
-				csi_dev_err("sensor_write_err!\n");
-				return ret;
+				if(ret<0)
+					csi_dev_err("sensor_write_err!\n");
+				ret = sensor_write(sd, vals->reg_num, vals->value);
+				cnt++;
 			}
+			if(cnt>0)
+				csi_dev_err("csi i2c retry cnt=%d\n",cnt);
+			
+			if(ret<0 && cnt >=3)
+				return ret;
 		}
 		vals++;
 	}
@@ -2967,7 +2976,7 @@ static int sensor_s_af_zone(struct v4l2_subdev *sd, unsigned int xc, unsigned in
 	struct sensor_info *info = to_state(sd);
 	int ret;
 	
-	csi_dev_print("sensor_s_af_zone\n");
+	//csi_dev_print("sensor_s_af_zone\n");
 	csi_dev_dbg("af zone input xc=%d,yc=%d\n",xc,yc);
 	
 	if(info->width == 0 || info->height == 0) {

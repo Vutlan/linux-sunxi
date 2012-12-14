@@ -54,6 +54,7 @@
 extern int ar100_axp_int_notify(struct ar100_message *pmessage);
 extern int ar100_set_debug_level(unsigned int level);
 extern int ar100_dvfs_cfg_vf_table(void);
+extern int ar100_set_uart_baudrate(u32 baudrate);
 
 /* global vars */
 extern unsigned long ar100_sram_a2_vbase;

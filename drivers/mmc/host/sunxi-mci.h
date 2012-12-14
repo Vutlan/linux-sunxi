@@ -364,7 +364,7 @@ struct sunxi_mmc_host {
 
 #define SMC_MSG(d, ...)    do { printk("[mmc]: "__VA_ARGS__); } while(0)
 #define SMC_ERR(d, ...)    do { printk("[mmc]: *** %s(L%d): ", __FUNCTION__, __LINE__); \
-				printk(__VA_ARGS__);} while(0)
+					printk(__VA_ARGS__);} while(0)
 
 #define SMC_DEBUG_INFO	BIT(0)
 #define SMC_DEBUG_DBG	BIT(1)

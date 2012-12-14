@@ -16,7 +16,7 @@
 #include "sun6i_dma_test.h"
 #include <linux/random.h>
 
-#define DTC_1T_TOTAL_LEN	SIZE_512K
+#define DTC_1T_TOTAL_LEN	SZ_512K
 #define DTC_1T_ONE_LEN		DTC_1T_TOTAL_LEN
 
 static u32 g_src_addr = 0, g_dst_addr = 0;

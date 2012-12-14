@@ -180,9 +180,25 @@ static __s32 usb_script_parse(struct usb_cfg *cfg)
 		type = script_get_item(set_usbc, KEY_USB_DETVBUS_GPIO, &(cfg->port[i].det_vbus.gpio_set));
 		if(type == SCIRPT_ITEM_VALUE_TYPE_PIO){
 			cfg->port[i].det_vbus.valid = 1;
+			cfg->port[i].det_vbus_type = USB_DET_VBUS_TYPE_GIPO;
 		}else{
 			cfg->port[i].det_vbus.valid = 0;
-			DMSG_PANIC("ERR: get usbc(%d) det_vbus failed\n", i);
+			cfg->port[i].det_vbus_type = USB_DET_VBUS_TYPE_NULL;
+			DMSG_PANIC("ERR: get usbc(%d) det_vbus gpio failed\n", i);
+		}
+
+		if(cfg->port[i].det_vbus.valid == 0){
+			type = script_get_item(set_usbc, KEY_USB_DETVBUS_GPIO, &item_temp);
+			if(type == SCIRPT_ITEM_VALUE_TYPE_STR){
+				if(strncmp(item_temp.str, "axp_ctrl", 8) == 0){
+					cfg->port[i].det_vbus_type = USB_DET_VBUS_TYPE_AXP;
+				}else{
+					cfg->port[i].det_vbus_type = USB_DET_VBUS_TYPE_NULL;
+				}
+			}else{
+					DMSG_PANIC("ERR: get usbc(%d) det_vbus axp failed\n", i);
+					cfg->port[i].det_vbus_type = USB_DET_VBUS_TYPE_NULL;
+			}
 		}
 
 		/* usbc drv_vbus */
@@ -244,10 +260,12 @@ static __s32 check_usb_board_info(struct usb_cfg *cfg)
     		    goto err;
             }
 
-            if(cfg->port[0].det_vbus.valid == 0){
-                DMSG_PANIC("ERR: det_vbus pin is invaild\n");
-    		    goto err;
-            }
+			if(cfg->port[0].det_vbus_type == USB_DET_VBUS_TYPE_GIPO){
+	            if(cfg->port[0].det_vbus.valid == 0){
+	                DMSG_PANIC("ERR: det_vbus pin is invaild\n");
+	    		    goto err;
+	            }
+        	}
         }
     }
 
@@ -332,8 +350,10 @@ static void print_usb_cfg(struct usb_cfg *cfg)
 		DMSG_MANAGER_DEBUG("id.valid             = %x\n", cfg->port[i].id.valid);
 		print_gpio_set(&cfg->port[i].id.gpio_set.gpio);
 
-		DMSG_MANAGER_DEBUG("vbus.valid           = %x\n", cfg->port[i].det_vbus.valid);
-		print_gpio_set(&cfg->port[i].det_vbus.gpio_set.gpio);
+		if(cfg->port[0].det_vbus_type == USB_DET_VBUS_TYPE_GIPO){
+			DMSG_MANAGER_DEBUG("vbus.valid           = %x\n", cfg->port[i].det_vbus.valid);
+			print_gpio_set(&cfg->port[i].det_vbus.gpio_set.gpio);
+		}
 
 		DMSG_MANAGER_DEBUG("drv_vbus.valid       = %x\n", cfg->port[i].drv_vbus.valid);
 		print_gpio_set(&cfg->port[i].drv_vbus.gpio_set.gpio);

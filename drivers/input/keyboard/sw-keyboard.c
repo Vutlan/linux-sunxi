@@ -31,8 +31,11 @@
 #include <linux/timer.h> 
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
-#include <linux/pm.h>
 #include <linux/earlysuspend.h>
+#endif
+
+#if defined(CONFIG_HAS_EARLYSUSPEND) || defined(CONFIG_PM)
+#include <linux/pm.h>
 #endif
 
 /* just for test */

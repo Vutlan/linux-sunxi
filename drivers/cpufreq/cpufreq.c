@@ -1935,6 +1935,10 @@ void cpufreq_mass_thread_event_notify(void)
 }
 EXPORT_SYMBOL_GPL(cpufreq_mass_thread_event_notify);
 
+#ifdef CONFIG_CPU_FREQ_EARLYSUSPEND
+extern int hotplug_early_suspend_init(void);
+#endif
+
 static int __init cpufreq_core_init(void)
 {
 	int cpu;
@@ -1947,6 +1951,10 @@ static int __init cpufreq_core_init(void)
 	cpufreq_global_kobject = kobject_create_and_add("cpufreq", &cpu_subsys.dev_root->kobj);
 	BUG_ON(!cpufreq_global_kobject);
 	register_syscore_ops(&cpufreq_syscore_ops);
+
+    #ifdef CONFIG_CPU_FREQ_EARLYSUSPEND
+    hotplug_early_suspend_init();
+    #endif
 
 	return 0;
 }

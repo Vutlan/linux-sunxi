@@ -237,8 +237,8 @@ static void insmod_device_driver(struct usb_msg_center_info *center_info)
 	DMSG_INFO("\n\ninsmod_device_driver\n\n");
 
 #ifndef  SW_USB_FPGA
-    //axp_usbvol();
-    //axp_usbcur();
+    axp_usbvol();
+    axp_usbcur();
 #endif
 	set_usb_role(center_info, USB_ROLE_DEVICE);
 	sw_usb_device_enable();
@@ -271,8 +271,8 @@ static void rmmod_device_driver(struct usb_msg_center_info *center_info)
 	set_usb_role(center_info, USB_ROLE_NULL);
 	sw_usb_device_disable();
 #ifndef  SW_USB_FPGA
-	//axp_usbcur_restore();
-	//axp_usbvol_restore();
+	axp_usbcur_restore();
+	axp_usbvol_restore();
 #endif
 	return;
 }

@@ -233,6 +233,10 @@ struct lis3de_acc_status {
 	struct work_struct irq2_work;
 	struct workqueue_struct *irq2_work_queue;
 
+	#ifdef CONFIG_HAS_EARLYSUSPEND
+	struct early_suspend early_suspend;
+	#endif
+
 #ifdef DEBUG
 	u8 reg_addr;
 #endif
@@ -255,6 +259,11 @@ static struct lis3de_acc_platform_data default_lis3de_acc_pdata = {
 	.power_off = NULL,
 	.power_on = NULL,
 };
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static void lis3de_early_suspend(struct early_suspend *h);
+static void lis3de_late_resume(struct early_suspend *h);
+#endif
 
 /* Addresses to scan */
 static const unsigned short normal_i2c[] = {0x28, I2C_CLIENT_END};
@@ -315,7 +324,7 @@ script_get_err:
  *                    = 0; success;
  *                    < 0; err
  */
-int gsensor_detect(struct i2c_client *client, struct i2c_board_info *info)
+static int gsensor_detect(struct i2c_client *client, struct i2c_board_info *info)
 {
 	struct i2c_adapter *adapter = client->adapter;
 	int ret;
@@ -1582,6 +1591,13 @@ static int lis3de_acc_probe(struct i2c_client *client,
 
 	mutex_unlock(&stat->lock);
 
+	#ifdef CONFIG_HAS_EARLYSUSPEND
+	stat->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;
+	stat->early_suspend.suspend = lis3de_early_suspend;
+	stat->early_suspend.resume = lis3de_late_resume;
+	register_early_suspend(&stat->early_suspend);
+	#endif
+
 	dev_info(&client->dev, "%s: probed\n", LIS3DE_ACC_DEV_NAME);
 
 	return 0;
@@ -1619,6 +1635,10 @@ static int __devexit lis3de_acc_remove(struct i2c_client *client)
 
 	struct lis3de_acc_status *stat = i2c_get_clientdata(client);
 
+	#ifdef CONFIG_HAS_EARLYSUSPEND
+	unregister_early_suspend(&stat->early_suspend);
+	#endif
+
 	if (stat->pdata->gpio_int1 >= 0) {
 		free_irq(stat->irq1, stat);
 		//gpio_free(stat->pdata->gpio_int1);
@@ -1643,6 +1663,27 @@ static int __devexit lis3de_acc_remove(struct i2c_client *client)
 	return 0;
 }
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static void lis3de_early_suspend(struct early_suspend *h)
+{
+	struct lis3de_acc_status *stat =
+		container_of(h, struct lis3de_acc_status, early_suspend);
+	
+	stat->on_before_suspend = atomic_read(&stat->enabled);
+	lis3de_acc_disable(stat);
+	return;
+}
+
+static void lis3de_late_resume(struct early_suspend *h)
+{
+	struct lis3de_acc_status *stat =
+		container_of(h, struct lis3de_acc_status, early_suspend);
+
+	if (stat->on_before_suspend)
+		lis3de_acc_enable(stat);
+	return;
+}
+#else
 #ifdef CONFIG_PM
 static int lis3de_acc_resume(struct i2c_client *client)
 {
@@ -1664,6 +1705,7 @@ static int lis3de_acc_suspend(struct i2c_client *client, pm_message_t mesg)
 #define lis3de_acc_suspend	NULL
 #define lis3de_acc_resume	NULL
 #endif /* CONFIG_PM */
+#endif /* CONFIG_HAS_EARLYSUSPEND */
 
 static const struct i2c_device_id lis3de_acc_id[]
 		= { { LIS3DE_ACC_DEV_NAME, 0 }, { }, };
@@ -1679,8 +1721,11 @@ static struct i2c_driver lis3de_acc_driver = {
 		  },
 	.probe = lis3de_acc_probe,
 	.remove = __devexit_p(lis3de_acc_remove),
+#ifdef CONFIG_HAS_EARLYSUSPEND
+#else
 	.suspend = lis3de_acc_suspend,
 	.resume = lis3de_acc_resume,
+#endif
 	.id_table = lis3de_acc_id,
 	.address_list	= normal_i2c,
 };

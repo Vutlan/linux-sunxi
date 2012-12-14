@@ -38,8 +38,11 @@
 #include <mach/sys_config.h>
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
-#include <linux/pm.h>
 #include <linux/earlysuspend.h>
+#endif
+
+#if defined(CONFIG_HAS_EARLYSUSPEND) || defined(CONFIG_PM)
+#include <linux/pm.h>
 #endif
 
 /*
@@ -173,10 +176,8 @@ static int gsensor_fetch_sysconfig_para(void)
 	int device_used = -1;
 	script_item_u	val;
 	script_item_value_type_e  type;
-	
 		
 	dprintk(DEBUG_BASE_LEVEL0, "========%s===================\n", __func__);
-
 	
 	type = script_get_item("gsensor_para", "gsensor_used", &val);
  
@@ -211,15 +212,13 @@ script_get_err:
 
 }
 
-
-
 /**
  * gsensor_detect - Device detection callback for automatic device creation
  * return value:  
  *                    = 0; success;
  *                    < 0; err
  */
-int gsensor_detect(struct i2c_client *client, struct i2c_board_info *info)
+static int gsensor_detect(struct i2c_client *client, struct i2c_board_info *info)
 {
 	struct i2c_adapter *adapter = client->adapter;
 	int ret ;
@@ -243,7 +242,6 @@ int gsensor_detect(struct i2c_client *client, struct i2c_board_info *info)
 		return -ENODEV;
 	}
 }
-
 
 static ssize_t mma8452_enable_store(struct device *dev,
 		struct device_attribute *attr,
@@ -290,10 +288,10 @@ static ssize_t mma8452_delay_store(struct device *dev,struct device_attribute *a
 	return count;
 		}
 
-static DEVICE_ATTR(enable, S_IRUGO|S_IWUSR|S_IWGRP,
+static DEVICE_ATTR(enable, 0666,
 		NULL, mma8452_enable_store);
 		
-static DEVICE_ATTR(delay, S_IRUGO|S_IWUSR|S_IWGRP,
+static DEVICE_ATTR(delay, 0666,
 		NULL, mma8452_delay_store);
 
 static struct attribute *mma8452_attributes[] = {

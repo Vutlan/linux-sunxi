@@ -285,9 +285,28 @@ static __s32 pin_init(sw_hcd_io_t *sw_hcd_io)
 #ifndef  SW_USB_FPGA
 	__s32 ret = 0;
     script_item_value_type_e type = 0;
+	script_item_u item_temp;
+
+	/* get usb_host_init_state */
+	type = script_get_item(SET_USB0, KEY_USB_HOST_INIT_STATE, &item_temp);
+	if(type == SCIRPT_ITEM_VALUE_TYPE_INT){
+		sw_hcd_io->host_init_state = item_temp.val;
+	}else{
+		DMSG_PANIC("ERR: get host_init_state failed\n");
+		sw_hcd_io->host_init_state = 1;
+	}
+
+	/* get usb_restrict_flag */
+	type = script_get_item(SET_USB0, KEY_USB_USB_RESTRICT_FLAG, &item_temp);
+	if(type == SCIRPT_ITEM_VALUE_TYPE_INT){
+		sw_hcd_io->usb_restrict_flag = item_temp.val;
+	}else{
+		DMSG_PANIC("ERR: get usb_restrict_flag failed\n");
+		sw_hcd_io->usb_restrict_flag = 0;
+	}
 
 	/* usbc drv_vbus */
-	type = script_get_item("usbc0", "usb_drv_vbus_gpio", &sw_hcd_io->drv_vbus_gpio_set);
+	type = script_get_item(SET_USB0, KEY_USB_DRVVBUS_GPIO, &sw_hcd_io->drv_vbus_gpio_set);
 	if(type == SCIRPT_ITEM_VALUE_TYPE_PIO){
         sw_hcd_io->drv_vbus_valid = 1;
 	}else{
@@ -308,6 +327,31 @@ static __s32 pin_init(sw_hcd_io_t *sw_hcd_io)
         	sw_gpio_setpull(sw_hcd_io->drv_vbus_gpio_set.gpio.gpio, 2);
     	}
 	}
+
+	/* usbc usb_restrict */
+	type = script_get_item("usbc0", KEY_USB_RESTRICT_GPIO, &sw_hcd_io->restrict_gpio_set);
+	if(type == SCIRPT_ITEM_VALUE_TYPE_PIO){
+		sw_hcd_io->usb_restrict_valid = 1;
+	}else{
+		DMSG_PANIC("ERR: get usbc0(usb_restrict) failed\n");
+		sw_hcd_io->usb_restrict_valid = 0;
+	}
+
+	if(sw_hcd_io->usb_restrict_valid){
+		ret = gpio_request(sw_hcd_io->restrict_gpio_set.gpio.gpio, "usb_restrict");
+		if(ret != 0){
+			DMSG_PANIC("ERR: usb_restrict gpio_request failed\n");
+			sw_hcd_io->usb_restrict_valid = 0;
+		}else{
+			/* set config, ouput */
+			sw_gpio_setcfg(sw_hcd_io->restrict_gpio_set.gpio.gpio, 1);
+
+			/* reserved is pull down */
+			sw_gpio_setpull(sw_hcd_io->restrict_gpio_set.gpio.gpio, 2);
+		}
+	}
+#else
+		sw_hcd_io->host_init_state = 1;
 
 #endif
 	return 0;
@@ -337,6 +381,11 @@ static __s32 pin_exit(sw_hcd_io_t *sw_hcd_io)
 	if(sw_hcd_io->drv_vbus_valid){
 		gpio_free(sw_hcd_io->drv_vbus_gpio_set.gpio.gpio);
 		sw_hcd_io->drv_vbus_valid = 0;
+	}
+
+	if(sw_hcd_io->usb_restrict_valid){
+		gpio_free(sw_hcd_io->restrict_gpio_set.gpio.gpio);
+		sw_hcd_io->usb_restrict_valid = 0;
 	}
 #endif
 	return 0;
@@ -377,7 +426,9 @@ static void sw_hcd_board_set_vbus(struct sw_hcd *sw_hcd, int is_on)
     }
 
 	/* set gpio data */
-	__gpio_set_value(sw_hcd->sw_hcd_io->drv_vbus_gpio_set.gpio.gpio, on_off);
+	if(sw_hcd->sw_hcd_io->drv_vbus_valid){
+		__gpio_set_value(sw_hcd->sw_hcd_io->drv_vbus_gpio_set.gpio.gpio, on_off);
+	}
 #endif
 
 	if(is_on){
@@ -515,24 +566,13 @@ static __s32 sw_hcd_io_init(__u32 usbc_no, struct platform_device *pdev, sw_hcd_
 		ret = -ENOMEM;
 		goto io_failed1;
 	}
-
-#ifndef  SW_USB_FPGA
-{
-    script_item_value_type_e type = 0;
-    script_item_u item_temp;
-
-	/* get usb_host_init_state */
-	type = script_get_item(SET_USB0, KEY_USB_HOST_INIT_STATE, &item_temp);
-	if(type == SCIRPT_ITEM_VALUE_TYPE_INT){
-	    sw_hcd_io->host_init_state = item_temp.val;
-	}else{
-		DMSG_PANIC("ERR: get host_init_state failed\n");
-	    sw_hcd_io->host_init_state = 1;
+	if(sw_hcd_io->usb_restrict_valid){
+		if(sw_hcd_io->usb_restrict_flag){
+			__gpio_set_value(sw_hcd_io->restrict_gpio_set.gpio.gpio, 0);
+		}else{
+			__gpio_set_value(sw_hcd_io->restrict_gpio_set.gpio.gpio, 1);
+		}
 	}
-}
-#else
-	sw_hcd_io->host_init_state = 1;
-#endif
 
 	DMSG_INFO("[sw_hcd0]: host_init_state = %d\n", sw_hcd_io->host_init_state);
 
@@ -1357,8 +1397,6 @@ static int sw_hcd_init_controller(struct device *dev, int nIrq, void __iomem *ct
 		goto fail2;
 	}
 
-	printk("request sw_hcd_irq no:%d is ok\n", nIrq);
-
 	sw_hcd->nIrq = nIrq;
 
     /* FIXME this handles wakeup irqs wrong */
@@ -1474,8 +1512,6 @@ int sw_usb_host0_enable(void)
 		DMSG_PANIC("ERR: request_irq %d failed!\n", sw_hcd->nIrq);
 		return -1;
 	}
-
-	printk("request sw_hcd_irq no:%d is ok\n", sw_hcd->nIrq);
 
 	sw_hcd_soft_disconnect(sw_hcd);
 	sw_hcd_io_init(usbc_no, pdev, &g_sw_hcd_io);

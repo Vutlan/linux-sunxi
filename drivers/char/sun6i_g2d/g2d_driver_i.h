@@ -35,7 +35,7 @@
 #define WARNING(format, args...) printk(KERN_WARNING "%s: " format, "G2D", ## args)
 #define INFO(format, args...) printk(KERN_INFO "%s: " format, "G2D", ## args)
 
-#define	__FPGA_DEBUG_G2D__
+//#define	__FPGA_DEBUG_G2D__
 #define MAX_G2D_MEM_INDEX	1000
 #define	INTC_IRQNO_DE_MIX	AW_IRQ_MP
 

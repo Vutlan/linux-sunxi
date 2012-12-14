@@ -473,25 +473,20 @@ void dma_irq_hdl_chain(struct dma_channel_t *pchan, u32 upend_bits)
 	/* deal half done */
 	if(upend_bits & CHAN_IRQ_HD) {
 		csp_dma_chan_clear_irqpend(pchan, CHAN_IRQ_HD);
-		if(uirq_spt & CHAN_IRQ_HD) {
-			if(NULL != pchan->hd_cb.func)
-				pchan->hd_cb.func((dm_hdl_t)pchan, pchan->hd_cb.parg, DMA_CB_OK);
-		}
+		if((uirq_spt & CHAN_IRQ_HD) && NULL != pchan->hd_cb.func)
+			pchan->hd_cb.func((dm_hdl_t)pchan, pchan->hd_cb.parg, DMA_CB_OK);
 	}
 	/* deal full done */
 	if(upend_bits & CHAN_IRQ_FD) {
 		csp_dma_chan_clear_irqpend(pchan, CHAN_IRQ_FD);
-		if(uirq_spt & CHAN_IRQ_FD) {
-			if(NULL != pchan->fd_cb.func)
+		if((uirq_spt & CHAN_IRQ_FD) && NULL != pchan->fd_cb.func)
 				pchan->fd_cb.func((dm_hdl_t)pchan, pchan->fd_cb.parg, DMA_CB_OK);
-		}
 	}
 	/* deal queue done */
 	if(upend_bits & CHAN_IRQ_QD) {
 		csp_dma_chan_clear_irqpend(pchan, CHAN_IRQ_QD);
-		if(uirq_spt & CHAN_IRQ_QD) {
+		if(uirq_spt & CHAN_IRQ_QD)
 			__handle_qd_chain(pchan);
-		}
 	}
 }
 

@@ -25,8 +25,12 @@
 #include <linux/ioctl.h>
 #include <linux/delay.h>
 #include <linux/slab.h>
+#include <linux/gpio.h>
 #include <asm/io.h>
 #include <mach/dma.h>
+#include <mach/gpio.h>
+#include <mach/sys_config.h>
+#include <mach/system.h>
 #ifdef CONFIG_PM
 #include <linux/pm.h>
 #endif
@@ -45,6 +49,11 @@
 struct clk *codec_apbclk,*codec_pll2clk,*codec_moduleclk;
 static unsigned int capture_dmadst = 0;
 static unsigned int play_dmasrc = 0;
+
+/*for pa gpio ctrl*/
+static int req_status;
+static script_item_u item;
+static script_item_value_type_e  type;
 
 struct sun6i_codec {
 	long samplerate;
@@ -382,12 +391,12 @@ static int codec_play_open(struct snd_pcm_substream *substream)
 
 static int codec_capture_open(void)
 {
+	 /*enable mic1 pa*/
+	 codec_wr_control(SUN6I_MIC_CTRL, 0x1, MIC1AMPEN, 0x1);
 	 /*mic1 gain 30dB，if capture volume is too small, enlarge the mic1booost*/
 	 codec_wr_control(SUN6I_MIC_CTRL, 0x7,MIC1BOOST,0x3);//30db
 	 /*enable Master microphone bias*/
 	 codec_wr_control(SUN6I_MIC_CTRL, 0x1, MBIASEN, 0x1);
-	 /*enable mic1 pa*/
-	 codec_wr_control(SUN6I_MIC_CTRL, 0x1, MIC1AMPEN, 0x1);
 
 	 /*enable Right MIC1 Boost stage*/
 	 codec_wr_control(SUN6I_ADC_ACTL, 0x7f, RADCMIXMUTE, 0x40);//移到外部控制	 
@@ -441,8 +450,6 @@ static int codec_play_stop(void)
 
 static int codec_capture_start(void)
 {
-	/*flush RX FIFO*/
-	codec_wr_control(SUN6I_ADC_FIFOC, 0x1, ADC_FIFO_FLUSH, 0x1);
 	/*enable adc drq*/
 	codec_wr_control(SUN6I_ADC_FIFOC ,0x1, ADC_DRQ, 0x1);
 	return 0;
@@ -470,30 +477,31 @@ static int codec_dev_free(struct snd_device *device)
 	return 0;
 };
 
-static int codec_speaker_enabled;
-
+static bool codec_speaker_enabled = false;
 static int codec_set_spk(struct snd_kcontrol *kcontrol,
 	struct snd_ctl_elem_value *ucontrol)
 {
 	codec_speaker_enabled = ucontrol->value.integer.value[0];
 	if (codec_speaker_enabled) {
+		item.gpio.data = 1;
 		/*config gpio info of audio_pa_ctrl open*/
-//		if (0 != sw_gpio_setall_range(&item.gpio, 1)) {
-//			printk("sw_gpio_setall_range failed\n");
-//		}
+		if (0 != sw_gpio_setall_range(&item.gpio, 1)) {
+			printk("sw_gpio_setall_range failed\n");
+		}
 		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTR_EN, 0x1);
 		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTL_EN, 0x1);
-		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTL_SRC_SEL, 0x0);
-		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTR_SRC_SEL, 0x0);
+		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTL_SRC_SEL, 0x1);
+		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTR_SRC_SEL, 0x1);
 		codec_wr_control(SUN6I_MIC_CTRL, 0x1f, LINEOUT_VOL, 0x1f);
 	} else {
+		item.gpio.data = 0;
 		codec_wr_control(SUN6I_MIC_CTRL, 0x1f, LINEOUT_VOL, 0x0);
 		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTL_EN, 0x0);
 		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTR_EN, 0x0);
 		/*config gpio info of audio_pa_ctrl close*/
-//		if (0 != sw_gpio_setall_range(&item.gpio, 1)) {
-//			printk("sw_gpio_setall_range failed\n");
-//		}
+		if (0 != sw_gpio_setall_range(&item.gpio, 1)) {
+			printk("sw_gpio_setall_range failed\n");
+		}
 	}
 	return 0;
 }
@@ -510,60 +518,60 @@ static int codec_get_spk(struct snd_kcontrol *kcontrol,
 */
 static const struct snd_kcontrol_new codec_snd_controls[] = {	
 	/*SUN6I_DAC_ACTL = 0x20,PAVOL*/
-	CODEC_SINGLE("Master Playback Volume", SUN6I_DAC_ACTL,0,0x3f,0),
+	CODEC_SINGLE("Master Playback Volume", SUN6I_DAC_ACTL,0,0x3f,0),			/*0*/
 	/*total output switch PAMUTE, if set this bit to 0, the voice is mute*/
-	CODEC_SINGLE("Playback LPAMUTE SWITCH", SUN6I_DAC_ACTL,6,0x1,0),	
-	CODEC_SINGLE("Playback RPAMUTE SWITCH", SUN6I_DAC_ACTL,7,0x1,0),
-	CODEC_SINGLE("Left Headphone PA input src select", SUN6I_DAC_ACTL,8,0x1,0),
-	CODEC_SINGLE("Right Headphone PA input src select", SUN6I_DAC_ACTL,9,0x1,0),
-	CODEC_SINGLE("Left output mixer mute control", SUN6I_DAC_ACTL,10,0x1,0),
-	CODEC_SINGLE("Right output mixer mute control", SUN6I_DAC_ACTL,17,0x1,0),
-	CODEC_SINGLE("Left analog output mixer en", SUN6I_DAC_ACTL,28,0x1,0),
-	CODEC_SINGLE("Right analog output mixer en", SUN6I_DAC_ACTL,29,0x1,0),
-	CODEC_SINGLE("Inter DAC analog left channel en", SUN6I_DAC_ACTL,30,0x1,0),
-	CODEC_SINGLE("Inter DAC analog right channel en", SUN6I_DAC_ACTL,31,0x1,0),
+	CODEC_SINGLE("Playback LPAMUTE SWITCH", SUN6I_DAC_ACTL,6,0x1,0),			/*1*/
+	CODEC_SINGLE("Playback RPAMUTE SWITCH", SUN6I_DAC_ACTL,7,0x1,0),			/*2*/
+	CODEC_SINGLE("Left Headphone PA input src select", SUN6I_DAC_ACTL,8,0x1,0),	/*3*/
+	CODEC_SINGLE("Right Headphone PA input src select", SUN6I_DAC_ACTL,9,0x1,0),/*4*/
+	CODEC_SINGLE("Left output mixer mute control", SUN6I_DAC_ACTL,10,0x1,0),	/*5*/
+	CODEC_SINGLE("Right output mixer mute control", SUN6I_DAC_ACTL,17,0x1,0),	/*6*/
+	CODEC_SINGLE("Left analog output mixer en", SUN6I_DAC_ACTL,28,0x1,0),		/*7*/
+	CODEC_SINGLE("Right analog output mixer en", SUN6I_DAC_ACTL,29,0x1,0),		/*8*/
+	CODEC_SINGLE("Inter DAC analog left channel en", SUN6I_DAC_ACTL,30,0x1,0),	/*9*/
+	CODEC_SINGLE("Inter DAC analog right channel en", SUN6I_DAC_ACTL,31,0x1,0),	/*10*/
 	/*SUN6I_PA_CTRL = 0x24*/
-	CODEC_SINGLE("r_and_l Headphone Power amplifier en", SUN6I_PA_CTRL,29,0x3,0),
-	CODEC_SINGLE("HPCOM output protection en", SUN6I_PA_CTRL,28,0x1,0),
-	CODEC_SINGLE("L_to_R Headphone apmplifier output mute", SUN6I_PA_CTRL,25,0x1,0),
-	CODEC_SINGLE("R_to_L Headphone apmplifier output mute", SUN6I_PA_CTRL,24,0x1,0),
-	CODEC_SINGLE("MIC1_G boost stage output mixer control", SUN6I_PA_CTRL,15,0x7,0),
-	CODEC_SINGLE("MIC2_G boost stage output mixer control", SUN6I_PA_CTRL,12,0x7,0),
-	CODEC_SINGLE("LINEIN_G boost stage output mixer control", SUN6I_PA_CTRL,9,0x7,0),
-	CODEC_SINGLE("PHONE_G boost stage output mixer control", SUN6I_PA_CTRL,6,0x7,0),
-	CODEC_SINGLE("PHONE_PG boost stage output mixer control", SUN6I_PA_CTRL,3,0x7,0),
-	CODEC_SINGLE("PHONE_NG boost stage output mixer control", SUN6I_PA_CTRL,0,0x7,0),
+	CODEC_SINGLE("r_and_l Headphone Power amplifier en", SUN6I_PA_CTRL,29,0x3,0),		/*11*/
+	CODEC_SINGLE("HPCOM output protection en", SUN6I_PA_CTRL,28,0x1,0),					/*12*/
+	CODEC_SINGLE("L_to_R Headphone apmplifier output mute", SUN6I_PA_CTRL,25,0x1,0),	/*13*/
+	CODEC_SINGLE("R_to_L Headphone apmplifier output mute", SUN6I_PA_CTRL,24,0x1,0),	/*14*/
+	CODEC_SINGLE("MIC1_G boost stage output mixer control", SUN6I_PA_CTRL,15,0x7,0),	/*15*/
+	CODEC_SINGLE("MIC2_G boost stage output mixer control", SUN6I_PA_CTRL,12,0x7,0),	/*16*/
+	CODEC_SINGLE("LINEIN_G boost stage output mixer control", SUN6I_PA_CTRL,9,0x7,0),	/*17*/
+	CODEC_SINGLE("PHONE_G boost stage output mixer control", SUN6I_PA_CTRL,6,0x7,0),	/*18*/
+	CODEC_SINGLE("PHONE_PG boost stage output mixer control", SUN6I_PA_CTRL,3,0x7,0),	/*19*/
+	CODEC_SINGLE("PHONE_NG boost stage output mixer control", SUN6I_PA_CTRL,0,0x7,0),	/*20*/
 	
 	/*SUN6I_MIC_CTRL = 0x28*/
-	CODEC_SINGLE("Headset microphone bias enable", SUN6I_MIC_CTRL,31,0x1,0),
-	CODEC_SINGLE("Master microphone bias enable", SUN6I_MIC_CTRL,30,0x1,0),
-	CODEC_SINGLE("Headset MIC bias_cur_sen and ADC enable", SUN6I_MIC_CTRL,29,0x1,0),
-	CODEC_SINGLE("MIC1 boost AMP enable", SUN6I_MIC_CTRL,28,0x1,0),
-	CODEC_SINGLE("MIC1 boost AMP gain control", SUN6I_MIC_CTRL,25,0x7,0),
-	CODEC_SINGLE("MIC2 boost AMP enable", SUN6I_MIC_CTRL,24,0x1,0),
-	CODEC_SINGLE("MIC2 boost AMP gain control", SUN6I_MIC_CTRL,21,0x7,0),
-	CODEC_SINGLE("MIC2 source select", SUN6I_MIC_CTRL,20,0x1,0),
-	CODEC_SINGLE("Lineout left enable", SUN6I_MIC_CTRL,19,0x1,0),
-	CODEC_SINGLE("Lineout right enable", SUN6I_MIC_CTRL,18,0x1,0),
-	CODEC_SINGLE("Left lineout source select", SUN6I_MIC_CTRL,17,0x1,0),
-	CODEC_SINGLE("Right lineout source select", SUN6I_MIC_CTRL,16,0x1,0),
-	CODEC_SINGLE("Lineout volume control", SUN6I_MIC_CTRL,11,0x1f,0),
-	CODEC_SINGLE("PHONEP-PHONEN pre-amp gain control", SUN6I_MIC_CTRL,8,0x7,0),
-	CODEC_SINGLE("Phoneout gain control", SUN6I_MIC_CTRL,5,0x7,0),
-	CODEC_SINGLE("PHONEOUT en", SUN6I_MIC_CTRL,4,0x1,0),
-	CODEC_SINGLE("MIC1 boost stage to phone out mute", SUN6I_MIC_CTRL,3,0x1,0),
-	CODEC_SINGLE("MIC2 boost stage to phone out mute", SUN6I_MIC_CTRL,2,0x1,0),
-	CODEC_SINGLE("Right output mixer to phone out mute", SUN6I_MIC_CTRL,1,0x1,0),
-	CODEC_SINGLE("Left output mixer to phone out mute", SUN6I_MIC_CTRL,1,0x1,0),
+	CODEC_SINGLE("Headset microphone bias enable", SUN6I_MIC_CTRL,31,0x1,0),			/*21*/
+	CODEC_SINGLE("Master microphone bias enable", SUN6I_MIC_CTRL,30,0x1,0),				/*22*/
+	CODEC_SINGLE("Headset MIC bias_cur_sen and ADC enable", SUN6I_MIC_CTRL,29,0x1,0),	/*23*/
+	CODEC_SINGLE("MIC1 boost AMP enable", SUN6I_MIC_CTRL,28,0x1,0),						/*24*/
+	CODEC_SINGLE("MIC1 boost AMP gain control", SUN6I_MIC_CTRL,25,0x7,0),				/*25*/
+	CODEC_SINGLE("MIC2 boost AMP enable", SUN6I_MIC_CTRL,24,0x1,0),						/*26*/
+	CODEC_SINGLE("MIC2 boost AMP gain control", SUN6I_MIC_CTRL,21,0x7,0),				/*27*/
+	CODEC_SINGLE("MIC2 source select", SUN6I_MIC_CTRL,20,0x1,0),						/*28*/
+	CODEC_SINGLE("Lineout left enable", SUN6I_MIC_CTRL,19,0x1,0),						/*29*/
+	CODEC_SINGLE("Lineout right enable", SUN6I_MIC_CTRL,18,0x1,0),						/*30*/
+	CODEC_SINGLE("Left lineout source select", SUN6I_MIC_CTRL,17,0x1,0),				/*31*/
+	CODEC_SINGLE("Right lineout source select", SUN6I_MIC_CTRL,16,0x1,0),				/*32*/
+	CODEC_SINGLE("Lineout volume control", SUN6I_MIC_CTRL,11,0x1f,0),					/*33*/
+	CODEC_SINGLE("PHONEP-PHONEN pre-amp gain control", SUN6I_MIC_CTRL,8,0x7,0),			/*34*/
+	CODEC_SINGLE("Phoneout gain control", SUN6I_MIC_CTRL,5,0x7,0),						/*35*/
+	CODEC_SINGLE("PHONEOUT en", SUN6I_MIC_CTRL,4,0x1,0),								/*36*/
+	CODEC_SINGLE("MIC1 boost stage to phone out mute", SUN6I_MIC_CTRL,3,0x1,0),			/*37*/
+	CODEC_SINGLE("MIC2 boost stage to phone out mute", SUN6I_MIC_CTRL,2,0x1,0),			/*38*/
+	CODEC_SINGLE("Right output mixer to phone out mute", SUN6I_MIC_CTRL,1,0x1,0),		/*39*/
+	CODEC_SINGLE("Left output mixer to phone out mute", SUN6I_MIC_CTRL,1,0x1,0),		/*40*/
 
 	/*SUN6I_ADC_ACTL = 0x2c*/
-	CODEC_SINGLE("ADC Right channel en", SUN6I_ADC_ACTL,31,0x1,0),
-	CODEC_SINGLE("ADC Left channel en", SUN6I_ADC_ACTL,30,0x1,0),
-	CODEC_SINGLE("ADC input gain ctrl", SUN6I_ADC_ACTL,27,0x7,0),
-	CODEC_SINGLE("Right ADC mixer mute ctrl", SUN6I_ADC_ACTL,7,0x7f,0),
-	CODEC_SINGLE("Left ADC mixer mute ctrl", SUN6I_ADC_ACTL,0,0x7f,0),
-	/*SUN6I_ADDAC_TUNE = 0x30*/
-	CODEC_SINGLE("ADC dither on_off ctrl", SUN6I_ADDAC_TUNE,25,0x7f,0),
+	CODEC_SINGLE("ADC Right channel en", SUN6I_ADC_ACTL,31,0x1,0),						/*41*/
+	CODEC_SINGLE("ADC Left channel en", SUN6I_ADC_ACTL,30,0x1,0),						/*42*/
+	CODEC_SINGLE("ADC input gain ctrl", SUN6I_ADC_ACTL,27,0x7,0),						/*43*/
+	CODEC_SINGLE("Right ADC mixer mute ctrl", SUN6I_ADC_ACTL,7,0x7f,0),					/*44*/
+	CODEC_SINGLE("Left ADC mixer mute ctrl", SUN6I_ADC_ACTL,0,0x7f,0),					/*45*/
+	/*SUN6I_ADDAC_TUNE = 0x30*/		
+	CODEC_SINGLE("ADC dither on_off ctrl", SUN6I_ADDAC_TUNE,25,0x7f,0),					/*46*/
 	
 	/*SUN6I_HMIC_CTL = 0x50
 	* warning:
@@ -572,66 +580,66 @@ static const struct snd_kcontrol_new codec_snd_controls[] = {
 	* you should be careful while use the key and earphone check in the mixer control
 	* it may be confilcted with the key and earphone switch driver.
 	*/
-	CODEC_SINGLE("Hmic_M debounce key down_up", SUN6I_HMIC_CTL,28,0xf,0),
-	CODEC_SINGLE("Hmic_N debounce earphone plug in_out", SUN6I_HMIC_CTL,24,0xf,0),
+	CODEC_SINGLE("Hmic_M debounce key down_up", SUN6I_HMIC_CTL,28,0xf,0),				/*47*/
+	CODEC_SINGLE("Hmic_N debounce earphone plug in_out", SUN6I_HMIC_CTL,24,0xf,0),		/*48*/
 	
 	/*SUN6I_DAC_DAP_CTL = 0x60
 	* warning:the DAP should be realize in a DAP driver?
 	* it may be strange using the mixer control to realize the DAP function.
 	*/
-	CODEC_SINGLE("DAP enable", SUN6I_DAC_DAP_CTL,31,0x1,0),
-	CODEC_SINGLE("DAP start control", SUN6I_DAC_DAP_CTL,30,0x1,0),
-	CODEC_SINGLE("DAP state", SUN6I_DAC_DAP_CTL,29,0x1,0),
-	CODEC_SINGLE("BQ enable control", SUN6I_DAC_DAP_CTL,16,0x1,0),
-	CODEC_SINGLE("DRC enable control", SUN6I_DAC_DAP_CTL,15,0x1,0),
-	CODEC_SINGLE("HPF enable control", SUN6I_DAC_DAP_CTL,14,0x1,0),
-	CODEC_SINGLE("DE function control", SUN6I_DAC_DAP_CTL,12,0x3,0),
-	CODEC_SINGLE("Ram address", SUN6I_DAC_DAP_CTL,0,0x7f,0),
+	CODEC_SINGLE("DAP enable", SUN6I_DAC_DAP_CTL,31,0x1,0),								/*49*/
+	CODEC_SINGLE("DAP start control", SUN6I_DAC_DAP_CTL,30,0x1,0),						/*50*/
+	CODEC_SINGLE("DAP state", SUN6I_DAC_DAP_CTL,29,0x1,0),								/*51*/
+	CODEC_SINGLE("BQ enable control", SUN6I_DAC_DAP_CTL,16,0x1,0),						/*52*/
+	CODEC_SINGLE("DRC enable control", SUN6I_DAC_DAP_CTL,15,0x1,0),						/*53*/
+	CODEC_SINGLE("HPF enable control", SUN6I_DAC_DAP_CTL,14,0x1,0),						/*54*/
+	CODEC_SINGLE("DE function control", SUN6I_DAC_DAP_CTL,12,0x3,0),					/*55*/
+	CODEC_SINGLE("Ram address", SUN6I_DAC_DAP_CTL,0,0x7f,0),							/*56*/
 	
 	/*SUN6I_DAC_DAP_VOL = 0x64*/
-	CODEC_SINGLE("DAP DAC left chan soft mute ctrl", SUN6I_DAC_DAP_VOL,30,0x1,0),
-	CODEC_SINGLE("DAP DAC right chan soft mute ctrl", SUN6I_DAC_DAP_VOL,29,0x1,0),
-	CODEC_SINGLE("DAP DAC master soft mute ctrl", SUN6I_DAC_DAP_VOL,28,0x1,0),
-	CODEC_SINGLE("DAP DAC vol skew time ctrl", SUN6I_DAC_DAP_VOL,24,0x3,0),
-	CODEC_SINGLE("DAP DAC master volume", SUN6I_DAC_DAP_VOL,16,0xff,0),
-	CODEC_SINGLE("DAP DAC left chan volume", SUN6I_DAC_DAP_VOL,8,0xff,0),
-	CODEC_SINGLE("DAP DAC right chan volume", SUN6I_DAC_DAP_VOL,0,0xff,0),
+	CODEC_SINGLE("DAP DAC left chan soft mute ctrl", SUN6I_DAC_DAP_VOL,30,0x1,0),		/*57*/
+	CODEC_SINGLE("DAP DAC right chan soft mute ctrl", SUN6I_DAC_DAP_VOL,29,0x1,0),		/*58*/
+	CODEC_SINGLE("DAP DAC master soft mute ctrl", SUN6I_DAC_DAP_VOL,28,0x1,0),			/*59*/
+	CODEC_SINGLE("DAP DAC vol skew time ctrl", SUN6I_DAC_DAP_VOL,24,0x3,0),				/*60*/
+	CODEC_SINGLE("DAP DAC master volume", SUN6I_DAC_DAP_VOL,16,0xff,0),					/*61*/
+	CODEC_SINGLE("DAP DAC left chan volume", SUN6I_DAC_DAP_VOL,8,0xff,0),				/*62*/
+	CODEC_SINGLE("DAP DAC right chan volume", SUN6I_DAC_DAP_VOL,0,0xff,0),				/*63*/
 	
 	/*SUN6I_ADC_DAP_CTL = 0x70*/
-	CODEC_SINGLE("DAP for ADC en", SUN6I_ADC_DAP_CTL,31,0x1,0),
-	CODEC_SINGLE("DAP for ADC start up", SUN6I_ADC_DAP_CTL,30,0x1,0),
-	CODEC_SINGLE("DAP left AGC saturation flag", SUN6I_ADC_DAP_CTL,21,0x1,0),
-	CODEC_SINGLE("DAP left AGC noise-threshold flag", SUN6I_ADC_DAP_CTL,20,0x1,0),
-	CODEC_SINGLE("DAP left gain applied by AGC", SUN6I_ADC_DAP_CTL,12,0xff,0),
-	CODEC_SINGLE("DAP right AGC saturation flag", SUN6I_ADC_DAP_CTL,9,0x1,0),
-	CODEC_SINGLE("DAP right AGC noise-threshold flag", SUN6I_ADC_DAP_CTL,8,0x1,0),
-	CODEC_SINGLE("DAP right gain applied by AGC", SUN6I_ADC_DAP_CTL,0,0xff,0),
+	CODEC_SINGLE("DAP for ADC en", SUN6I_ADC_DAP_CTL,31,0x1,0),							/*64*/
+	CODEC_SINGLE("DAP for ADC start up", SUN6I_ADC_DAP_CTL,30,0x1,0),					/*65*/
+	CODEC_SINGLE("DAP left AGC saturation flag", SUN6I_ADC_DAP_CTL,21,0x1,0),			/*66*/
+	CODEC_SINGLE("DAP left AGC noise-threshold flag", SUN6I_ADC_DAP_CTL,20,0x1,0),		/*67*/
+	CODEC_SINGLE("DAP left gain applied by AGC", SUN6I_ADC_DAP_CTL,12,0xff,0),			/*68*/
+	CODEC_SINGLE("DAP right AGC saturation flag", SUN6I_ADC_DAP_CTL,9,0x1,0),			/*69*/
+	CODEC_SINGLE("DAP right AGC noise-threshold flag", SUN6I_ADC_DAP_CTL,8,0x1,0),		/*70*/
+	CODEC_SINGLE("DAP right gain applied by AGC", SUN6I_ADC_DAP_CTL,0,0xff,0),			/*71*/
 	
 	/*SUN6I_ADC_DAP_VOL = 0x74*/
-	CODEC_SINGLE("DAP ADC left chan vol mute", SUN6I_ADC_DAP_VOL,18,0x1,0),
-	CODEC_SINGLE("DAP ADC right chan vol mute", SUN6I_ADC_DAP_VOL,17,0x1,0),
-	CODEC_SINGLE("DAP ADC volume skew mute", SUN6I_ADC_DAP_VOL,16,0x1,0),
-	CODEC_SINGLE("DAP ADC left chan vol set", SUN6I_ADC_DAP_VOL,8,0x3f,0),
-	CODEC_SINGLE("DAP ADC right chan vol set", SUN6I_ADC_DAP_VOL,0,0x3f,0),
+	CODEC_SINGLE("DAP ADC left chan vol mute", SUN6I_ADC_DAP_VOL,18,0x1,0),				/*72*/
+	CODEC_SINGLE("DAP ADC right chan vol mute", SUN6I_ADC_DAP_VOL,17,0x1,0),			/*73*/
+	CODEC_SINGLE("DAP ADC volume skew mute", SUN6I_ADC_DAP_VOL,16,0x1,0),				/*74*/
+	CODEC_SINGLE("DAP ADC left chan vol set", SUN6I_ADC_DAP_VOL,8,0x3f,0),				/*75*/
+	CODEC_SINGLE("DAP ADC right chan vol set", SUN6I_ADC_DAP_VOL,0,0x3f,0),				/*76*/
 	
 	/*SUN6I_ADC_DAP_LCTL = 0x78*/
-	CODEC_SINGLE("DAP ADC Left chan noise-threshold set", SUN6I_ADC_DAP_VOL,16,0xff,0),
-	CODEC_SINGLE("DAP Left AGC en", SUN6I_ADC_DAP_VOL,14,0x1,0),
-	CODEC_SINGLE("DAP Left HPF en", SUN6I_ADC_DAP_VOL,13,0x1,0),
-	CODEC_SINGLE("DAP Left noise-detect en", SUN6I_ADC_DAP_VOL,12,0x1,0),
-	CODEC_SINGLE("DAP Left hysteresis setting", SUN6I_ADC_DAP_VOL,8,0x3,0),
-	CODEC_SINGLE("DAP Left noise-debounce time", SUN6I_ADC_DAP_VOL,4,0xf,0),
-	CODEC_SINGLE("DAP Left signal-debounce time", SUN6I_ADC_DAP_VOL,0,0xf,0),
+	CODEC_SINGLE("DAP ADC Left chan noise-threshold set", SUN6I_ADC_DAP_VOL,16,0xff,0),	/*77*/
+	CODEC_SINGLE("DAP Left AGC en", SUN6I_ADC_DAP_VOL,14,0x1,0),						/*78*/
+	CODEC_SINGLE("DAP Left HPF en", SUN6I_ADC_DAP_VOL,13,0x1,0),						/*79*/
+	CODEC_SINGLE("DAP Left noise-detect en", SUN6I_ADC_DAP_VOL,12,0x1,0),				/*80*/
+	CODEC_SINGLE("DAP Left hysteresis setting", SUN6I_ADC_DAP_VOL,8,0x3,0),				/*81*/
+	CODEC_SINGLE("DAP Left noise-debounce time", SUN6I_ADC_DAP_VOL,4,0xf,0),			/*82*/
+	CODEC_SINGLE("DAP Left signal-debounce time", SUN6I_ADC_DAP_VOL,0,0xf,0),			/*83*/
 	
 	/*SUN6I_ADC_DAP_RCTL = 0x7c*/
-	CODEC_SINGLE("DAP ADC right chan noise-threshold set", SUN6I_ADC_DAP_RCTL,0,0xff,0),
-	CODEC_SINGLE("DAP Right AGC en", SUN6I_ADC_DAP_VOL,14,0x1,0),
-	CODEC_SINGLE("DAP Right HPF en", SUN6I_ADC_DAP_VOL,13,0x1,0),
-	CODEC_SINGLE("DAP Right noise-detect en", SUN6I_ADC_DAP_VOL,12,0x1,0),
-	CODEC_SINGLE("DAP Right hysteresis setting", SUN6I_ADC_DAP_VOL,8,0x3,0),
-	CODEC_SINGLE("DAP Right noise-debounce time", SUN6I_ADC_DAP_VOL,4,0xf,0),
-	CODEC_SINGLE("DAP Right signal-debounce time", SUN6I_ADC_DAP_VOL,0,0xf,0),
-	SOC_SINGLE_BOOL_EXT("Audio Spk Switch", 0, codec_get_spk, codec_set_spk),
+	CODEC_SINGLE("DAP ADC right chan noise-threshold set", SUN6I_ADC_DAP_RCTL,0,0xff,0),/*84*/
+	CODEC_SINGLE("DAP Right AGC en", SUN6I_ADC_DAP_VOL,14,0x1,0),						/*85*/
+	CODEC_SINGLE("DAP Right HPF en", SUN6I_ADC_DAP_VOL,13,0x1,0),						/*86*/
+	CODEC_SINGLE("DAP Right noise-detect en", SUN6I_ADC_DAP_VOL,12,0x1,0),				/*87*/
+	CODEC_SINGLE("DAP Right hysteresis setting", SUN6I_ADC_DAP_VOL,8,0x3,0),			/*88*/
+	CODEC_SINGLE("DAP Right noise-debounce time", SUN6I_ADC_DAP_VOL,4,0xf,0),			/*89*/
+	CODEC_SINGLE("DAP Right signal-debounce time", SUN6I_ADC_DAP_VOL,0,0xf,0),			/*90*/
+	SOC_SINGLE_BOOL_EXT("Audio Spk Switch", 0, codec_get_spk, codec_set_spk),			/*91*/
 };
 
 int __init snd_chip_codec_mixer_new(struct sun6i_codec *chip)
@@ -1397,7 +1405,8 @@ static int snd_sun6i_codec_trigger(struct snd_pcm_substream *substream, int cmd)
 			capture_prtd->state |= ST_RUNNING;	 
 			codec_capture_start();
 			/*hardware fifo delay*/
-			codec_wr_control(SUN6I_ADC_FIFOC, 0x1, ADCDFEN, 0x1);				
+			mdelay(30);
+			codec_wr_control(SUN6I_ADC_FIFOC, 0x1, ADC_FIFO_FLUSH, 0x1);
 			/*
 			* start dma transfer
 			*/
@@ -1645,17 +1654,33 @@ static int __init sun6i_codec_probe(struct platform_device *pdev)
 		ret = -EIO;
 		printk("err:cannot claim codec address reg area\n");
 		goto out;
-	 }
-	 baseaddr = ioremap(db->codec_base_res->start, 0x40);
-	 if (baseaddr == NULL) {
+	}
+	baseaddr = ioremap(db->codec_base_res->start, 0x40);
+	if (baseaddr == NULL) {
 		 ret = -EINVAL;
 		 dev_err(db->dev,"failed to ioremap codec address reg\n");
 		 goto out;
-	 }
-	 kfree(db);
-	 codec_init();
+	}
+	kfree(db);
+	codec_init();
 
-	 printk("sun6i Audio codec init end\n");
+	/*get the default pa val(close)*/
+	type = script_get_item("audio_para", "audio_pa_ctrl", &item);
+	if (SCIRPT_ITEM_VALUE_TYPE_PIO != type) {
+		printk("script_get_item return type err\n");
+		return -EFAULT;
+	}
+	/*request gpio*/
+	req_status = gpio_request(item.gpio.gpio, NULL);
+	if (0 != req_status) {
+		printk("request gpio failed!\n");
+	}
+	/*config gpio info of audio_pa_ctrl, the default pa config is close(check pa sys_config1.fex).*/
+	if (0 != sw_gpio_setall_range(&item.gpio, 1)) {
+		printk("sw_gpio_setall_range failed\n");
+	}
+
+	printk("sun6i Audio codec init end\n");
 	 return 0;
 	 out:
 		 dev_err(db->dev, "not found (%d).\n", ret);
@@ -1669,6 +1694,7 @@ static int __init sun6i_codec_probe(struct platform_device *pdev)
 static int snd_sun6i_codec_suspend(struct platform_device *pdev,pm_message_t state)
 {
 	printk("[audio codec]:suspend\n");
+	item.gpio.data = 0;
 	/*mute l_pa and r_pa*/
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPPA_MUTE, 0x0);
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPPA_MUTE, 0x0);
@@ -1688,7 +1714,14 @@ static int snd_sun6i_codec_suspend(struct platform_device *pdev,pm_message_t sta
 	codec_wr_control(SUN6I_ADC_ACTL, 0x1, ADCLEN, 0x0);//移到外部控制	
 	/*disable adc digital part*/
 	codec_wr_control(SUN6I_ADC_FIFOC, 0x1, ADC_EN, 0x0);
-	
+
+	codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTL_EN, 0x0);
+	codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTR_EN, 0x0);
+	/*config gpio info of audio_pa_ctrl close*/
+	if (0 != sw_gpio_setall_range(&item.gpio, 1)) {
+		printk("sw_gpio_setall_range failed\n");
+	}
+
 	if ((NULL == codec_moduleclk)||(IS_ERR(codec_moduleclk))) {
 		printk("codec_moduleclk handle is invaled, just return\n");
 		return -EINVAL;
@@ -1723,6 +1756,17 @@ static int snd_sun6i_codec_resume(struct platform_device *pdev)
 		codec_wr_control(SUN6I_ADC_FIFOC, 0x1, ADC_FIFO_FLUSH, 0x1);
 		/*set HPVOL volume*/
 		codec_wr_control(SUN6I_DAC_ACTL, 0x3f, VOLUME, 0x3b);
+	}
+
+	/*if gpio is open while enter suspend, open the pa in resume*/
+	if (true == codec_speaker_enabled) {
+		item.gpio.data = 1;
+		/*config gpio info of audio_pa_ctrl open*/
+		if (0 != sw_gpio_setall_range(&item.gpio, 1)) {
+			printk("sw_gpio_setall_range failed\n");
+		}
+		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTR_EN, 0x1);
+		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTL_EN, 0x1);
 	}
 	printk("[audio codec]:resume end\n");
 	return 0;

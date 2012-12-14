@@ -29,7 +29,6 @@
 irqreturn_t __dma_irq_hdl(int irq, void *dev)
 {
 	u32 		i = 0;
-	u32 		uline = 0;
 	u32 		upend_bits = 0;
 	struct dma_channel_t *pchan = NULL;
 	struct dma_mgr_t *pdma_mgr = NULL;
@@ -46,18 +45,11 @@ irqreturn_t __dma_irq_hdl(int irq, void *dev)
 		if(0 == upend_bits)
 			continue;
 
-		if(DMA_WORK_MODE_SINGLE == pchan->work_mode) {
-			if(0 != dma_irq_hdl_single(pchan, upend_bits)) {
-				uline = __LINE__;
-				goto end;
-			}
-		} else if(DMA_WORK_MODE_CHAIN == pchan->work_mode)
+		if(DMA_WORK_MODE_SINGLE == pchan->work_mode)
+			dma_irq_hdl_single(pchan, upend_bits);
+		else if(DMA_WORK_MODE_CHAIN == pchan->work_mode)
 			dma_irq_hdl_chain(pchan, upend_bits);
 	}
-
-end:
-	if(0 != uline)
-		DMA_ERR("%s err, line %d\n", __func__, uline);
 	return IRQ_HANDLED;
 }
 

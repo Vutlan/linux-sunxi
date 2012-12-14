@@ -18,8 +18,6 @@
 
 #include <linux/spinlock.h>
 
-//#define DBG_DMA /* debug dma driver */
-
 /* dma print macro */
 #define DMA_DBG_LEVEL		3
 
@@ -38,7 +36,7 @@
 #endif
 
 /* dma channel total */
-#define DMA_CHAN_TOTAL	(16)
+#define DMA_CHAN_TOTAL		(16)
 
 /* dma channel owner name max len */
 #define MAX_OWNER_NAME_LEN	32
@@ -85,12 +83,6 @@ struct des_save_info_t {
 	u32		param;     	/* dma param reg */
 	u32		bconti_mode;    /* if dma transfer in continue mode */
 };
-
-/* max dma descriptor item num for one des_mgr_t.pdes */
-#define MAX_DES_ITEM_NUM	64
-
-/* descriptor area length */
-#define DES_AREA_LEN 		(MAX_DES_ITEM_NUM * sizeof(struct cofig_des_t))
 
 /* dma channle state */
 union dma_chan_sta_u {

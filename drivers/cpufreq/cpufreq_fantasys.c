@@ -1113,45 +1113,6 @@ static struct notifier_block reboot_notifier = {
     .notifier_call = reboot_notifier_call,
 };
 
-static int apm_suspend_notifier(struct notifier_block *nb,
-                unsigned long event,
-                void *dummy)
-{
-    int     cpu, timeout = 20;
-
-    switch (event) {
-        case PM_SUSPEND_PREPARE:
-        {
-            /* off no-boot cpus */
-            for_each_online_cpu(cpu) {
-                if (cpu == 0)
-                    continue;
-                cpu_down(cpu);
-            }
-            /* lock policy */
-            cpufreq_fantasys_cpu_lock(1);
-
-            if(1==num_online_cpus())
-                return NOTIFY_OK;
-            else
-                return NOTIFY_BAD;
-        }
-
-        case PM_POST_SUSPEND:
-        {
-            cpufreq_fantasys_cpu_unlock(1);
-            return NOTIFY_OK;
-        }
-
-        default:
-            return NOTIFY_DONE;
-    }
-}
-
-static struct notifier_block suspend_notifier = {
-    .notifier_call = apm_suspend_notifier,
-};
-
 
 /*
  * cpufreq dbs governor
@@ -1204,8 +1165,6 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy, unsigned int even
 
             /* register reboot notifier for process cpus when reboot */
             register_reboot_notifier(&reboot_notifier);
-            /* register suspend notifier for process cpus when suspend */
-            register_pm_notifier(&suspend_notifier);
 
             mutex_init(&this_dbs_info->timer_mutex);
             dbs_timer_init(this_dbs_info);
@@ -1221,7 +1180,6 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy, unsigned int even
             mutex_destroy(&this_dbs_info->timer_mutex);
 
             unregister_reboot_notifier(&reboot_notifier);
-            unregister_pm_notifier(&suspend_notifier);
 
             dbs_enable--;
             mutex_unlock(&dbs_mutex);
@@ -1248,18 +1206,21 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy, unsigned int even
         #ifdef CONFIG_CPU_FREQ_USR_EVNT_NOTIFY
         case CPUFREQ_GOV_USRENET:
         {
-            unsigned int freq_trig;
+            unsigned int freq_trig, index;
             /* cpu frequency limitation has changed, adjust current frequency */
             if (!mutex_trylock(&this_dbs_info->timer_mutex)) {
                 FANTASY_WRN("CPUFREQ_GOV_USRENET try to lock mutex failed!\n");
-                break;
+                return 0;
             }
 
             freq_trig = (this_dbs_info->cur_policy->max*usrevent_freq[num_online_cpus() - 1])/100;
-            if (this_dbs_info->cur_policy->cur < freq_trig) {
-                /* set cpu frequenc to the max value, and reset state machine */
-                printk("CPUFREQ_GOV_USRENET\n");
-                __cpufreq_driver_target(this_dbs_info->cur_policy, freq_trig, CPUFREQ_RELATION_H);
+            if(!cpufreq_frequency_table_target(policy, this_dbs_info->freq_table, freq_trig, CPUFREQ_RELATION_H, &index)) {
+                freq_trig = this_dbs_info->freq_table[index].frequency;
+                if(this_dbs_info->cur_policy->cur < freq_trig) {
+                    /* set cpu frequenc to the max value, and reset state machine */
+                    printk("CPUFREQ_GOV_USRENET\n");
+                    __cpufreq_driver_target(this_dbs_info->cur_policy, freq_trig, CPUFREQ_RELATION_H);
+                }
             }
             mutex_unlock(&this_dbs_info->timer_mutex);
             break;
@@ -1301,7 +1262,7 @@ static int __init cpufreq_gov_dbs_init(void)
     }
 
     /* create dvfs daemon */
-    dvfs_workqueue = create_workqueue("fantasys");
+    dvfs_workqueue = create_singlethread_workqueue("fantasys");
     if (!dvfs_workqueue) {
         pr_err("%s cannot create workqueue\n", __func__);
         ret = -ENOMEM;

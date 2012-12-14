@@ -17,10 +17,10 @@
 #include <linux/random.h>
 
 /* total buffer and each buffer length */
-//#define DTC_1T_TOTAL_LEN	SIZE_1M /* may lead to dma_pool_alloc failed in sw_dma_request */
-//#define DTC_1T_ONE_LEN		SIZE_128K
-#define DTC_1T_TOTAL_LEN	SIZE_512K
-#define DTC_1T_ONE_LEN		SIZE_64K
+//#define DTC_1T_TOTAL_LEN	SZ_1M /* may lead to dma_pool_alloc failed in sw_dma_request */
+//#define DTC_1T_ONE_LEN		SZ_128K
+#define DTC_1T_TOTAL_LEN	SZ_512K
+#define DTC_1T_ONE_LEN		SZ_64K
 /* src/dst buffer address */
 static u32 g_src_addr = 0, g_dst_addr = 0;
 /* cur buffer index */

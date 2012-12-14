@@ -113,8 +113,17 @@ static s32 get_usb_cfg(struct sw_hci_hcd *sw_hci)
 	if(type == SCIRPT_ITEM_VALUE_TYPE_INT){
 		sw_hci->used = item_temp.val;
 	}else{
-		DMSG_PANIC("ERR: get usbc2 enable failed\n");
+		DMSG_PANIC("ERR: get %s usbc enable failed\n" ,sw_hci->hci_name);
 		sw_hci->used = 0;
+	}
+
+	/* usbc restrict_gpio */
+	type = script_get_item(usbc_name[sw_hci->usbc_no], "usb_restrict_gpio", &sw_hci->restrict_gpio_set);
+	if(type == SCIRPT_ITEM_VALUE_TYPE_PIO){
+		sw_hci->usb_restrict_valid = 1;
+	}else{
+		DMSG_PANIC("ERR: %s(restrict_gpio) is invalid\n", sw_hci->hci_name);
+		sw_hci->usb_restrict_valid = 0;
 	}
 
 	/* usbc drv_vbus */
@@ -133,6 +142,16 @@ static s32 get_usb_cfg(struct sw_hci_hcd *sw_hci)
 	}else{
 		DMSG_PANIC("ERR: script_parser_fetch host_init_state failed\n");
 		sw_hci->host_init_state = 0;
+	}
+
+
+	/* get usb_restrict_flag */
+	type = script_get_item(usbc_name[sw_hci->usbc_no], "usb_restric_flag", &item_temp);
+	if(type == SCIRPT_ITEM_VALUE_TYPE_INT){
+		sw_hci->usb_restrict_flag = item_temp.val;
+	}else{
+		DMSG_PANIC("ERR: get usb_restrict_flag failed\n");
+		sw_hci->usb_restrict_flag = 0;
 	}
 
 #ifdef CONFIG_SW_USB_3G
@@ -577,15 +596,6 @@ static int open_clock(struct sw_hci_hcd *sw_hci, u32 ohci)
 			      sw_hci->ahb, sw_hci->mod_usbphy, sw_hci->clk_is_open,
 			      sw_hci->mod_usb);
 	}
-
-#ifdef  SW_USB_HCI_DEBUG
-    DMSG_INFO("[%s]: open clock, 0x60(0x%x), 0xcc(0x%x), 0x2c0(0x%x)\n",
-              sw_hci->hci_name,
-              (u32)USBC_Readl(sw_hci->clock_vbase + 0x60),
-              (u32)USBC_Readl(sw_hci->clock_vbase + 0xcc),
-              (u32)USBC_Readl(sw_hci->clock_vbase + 0x2c0));
-#endif
-
 	return 0;
 }
 
@@ -631,14 +641,6 @@ static int close_clock(struct sw_hci_hcd *sw_hci, u32 ohci)
 			      sw_hci->mod_usbphy, sw_hci->clk_is_open,
 			      sw_hci->mod_usb);
 	}
-
-#ifdef  SW_USB_HCI_DEBUG
-    DMSG_INFO("[%s]: close clock, 0x60(0x%x), 0xcc(0x%x),0x2c0(0x%x)\n",
-              sw_hci->hci_name,
-              (u32)USBC_Readl(sw_hci->clock_vbase + 0x60),
-              (u32)USBC_Readl(sw_hci->clock_vbase + 0xcc),
-              (u32)USBC_Readl(sw_hci->clock_vbase + 0x2c0));
-#endif
 
 	return 0;
 }
@@ -802,6 +804,27 @@ static int alloc_pin(struct sw_hci_hcd *sw_ehci)
     	}
 	}
 
+    if(sw_ehci->usb_restrict_valid){
+		ret = gpio_request(sw_ehci->restrict_gpio_set.gpio.gpio, NULL);
+		if(ret != 0){
+			DMSG_PANIC("ERR: gpio_request failed\n");
+			sw_ehci->usb_restrict_valid = 0;
+		}else{
+	        /* set config, ouput */
+	        sw_gpio_setcfg(sw_ehci->restrict_gpio_set.gpio.gpio, 1);
+
+	        /* reserved is pull down */
+	        sw_gpio_setpull(sw_ehci->restrict_gpio_set.gpio.gpio, 2);
+		}
+	}
+	if(sw_ehci->usb_restrict_valid){
+		if(sw_ehci->usb_restrict_flag){
+			 __gpio_set_value(sw_ehci->restrict_gpio_set.gpio.gpio, 0);
+		}else{
+			 __gpio_set_value(sw_ehci->restrict_gpio_set.gpio.gpio, 1);
+		}
+	}
+
 	return 0;
 }
 
@@ -827,6 +850,11 @@ static void free_pin(struct sw_hci_hcd *sw_ehci)
 {
     if(sw_ehci->drv_vbus_gpio_valid){
         gpio_free(sw_ehci->drv_vbus_gpio_set.gpio.gpio);
+        sw_ehci->drv_vbus_gpio_valid = 0;
+    }
+
+	if(sw_ehci->usb_restrict_valid){
+        gpio_free(sw_ehci->restrict_gpio_set.gpio.gpio);
         sw_ehci->drv_vbus_gpio_valid = 0;
     }
 
@@ -866,8 +894,9 @@ static void __sw_set_vbus(struct sw_hci_hcd *sw_hci, int is_on)
     }else{
         on_off = is_on ? 0 : 1;
     }
-
-    __gpio_set_value(sw_hci->drv_vbus_gpio_set.gpio.gpio, on_off);
+	if(sw_hci->drv_vbus_gpio_valid){
+   		__gpio_set_value(sw_hci->drv_vbus_gpio_set.gpio.gpio, on_off);
+	}
 
 	return;
 }

@@ -121,17 +121,6 @@ source "drivers/media/video/Kconfig"
 source "drivers/media/radio/Kconfig"
 
 #
-#
-# PA CONTROL
-#
-config PA_CONTROL
-	tristate "PA Control"
-	---help---
-	  Support for audio pa control
-
-source "drivers/media/pa/Kconfig"
-
-#
 # DVB adapters
 #
 

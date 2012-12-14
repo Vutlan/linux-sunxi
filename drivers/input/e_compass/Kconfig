@@ -17,5 +17,11 @@ config E_COMPASS_L3M303D
         depends on I2C
         help
           Say Y here to enable the E_COMPASS_L3M303D.
+
+config E_COMPASS_FXOS8700
+        tristate "E_COMPASS_FXOS8700 support"
+        depends on I2C
+        help
+          Say Y here to enable the E_COMPASS_FXOS8700.
        
 endif

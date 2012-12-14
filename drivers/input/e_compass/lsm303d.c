@@ -48,6 +48,14 @@ Revision 2-0-1 2012/05/07
 #include <mach/hardware.h>
 #include <mach/sys_config.h>
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
+#include <linux/earlysuspend.h>
+#endif
+
+#if defined(CONFIG_HAS_EARLYSUSPEND) || defined(CONFIG_PM)
+#include <linux/pm.h>
+#endif
+
 #include "lsm303d.h"
 
 #define	I2C_AUTO_INCREMENT	(0x80)
@@ -212,6 +220,10 @@ struct lsm303d_status {
 
 	u16 sensitivity_acc;
 	u16 sensitivity_mag;
+
+	#ifdef CONFIG_HAS_EARLYSUSPEND
+	struct early_suspend early_suspend;
+	#endif
 };
 
 static const struct lsm303d_acc_platform_data default_lsm303d_acc_pdata = {
@@ -271,6 +283,11 @@ static struct status_registers {
 	.cntrl6.address=REG_CNTRL6_ADDR, .cntrl6.default_value=REG_DEF_CNTRL6,
 	.cntrl7.address=REG_CNTRL7_ADDR, .cntrl7.default_value=REG_DEF_CNTRL7,
 };
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static void lsm303d_early_suspend(struct early_suspend *h);
+static void lsm303d_late_resume(struct early_suspend *h);
+#endif
 
 static int lsm303d_i2c_read(struct lsm303d_status *stat, u8 *buf, int len)
 {
@@ -431,7 +448,7 @@ script_get_err:
  *                    = 0; success;
  *                    < 0; err
  */
-int e_compass_detect(struct i2c_client *client, struct i2c_board_info *info)
+static int e_compass_detect(struct i2c_client *client, struct i2c_board_info *info)
 {
 	struct i2c_adapter *adapter = client->adapter;
 	int ret;
@@ -455,7 +472,7 @@ int e_compass_detect(struct i2c_client *client, struct i2c_board_info *info)
 			//err = lsm303d_i2c_read(stat, buf, 1);
 			ret = i2c_master_send(client, &cmd, sizeof(cmd));
 			if (ret != sizeof(cmd))
-				return ret;
+				continue;
 
 			dprintk(DEBUG_I2C_DETECT, "check i2c addr: %x after send cmd.\n", client->addr);
 
@@ -1768,6 +1785,10 @@ static int lsm303d_probe(struct i2c_client *client,
 
 	int err = -1;
 	dev_info(&client->dev, "probe start.\n");
+
+	dprintk(DEBUG_I2C_DETECT, "lsm303d probe i2c address is %d \n",i2c_address[i2c_num]);
+	client->addr = i2c_address[i2c_num];
+	
 	stat = kzalloc(sizeof(struct lsm303d_status), GFP_KERNEL);
 	if (stat == NULL) {
 		err = -ENOMEM;
@@ -1792,9 +1813,6 @@ static int lsm303d_probe(struct i2c_client *client,
 
 	mutex_init(&stat->lock);
 	mutex_lock(&stat->lock);
-
-	dprintk(DEBUG_I2C_DETECT, "lsm303d probe i2c address is %d \n",i2c_address[i2c_num]);
-	client->addr = i2c_address[i2c_num];
 
 	stat->client = client;
 	i2c_set_clientdata(client, stat);
@@ -1950,6 +1968,14 @@ static int lsm303d_probe(struct i2c_client *client,
 	lsm303d_mag_device_power_off(stat);
 
 	mutex_unlock(&stat->lock);
+
+	#ifdef CONFIG_HAS_EARLYSUSPEND
+	stat->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;
+	stat->early_suspend.suspend = lsm303d_early_suspend;
+	stat->early_suspend.resume = lsm303d_late_resume;
+	register_early_suspend(&stat->early_suspend);
+	#endif
+	
 	dev_info(&client->dev, "%s: probed\n", LSM303D_DEV_NAME);
 	return 0;
 
@@ -1983,6 +2009,10 @@ static int __devexit lsm303d_remove(struct i2c_client *client)
 {
 	struct lsm303d_status *stat = i2c_get_clientdata(client);
 
+	#ifdef CONFIG_HAS_EARLYSUSPEND
+	unregister_early_suspend(&stat->early_suspend);
+	#endif
+
 	lsm303d_acc_disable(stat);
 	lsm303d_mag_disable(stat);
 	lsm303d_acc_input_cleanup(stat);
@@ -2001,12 +2031,46 @@ static int __devexit lsm303d_remove(struct i2c_client *client)
 	kfree(stat);
 	return 0;
 }
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static void lsm303d_early_suspend(struct early_suspend *h)
+{
+	int err = 0;
+	struct lsm303d_status *data =
+		container_of(h, struct lsm303d_status, early_suspend);
 
+	err = lsm303d_acc_disable(data);
+	if (err < 0) {	
+		pr_err("%s: lsm303d_acc_disable failed\n", LSM303D_DEV_NAME);
+	}
+	err = lsm303d_mag_disable(data);
+	if (err < 0) {	
+		pr_err("%s: lsm303d_mag_disable failed\n", LSM303D_DEV_NAME);
+	}
+	return;
+}
+
+static void lsm303d_late_resume(struct early_suspend *h)
+{
+	int err = 0;
+	struct lsm303d_status *data =
+		container_of(h, struct lsm303d_status, early_suspend);
+
+	err = lsm303d_acc_enable(data);
+	if (err < 0) {	
+		pr_err("%s: lsm303d_acc_enable failed\n", LSM303D_DEV_NAME);
+	}
+	err = lsm303d_mag_enable(data);
+	if (err < 0) {	
+		pr_err("%s: lsm303d_mag_enable failed\n", LSM303D_DEV_NAME);
+	}
+	return;
+}
+#else
+#ifdef CONFIG_PM
 static int lsm303d_suspend(struct device *dev)
 {
 	int err = 0;
 	
-#ifdef CONFIG_PM
 	struct i2c_client *client = to_i2c_client(dev);
 	struct lsm303d_status *data = i2c_get_clientdata(client);
 
@@ -2020,20 +2084,14 @@ static int lsm303d_suspend(struct device *dev)
 	if (err < 0) {	
 		return err;
 	}
-	/*if (atomic_read(&data->enabled)) {
-		mutex_lock(&data->lock);
-		err = l3gd20_register_update(data, buf, CTRL_REG1,
-						0x08, PM_OFF);
-		mutex_unlock(&data->lock);
-	}*/
-#endif /*CONFIG_PM*/
+
 	return err;
 }
 
 static int lsm303d_resume(struct device *dev)
 {
 	int err = 0;
-#ifdef CONFIG_PM
+
 	struct i2c_client *client = to_i2c_client(dev);
 	struct lsm303d_status *data = i2c_get_clientdata(client);
 
@@ -2047,33 +2105,32 @@ static int lsm303d_resume(struct device *dev)
 	if (err < 0) {	
 		return err;
 	}
-	/*if (atomic_read(&data->enabled)) {
-		mutex_lock(&data->lock);
-		err = l3gd20_register_update(data, buf, CTRL_REG1,
-				0x0F, (ENABLE_ALL_AXES | PM_NORMAL));
-		mutex_unlock(&data->lock);
-	}*/
-#endif /*CONFIG_PM*/
+
 	return err;
 }
-
+#endif /*CONFIG_PM*/
+#endif /*CONFIG_HAS_EARLYSUSPEND*/
 
 static const struct i2c_device_id lsm303d_id[] 
 					= { { LSM303D_DEV_NAME, 0 }, { }, };
 
 MODULE_DEVICE_TABLE(i2c, lsm303d_id);
 
+#if defined(CONFIG_PM) && !defined(CONFIG_HAS_EARLYSUSPEND)
 static struct dev_pm_ops lsm303d_pm = {
 	.suspend = lsm303d_suspend,
 	.resume = lsm303d_resume,
 };
+#endif
 
 static struct i2c_driver lsm303d_driver = {
 	.class = I2C_CLASS_HWMON,
 	.driver = {
 			.owner = THIS_MODULE,
 			.name = LSM303D_DEV_NAME,
+#if defined(CONFIG_PM) && !defined(CONFIG_HAS_EARLYSUSPEND)
 			.pm = &lsm303d_pm,
+#endif
 		  },
 	.probe = lsm303d_probe,
 	.remove = __devexit_p(lsm303d_remove),

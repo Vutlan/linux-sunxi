@@ -6,6 +6,8 @@
 #include <mach/timer.h>
 #include <linux/export.h>
 #include <linux/jiffies.h>
+#include <linux/notifier.h>
+#include <linux/suspend.h>
 
 /*
  * Since we calibrate only once at boot, this
@@ -25,8 +27,34 @@ void (*delay_fn)(unsigned long n) = __udelay;
 EXPORT_SYMBOL(delay_fn);
 
 /*
- * return nsec count.
+ * Read the timer counter.
  */
+static inline unsigned long read_cur_counter(void)
+{
+	return readl(IO_ADDRESS(AW_TIMER_BASE) + TIMER_CURRENTVAL(TIME_NUM));
+}
+
+static void aw_delay(unsigned long usec)
+{
+	unsigned long old, new, cur = 0;
+	unsigned long loops_nsec = 1000 * usec;
+
+	/*
+	 * Time currentval is down-counter.
+	 */
+	old = read_cur_counter();
+	for (;;) {
+		new = read_cur_counter();
+		if (new > old){
+			cur += (MAX_COUNTER - new + old);
+		} else {
+			cur += (old - new);
+		}
+		old = new;
+		if ((cur * CYCLE_NSEC) >= loops_nsec)
+			break;
+	}
+}
 
 void use_time_delay(void)
 {
@@ -42,39 +70,5 @@ void use_time_delay(void)
 
 	delay_fn = aw_delay;
 	printk("[aw_delay]: It is use use_time_delay function!\n");
-}
-
-static unsigned long read_cur_counter(void)
-{
-	return readl(IO_ADDRESS(AW_TIMER_BASE) + TIMER_CURRENTVAL(TIME_NUM));
-}
-
-static void aw_delay(unsigned long usec)
-{
-	unsigned long old, new, cur = 0;
-	unsigned long loops_nsec = 1000 * usec;
-	unsigned long start;
-
-	/*
-	 * Time currentval is down-counter.
-	 */
-	start = jiffies;
-	old = read_cur_counter();
-	for (;;) {
-		new = read_cur_counter();
-		if (new > old){
-			cur += (MAX_COUNTER - new + old);
-		} else {
-			cur += (old - new);
-		}
-		old = new;
-		if ((cur * CYCLE_NSEC) >= loops_nsec)
-			break;
-		/*
-		 * If it throungh a period, shoule be out.
-		 */
-		if (jiffies - start > 0)
-			break;
-	}
 }
 

@@ -34,6 +34,14 @@ Version History.
 #ifndef	__LIS3DE_H__
 #define	__LIS3DE_H__
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
+#include <linux/earlysuspend.h>
+#endif
+
+#if defined(CONFIG_HAS_EARLYSUSPEND) || defined(CONFIG_PM)
+#include <linux/pm.h>
+#endif
+
 
 #define	LIS3DE_ACC_DEV_NAME		"lis3de_acc"
 #define SENSOR_NAME                     LIS3DE_ACC_DEV_NAME

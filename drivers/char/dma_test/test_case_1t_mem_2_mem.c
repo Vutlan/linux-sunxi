@@ -14,11 +14,10 @@
  */
 
 #include "sun6i_dma_test.h"
-#include <linux/random.h>
 
 /* total length and each transfer length */
-#define DTC_1T_TOTAL_LEN	SIZE_512K
-#define DTC_1T_ONE_LEN		SIZE_4K
+#define DTC_1T_TOTAL_LEN	SZ_512K
+#define DTC_1T_ONE_LEN		SZ_4K
 
 /* src/dst start address */
 static u32 g_src_addr = 0, g_dst_addr = 0;

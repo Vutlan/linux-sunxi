@@ -38,8 +38,11 @@
 #include <mach/sys_config.h>
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
-#include <linux/pm.h>
 #include <linux/earlysuspend.h>
+#endif
+
+#if defined(CONFIG_HAS_EARLYSUSPEND) || defined(CONFIG_PM)
+#include <linux/pm.h>
 #endif
 
 #define assert(expr)\
@@ -278,7 +281,7 @@ static int mma865x_device_stop(struct i2c_client *client)
  *                    < 0; err
  */
 
-int gsensor_detect(struct i2c_client *client, struct i2c_board_info *info)
+static int gsensor_detect(struct i2c_client *client, struct i2c_board_info *info)
 {
 	struct i2c_adapter *adapter = client->adapter;
 	int ret;

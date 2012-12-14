@@ -23,8 +23,8 @@
 
 /* local functions */
 static int     ar100_wait_ready(unsigned int timeout);
-static ssize_t ar100_debug_level_store(struct kobject *kobject,struct attribute *attr, const char *buf, size_t count);
-static ssize_t ar100_debug_level_show(struct kobject *kobject,struct attribute *attr, char *buf);
+static ssize_t ar100_debug_store(struct kobject *kobject,struct attribute *attr, const char *buf, size_t count);
+static ssize_t ar100_debug_show(struct kobject *kobject,struct attribute *attr, char *buf);
 static void    ar100_obj_release(struct kobject *kobject);
 
 /* external vars */
@@ -33,19 +33,24 @@ extern char *ar100_binary_end;
 
 unsigned long ar100_sram_a2_vbase = (unsigned long)IO_ADDRESS(AW_SRAM_A2_BASE);
 
-struct attribute ar100_attr = {
+struct attribute ar100_debug_mask_attr = {
 	.name = "debug_mask",
+	.mode = S_IRWXUGO
+};
+struct attribute ar100_debug_baudrate_attr = {
+	.name = "debug_baudrate",
 	.mode = S_IRWXUGO
 };
 
 static struct attribute *ar100_def_attrs[] = {
-	&ar100_attr,
+	&ar100_debug_mask_attr,
+	&ar100_debug_baudrate_attr,
 	NULL
 };
 
 struct sysfs_ops ar100_obj_sysops = {
-	.show =  ar100_debug_level_show,
-	.store = ar100_debug_level_store
+	.show =  ar100_debug_show,
+	.store = ar100_debug_store
 };
 
 struct kobj_type ar100_ktype = {
@@ -55,6 +60,7 @@ struct kobj_type ar100_ktype = {
 };
 
 static struct kobject ar100_kobj;
+unsigned int g_ar100_debug_baudrate = 57600;
 
 int ar100_init(void)
 {
@@ -193,19 +199,32 @@ static int ar100_wait_ready(unsigned int timeout)
 	return 0;
 }
 
-static ssize_t ar100_debug_level_store(struct kobject *kobject,struct attribute *attr, const char *buf, size_t count)
+static ssize_t ar100_debug_store(struct kobject *kobject,struct attribute *attr, const char *buf, size_t count)
 {
-	sscanf(buf, "%i", &g_ar100_debug_level);
-	ar100_set_debug_level(g_ar100_debug_level);
-
+	if (strcmp(attr->name, "debug_mask") == 0) {
+		sscanf(buf, "%i", &g_ar100_debug_level);
+		ar100_set_debug_level(g_ar100_debug_level);
+	} else if (strcmp(attr->name, "debug_baudrate") == 0) {
+		sscanf(buf, "%i", &g_ar100_debug_baudrate);
+		if ((g_ar100_debug_baudrate != 57600) && (g_ar100_debug_baudrate != 9600)) {
+			AR100_WRN("invalid ar100 uart baudrate [%d] to set\n", g_ar100_debug_baudrate);
+			return 0;
+		}
+		ar100_set_uart_baudrate(g_ar100_debug_baudrate);
+	}
+	
 	return count;
 }
 
-static ssize_t ar100_debug_level_show(struct kobject *kobject,struct attribute *attr, char *buf)
+static ssize_t ar100_debug_show(struct kobject *kobject,struct attribute *attr, char *buf)
 {
 	ssize_t count = 0;
-	
-	count = sprintf(buf, "%i\n", g_ar100_debug_level);
+
+	if (strcmp(attr->name, "debug_mask") == 0) {
+		count = sprintf(buf, "%i\n", g_ar100_debug_level);
+	} else if (strcmp(attr->name, "debug_baudrate") == 0) {
+		count = sprintf(buf, "%d\n", g_ar100_debug_baudrate);
+	}
 	
 	return count;
 }

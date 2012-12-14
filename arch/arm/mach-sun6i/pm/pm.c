@@ -784,6 +784,9 @@ static int __init aw_pm_init(void)
 		}
 	}
 
+	pr_err("Notice: not support super standby right now, just waiting for next version....\n");
+	standby_mode = 0;
+
 	suspend_set_ops(&aw_pm_ops);
 
 	return 0;

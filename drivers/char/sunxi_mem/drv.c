@@ -37,10 +37,6 @@ static struct class 	*g_class = NULL;
 struct device 		*g_dev = NULL;
 struct kmem_cache 	*g_pmem_cache = NULL; /* mem cache for struct sunxi_mem_des */
 
-/* flush cache api from cache-v7.S */
-extern int flush_dcache_all(void);
-extern int flush_clean_user_range(long start, long end);
-
 /*
  * to sync sunmm_release and sunmm_ioctl, repetitive with SUNMM_LOCK, but any other better way?
  */

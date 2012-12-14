@@ -30,7 +30,7 @@
 #include <mach/irqs-sun6i.h>
 
 #undef SWITCH_DBG
-#if (0)
+#if (1)
     #define SWITCH_DBG(format,args...)  printk("[SWITCH] "format,##args)    
 #else
     #define SWITCH_DBG(...)    
@@ -148,6 +148,7 @@ static irqreturn_t audio_hmic_irq(int irq, void *dev_id)
 	if (switch_data == NULL) {
 		return IRQ_NONE;
 	}
+	SWITCH_DBG("%s,line:%d\n", __func__, __LINE__);
 	tmp = hmic_rdreg(SUN6I_HMIC_DATA);
 	/*bit19 is 1 means the earphone plug in*/
 	tmp &= (0x1<<19);

@@ -55,6 +55,13 @@
 #include <mach/system.h>
 #include <mach/hardware.h>
 #include <mach/sys_config.h>
+#ifdef CONFIG_HAS_EARLYSUSPEND
+#include <linux/earlysuspend.h>
+#endif
+
+#if defined(CONFIG_HAS_EARLYSUSPEND) || defined(CONFIG_PM)
+#include <linux/pm.h>
+#endif
 
 
 /** Maximum polled-device-reported rot speed value value in dps*/
@@ -244,7 +251,16 @@ struct l3gd20_data {
 	struct workqueue_struct *irq2_work_queue;
 
 	bool polling_enabled;
+	
+	#ifdef CONFIG_HAS_EARLYSUSPEND
+	struct early_suspend early_suspend;
+	#endif
 };
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static void l3gd20_early_suspend(struct early_suspend *h);
+static void l3gd20_late_resume(struct early_suspend *h);
+#endif
 
 static int gyr_fetch_sysconfig_para(void)
 {
@@ -297,7 +313,7 @@ script_get_err:
  *                    = 0; success;
  *                    < 0; err
  */
-int gyr_detect(struct i2c_client *client, struct i2c_board_info *info)
+static int gyr_detect(struct i2c_client *client, struct i2c_board_info *info)
 {
 	struct i2c_adapter *adapter = client->adapter;
 	int ret;
@@ -1673,6 +1689,13 @@ static int l3gd20_probe(struct i2c_client *client,
 
 	mutex_unlock(&gyro->lock);
 
+	#ifdef CONFIG_HAS_EARLYSUSPEND
+	gyro->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;
+	gyro->early_suspend.suspend = l3gd20_early_suspend;
+	gyro->early_suspend.resume = l3gd20_late_resume;
+	register_early_suspend(&gyro->early_suspend);
+	#endif
+
 #if DEBUG
 	dev_info(&client->dev, "%s probed: device created successfully\n",
 							L3GD20_GYR_DEV_NAME);
@@ -1731,6 +1754,10 @@ static int l3gd20_remove(struct i2c_client *client)
 	}
 #endif
 
+	#ifdef CONFIG_HAS_EARLYSUSPEND
+	unregister_early_suspend(&gyro->early_suspend);
+	#endif
+	
 	l3gd20_disable(gyro);
 	l3gd20_input_cleanup(gyro);
 
@@ -1741,11 +1768,45 @@ static int l3gd20_remove(struct i2c_client *client)
 	return 0;
 }
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static void l3gd20_early_suspend(struct early_suspend *h)
+{
+	struct l3gd20_data *data =
+		container_of(h, struct l3gd20_data, early_suspend);
+	u8 buf[2];
+
+	l3gd20_disable(data);
+	
+	if (atomic_read(&data->enabled)) {
+		mutex_lock(&data->lock);
+		l3gd20_register_update(data, buf, CTRL_REG1,
+						0x08, PM_OFF);
+		mutex_unlock(&data->lock);
+	}
+	return;
+}
+
+static void l3gd20_late_resume(struct early_suspend *h)
+{
+	struct l3gd20_data *data =
+		container_of(h, struct l3gd20_data, early_suspend);
+	u8 buf[2];
+
+	l3gd20_enable(data);
+	if (atomic_read(&data->enabled)) {
+		mutex_lock(&data->lock);
+		l3gd20_register_update(data, buf, CTRL_REG1,
+				0x0F, (ENABLE_ALL_AXES | PM_NORMAL));
+		mutex_unlock(&data->lock);
+	}
+	return;
+}
+#else
+#ifdef CONFIG_PM
 static int l3gd20_suspend(struct device *dev)
 {
 	int err = 0;
 	
-#ifdef CONFIG_PM
 	struct i2c_client *client = to_i2c_client(dev);
 	struct l3gd20_data *data = i2c_get_clientdata(client);
 	u8 buf[2];
@@ -1761,14 +1822,14 @@ static int l3gd20_suspend(struct device *dev)
 						0x08, PM_OFF);
 		mutex_unlock(&data->lock);
 	}
-#endif /*CONFIG_PM*/
+
 	return err;
 }
 
 static int l3gd20_resume(struct device *dev)
 {
 	int err = 0;
-#ifdef CONFIG_PM
+	
 	struct i2c_client *client = to_i2c_client(dev);
 	struct l3gd20_data *data = i2c_get_clientdata(client);
 	u8 buf[2];
@@ -1784,10 +1845,11 @@ static int l3gd20_resume(struct device *dev)
 				0x0F, (ENABLE_ALL_AXES | PM_NORMAL));
 		mutex_unlock(&data->lock);
 	}
-#endif /*CONFIG_PM*/
+
 	return err;
 }
-
+#endif /*CONFIG_PM*/
+#endif /*CONFIG_HAS_EARLYSUSPEND*/
 
 static const struct i2c_device_id l3gd20_id[] = {
 	{ L3GD20_GYR_DEV_NAME , 0 },
@@ -1796,17 +1858,21 @@ static const struct i2c_device_id l3gd20_id[] = {
 
 MODULE_DEVICE_TABLE(i2c, l3gd20_id);
 
+#if defined(CONFIG_PM) && !defined(CONFIG_HAS_EARLYSUSPEND)
 static struct dev_pm_ops l3gd20_pm = {
 	.suspend = l3gd20_suspend,
 	.resume = l3gd20_resume,
 };
+#endif
 
 static struct i2c_driver l3gd20_driver = {
 	.class = I2C_CLASS_HWMON,
 	.driver = {
 			.owner = THIS_MODULE,
 			.name = L3GD20_GYR_DEV_NAME,
+#if defined(CONFIG_PM) && !defined(CONFIG_HAS_EARLYSUSPEND)
 			.pm = &l3gd20_pm,
+#endif
 	},
 	.probe = l3gd20_probe,
 	.remove = __devexit_p(l3gd20_remove),

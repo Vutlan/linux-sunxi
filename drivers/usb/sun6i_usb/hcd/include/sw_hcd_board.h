@@ -56,9 +56,12 @@ typedef struct sw_hcd_io{
 	struct clk	*mod_usbphy;			/* PHY0 clock handle 	*/
 
 	unsigned drv_vbus_valid;
+	unsigned usb_restrict_valid;
 	script_item_u drv_vbus_gpio_set;
+	script_item_u restrict_gpio_set;
 	__u32 host_init_state;				/* usb 控制器的初始化状态。0 : 不工作. 1 : 工作 */
 	__u32 usb_enable;
+	__u32 usb_restrict_flag;
 }sw_hcd_io_t;
 
 #endif   //__SW_HCD_BOARD_H__

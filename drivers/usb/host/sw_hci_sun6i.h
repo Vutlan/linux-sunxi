@@ -144,12 +144,15 @@ struct sw_hci_hcd{
 	__u32 clk_is_open;					/* is usb clock open 	*/
 
 	script_item_u drv_vbus_gpio_set;
+	script_item_u restrict_gpio_set;
 	u32 drv_vbus_gpio_valid;
+	u32 usb_restrict_valid;
 	__u32 power_flag;                   /* flag. 是否供电       */
 
     __u32 used;                         /* flag. 控制器是否被使用 */
 	__u32 probe;                        /* 控制器初始化 */
 	__u32 host_init_state;				/* usb 控制器的初始化状态。0 : 不工作. 1 : 工作 */
+	__u32 usb_restrict_flag;				
 	__u32 usbc_type;                    /* usb controller type  */
 
 	int (* open_clock)(struct sw_hci_hcd *sw_hci, u32 ohci);
