@@ -54,6 +54,7 @@ static unsigned int play_dmasrc = 0;
 static int req_status;
 static script_item_u item;
 static script_item_value_type_e  type;
+static bool codec_speaker_enabled = false;
 
 struct sun6i_codec {
 	long samplerate;
@@ -375,12 +376,12 @@ static int codec_play_open(struct snd_pcm_substream *substream)
 	
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, LMIXEN, 0x1);
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, RMIXEN, 0x1);
-	
+
 	codec_wr_control(SUN6I_DAC_ACTL, 0x7f, RMIXMUTE, 0x2);
 	codec_wr_control(SUN6I_DAC_ACTL, 0x7f, LMIXMUTE, 0x2);
 
-	codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPIS, 0x1);
-	codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPIS, 0x1);
+//	codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPIS, 0x1);
+//	codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPIS, 0x1);
 
 	#ifdef CONFIG_3G_PAD
 	/*set the default output is HPOUTL/R for 3gpad ÌýÍ²: HPL inverting output*/
@@ -477,7 +478,6 @@ static int codec_dev_free(struct snd_device *device)
 	return 0;
 };
 
-static bool codec_speaker_enabled = false;
 static int codec_set_spk(struct snd_kcontrol *kcontrol,
 	struct snd_ctl_elem_value *ucontrol)
 {
@@ -492,12 +492,16 @@ static int codec_set_spk(struct snd_kcontrol *kcontrol,
 		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTL_EN, 0x1);
 		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTL_SRC_SEL, 0x1);
 		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTR_SRC_SEL, 0x1);
+		codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPIS, 0x1);
+		codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPIS, 0x1);
 		codec_wr_control(SUN6I_MIC_CTRL, 0x1f, LINEOUT_VOL, 0x1f);
 	} else {
 		item.gpio.data = 0;
 		codec_wr_control(SUN6I_MIC_CTRL, 0x1f, LINEOUT_VOL, 0x0);
 		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTL_EN, 0x0);
 		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTR_EN, 0x0);
+		codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPIS, 0x0);
+		codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPIS, 0x0);
 		/*config gpio info of audio_pa_ctrl close*/
 		if (0 != sw_gpio_setall_range(&item.gpio, 1)) {
 			printk("sw_gpio_setall_range failed\n");
@@ -1350,12 +1354,6 @@ static int snd_sun6i_codec_trigger(struct snd_pcm_substream *substream, int cmd)
 				*/
 				if (0 != sw_dma_ctl(play_prtd->dma_hdl, DMA_OP_START, NULL)) {
 					return -EINVAL;
-				}
-				if(substream->runtime->rate >=192000){
-				}else if(substream->runtime->rate > 22050){
-					mdelay(2);
-				}else{
-					mdelay(7);
 				}
 				/*set the default output is HPOUTL/R for pad ¶ú»ú*/
 				codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPPA_MUTE, 0x1);
