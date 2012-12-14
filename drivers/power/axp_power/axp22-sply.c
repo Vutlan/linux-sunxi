@@ -1199,7 +1199,7 @@ succeed:
 static void axp_charging_monitor(struct work_struct *work)
 {
 	struct axp_charger *charger;
-	uint8_t	val;
+	uint8_t	val,temp_val[2];
 	int	pre_rest_vol;
 	uint16_t tmp;
 	charger = container_of(work, struct axp_charger, work.work);
@@ -1209,7 +1209,7 @@ static void axp_charging_monitor(struct work_struct *work)
 
 	axp_read(charger->master, AXP22_CAP,&val);
 	charger->rest_vol	= (int)	(val & 0x7F);
-	
+#if 0	
 #if defined (CONFIG_AXP_CHGCHANGE)	
 #if defined CONFIG_HAS_EARLYSUSPEND
 		 	if(early_suspend_flag){
@@ -1218,8 +1218,8 @@ static void axp_charging_monitor(struct work_struct *work)
 		 			}
 		 			else if(pmu_earlysuspend_chgcur >= 300000 && pmu_runtime_chgcur <= 1800000){
 		 			  axp_set_bits(charger->master,AXP20_CHARGE_CONTROL1,0x80);
-						tmp = (pmu_earlysuspend_chgcur -200001)/100000;
-						charger->chgcur = tmp *100000 + 300000;
+						tmp = (pmu_earlysuspend_chgcur -200001)/150000;
+						charger->chgcur = tmp *150000 + 300000;
 						axp_update(charger->master, AXP20_CHARGE_CONTROL1, tmp, 0x0F);
 					}
 		 	}else
@@ -1230,11 +1230,12 @@ static void axp_charging_monitor(struct work_struct *work)
 				}
 				else if (pmu_runtime_chgcur >= 300000 && pmu_runtime_chgcur <= 1800000){
 					axp_set_bits(charger->master,AXP20_CHARGE_CONTROL1,0x80);
-    			tmp = (pmu_runtime_chgcur -200001)/100000;
-    			charger->chgcur = tmp *100000 + 300000;
+    			tmp = (pmu_runtime_chgcur -200001)/150000;
+    			charger->chgcur = tmp *150000 + 300000;
 					axp_update(charger->master, AXP20_CHARGE_CONTROL1, tmp, 0x0F);
     		}
   		}
+#endif
 #endif
 	if(axp_debug){
 		DBG_PSY_MSG("charger->ic_temp = %d\n",charger->ic_temp);
@@ -1244,15 +1245,24 @@ static void axp_charging_monitor(struct work_struct *work)
 		DBG_PSY_MSG("charger->disvbat = %d\n",charger->disvbat);
 		DBG_PSY_MSG("charger->disibat = %d\n",charger->disibat);
 		DBG_PSY_MSG("charger->rest_vol = %d\n",charger->rest_vol);
-//		axp_reads(charger->master,0xba,2,v);
-		DBG_PSY_MSG("bat_cap = %d\n",bat_cap);
+		axp_reads(charger->master,0xba,2,temp_val);
+		DBG_PSY_MSG("Axp22 Rdc = %d\n",(((temp_val[0] & 0x1f) <<8) + temp_val[1])*10742/10000);
+		axp_reads(charger->master,0xe0,2,temp_val);
+		DBG_PSY_MSG("Axp22 batt_max_cap = %d\n",(((temp_val[0] & 0x7f) <<8) + temp_val[1])*1456/1000);
+		axp_reads(charger->master,0xe2,2,temp_val);
+		DBG_PSY_MSG("Axp22 coulumb_counter = %d\n",(((temp_val[0] & 0x7f) <<8) + temp_val[1])*1456/1000);
+		axp_read(charger->master,0xb8,temp_val);
+		DBG_PSY_MSG("Axp22 REG_B8 = %x\n",temp_val[0]);
+		axp_reads(charger->master,0xe4,2,temp_val);
+		DBG_PSY_MSG("Axp22 OCV_percentage = %d\n",(temp_val[0] & 0x7f));
+		DBG_PSY_MSG("Axp22 Coulumb_percentage = %d\n",(temp_val[1] & 0x7f));
 		DBG_PSY_MSG("charger->is_on = %d\n",charger->is_on);
 		DBG_PSY_MSG("charger->charge_on = %d\n",charger->charge_on);
 		DBG_PSY_MSG("charger->ext_valid = %d\n",charger->ext_valid);
 		DBG_PSY_MSG("pmu_runtime_chgcur           = %d\n",pmu_runtime_chgcur);
 		DBG_PSY_MSG("pmu_earlysuspend_chgcur   = %d\n",pmu_earlysuspend_chgcur);
 		DBG_PSY_MSG("pmu_suspend_chgcur        = %d\n",pmu_suspend_chgcur);
-		DBG_PSY_MSG("pmu_shutdown_chgcur       = %d\n",pmu_shutdown_chgcur);
+		DBG_PSY_MSG("pmu_shutdown_chgcur       = %d\n\n\n",pmu_shutdown_chgcur);
 	}
 
 	//for test usb detect
@@ -1718,7 +1728,7 @@ static int axp_battery_probe(struct platform_device *pdev)
 
 /* RDC initial */
 	axp_read(charger->master, AXP22_BATCAP0,&val2);
-	if((pmu_battery_rdc) && (val2 & 0x80))		//如果配置电池内阻，则手动配置
+	if((pmu_battery_rdc) && (!(val2 & 0x80)))		//如果配置电池内阻，则手动配置
 	{
 		rdc = (pmu_battery_rdc * 10000 + 5371) / 10742;
 		axp_write(charger->master, AXP22_RDC0, ((rdc >> 8) & 0x1F));
