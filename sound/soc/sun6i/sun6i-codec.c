@@ -391,12 +391,12 @@ static int codec_play_open(struct snd_pcm_substream *substream)
 
 static int codec_capture_open(void)
 {
+	 /*enable mic1 pa*/
+	 codec_wr_control(SUN6I_MIC_CTRL, 0x1, MIC1AMPEN, 0x1);
 	 /*mic1 gain 30dB，if capture volume is too small, enlarge the mic1booost*/
 	 codec_wr_control(SUN6I_MIC_CTRL, 0x7,MIC1BOOST,0x3);//30db
 	 /*enable Master microphone bias*/
 	 codec_wr_control(SUN6I_MIC_CTRL, 0x1, MBIASEN, 0x1);
-	 /*enable mic1 pa*/
-	 codec_wr_control(SUN6I_MIC_CTRL, 0x1, MIC1AMPEN, 0x1);
 
 	 /*enable Right MIC1 Boost stage*/
 	 codec_wr_control(SUN6I_ADC_ACTL, 0x7f, RADCMIXMUTE, 0x40);//移到外部控制	 
@@ -450,8 +450,6 @@ static int codec_play_stop(void)
 
 static int codec_capture_start(void)
 {
-	/*flush RX FIFO*/
-	codec_wr_control(SUN6I_ADC_FIFOC, 0x1, ADC_FIFO_FLUSH, 0x1);
 	/*enable adc drq*/
 	codec_wr_control(SUN6I_ADC_FIFOC ,0x1, ADC_DRQ, 0x1);
 	return 0;
@@ -1407,7 +1405,8 @@ static int snd_sun6i_codec_trigger(struct snd_pcm_substream *substream, int cmd)
 			capture_prtd->state |= ST_RUNNING;	 
 			codec_capture_start();
 			/*hardware fifo delay*/
-			codec_wr_control(SUN6I_ADC_FIFOC, 0x1, ADCDFEN, 0x1);				
+			mdelay(30);
+			codec_wr_control(SUN6I_ADC_FIFOC, 0x1, ADC_FIFO_FLUSH, 0x1);
 			/*
 			* start dma transfer
 			*/
