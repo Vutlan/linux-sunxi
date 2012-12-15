@@ -1201,7 +1201,7 @@ static void axp_charging_monitor(struct work_struct *work)
 	struct axp_charger *charger;
 	uint8_t	val,temp_val[2];
 	int	pre_rest_vol;
-	uint16_t tmp;
+//	uint16_t tmp;
 	charger = container_of(work, struct axp_charger, work.work);
 	pre_rest_vol = charger->rest_vol;
 	axp_charger_update_state(charger);
@@ -1441,7 +1441,7 @@ static int axp_battery_probe(struct platform_device *pdev)
   if (ret)
     goto err_charger_init;
 
-  printk("add axp_battery_event to notifier[%2x]\n", axp_battery_event);
+//  printk("add axp_battery_event to notifier[%2x]\n", axp_battery_event);
   charger->nb.notifier_call = axp_battery_event;
   ret = axp_register_notifier(charger->master, &charger->nb, AXP22_NOTIFIER_ON);
   if (ret)
