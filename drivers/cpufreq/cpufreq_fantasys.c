@@ -608,7 +608,7 @@ static int check_up(void)
                 dbs_tuners_ins.cpu_up_rate_adj >>= 1;
             }
         }
-        if(dbs_tuners_ins.cpu_up_rate_adj) {
+        if(!dbs_tuners_ins.cpu_up_rate_adj) {
             dbs_tuners_ins.cpu_up_rate_adj = 1;
         }
 
