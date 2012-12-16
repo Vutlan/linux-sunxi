@@ -49,7 +49,7 @@
 
 static struct sunxi_mmc_host* sw_host[4] = {NULL, NULL, NULL, NULL};
 
-#if 1
+#if 0
 static void uart_put(char c)
 {
 	void __iomem *base = __io_address(0x01c28000);
@@ -1507,6 +1507,7 @@ static int sw_mci_do_voltage_switch(struct mmc_host *mmc, struct mmc_ios *ios)
 		 * failed. We power cycle the card, and retry initialization
 		 * sequence by setting S18R to 0.
 		 */
+		usleep_range(5000, 5500);
 		sw_mci_set_vddio(smc_host, SDC_WOLTAGE_OFF);
 		usleep_range(1000, 1500);
 		sw_mci_set_vddio(smc_host, SDC_WOLTAGE_3V3);
@@ -2411,9 +2412,13 @@ static int sw_mci_get_devinfo(void)
 			SMC_MSG(NULL, "get mmc%d's sdc_regulator failed\n", i);
 			mmcinfo->regulator = NULL;
 		} else {
-			if (!strcmp(val.str, "none"))
+			if (!strcmp(val.str, "none")) {
 				mmcinfo->regulator = NULL;
-			else
+				/* If here found that no regulator can be used for this card,
+				   we clear all of the UHS features support */
+				mmcinfo->caps &= ~(MMC_CAP_UHS_SDR12 | MMC_CAP_UHS_SDR25
+						| MMC_CAP_UHS_SDR50 | MMC_CAP_UHS_DDR50);
+			} else
 				mmcinfo->regulator = val.str;
 		}
 	}
