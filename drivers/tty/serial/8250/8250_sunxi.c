@@ -85,6 +85,7 @@ struct sw_serial_port {
 };
 
 struct sw_serial_port *sw_serial_uart[6];
+static int sw_uart_have_used =0;
 backup_reg_t sunxi_serial_reg_back[MAX_PORTS];
 
 static char	*mod_clock_name[]={
@@ -328,7 +329,10 @@ sw_serial_probe(struct platform_device *dev)
 	printk("line %d port_no %d\n",sdata->line,sport->port_no);
 	UART_MSG("\nserial line %d probe %d, membase %p irq %d mapbase 0x%08x\n", 
              sdata->line,dev->id, sport->port.membase, sport->port.irq, sport->port.mapbase);
-		
+	clk_reset(sport->mod_clk,AW_CCU_CLK_RESET);
+	clk_disable(sport->mod_clk);
+	clk_disable(sport->bus_clk);
+
    	return 0;
 free_dev:
     kfree(sport);
@@ -349,7 +353,7 @@ void sunxi_8250_backup_reg(int port_num ,struct uart_port *port)
 	BACK_REG.halt	= AW_UART_RD(UART_HALT);
 	BACK_REG.fcr	= AW_UART_RD(UART_FCR);
 
-	while(AW_UART_RD(UART_USR)&1)
+	if(AW_UART_RD(UART_USR)&1)
         AW_UART_WR(UART_HALT,BACK_REG.halt | UART_FORCE_CFG);
 	AW_UART_WR(BACK_REG.lcr & 0x7f,UART_LCR);
 
@@ -374,7 +378,7 @@ void sunxi_8250_comeback_reg(int port_num,struct uart_port *port)
 	AW_UART_WR(BACK_REG.mcr,UART_MCR);
 	AW_UART_WR(BACK_REG.fcr,UART_FCR);
 
-	while(AW_UART_RD(UART_USR)&1)
+	if(AW_UART_RD(UART_USR)&1)
 		AW_UART_WR(UART_HALT,BACK_REG.halt | UART_FORCE_CFG);
 	AW_UART_WR(BACK_REG.lcr & 0x7f,UART_LCR);
 	
@@ -414,7 +418,7 @@ static int sw_serial_suspend(struct platform_device *dev, pm_message_t state)
 	UART_MSG("sw_serial_suspend uart suspend\n");
 	UART_MSG("&dev->dev is 0x%x\n",&dev->dev);
 
-	for (i = 1; i < MAX_PORTS; i++) {
+	for (i = 1; i < sw_uart_have_used; i++) {
 		up		= sw_serial_uart[i];
 		port	= &(up->port);
 		sdata	= port->private_data;
@@ -423,6 +427,7 @@ static int sw_serial_suspend(struct platform_device *dev, pm_message_t state)
 		UART_MSG("port.dev is 0x%x  &dev->dev is 0x%x\n",port->dev,&dev->dev);
 		}
 
+		printk("port.dev is 0x%x  &dev->dev is 0x%x\n",port->dev,&dev->dev);
 		if ((port->type != PORT_UNKNOWN)&& (port->dev == &dev->dev)){
 			sunxi_8250_backup_reg(sdata->line,port);
 			serial8250_suspend_port(sdata->line);
@@ -442,7 +447,7 @@ static int sw_serial_resume(struct platform_device *dev)
 	UART_MSG("sw_serial_resume SUPER_STANDBY resume\n");
 	UART_MSG("&dev->dev is 0x%x\n",&dev->dev);
 
-	for (i = 1; i < MAX_PORTS; i++) {
+	for (i = 1; i < sw_uart_have_used; i++) {
 		up		= sw_serial_uart[i];
 		port	= &(up->port);
 		sdata	= port->private_data;
@@ -539,7 +544,8 @@ static int __init sw_serial_init(void)
 
 		if (used) {
             uart_used |= 1 << i;
-            platform_device_register(&sw_uart_dev[i]);
+            sw_uart_have_used ++;
+			platform_device_register(&sw_uart_dev[i]);
         }
     }
     if (uart_used) {
@@ -562,6 +568,7 @@ static void __exit sw_serial_exit(void)
 	}
 	if (uart_used)
 	    platform_driver_unregister(&sw_serial_driver);
+	sw_uart_have_used = 0;
 }
 
 MODULE_AUTHOR("Aaron.myeh<leafy.myeh@reuuimllatech.com>");
