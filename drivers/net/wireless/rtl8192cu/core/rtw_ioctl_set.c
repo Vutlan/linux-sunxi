@@ -599,6 +599,16 @@ _func_enter_;
 		RT_TRACE(_module_rtl871x_ioctl_set_c_,_drv_info_,(" change mode!"));
 		//DBG_871X("change mode, old_mode=%d, new_mode=%d, fw_state=0x%x\n", *pold_state, networktype, get_fwstate(pmlmepriv));
 
+		if(*pold_state==Ndis802_11APMode)
+		{		
+			//change to other mode from Ndis802_11APMode			
+			cur_network->join_res = -1;
+			
+#ifdef CONFIG_NATIVEAP_MLME
+			stop_ap_mode(padapter);
+#endif
+		}	
+
 		if((check_fwstate(pmlmepriv, _FW_LINKED)== _TRUE) ||(*pold_state==Ndis802_11IBSS))
 			rtw_disassoc_cmd(padapter);
 
@@ -612,16 +622,7 @@ _func_enter_;
 			rtw_indicate_disconnect(padapter); //will clr Linked_state; before this function, we must have chked whether  issue dis-assoc_cmd or not
 		}	
 	
-		if(*pold_state==Ndis802_11APMode)
-		{		
-			//change to other mode from Ndis802_11APMode			
-			cur_network->join_res = -1;
-			
-#ifdef CONFIG_NATIVEAP_MLME
-			stop_ap_mode(padapter);
-#endif
-		}	
-		
+
 		*pold_state = networktype;
 
 		_clr_fwstate_(pmlmepriv, ~WIFI_NULL_STATE);

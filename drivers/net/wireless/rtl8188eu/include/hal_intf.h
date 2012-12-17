@@ -30,10 +30,10 @@
 
 
 enum RTL871X_HCI_TYPE {
-	RTW_PCIE,
-	RTW_USB,
-	RTW_SDIO,
-	RTW_SPI
+	RTW_PCIE	= BIT0,
+	RTW_USB 	= BIT1,
+	RTW_SDIO 	= BIT2,
+	RTW_GSPI	= BIT3,
 };
 
 enum _CHIP_TYPE {
@@ -116,7 +116,6 @@ typedef enum _HW_VARIABLES{
 	HW_VAR_WOWLAN,
 #endif
 	HW_VAR_NAV_UPPER,
-	HW_VAR_C2H_HANDLE,
 	HW_VAR_RPT_TIMER_SETTING,
 	HW_VAR_TX_RPT_MAX_MACID,	
 	HW_VAR_H2C_MEDIA_STATUS_RPT,
@@ -201,7 +200,7 @@ struct hal_ops {
 	void	(*UpdateRAMaskHandler)(_adapter *padapter, u32 mac_id, u8 rssi_level);
 	void	(*SetBeaconRelatedRegistersHandler)(_adapter *padapter);
 
-	void	(*Add_RateATid)(_adapter *padapter, u32 bitmap, u8 arg);
+	void	(*Add_RateATid)(_adapter *padapter, u32 bitmap, u8 arg, u8 rssi_level);
 #ifdef CONFIG_CONCURRENT_MODE	
 	void	(*clone_haldata)(_adapter *dst_padapter, _adapter *src_padapter);
 #endif
@@ -253,6 +252,7 @@ struct hal_ops {
 #endif
 	void (*hal_notch_filter)(_adapter * adapter, bool enable);
 	void (*hal_reset_security_engine)(_adapter * adapter);
+	s32 (*c2h_handler)(_adapter *padapter, struct c2h_evt_hdr *c2h_evt);
 };
 
 typedef	enum _RT_EEPROM_TYPE{
@@ -355,13 +355,14 @@ struct wowlan_ioctl_param{
 	unsigned char pattern[0];
 };
 
-#define Rx_Pairwisekey		BIT(0)
-#define Rx_GTK			BIT(1)
-#define Rx_DisAssoc		BIT(2)
-#define Rx_DeAuth		BIT(3)
-#define FWDecisionDisconnect    BIT(4)
-#define Rx_MagicPkt		BIT(5)
-#define FinishBtFwPatch		BIT(7)
+#define Rx_Pairwisekey			0x01
+#define Rx_GTK					0x02
+#define Rx_DisAssoc				0x04
+#define Rx_DeAuth				0x08
+#define FWDecisionDisconnect	0x10
+#define Rx_MagicPkt				0x21
+#define Rx_UnicastPkt			0x22
+#define Rx_PatternPkt			0x23
 #endif // CONFIG_WOWLAN
 
 void rtw_hal_def_value_init(_adapter *padapter);
@@ -408,7 +409,7 @@ s32	rtw_hal_init_recv_priv(_adapter *padapter);
 void	rtw_hal_free_recv_priv(_adapter *padapter);
 
 void rtw_hal_update_ra_mask(_adapter *padapter, u32 mac_id, u8 rssi_level);
-void	rtw_hal_add_ra_tid(_adapter *padapter, u32 bitmap, u8 arg);
+void	rtw_hal_add_ra_tid(_adapter *padapter, u32 bitmap, u8 arg, u8 rssi_level);
 void	rtw_hal_clone_data(_adapter *dst_padapter, _adapter *src_padapter);
 void	rtw_hal_start_thread(_adapter *padapter);
 void	rtw_hal_stop_thread(_adapter *padapter);
@@ -454,6 +455,8 @@ s32 rtw_hal_xmit_thread_handler(_adapter *padapter);
 
 void rtw_hal_notch_filter(_adapter * adapter, bool enable);
 void rtw_hal_reset_security_engine(_adapter * adapter);
+
+s32 rtw_hal_c2h_handler(_adapter *adapter, struct c2h_evt_hdr *c2h_evt);
 
 #endif //__HAL_INTF_H__
 

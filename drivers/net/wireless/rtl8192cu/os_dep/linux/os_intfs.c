@@ -127,6 +127,9 @@ int rtw_wifi_spec = 1;//for wifi test
 #else
 int rtw_wifi_spec = 0;
 #endif
+
+int rtw_special_rf_path = 0; //0: 2T2R ,1: only turn on path A 1T1R, 2: only turn on path B 1T1R
+
 int rtw_channel_plan = RT_CHANNEL_DOMAIN_MAX;
 
 #ifdef CONFIG_BT_COEXIST
@@ -204,6 +207,8 @@ module_param(rtw_rf_config, int, 0644);
 module_param(rtw_power_mgnt, int, 0644);
 module_param(rtw_low_power, int, 0644);
 module_param(rtw_wifi_spec, int, 0644);
+
+module_param(rtw_special_rf_path, int, 0644);
 
 module_param(rtw_antdiv_cfg, int, 0644);
 
@@ -758,7 +763,7 @@ _func_enter_;
 
 	
 	registry_par->wifi_spec = (u8)rtw_wifi_spec;
-
+	registry_par->special_rf_path = (u8)rtw_special_rf_path;
 	registry_par->channel_plan = (u8)rtw_channel_plan;
 
 #ifdef CONFIG_BT_COEXIST
@@ -787,6 +792,9 @@ _func_enter_;
 
 #ifdef CONFIG_LAYER2_ROAMING
 	registry_par->max_roaming_times = (u8)rtw_max_roaming_times;
+#ifdef CONFIG_INTEL_WIDI
+	registry_par->max_roaming_times = (u8)rtw_max_roaming_times + 2;
+#endif // CONFIG_INTEL_WIDI
 #endif
 
 #ifdef CONFIG_IOL
@@ -891,6 +899,35 @@ static u16 rtw_select_queue(struct net_device *dev, struct sk_buff *skb)
 
 	return rtw_1d_to_queue[skb->priority];
 }
+
+u16 rtw_recv_select_queue(struct sk_buff *skb)
+{
+	struct iphdr *piphdr;
+	unsigned int dscp;
+	u16	eth_type;
+	u32 priority;
+	u8 *pdata = skb->data;
+
+	_rtw_memcpy(&eth_type, pdata+(ETH_ALEN<<1), 2);
+
+	switch (eth_type) {
+		case htons(ETH_P_IP):
+
+			piphdr = (struct iphdr *)(pdata+ETH_HLEN);
+
+			dscp = piphdr->tos & 0xfc;
+			
+			priority = dscp >> 5;
+			
+			break;
+		default:
+			priority = 0;
+	}
+
+	return rtw_1d_to_queue[priority];
+	
+}
+
 #endif
 
 #if (LINUX_VERSION_CODE>=KERNEL_VERSION(2,6,29))
@@ -1475,16 +1512,11 @@ int _netdev_if2_open(struct net_device *pnetdev)
 	 	padapter->bSurpriseRemoved = _FALSE;	 
 		padapter->bCardDisableWOHSM = _FALSE;
 		
-
-		_rtw_memcpy(pnetdev->dev_addr, padapter->eeprompriv.mac_addr, ETH_ALEN); 
-
-
 		_rtw_memcpy(padapter->HalData, primary_padapter->HalData, padapter->hal_data_sz);
 
 		padapter->bFWReady = primary_padapter->bFWReady;
 
 		padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_DM_INIT_PWDB, NULL);		
-		padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_MAC_ADDR, pnetdev->dev_addr);
 
 		//if (init_mlme_ext_priv(padapter) == _FAIL)
 		//	goto netdev_if2_open_error;	

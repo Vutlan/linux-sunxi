@@ -427,13 +427,14 @@ _func_enter_;
 		ie = rtw_set_ie(ie, _EXT_SUPPORTEDRATES_IE_, (rateLen - 8), (pdev_network->SupportedRates + 8), &sz);
 	}
 	
-		
+#ifdef CONFIG_80211N_HT
 	//HT Cap.
 	if(((pregistrypriv->wireless_mode&WIRELESS_11_5N)||(pregistrypriv->wireless_mode&WIRELESS_11_24N)) 
 		&& (pregistrypriv->ht_enable==_TRUE))
 	{
 		//todo:
 	}
+#endif //CONFIG_80211N_HT
 
 	//pdev_network->IELength =  sz; //update IELength
 
@@ -1353,7 +1354,7 @@ void dump_p2p_ie(u8 *ie, u32 ie_len) {
  *
  * Returns: The address of the P2P IE found, or NULL
  */
-u8 *rtw_get_p2p_ie(u8 *in_ie, uint in_len, u8 *p2p_ie, uint *p2p_ielen)
+u8 *rtw_get_p2p_ie(u8 *in_ie, int in_len, u8 *p2p_ie, uint *p2p_ielen)
 {
 	uint cnt = 0;
 	u8 *p2p_ie_ptr;
@@ -1365,7 +1366,12 @@ u8 *rtw_get_p2p_ie(u8 *in_ie, uint in_len, u8 *p2p_ie, uint *p2p_ielen)
 	while(cnt<in_len)
 	{
 		eid = in_ie[cnt];
-		
+		if ((in_len < 0) || (cnt > MAX_IE_SZ)) {
+#ifdef PLATFORM_LINUX
+			dump_stack();
+#endif
+			return NULL;
+		}		
 		if( ( eid == _VENDOR_SPECIFIC_IE_ ) && ( _rtw_memcmp( &in_ie[cnt+2], p2p_oui, 4) == _TRUE ) )
 		{
 			p2p_ie_ptr = in_ie + cnt;

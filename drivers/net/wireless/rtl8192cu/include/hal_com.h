@@ -137,5 +137,7 @@ void	HalSetBrateCfg(
 
 u8	MRateToHwRate(u8 rate);
 
+void hal_init_macaddr(_adapter *adapter);
+
 #endif //__HAL_COMMON_H__
 

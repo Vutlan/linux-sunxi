@@ -53,6 +53,9 @@ static u8 _is_fw_read_cmd_down(_adapter* padapter, u8 msgbox_num)
 		if(0 == valid ){
 			read_down = _TRUE;
 		}
+#ifdef CONFIG_WOWLAN
+		rtw_msleep_os(2);
+#endif
 	}while( (!read_down) && (retry_cnts--));
 
 	return read_down;
@@ -258,16 +261,32 @@ _func_exit_;
 //bitmap[28:31]= Rate Adaptive id
 //arg[0:4] = macid
 //arg[5] = Short GI
-void rtl8188e_Add_RateATid(PADAPTER pAdapter, u32 bitmap, u8 arg)
+void rtl8188e_Add_RateATid(PADAPTER pAdapter, u32 bitmap, u8 arg, u8 rssi_level)
 {
 	HAL_DATA_TYPE	*pHalData = GET_HAL_DATA(pAdapter);
-	struct dm_priv	*pdmpriv = &pHalData->dmpriv;
+	//struct dm_priv	*pdmpriv = &pHalData->dmpriv;
 
 	u8 macid, init_rate, raid, shortGIrate=_FALSE;
 
-	init_rate = get_highest_rate_idx(bitmap&0x0fffffff)&0x3f;
+#ifdef CONFIG_CONCURRENT_MODE
+	if(rtw_buddy_adapter_up(pAdapter) && pAdapter->adapter_type > PRIMARY_ADAPTER)	
+		pHalData = GET_HAL_DATA(pAdapter->pbuddy_adapter);				
+#endif //CONFIG_CONCURRENT_MODE
 
 	macid = arg&0x1f;
+
+#ifdef CONFIG_ODM_REFRESH_RAMASK
+	raid = (bitmap>>28) & 0x0f;
+	bitmap &=0x0fffffff;	
+	
+	if(rssi_level != DM_RATR_STA_INIT)
+		bitmap = ODM_Get_Rate_Bitmap(&pHalData->odmpriv, macid, bitmap, rssi_level);		
+	
+	bitmap |= ((raid<<28)&0xf0000000);
+#endif //CONFIG_ODM_REFRESH_RAMASK
+		
+
+	init_rate = get_highest_rate_idx(bitmap&0x0fffffff)&0x3f;
 
 	shortGIrate = (arg&BIT(5)) ? _TRUE:_FALSE;
 
@@ -932,9 +951,9 @@ _func_enter_;
 	}
 #ifdef CONFIG_WOWLAN
 	if (padapter->pwrctrlpriv.wowlan_mode){
-	JoinBssRptParm.OpMode = mstatus;
+		JoinBssRptParm.OpMode = mstatus;
 		JoinBssRptParm.MacID = 0;
-	FillH2CCmd_88E(padapter, H2C_COM_MEDIA_STATUS_RPT, sizeof(JoinBssRptParm), (u8 *)&JoinBssRptParm);
+		FillH2CCmd_88E(padapter, H2C_COM_MEDIA_STATUS_RPT, sizeof(JoinBssRptParm), (u8 *)&JoinBssRptParm);
 		DBG_871X_LEVEL(_drv_info_, "%s opmode:%d MacId:%d\n", __func__, JoinBssRptParm.OpMode, JoinBssRptParm.MacID);
 	} else {
 		DBG_871X_LEVEL(_drv_info_, "%s wowlan_mode is off\n", __func__);
@@ -1129,6 +1148,7 @@ _func_enter_;
 
 			pwowlan_parm.mode |=FW_WOWLAN_FUN_EN;
 			pwrpriv->wowlan_magic =_TRUE;
+			pwrpriv->wowlan_unicast =_TRUE;
 
 			if(pwrpriv->wowlan_pattern ==_TRUE){
 				pwowlan_parm.mode |= FW_WOWLAN_PATTERN_MATCH;
@@ -1143,24 +1163,32 @@ _func_enter_;
 				DBG_871X_LEVEL(_drv_info_, "%s 4.pwowlan_parm.mode=0x%x \n",__FUNCTION__,pwowlan_parm.mode );
 			}
 
-			if(!(padapter->pwrctrlpriv.wowlan_wake_reason & WOW_FW_DECISION_DISCONNECT))
+			if(!(padapter->pwrctrlpriv.wowlan_wake_reason & FWDecisionDisconnect))
 				rtl8188e_set_FwJoinBssReport_cmd(padapter, 1);
 			else
 				DBG_871X_LEVEL(_drv_always_, "%s, disconnected, no FwJoinBssReport\n",__FUNCTION__);	
+			rtw_msleep_os(2);
 
 			//WOWLAN_GPIO_ACTIVE means GPIO high active
 			//pwowlan_parm.mode |=FW_WOWLAN_GPIO_ACTIVE;
-			//pwowlan_parm.mode |=FW_WOWLAN_REKEY_WAKEUP;
+			pwowlan_parm.mode |=FW_WOWLAN_REKEY_WAKEUP;
 			pwowlan_parm.mode |=FW_WOWLAN_DEAUTH_WAKEUP;
-			//pwowlan_parm.mode |=FW_WOWLAN_ALL_PKT_DROP;
 
 			//DataPinWakeUp
+#ifdef CONFIG_USB_HCI
+			pwowlan_parm.gpio_index=0x0;
+#endif //CONFIG_USB_HCI
+
+#ifdef CONFIG_SDIO_HCI
 			pwowlan_parm.gpio_index=0x80;
+#endif //CONFIG_SDIO_HCI
 
 			DBG_871X_LEVEL(_drv_info_, "%s 5.pwowlan_parm.mode=0x%x \n",__FUNCTION__,pwowlan_parm.mode);
 			DBG_871X_LEVEL(_drv_info_, "%s 6.pwowlan_parm.index=0x%x \n",__FUNCTION__,pwowlan_parm.gpio_index);
 
 			res = FillH2CCmd_88E(padapter, H2C_COM_WWLAN, 2, (u8 *)&pwowlan_parm);
+
+			rtw_msleep_os(2);
 
 			//disconnect decision
 			pwowlan_parm.mode =1;
@@ -1174,6 +1202,7 @@ _func_enter_;
 
 			res = FillH2CCmd_88E(padapter, H2C_COM_KEEP_ALIVE, 2, (u8 *)&pwowlan_parm);
 
+			rtw_msleep_os(2);
 			//enable Remote wake ctrl
 			pwowlan_parm.mode = 1;
 			pwowlan_parm.gpio_index=0;
@@ -1183,6 +1212,7 @@ _func_enter_;
 		} else {
 			pwrpriv->wowlan_magic =_FALSE;
 			res = FillH2CCmd_88E(padapter, H2C_COM_WWLAN, 2, (u8 *)&pwowlan_parm);
+			rtw_msleep_os(2);
 			res = FillH2CCmd_88E(padapter, H2C_COM_REMOTE_WAKE_CTRL, 3, (u8 *)&pwowlan_parm);
 		}
 _func_exit_;

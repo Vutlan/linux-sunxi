@@ -840,11 +840,23 @@ static int recvbuf2recvframe(_adapter *padapter, struct recv_buf *precvbuf)
 
 		pattrib = &precvframe->u.hdr.attrib;
 		
-		if(pattrib->crc_err){
-			DBG_8192C("%s()-%d: RX Warning! rx CRC ERROR !!\n", __FUNCTION__, __LINE__);	
+#ifdef CONFIG_SPECIAL_SETTING_FOR_FUNAI_TV			
+		//if(pattrib->pkt_len>2000){
+		//	printk("%s: RX Warning!pkt_len= %d, data rate=0x%02x \n", __FUNCTION__,pattrib->pkt_len,pattrib->mcs_rate);	
+		//}
+#endif					
+		if ((pattrib->crc_err) || (pattrib->icv_err))
+		{
+			if(pattrib->pkt_len>2000){
+				DBG_8192C("%s: RX Warning! crc_err=%d icv_err=%d, skip!\n", __FUNCTION__, pattrib->crc_err, pattrib->icv_err);
+#ifdef CONFIG_SPECIAL_SETTING_FOR_FUNAI_TV		
+				printk("%s: RX Warning!pkt_len= %d, data rate=0x%02x \n", __FUNCTION__,pattrib->pkt_len,pattrib->mcs_rate);
+#endif
+			}
 			rtw_free_recvframe(precvframe, pfree_recv_queue);
 			goto _exit_recvbuf2recvframe;
-		}			
+		}
+			
 		
 		if( (pattrib->physt) && (pattrib->pkt_rpt_type == NORMAL_RX))
 		{
@@ -1226,11 +1238,12 @@ static int recvbuf2recvframe(_adapter *padapter, _pkt *pskb)
 		//rtl8192c_query_rx_desc_status(precvframe, prxstat);
 		update_recvframe_attrib_88e(precvframe, prxstat);
 
-		pattrib = &precvframe->u.hdr.attrib;
-	
+		pattrib = &precvframe->u.hdr.attrib;		
+				
 		if ((pattrib->crc_err) || (pattrib->icv_err))
 		{
 			DBG_8192C("%s: RX Warning! crc_err=%d icv_err=%d, skip!\n", __FUNCTION__, pattrib->crc_err, pattrib->icv_err);
+
 			rtw_free_recvframe(precvframe, pfree_recv_queue);
 			goto _exit_recvbuf2recvframe;
 		}
@@ -1365,7 +1378,9 @@ static int recvbuf2recvframe(_adapter *padapter, _pkt *pskb)
 				
 			//enqueue recvframe to txrtp queue
 			if(pattrib->pkt_rpt_type == TX_REPORT1){
-				DBG_8192C("rx CCX \n");
+				//DBG_8192C("rx CCX \n");
+				//CCX-TXRPT ack for xmit mgmt frames.
+				handle_txrpt_ccx_88e(padapter, precvframe->u.hdr.rx_data);
 			}
 			else if(pattrib->pkt_rpt_type == TX_REPORT2){
 				//DBG_8192C("rx TX RPT \n");

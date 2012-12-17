@@ -126,6 +126,8 @@ static void rtw_free_mlme_ie_data(u8 **ppie, u32 *plen)
 void rtw_free_mlme_priv_ie_data(struct mlme_priv *pmlmepriv)
 {
 #if defined (CONFIG_AP_MODE) && defined (CONFIG_NATIVEAP_MLME)
+	rtw_buf_free(&pmlmepriv->assoc_req, &pmlmepriv->assoc_req_len);
+	rtw_buf_free(&pmlmepriv->assoc_rsp, &pmlmepriv->assoc_rsp_len);
 	rtw_free_mlme_ie_data(&pmlmepriv->wps_beacon_ie, &pmlmepriv->wps_beacon_ie_len);
 	rtw_free_mlme_ie_data(&pmlmepriv->wps_probe_req_ie, &pmlmepriv->wps_probe_req_ie_len);
 	rtw_free_mlme_ie_data(&pmlmepriv->wps_probe_resp_ie, &pmlmepriv->wps_probe_resp_ie_len);
@@ -1237,6 +1239,14 @@ _func_enter_;
 						|| _SUCCESS != rtw_sitesurvey_cmd(adapter, &pmlmepriv->assoc_ssid, 1)
 					) {
 						pmlmepriv->to_roaming = 0;
+#ifdef CONFIG_INTEL_WIDI
+						if(adapter->mlmepriv.widi_state == INTEL_WIDI_STATE_ROAMING)
+						{
+							_rtw_memset(pmlmepriv->sa_ext, 0x00, L2SDTA_SERVICE_VE_LEN);
+							intel_widi_wk_cmd(adapter, INTEL_WIDI_LISTEN_WK, NULL);
+							DBG_871X("change to widi listen\n");
+						}
+#endif // CONFIG_INTEL_WIDI
 						rtw_free_assoc_resources(adapter, 1);
 						rtw_indicate_disconnect(adapter);
 					} else {
@@ -1454,6 +1464,14 @@ _func_enter_;
 
 	#ifdef CONFIG_LAYER2_ROAMING
 	pmlmepriv->to_roaming=0;
+#ifdef CONFIG_INTEL_WIDI
+	if(padapter->mlmepriv.widi_state == INTEL_WIDI_STATE_ROAMING)
+	{
+		_rtw_memset(pmlmepriv->sa_ext, 0x00, L2SDTA_SERVICE_VE_LEN);
+		intel_widi_wk_cmd(padapter, INTEL_WIDI_LISTEN_WK, NULL);
+		DBG_871X("change to widi listen\n");
+	}
+#endif // CONFIG_INTEL_WIDI
 	#endif
 
 	#ifdef CONFIG_SET_SCAN_DENY_TIMER
@@ -1679,9 +1697,14 @@ static void rtw_joinbss_update_network(_adapter *padapter, struct wlan_network *
 				
 	//update fw_state //will clr _FW_UNDER_LINKING here indirectly
 	switch(pnetwork->network.InfrastructureMode)
-	{
+	{	
 		case Ndis802_11Infrastructure:						
-				pmlmepriv->fw_state = WIFI_STATION_STATE;
+			
+				if(pmlmepriv->fw_state&WIFI_UNDER_WPS)
+					pmlmepriv->fw_state = WIFI_STATION_STATE|WIFI_UNDER_WPS;
+				else
+					pmlmepriv->fw_state = WIFI_STATION_STATE;
+				
 				break;
 		case Ndis802_11IBSS:		
 				pmlmepriv->fw_state = WIFI_ADHOC_STATE;
@@ -2101,7 +2124,9 @@ _func_enter_;
 			pmlmepriv->to_roaming--; // this stadel_event is caused by roaming, decrease to_roaming
 		else if(pmlmepriv->to_roaming ==0)
 			pmlmepriv->to_roaming= adapter->registrypriv.max_roaming_times;
-
+#ifdef CONFIG_INTEL_WIDI
+		if(adapter->mlmepriv.widi_state != INTEL_WIDI_STATE_CONNECTED)
+#endif // CONFIG_INTEL_WIDI
 		if(*((unsigned short *)(pstadel->rsvd)) !=65535 ) //if stadel_event isn't caused by no rx
 			pmlmepriv->to_roaming=0; // don't roam
 		#endif //CONFIG_LAYER2_ROAMING
@@ -2120,6 +2145,10 @@ _func_enter_;
 		_exit_critical_bh(&(pmlmepriv->scanned_queue.lock), &irqL);
 		#ifdef CONFIG_LAYER2_ROAMING
 		_rtw_roaming(adapter, tgt_network);
+		#else
+#ifdef CONFIG_INTEL_WIDI
+		process_intel_widi_disconnect(adapter, 1);
+#endif // CONFIG_INTEL_WIDI
 		#endif //CONFIG_LAYER2_ROAMING
 		
 	}
@@ -2262,6 +2291,14 @@ _func_enter_;
 				}
 				break;
 			} else {
+#ifdef CONFIG_INTEL_WIDI
+				if(adapter->mlmepriv.widi_state == INTEL_WIDI_STATE_ROAMING)
+				{
+					_rtw_memset(pmlmepriv->sa_ext, 0x00, L2SDTA_SERVICE_VE_LEN);
+					intel_widi_wk_cmd(adapter, INTEL_WIDI_LISTEN_WK, NULL);
+					DBG_871X("change to widi listen\n");
+				}
+#endif // CONFIG_INTEL_WIDI
 				DBG_871X("%s We've try roaming but fail\n", __FUNCTION__);
 				rtw_indicate_disconnect(adapter);
 				break;
@@ -2321,9 +2358,6 @@ static void rtw_auto_scan_handler(_adapter *padapter)
 		pmlmepriv->scan_interval--;
 		if(pmlmepriv->scan_interval==0)
 		{
-			if( pwrctrlpriv->power_mgnt != PS_MODE_ACTIVE )
-				return;			
-
 /*		
 			if (check_fwstate(pmlmepriv, _FW_UNDER_SURVEY|_FW_UNDER_LINKING) == _TRUE) 
 			{
@@ -2385,7 +2419,7 @@ void rtw_dynamic_check_timer_handlder(_adapter *adapter)
 #ifdef CONFIG_CONCURRENT_MODE
 	if(pbuddy_adapter)
 	{
-	if(adapter->net_closed == _TRUE && pbuddy_adapter->net_closed == _TRUE)
+		if(adapter->net_closed == _TRUE && pbuddy_adapter->net_closed == _TRUE)
 		{
 			return;
 		}		
@@ -2460,11 +2494,13 @@ void rtw_set_scan_deny_timer_hdl(_adapter *adapter)
 	struct mlme_priv *mlmepriv = &adapter->mlmepriv;
 
 	//allowed set scan
+	DBG_871X("clear scan deny\n");
 	ATOMIC_SET(&mlmepriv->set_scan_deny, 0);
 }
 
 void rtw_set_scan_deny(struct mlme_priv *mlmepriv, u32 ms)
 {
+	DBG_871X("%s\n", __func__);
 	ATOMIC_SET(&mlmepriv->set_scan_deny, 1);
 	_set_timer(&mlmepriv->set_scan_deny_timer, ms);
 }
@@ -3559,9 +3595,13 @@ void rtw_update_ht_cap(_adapter *padapter, u8 *pie, uint ie_len, u8 channel)
 			}
 			#ifdef RTL8192C_RECONFIG_TO_1T1R
 			{
-				pmlmeinfo->HT_caps.HT_cap_element.MCS_rate[i] &= MCS_rate_1R[i];
+				pmlmeinfo->HT_caps.u.HT_cap_element.MCS_rate[i] &= MCS_rate_1R[i];
 			}
 			#endif
+
+			if(pregistrypriv->special_rf_path)
+				pmlmeinfo->HT_caps.u.HT_cap_element.MCS_rate[i] &= MCS_rate_1R[i];
+
 		}
 		//switch to the 40M Hz mode accoring to the AP
 		pmlmeext->cur_bwmode = HT_CHANNEL_WIDTH_40;

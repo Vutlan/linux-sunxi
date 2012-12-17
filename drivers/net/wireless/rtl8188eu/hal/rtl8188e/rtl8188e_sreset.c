@@ -102,10 +102,11 @@ static void _restore_network_status(_adapter *padapter)
 		rtw_write32(padapter, REG_EDCA_VI_PARAM, 0x005E541C);
 		rtw_write32(padapter, REG_EDCA_BE_PARAM, 0x0000A525);
 		rtw_write32(padapter, REG_EDCA_BK_PARAM, 0x0000A549);
-
-                // for WiFi test, mixed mode with intel STA under bg mode throughput issue
-	        if (padapter->mlmepriv.htpriv.ht_option == 0)
-		     rtw_write32(padapter, REG_EDCA_BE_PARAM, 0x00004320);
+#ifdef CONFIG_80211N_HT
+		// for WiFi test, mixed mode with intel STA under bg mode throughput issue
+		if (padapter->mlmepriv.htpriv.ht_option == 0)
+#endif //CONFIG_80211N_HT
+		rtw_write32(padapter, REG_EDCA_BE_PARAM, 0x00004320);
 
 	} else {
 		rtw_write32(padapter, REG_EDCA_VO_PARAM, 0x002F3217);
@@ -223,7 +224,9 @@ void rtl8188e_sreset_linked_status_check(_adapter *padapter)
 	rx_dma_status = rtw_read32(padapter,REG_RXDMA_STATUS);
 	if(rx_dma_status!= 0x00){
 		DBG_8192C("%s REG_RXDMA_STATUS:0x%08x",__FUNCTION__,rx_dma_status);
+		rtw_write32(padapter,REG_RXDMA_STATUS,rx_dma_status);
 	}	
+	
 #if 0
 	u32 regc50,regc58,reg824,reg800;
 	regc50 = rtw_read32(padapter,0xc50);

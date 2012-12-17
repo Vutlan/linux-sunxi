@@ -979,7 +979,7 @@ static thread_return mp_xmit_packet_thread(thread_context context)
 
 	thread_enter(padapter);
 
-	//DBG_871X("%s:pkTx Start\n", __func__);
+	DBG_871X("%s:pkTx Start\n", __func__);
 	while (1) {
 		pxmitframe = alloc_mp_xmitframe(pxmitpriv);
 		if (pxmitframe == NULL) {
@@ -1174,9 +1174,14 @@ void SetPacketRx(PADAPTER pAdapter, u8 bStartRx)
 
 	if(bStartRx)
 	{
-		// Accept CRC error and destination address
-		pHalData->ReceiveConfig |= (RCR_ACRC32|RCR_AAP);
+		pHalData->ReceiveConfig = AAP | APM | AM | AB | APP_ICV | ADF | AMF | HTC_LOC_CTRL | APP_MIC | APP_PHYSTS;
+	
+		pHalData->ReceiveConfig |= ACRC32;
+	
 		rtw_write32(pAdapter, REG_RCR, pHalData->ReceiveConfig);
+
+		// Accept all data frames
+		rtw_write16(pAdapter, REG_RXFLTMAP2, 0xFFFF);
 	}
 	else
 	{
@@ -1269,8 +1274,7 @@ u32 mp_query_psd(PADAPTER pAdapter, u8 *data)
 {
 	u32 i, psd_pts=0, psd_start=0, psd_stop=0;
 	u32 psd_data=0;
-
-
+	
 #ifdef PLATFORM_LINUX
 	if (!netif_running(pAdapter->pnetdev)) {
 		RT_TRACE(_module_mp_, _drv_warning_, ("mp_query_psd: Fail! interface not opened!\n"));

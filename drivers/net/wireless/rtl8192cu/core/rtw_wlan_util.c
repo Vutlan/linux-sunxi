@@ -488,11 +488,10 @@ void set_channel_bwmode(_adapter *padapter, unsigned char channel, unsigned char
 		}
 	}	
 
-	//set Channel
-#ifdef CONFIG_DUALMAC_Ccenter_chONCURRENT
-	dc_SelectChannel(padapter, center_ch);// set center channel
+	//set Channel , must be independant for correct co_ch value/
+#ifdef CONFIG_DUALMAC_CONCURRENT
+	dc_SelectChannel(padapter, center_ch);
 #else //CONFIG_DUALMAC_CONCURRENT
-
 	
 #ifdef CONFIG_CONCURRENT_MODE
 	_enter_critical_mutex(padapter->psetch_mutex, NULL);
@@ -505,12 +504,11 @@ void set_channel_bwmode(_adapter *padapter, unsigned char channel, unsigned char
 #ifdef CONFIG_CONCURRENT_MODE
 		if(padapter->pcodatapriv)
 		{
-			padapter->pcodatapriv->co_ch = channel;//save primary channel
+			padapter->pcodatapriv->co_ch = channel;
 		}
 #endif //CONFIG_CONCURRENT_MODE	
-		padapter->HalFunc.set_channel_handler(padapter, center_ch); // set center channel
-	}	
-	
+		padapter->HalFunc.set_channel_handler(padapter, center_ch);
+	}
 
 #ifdef CONFIG_CONCURRENT_MODE
 	_exit_critical_mutex(padapter->psetch_mutex, NULL);
@@ -518,7 +516,8 @@ void set_channel_bwmode(_adapter *padapter, unsigned char channel, unsigned char
 
 #endif // CONFIG_DUALMAC_CONCURRENT
 
-	
+
+	//set BandWidth
 	SetBWMode(padapter, bwmode, channel_offset);
 	
 }
@@ -977,14 +976,13 @@ static void bwmode_update_check(_adapter *padapter, PNDIS_802_11_VARIABLE_IEs pI
 	
 	pHT_info = (struct HT_info_element *)pIE->data;
 
-	if(pmlmeext->cur_channel > 14 )
-	{
-		if( pregistrypriv->cbw40_enable & BIT(1) )
+	if (pmlmeext->cur_channel > 14) {
+		if (pregistrypriv->cbw40_enable & BIT(1))
+			cbw40_enable = 1;
+	} else {
+		if (pregistrypriv->cbw40_enable & BIT(0))
 			cbw40_enable = 1;
 	}
-	else
-		if( pregistrypriv->cbw40_enable & BIT(0) )
-			cbw40_enable = 0;
 	
 	if((pHT_info->infos[0] & BIT(2)) && cbw40_enable )
 	{
@@ -1138,9 +1136,13 @@ void HT_caps_handler(_adapter *padapter, PNDIS_802_11_VARIABLE_IEs pIE)
 		}
 	        #ifdef RTL8192C_RECONFIG_TO_1T1R
 		{
-			pmlmeinfo->HT_caps.HT_cap_element.MCS_rate[i] &= MCS_rate_1R[i];
+			pmlmeinfo->HT_caps.u.HT_cap_element.MCS_rate[i] &= MCS_rate_1R[i];
 		}
 		#endif
+
+		if(pregistrypriv->special_rf_path)
+			pmlmeinfo->HT_caps.u.HT_cap_element.MCS_rate[i] &= MCS_rate_1R[i];
+
 	}
 	
 	return;
@@ -1641,6 +1643,7 @@ void set_sta_rate(_adapter *padapter, struct sta_info *psta)
 void update_tx_basic_rate(_adapter *padapter, u8 wirelessmode)
 {
 	NDIS_802_11_RATES_EX	supported_rates;
+	struct mlme_ext_priv	*pmlmeext = &padapter->mlmeextpriv;
 #ifdef CONFIG_P2P
 	struct wifidirect_info*	pwdinfo = &padapter->wdinfo;
 
@@ -1656,6 +1659,10 @@ void update_tx_basic_rate(_adapter *padapter, u8 wirelessmode)
 #endif //CONFIG_INTEL_WIDI
 
 	_rtw_memset(supported_rates, 0, NDIS_802_11_LENGTH_RATES_EX);
+
+	//clear B mod if current channel is in 5G band, avoid tx cck rate in 5G band.
+	if(pmlmeext->cur_channel > 14)
+		wirelessmode &= ~(WIRELESS_11B);
 
 	if ((wirelessmode & WIRELESS_11B) && (wirelessmode == WIRELESS_11B)) {
 		_rtw_memcpy(supported_rates, rtw_basic_rate_cck, 4);
@@ -1848,7 +1855,9 @@ void update_wireless_mode(_adapter *padapter)
 	struct mlme_ext_info	*pmlmeinfo = &(pmlmeext->mlmext_info);
 	WLAN_BSSID_EX 		*cur_network = &(pmlmeinfo->network);
 	unsigned char			*rate = cur_network->SupportedRates;
-
+#ifdef CONFIG_CONCURRENT_MODE
+	_adapter *pbuddy_adapter = padapter->pbuddy_adapter;
+#endif //CONFIG_CONCURRENT_MODE
 	ratelen = rtw_get_rateset_len(cur_network->SupportedRates);
 
 	if ((pmlmeinfo->HT_info_enable) && (pmlmeinfo->HT_caps_enable))
@@ -1902,8 +1911,14 @@ void update_wireless_mode(_adapter *padapter)
 
 	if (pmlmeext->cur_wireless_mode & WIRELESS_11B)
 		update_mgnt_tx_rate(padapter, IEEE80211_CCK_RATE_1MB);
-	 else
+	else
+	{
 		update_mgnt_tx_rate(padapter, IEEE80211_OFDM_RATE_6MB);
+#ifdef CONFIG_CONCURRENT_MODE
+		if(pbuddy_adapter && (pmlmeext->cur_wireless_mode & WIRELESS_11A))
+			update_mgnt_tx_rate(pbuddy_adapter, IEEE80211_OFDM_RATE_6MB);
+#endif //CONFIG_CONCURRENT_MODE
+	}
 }
 
 void fire_write_MAC_cmd(_adapter *padapter, unsigned int addr, unsigned int value);

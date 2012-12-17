@@ -394,11 +394,13 @@ struct  submit_ctx{
 enum {
 	RTW_SCTX_DONE_SUCCESS = 0,
 	RTW_SCTX_DONE_UNKNOWN,
+	RTW_SCTX_DONE_TIMEOUT,
 	RTW_SCTX_DONE_BUF_ALLOC,
 	RTW_SCTX_DONE_BUF_FREE,
 	RTW_SCTX_DONE_WRITE_PORT_ERR,
 	RTW_SCTX_DONE_TX_DESC_NA,
 	RTW_SCTX_DONE_TX_DENY,
+	RTW_SCTX_DONE_CCX_PKT_FAIL,
 };
 
 
@@ -503,6 +505,10 @@ struct xmit_frame
 	u16	EMPktLen[5];//The max value by HW
 #endif
 #endif
+#ifdef CONFIG_XMIT_ACK
+	u8 ack_report;
+#endif
+
 };
 
 struct tx_servq {
@@ -642,6 +648,13 @@ struct	xmit_priv	{
 	uint free_xmit_extbuf_cnt;
 
 	u16	nqos_ssn;
+
+#ifdef CONFIG_XMIT_ACK
+	int	ack_tx;
+	_mutex ack_tx_mutex;
+	struct submit_ctx ack_tx_ops;
+#endif
+	
 };
 
 extern struct xmit_buf *rtw_alloc_xmitbuf_ext(struct xmit_priv *pxmitpriv);
@@ -698,6 +711,12 @@ void xmit_delivery_enabled_frames(_adapter *padapter, struct sta_info *psta);
 #endif
 
 u8	qos_acm(u8 acm_mask, u8 priority);
+
+#ifdef CONFIG_XMIT_ACK
+int rtw_ack_tx_wait(struct xmit_priv *pxmitpriv, u32 timeout_ms);
+void rtw_ack_tx_done(struct xmit_priv *pxmitpriv, int status);
+#endif //CONFIG_XMIT_ACK
+
 
 //include after declaring struct xmit_buf, in order to avoid warning
 #include <xmit_osdep.h>

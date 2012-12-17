@@ -606,6 +606,12 @@ typedef enum _ENCRY_CTRL_STATE_ {
 	SW_ENCRY_HW_DECRY	//sw encryption & hw decryption
 }ENCRY_CTRL_STATE;
 
+typedef enum _OFDM_TX_MODE {
+	OFDM_ALL_OFF		= 0,	
+	OFDM_ContinuousTx	= 1,
+	OFDM_SingleCarrier	= 2,
+	OFDM_SingleTone 	= 4,
+} OFDM_TX_MODE;
 
 //=======================================================================
 //extern struct mp_xmit_frame *alloc_mp_xmitframe(struct mp_priv *pmp_priv);
