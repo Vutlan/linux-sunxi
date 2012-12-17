@@ -200,6 +200,53 @@ static s32 get_usb_cfg(struct sw_hci_hcd *sw_hci)
 }
 #endif
 
+
+#ifdef CONFIG_SW_USB_WIFI
+{
+    u32 usb_wifi_used      = 0;
+    u32 usb_wifi_usbc_num  = 0;
+    u32 usb_wifi_usbc_type = 0;
+
+    /* 3g_used */
+
+	type = script_get_item("wifi_para", "wifi_used", &item_temp);
+	if(type == SCIRPT_ITEM_VALUE_TYPE_INT){
+		usb_wifi_used = item_temp.val;
+	}else{
+		DMSG_PANIC("ERR: script_parser_fetch usb_3g_used failed\n");
+		usb_wifi_used = 0;
+	}
+
+    if(usb_wifi_used){
+        /* wifi_usbc_num */
+		type = script_get_item("wifi_para", "wifi_usbc_id", &item_temp);
+		if(type == SCIRPT_ITEM_VALUE_TYPE_INT){
+			usb_wifi_usbc_num = item_temp.val;
+		}else{
+			DMSG_PANIC("ERR: script_parser_fetch usb_3g_usbc_num failed\n");
+			usb_wifi_usbc_num = 0;
+		}
+
+        /* wifi_usbc_type */
+		type = script_get_item("wifi_para", "wifi_usbc_type", &item_temp);
+		if(type == SCIRPT_ITEM_VALUE_TYPE_INT){
+			usb_wifi_usbc_type = item_temp.val;
+		}else{
+			DMSG_PANIC("ERR: script_parser_fetch usb_3g_usbc_type failed\n");
+			usb_wifi_usbc_type = 0;
+		}
+
+        /* 只开wifi使用的那个模组 */
+        if(sw_hci->usbc_no == usb_wifi_usbc_num){
+            sw_hci->used = 0;
+            if(sw_hci->usbc_type == usb_wifi_usbc_type){
+                sw_hci->used = 1;
+            }
+        }
+    }
+}
+#endif
+
 #else
 	sw_hci->used = 1;
 	sw_hci->host_init_state = 1;
@@ -1412,7 +1459,7 @@ static void __exit sw_hci_sun6i_exit(void)
     return ;
 }
 
-fs_initcall(sw_hci_sun6i_init);
-//module_init(sw_hci_sun6i_init);
+//fs_initcall(sw_hci_sun6i_init);
+module_init(sw_hci_sun6i_init);
 module_exit(sw_hci_sun6i_exit);
 

@@ -201,16 +201,21 @@ static int ar100_wait_ready(unsigned int timeout)
 
 static ssize_t ar100_debug_store(struct kobject *kobject,struct attribute *attr, const char *buf, size_t count)
 {
+	u32 value = 0;
 	if (strcmp(attr->name, "debug_mask") == 0) {
-		sscanf(buf, "%i", &g_ar100_debug_level);
+		sscanf(buf, "%i", &value);
+		g_ar100_debug_level = value;
 		ar100_set_debug_level(g_ar100_debug_level);
+		AR100_LOG("debug_mask change to %d\n", g_ar100_debug_level);
 	} else if (strcmp(attr->name, "debug_baudrate") == 0) {
-		sscanf(buf, "%i", &g_ar100_debug_baudrate);
+		sscanf(buf, "%i", &value);
 		if ((g_ar100_debug_baudrate != 57600) && (g_ar100_debug_baudrate != 9600)) {
 			AR100_WRN("invalid ar100 uart baudrate [%d] to set\n", g_ar100_debug_baudrate);
 			return 0;
 		}
+		g_ar100_debug_baudrate = value;
 		ar100_set_uart_baudrate(g_ar100_debug_baudrate);
+		AR100_LOG("debug_baudrate change to %d\n", g_ar100_debug_baudrate);
 	}
 	
 	return count;
@@ -233,5 +238,3 @@ static void ar100_obj_release(struct kobject *kobject)
 {
 	printk("ar100 obj release\n");
 }
-
-module_param(g_ar100_debug_level, int, S_IRWXU);

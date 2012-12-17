@@ -1561,7 +1561,7 @@ int serial8250_handle_irq(struct uart_port *port, unsigned int iir)
 	}
 
 	spin_lock_irqsave(&up->port.lock, flags);
-
+	up->port.lock_status	= 0xaa;
 	status = serial_inp(up, UART_LSR);
 
 	DEBUG_INTR("status = %x...", status);
@@ -1572,6 +1572,7 @@ int serial8250_handle_irq(struct uart_port *port, unsigned int iir)
 	if (status & UART_LSR_THRE)
 		serial8250_tx_chars(up);
 
+	up->port.lock_status	= 0x00;
 	spin_unlock_irqrestore(&up->port.lock, flags);
 	return 1;
 }

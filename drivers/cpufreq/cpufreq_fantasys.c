@@ -214,9 +214,11 @@ static struct dbs_tuners {
     unsigned int cpu_down_rate;     /* history sample rate for cpu down             */
     unsigned int freq_up_rate;      /* history sample rate for cpu frequency up     */
     unsigned int freq_down_rate;    /* history sample rate for cpu frequency down   */
+    unsigned int freq_down_delay;   /* delay sample rate for cpu frequency down     */
     unsigned int max_cpu_lock;      /* max count of online cpu, user limit          */
     atomic_t hotplug_lock;          /* lock cpu online number, disable plug-in/out  */
     unsigned int dvfs_debug;        /* dvfs debug flag, print dbs information       */
+    unsigned int max_power;         /* cpu run max freqency and all cores           */
 } dbs_tuners_ins = {
     .up_threshold = DEF_FREQUENCY_UP_THRESHOLD,
     .down_threshold = DEF_FREQUENCY_DOWN_DIFFERENTIAL,
@@ -226,9 +228,11 @@ static struct dbs_tuners {
     .cpu_down_rate = DEF_CPU_DOWN_RATE,
     .freq_up_rate = DEF_FREQ_UP_RATE,
     .freq_down_rate = DEF_FREQ_DOWN_RATE,
+    .freq_down_delay = 0,
     .max_cpu_lock = DEF_MAX_CPU_LOCK,
     .hotplug_lock = ATOMIC_INIT(0),
     .dvfs_debug = 0,
+    .max_power = 0,
 };
 
 
@@ -321,6 +325,7 @@ show_one(cpu_up_rate, cpu_up_rate);
 show_one(cpu_down_rate, cpu_down_rate);
 show_one(max_cpu_lock, max_cpu_lock);
 show_one(dvfs_debug, dvfs_debug);
+show_one(max_power, max_power);
 static ssize_t show_hotplug_lock(struct kobject *kobj, struct attribute *attr, char *buf)
 {
     return sprintf(buf, "%d\n", atomic_read(&g_hotplug_lock));
@@ -458,6 +463,42 @@ static ssize_t store_dvfs_debug(struct kobject *a, struct attribute *b,
     return count;
 }
 
+static ssize_t store_max_power(struct kobject *a, struct attribute *b,
+                const char *buf, size_t count)
+{
+    unsigned int input;
+    int ret, nr_up, cpu;
+    struct cpu_dbs_info_s *dbs_info;
+
+    dbs_info = &per_cpu(od_cpu_dbs_info, 0);
+    mutex_lock(&dbs_info->timer_mutex);
+    ret = sscanf(buf, "%u", &input);
+    if (ret != 1)
+        return -EINVAL;
+    dbs_tuners_ins.max_power = input > 0;
+    if (dbs_tuners_ins.max_power == 1) {
+        __cpufreq_driver_target(dbs_info->cur_policy, dbs_info->cur_policy->max, CPUFREQ_RELATION_H);
+        nr_up = nr_cpu_ids - num_online_cpus();
+        for_each_cpu_not(cpu, cpu_online_mask) {
+            if (cpu == 0)
+                continue;
+
+            if (nr_up-- == 0)
+                break;
+
+            cpu_up(cpu);
+        }
+    } else if (dbs_tuners_ins.max_power == 0) {
+        hotplug_history->num_hist = 0;
+        queue_delayed_work_on(dbs_info->cpu, dvfs_workqueue, &dbs_info->work, 0);
+    } else {
+        return -EINVAL;
+    }
+    mutex_unlock(&dbs_info->timer_mutex);
+
+    return count;
+}
+
 define_one_global_rw(sampling_rate);
 define_one_global_rw(io_is_busy);
 define_one_global_rw(up_threshold);
@@ -467,6 +508,7 @@ define_one_global_rw(cpu_down_rate);
 define_one_global_rw(max_cpu_lock);
 define_one_global_rw(hotplug_lock);
 define_one_global_rw(dvfs_debug);
+define_one_global_rw(max_power);
 
 static struct attribute *dbs_attributes[] = {
     &sampling_rate.attr,
@@ -478,6 +520,7 @@ static struct attribute *dbs_attributes[] = {
     &max_cpu_lock.attr,
     &hotplug_lock.attr,
     &dvfs_debug.attr,
+    &max_power.attr,
     NULL
 };
 
@@ -770,6 +813,7 @@ static int check_freq_up(struct cpufreq_policy *policy, unsigned int *target)
         }
 
         *target = policy->max;
+        dbs_tuners_ins.freq_down_delay = 1;
         return 1;
     }
 
@@ -784,6 +828,13 @@ static int check_freq_down(struct cpufreq_policy *policy, unsigned int *target)
     unsigned int avg_load[NR_CPUS], avg_iow[NR_CPUS], max_load, max_iow, freq_load, freq_iow, freq_cur, freq_target;
     int down_rate = dbs_tuners_ins.freq_down_rate;
     int num_hist = hotplug_history->num_hist;
+
+    if (dbs_tuners_ins.freq_down_delay) {
+        if (!(num_hist % down_rate)) {
+            dbs_tuners_ins.freq_down_delay = 0;
+        }
+        return 0;
+    }
 
     /* check if reached the switch point */
     if (num_hist == 0 || num_hist % down_rate) {
@@ -832,7 +883,7 @@ static int check_freq_down(struct cpufreq_policy *policy, unsigned int *target)
 
     /* select target frequency */
     freq_target = max(freq_load, freq_iow);
-    freq_cur = cpufreq_quick_get(policy->cpu);
+    freq_cur = policy->cur;
     if (freq_cur >= 900000) {
         if (freq_cur - freq_target > DECRASE_FREQ_STEP_LIMIT1) {
             freq_target = freq_cur - DECRASE_FREQ_STEP_LIMIT1;
@@ -1071,14 +1122,17 @@ static void do_dbs_timer(struct work_struct *work)
 
     mutex_lock(&dbs_info->timer_mutex);
 
-    dbs_check_cpu(dbs_info);
+    if (!dbs_tuners_ins.max_power) {
+        dbs_check_cpu(dbs_info);
 
-    /* We want all CPUs to do sampling nearly on
-     * same jiffy
-     */
-    delay = usecs_to_jiffies(dbs_tuners_ins.sampling_rate);
+        /* We want all CPUs to do sampling nearly on
+         * same jiffy
+         */
+        delay = usecs_to_jiffies(dbs_tuners_ins.sampling_rate);
 
-    queue_delayed_work_on(cpu, dvfs_workqueue, &dbs_info->work, delay);
+        queue_delayed_work_on(cpu, dvfs_workqueue, &dbs_info->work, delay);
+    }
+
     mutex_unlock(&dbs_info->timer_mutex);
 }
 
@@ -1222,6 +1276,7 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy, unsigned int even
                     __cpufreq_driver_target(this_dbs_info->cur_policy, freq_trig, CPUFREQ_RELATION_H);
                 }
             }
+            dbs_tuners_ins.freq_down_delay = 1;
             mutex_unlock(&this_dbs_info->timer_mutex);
             break;
         }
