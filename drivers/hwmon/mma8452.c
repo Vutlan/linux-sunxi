@@ -416,20 +416,16 @@ static void mma8452_late_resume(struct early_suspend *h) //(struct i2c_client *c
 	struct mma8452_data *mma8452_data = container_of(h, struct mma8452_data, early_suspend);
 	mma8452_data = i2c_get_clientdata(mma8452_i2c_client);
 
-	mma8452_idev->input->open(mma8452_idev->input);
-
 	if (NORMAL_STANDBY == standby_type) {
-		result = i2c_smbus_write_byte_data(mma8452_i2c_client, MMA8452_CTRL_REG1, mma_status.ctl_reg1);
-		assert(result==0);	
+		result = mma8452_init_client(mma8452_i2c_client);
+		if(result < 0)
+			printk("mma8452 resume init failed");
 	} else if (SUPER_STANDBY == standby_type) {
-		result = i2c_smbus_write_byte_data(mma8452_i2c_client, MMA8452_XYZ_DATA_CFG, mma_status.mode);
-		assert(result==0);
-
-		result = i2c_smbus_write_byte_data(mma8452_i2c_client, MMA8452_CTRL_REG1, mma_status.ctl_reg1);
-		assert(result==0);
-
-		mdelay(MODE_CHANGE_DELAY_MS);
-	}	
+		result = mma8452_init_client(mma8452_i2c_client);
+		if(result < 0)
+			printk("mma8452 resume init failed");
+	}
+	mma8452_idev->input->open(mma8452_idev->input);
 	return ;
 }
 #else
@@ -437,21 +433,17 @@ static void mma8452_late_resume(struct early_suspend *h) //(struct i2c_client *c
 static int mma8452_resume(struct i2c_client *client)
 {
 	int result;
-
-	mma8452_idev->input->open(mma8452_idev->input);
 	
 	if (NORMAL_STANDBY == standby_type) {
-		result = i2c_smbus_write_byte_data(mma8452_i2c_client, MMA8452_CTRL_REG1, mma_status.ctl_reg1);
-		assert(result==0);	
+		result = mma8452_init_client(mma8452_i2c_client);
+		if(result < 0)
+			printk("mma8452 resume init failed");
 	} else if (SUPER_STANDBY == standby_type) {
-		result = i2c_smbus_write_byte_data(mma8452_i2c_client, MMA8452_XYZ_DATA_CFG, mma_status.mode);
-		assert(result==0);
-
-		result = i2c_smbus_write_byte_data(mma8452_i2c_client, MMA8452_CTRL_REG1, mma_status.ctl_reg1);
-		assert(result==0);
-
-		mdelay(MODE_CHANGE_DELAY_MS);
-	}	
+		result = mma8452_init_client(mma8452_i2c_client);
+		if(result < 0)
+			printk("mma8452 resume init failed");
+	}
+	mma8452_idev->input->open(mma8452_idev->input);
 	return 0;
 }
 
