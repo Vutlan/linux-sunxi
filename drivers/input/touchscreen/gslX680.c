@@ -165,7 +165,7 @@ struct gsl_ts {
 };
 extern struct ctp_config_info config_info;
 
-static u32 debug_mask = DEBUG_INIT;
+static u32 debug_mask = 0;
 #define dprintk(level_mask,fmt,arg...)    if(unlikely(debug_mask & level_mask)) \
         printk("***CTP***"fmt, ## arg)
 
@@ -209,13 +209,12 @@ static int ctp_detect(struct i2c_client *client, struct i2c_board_info *info)
                 return -ENODEV;
     
 	if(twi_id == adapter->nr){
-                printk("%s: addr= %x\n",__func__,client->addr);
+                dprintk(DEBUG_INIT,"%s: addr= %x\n",__func__,client->addr);
                 ret = ctp_i2c_test(client);
                 if(!ret){
         		printk("%s:I2C connection might be something wrong \n",__func__);
         		return -ENODEV;
         	}else{           	    
-            	        printk("I2C connection sucess!\n");
             	        strlcpy(info->type, CTP_NAME, I2C_NAME_SIZE);
     		    return 0;	
 	             }
@@ -314,7 +313,7 @@ static void gsl_load_fw(struct i2c_client *client)
 	u32 source_line = 0;
 	u32 source_len = ARRAY_SIZE(GSLX680_FW);
 
-	printk("=============gsl_load_fw start==============\n");
+	dprintk(DEBUG_INIT,"=============gsl_load_fw start==============\n");
 
 	for (source_line = 0; source_line < source_len; source_line++) {
 		/* init page trans, set the page val */
@@ -337,7 +336,7 @@ static void gsl_load_fw(struct i2c_client *client)
 			send_flag++;
 		}
 	}
-	printk("=============gsl_load_fw end==============\n");
+	dprintk(DEBUG_INIT,"=============gsl_load_fw end==============\n");
 
 }
 
@@ -684,7 +683,7 @@ static int gsl_ts_init_ts(struct i2c_client *client, struct gsl_ts *ts)
 	struct input_dev *input_device;
 	int  rc = 0;
 	
-	printk("[GSLX680] Enter %s\n", __func__);
+	dprintk(DEBUG_INIT,"[GSLX680] Enter %s\n", __func__);
 	ts->dd = &devices[ts->device_id];
 
 	if (ts->device_id == 0) {
@@ -899,7 +898,7 @@ static int __devinit gsl_ts_probe(struct i2c_client *client,
 	struct gsl_ts *ts;
 	int rc;
 
-	printk("GSLX680 Enter %s\n", __func__);
+	dprintk(DEBUG_INIT,"GSLX680 Enter %s\n", __func__);
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
 		dev_err(&client->dev, "I2C functionality not supported\n");
 		return -ENODEV;
@@ -956,7 +955,7 @@ static int __devinit gsl_ts_probe(struct i2c_client *client,
 	register_early_suspend(&ts->early_suspend);
 #endif
 
-	printk("[GSLX680] End %s\n", __func__);
+	dprintk(DEBUG_INIT,"[GSLX680] End %s\n", __func__);
 
 	return 0;
 
@@ -1019,7 +1018,7 @@ static struct i2c_driver gsl_ts_driver = {
 };
 static int ctp_get_system_config(void)
 {   
-        ctp_print_info(config_info);
+        ctp_print_info(config_info,DEBUG_INIT);
         twi_id = config_info.twi_id;
         screen_max_x = config_info.screen_max_x;
         screen_max_y = config_info.screen_max_y;
@@ -1035,8 +1034,7 @@ static int ctp_get_system_config(void)
 static int __init gsl_ts_init(void)
 {
 	int ret = -1;
-	printk("****************************************************************\n");
-	printk("==gsl_ts_init==\n");
+	dprintk(DEBUG_INIT,"****************************************************************\n");
         if(config_info.ctp_used == 0){
 	        printk("*** ctp_used set to 0 !\n");
 	        printk("*** if use ctp,please put the sys_config.fex ctp_used set to 1. \n");
@@ -1049,7 +1047,7 @@ static int __init gsl_ts_init(void)
 	ctp_wakeup(1,0);
 	gsl_ts_driver.detect = ctp_detect;
 	ret = i2c_add_driver(&gsl_ts_driver);
-	printk("****************************************************************\n");
+	dprintk(DEBUG_INIT,"****************************************************************\n");
 	return ret;
 }
 static void __exit gsl_ts_exit(void)
