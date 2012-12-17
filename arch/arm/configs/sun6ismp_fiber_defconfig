@@ -927,6 +927,10 @@ CONFIG_UID_STAT=y
 # Altera FPGA firmware download module
 #
 # CONFIG_ALTERA_STAPL is not set
+CONFIG_SW_3G_MODULE=y
+# CONFIG_HUAWEI_MU509 is not set
+# CONFIG_YUGA_CWM600 is not set
+CONFIG_OVIPHONE_EM55=y
 
 #
 # SCSI device support

@@ -683,6 +683,7 @@ CONFIG_UID_STAT=y
 # Altera FPGA firmware download module
 #
 # CONFIG_ALTERA_STAPL is not set
+# CONFIG_SW_3G_MODULE is not set
 
 #
 # SCSI device support
