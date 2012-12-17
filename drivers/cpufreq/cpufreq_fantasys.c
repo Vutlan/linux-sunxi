@@ -508,7 +508,8 @@ define_one_global_rw(cpu_down_rate);
 define_one_global_rw(max_cpu_lock);
 define_one_global_rw(hotplug_lock);
 define_one_global_rw(dvfs_debug);
-define_one_global_rw(max_power);
+static struct global_attr max_power = \
+__ATTR(max_power, 0666, show_max_power, store_max_power);
 
 static struct attribute *dbs_attributes[] = {
     &sampling_rate.attr,
