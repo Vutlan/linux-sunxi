@@ -23,7 +23,7 @@
 
 #ifdef  CONFIG_USB_SW_SUN6I_USB_DEBUG
 
-#define  DMSG_PRINT(stuff...)		printk(stuff)
+#define  DMSG_PRINT(stuff...)		 pr_debug(stuff)
 
 #define  DMSG_INFO_UDC(...)			(DMSG_PRINT("[sw_udc]: "), DMSG_PRINT(__VA_ARGS__))
 #define  DMSG_INFO_HCD0(...)		(DMSG_PRINT("[sw_hcd0]: "), DMSG_PRINT(__VA_ARGS__))
@@ -42,7 +42,7 @@
 
 #endif
 
-#define  DMSG_PRINT_EX(stuff...)		printk(stuff)
+#define  DMSG_PRINT_EX(stuff...)		pr_debug(stuff)
 
 #define  DMSG_ERR(...)        		(DMSG_PRINT_EX("WRN:L%d(%s):", __LINE__, __FILE__), DMSG_PRINT_EX(__VA_ARGS__))
 
