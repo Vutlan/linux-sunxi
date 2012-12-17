@@ -83,7 +83,6 @@ __s32 Bsp_disp_iep_resume(__u32 sel)
 //todo : csc->set_mode   or set_mode->csc?
 __s32 BSP_disp_drc_enable(__u32 sel, __u32 en)
 {
-
     if(DISP_OUTPUT_TYPE_LCD == BSP_disp_get_output_type(sel))
     {
         __iep_drc_t *drc;
