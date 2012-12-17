@@ -356,9 +356,6 @@ static int codec_play_open(struct snd_pcm_substream *substream)
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPPA_MUTE, 0x0);
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPPA_MUTE, 0x0);
 
-	//codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTL_EN, 0x0);
-	//codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTR_EN, 0x0);
-
 	/*enable dac digital*/
 	codec_wr_control(SUN6I_DAC_DPC, 0x1, DAC_EN, 0x1);
 
@@ -366,7 +363,7 @@ static int codec_play_open(struct snd_pcm_substream *substream)
 	codec_wr_control(SUN6I_DAC_FIFOC ,0x7f, TX_TRI_LEVEL, 0xf);
 	/*set TX FIFO MODE*/
 	codec_wr_control(SUN6I_DAC_FIFOC ,0x1, TX_FIFO_MODE, 0x1);
-	
+
 	//send last sample when dac fifo under run
 	codec_wr_control(SUN6I_DAC_FIFOC ,0x1, LAST_SE, 0x0);
 
@@ -379,9 +376,6 @@ static int codec_play_open(struct snd_pcm_substream *substream)
 
 	codec_wr_control(SUN6I_DAC_ACTL, 0x7f, RMIXMUTE, 0x2);
 	codec_wr_control(SUN6I_DAC_ACTL, 0x7f, LMIXMUTE, 0x2);
-
-//	codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPIS, 0x1);
-//	codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPIS, 0x1);
 
 	#ifdef CONFIG_3G_PAD
 	/*set the default output is HPOUTL/R for 3gpad ÌýÍ²: HPL inverting output*/
@@ -442,9 +436,18 @@ static int codec_play_stop(void)
 	/*disable dac_l and dac_r*/
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, DACALEN, 0x0);
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, DACAREN, 0x0);
-	
+
 	/*disable dac digital*/
 	codec_wr_control(SUN6I_DAC_DPC ,  0x1, DAC_EN, 0x0);	// it will cause noise
+
+	item.gpio.data = 0;
+	/*config gpio info of audio_pa_ctrl open*/
+	if (0 != sw_gpio_setall_range(&item.gpio, 1)) {
+		printk("sw_gpio_setall_range failed\n");
+	}
+	
+	codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTR_EN, 0x0);
+	codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTL_EN, 0x0);
 
 	return 0;
 }
@@ -482,19 +485,45 @@ static int codec_set_spk(struct snd_kcontrol *kcontrol,
 	struct snd_ctl_elem_value *ucontrol)
 {
 	codec_speaker_enabled = ucontrol->value.integer.value[0];
+
 	if (codec_speaker_enabled) {
+		/*enable dac digital*/
+		codec_wr_control(SUN6I_DAC_DPC, 0x1, DAC_EN, 0x1);
+		/*set TX FIFO send drq level*/
+		codec_wr_control(SUN6I_DAC_FIFOC ,0x7f, TX_TRI_LEVEL, 0xf);
+		/*set TX FIFO MODE*/
+		codec_wr_control(SUN6I_DAC_FIFOC ,0x1, TX_FIFO_MODE, 0x1);
+	
+		//send last sample when dac fifo under run
+		codec_wr_control(SUN6I_DAC_FIFOC ,0x1, LAST_SE, 0x0);
+
+		/*enable dac_l and dac_r*/
+		codec_wr_control(SUN6I_DAC_ACTL, 0x1, DACALEN, 0x1);
+		codec_wr_control(SUN6I_DAC_ACTL, 0x1, DACAREN, 0x1);
+
+		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTR_EN, 0x1);
+		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTL_EN, 0x1);
+				
+		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTL_SRC_SEL, 0x1);
+		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTR_SRC_SEL, 0x1);
+
+		codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPIS, 0x1);
+		codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPIS, 0x1);
+
+		codec_wr_control(SUN6I_MIC_CTRL, 0x1f, LINEOUT_VOL, 0x1e);
+
+	codec_wr_control(SUN6I_DAC_ACTL, 0x7f, RMIXMUTE, 0x2);
+	codec_wr_control(SUN6I_DAC_ACTL, 0x7f, LMIXMUTE, 0x2);
+		
+	codec_wr_control(SUN6I_DAC_ACTL, 0x1, LMIXEN, 0x1);
+	codec_wr_control(SUN6I_DAC_ACTL, 0x1, RMIXEN, 0x1);
+
 		item.gpio.data = 1;
 		/*config gpio info of audio_pa_ctrl open*/
 		if (0 != sw_gpio_setall_range(&item.gpio, 1)) {
 			printk("sw_gpio_setall_range failed\n");
 		}
-		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTR_EN, 0x1);
-		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTL_EN, 0x1);
-		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTL_SRC_SEL, 0x1);
-		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTR_SRC_SEL, 0x1);
-		codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPIS, 0x1);
-		codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPIS, 0x1);
-		codec_wr_control(SUN6I_MIC_CTRL, 0x1f, LINEOUT_VOL, 0x1f);
+		mdelay(30);
 	} else {
 		item.gpio.data = 0;
 		codec_wr_control(SUN6I_MIC_CTRL, 0x1f, LINEOUT_VOL, 0x0);
