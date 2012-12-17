@@ -41,6 +41,19 @@
 #include "../include/sunxi_csi_dev.h"
 #include "sunxi_csi_reg.h"
 
+
+#include <mach/system.h>
+#include <mach/hardware.h>
+#include <mach/sys_config.h>
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
+#include <linux/earlysuspend.h>
+#endif
+
+#if defined(CONFIG_HAS_EARLYSUSPEND) || defined(CONFIG_PM)
+#include <linux/pm.h>
+#endif
+
 #define CSI_MAJOR_VERSION 1
 #define CSI_MINOR_VERSION 0
 #define CSI_RELEASE 0
@@ -58,6 +71,8 @@
 #define MAX_WIDTH  (4096)
 #define MAX_HEIGHT (4096)
 #define CAPTURE_FRAME 1
+
+
 
 static unsigned video_nr = 1;
 static unsigned first_flag = 0;
@@ -550,6 +565,7 @@ static int csi_clk_enable(struct csi_dev *dev)
 
 static int csi_clk_disable(struct csi_dev *dev)
 {
+	//printk("csi_clk_disable\n");
 	csi_dbg(2,"csi_clk_disable\n");
 	clk_disable(dev->csi_ahb_clk);
 	clk_disable(dev->csi_dram_clk);
@@ -762,7 +778,7 @@ static int buffer_setup(struct videobuf_queue *vq, unsigned int *count, unsigned
 	
 	csi_dbg(3,"buffer_setup\n");
 	
-	*size = dev->csi_plane.p0_size + dev->csi_plane.p1_size + dev->csi_plane.p1_size;
+	*size = dev->csi_plane.p0_size + dev->csi_plane.p1_size + dev->csi_plane.p2_size;
 	
 	dev->frame_size = *size;
 	
@@ -1235,6 +1251,16 @@ static int vidioc_streamon(struct file *file, void *priv, enum v4l2_buf_type i)
 	buf = list_entry(dma_q->active.next,struct csi_buffer, vb.queue);
 	csi_set_addr(dev,buf);
 	
+//	bsp_csi_close();
+//	bsp_csi_int_clear_status(dev->cur_ch,CSI_INT_BUF_0_OVERFLOW);
+//	bsp_csi_int_clear_status(dev->cur_ch,CSI_INT_BUF_1_OVERFLOW);
+//	bsp_csi_int_clear_status(dev->cur_ch,CSI_INT_BUF_2_OVERFLOW);
+//	bsp_csi_int_clear_status(dev->cur_ch,CSI_INT_HBLANK_OVERFLOW);
+//	bsp_csi_int_enable(dev->cur_ch,CSI_INT_BUF_0_OVERFLOW);
+//	bsp_csi_int_enable(dev->cur_ch,CSI_INT_BUF_1_OVERFLOW);
+//	bsp_csi_int_enable(dev->cur_ch,CSI_INT_BUF_2_OVERFLOW);
+//	bsp_csi_int_enable(dev->cur_ch,CSI_INT_HBLANK_OVERFLOW);
+	
 	if (dev->capture_mode == V4L2_MODE_IMAGE) {
 //		bsp_csi_int_clear_status(dev->cur_ch,CSI_INT_VSYNC_TRIG);
 		bsp_csi_int_clear_status(dev->cur_ch,CSI_INT_CAPTURE_DONE);
@@ -1248,6 +1274,7 @@ static int vidioc_streamon(struct file *file, void *priv, enum v4l2_buf_type i)
 		bsp_csi_capture_video_start(dev->cur_ch);
 	}	
 	
+	bsp_csi_open();
 	csi_start_generating(dev);
 	return 0;
 }
@@ -2180,6 +2207,236 @@ static int csi_gpio_release(int cnt)
   return 0;
 }
 
+
+static int csi_suspend(struct platform_device *pdev, pm_message_t state)
+{
+//#ifdef CONFIG_HAS_EARLYSUSPEND
+//	csi_print("empty csi_suspend\n");
+//	return 0;
+//#else
+	struct csi_dev *dev=(struct csi_dev *)dev_get_drvdata(&(pdev)->dev);
+	int ret,input_num;
+	
+	csi_print("csi_suspend\n");
+	
+	if (1) {//dev->opened==
+		csi_clk_disable(dev);
+//		printk("dev->stby_mode=%d, standby_type=%d\n, NORMAL_STANDBY=%d, SUPER_STANDBY=%d\n",dev->stby_mode, standby_type, NORMAL_STANDBY, SUPER_STANDBY);
+		if ( (dev->stby_mode == 0) && (NORMAL_STANDBY == standby_type) ) {
+			csi_print("set camera to standby!\n");	
+			return v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_STBY_ON);
+		} else if((dev->stby_mode == 1) || (SUPER_STANDBY == standby_type) ) {
+			csi_print("set camera to power off!\n");	
+			//close all the device power	
+			for (input_num=0; input_num<dev->dev_qty; input_num++) {
+		        /* update target device info and select it */
+		        ret = update_ccm_info(dev, dev->ccm_cfg[input_num]);
+		        if (ret < 0)
+				{
+					csi_err("Error when set ccm info when csi_suspend!\n");
+				}
+				
+				ret = v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_PWR_OFF);
+				if (ret!=0) {
+					csi_err("sensor power off error at device number %d when csi_suspend!\n",input_num);
+				  	return ret;
+				}
+			}
+		}
+	}
+	return 0;
+//#endif
+}
+
+static int csi_resume(struct platform_device *pdev)
+{
+//#ifdef CONFIG_HAS_EARLYSUSPEND
+//	csi_print("empty csi_resume\n");
+//	return 0;
+//#else
+	int ret,input_num;
+	struct csi_dev *dev=(struct csi_dev *)dev_get_drvdata(&(pdev)->dev);
+	
+	csi_print("csi_resume\n");
+	
+//	if (1) {//dev->opened==
+	csi_clk_out_set(dev);
+//		csi_clk_enable(dev);
+//		printk("dev->stby_mode=%d, standby_type=%d\n, NORMAL_STANDBY=%d, SUPER_STANDBY=%d\n",dev->stby_mode, standby_type, NORMAL_STANDBY, SUPER_STANDBY);
+		
+	if( (dev->stby_mode == 0) && (NORMAL_STANDBY == standby_type) ) {
+		ret = v4l2_subdev_call(dev->sd,core, s_power,CSI_SUBDEV_STBY_OFF);
+		if(ret < 0)
+			return ret;
+		ret = v4l2_subdev_call(dev->sd,core, init, 0);
+		if (ret!=0) {
+			csi_err("sensor initial error when resume from suspend!\n");
+			return ret;
+		} else {
+			csi_print("sensor initial success when resume from suspend!\n");
+		}
+	} else if((dev->stby_mode == 1) || (SUPER_STANDBY == standby_type) ){
+		//open all the device power
+		for (input_num=0; input_num<dev->dev_qty; input_num++) {
+		    /* update target device info and select it */
+		    ret = update_ccm_info(dev, dev->ccm_cfg[input_num]);
+		    if (ret < 0)
+			{
+				csi_err("Error when set ccm info when csi_resume!\n");
+			}
+			
+			ret = v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_PWR_ON);
+			ret = v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_STBY_ON);
+			if (ret!=0) {
+			csi_err("sensor power on error at device number %d when csi_resume!\n",input_num);
+			}
+		}
+			
+		/* update target device info and select it */
+		ret = update_ccm_info(dev, dev->ccm_cfg[0]);
+		if (ret < 0)
+		{
+			csi_err("Error when set ccm info when csi_resume!\n");
+		}
+	
+		ret = v4l2_subdev_call(dev->sd,core, init,0);
+		if (ret!=0) {
+			csi_err("sensor full initial error when resume from suspend!\n");
+			return ret;
+		} else {
+			csi_print("sensor full initial success when resume from suspend!\n");
+		}
+	}
+//	} 
+
+	
+	return 0;
+//#endif
+}
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
+	
+struct csi_suspend_t {
+	struct early_suspend e_suspend;
+	struct platform_device *s_pdev;
+};
+
+static void csi_early_suspend(struct early_suspend *h)
+{
+//	struct csi_suspend_t *suspend=container_of(h, struct csi_suspend_t, e_suspend);
+//	struct csi_dev *dev=(struct csi_dev *)suspend->s_pdev;
+//	int ret,input_num;
+//	
+//	csi_print("csi_early_suspend, dev=%p\n",dev);
+	
+//	if (1) {//dev->opened==
+//		csi_clk_disable(dev);
+//		printk("dev->stby_mode=%d, standby_type=%d\n, NORMAL_STANDBY=%d, SUPER_STANDBY=%d\n",dev->stby_mode, standby_type, NORMAL_STANDBY, SUPER_STANDBY);
+//		msleep(50);
+//		if ( (dev->stby_mode == 0) && (NORMAL_STANDBY == standby_type) ) {
+//			csi_print("set camera to standby!\n");	
+//			msleep(50);
+//			v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_STBY_ON);//return 
+//			return;
+//		} else if((dev->stby_mode == 1) || (SUPER_STANDBY == standby_type) ) {
+//			csi_print("set camera to power off!\n");	
+//			//close all the device power	
+//			for (input_num=0; input_num<dev->dev_qty; input_num++) {
+//		        /* update target device info and select it */
+//		        ret = update_ccm_info(dev, dev->ccm_cfg[input_num]);
+//		        if (ret < 0)
+//				{
+//					csi_err("Error when set ccm info when csi_suspend!\n");
+//				}
+//				
+//				ret = v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_PWR_OFF);
+//				if (ret!=0) {
+//					csi_err("sensor power off error at device number %d when csi_suspend!\n",input_num);
+//				  	return;// ret;
+//				}
+//			}
+//		}
+//	}
+	//return 0;
+
+	csi_print("csi_early_suspend exit\n");
+}
+
+static void csi_late_resume(struct early_suspend *h)
+{
+//	struct csi_suspend_t *suspend=container_of(h, struct csi_suspend_t, e_suspend);
+//	struct csi_dev *dev=(struct csi_dev *)suspend->s_pdev;
+//	int ret,input_num;
+//	//struct csi_dev *dev=(struct csi_dev *)dev_get_drvdata(&(pdev)->dev);
+//	
+//	csi_print("csi_late_resume, dev=%p\n",dev);
+//	
+////	if (1) {//dev->opened==
+//	csi_clk_out_set(dev);
+////		csi_clk_enable(dev);
+//		printk("dev->stby_mode=%d, standby_type=%d\n, NORMAL_STANDBY=%d, SUPER_STANDBY=%d\n",dev->stby_mode, standby_type, NORMAL_STANDBY, SUPER_STANDBY);
+//		
+//	if( (dev->stby_mode == 0) && (NORMAL_STANDBY == standby_type) ) {
+//		ret = v4l2_subdev_call(dev->sd,core, s_power,CSI_SUBDEV_STBY_OFF);
+//		if(ret < 0)
+//			return;// ret;
+//		ret = v4l2_subdev_call(dev->sd,core, init, 0);
+//		if (ret!=0) {
+//			csi_err("sensor initial error when resume from suspend!\n");
+//			return;// ret;
+//		} else {
+//			csi_print("sensor initial success when resume from suspend!\n");
+//		}
+//	} else if((dev->stby_mode == 1) || (SUPER_STANDBY == standby_type) ){
+//		//open all the device power
+//		for (input_num=0; input_num<dev->dev_qty; input_num++) {
+//		    /* update target device info and select it */
+//		    ret = update_ccm_info(dev, dev->ccm_cfg[input_num]);
+//		    if (ret < 0)
+//			{
+//				csi_err("Error when set ccm info when csi_resume!\n");
+//			}
+//			
+//			ret = v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_PWR_ON);
+//			ret = v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_STBY_ON);
+//			if (ret!=0) {
+//			csi_err("sensor power on error at device number %d when csi_resume!\n",input_num);
+//			}
+//		}
+//			
+//		/* update target device info and select it */
+//		ret = update_ccm_info(dev, dev->ccm_cfg[0]);
+//		if (ret < 0)
+//		{
+//			csi_err("Error when set ccm info when csi_resume!\n");
+//		}
+//	
+//		ret = v4l2_subdev_call(dev->sd,core, init,0);
+//		if (ret!=0) {
+//			csi_err("sensor full initial error when resume from suspend!\n");
+//			return;// ret;
+//		} else {
+//			csi_print("sensor full initial success when resume from suspend!\n");
+//		}
+//	}
+////	} 
+//
+//	
+	//return 0;
+}
+
+static struct csi_suspend_t csi_ssp= {
+	.e_suspend = {
+		.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN,
+		.suspend = csi_early_suspend,
+		.resume	= csi_late_resume,	
+	},
+	
+	.s_pdev=NULL,
+};
+#endif
+
+
 static int csi_probe(struct platform_device *pdev)
 {
 	struct csi_dev *dev;
@@ -2568,6 +2825,13 @@ reg_sd:
 	/* initial state */
 	dev->capture_mode = V4L2_MODE_VIDEO;
 	
+#ifdef CONFIG_HAS_EARLYSUSPEND	
+	printk("==csi register_early_suspend, s_pdev=%p\n",pdev);
+	csi_ssp.s_pdev=pdev;
+	register_early_suspend(&csi_ssp.e_suspend);
+#endif
+	
+	
 	return 0;
 
 rel_vdev:
@@ -2662,109 +2926,30 @@ static int __devexit csi_remove(struct platform_device *pdev)
 	struct csi_dev *dev;
 	dev=(struct csi_dev *)dev_get_drvdata(&(pdev)->dev);
 	
+#ifdef CONFIG_HAS_EARLYSUSPEND	
+	printk("==csi unregister_early_suspend =\n");	
+    unregister_early_suspend(&csi_ssp.e_suspend);	
+#endif
 
 	csi_print("csi_remove ok!\n");
 	return 0;
 }
 
-static int csi_suspend(struct platform_device *pdev, pm_message_t state)
-{
-	struct csi_dev *dev=(struct csi_dev *)dev_get_drvdata(&(pdev)->dev);
-	int ret,input_num;
-	
-	csi_print("csi_suspend\n");
-	
-	if (dev->opened==1) {
-		csi_clk_disable(dev);
-
-		if(dev->stby_mode == 0) {
-			csi_print("set camera to standby!\n");	
-			return v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_STBY_ON);
-		} else {
-			csi_print("set camera to power off!\n");	
-			//close all the device power	
-			for (input_num=0; input_num<dev->dev_qty; input_num++) {
-        /* update target device info and select it */
-        ret = update_ccm_info(dev, dev->ccm_cfg[input_num]);
-        if (ret < 0)
-				{
-					csi_err("Error when set ccm info when csi_suspend!\n");
-				}
-		
-				ret = v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_PWR_OFF);
-			  if (ret!=0) {
-			  	csi_err("sensor power off error at device number %d when csi_suspend!\n",input_num);
-			  	return ret;
-			  }
-			}
-		}
-	}
-	return 0;
-}
-
-static int csi_resume(struct platform_device *pdev)
-{
-	int ret,input_num;
-	struct csi_dev *dev=(struct csi_dev *)dev_get_drvdata(&(pdev)->dev);
-	
-	csi_print("csi_resume\n");
-
-	if (dev->opened==1) {
-		csi_clk_out_set(dev);
-//		csi_clk_enable(dev);
-		if(dev->stby_mode == 0) {
-			ret = v4l2_subdev_call(dev->sd,core, s_power,CSI_SUBDEV_STBY_OFF);
-			if(ret < 0)
-				return ret;
-			ret = v4l2_subdev_call(dev->sd,core, init, 0);
-			if (ret!=0) {
-				csi_err("sensor initial error when resume from suspend!\n");
-				return ret;
-			} else {
-				csi_print("sensor initial success when resume from suspend!\n");
-			}
-		} else {
-			//open all the device power
-			for (input_num=0; input_num<dev->dev_qty; input_num++) {
-        /* update target device info and select it */
-        ret = update_ccm_info(dev, dev->ccm_cfg[input_num]);
-        if (ret < 0)
-				{
-					csi_err("Error when set ccm info when csi_resume!\n");
-				}
-					
-				ret = v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_PWR_ON);
-			  if (ret!=0) {
-			  	csi_err("sensor power on error at device number %d when csi_resume!\n",input_num);
-			  }
-			}
-			
-			/* update target device info and select it */
-			ret = update_ccm_info(dev, dev->ccm_cfg[0]);
-			if (ret < 0)
-			{
-				csi_err("Error when set ccm info when csi_resume!\n");
-			}
-		
-			ret = v4l2_subdev_call(dev->sd,core, init,0);
-			if (ret!=0) {
-				csi_err("sensor full initial error when resume from suspend!\n");
-				return ret;
-			} else {
-				csi_print("sensor full initial success when resume from suspend!\n");
-			}
-		}
-	} 
-	
-	return 0;
-}
 
 
 static struct platform_driver csi_driver = {
 	.probe		= csi_probe,
 	.remove		= __devexit_p(csi_remove),
+//#ifdef CONFIG_HAS_EARLYSUSPEND
+//
+//#else
+//
+//#endif
+#ifdef CONFIG_PM
 	.suspend	= csi_suspend,
 	.resume		= csi_resume,
+#endif
+
 	//.id_table	= csi_driver_ids,
 	.driver = {
 		.name	= "sunxi_csi1",

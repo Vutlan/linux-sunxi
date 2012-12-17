@@ -40,7 +40,7 @@ MODULE_LICENSE("GPL");
 #define MCLK (24*1000*1000)
 #define VREF_POL	CSI_HIGH
 #define HREF_POL	CSI_HIGH
-#define CLK_POL		CSI_FALLING
+#define CLK_POL		CSI_RISING
 #define IO_CFG		0						//0 for csi0
 #define V4L2_IDENT_SENSOR 0x5640
 
@@ -3590,6 +3590,7 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
 	struct csi_dev *dev=(struct csi_dev *)dev_get_drvdata(sd->v4l2_dev->dev);
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
 	int ret;
+	struct sensor_info *info = to_state(sd);
   
   //insure that clk_disable() and clk_enable() are called in pair 
   //when calling CSI_SUBDEV_STBY_ON/OFF and CSI_SUBDEV_PWR_ON/OFF
@@ -3645,6 +3646,7 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
 			break;
 		case CSI_SUBDEV_PWR_ON:
 			csi_dev_dbg("CSI_SUBDEV_PWR_ON!\n");
+			info->init_first_flag=1;
 			//make sure that no device can access i2c bus during sensor initial or power down
 			//when using i2c_lock_adpater function, the following codes must not access i2c bus before calling i2c_unlock_adapter
 			i2c_lock_adapter(client->adapter);
@@ -3684,6 +3686,7 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
 			break;
 		case CSI_SUBDEV_PWR_OFF:
 			csi_dev_dbg("CSI_SUBDEV_PWR_OFF!\n");
+			info->init_first_flag=1;
 			//make sure that no device can access i2c bus during sensor initial or power down
 			//when using i2c_lock_adpater function, the following codes must not access i2c bus before calling i2c_unlock_adapter
 			i2c_lock_adapter(client->adapter);
