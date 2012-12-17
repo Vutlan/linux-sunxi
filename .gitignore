@@ -58,7 +58,7 @@ modules.builtin
 !.gitignore
 !.mailmap
 !drivers/input/touchscreen/ft_app.i
-
+!rootfs/rootfs_dragonboard.cpio.gz
 #
 # Generated include files
 #
