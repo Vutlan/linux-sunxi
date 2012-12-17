@@ -1126,7 +1126,6 @@ static int sun6i_i2c_clk_init(struct sun6i_i2c *i2c)
 		return -1;
 	}
 
-	I2C_DBG("[i2c%d] apb clock = %d \n",i2c->bus_num, apb_clk);
 	twi_set_clock(apb_clk, i2c->bus_freq, i2c->base_addr);
 
 	return 0;
@@ -1272,7 +1271,6 @@ static int sun6i_i2c_probe(struct platform_device *pdev)
 		ret = -EIO;
 		goto eremap;
 	}
-	I2C_DBG("[i2c%d] base_Addr = 0x%x \n", i2c->bus_num, (unsigned int)i2c->base_addr);
 
 #ifndef SYS_I2C_PIN
 	gpio_addr = ioremap(_PIO_BASE_ADDRESS, 0x400);
@@ -1314,15 +1312,14 @@ static int sun6i_i2c_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, i2c);
 
-	I2C_DBG("I2C: %s: sun6i I2C adapter\n", dev_name(&i2c->adap.dev));
-
-	I2C_DBG("**********start************\n");
-	I2C_DBG("0x%x \n",readl(i2c->base_addr + 0x0c));
-	I2C_DBG("0x%x \n",readl(i2c->base_addr + 0x10));
-	I2C_DBG("0x%x \n",readl(i2c->base_addr + 0x14));
-	I2C_DBG("0x%x \n",readl(i2c->base_addr + 0x18));
-	I2C_DBG("0x%x \n",readl(i2c->base_addr + 0x1c));
-	I2C_DBG("**********end************\n");
+	pr_debug("I2C: %s: sun6i I2C adapter\n", dev_name(&i2c->adap.dev));
+	pr_debug("**********start************\n");
+	pr_debug("0x%x \n",readl(i2c->base_addr + 0x0c));
+	pr_debug("0x%x \n",readl(i2c->base_addr + 0x10));
+	pr_debug("0x%x \n",readl(i2c->base_addr + 0x14));
+	pr_debug("0x%x \n",readl(i2c->base_addr + 0x18));
+	pr_debug("0x%x \n",readl(i2c->base_addr + 0x1c));
+	pr_debug("**********end************\n");
 
 	return 0;
 
@@ -1413,15 +1410,6 @@ static int sun6i_i2c_suspend(struct device *dev)
 
 	i2c->suspended = 1;
 
-	/*
-	 * r_twi is for power, it will be accessed by axp driver
-	 * before twi resume, so, don't suspend r_twi
-	 */
-	if (4 == i2c->bus_num) {
-		i2c->suspended = 0;
-		return 0;
-	}
-
 	while ((i2c->status != I2C_XFER_IDLE) && (count-- > 0)) {
 		I2C_ERR("[i2c%d] suspend while xfer,dev addr = 0x%x\n",
 			i2c->adap.nr, i2c->msg? i2c->msg->addr : 0xff);
@@ -1446,10 +1434,6 @@ static int sun6i_i2c_resume(struct device *dev)
 	struct sun6i_i2c *i2c = platform_get_drvdata(pdev);
 
 	i2c->suspended = 0;
-
-	if (4 == i2c->bus_num) {
-		return 0;
-	}
 
 	if (sun6i_i2c_clk_init(i2c)) {
 		I2C_ERR("[i2c%d] resume failed.. \n", i2c->bus_num);
@@ -1691,22 +1675,8 @@ static void __exit sun6i_i2c_adap_exit(void)
 		platform_driver_unregister(&sun6i_i2c_driver);
 }
 #else
-// static struct i2c_board_info eeprom_i2c_board_info[] __initdata = {
-	// {
-		// I2C_BOARD_INFO("24c16", 0x50),
-	// },
-// };
-
 static int __init sun6i_i2c_adap_init(void)
 {
-	// int status;
-	// status = i2c_register_board_info(1, eeprom_i2c_board_info, ARRAY_SIZE(eeprom_i2c_board_info));
-	// if(status) {
-		// printk("eeprom init failed!\n");
-	// }
-	// else{
-		// printk("eeprom init successed!\n");
-	// }
 	platform_device_register(&sun6i_twi1_device);
 #ifdef SUN6I_RTWI
 	platform_device_register(&sun6i_rtwi_device);
