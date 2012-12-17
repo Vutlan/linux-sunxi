@@ -18,6 +18,7 @@ static int rtl8723as_bt_on = 0;
 static int rtk_suspend = 0;
 static int rtk_rtl8723as_wl_dis = 0;
 static int rtk_rtl8723as_bt_dis = 0;
+static char * axp_name = NULL;
 
 static int rtl8723as_module_power(int onoff)
 {
@@ -25,7 +26,7 @@ static int rtl8723as_module_power(int onoff)
 	static int first = 1;
 
 	rtl8723as_msg("rtl8723as module_power.\n");
-	wifi_ldo = regulator_get(NULL, "axp22_aldo1");
+	wifi_ldo = regulator_get(NULL, axp_name);
 	if (!wifi_ldo)
 		rtl8723as_msg("get power regulator failed.\n");
 	if (first) {
@@ -176,6 +177,13 @@ void rtl8723as_gpio_init(void)
 	struct wifi_pm_ops *ops = &wifi_select_pm_ops;
 	
 	rtl8723as_msg("exec rt8723as_wifi_gpio_init\n");
+
+	type = script_get_item(wifi_para, "wifi_power", &val);
+	if (SCIRPT_ITEM_VALUE_TYPE_STR != type) {
+		rtl8723as_msg("failed to fetch wifi_power\n");
+		return ;
+	}
+	axp_name = val.str;
 
 	type = script_get_item(wifi_para, "rtk_rtl8723as_wl_dis", &val);
 	if (SCIRPT_ITEM_VALUE_TYPE_PIO!=type)

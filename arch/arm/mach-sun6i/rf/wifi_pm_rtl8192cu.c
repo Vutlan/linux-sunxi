@@ -12,8 +12,8 @@
 #define rtl8192cu_msg(...)    do {printk("[rtl8192cu]: "__VA_ARGS__);} while(0)
 
 static int rtl8192cu_powerup = 0;
-static int rtl8192cu_power_pin = 0;
 static int rtk8192cu_suspend = 0;
+static char * axp_name = NULL;
 
 // power control by axp
 static int rtl8192cu_module_power(int onoff)
@@ -22,7 +22,7 @@ static int rtl8192cu_module_power(int onoff)
 	static int first = 1;
 
 	rtl8192cu_msg("rtl8192cu module power set by axp.\n");
-	wifi_ldo = regulator_get(NULL, "axp22_aldo1");
+	wifi_ldo = regulator_get(NULL, axp_name);
 	if (!wifi_ldo)
 		rtl8192cu_msg("get power regulator failed.\n");
 	if (first) {
@@ -79,15 +79,21 @@ static void rtl8192cu_standby(int instadby)
 
 void rtl8192cu_gpio_init(void)
 {
-	script_item_u val ;
+	script_item_u val;
 	script_item_value_type_e type;
 	struct wifi_pm_ops *ops = &wifi_select_pm_ops;
 
 	rtl8192cu_msg("exec rtl8192cu_wifi_gpio_init\n");
 
+	type = script_get_item(wifi_para, "wifi_power", &val);
+	if (SCIRPT_ITEM_VALUE_TYPE_STR != type) {
+		rtl8192cu_msg("failed to fetch wifi_power\n");
+		return ;
+	}
+
+	axp_name = val.str;
 	rtl8192cu_powerup = 0;
 	rtk8192cu_suspend = 0;
-	ops->gpio_ctrl = rtl8192cu_gpio_init;
 	ops->power     = rtl8192cu_power;
 	ops->standby   = rtl8192cu_standby;
 }
