@@ -371,12 +371,14 @@ static void report_abs(void)
 	short x,y,z;
 	int result;
 	
-	do {
-		result=i2c_smbus_read_byte_data(mma8452_i2c_client, MMA8452_STATUS);
-	} while (!(result & 0x08));		/* wait for new data */
+	
+	result=i2c_smbus_read_byte_data(mma8452_i2c_client, MMA8452_STATUS);
+	dprintk(DEBUG_BASE_LEVEL1, "mma8452 check new data");
+	if (!(result & 0x08))
+		return;		/* check no new data */
 
 	if (mma8452_read_data(&x,&y,&z) != 0) {
-		//DBG("mma8452 data read failed\n");
+		dprintk(DEBUG_BASE_LEVEL1, "mma8452 no data");
 		return;
 	}
 
@@ -397,6 +399,9 @@ static void mma8452_early_suspend(struct early_suspend *h)
 {
 	int result;
 	struct mma8452_data *mma8452_data = container_of(h, struct mma8452_data, early_suspend);
+
+	mma8452_idev->input->close(mma8452_idev->input);
+	
 	mma8452_data = i2c_get_clientdata(mma8452_i2c_client);
 	mma_status.ctl_reg1 = i2c_smbus_read_byte_data(mma8452_i2c_client, MMA8452_CTRL_REG1);
 	result = i2c_smbus_write_byte_data(mma8452_i2c_client, MMA8452_CTRL_REG1,mma_status.ctl_reg1 & 0xFE);
@@ -412,17 +417,15 @@ static void mma8452_late_resume(struct early_suspend *h) //(struct i2c_client *c
 	mma8452_data = i2c_get_clientdata(mma8452_i2c_client);
 
 	if (NORMAL_STANDBY == standby_type) {
-		result = i2c_smbus_write_byte_data(mma8452_i2c_client, MMA8452_CTRL_REG1, mma_status.ctl_reg1);
-		assert(result==0);	
+		result = mma8452_init_client(mma8452_i2c_client);
+		if(result < 0)
+			printk("mma8452 resume init failed");
 	} else if (SUPER_STANDBY == standby_type) {
-		result = i2c_smbus_write_byte_data(mma8452_i2c_client, MMA8452_XYZ_DATA_CFG, mma_status.mode);
-		assert(result==0);
-
-		result = i2c_smbus_write_byte_data(mma8452_i2c_client, MMA8452_CTRL_REG1, mma_status.ctl_reg1);
-		assert(result==0);
-
-		mdelay(MODE_CHANGE_DELAY_MS);
-	}	
+		result = mma8452_init_client(mma8452_i2c_client);
+		if(result < 0)
+			printk("mma8452 resume init failed");
+	}
+	mma8452_idev->input->open(mma8452_idev->input);
 	return ;
 }
 #else
@@ -432,23 +435,23 @@ static int mma8452_resume(struct i2c_client *client)
 	int result;
 	
 	if (NORMAL_STANDBY == standby_type) {
-		result = i2c_smbus_write_byte_data(mma8452_i2c_client, MMA8452_CTRL_REG1, mma_status.ctl_reg1);
-		assert(result==0);	
+		result = mma8452_init_client(mma8452_i2c_client);
+		if(result < 0)
+			printk("mma8452 resume init failed");
 	} else if (SUPER_STANDBY == standby_type) {
-		result = i2c_smbus_write_byte_data(mma8452_i2c_client, MMA8452_XYZ_DATA_CFG, mma_status.mode);
-		assert(result==0);
-
-		result = i2c_smbus_write_byte_data(mma8452_i2c_client, MMA8452_CTRL_REG1, mma_status.ctl_reg1);
-		assert(result==0);
-
-		mdelay(MODE_CHANGE_DELAY_MS);
-	}	
+		result = mma8452_init_client(mma8452_i2c_client);
+		if(result < 0)
+			printk("mma8452 resume init failed");
+	}
+	mma8452_idev->input->open(mma8452_idev->input);
 	return 0;
 }
 
 static int mma8452_suspend(struct i2c_client *client, pm_message_t mesg)
 {
 	int result;
+
+	mma8452_idev->input->close(mma8452_idev->input);
 		
 	mma_status.ctl_reg1 = i2c_smbus_read_byte_data(mma8452_i2c_client, MMA8452_CTRL_REG1);
 	result = i2c_smbus_write_byte_data(mma8452_i2c_client, MMA8452_CTRL_REG1,mma_status.ctl_reg1 & 0xFE);

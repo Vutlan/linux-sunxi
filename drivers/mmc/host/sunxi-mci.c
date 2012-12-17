@@ -374,7 +374,8 @@ static void sw_mci_send_cmd(struct sunxi_mmc_host* smc_host, struct mmc_command*
 		} else
 			imask |= SDXC_CmdDone;
 
-	}
+	} else
+		imask |= SDXC_CmdDone;
 	SMC_DBG(smc_host, "smc %d cmd %d(%08x) arg %x ie 0x%08x wt %x len %d\n",
 		smc_host->pdev->id, cmd_val&0x3f, cmd->arg, cmd_val, imask, wait,
 		smc_host->mrq->data ? smc_host->mrq->data->blksz * smc_host->mrq->data->blocks : 0);

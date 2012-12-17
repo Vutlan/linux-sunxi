@@ -25,7 +25,6 @@ static int rfkill_set_power(void *data, bool blocked)
     
     RF_MSG("rfkill set power %d\n", blocked);
     
-    spin_lock(&bt_power_lock);
     switch (mod_sel)
     {
         case 2: /* bcm40183 */
@@ -48,7 +47,6 @@ static int rfkill_set_power(void *data, bool blocked)
             RF_MSG("no bt module matched !!\n");
     }
     
-    spin_unlock(&bt_power_lock);
     msleep(100);
     return 0;
 }

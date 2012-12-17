@@ -107,7 +107,7 @@ int ar100_dvfs_cfg_vf_table(void)
 		pmessage->cb.handler = NULL;
 		pmessage->cb.arg     = NULL;
 		
-		AR100_LOG("v-f table: index %d freq %d vol %d axi_div %d\n", 
+		AR100_INF("v-f table: index %d freq %d vol %d axi_div %d\n", 
 		pmessage->paras[0], pmessage->paras[1], pmessage->paras[2], pmessage->paras[3]);
 		
 		/* send request message */
