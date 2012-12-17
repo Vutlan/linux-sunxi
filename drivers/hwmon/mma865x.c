@@ -353,9 +353,10 @@ static void report_abs(void)
 	short x,y,z;
 	int result;
 	
-	do {
-		result=i2c_smbus_read_byte_data(mma865x_i2c_client, MMA865X_STATUS);
-	} while (!(result & 0x08));		/* wait for new data */
+	
+	result=i2c_smbus_read_byte_data(mma865x_i2c_client, MMA865X_STATUS);
+	if (!(result & 0x08))
+		return;		/* wait for new data */
 
 	if (mma865x_read_data(&x,&y,&z) != 0) {
 		dprintk(DEBUG_BASE_LEVEL0, "mma8452 data read failed\n");
@@ -579,6 +580,8 @@ static void mma865x_early_suspend(struct early_suspend *h)
 	dprintk(DEBUG_BASE_LEVEL1, "mma865x early suspend\n");
 	g_mma865x_data.suspend_indator = 1;
 
+	mma865x_idev->input->close(mma865x_idev->input);
+
 	if (NORMAL_STANDBY == standby_type) {
 		if(g_mma865x_data.local_active == MMA_ACTIVED)
 			mma865x_device_stop(mma865x_i2c_client);
@@ -597,6 +600,9 @@ static void mma865x_late_resume(struct early_suspend *h)
 	int result = 0;
 	g_mma865x_data.suspend_indator = 0;
 	dprintk(DEBUG_BASE_LEVEL1, "mma865x late resume\n");
+
+	mma865x_idev->input->open(mma865x_idev->input);
+	
 	if (NORMAL_STANDBY == standby_type) {
 		if (g_mma865x_data.local_active == MMA_ACTIVED) {
 	   		val = i2c_smbus_read_byte_data(mma865x_i2c_client,MMA865X_CTRL_REG1);
@@ -632,6 +638,9 @@ static int mma865x_resume(struct i2c_client *client)
 	int result = 0;
 	g_mma865x_data.suspend_indator = 0;
 	dprintk(DEBUG_BASE_LEVEL1, "mma865x late resume\n");
+
+	mma865x_idev->input->open(mma865x_idev->input);
+	
 	if (NORMAL_STANDBY == standby_type) {
 		if (g_mma865x_data.local_active == MMA_ACTIVED) {
 	   		val = i2c_smbus_read_byte_data(mma865x_i2c_client,MMA865X_CTRL_REG1);
@@ -663,6 +672,8 @@ static int mma865x_suspend(struct i2c_client *client, pm_message_t mesg)
 {
 	dprintk(DEBUG_BASE_LEVEL1, "mma865x early suspend\n");
 	g_mma865x_data.suspend_indator = 1;
+
+	mma865x_idev->input->close(mma865x_idev->input);
 
 	if (NORMAL_STANDBY == standby_type) {
 		if(g_mma865x_data.local_active == MMA_ACTIVED)
