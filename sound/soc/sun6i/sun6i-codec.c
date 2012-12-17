@@ -510,7 +510,7 @@ static int codec_set_spk(struct snd_kcontrol *kcontrol,
 		codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPIS, 0x1);
 		codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPIS, 0x1);
 
-		codec_wr_control(SUN6I_MIC_CTRL, 0x1f, LINEOUT_VOL, 0x1e);
+		codec_wr_control(SUN6I_MIC_CTRL, 0x1f, LINEOUT_VOL, 0x1f);
 
 	codec_wr_control(SUN6I_DAC_ACTL, 0x7f, RMIXMUTE, 0x2);
 	codec_wr_control(SUN6I_DAC_ACTL, 0x7f, LMIXMUTE, 0x2);
@@ -1722,29 +1722,22 @@ static int snd_sun6i_codec_suspend(struct platform_device *pdev,pm_message_t sta
 {
 	printk("[audio codec]:suspend\n");
 	item.gpio.data = 0;
+
+	codec_wr_control(SUN6I_MIC_CTRL, 0x1, HBIASADCEN, 0x0);
 	/*mute l_pa and r_pa*/
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPPA_MUTE, 0x0);
+	mdelay(100);
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPPA_MUTE, 0x0);
+	mdelay(100);
+	codec_wr_control(SUN6I_DAC_ACTL, 0x3f, VOLUME, 0x0);
+	codec_wr_control(SUN6I_MIC_CTRL, 0x1f, LINEOUT_VOL, 0x0);
+
+	/*fix the resume blaze blaze noise*/
+	codec_wr_control(SUN6I_ADDAC_TUNE, 0x1, PA_SLOPE_SECECT, 0x1);
 	/*disable pa*/
 	codec_wr_control(SUN6I_PA_CTRL, 0x1, HPPAEN, 0x0);
-	/*disable dac_l and dac_r*/
-	codec_wr_control(SUN6I_DAC_ACTL, 0x1, DACALEN, 0x0);
-	codec_wr_control(SUN6I_DAC_ACTL, 0x1, DACAREN, 0x0);
-	/*disable dac digital*/
-	codec_wr_control(SUN6I_DAC_DPC , 0x1, DAC_EN, 0x0);
+	mdelay(400);
 
-	/*disable Master microphone bias*/
-	codec_wr_control(SUN6I_MIC_CTRL, 0x1, MBIASEN, 0x0);
-	/*disable mic1 pa*/
-	codec_wr_control(SUN6I_MIC_CTRL, 0x1, MIC1AMPEN, 0x0);	
-	codec_wr_control(SUN6I_ADC_ACTL, 0x1, ADCREN, 0x0);//移到外部控制
-	codec_wr_control(SUN6I_ADC_ACTL, 0x1, ADCLEN, 0x0);//移到外部控制	
-	/*disable adc digital part*/
-	codec_wr_control(SUN6I_ADC_FIFOC, 0x1, ADC_EN, 0x0);
-
-	codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTL_EN, 0x0);
-	codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTR_EN, 0x0);
-	/*config gpio info of audio_pa_ctrl close*/
 	if (0 != sw_gpio_setall_range(&item.gpio, 1)) {
 		printk("sw_gpio_setall_range failed\n");
 	}
@@ -1762,9 +1755,13 @@ static int snd_sun6i_codec_suspend(struct platform_device *pdev,pm_message_t sta
 static int snd_sun6i_codec_resume(struct platform_device *pdev)
 {
 	printk("[audio codec]:resume start\n");
+
 	if (clk_enable(codec_moduleclk)) {
 		printk("open codec_moduleclk failed; \n");
 	}
+
+	/*audio codec hardware bug. the HBIASADCEN bit must be enable in init*/
+	codec_wr_control(SUN6I_MIC_CTRL, 0x1, HBIASADCEN, 0x1);
 
 	/*fix the resume blaze blaze noise*/
 	codec_wr_control(SUN6I_ADDAC_TUNE, 0x1, PA_SLOPE_SECECT, 0x1);
@@ -1781,20 +1778,11 @@ static int snd_sun6i_codec_resume(struct platform_device *pdev)
 		codec_wr_control(SUN6I_DAC_FIFOC, 0x1, DAC_FIFO_FLUSH, 0x1);
 		/*write 1 to flush rx fifo*/
 		codec_wr_control(SUN6I_ADC_FIFOC, 0x1, ADC_FIFO_FLUSH, 0x1);
-		/*set HPVOL volume*/
-		codec_wr_control(SUN6I_DAC_ACTL, 0x3f, VOLUME, 0x3b);
 	}
 
-	/*if gpio is open while enter suspend, open the pa in resume*/
-	if (true == codec_speaker_enabled) {
-		item.gpio.data = 1;
-		/*config gpio info of audio_pa_ctrl open*/
-		if (0 != sw_gpio_setall_range(&item.gpio, 1)) {
-			printk("sw_gpio_setall_range failed\n");
-		}
-		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTR_EN, 0x1);
-		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTL_EN, 0x1);
-	}
+	codec_wr_control(SUN6I_MIC_CTRL, 0x1f, LINEOUT_VOL, 0x1f);
+	/*set HPVOL volume*/
+	codec_wr_control(SUN6I_DAC_ACTL, 0x3f, VOLUME, 0x3b);
 	printk("[audio codec]:resume end\n");
 	return 0;
 }
@@ -1844,8 +1832,8 @@ static void sun6i_codec_shutdown(struct platform_device *devptr)
 	codec_wr_control(SUN6I_MIC_CTRL, 0x1, MIC1AMPEN, 0x0);	
 	codec_wr_control(SUN6I_ADC_ACTL, 0x1,  ADCREN, 0x0);
 	codec_wr_control(SUN6I_ADC_ACTL, 0x1,  ADCLEN, 0x0);
-	/*enable adc digital part*/
-	codec_wr_control(SUN6I_ADC_FIFOC, 0x1,ADC_EN, 0x1);
+	/*disable adc digital part*/
+	codec_wr_control(SUN6I_ADC_FIFOC, 0x1,ADC_EN, 0x0);
 }
 
 static struct resource sun6i_codec_resource[] = {
