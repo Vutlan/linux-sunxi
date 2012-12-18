@@ -1259,7 +1259,7 @@ __s32 Display_Fb_Request(__u32 fb_id, __disp_fb_create_para_t *fb_para)
                 return DIS_NO_RES; 
             }
             layer_para.pipe = 0;
-            layer_para.alpha_en = 1;
+            layer_para.alpha_en = 0;
             layer_para.alpha_val = 0xff;
             layer_para.ck_enable = 0;
             layer_para.src_win.x = 0;
