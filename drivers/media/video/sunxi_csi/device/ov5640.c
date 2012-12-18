@@ -3546,19 +3546,14 @@ static int sensor_s_autofocus_ctrl(struct v4l2_subdev *sd,
 	
 	switch(af_ctrl) {
 		case V4L2_AF_INIT:
-			if(info->ccm_info->stby_mode == 0) {
-				if(info->af_first_flag == 1) {
-					csi_dev_print("af first flag true\n");
-					csi_dev_print("sensor_download_af_fw start\n");
-					info->af_first_flag = 0;
-					return sensor_download_af_fw(sd);
-				} else {
-					csi_dev_print("af first flag false\n");
-					return 0;
-				}
-			} else {
+			if(info->af_first_flag == 1) {
+				csi_dev_print("af first flag true\n");
 				csi_dev_print("sensor_download_af_fw start\n");
+				info->af_first_flag = 0;
 				return sensor_download_af_fw(sd);
+			} else {
+				csi_dev_print("af first flag false\n");
+				return 0;
 			}
 		case V4L2_AF_RELEASE:
 			return sensor_s_release_af(sd);
@@ -3646,6 +3641,7 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
 			break;
 		case CSI_SUBDEV_PWR_ON:
 			csi_dev_dbg("CSI_SUBDEV_PWR_ON!\n");
+			info->af_first_flag = 1;
 			info->init_first_flag=1;
 			//make sure that no device can access i2c bus during sensor initial or power down
 			//when using i2c_lock_adpater function, the following codes must not access i2c bus before calling i2c_unlock_adapter
@@ -3686,7 +3682,6 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
 			break;
 		case CSI_SUBDEV_PWR_OFF:
 			csi_dev_dbg("CSI_SUBDEV_PWR_OFF!\n");
-			info->init_first_flag=1;
 			//make sure that no device can access i2c bus during sensor initial or power down
 			//when using i2c_lock_adpater function, the following codes must not access i2c bus before calling i2c_unlock_adapter
 			i2c_lock_adapter(client->adapter);
@@ -3795,10 +3790,12 @@ static int sensor_init(struct v4l2_subdev *sd, u32 val)
 		return ret;
 	}
 	
-	if(info->ccm_info->stby_mode == 0 && info->init_first_flag == 0) {
-		csi_dev_print("stby_mode and init_first_flag = 0\n");
+	if(info->init_first_flag == 0) {
+		csi_dev_print("init_first_flag = 0\n");
 		return 0;
-	}	
+	} else {
+		csi_dev_print("init_first_flag = 1\n");
+	}
 	
 	info->focus_status = 0;
 	info->low_speed = 0;
@@ -3830,12 +3827,7 @@ static int sensor_init(struct v4l2_subdev *sd, u32 val)
 	}
 		
 	sensor_s_band_filter(sd, V4L2_CID_POWER_LINE_FREQUENCY_50HZ);
-	
-	if(info->ccm_info->stby_mode == 0)
-	{
-		info->init_first_flag = 0;
-	}
-	
+	info->init_first_flag = 0;	
 	info->preview_first_flag = 1;
 	
 	INIT_DELAYED_WORK(&sensor_s_ae_ratio_work, sensor_s_ae_ratio);
@@ -3880,7 +3872,7 @@ static long sensor_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
 			info->ccm_info->href 	=	ccm_info->href 	;
 			info->ccm_info->clock	=	ccm_info->clock	;
 			info->ccm_info->iocfg	=	ccm_info->iocfg	;
-			info->ccm_info->stby_mode	=	ccm_info->stby_mode	;
+			info->ccm_info->stby_mode	=	0 ;
 			
 			csi_dev_dbg("ccm_info.mclk=%d\n ",info->ccm_info->mclk);
 			csi_dev_dbg("ccm_info.vref=%x\n ",info->ccm_info->vref);
