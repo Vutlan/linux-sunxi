@@ -1389,6 +1389,7 @@ static void sw_mci_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 		#endif
 		sw_mci_set_clk(smc_host, smc_host->card_clk);
 		last_clock[id] = ios->clock;
+		usleep_range(50000, 55000);
 	} else if (!ios->clock) {
 		last_clock[id] = 0;
 		sw_mci_update_clk(smc_host);
