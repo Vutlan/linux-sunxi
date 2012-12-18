@@ -351,6 +351,10 @@ static  void codec_init(void)
 
 static int codec_pa_play_open(void)
 {
+	/*mute l_pa and r_pa*/
+	codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPPA_MUTE, 0x0);
+	codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPPA_MUTE, 0x0);
+
 	/*enable dac digital*/
 	codec_wr_control(SUN6I_DAC_DPC, 0x1, DAC_EN, 0x1);
 	/*set TX FIFO send drq level*/
@@ -391,7 +395,7 @@ static int codec_pa_play_open(void)
 	return 0;
 }
 
-static int codec_earphone_play_open()
+static int codec_earphone_play_open(void)
 {
 	/*mute l_pa and r_pa*/
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPPA_MUTE, 0x0);
@@ -431,7 +435,7 @@ static int codec_capture_open(void)
 	 /*enable mic1 pa*/
 	 codec_wr_control(SUN6I_MIC_CTRL, 0x1, MIC1AMPEN, 0x1);
 	 /*mic1 gain 30dB£¬if capture volume is too small, enlarge the mic1booost*/
-	 codec_wr_control(SUN6I_MIC_CTRL, 0x7,MIC1BOOST,0x3);//30db
+	 codec_wr_control(SUN6I_MIC_CTRL, 0x7,MIC1BOOST,0x5);//36db
 	 /*enable Master microphone bias*/
 	 codec_wr_control(SUN6I_MIC_CTRL, 0x1, MBIASEN, 0x1);
 
@@ -541,6 +545,9 @@ static int codec_set_spk(struct snd_kcontrol *kcontrol,
 		if (0 != sw_gpio_setall_range(&item.gpio, 1)) {
 			printk("sw_gpio_setall_range failed\n");
 		}
+		/*mute l_pa and r_pa*/
+		codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPPA_MUTE, 0x1);
+		codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPPA_MUTE, 0x1);
 	}
 	return 0;
 }
@@ -1394,9 +1401,12 @@ static int snd_sun6i_codec_trigger(struct snd_pcm_substream *substream, int cmd)
 				if (0 != sw_dma_ctl(play_prtd->dma_hdl, DMA_OP_START, NULL)) {
 					return -EINVAL;
 				}
-				/*set the default output is HPOUTL/R for pad ¶ú»ú*/
-				codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPPA_MUTE, 0x1);
-				codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPPA_MUTE, 0x1);
+				if (codec_speaker_enabled) {
+				} else {
+					/*set the default output is HPOUTL/R for pad ¶ú»ú*/
+					codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPPA_MUTE, 0x1);
+					codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPPA_MUTE, 0x1);
+				}
 				break;
 			case SNDRV_PCM_TRIGGER_SUSPEND:
 				codec_play_stop();
