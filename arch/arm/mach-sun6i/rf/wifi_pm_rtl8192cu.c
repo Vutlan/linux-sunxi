@@ -69,16 +69,18 @@ void rtl8192cu_power(int mode, int *updown)
         if (*updown) {
 			rtl8192cu_module_power(1);
 			udelay(50);
+			rtl8192cu_powerup = 1;
         } else {
 			rtl8192cu_module_power(0);
+			rtl8192cu_powerup = 0;
         }
-        rtl8192cu_msg("sdio wifi power state: %s\n", *updown ? "on" : "off");
+        rtl8192cu_msg("usb wifi power state: %s\n", *updown ? "on" : "off");
     } else {
         if (rtl8192cu_powerup)
             *updown = 1;
         else
             *updown = 0;
-		rtl8192cu_msg("sdio wifi power state: %s\n", rtl8192cu_powerup ? "on" : "off");
+		rtl8192cu_msg("usb wifi power state: %s\n", rtl8192cu_powerup ? "on" : "off");
     }
     return;	
 }

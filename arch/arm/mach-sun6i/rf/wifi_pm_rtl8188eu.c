@@ -69,16 +69,18 @@ void rtl8188eu_power(int mode, int *updown)
         if (*updown) {
 			rtl8188eu_module_power(1);
 			udelay(50);
+			rtl8188eu_powerup = 1;
         } else {
 			rtl8188eu_module_power(0);
+			rtl8188eu_powerup = 0;
         }
-        rtl8188eu_msg("sdio wifi power state: %s\n", *updown ? "on" : "off");
+        rtl8188eu_msg("usb wifi power state: %s\n", *updown ? "on" : "off");
     } else {
         if (rtl8188eu_powerup)
             *updown = 1;
         else
             *updown = 0;
-		rtl8188eu_msg("sdio wifi power state: %s\n", rtl8188eu_powerup ? "on" : "off");
+		rtl8188eu_msg("usb wifi power state: %s\n", rtl8188eu_powerup ? "on" : "off");
     }
     return;	
 }
