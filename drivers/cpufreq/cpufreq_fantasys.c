@@ -183,7 +183,6 @@ struct cpu_dbs_info_s {
      * when user is changing the governor or limits.
      */
     struct mutex timer_mutex;   /* semaphore for protection     */
-    unsigned int usr_event;     /* user event flag              */
 };
 
 /*
@@ -1130,11 +1129,6 @@ static void do_dbs_timer(struct work_struct *work)
     mutex_lock(&dbs_info->timer_mutex);
 
     if (!dbs_tuners_ins.max_power) {
-        if(dbs_info->usr_event) {
-            __cpufreq_driver_target(dbs_info->cur_policy, dbs_info->usr_event, CPUFREQ_RELATION_H);
-            dbs_info->usr_event = 0;
-        }
-
         dbs_check_cpu(dbs_info);
 
         /* We want all CPUs to do sampling nearly on
@@ -1212,7 +1206,6 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy, unsigned int even
             }
             this_dbs_info->cpu = cpu;
             this_dbs_info->freq_table = cpufreq_frequency_get_table(cpu);
-            this_dbs_info->usr_event = 0;
 
             /*
              * Start the timerschedule work, when this governor
@@ -1286,7 +1279,7 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy, unsigned int even
                 if(this_dbs_info->cur_policy->cur < freq_trig) {
                     /* set cpu frequenc to the max value, and reset state machine */
                     FANTASY_DBG("CPUFREQ_GOV_USREVENT\n");
-                    this_dbs_info->usr_event = freq_trig;
+                    __cpufreq_driver_target(this_dbs_info->cur_policy, freq_trig, CPUFREQ_RELATION_H);
                 }
             }
             dbs_tuners_ins.freq_down_delay = 1;
