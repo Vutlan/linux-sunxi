@@ -15,7 +15,7 @@ static __inline int wifi_pm_get_mod_type(void) {return 0;}
 static __inline int wifi_pm_gpio_ctrl(char* name, int level) {return -1;}
 #endif
 
-static DEFINE_SPINLOCK(bt_power_lock);
+//static DEFINE_SPINLOCK(bt_power_lock);
 static const char bt_name[] = "bcm40183";
 static struct rfkill *sw_rfkill;
 

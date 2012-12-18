@@ -19,30 +19,59 @@ static int rtk_suspend = 0;
 static int rtk_rtl8723as_wl_dis = 0;
 static int rtk_rtl8723as_bt_dis = 0;
 static char * axp_name = NULL;
+static bool axp_power_on = false;
 
 static int rtl8723as_module_power(int onoff)
 {
 	struct regulator* wifi_ldo = NULL;
 	static int first = 1;
+	int ret = 0;
 
-	rtl8723as_msg("rtl8723as module_power.\n");
+	rtl8723as_msg("rtl8723as module power set by axp.\n");
 	wifi_ldo = regulator_get(NULL, axp_name);
-	if (!wifi_ldo)
+	if (!wifi_ldo) {
 		rtl8723as_msg("get power regulator failed.\n");
+		return -ret;
+	}
+
 	if (first) {
 		rtl8723as_msg("first time\n");
-		regulator_force_disable(wifi_ldo);
+		ret = regulator_force_disable(wifi_ldo);
+		if (ret < 0) {
+			rtl8723as_msg("regulator_force_disable fail, return %d.\n", ret);
+			return ret;
+		}
 		first = 0;
 	}
+
 	if (onoff) {
-		rtl8723as_msg("regulator on.\n");
-		regulator_set_voltage(wifi_ldo, 3300000, 3300000);
-		regulator_enable(wifi_ldo);
+		if (axp_power_on == false) {
+			rtl8723as_msg("regulator on.\n");
+			ret = regulator_set_voltage(wifi_ldo, 3300000, 3300000);
+			if (ret < 0) {
+				rtl8723as_msg("regulator_set_voltage fail, return %d.\n", ret);
+				return ret;
+			}
+
+			ret = regulator_enable(wifi_ldo);
+			if (ret < 0) {
+				rtl8723as_msg("regulator_enable fail, return %d.\n", ret);
+				return ret;
+			}
+			axp_power_on = true;
+		}
 	} else {
-		rtl8723as_msg("regulator off.\n");
-		regulator_disable(wifi_ldo);
+		if (axp_power_on == true) {
+			rtl8723as_msg("regulator off.\n");
+			ret = regulator_disable(wifi_ldo);
+			if (ret < 0) {
+				rtl8723as_msg("regulator_disable fail, return %d.\n", ret);
+				return ret;
+			}
+			axp_power_on = false;
+		}
 	}
-	return 0;
+	return ret;
 }
 
 static int rtl8723as_gpio_ctrl(char* name, int level)

@@ -20,25 +20,47 @@ static int rtl8192cu_module_power(int onoff)
 {
 	struct regulator* wifi_ldo = NULL;
 	static int first = 1;
+	int ret = 0;
 
 	rtl8192cu_msg("rtl8192cu module power set by axp.\n");
 	wifi_ldo = regulator_get(NULL, axp_name);
-	if (!wifi_ldo)
+	if (!wifi_ldo) {
 		rtl8192cu_msg("get power regulator failed.\n");
+		return -ret;
+	}
+
 	if (first) {
 		rtl8192cu_msg("first time\n");
-		regulator_force_disable(wifi_ldo);
+		ret = regulator_force_disable(wifi_ldo);
+		if (ret < 0) {
+			rtl8192cu_msg("regulator_force_disable fail, return %d.\n", ret);
+			return ret;
+		}
 		first = 0;
 	}
+
 	if (onoff) {
 		rtl8192cu_msg("regulator on.\n");
-		regulator_set_voltage(wifi_ldo, 3300000, 3300000);
-		regulator_enable(wifi_ldo);
+		ret = regulator_set_voltage(wifi_ldo, 3300000, 3300000);
+		if (ret < 0) {
+			rtl8192cu_msg("regulator_set_voltage fail, return %d.\n", ret);
+			return ret;
+		}
+
+		ret = regulator_enable(wifi_ldo);
+		if (ret < 0) {
+			rtl8192cu_msg("regulator_enable fail, return %d.\n", ret);
+			return ret;
+		}
 	} else {
 		rtl8192cu_msg("regulator off.\n");
-		regulator_disable(wifi_ldo);
+		ret = regulator_disable(wifi_ldo);
+		if (ret < 0) {
+			rtl8192cu_msg("regulator_disable fail, return %d.\n", ret);
+			return ret;
+		}
 	}
-	return 0;
+	return ret;
 }
 
 void rtl8192cu_power(int mode, int *updown)
@@ -74,7 +96,7 @@ static void rtl8192cu_standby(int instadby)
 			rtk8192cu_suspend = 0;
 		}
 	}
-	rtl8192cu_msg("sdio wifi : %s\n", instadby ? "suspend" : "resume");
+	rtl8192cu_msg("usb wifi : %s\n", instadby ? "suspend" : "resume");
 }
 
 void rtl8192cu_gpio_init(void)
