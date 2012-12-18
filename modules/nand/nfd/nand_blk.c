@@ -1096,7 +1096,7 @@ static int nand_blktrans_thread(void *arg)
 				#endif
 					
 				#if 1//if (iocnt>1)&&(seccnt>half_single_page), cache mode, else partial mode
-					if((io_cnt_for_page[i] > 1)&&(sec_cnt_for_page[i] >=(sector_cnt_of_logic_page>>1)))
+					if((io_cnt_for_page[i] > 1)&&(sec_cnt_for_page[i] >=(sector_cnt_of_single_page>>1)))
 					partial_flag = 0;
 				else
 					partial_flag = 1;
