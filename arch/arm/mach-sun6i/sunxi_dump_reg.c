@@ -27,10 +27,15 @@
 #include <mach/sunxi_dump_reg.h>
 
 #define ADD_MISC_DRIVER		/* add misc driver, for open("/sys/class/...") call */
+#define USE_VIRT_ADDR		/* pass virt addr from user space, 2012-12-19 */
+
+#ifdef USE_VIRT_ADDR
+#define IO_ADDRESS(x)	x
+#endif /* USE_VIRT_ADDR */
 
 typedef struct __dump_struct {
-	u32 	st_addr;	/* start reg physical addr */
-	u32 	ed_addr;	/* end reg physical addr */
+	u32 	st_addr;	/* start reg addr */
+	u32 	ed_addr;	/* end reg addr */
 }dump_struct;
 
 /* for sunxi_dump class */
@@ -50,6 +55,10 @@ struct write_group *misc_wt_group = NULL;
  */
 bool __addr_valid(u32 addr)
 {
+#ifdef USE_VIRT_ADDR
+	/* assume addr from user always ok */
+	return true;
+#else
 	if(addr >= AW_IO_PHYS_BASE && addr < AW_IO_PHYS_BASE + AW_IO_SIZE)
 		return true;
 	if(addr >= AW_SRAM_A1_BASE && addr < AW_SRAM_A1_BASE + AW_SRAM_A1_SIZE)
@@ -59,6 +68,7 @@ bool __addr_valid(u32 addr)
 	if(addr >= AW_BROM_BASE && addr < AW_BROM_BASE + AW_BROM_SIZE)
 		return true;
 	return false;
+#endif /* USE_VIRT_ADDR */
 }
 
 /**
@@ -121,8 +131,8 @@ int __parse_dump_str(const char *buf, size_t size, u32 *start, u32 *end)
 
 /**
  * __sunxi_dump_regs_ex - dump a range of registers' value, copy to buf.
- * @start_reg:   physcal address of start reg.
- * @end_reg:     physcal address of end reg.
+ * @start_reg:   address of start reg.
+ * @end_reg:     address of end reg.
  * @buf:         store the dump info.
  * 
  * return bytes written to buf, <=0 indicate err
@@ -623,8 +633,8 @@ EXPORT_SYMBOL(sunxi_compare_regs);
 
 /**
  * sunxi_dump_regs - dump a range of registers' value.
- * @start_reg:   physcal address of start reg.
- * @end_reg:     physcal address of end reg.
+ * @start_reg:   address of start reg.
+ * @end_reg:     address of end reg.
  */
 void sunxi_dump_regs(u32 start_reg, u32 end_reg)
 {
