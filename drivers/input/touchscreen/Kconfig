@@ -778,4 +778,10 @@ config  TOUCHSCREEN_GT811
        tristate  "gt811 touchscreen driver"
        help
           gt811 touchscreen driver
+          
+config  TOUCHSCREEN_FT5202
+       tristate  "ft5202 touchscreen driver"
+       depends on I2C 
+       help
+          ft5202 touchscreen driver
 endif

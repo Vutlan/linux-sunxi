@@ -70,3 +70,5 @@ obj-$(CONFIG_TOUCHSCREEN_SUN4I_TS)         += sun4i-ts.o
 obj-$(CONFIG_TOUCHSCREEN_SW_TS)         += sw-ts.o
 obj-$(CONFIG_TOUCHSCREEN_ZET6221)         += zet6221.o
 obj-$(CONFIG_TOUCHSCREEN_GT811)         += gt811_ts.o
+obj-$(CONFIG_TOUCHSCREEN_FT5202)         += ft5202.o
+ft5202-objs := ft5x0x.o ft5x02_config.o ini.o
