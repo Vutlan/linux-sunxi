@@ -420,7 +420,8 @@ static int axp_battery_get_property(struct power_supply *psy,
     val->intval = charger->battery_info->voltage_min_design;
     break;
   case POWER_SUPPLY_PROP_VOLTAGE_NOW:
-    val->intval = charger->ocv * 1000;
+    //val->intval = charger->ocv * 1000;
+    val->intval = charger->vbat * 1000;
     break;
   case POWER_SUPPLY_PROP_CURRENT_NOW:
     val->intval = charger->ibat * 1000;
