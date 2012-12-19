@@ -473,8 +473,11 @@ static ssize_t store_max_power(struct kobject *a, struct attribute *b,
     dbs_info = &per_cpu(od_cpu_dbs_info, 0);
     mutex_lock(&dbs_info->timer_mutex);
     ret = sscanf(buf, "%u", &input);
-    if (ret != 1)
+    if (ret != 1) {
+        mutex_unlock(&dbs_info->timer_mutex);
         return -EINVAL;
+    }
+
     dbs_tuners_ins.max_power = input > 0;
     if (dbs_tuners_ins.max_power == 1) {
         __cpufreq_driver_target(dbs_info->cur_policy, dbs_info->cur_policy->max, CPUFREQ_RELATION_H);
@@ -492,6 +495,7 @@ static ssize_t store_max_power(struct kobject *a, struct attribute *b,
         hotplug_history->num_hist = 0;
         queue_delayed_work_on(dbs_info->cpu, dvfs_workqueue, &dbs_info->work, 0);
     } else {
+        mutex_unlock(&dbs_info->timer_mutex);
         return -EINVAL;
     }
     mutex_unlock(&dbs_info->timer_mutex);
