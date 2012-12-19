@@ -127,6 +127,11 @@ int ar100_init(void)
 		AR100_WRN("config dvfs v-f table failed\n");
 	}
 	
+	/* config dram config paras */
+	if (ar100_config_dram_paras()) {
+		AR100_WRN("config dram paras failed\n");
+	}
+	
 	/* register ar100 debug device node */
 	ret = kobject_init_and_add(&ar100_kobj, &ar100_ktype, NULL, "ar100");
 	if (ret) {
@@ -238,3 +243,4 @@ static void ar100_obj_release(struct kobject *kobject)
 {
 	printk("ar100 obj release\n");
 }
+
