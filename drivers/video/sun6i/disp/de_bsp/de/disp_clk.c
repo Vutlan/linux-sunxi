@@ -1230,11 +1230,25 @@ __s32 BSP_disp_clk_on(__u32 type)
     {
     	if((g_clk_status & CLK_DEBE0_MOD_ON) == CLK_DEBE0_MOD_ON)
     	{
-    		OSAL_CCMU_SetMclkDiv(h_debe0mclk, 2);
+    		if(OSAL_CCMU_GetSrcFreq(SYS_CLK_PLL10) < 350000000)
+    		{
+    			OSAL_CCMU_SetMclkDiv(h_debe0mclk, 1);
+    		}
+    		else
+    		{
+    			OSAL_CCMU_SetMclkDiv(h_debe0mclk, 2);
+    		}
     	}
     	if((g_clk_status & CLK_DEBE1_MOD_ON) == CLK_DEBE1_MOD_ON)
     	{
-    		OSAL_CCMU_SetMclkDiv(h_debe1mclk, 2);
+            if(OSAL_CCMU_GetSrcFreq(SYS_CLK_PLL10) < 350000000)
+    		{
+    			OSAL_CCMU_SetMclkDiv(h_debe1mclk, 1);
+    		}
+    		else
+    		{
+    			OSAL_CCMU_SetMclkDiv(h_debe1mclk, 2);
+    		}
     	}
     }
 
