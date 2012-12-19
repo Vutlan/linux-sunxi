@@ -312,6 +312,7 @@ ODM_UpdateRxIdleAnt_88E(IN PDM_ODM_T pDM_Odm, IN u1Byte Ant)
 	}
 	pDM_FatTable->RxIdleAnt = Ant;
 	ODM_RT_TRACE(pDM_Odm,ODM_COMP_ANT_DIV, ODM_DBG_LOUD, ("RxIdleAnt=%s\n",(Ant==MAIN_ANT)?"MAIN_ANT":"AUX_ANT"));
+	printk("RxIdleAnt=%s\n",(Ant==MAIN_ANT)?"MAIN_ANT":"AUX_ANT");
 }
 
 
@@ -729,6 +730,37 @@ ODM_AntennaDiversity_88E(
 		//ODM_RT_TRACE(pDM_Odm,ODM_COMP_ANT_DIV, ODM_DBG_LOUD, ("ODM_AntennaDiversity_88E: Not Support 88E AntDiv\n"));
 		return;	
 	}
+#ifdef CONFIG_SPECIAL_SETTING_FOR_FUNAI_TV
+	if(pDM_Odm->bLinked){
+		if(pDM_Odm->Adapter->registrypriv.force_ant != 0)
+		{
+			u4Byte	Main_RSSI, Aux_RSSI;
+			u8 i=0;
+			Main_RSSI = (pDM_FatTable->MainAnt_Cnt[i]!=0)?(pDM_FatTable->MainAnt_Sum[i]/pDM_FatTable->MainAnt_Cnt[i]):0;
+			Aux_RSSI = (pDM_FatTable->AuxAnt_Cnt[i]!=0)?(pDM_FatTable->AuxAnt_Sum[i]/pDM_FatTable->AuxAnt_Cnt[i]):0;
+			
+			ODM_RT_TRACE(pDM_Odm,ODM_COMP_ANT_DIV, ODM_DBG_LOUD, ("MacID=%d, MainAnt_Sum=%d, MainAnt_Cnt=%d\n", i, pDM_FatTable->MainAnt_Sum[i], pDM_FatTable->MainAnt_Cnt[i]));
+			ODM_RT_TRACE(pDM_Odm,ODM_COMP_ANT_DIV, ODM_DBG_LOUD, ("MacID=%d, AuxAnt_Sum=%d, AuxAnt_Cnt=%d\n",i, pDM_FatTable->AuxAnt_Sum[i], pDM_FatTable->AuxAnt_Cnt[i]));
+			ODM_RT_TRACE(pDM_Odm,ODM_COMP_ANT_DIV, ODM_DBG_LOUD, ("MacID=%d, Main_RSSI= %d, Aux_RSSI= %d\n", i, Main_RSSI, Aux_RSSI));
+			pDM_FatTable->MainAnt_Sum[i] = 0;
+			pDM_FatTable->AuxAnt_Sum[i] = 0;
+			pDM_FatTable->MainAnt_Cnt[i] = 0;
+			pDM_FatTable->AuxAnt_Cnt[i] = 0;	
+		}
+		if(pDM_Odm->Adapter->registrypriv.force_ant==1){
+			ODM_UpdateRxIdleAnt_88E(pDM_Odm, MAIN_ANT);
+			printk("%s fixed antenna in Main ant\n",__FUNCTION__);
+			return;
+		}
+		else if(pDM_Odm->Adapter->registrypriv.force_ant==2){
+			ODM_UpdateRxIdleAnt_88E(pDM_Odm, AUX_ANT);	
+			printk("%s fixed antenna in AUX ant\n",__FUNCTION__);
+			return;
+		}		
+	}
+#endif
+	
+
 
 	if(!pDM_Odm->bLinked)
 	{
@@ -764,6 +796,8 @@ ODM_AntennaDiversity_88E(
 			pDM_FatTable->bBecomeLinked = pDM_Odm->bLinked;
 		}
 	}
+
+
 
 	if((pDM_Odm->AntDivType == CG_TRX_HW_ANTDIV)||(pDM_Odm->AntDivType == CGCS_RX_HW_ANTDIV))
 		odm_HWAntDiv(pDM_Odm);

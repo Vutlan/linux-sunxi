@@ -41,6 +41,9 @@ unsigned char AIRGOCAP_OUI[] = {0x00, 0x0a, 0xf5};
 unsigned char REALTEK_96B_IE[] = {0x00, 0xe0, 0x4c, 0x02, 0x01, 0x20};
 
 extern unsigned char	MCS_rate_2R[16];
+#ifdef CONFIG_DISABLE_MCS13TO15
+extern unsigned char	MCS_rate_2R_MCS13TO15_OFF[16];
+#endif //CONFIG_DISABLE_MCS13TO15
 extern unsigned char	MCS_rate_1R[16];
 extern unsigned char RTW_WPA_OUI[];
 extern unsigned char WPA_TKIP_CIPHER[4];
@@ -933,8 +936,11 @@ void WMMOnAssocRsp(_adapter *padapter)
 	u8	acm_mask;
 	u16	TXOP;
 	u32	acParm, i;
+	u32	edca[4], inx[4];
 	struct mlme_ext_priv	*pmlmeext = &padapter->mlmeextpriv;
 	struct mlme_ext_info	*pmlmeinfo = &(pmlmeext->mlmext_info);
+	struct xmit_priv		*pxmitpriv = &padapter->xmitpriv;
+	struct registry_priv	*pregpriv = &padapter->registrypriv;
 
 	if (pmlmeinfo->WMM_enable == 0)
 	{
@@ -968,21 +974,25 @@ void WMMOnAssocRsp(_adapter *padapter)
 			case 0x0:
 				rtw_hal_set_hwreg(padapter, HW_VAR_AC_PARAM_BE, (u8 *)(&acParm));
 				acm_mask |= (ACM? BIT(1):0);
+				edca[XMIT_BE_QUEUE] = acParm;
 				break;
 
 			case 0x1:
 				rtw_hal_set_hwreg(padapter, HW_VAR_AC_PARAM_BK, (u8 *)(&acParm));
 				//acm_mask |= (ACM? BIT(0):0);
+				edca[XMIT_BK_QUEUE] = acParm;
 				break;
 
 			case 0x2:
 				rtw_hal_set_hwreg(padapter, HW_VAR_AC_PARAM_VI, (u8 *)(&acParm));
 				acm_mask |= (ACM? BIT(2):0);
+				edca[XMIT_VI_QUEUE] = acParm;
 				break;
 
 			case 0x3:
 				rtw_hal_set_hwreg(padapter, HW_VAR_AC_PARAM_VO, (u8 *)(&acParm));
 				acm_mask |= (ACM? BIT(3):0);
+				edca[XMIT_VO_QUEUE] = acParm;
 				break;							
 		}
 
@@ -994,11 +1004,56 @@ void WMMOnAssocRsp(_adapter *padapter)
 	else
 		padapter->mlmepriv.acm_mask = acm_mask;
 
+	inx[0] = 0; inx[1] = 1; inx[2] = 2; inx[3] = 3;
+
+	if(pregpriv->wifi_spec==1)
+	{
+		u32	j, tmp, change_inx;
+
+		//entry indx: 0->vo, 1->vi, 2->be, 3->bk.
+		for(i=0; i<4; i++)
+		{
+			for(j=i+1; j<4; j++)
+			{
+				//compare CW and AIFS
+				if((edca[j] & 0xFFFF) < (edca[i] & 0xFFFF))
+				{
+					change_inx = _TRUE;
+				}
+				else if((edca[j] & 0xFFFF) == (edca[i] & 0xFFFF))
+				{
+					//compare TXOP
+					if((edca[j] >> 16) > (edca[i] >> 16))
+						change_inx = _TRUE;
+				}
+			
+				if(change_inx)
+				{
+					tmp = edca[i];
+					edca[i] = edca[j];
+					edca[j] = tmp;
+
+					tmp = inx[i];
+					inx[i] = inx[j];
+					inx[j] = tmp;
+
+					change_inx = _FALSE;
+				}
+			}
+		}
+	}
+
+	for(i=0; i<4; i++) {
+		pxmitpriv->wmm_para_seq[i] = inx[i];
+		DBG_871X("wmm_para_seq(%d): %d\n", i, pxmitpriv->wmm_para_seq[i]);
+	}
+
 	return;	
 }
 
 static void bwmode_update_check(_adapter *padapter, PNDIS_802_11_VARIABLE_IEs pIE)
 {
+#ifdef CONFIG_80211N_HT
 	unsigned char	 new_bwmode;
 	unsigned char  new_ch_offset;
 	struct HT_info_element	 *pHT_info;
@@ -1089,11 +1144,12 @@ static void bwmode_update_check(_adapter *padapter, PNDIS_802_11_VARIABLE_IEs pI
 		//pmlmeinfo->bwmode_updated = _FALSE;//bwmode_updated done, reset it!
 		
 	}	
-
+#endif //CONFIG_80211N_HT
 }
 
 void HT_caps_handler(_adapter *padapter, PNDIS_802_11_VARIABLE_IEs pIE)
 {
+#ifdef CONFIG_80211N_HT
 	unsigned int	i;
 	u8	rf_type;
 	u8	max_AMPDU_len, min_MPDU_spacing;
@@ -1101,7 +1157,8 @@ void HT_caps_handler(_adapter *padapter, PNDIS_802_11_VARIABLE_IEs pIE)
 	struct mlme_ext_info	*pmlmeinfo = &(pmlmeext->mlmext_info);
 	struct mlme_priv 		*pmlmepriv = &padapter->mlmepriv;	
 	struct ht_priv			*phtpriv = &pmlmepriv->htpriv;
-
+	struct registry_priv 	*pregistrypriv = &padapter->registrypriv;
+	
 	if(pIE==NULL) return;
 	
 	if(phtpriv->ht_option == _FALSE)	return;
@@ -1158,7 +1215,14 @@ void HT_caps_handler(_adapter *padapter, PNDIS_802_11_VARIABLE_IEs pIE)
 		}
 		else
 		{
+			#ifdef CONFIG_DISABLE_MCS13TO15
+			if(pmlmeext->cur_bwmode == HT_CHANNEL_WIDTH_40 && (pregistrypriv->wifi_spec!=1))
+				pmlmeinfo->HT_caps.u.HT_cap_element.MCS_rate[i] &= MCS_rate_2R_MCS13TO15_OFF[i];
+			else
 			pmlmeinfo->HT_caps.u.HT_cap_element.MCS_rate[i] &= MCS_rate_2R[i];
+			#else
+			pmlmeinfo->HT_caps.u.HT_cap_element.MCS_rate[i] &= MCS_rate_2R[i];
+			#endif //CONFIG_DISABLE_MCS13TO15
 		}
 	        #ifdef RTL8192C_RECONFIG_TO_1T1R
 		{
@@ -1166,12 +1230,13 @@ void HT_caps_handler(_adapter *padapter, PNDIS_802_11_VARIABLE_IEs pIE)
 		}
 		#endif
 	}
-	
+#endif //CONFIG_80211N_HT
 	return;
 }
 
 void HT_info_handler(_adapter *padapter, PNDIS_802_11_VARIABLE_IEs pIE)
 {
+#ifdef CONFIG_80211N_HT
 	struct mlme_ext_priv	*pmlmeext = &padapter->mlmeextpriv;
 	struct mlme_ext_info	*pmlmeinfo = &(pmlmeext->mlmext_info);
 	struct mlme_priv 		*pmlmepriv = &padapter->mlmepriv;	
@@ -1187,7 +1252,7 @@ void HT_info_handler(_adapter *padapter, PNDIS_802_11_VARIABLE_IEs pIE)
 	
 	pmlmeinfo->HT_info_enable = 1;
 	_rtw_memcpy(&(pmlmeinfo->HT_info), pIE->data, pIE->Length);
-	
+#endif //CONFIG_80211N_HT
 	return;
 }
 
@@ -1432,7 +1497,13 @@ int rtw_check_bcn_info(ADAPTER *Adapter, u8 *pframe, u32 packet_len)
 			DBG_871X("%s bcn link: ht_cap_info:%x ht_info_infos_0:%x\n", __func__,
 						   	cur_network->BcnInfo.ht_cap_info, cur_network->BcnInfo.ht_info_infos_0);
 			DBG_871X("%s bw mode change, disconnect\n", __func__);
-			goto _mismatch;
+			{	
+				//bcn_info_update
+				cur_network->BcnInfo.ht_cap_info = ht_cap_info;
+				cur_network->BcnInfo.ht_info_infos_0 = ht_info_infos_0;
+				//to do : need to check that whether modify related register of BB or not 
+			}
+			//goto _mismatch;
 	}
 
 	/* Checking for channel */

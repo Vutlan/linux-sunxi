@@ -1277,29 +1277,15 @@ static android_suspend_lock_t rtw_suspend_lock ={
 
 inline void rtw_suspend_lock_init()
 {
-	#if  defined(CONFIG_WAKELOCK) || defined(CONFIG_ANDROID_POWER)
-	DBG_871X("##########%s ###########\n", __FUNCTION__);
-	#endif
-
 	#ifdef CONFIG_WAKELOCK
 	wake_lock_init(&rtw_suspend_lock, WAKE_LOCK_SUSPEND, RTW_SUSPEND_LOCK_NAME);
 	#elif defined(CONFIG_ANDROID_POWER)
 	android_init_suspend_lock(&rtw_suspend_lock);
 	#endif
-	
 }
 
 inline void rtw_suspend_lock_uninit()
 {
-
-	#if  defined(CONFIG_WAKELOCK) || defined(CONFIG_ANDROID_POWER)
-	DBG_871X("##########%s###########\n", __FUNCTION__);
-	if(rtw_suspend_lock.link.next == LIST_POISON1 || rtw_suspend_lock.link.prev == LIST_POISON2) {
-		DBG_871X("##########%s########### list poison!!\n", __FUNCTION__);
-		return;	
-	}
-	#endif
-	
 	#ifdef CONFIG_WAKELOCK
 	wake_lock_destroy(&rtw_suspend_lock);
 	#elif defined(CONFIG_ANDROID_POWER)
@@ -1307,18 +1293,8 @@ inline void rtw_suspend_lock_uninit()
 	#endif
 }
 
-
 inline void rtw_lock_suspend()
 {
-
-	#if  defined(CONFIG_WAKELOCK) || defined(CONFIG_ANDROID_POWER)
-	//DBG_871X("##########%s###########\n", __FUNCTION__);
-	if(rtw_suspend_lock.link.next == LIST_POISON1 || rtw_suspend_lock.link.prev == LIST_POISON2) {
-		DBG_871X("##########%s########### list poison!!\n", __FUNCTION__);
-		return;	
-	}
-	#endif
-	
 	#ifdef CONFIG_WAKELOCK
 	wake_lock(&rtw_suspend_lock);
 	#elif defined(CONFIG_ANDROID_POWER)
@@ -1328,14 +1304,6 @@ inline void rtw_lock_suspend()
 
 inline void rtw_unlock_suspend()
 {
-	#if  defined(CONFIG_WAKELOCK) || defined(CONFIG_ANDROID_POWER)
-	//DBG_871X("##########%s###########\n", __FUNCTION__);
-	if(rtw_suspend_lock.link.next == LIST_POISON1 || rtw_suspend_lock.link.prev == LIST_POISON2) {
-		DBG_871X("##########%s########### list poison!!\n", __FUNCTION__);
-		return;	
-	}
-	#endif
-	
 	#ifdef CONFIG_WAKELOCK
 	wake_unlock(&rtw_suspend_lock);
 	#elif defined(CONFIG_ANDROID_POWER)
@@ -1914,5 +1882,54 @@ u64 rtw_division64(u64 x, u64 y)
 #elif defined(PLATFORM_FREEBSD)
 	return (x / y);
 #endif
+}
+
+void rtw_buf_free(u8 **buf, u32 *buf_len)
+{
+	u32 ori_len;
+
+	if (!buf || !buf_len)
+		return;
+
+	ori_len = *buf_len;
+
+	if (*buf) {
+		*buf_len = 0;
+		_rtw_mfree(*buf, *buf_len);
+		*buf = NULL;
+	}
+}
+
+void rtw_buf_update(u8 **buf, u32 *buf_len, u8 *src, u32 src_len)
+{
+	u32 ori_len = 0, dup_len = 0;
+	u8 *ori = NULL;
+	u8 *dup = NULL;
+
+	if (!buf || !buf_len)
+		return;
+
+	if (!src || !src_len)
+		goto keep_ori;
+
+	/* duplicate src */
+	dup = rtw_malloc(src_len);
+	if (dup) {
+		dup_len = src_len;
+		_rtw_memcpy(dup, src, dup_len);
+	}
+
+keep_ori:
+	ori = *buf;
+	ori_len = *buf_len;
+
+	/* replace buf with dup */
+	*buf_len = 0;
+	*buf = dup;
+	*buf_len = dup_len;
+
+	/* free ori */
+	if (ori && ori_len > 0)
+		_rtw_mfree(ori, ori_len);
 }
 

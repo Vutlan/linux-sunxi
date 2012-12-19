@@ -412,12 +412,12 @@ sint rtw_enqueue_recvbuf_to_head(struct recv_buf *precvbuf, _queue *queue)
 {
 	_irqL irqL;
 
-	_enter_critical(&queue->lock, &irqL);
+	_enter_critical_bh(&queue->lock, &irqL);
 
 	rtw_list_delete(&precvbuf->list);
 	rtw_list_insert_head(&precvbuf->list, get_list_head(queue));
 
-	_exit_critical(&queue->lock, &irqL);
+	_exit_critical_bh(&queue->lock, &irqL);
 
 	return _SUCCESS;
 }
@@ -426,13 +426,13 @@ sint rtw_enqueue_recvbuf(struct recv_buf *precvbuf, _queue *queue)
 {
 	_irqL irqL;	
 
-	_enter_critical(&queue->lock, &irqL);
+	_enter_critical_bh(&queue->lock, &irqL);
 
 	rtw_list_delete(&precvbuf->list);
 
 	rtw_list_insert_tail(&precvbuf->list, get_list_head(queue));
 	
-	_exit_critical(&queue->lock, &irqL);
+	_exit_critical_bh(&queue->lock, &irqL);
 
 
 	return _SUCCESS;
@@ -445,7 +445,7 @@ struct recv_buf *rtw_dequeue_recvbuf (_queue *queue)
 	struct recv_buf *precvbuf;
 	_list	*plist, *phead;	
 
-	_enter_critical(&queue->lock, &irqL);
+	_enter_critical_bh(&queue->lock, &irqL);
 
 	if(_rtw_queue_empty(queue) == _TRUE)
 	{
@@ -463,7 +463,7 @@ struct recv_buf *rtw_dequeue_recvbuf (_queue *queue)
 		
 	}
 
-	_exit_critical(&queue->lock, &irqL);
+	_exit_critical_bh(&queue->lock, &irqL);
 
 
 	return precvbuf;

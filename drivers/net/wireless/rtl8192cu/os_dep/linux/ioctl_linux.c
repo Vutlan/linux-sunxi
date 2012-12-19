@@ -857,6 +857,7 @@ static int rtw_set_wpa_ie(_adapter *padapter, char *pie, unsigned short ielen)
 	u32 left; 	
 	int group_cipher = 0, pairwise_cipher = 0;
 	int ret = 0;
+	u8	null_addr[]= {0,0,0,0,0,0};
 #ifdef CONFIG_P2P
 	struct wifidirect_info* pwdinfo = &padapter->wdinfo;
 #endif //CONFIG_P2P
@@ -1005,7 +1006,15 @@ static int rtw_set_wpa_ie(_adapter *padapter, char *pie, unsigned short ielen)
 			}			
 		}		
 	}
-	
+
+	//TKIP and AES disallow multicast packets until installing group key
+	if(padapter->securitypriv.dot11PrivacyAlgrthm == _TKIP_ 
+		|| padapter->securitypriv.dot11PrivacyAlgrthm == _TKIP_WTMIC_ 
+		|| padapter->securitypriv.dot11PrivacyAlgrthm == _AES_)
+		//WPS open need to enable multicast
+		//|| check_fwstate(&padapter->mlmepriv, WIFI_UNDER_WPS) == _TRUE)
+		padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_OFF_RCR_AM, null_addr);
+
 	RT_TRACE(_module_rtl871x_ioctl_os_c, _drv_info_,
 		 ("rtw_set_wpa_ie: pairwise_cipher=0x%08x padapter->securitypriv.ndisencryptstatus=%d padapter->securitypriv.ndisauthtype=%d\n",
 		  pairwise_cipher, padapter->securitypriv.ndisencryptstatus, padapter->securitypriv.ndisauthtype));
@@ -5190,7 +5199,7 @@ static int rtw_p2p_prov_disc(struct net_device *dev,
 	_queue				*queue	= &(pmlmepriv->scanned_queue);
 	struct	wlan_network	*pnetwork = NULL;
 	uint					uintPeerChannel = 0;
-	u8					attr_content[50] = { 0x00 }, _status = 0;
+	u8					attr_content[100] = { 0x00 }, _status = 0;
 	u8 *p2pie;
 	uint					p2pielen = 0, attr_contentlen = 0;
 	_irqL				irqL;
@@ -6087,6 +6096,11 @@ static int rtw_dbg_port(struct net_device *dev,
 				#endif //CONFIG_IOL
 			}
 			break;
+		case 0x7a:
+			receive_disconnect(padapter, pmlmeinfo->network.MacAddress
+				, 65535// indicate disconnect caused by no rx
+			);
+			break;
 
 		case 0x7F:
 			switch(minor_cmd)
@@ -6259,7 +6273,7 @@ static int rtw_dbg_port(struct net_device *dev,
 							
 						}
 				break;
-				case 0x12:
+				case 0x15:
 					{
 						struct pwrctrl_priv *pwrpriv = &padapter->pwrctrlpriv;	
 						DBG_871X("==>silent resete cnts:%d\n",pwrpriv->ips_enter_cnts);
@@ -6277,6 +6291,42 @@ static int rtw_dbg_port(struct net_device *dev,
 						padapter->bRxRSSIDisplay = extra_arg ;						
 					}
 					break;
+				case 0x12: //set rx_stbc
+				{
+					struct registry_priv	*pregpriv = &padapter->registrypriv;
+					// 0: disable, bit(0):enable 2.4g, bit(1):enable 5g, 0x3: enable both 2.4g and 5g
+					//default is set to enable 2.4GHZ for IOT issue with bufflao's AP at 5GHZ
+					if( pregpriv && (extra_arg == 0 || extra_arg == 1|| extra_arg == 2 || extra_arg == 3))
+					{
+						pregpriv->rx_stbc= extra_arg;
+						DBG_871X("set rx_stbc=%d\n",pregpriv->rx_stbc);
+					}
+					else
+						DBG_871X("get rx_stbc=%d\n",pregpriv->rx_stbc);
+					
+				}
+				break;
+				case 0x13: //set ampdu_enable
+				{
+					struct registry_priv	*pregpriv = &padapter->registrypriv;
+					// 0: disable, 0x1:enable (but wifi_spec should be 0), 0x2: force enable (don't care wifi_spec)
+					if( pregpriv && extra_arg >= 0 && extra_arg < 3 )
+					{
+						pregpriv->ampdu_enable= extra_arg;
+						DBG_871X("set ampdu_enable=%d\n",pregpriv->ampdu_enable);
+					}
+					else
+						DBG_871X("get ampdu_enable=%d\n",pregpriv->ampdu_enable);
+					
+				}
+				break;
+				case 0x14: //get wifi_spec
+				{
+					struct registry_priv	*pregpriv = &padapter->registrypriv;
+					DBG_871X("get wifi_spec=%d\n",pregpriv->wifi_spec);
+					
+				}
+				break;
 				case 0x22:
 					{
 						DBG_871X("turn %s the ForceWriteInitGain Variable\n",(extra_arg==1)?"on":"off");
@@ -7630,7 +7680,8 @@ static int rtw_wx_set_priv(struct net_device *dev,
 	struct iw_point *dwrq = (struct iw_point*)awrq;
 
 	//RT_TRACE(_module_rtl871x_ioctl_os_c, _drv_notice_, ("+rtw_wx_set_priv\n"));
-
+	if(dwrq->length == 0)
+		return -EFAULT;
 	len = dwrq->length;
 	if (!(ext = rtw_vmalloc(len)))
 		return -ENOMEM;
@@ -8302,11 +8353,14 @@ static int rtw_mp_read_reg(struct net_device *dev,
 	u32 ret, i=0, j=0, strtout=0;
 	PADAPTER padapter = rtw_netdev_priv(dev);
 
-
 	if (wrqu->length > 128) return -EFAULT;
 
 	if (copy_from_user(input, wrqu->pointer, wrqu->length))
 		return -EFAULT;
+
+	_rtw_memset(data, 0, 20);
+	_rtw_memset(tmp, 0, 20);
+	_rtw_memset(extra, 0, wrqu->length);
 
 	pch = input;
 	pnext = strpbrk(pch, " ,.-");
@@ -8327,7 +8381,7 @@ static int rtw_mp_read_reg(struct net_device *dev,
 			// 1 byte
 			// *(u8*)data = rtw_read8(padapter, addr);
 			sprintf(extra, "%d\n",  rtw_read8(padapter, addr));
-			wrqu->length = 4;
+			wrqu->length = strlen(extra);
 			break;
 		case 'w':
 			// 2 bytes
@@ -8362,7 +8416,7 @@ static int rtw_mp_read_reg(struct net_device *dev,
 					}
 					pch = pnext;
 				}
-			wrqu->length = 8;
+			wrqu->length = 6;
 			break;
 		case 'd':
 			// 4 bytes
@@ -8396,7 +8450,7 @@ static int rtw_mp_read_reg(struct net_device *dev,
 					}
 					pch = pnext;
 				}
-			wrqu->length = 20;	
+			wrqu->length = strlen(extra);
 			break;
 			
 		default:
@@ -8434,9 +8488,12 @@ static int rtw_mp_read_reg(struct net_device *dev,
 	if (path >= MAX_RF_PATH_NUMS) return -EINVAL;
 	if (addr > 0xFF) return -EINVAL;
 	if (data > 0xFFFFF) return -EINVAL;
+	_rtw_memset(extra, 0, wrqu->length);
 
 	write_rfreg(padapter, path, addr, data);
 
+	sprintf(extra, "write_rf completed \n");
+	
 	return 0;
 }
 
@@ -8465,12 +8522,14 @@ static int rtw_mp_read_rf(struct net_device *dev,
 	if (copy_from_user(input, wrqu->pointer, wrqu->length))
 		return -EFAULT;
 
-	ret = sscanf(extra, "%d,%x", &path, &addr);
+	ret = sscanf(input, "%d,%x", &path, &addr);
 	if (ret < 2) return -EINVAL;
 
 	if (path >= MAX_RF_PATH_NUMS) return -EINVAL;
 	if (addr > 0xFF) return -EINVAL;
 
+	_rtw_memset(extra, 0, wrqu->length);
+	
 	//*data = read_rfreg(padapter, path, addr);
 	sprintf(data, "%08x", read_rfreg(padapter, path, addr));
 				//add read data format blank
@@ -8501,7 +8560,7 @@ static int rtw_mp_read_rf(struct net_device *dev,
 					}
 					pch = pnext;
 				}
-			wrqu->length = 10;	
+			wrqu->length = strlen(extra);
 
 	return 0;
 }
@@ -8661,7 +8720,7 @@ static int rtw_mp_ant_tx(struct net_device *dev,
 	if (copy_from_user(input, wrqu->pointer, wrqu->length))
 			return -EFAULT;
 			
-	DBG_871X("%s: input=%s\n", __func__, input);	
+	//DBG_871X("%s: input=%s\n", __func__, input);	
 	
 	sprintf( extra, "switch Tx antenna to %s", input );
 	
@@ -8678,9 +8737,9 @@ static int rtw_mp_ant_tx(struct net_device *dev,
 			}
 	}
 	//antenna |= BIT(extra[i]-'a');
-	DBG_871X("%s: antenna=0x%x\n", __func__, antenna);		
+	//DBG_871X("%s: antenna=0x%x\n", __func__, antenna);		
 	padapter->mppriv.antenna_tx = antenna;
-	DBG_871X("%s:mppriv.antenna_rx=%d\n", __func__, padapter->mppriv.antenna_tx);
+	//DBG_871X("%s:mppriv.antenna_rx=%d\n", __func__, padapter->mppriv.antenna_tx);
 	
 	Hal_SetAntenna(padapter);
 
@@ -8700,7 +8759,10 @@ static int rtw_mp_ant_rx(struct net_device *dev,
 	if (copy_from_user(input, wrqu->pointer, wrqu->length))
 			return -EFAULT;
 	//DBG_871X("%s: input=%s\n", __func__, input);
-
+	_rtw_memset(extra, 0, wrqu->length);
+	
+	sprintf( extra, "switch Rx antenna to %s", input );
+	
 	for (i=0; i < strlen(input); i++) {
 	
 	switch( input[i] )
@@ -8718,7 +8780,7 @@ static int rtw_mp_ant_rx(struct net_device *dev,
 	padapter->mppriv.antenna_rx = antenna;
 	//DBG_871X("%s:mppriv.antenna_rx=%d\n", __func__, padapter->mppriv.antenna_rx);
 	Hal_SetAntenna(padapter);
-	wrqu->length = strlen(extra) + 1;
+	wrqu->length = strlen(extra);
 	
 	return 0;
 }
@@ -8814,16 +8876,17 @@ static int rtw_mp_ctx(struct net_device *dev,
 			//DBG_871X("%s: sgleTx %d \n", __func__, bStartTest);
 			if (bStartTest != 0){
 				sprintf( extra, "Start continuous DA=ffffffffffff len=1500 \n infinite=yes.");
-            	Hal_SetSingleToneTx(padapter, (u8)bStartTest);
-            }
+            		
+           		 }
+			Hal_SetSingleToneTx(padapter, (u8)bStartTest);
 			break;
 
 		case MP_CONTINUOUS_TX:
-			//DBG_871X("%s: cotuTx %d\n", __func__, bStartTest);
+			DBG_871X("%s: cotuTx %d\n", __func__, bStartTest);
 			if (bStartTest != 0){
 				sprintf( extra, "Start continuous DA=ffffffffffff len=1500 \n infinite=yes.");
-           		 Hal_SetContinuousTx(padapter, (u8)bStartTest);
            		 }
+			 Hal_SetContinuousTx(padapter, (u8)bStartTest);
 			break;
 
 		case MP_CARRIER_SUPPRISSION_TX:
@@ -8832,18 +8895,18 @@ static int rtw_mp_ctx(struct net_device *dev,
 				if( pmp_priv->rateidx <= MPT_RATE_11M ) 
 				{
 					sprintf( extra, "Start continuous DA=ffffffffffff len=1500 \n infinite=yes.");
-					Hal_SetCarrierSuppressionTx(padapter, (u8)bStartTest);
 				}else
 					sprintf( extra, "Specify carrier suppression but not CCK rate");
 			}
+			Hal_SetCarrierSuppressionTx(padapter, (u8)bStartTest);
 			break;
 
 		case MP_SINGLE_CARRIER_TX:
 			//DBG_871X("%s: scTx %d\n", __func__, bStartTest);
 			if (bStartTest != 0){
 				sprintf( extra, "Start continuous DA=ffffffffffff len=1500 \n infinite=yes.");
-				Hal_SetSingleCarrierTx(padapter, (u8)bStartTest);
 			}
+			Hal_SetSingleCarrierTx(padapter, (u8)bStartTest);
 			break;
 
 		default:
@@ -8934,23 +8997,33 @@ static int rtw_mp_pwrtrk(struct net_device *dev,
 	u32 thermal;
 	s32 ret;
 	PADAPTER padapter = rtw_netdev_priv(dev);
+	u8 		input[wrqu->length];
 
+	if (copy_from_user(input, wrqu->pointer, wrqu->length))
+			return -EFAULT;
 
+	_rtw_memset(extra, 0, wrqu->length);
+		
 	enable = 1;
 	if (wrqu->length > 1) { // not empty string
-		if (strncmp(extra, "stop", 4) == 0)
+		if (strncmp(input, "stop", 4) == 0)
+		{	
 			enable = 0;
-		else {
-			if (sscanf(extra, "ther=%d", &thermal)) {
+			sprintf(extra, "mp tx power tracking stop");
+		}
+		else if (sscanf(input, "ther=%d", &thermal)) {
 				ret = Hal_SetThermalMeter(padapter, (u8)thermal);
 				if (ret == _FAIL) return -EPERM;
-			} else
-				return -EINVAL;
+				sprintf(extra, "mp tx power tracking start,target value=%d ok ",thermal);
+		}else	{
+			return -EINVAL;
 		}
 	}
 
 	ret = Hal_SetPowerTracking(padapter, enable);
 	if (ret == _FAIL) return -EPERM;
+	
+	wrqu->length = strlen(extra);
 
 	return 0;
 }
@@ -8960,13 +9033,15 @@ static int rtw_mp_psd(struct net_device *dev,
 			struct iw_point *wrqu, char *extra)
 {
 	PADAPTER padapter = rtw_netdev_priv(dev);
+	u8 		input[wrqu->length];
 
-
-	if (copy_from_user(extra, wrqu->pointer, wrqu->length))
+	if (copy_from_user(input, wrqu->pointer, wrqu->length))
 		return -EFAULT;
 	
-	wrqu->length = mp_query_psd(padapter, extra);
+	strcpy(extra,input);
 
+	wrqu->length = mp_query_psd(padapter, extra);
+	
 	return 0;
 }
 
@@ -9188,11 +9263,7 @@ static int rtw_mp_set(struct net_device *dev,
 			DBG_871X("set case mp_bandwidth \n");
 			rtw_mp_bandwidth (dev,info,wrqu,extra);
 			break;
-	case MP_PWRTRK:
-			DBG_871X("set case MP_PWRTRK \n");
-			rtw_mp_pwrtrk (dev,info,wrqu,extra);
-			break;
-				
+			
 	case MP_RESET_STATS:
 			DBG_871X("set case MP_RESET_STATS \n");
 			rtw_mp_reset_stats	(dev,info,wrqu,extra);
@@ -9218,7 +9289,7 @@ static int rtw_mp_get(struct net_device *dev,
 	u32 subcmd = wrqu->flags;
 	PADAPTER padapter = rtw_netdev_priv(dev);
 
-	DBG_871X("in mp_get extra= %s \n",extra);
+	//DBG_871X("in mp_get extra= %s \n",extra);
 
 	if (padapter == NULL)
 	{
@@ -9304,8 +9375,11 @@ static int rtw_mp_get(struct net_device *dev,
 			DBG_871X("set case MP_THER \n");
 			rtw_mp_thermal (dev,info,wrqu,extra);
 		break;
-
-			 
+		
+	case MP_PWRTRK:
+			DBG_871X("set case MP_PWRTRK \n");
+			rtw_mp_pwrtrk (dev,info,wrqu,extra);
+			break;			 
 	}
 
 return 0;	
@@ -10782,7 +10856,8 @@ static const struct iw_priv_args rtw_private_args[] =
 		{ MP_THER , IW_PRIV_TYPE_CHAR | 1024, IW_PRIV_TYPE_CHAR | IW_PRIV_SIZE_MASK, "mp_ther"},
 		{ EFUSE_SET, IW_PRIV_TYPE_CHAR | 1024, 0, "efuse_set" },
 		{ EFUSE_GET, IW_PRIV_TYPE_CHAR | 1024, IW_PRIV_TYPE_CHAR | IW_PRIV_SIZE_MASK, "efuse_get" },
-		{ MP_PWRTRK , IW_PRIV_TYPE_CHAR | 1024, 0, "mp_pwrtrk"},
+		{ MP_NULL , IW_PRIV_TYPE_CHAR | 1024, 0, "NULL"},
+		{ MP_PWRTRK, IW_PRIV_TYPE_CHAR | 1024, IW_PRIV_TYPE_CHAR | IW_PRIV_SIZE_MASK, "mp_pwrtrk" },
 		{ MP_IOCTL, IW_PRIV_TYPE_CHAR | 1024, 0, "mp_ioctl"}, // mp_ioctl	
 		
 	

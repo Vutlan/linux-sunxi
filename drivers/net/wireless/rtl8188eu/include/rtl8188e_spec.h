@@ -672,14 +672,6 @@ Default: 00b.
 #define	WOW_MAGIC				BIT2 // Magic packet
 #define	WOW_UWF				BIT3 // Unicast Wakeup frame.
 
-#ifdef CONFIG_WOWLAN
-#define WOW_RX_PAIRWISEKEY		BIT0
-#define WOW_RX_GTK			BIT1
-#define WOW_RX_DISASSOC			BIT2
-#define WOW_RX_DEAUTH			BIT3
-#define WOW_FW_DECISION_DISCONNECT	BIT4
-#endif //CONFIG_WOWLAN
-
 //
 // 12. Host Interrupt Status Registers	 (Offset: 0x0300 - 0x030F)
 //
@@ -1619,6 +1611,7 @@ Current IOREG MAP
 #define	EEPROM_MAC_ADDR_88EU				0xD7
 #define	EEPROM_VID_88EU						0xD0
 #define	EEPROM_PID_88EU						0xD2
+#define EEPROM_USB_OPTIONAL_FUNCTION0			0xD4
 
 // RTL88ES
 #define	EEPROM_MAC_ADDR_88ES				0x11A

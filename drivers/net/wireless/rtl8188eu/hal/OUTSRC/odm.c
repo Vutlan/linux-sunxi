@@ -827,19 +827,20 @@ ODM_DMWatchdog(
 	odm_CmnInfoUpdate_Debug(pDM_Odm);
 	odm_CommonInfoSelfUpdate(pDM_Odm);	
 	odm_FalseAlarmCounterStatistics(pDM_Odm);	
+	odm_RSSIMonitorCheck(pDM_Odm);
 
 #if (DM_ODM_SUPPORT_TYPE == ODM_CE)
 //#ifdef CONFIG_PLATFORM_SPRD
 	//For CE Platform(SPRD or Tablet)
-	//8723AS or 8189ES platform
+	//8723A or 8189ES platform
 	//NeilChen--2012--08--24--
 	//Fix Leave LPS issue
 	if( 	(pDM_Odm->Adapter->pwrctrlpriv.pwr_mode != PS_MODE_ACTIVE) &&// in LPS mode
 		( 			
 			(pDM_Odm->SupportICType & (ODM_RTL8723A ) )||
-		   	(pDM_Odm->SupportICType & (ODM_RTL8188E) &&((pDM_Odm->SupportInterface  == ODM_ITRF_SDIO)||(pDM_Odm->SupportInterface == ODM_ITRF_GSPI)) ) 
+		   	(pDM_Odm->SupportICType & (ODM_RTL8188E) &&((pDM_Odm->SupportInterface  == ODM_ITRF_SDIO)) ) 
 			
-		//&&((pDM_Odm->SupportInterface  == ODM_ITRF_SDIO)||(pDM_Odm->SupportInterface == ODM_ITRF_GSPI))
+		//&&((pDM_Odm->SupportInterface  == ODM_ITRF_SDIO))
 	  	)	
 	)
 	{
@@ -861,7 +862,7 @@ ODM_DMWatchdog(
 		return;
 	
 	odm_RefreshRateAdaptiveMask(pDM_Odm);
-	odm_RSSIMonitorCheck(pDM_Odm);
+	
 	#if (RTL8192D_SUPPORT == 1)
 	ODM_DynamicEarlyMode(pDM_Odm);
 	#endif
@@ -1223,35 +1224,7 @@ ODM_CmnInfoUpdate(
 			pDM_Odm->bBtDisableEdcaTurbo = (BOOLEAN)Value;
 			break;
 #endif
-/*
-		case	ODM_CMNINFO_OP_MODE:
-			pDM_Odm->OPMode = (u1Byte)Value;
-			break;
 
-		case	ODM_CMNINFO_WM_MODE:
-			pDM_Odm->WirelessMode = (u1Byte)Value;
-			break;
-
-		case	ODM_CMNINFO_BAND:
-			pDM_Odm->BandType = (u1Byte)Value;
-			break;
-
-		case	ODM_CMNINFO_SEC_CHNL_OFFSET:
-			pDM_Odm->SecChOffset = (u1Byte)Value;
-			break;
-
-		case	ODM_CMNINFO_SEC_MODE:
-			pDM_Odm->Security = (u1Byte)Value;
-			break;
-
-		case	ODM_CMNINFO_BW:
-			pDM_Odm->BandWidth = (u1Byte)Value;
-			break;
-
-		case	ODM_CMNINFO_CHNL:
-			pDM_Odm->Channel = (u1Byte)Value;
-			break;			
-*/	
 	}
 
 	
@@ -1895,8 +1868,16 @@ odm_DIG(
 	}
 #endif  //end ODM_MP type
 
-
-
+#if (DM_ODM_SUPPORT_TYPE == ODM_CE)
+#ifdef CONFIG_SPECIAL_SETTING_FOR_FUNAI_TV	
+	if((pDM_Odm->bLinked) && (pDM_Odm->Adapter->registrypriv.force_igi !=0))
+	{	
+		printk("pDM_Odm->RSSI_Min=%d \n",pDM_Odm->RSSI_Min);
+		ODM_Write_DIG(pDM_Odm,pDM_Odm->Adapter->registrypriv.force_igi);
+		return;
+	}
+#endif
+#endif
 #if (DM_ODM_SUPPORT_TYPE & (ODM_AP|ODM_ADSL))
 	prtl8192cd_priv	priv			= pDM_Odm->priv;	
 	if (!((priv->up_time > 5) && (priv->up_time % 2)) )
@@ -2093,7 +2074,7 @@ odm_DIG(
 				else
 					DIG_Dynamic_MIN = pDM_Odm->RSSI_Min;
 				ODM_RT_TRACE(pDM_Odm,ODM_COMP_DIG, ODM_DBG_LOUD, ("odm_DIG() : bOneEntryOnly=TRUE,  DIG_Dynamic_MIN=0x%x\n",DIG_Dynamic_MIN));
-				ODM_RT_TRACE(pDM_Odm,ODM_COMP_DIG, ODM_DBG_LOUD, ("odm_DIG() : pDM_Odm->RSSI_Min=%d",pDM_Odm->RSSI_Min));
+				ODM_RT_TRACE(pDM_Odm,ODM_COMP_DIG, ODM_DBG_LOUD, ("odm_DIG() : pDM_Odm->RSSI_Min=%d\n",pDM_Odm->RSSI_Min));
 			}
 			//1 Lower Bound for 88E AntDiv
 #if (RTL8188E_SUPPORT == 1)
@@ -2208,11 +2189,13 @@ odm_DIG(
 #endif
 				{
 				if(pFalseAlmCnt->Cnt_all > DM_DIG_FA_TH2)
-					CurrentIGI = CurrentIGI + 2;//pDM_DigTable->CurIGValue = pDM_DigTable->PreIGValue+2;
+						CurrentIGI = CurrentIGI + 4;//pDM_DigTable->CurIGValue = pDM_DigTable->PreIGValue+2;
 				else if (pFalseAlmCnt->Cnt_all > DM_DIG_FA_TH1)
-					CurrentIGI = CurrentIGI + 1;//pDM_DigTable->CurIGValue = pDM_DigTable->PreIGValue+1;
+						CurrentIGI = CurrentIGI + 2;//pDM_DigTable->CurIGValue = pDM_DigTable->PreIGValue+1;
 				else if(pFalseAlmCnt->Cnt_all < DM_DIG_FA_TH0)
-					CurrentIGI = CurrentIGI - 1;//pDM_DigTable->CurIGValue =pDM_DigTable->PreIGValue-1;	
+						CurrentIGI = CurrentIGI - 2;//pDM_DigTable->CurIGValue =pDM_DigTable->PreIGValue-1;	
+				
+				
 			}
 		}
 	}	
@@ -2824,13 +2807,22 @@ ODM_RateAdaptiveStateApInit(
 #if (DM_ODM_SUPPORT_TYPE == ODM_CE)
 u4Byte ODM_Get_Rate_Bitmap(
 	IN	PDM_ODM_T	pDM_Odm,	
+	IN	u4Byte		macid,
 	IN	u4Byte 		ra_mask,	
 	IN	u1Byte 		rssi_level)
 {
+	PSTA_INFO_T   	pEntry;
 	u4Byte 	rate_bitmap = 0x0fffffff;
-	u1Byte 	WirelessMode =*(pDM_Odm->pWirelessMode);
+	u1Byte 	WirelessMode;
+	//u1Byte 	WirelessMode =*(pDM_Odm->pWirelessMode);
 	
-
+	
+	pEntry = pDM_Odm->pODM_StaInfo[macid];
+	if(!IS_STA_VALID(pEntry))
+		return ra_mask;
+		
+	WirelessMode = pEntry->wireless_mode;
+	
 	switch(WirelessMode)
 	{
 		case ODM_WM_B:
@@ -4165,6 +4157,141 @@ odm_RSSIMonitorCheckMP(
 #endif	// #if (DM_ODM_SUPPORT_TYPE == ODM_MP)
 }
 
+#if (DM_ODM_SUPPORT_TYPE == ODM_CE)
+//
+//sherry move from DUSC to here 20110517
+//
+static VOID
+FindMinimumRSSI_Dmsp(
+	IN	PADAPTER	pAdapter
+)
+{
+#if 0
+	HAL_DATA_TYPE	*pHalData = GET_HAL_DATA(pAdapter);
+	struct dm_priv	*pdmpriv = &pHalData->dmpriv;
+	s32	Rssi_val_min_back_for_mac0;
+	BOOLEAN		bGetValueFromBuddyAdapter = dm_DualMacGetParameterFromBuddyAdapter(pAdapter);
+	BOOLEAN		bRestoreRssi = _FALSE;
+	PADAPTER	BuddyAdapter = pAdapter->BuddyAdapter;
+
+	if(pHalData->MacPhyMode92D == DUALMAC_SINGLEPHY)
+	{
+		if(BuddyAdapter!= NULL)
+		{
+			if(pHalData->bSlaveOfDMSP)
+			{
+				//ODM_RT_TRACE(pDM_Odm,COMP_EASY_CONCURRENT,DBG_LOUD,("bSlavecase of dmsp\n"));
+				BuddyAdapter->DualMacDMSPControl.RssiValMinForAnotherMacOfDMSP = pdmpriv->MinUndecoratedPWDBForDM;
+			}
+			else
+			{
+				if(bGetValueFromBuddyAdapter)
+				{
+					//ODM_RT_TRACE(pDM_Odm,COMP_EASY_CONCURRENT,DBG_LOUD,("get new RSSI\n"));
+					bRestoreRssi = _TRUE;
+					Rssi_val_min_back_for_mac0 = pdmpriv->MinUndecoratedPWDBForDM;
+					pdmpriv->MinUndecoratedPWDBForDM = pAdapter->DualMacDMSPControl.RssiValMinForAnotherMacOfDMSP;
+				}
+			}
+		}
+		
+	}
+
+	if(bRestoreRssi)
+	{
+		bRestoreRssi = _FALSE;
+		pdmpriv->MinUndecoratedPWDBForDM = Rssi_val_min_back_for_mac0;
+	}
+#endif
+}
+
+static void
+FindMinimumRSSI(
+IN	PADAPTER	pAdapter
+	)
+{	
+	HAL_DATA_TYPE	*pHalData = GET_HAL_DATA(pAdapter);
+	struct dm_priv	*pdmpriv = &pHalData->dmpriv;
+	struct mlme_priv	*pmlmepriv = &pAdapter->mlmepriv;
+
+	//1 1.Determine the minimum RSSI 
+
+
+#ifdef CONFIG_CONCURRENT_MODE
+	//	FindMinimumRSSI()	per-adapter	
+	if(rtw_buddy_adapter_up(pAdapter)){		
+		PADAPTER pbuddy_adapter = pAdapter->pbuddy_adapter;
+		PHAL_DATA_TYPE	pbuddy_HalData = GET_HAL_DATA(pbuddy_adapter);
+		struct dm_priv *pbuddy_dmpriv = &pbuddy_HalData->dmpriv;
+	
+		if((pdmpriv->EntryMinUndecoratedSmoothedPWDB != 0) &&
+                  (pbuddy_dmpriv->EntryMinUndecoratedSmoothedPWDB != 0))
+      		{
+
+			if(pdmpriv->EntryMinUndecoratedSmoothedPWDB > pbuddy_dmpriv->EntryMinUndecoratedSmoothedPWDB)
+				pdmpriv->EntryMinUndecoratedSmoothedPWDB = pbuddy_dmpriv->EntryMinUndecoratedSmoothedPWDB;
+             }
+		else                         
+		{
+			if(pdmpriv->EntryMinUndecoratedSmoothedPWDB == 0)
+			      pdmpriv->EntryMinUndecoratedSmoothedPWDB = pbuddy_dmpriv->EntryMinUndecoratedSmoothedPWDB;
+			       
+		}
+ 		#if 0
+		if((pdmpriv->UndecoratedSmoothedPWDB != (-1)) &&
+			 (pbuddy_dmpriv->UndecoratedSmoothedPWDB != (-1)))
+		{
+			
+			if((pdmpriv->UndecoratedSmoothedPWDB > pbuddy_dmpriv->UndecoratedSmoothedPWDB) &&
+				(pbuddy_dmpriv->UndecoratedSmoothedPWDB!=0))
+			            pdmpriv->UndecoratedSmoothedPWDB = pbuddy_dmpriv->UndecoratedSmoothedPWDB;
+		}
+		else                         
+		{
+			if((pdmpriv->UndecoratedSmoothedPWDB == (-1)) && (pbuddy_dmpriv->UndecoratedSmoothedPWDB!=0))
+			      pdmpriv->UndecoratedSmoothedPWDB = pbuddy_dmpriv->UndecoratedSmoothedPWDB;                               
+		}                      
+		#endif
+	}
+#endif
+
+	if((check_fwstate(pmlmepriv, _FW_LINKED) == _FALSE) &&
+		(pdmpriv->EntryMinUndecoratedSmoothedPWDB == 0))
+	{
+		pdmpriv->MinUndecoratedPWDBForDM = 0;
+		//ODM_RT_TRACE(pDM_Odm,COMP_BB_POWERSAVING, DBG_LOUD, ("Not connected to any \n"));
+	}
+	if(check_fwstate(pmlmepriv, _FW_LINKED) == _TRUE)	// Default port
+	{
+		#if 0
+		if((check_fwstate(pmlmepriv, WIFI_AP_STATE) == _TRUE) ||
+			(check_fwstate(pmlmepriv, WIFI_ADHOC_MASTER_STATE) == _TRUE) ||
+			(check_fwstate(pmlmepriv, WIFI_ADHOC_STATE) == _TRUE))
+		{
+			pdmpriv->MinUndecoratedPWDBForDM = pdmpriv->EntryMinUndecoratedSmoothedPWDB;
+			//ODM_RT_TRACE(pDM_Odm,COMP_BB_POWERSAVING, DBG_LOUD, ("AP Client PWDB = 0x%x \n", pHalData->MinUndecoratedPWDBForDM));
+		}
+		else//for STA mode
+		{
+			pdmpriv->MinUndecoratedPWDBForDM = pdmpriv->UndecoratedSmoothedPWDB;
+			//ODM_RT_TRACE(pDM_Odm,COMP_BB_POWERSAVING, DBG_LOUD, ("STA Default Port PWDB = 0x%x \n", pHalData->MinUndecoratedPWDBForDM));
+		}
+		#else
+		pdmpriv->MinUndecoratedPWDBForDM = pdmpriv->EntryMinUndecoratedSmoothedPWDB;
+		#endif
+	}
+	else // associated entry pwdb
+	{	
+		pdmpriv->MinUndecoratedPWDBForDM = pdmpriv->EntryMinUndecoratedSmoothedPWDB;
+		//ODM_RT_TRACE(pDM_Odm,COMP_BB_POWERSAVING, DBG_LOUD, ("AP Ext Port or disconnet PWDB = 0x%x \n", pHalData->MinUndecoratedPWDBForDM));
+	}
+	#if(RTL8192D_SUPPORT==1)
+	FindMinimumRSSI_Dmsp(pAdapter);
+	#endif
+	//DBG_8192C("%s=>MinUndecoratedPWDBForDM(%d)\n",__FUNCTION__,pdmpriv->MinUndecoratedPWDBForDM);
+	//ODM_RT_TRACE(pDM_Odm,COMP_DIG, DBG_LOUD, ("MinUndecoratedPWDBForDM =%d\n",pHalData->MinUndecoratedPWDBForDM));
+}
+#endif
 
 VOID
 odm_RSSIMonitorCheckCE(
@@ -4180,18 +4307,57 @@ odm_RSSIMonitorCheckCE(
 	u8 	sta_cnt=0;
 	u32 PWDB_rssi[NUM_STA]={0};//[0~15]:MACID, [16~31]:PWDB_rssi
 
-	if(check_fwstate(&Adapter->mlmepriv, _FW_LINKED) != _TRUE)
+	if(!check_fwstate(&Adapter->mlmepriv, _FW_LINKED) 
+		#ifdef CONFIG_CONCURRENT_MODE
+		&& !check_buddy_fwstate(Adapter, _FW_LINKED)
+		#endif
+	) {
 		return;
-		
+	}
 
 	//if(check_fwstate(&Adapter->mlmepriv, WIFI_AP_STATE|WIFI_ADHOC_STATE|WIFI_ADHOC_MASTER_STATE) == _TRUE)
 	{
+		#if 1
+		struct sta_info *psta;
+		struct sta_priv *pstapriv = &Adapter->stapriv;
+		u8 bcast_addr[ETH_ALEN]= {0xff,0xff,0xff,0xff,0xff,0xff};
+		
+		for(i=0; i<ODM_ASSOCIATE_ENTRY_NUM; i++) {
+			if (IS_STA_VALID(psta = pDM_Odm->pODM_StaInfo[i])
+				&& (psta->state & WIFI_ASOC_STATE)
+				&& _rtw_memcmp(psta->hwaddr, bcast_addr, ETH_ALEN) == _FALSE
+				&& _rtw_memcmp(psta->hwaddr, myid(&Adapter->eeprompriv), ETH_ALEN) == _FALSE
+				#ifdef CONFIG_CONCURRENT_MODE
+				&& (!Adapter->pbuddy_adapter || _rtw_memcmp(psta->hwaddr, myid(&Adapter->pbuddy_adapter->eeprompriv), ETH_ALEN) == _FALSE)
+				#endif
+				) {
+					if(psta->rssi_stat.UndecoratedSmoothedPWDB < tmpEntryMinPWDB)
+						tmpEntryMinPWDB = psta->rssi_stat.UndecoratedSmoothedPWDB;
+
+					if(psta->rssi_stat.UndecoratedSmoothedPWDB > tmpEntryMaxPWDB)
+						tmpEntryMaxPWDB = psta->rssi_stat.UndecoratedSmoothedPWDB;
+
+					#if 0
+					DBG_871X("%s mac_id:%u, mac:"MAC_FMT", rssi:%d\n", __func__,
+						psta->mac_id, MAC_ARG(psta->hwaddr), psta->rssi_stat.UndecoratedSmoothedPWDB);
+					#endif
+
+					if(psta->rssi_stat.UndecoratedSmoothedPWDB != (-1)) {
+						#if(RTL8192D_SUPPORT==1)
+						PWDB_rssi[sta_cnt++] = (psta->mac_id | (psta->rssi_stat.UndecoratedSmoothedPWDB<<16) | ((Adapter->stapriv.asoc_sta_count+1) << 8));
+						#else
+						PWDB_rssi[sta_cnt++] = (psta->mac_id | (psta->rssi_stat.UndecoratedSmoothedPWDB<<16) );
+						#endif
+					}
+			}
+		}
+		#else
 		_irqL irqL;
 		_list	*plist, *phead;
 		struct sta_info *psta;
 		struct sta_priv *pstapriv = &Adapter->stapriv;
 		u8 bcast_addr[ETH_ALEN]= {0xff,0xff,0xff,0xff,0xff,0xff};
-	
+
 		_enter_critical_bh(&pstapriv->sta_hash_lock, &irqL);
 
 		for(i=0; i< NUM_STA; i++)
@@ -4233,6 +4399,7 @@ odm_RSSIMonitorCheckCE(
 		}
 	
 		_exit_critical_bh(&pstapriv->sta_hash_lock, &irqL);
+		#endif
 
 		//printk("%s==> sta_cnt(%d)\n",__FUNCTION__,sta_cnt);
 
@@ -4256,8 +4423,6 @@ odm_RSSIMonitorCheckCE(
 			}
 		}		
 	}
-
-
 
 	if(tmpEntryMaxPWDB != 0)	// If associated entry is found
 	{
@@ -4296,6 +4461,8 @@ odm_RSSIMonitorCheckCE(
 		}
 	}
 #endif		
+	FindMinimumRSSI(Adapter);
+	ODM_CmnInfoUpdate(&pHalData->odmpriv ,ODM_CMNINFO_RSSI_MIN, pdmpriv->MinUndecoratedPWDBForDM);
 #endif//if (DM_ODM_SUPPORT_TYPE == ODM_CE)
 }
 VOID
@@ -4573,7 +4740,8 @@ odm_TXPowerTrackingCheckCE(
 	if(!pDM_Odm->RFCalibrateInfo.TM_Trigger)		//at least delay 1 sec
 	{
 		//pHalData->TxPowerCheckCnt++;	//cosa add for debug
-		ODM_SetRFReg(pDM_Odm, RF_PATH_A, RF_T_METER, bRFRegOffsetMask, 0x60);
+		//ODM_SetRFReg(pDM_Odm, RF_PATH_A, RF_T_METER, bRFRegOffsetMask, 0x60);
+		PHY_SetRFReg(Adapter, RF_PATH_A, RF_T_METER_88E, BIT17 | BIT16, 0x03);
 		//DBG_8192C("Trigger 92C Thermal Meter!!\n");
 		
 		pDM_Odm->RFCalibrateInfo.TM_Trigger = 1;

@@ -334,6 +334,8 @@ struct recv_priv
 	u8 signal_qual;
 	u8 noise;
 	int RxSNRdB[2];
+	s8 RxRssi[2];
+	int FalseAlmCnt_all;
 
 #ifdef CONFIG_NEW_SIGNAL_STAT_PROCESS
 	_timer signal_stat_timer;

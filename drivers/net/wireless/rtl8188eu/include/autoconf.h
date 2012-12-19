@@ -22,7 +22,6 @@
 //#define CONFIG_DISABLE_ODM
 #define CONFIG_ODM_REFRESH_RAMASK
 #define CONFIG_PHY_SETTING_WITH_ODM
-#define CONFIG_RSSI_OPTIMIZATION
 //for FPGA VERIFICATION config
 #define RTL8188E_FPGA_TRUE_PHY_VERIFICATION 0
 
@@ -43,7 +42,7 @@
 
 //#define CONFIG_IOCTL_CFG80211 1
 
-#ifdef CONFIG_PLATFORM_ARM_SUN4I
+#ifdef CONFIG_PLATFORM_ARM_SUNxI
 	#ifndef CONFIG_IOCTL_CFG80211 
 		#define CONFIG_IOCTL_CFG80211 1
 	#endif
@@ -53,6 +52,8 @@
 	#define RTW_USE_CFG80211_STA_EVENT /* Opne this for Android 4.1's wpa_supplicant */
 	#define CONFIG_CFG80211_FORCE_COMPATIBLE_2_6_37_UNDER
 	//#define CONFIG_DEBUG_CFG80211 1
+	//#define CONFIG_DRV_ISSUE_PROV_REQ // IOT FOR S2
+	#define CONFIG_SET_SCAN_DENY_TIMER
 #endif
 
 /*
@@ -64,6 +65,7 @@
 #define CONFIG_EMBEDDED_FWIMG	1
 //#define CONFIG_FILE_FWIMG
 
+#define CONFIG_XMIT_ACK
 
 #define CONFIG_80211N_HT	1
 
@@ -215,11 +217,12 @@
 //#define CONFIG_USE_USB_BUFFER_ALLOC_TX 1	// Trade-off: For TX path, improve stability on some platforms, but may cause performance degrade on other platforms.
 //#define CONFIG_USE_USB_BUFFER_ALLOC_RX 1	// For RX path
 
-#ifdef CONFIG_PLATFORM_ARM_SUN4I
+#ifdef CONFIG_PLATFORM_ARM_SUNxI
 	#ifndef 	CONFIG_USE_USB_BUFFER_ALLOC_TX 
 		#define CONFIG_USE_USB_BUFFER_ALLOC_TX
 	#endif
 #endif
+
 /* 
  * USB VENDOR REQ BUFFER ALLOCATION METHOD
  * if not set we'll use function local variable (stack memory)
@@ -272,18 +275,21 @@
  * Platform  Related Config
  */
 #ifdef CONFIG_PLATFORM_MN10300
-#define CONFIG_SPECIAL_SETTING_FOR_FUNAI_TV
+	#define CONFIG_SPECIAL_SETTING_FOR_FUNAI_TV
+	#define CONFIG_USE_USB_BUFFER_ALLOC_RX 1
+	
+	#if	defined (CONFIG_SW_ANTENNA_DIVERSITY)
+		#undef CONFIG_SW_ANTENNA_DIVERSITY
+		#define CONFIG_HW_ANTENNA_DIVERSITY
+	#endif
 
-#if	defined (CONFIG_SW_ANTENNA_DIVERSITY)
-	#undef CONFIG_SW_ANTENNA_DIVERSITY
-	#define CONFIG_HW_ANTENNA_DIVERSITY
-#endif
+	#if	defined (CONFIG_POWER_SAVING)
+		#undef CONFIG_POWER_SAVING
+	#endif
+	
+#endif//CONFIG_PLATFORM_MN10300
 
-#endif
 
-#ifdef CONFIG_WISTRON_PLATFORM
-
-#endif
 
 #ifdef CONFIG_PLATFORM_TI_DM365
 #define CONFIG_USE_USB_BUFFER_ALLOC_RX 1

@@ -688,11 +688,10 @@ typedef enum _ODM_Support_Ability_Definition
 //	ODM_CMNINFO_INTERFACE
 typedef enum tag_ODM_Support_Interface_Definition
 {
-	ODM_ITRF_PCIE 	=	0,
-	ODM_ITRF_USB 	=	1,
-	ODM_ITRF_SDIO 	=	2,
-	ODM_ITRF_GSPI 	=	3,
-	ODM_ITRF_ALL 	=	4,
+	ODM_ITRF_PCIE 	=	0x1,
+	ODM_ITRF_USB 	=	0x2,
+	ODM_ITRF_SDIO 	=	0x4,
+	ODM_ITRF_ALL 	=	0x7,
 }ODM_INTERFACE_E;
 
 // ODM_CMNINFO_IC_TYPE
@@ -1470,7 +1469,11 @@ typedef enum tag_DIG_Connect_Definition
 
 //vivi 92c&92d has different definition, 20110504
 //this is for 92c
+#ifdef CONFIG_SPECIAL_SETTING_FOR_FUNAI_TV
+#define		DM_DIG_FA_TH0				0x80//0x20
+#else
 #define		DM_DIG_FA_TH0				0x200//0x20
+#endif
 #define		DM_DIG_FA_TH1				0x300//0x100
 #define		DM_DIG_FA_TH2				0x400//0x200
 //this is for 92d
@@ -1727,7 +1730,8 @@ odm_DIGbyRSSI_LPS(
 	);
 
 u4Byte ODM_Get_Rate_Bitmap(
-	IN	PDM_ODM_T	pDM_Odm,	
+	IN	PDM_ODM_T	pDM_Odm,
+	IN	u4Byte		macid,
 	IN	u4Byte 		ra_mask,	
 	IN	u1Byte 		rssi_level);
 #endif

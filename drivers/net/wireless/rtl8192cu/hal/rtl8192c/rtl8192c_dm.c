@@ -4776,7 +4776,7 @@ rtl8192c_HalDmWatchDog(
 	PADAPTER pbuddy_adapter = Adapter->pbuddy_adapter;
 #endif //CONFIG_CONCURRENT_MODE
 
-	#if defined(CONFIG_CONCURRENT_MODE) || defined(CONFIG_DUALMAC_CONCURRENT)
+	#if defined(CONFIG_CONCURRENT_MODE)
 	if (Adapter->isprimary == _FALSE && pbuddy_adapter) {
 		hw_init_completed = pbuddy_adapter->hw_init_completed;
 	} else
@@ -4789,7 +4789,7 @@ rtl8192c_HalDmWatchDog(
 		goto skip_dm;
 
 #ifdef CONFIG_LPS
-	#if defined(CONFIG_CONCURRENT_MODE) || defined(CONFIG_DUALMAC_CONCURRENT)
+	#if defined(CONFIG_CONCURRENT_MODE)
 	if (Adapter->iface_type != IFACE_PORT0 && pbuddy_adapter) {
 		bFwCurrentInPSMode = pbuddy_adapter->pwrctrlpriv.bFwCurrentInPSMode;
 		Adapter->HalFunc.GetHwRegHandler(pbuddy_adapter, HW_VAR_FWLPS_RF_ON, (u8 *)(&bFwPSAwake));

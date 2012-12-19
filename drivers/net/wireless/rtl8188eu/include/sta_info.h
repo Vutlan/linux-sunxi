@@ -125,6 +125,7 @@ struct sta_info {
 	u8	raid;
 	u8 	init_rate;
 	u32	ra_mask;
+	u8	wireless_mode;	// NETWORK_TYPE
 	struct stainfo_stats sta_stats;
 
 #ifdef CONFIG_TDLS
@@ -278,6 +279,9 @@ struct sta_info {
 	//
 	// ================ODM Relative Info=======================
 	//
+
+	/* To store the sequence number of received management frame */
+	u16 RxMgmtFrameSeqNum;
 };
 
 #define sta_rx_pkts(sta) \

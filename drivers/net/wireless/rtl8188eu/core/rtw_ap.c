@@ -416,6 +416,7 @@ void	expire_timeout_chk(_adapter *padapter)
 			psta->expire_to--;
 
 #ifdef CONFIG_TX_MCAST2UNI
+#ifdef CONFIG_80211N_HT
 			if ( (psta->flags & WLAN_STA_HT) && (psta->htpriv.agg_enable_bitmap || psta->under_exist_checking) ) {
 				// check sta by delba(addba) for 11n STA 
 				// ToDo: use CCX report to check for all STAs
@@ -434,6 +435,7 @@ void	expire_timeout_chk(_adapter *padapter)
 					psta->htpriv.candidate_tid_bitmap = 0x0;//reset
 				}
 			}
+#endif //CONFIG_80211N_HT
 #endif	// CONFIG_TX_MCAST2UNI
 
 			if (psta->expire_to == 0)
@@ -482,8 +484,7 @@ void	expire_timeout_chk(_adapter *padapter)
 
 }
 
-
-static void add_RATid(_adapter *padapter, struct sta_info *psta)
+void add_RATid(_adapter *padapter, struct sta_info *psta, u8 rssi_level)
 {	
 	int i;
 	u8 rf_type;
@@ -495,10 +496,14 @@ static void add_RATid(_adapter *padapter, struct sta_info *psta)
 	struct mlme_priv *pmlmepriv = &(padapter->mlmepriv);
 	WLAN_BSSID_EX *pcur_network = (WLAN_BSSID_EX *)&pmlmepriv->cur_network.network;	
 
-	
+#ifdef CONFIG_80211N_HT
 	if(psta)
 		psta_ht = &psta->htpriv;
 	else
+		return;
+#endif //CONFIG_80211N_HT
+
+	if(!(psta->state & _FW_LINKED))
 		return;
 	
 	//b/g mode ra_bitmap  
@@ -507,7 +512,7 @@ static void add_RATid(_adapter *padapter, struct sta_info *psta)
 		if (psta->bssrateset[i])
 			tx_ra_bitmap |= rtw_get_bit_value_from_ieee_value(psta->bssrateset[i]&0x7f);
 	}
-
+#ifdef CONFIG_80211N_HT
 	//n mode ra_bitmap
 	if(psta_ht->ht_option) 
 	{
@@ -525,7 +530,7 @@ static void add_RATid(_adapter *padapter, struct sta_info *psta)
 		//max short GI rate
 		shortGIrate = psta_ht->sgi;
 	}
-
+#endif //CONFIG_80211N_HT
 
 #if 0//gtest
 	if(get_rf_mimo_mode(padapter) == RTL8712_RF_2T2R)
@@ -661,6 +666,8 @@ static void add_RATid(_adapter *padapter, struct sta_info *psta)
 			sta_band |= WIRELESS_11B;
 	}
 
+	psta->wireless_mode = sta_band;
+
 	raid = networktype_to_raid(sta_band);	
 	init_rate = get_highest_rate_idx(tx_ra_bitmap&0x0fffffff)&0x3f;
 	
@@ -684,7 +691,8 @@ static void add_RATid(_adapter *padapter, struct sta_info *psta)
 		//bitmap[28:31]= Rate Adaptive id
 		//arg[0:4] = macid
 		//arg[5] = Short GI
-		rtw_hal_add_ra_tid(padapter, tx_ra_bitmap, arg);
+		rtw_hal_add_ra_tid(padapter, tx_ra_bitmap, arg, rssi_level);
+		
 
 		if (shortGIrate==_TRUE)
 			init_rate |= BIT(6);
@@ -718,8 +726,10 @@ static void update_bmc_sta(_adapter *padapter)
 		//psta->mac_id = psta->aid+4;	
 		psta->mac_id = psta->aid + 1;
 
-		psta->qos_option = 0;		
+		psta->qos_option = 0;
+#ifdef CONFIG_80211N_HT	
 		psta->htpriv.ht_option = _FALSE;
+#endif //CONFIG_80211N_HT
 
 		psta->ieee8021x_blocked = 0;
 
@@ -781,7 +791,7 @@ static void update_bmc_sta(_adapter *padapter)
 			//bitmap[28:31]= Rate Adaptive id
 			//arg[0:4] = macid
 			//arg[5] = Short GI
-			rtw_hal_add_ra_tid(padapter, tx_ra_bitmap, arg);			
+			rtw_hal_add_ra_tid(padapter, tx_ra_bitmap, arg, 0);			
 		
 		}
 
@@ -814,9 +824,10 @@ void update_sta_info_apmode(_adapter *padapter, struct sta_info *psta)
 	struct mlme_priv *pmlmepriv = &(padapter->mlmepriv);
 	struct security_priv *psecuritypriv = &padapter->securitypriv;
 	struct mlme_ext_priv	*pmlmeext = &(padapter->mlmeextpriv);
+#ifdef CONFIG_80211N_HT
 	struct ht_priv	*phtpriv_ap = &pmlmepriv->htpriv;
 	struct ht_priv	*phtpriv_sta = &psta->htpriv;
-	
+#endif //CONFIG_80211N_HT
 	//set intf_tag to if1
 	//psta->intf_tag = 0;
 
@@ -837,7 +848,7 @@ void update_sta_info_apmode(_adapter *padapter, struct sta_info *psta)
 	
 	//ERP
 	VCS_update(padapter, psta);
-		
+#ifdef CONFIG_80211N_HT	
 	//HT related cap
 	if(phtpriv_sta->ht_option)
 	{
@@ -878,7 +889,7 @@ void update_sta_info_apmode(_adapter *padapter, struct sta_info *psta)
 	send_delba(padapter, 1, psta->hwaddr);// // originator
 	phtpriv_sta->agg_enable_bitmap = 0x0;//reset
 	phtpriv_sta->candidate_tid_bitmap = 0x0;//reset
-	
+#endif //CONFIG_80211N_HT
 
 	//todo: init other variables
 	
@@ -976,16 +987,13 @@ static void start_bss_network(_adapter *padapter, u8 *pbuf)
 	{
 		pmlmeext->bstart_bss = _TRUE;
 	}
-	
-	//udpate capability	
-	update_capinfo(padapter, rtw_get_capability((WLAN_BSSID_EX *)pnetwork));
-	
+
 	//todo: update wmm, ht cap
 	//pmlmeinfo->WMM_enable;
 	//pmlmeinfo->HT_enable;
 	if(pmlmepriv->qospriv.qos_option)
 		pmlmeinfo->WMM_enable = _TRUE;
-
+#ifdef CONFIG_80211N_HT
 	if(pmlmepriv->htpriv.ht_option)
 	{
 		pmlmeinfo->WMM_enable = _TRUE;
@@ -995,6 +1003,7 @@ static void start_bss_network(_adapter *padapter, u8 *pbuf)
 
 		update_hw_ht_param(padapter);
 	}
+#endif //#CONFIG_80211N_HT
 	
 
 	if(pmlmepriv->cur_network.join_res != _TRUE) //setting only at  first time
@@ -1068,7 +1077,7 @@ static void start_bss_network(_adapter *padapter, u8 *pbuf)
 		}	
 	
 	}
-
+#ifdef CONFIG_80211N_HT
 	//set channel, bwmode	
 	p = rtw_get_ie((pnetwork->IEs + sizeof(NDIS_802_11_FIXED_IEs)), _HT_ADD_INFO_IE_, &ie_len, (pnetwork->IELength - sizeof(NDIS_802_11_FIXED_IEs)));
 	if( p && ie_len)
@@ -1101,7 +1110,7 @@ static void start_bss_network(_adapter *padapter, u8 *pbuf)
 		}
 					
 	}
-
+#endif //CONFIG_80211N_HT
 #ifdef CONFIG_DUALMAC_CONCURRENT
 	dc_set_ap_channel_bandwidth(padapter, cur_channel, cur_ch_offset, cur_bwmode);
 #else
@@ -1202,6 +1211,9 @@ static void start_bss_network(_adapter *padapter, u8 *pbuf)
 
 	//update cur_wireless_mode
 	update_wireless_mode(padapter);
+
+	//udpate capability after cur_wireless_mode updated
+	update_capinfo(padapter, rtw_get_capability((WLAN_BSSID_EX *)pnetwork));
 	
 	//let pnetwork_mlmeext == pnetwork_mlme.
 	_rtw_memcpy(pnetwork_mlmeext, pnetwork, pnetwork->Length);
@@ -1514,7 +1526,7 @@ int rtw_check_beacon_data(_adapter *padapter, u8 *pbuf,  int len)
 			}			
 		}		
 	}
-
+#ifdef CONFIG_80211N_HT
 	//parsing HT_CAP_IE
 	p = rtw_get_ie(ie + _BEACON_IE_OFFSET_, _HT_CAPABILITY_IE_, &ie_len, (pbss_network->IELength - _BEACON_IE_OFFSET_));
 	if(p && ie_len>0)
@@ -1541,7 +1553,8 @@ int rtw_check_beacon_data(_adapter *padapter, u8 *pbuf,  int len)
 		{
 			pht_cap->ampdu_params_info |= (IEEE80211_HT_CAP_AMPDU_DENSITY&0x00);	
 		}	
-		
+
+		pht_cap->ampdu_params_info |= (IEEE80211_HT_CAP_AMPDU_FACTOR & 0x03); //set  Max Rx AMPDU size  to 64K
 
 		if(rf_type == RF_1T1R)
 		{			
@@ -1559,7 +1572,7 @@ int rtw_check_beacon_data(_adapter *padapter, u8 *pbuf,  int len)
 	{
 		pHT_info_ie=p;
 	}
-
+#endif //CONFIG_80211N_HT
 	switch(network_type)
 	{
 		case WIRELESS_11B:
@@ -1581,9 +1594,9 @@ int rtw_check_beacon_data(_adapter *padapter, u8 *pbuf,  int len)
 	
 	pmlmepriv->cur_network.network_type = network_type;
 
-
-	pmlmepriv->htpriv.ht_option = _FALSE;
 #ifdef CONFIG_80211N_HT
+	pmlmepriv->htpriv.ht_option = _FALSE;
+
 	if( (psecuritypriv->wpa2_pairwise_cipher&WPA_CIPHER_TKIP) ||
 		      (psecuritypriv->wpa_pairwise_cipher&WPA_CIPHER_TKIP))
 	{	
@@ -2428,7 +2441,7 @@ u8 ap_free_sta(_adapter *padapter, struct sta_info *psta)
 	if(!psta)
 		return beacon_updated;
 
-
+#ifdef CONFIG_80211N_HT
 	//tear down Rx AMPDU
 	send_delba(padapter, 0, psta->hwaddr);// recipient
 	
@@ -2436,7 +2449,7 @@ u8 ap_free_sta(_adapter *padapter, struct sta_info *psta)
 	send_delba(padapter, 1, psta->hwaddr);// // originator
 	psta->htpriv.agg_enable_bitmap = 0x0;//reset
 	psta->htpriv.candidate_tid_bitmap = 0x0;//reset
-
+#endif //CONFIG_80211N_HT
 
 	issue_deauth(padapter, psta->hwaddr, WLAN_REASON_DEAUTH_LEAVING);
 
@@ -2576,7 +2589,7 @@ void ap_sta_info_defer_update(_adapter *padapter, struct sta_info *psta)
 	if(psta->state & _FW_LINKED)
 	{	
 		//add ratid
-		add_RATid(padapter, psta);
+		add_RATid(padapter, psta, 0);//DM_RATR_STA_INIT
 	}	
 }
 
@@ -2600,9 +2613,9 @@ void start_ap_mode(_adapter *padapter)
 	pmlmepriv->num_sta_no_short_preamble = 0;
 
 	pmlmepriv->num_sta_ht_no_gf = 0;
-
+#ifdef CONFIG_80211N_HT
 	pmlmepriv->num_sta_no_ht = 0;
-	
+#endif //CONFIG_80211N_HT
 	pmlmepriv->num_sta_ht_20mhz = 0;
 
 	pmlmepriv->olbc = _FALSE;

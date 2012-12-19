@@ -782,53 +782,6 @@ _InitQueueReservedPage(
 	rtw_write32(Adapter, REG_RQPN, value32);	
 }
 
-static void _InitID(IN  PADAPTER Adapter)
-{
-	int i;	 
-	EEPROM_EFUSE_PRIV *pEEPROM = GET_EEPROM_EFUSE_PRIV(Adapter);
-	
-	for(i=0; i<6; i++)
-	{
-#ifdef  CONFIG_CONCURRENT_MODE
-		if(Adapter->iface_type == IFACE_PORT1)
-			rtw_write8(Adapter, (REG_MACID1+i), pEEPROM->mac_addr[i]);		 	
-		else 
-#endif
-		rtw_write8(Adapter, (REG_MACID+i), pEEPROM->mac_addr[i]);		 	
-	}
-
-/*
-	NicIFSetMacAddress(Adapter, Adapter->PermanentAddress);
-	//Ziv test
-#if 1
-	{
-		u1Byte sMacAddr[6] = {0};
-		u4Byte i;
-		
-		for(i = 0 ; i < MAC_ADDR_LEN ; i++){
-			sMacAddr[i] = PlatformIORead1Byte(Adapter, (REG_MACID + i));
-		}
-		RT_PRINT_ADDR(COMP_INIT|COMP_EFUSE, DBG_LOUD, "Read back MAC Addr: ", sMacAddr);
-	}
-#endif
-
-#if 0
-	u4Byte nMAR 	= 0xFFFFFFFF;
-	u8 m_MacID[] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06};
-	u8 m_BSSID[] = {0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
-	int i;
-	
-	_SetMacID(Adapter, Adapter->PermanentAddress);
-	_SetBSSID(Adapter, m_BSSID);
-
-	//set MAR
-	PlatformIOWrite4Byte(Adapter, REG_MAR, nMAR);
-	PlatformIOWrite4Byte(Adapter, REG_MAR+4, nMAR);
-#endif
-*/
-}
-
-
 static VOID
 _InitTxBufferBoundary(
 	IN  PADAPTER Adapter
@@ -1104,7 +1057,10 @@ _InitWMACSetting(
 	HAL_DATA_TYPE	*pHalData = GET_HAL_DATA(Adapter);
 
 	//pHalData->ReceiveConfig = AAP | APM | AM | AB | APP_ICV | ADF | AMF | APP_FCS | HTC_LOC_CTRL | APP_MIC | APP_PHYSTS;
-	pHalData->ReceiveConfig = RCR_AAP | RCR_APM | RCR_AM | RCR_AB |RCR_CBSSID_DATA| RCR_CBSSID_BCN| RCR_APP_ICV | RCR_AMF | RCR_HTC_LOC_CTRL | RCR_APP_MIC | RCR_APP_PHYSTS;
+	//pHalData->ReceiveConfig = RCR_AAP | RCR_APM | RCR_AM | RCR_AB |RCR_CBSSID_DATA| RCR_CBSSID_BCN| RCR_APP_ICV | RCR_AMF | RCR_HTC_LOC_CTRL | RCR_APP_MIC | RCR_APP_PHYSTS;
+	// don't turn on AAP, it will allow all packets to driver
+	pHalData->ReceiveConfig = RCR_APM | RCR_AM | RCR_AB |RCR_CBSSID_DATA| RCR_CBSSID_BCN| RCR_APP_ICV | RCR_AMF | RCR_HTC_LOC_CTRL | RCR_APP_MIC | RCR_APP_PHYSTS;
+	
 #if (0 == RTL8192C_RX_PACKET_NO_INCLUDE_CRC)
 	pHalData->ReceiveConfig |= ACRC32;
 #endif
@@ -2101,7 +2057,7 @@ HAL_INIT_PROFILE_TAG(HAL_INIT_STAGES_MISC02);
 	_InitDriverInfoSize(Adapter, DRVINFO_SZ);
 
 	_InitInterrupt(Adapter);
-	_InitID(Adapter);//set mac_address
+	hal_init_macaddr(Adapter);//set mac_address
 	_InitNetworkType(Adapter);//set msr	
 	_InitWMACSetting(Adapter);
 	_InitAdaptiveCtrl(Adapter);
@@ -2399,22 +2355,6 @@ HAL_INIT_PROFILE_TAG(HAL_INIT_STAGES_MISC31);
 
 	rtw_write16(Adapter, REG_BCN_CTRL, 0x1818);	// For 2 PORT TSF SYNC
 
-	//misc
-	{
-		int i;		
-		u8 mac_addr[6];
-		for(i=0; i<6; i++)
-		{			
-#ifdef CONFIG_CONCURRENT_MODE
-			if(Adapter->iface_type == IFACE_PORT1)
-				mac_addr[i] = rtw_read8(Adapter, REG_MACID1+i);
-			else
-#endif
-			mac_addr[i] = rtw_read8(Adapter, REG_MACID+i);		
-		}
-		
-		DBG_8192C("MAC Address from REG_MACID = "MAC_FMT"\n", MAC_ARG(mac_addr));
-	}
 
 exit:
 HAL_INIT_PROFILE_TAG(HAL_INIT_STAGES_END);
@@ -4987,7 +4927,7 @@ _func_enter_;
 		case HW_VAR_SET_OPMODE:
 			hw_var_set_opmode(Adapter, variable, val);
 			break;
-                case HW_VAR_MAC_ADDR:
+		case HW_VAR_MAC_ADDR:
 			hw_var_set_macaddr(Adapter, variable, val);			
 			break;
 		case HW_VAR_BSSID:
@@ -5018,6 +4958,7 @@ _func_enter_;
 				// Set RRSR rate table.
 				rtw_write8(Adapter, REG_RRSR, BrateCfg&0xff);
 				rtw_write8(Adapter, REG_RRSR+1, (BrateCfg>>8)&0xff);
+				rtw_write8(Adapter, REG_RRSR+2, rtw_read8(Adapter, REG_RRSR+2)&0xf0);
 
 				// Set RTS initial rate
 				while(BrateCfg > 0x1)
@@ -5155,6 +5096,16 @@ _func_enter_;
 			}
 #endif
 			break;
+
+		case HW_VAR_ON_RCR_AM:
+			rtw_write32(Adapter, REG_RCR, rtw_read32(Adapter, REG_RCR)|RCR_AM);
+			DBG_871X("%s, %d, RCR= %x \n", __FUNCTION__,__LINE__, rtw_read32(Adapter, REG_RCR));
+			break;
+		case HW_VAR_OFF_RCR_AM:
+			rtw_write32(Adapter, REG_RCR, rtw_read32(Adapter, REG_RCR)& (~RCR_AM));
+			DBG_871X("%s, %d, RCR= %x \n", __FUNCTION__,__LINE__, rtw_read32(Adapter, REG_RCR));
+			break;
+
 		case HW_VAR_BEACON_INTERVAL:
 			rtw_write16(Adapter, REG_BCN_INTERVAL, *((u16 *)val));
 			break;
@@ -5213,8 +5164,8 @@ _func_enter_;
 				u8	regTmp;
 				u8	bShortPreamble = *( (PBOOLEAN)val );
 				// Joseph marked out for Netgear 3500 TKIP channel 7 issue.(Temporarily)
-				//regTmp = (pHalData->nCur40MhzPrimeSC)<<5;
-				regTmp = 0;
+				regTmp = (pHalData->nCur40MhzPrimeSC)<<5;
+				//regTmp = 0;
 				if(bShortPreamble)
 					regTmp |= 0x80;
 
@@ -5944,6 +5895,7 @@ void _update_response_rate(_adapter *padapter,unsigned int mask)
 	// Set RRSR rate table.
 	rtw_write8(padapter, REG_RRSR, mask&0xff);
 	rtw_write8(padapter,REG_RRSR+1, (mask>>8)&0xff);
+	
 
 	// Set RTS initial rate
 	while(mask > 0x1)

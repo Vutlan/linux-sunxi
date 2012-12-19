@@ -403,7 +403,32 @@ extern void rtl871x_cedbg(const char *fmt, ...);
 
 	int proc_set_rx_signal(struct file *file, const char *buffer,
 		unsigned long count, void *data);
+#ifdef CONFIG_80211N_HT
+	int proc_get_cbw40_enable(char *page, char **start,
+			  off_t offset, int count,
+			  int *eof, void *data);
 
+	int proc_set_cbw40_enable(struct file *file, const char *buffer,
+		unsigned long count, void *data);
+	
+	int proc_get_ampdu_enable(char *page, char **start,
+			  off_t offset, int count,
+			  int *eof, void *data);
+			  
+	int proc_set_ampdu_enable(struct file *file, const char *buffer,
+		unsigned long count, void *data);
+	
+	int proc_get_rx_stbc(char *page, char **start,
+			  off_t offset, int count,
+			  int *eof, void *data);
+		
+	int proc_set_rx_stbc(struct file *file, const char *buffer,
+		unsigned long count, void *data);
+#endif //CONFIG_80211N_HT
+
+	int proc_get_two_path_rssi(char *page, char **start,
+			  off_t offset, int count,
+			  int *eof, void *data);
 
 	int proc_get_rssi_disp(char *page, char **start,
 			  off_t offset, int count,
@@ -412,7 +437,15 @@ extern void rtl871x_cedbg(const char *fmt, ...);
 	int proc_set_rssi_disp(struct file *file, const char *buffer,
 		unsigned long count, void *data);
 
+#ifdef CONFIG_BT_COEXIST
+	int proc_get_btcoex_dbg(char *page, char **start,
+			  off_t offset, int count,
+			  int *eof, void *data);
 
+	int proc_set_btcoex_dbg(struct file *file, const char *buffer,
+		unsigned long count, void *data);
+
+#endif //CONFIG_BT_COEXIST
 #endif //CONFIG_PROC_DEBUG
 
 #endif	//__RTW_DEBUG_H__

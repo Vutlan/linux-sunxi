@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright(c) 2007 - 2011 Realtek Corporation. All rights reserved.
+ * Copyright(c) 2007 - 2012 Realtek Corporation. All rights reserved.
  *                                        
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of version 2 of the GNU General Public License as
@@ -120,8 +120,14 @@ _func_enter_;
 			RT_TRACE(_module_rtl871x_ioctl_set_c_,_drv_info_,("rtw_do_join(): site survey if scanned_queue is empty\n."));
 			// submit site_survey_cmd
 			if(_SUCCESS!=(ret=rtw_sitesurvey_cmd(padapter, &pmlmepriv->assoc_ssid, 1)) ) {
+				pmlmepriv->to_join = _FALSE;
 				RT_TRACE(_module_rtl871x_ioctl_set_c_,_drv_err_,("rtw_do_join(): site survey return error\n."));
 			}
+		}
+		else
+		{
+			pmlmepriv->to_join = _FALSE;
+			ret = _FAIL;
 		}
 		
 		goto exit;
@@ -134,12 +140,6 @@ _func_enter_;
 		{
 			pmlmepriv->to_join = _FALSE;
 			_set_timer(&pmlmepriv->assoc_timer, MAX_JOIN_TIMEOUT);
-		}
-		else if(ret == 2)//there is no need to wait for join
-		{
-			ret = _SUCCESS;
-			clr_fwstate(pmlmepriv, _FW_UNDER_LINKING);
-			rtw_indicate_connect(padapter);
 		}
 		else	
 		{
@@ -203,11 +203,15 @@ _func_enter_;
 				{
 					//DBG_871X("rtw_do_join() when   no desired bss in scanning queue \n");
 					if( _SUCCESS!=(ret=rtw_sitesurvey_cmd(padapter, &pmlmepriv->assoc_ssid, 1)) ){
+						pmlmepriv->to_join = _FALSE;
 						RT_TRACE(_module_rtl871x_ioctl_set_c_,_drv_err_,("do_join(): site survey return error\n."));
 					}
 				}				
-
-
+				else
+				{
+					ret = _FAIL;
+					pmlmepriv->to_join = _FALSE;
+				}
 			}
 
 		}
@@ -681,7 +685,8 @@ _func_enter_;
 
 		rtw_disassoc_cmd(padapter);		
 		rtw_indicate_disconnect(padapter);
-		rtw_free_assoc_resources(padapter, 1);			
+		rtw_free_assoc_resources(padapter, 1);	
+		rtw_pwr_wakeup(padapter);		
 	}
 
 	_exit_critical_bh(&pmlmepriv->lock, &irqL);
@@ -1366,6 +1371,7 @@ u16 rtw_get_cur_max_rate(_adapter *adapter)
 
 	if(ht_cap == _TRUE)
 	{
+#ifdef CONFIG_80211N_HT
 		rtw_hal_get_hwreg(adapter, HW_VAR_RF_TYPE, (u8 *)(&rf_type));
 		max_rate = rtw_mcs_rate(
 			rf_type,
@@ -1374,6 +1380,7 @@ u16 rtw_get_cur_max_rate(_adapter *adapter)
 			short_GI_40,
 			pmlmeinfo->HT_caps.u.HT_cap_element.MCS_rate
 		);
+#endif //CONFIG_80211N_HT
 	}
 	else
 	{

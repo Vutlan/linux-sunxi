@@ -295,14 +295,30 @@ void	rtw_hal_free_recv_priv(_adapter *padapter)
 
 void rtw_hal_update_ra_mask(_adapter *padapter, u32 mac_id, u8 rssi_level)
 {
-	if(padapter->HalFunc.UpdateRAMaskHandler)
-		padapter->HalFunc.UpdateRAMaskHandler(padapter,mac_id,rssi_level);
+	struct mlme_priv *pmlmepriv = &(padapter->mlmepriv);
+
+	if(check_fwstate(pmlmepriv, WIFI_AP_STATE) == _TRUE)
+	{
+		struct sta_info *psta = NULL;
+		struct sta_priv *pstapriv = &padapter->stapriv;		
+#ifdef CONFIG_NATIVEAP_MLME	
+		if((mac_id-1)>0)
+			psta = pstapriv->sta_aid[(mac_id-1) - 1];	
+#endif
+		if(psta)
+			add_RATid(padapter, psta, 0);//todo: based on rssi_level
+	}
+	else
+	{	
+		if(padapter->HalFunc.UpdateRAMaskHandler)
+			padapter->HalFunc.UpdateRAMaskHandler(padapter,mac_id,rssi_level);
+	}	
 }
 
-void	rtw_hal_add_ra_tid(_adapter *padapter, u32 bitmap, u8 arg)
+void	rtw_hal_add_ra_tid(_adapter *padapter, u32 bitmap, u8 arg, u8 rssi_level)
 {
 	if(padapter->HalFunc.Add_RateATid)
-		padapter->HalFunc.Add_RateATid(padapter, bitmap, arg);
+		padapter->HalFunc.Add_RateATid(padapter, bitmap, arg, rssi_level);
 }
 #ifdef CONFIG_CONCURRENT_MODE	
 void	rtw_hal_clone_data(_adapter *dst_padapter, _adapter *src_padapter)
@@ -371,6 +387,10 @@ void	rtw_hal_set_chan(_adapter *padapter, u8 channel)
 
 void	rtw_hal_dm_watchdog(_adapter *padapter)
 {
+#if defined(CONFIG_CONCURRENT_MODE)
+	if (padapter->adapter_type != PRIMARY_ADAPTER)
+		return;
+#endif	
 	if(padapter->HalFunc.hal_dm_watchdog)
 		padapter->HalFunc.hal_dm_watchdog(padapter);
 }
@@ -475,5 +495,13 @@ void rtw_hal_reset_security_engine(_adapter * adapter)
 {
 	if(adapter->HalFunc.hal_reset_security_engine)
 		adapter->HalFunc.hal_reset_security_engine(adapter);
+}
+
+s32 rtw_hal_c2h_handler(_adapter *adapter, struct c2h_evt_hdr *c2h_evt)
+{
+	s32 ret = _FAIL;
+	if (adapter->HalFunc.c2h_handler)
+		ret = adapter->HalFunc.c2h_handler(adapter, c2h_evt);
+	return ret;
 }
 
