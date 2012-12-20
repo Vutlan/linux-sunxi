@@ -27,11 +27,6 @@
 #include <mach/sunxi_dump_reg.h>
 
 #define ADD_MISC_DRIVER		/* add misc driver, for open("/sys/class/...") call */
-#define USE_VIRT_ADDR		/* pass virt addr from user space, 2012-12-19 */
-
-#ifdef USE_VIRT_ADDR
-#define IO_ADDRESS(x)	x
-#endif /* USE_VIRT_ADDR */
 
 typedef struct __dump_struct {
 	u32 	st_addr;	/* start reg addr */
@@ -55,20 +50,18 @@ struct write_group *misc_wt_group = NULL;
  */
 bool __addr_valid(u32 addr)
 {
-#ifdef USE_VIRT_ADDR
-	/* assume addr from user always ok */
-	return true;
-#else
-	if(addr >= AW_IO_PHYS_BASE && addr < AW_IO_PHYS_BASE + AW_IO_SIZE)
+	if(addr >= IO_ADDRESS(AW_IO_PHYS_BASE) && addr < IO_ADDRESS(AW_IO_PHYS_BASE) + AW_IO_SIZE)
 		return true;
-	if(addr >= AW_SRAM_A1_BASE && addr < AW_SRAM_A1_BASE + AW_SRAM_A1_SIZE)
+	if(addr >= IO_ADDRESS(AW_SRAM_A1_BASE) && addr < IO_ADDRESS(AW_SRAM_A1_BASE) + AW_SRAM_A1_SIZE)
 		return true;
-	if(addr >= AW_SRAM_A2_BASE && addr < AW_SRAM_A2_BASE + AW_SRAM_A2_SIZE)
+	if(addr >= IO_ADDRESS(AW_SRAM_A2_BASE) && addr < IO_ADDRESS(AW_SRAM_A2_BASE) + AW_SRAM_A2_SIZE)
 		return true;
-	if(addr >= AW_BROM_BASE && addr < AW_BROM_BASE + AW_BROM_SIZE)
+	if(addr >= IO_ADDRESS(AW_BROM_BASE) && addr < IO_ADDRESS(AW_BROM_BASE) + AW_BROM_SIZE)
+		return true;
+	/* only support low memory */
+	if(addr >= (u32)phys_to_virt(PLAT_PHYS_OFFSET) && addr < (u32)phys_to_virt(PLAT_PHYS_OFFSET + SZ_1G - SZ_128M))
 		return true;
 	return false;
-#endif /* USE_VIRT_ADDR */
 }
 
 /**
@@ -149,8 +142,8 @@ ssize_t __sunxi_dump_regs_ex(u32 start_reg, u32 end_reg, char *buf)
 	}
 	/* only one to dump */
 	if(start_reg == end_reg)
-		//return sprintf(buf, "0x%08x: 0x%08x\n", start_reg, readl(IO_ADDRESS(start_reg)));
-		return sprintf(buf, "0x%08x\n", readl(IO_ADDRESS(start_reg))); /* for open("/sys/class/...") app call */
+		//return sprintf(buf, "0x%08x: 0x%08x\n", start_reg, readl(start_reg));
+		return sprintf(buf, "0x%08x\n", readl(start_reg)); /* for open("/sys/class/...") app call */
 
 	first_addr = start_reg & (~0xf);
 	end_addr   = (end_reg   & (~0xf)) + 0xf;
@@ -159,7 +152,7 @@ ssize_t __sunxi_dump_regs_ex(u32 start_reg, u32 end_reg, char *buf)
 		if(i < start_reg || i > end_reg)
 			cnt += sprintf(buf + cnt, "           "); /* "0x12345678 ", 11 space*/
 		else
-			cnt += sprintf(buf + cnt, "0x%08x ", readl(IO_ADDRESS(i)));
+			cnt += sprintf(buf + cnt, "0x%08x ", readl(i));
 
 		if((i & 0xc) == 0xc) {
 			cnt += sprintf(buf + cnt, "\n");
@@ -352,7 +345,7 @@ ssize_t __sunxi_compare_regs_ex(struct compare_group *pgroup, char *buf)
 	for(i = 0; i < pgroup->num; i++) {
 		reg    = pgroup->pitem[i].reg_addr;
 		expect = pgroup->pitem[i].val_expect;
-		actual = readl(IO_ADDRESS(reg));
+		actual = readl(reg);
 		mask   = pgroup->pitem[i].val_mask;
 		if((actual & mask) == (expect & mask))
 			cnt += sprintf(buf + cnt, "0x%08x  0x%08x  0x%08x  0x%08x  OK\n", reg, expect, actual, mask);
@@ -516,7 +509,7 @@ ssize_t __sunxi_write_show(struct write_group *pgroup, char *buf)
 	for(i = 0; i < pgroup->num; i++) {
 		reg    	= pgroup->pitem[i].reg_addr;
 		val 	= pgroup->pitem[i].val;
-		red_addrdback = readl(IO_ADDRESS(reg));
+		red_addrdback = readl(reg);
 		cnt += sprintf(buf + cnt, "0x%08x  0x%08x  0x%08x\n", reg, val, red_addrdback);
 	}
 end:
@@ -555,7 +548,7 @@ ssize_t write_store(struct class *class, struct class_attribute *attr,
 	for(i = 0; i < wt_group->num; i++) {
 		reg    	= wt_group->pitem[i].reg_addr;
 		val 	= wt_group->pitem[i].val;
-		writel(val, IO_ADDRESS(reg));
+		writel(val, reg);
 	}
 
 	return size;
@@ -601,8 +594,8 @@ void sunxi_write_regs(struct write_group *pgroup)
 	for(i = 0; i < pgroup->num; i++) {
 		reg    	= pgroup->pitem[i].reg_addr;
 		val 	= pgroup->pitem[i].val;
-		writel(val, IO_ADDRESS(reg));
-		red_addrdback = readl(IO_ADDRESS(reg));
+		writel(val, reg);
+		red_addrdback = readl(reg);
 		printk("0x%08x  0x%08x  0x%08x\n", reg, val, red_addrdback);
 	}
 }
@@ -621,7 +614,7 @@ void sunxi_compare_regs(struct compare_group *pgroup)
 	for(i = 0; i < pgroup->num; i++) {
 		reg    = pgroup->pitem[i].reg_addr;
 		expect = pgroup->pitem[i].val_expect;
-		actual = readl(IO_ADDRESS(reg));
+		actual = readl(reg);
 		mask   = pgroup->pitem[i].val_mask;
 		if((actual & mask) == (expect & mask))
 			printk("0x%08x  0x%08x  0x%08x  0x%08x  OK\n", reg, expect, actual, mask);
@@ -642,7 +635,7 @@ void sunxi_dump_regs(u32 start_reg, u32 end_reg)
 	u32 	first_addr = 0, end_addr = 0;
 
 	if(start_reg == end_reg) { /* only one to dump */
-		printk("0x%08x: 0x%08x\n", start_reg, readl(IO_ADDRESS(start_reg)));
+		printk("0x%08x: 0x%08x\n", start_reg, readl(start_reg));
 		return;
 	}
 
@@ -655,7 +648,7 @@ void sunxi_dump_regs(u32 start_reg, u32 end_reg)
 		if(i < start_reg || i > end_reg)
 			printk("           "); /* "0x12345678 ", 11 space*/
 		else
-			printk("0x%08x ", readl(IO_ADDRESS(i)));
+			printk("0x%08x ", readl(i));
 
 		if((i & 0xc) == 0xc) {
 			printk("\n");
@@ -733,7 +726,7 @@ static ssize_t misc_write_store(struct device *dev,struct device_attribute *attr
 	for(i = 0; i < misc_wt_group->num; i++) {
 		reg    	= misc_wt_group->pitem[i].reg_addr;
 		val 	= misc_wt_group->pitem[i].val;
-		writel(val, IO_ADDRESS(reg));
+		writel(val, reg);
 	}
 
 	return size;
