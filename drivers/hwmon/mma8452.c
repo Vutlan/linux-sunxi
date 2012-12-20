@@ -257,7 +257,10 @@ static ssize_t mma8452_enable_store(struct device *dev,
 		goto exit;
 	}
 
+	dprintk(DEBUG_BASE_LEVEL0, "========%s===================\n", __func__);
+
 	if(data) {
+		mma_status.ctl_reg1 |= 0x01;
 		error = i2c_smbus_write_byte_data(mma8452_i2c_client, MMA8452_CTRL_REG1, mma_status.ctl_reg1);
 		assert(error==0);
 	} else {
