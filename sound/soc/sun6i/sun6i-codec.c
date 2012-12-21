@@ -332,8 +332,8 @@ static  void codec_init(void)
 	codec_wr_control(SUN6I_ADDAC_TUNE, 0x1, PA_SLOPE_SECECT, 0x1);
 	/*enable pa*/
 	codec_wr_control(SUN6I_PA_CTRL, 0x1, HPPAEN, 0x1);
-	/*set HPCOM control as direct driver for HPL & HPR*/
-	codec_wr_control(SUN6I_PA_CTRL, 0x3, HPCOM_CTL, 0x3);
+	/*set HPCOM control as direct driver for floating*/
+	codec_wr_control(SUN6I_PA_CTRL, 0x3, HPCOM_CTL, 0x0);
 
 	/*when TX FIFO available room less than or equal N,
 	* DRQ Requeest will be de-asserted.
@@ -351,6 +351,16 @@ static  void codec_init(void)
 
 static int codec_pa_play_open(void)
 {
+	int pa_vol = 0;
+	script_item_u val;
+	script_item_value_type_e  type;
+
+	type = script_get_item("audio_para", "pa_vol", &val);
+	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+        printk("[audiocodec] type err!\n");
+    }
+	pa_vol = val.val;
+
 	/*mute l_pa and r_pa*/
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPPA_MUTE, 0x0);
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPPA_MUTE, 0x0);
@@ -378,7 +388,7 @@ static int codec_pa_play_open(void)
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPIS, 0x1);
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPIS, 0x1);
 
-	codec_wr_control(SUN6I_MIC_CTRL, 0x1f, LINEOUT_VOL, 0x1f);
+	codec_wr_control(SUN6I_MIC_CTRL, 0x1f, LINEOUT_VOL, pa_vol);
 
 	codec_wr_control(SUN6I_DAC_ACTL, 0x7f, RMIXMUTE, 0x2);
 	codec_wr_control(SUN6I_DAC_ACTL, 0x7f, LMIXMUTE, 0x2);
@@ -386,12 +396,13 @@ static int codec_pa_play_open(void)
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, LMIXEN, 0x1);
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, RMIXEN, 0x1);
 
+	mdelay(3);
 	item.gpio.data = 1;
 	/*config gpio info of audio_pa_ctrl open*/
 	if (0 != sw_gpio_setall_range(&item.gpio, 1)) {
 		printk("sw_gpio_setall_range failed\n");
 	}
-	mdelay(65);
+	mdelay(62);
 	return 0;
 }
 
@@ -432,28 +443,38 @@ static int codec_earphone_play_open(void)
 
 static int codec_capture_open(void)
 {
-	 /*enable mic1 pa*/
-	 codec_wr_control(SUN6I_MIC_CTRL, 0x1, MIC1AMPEN, 0x1);
-	 /*mic1 gain 30dB，if capture volume is too small, enlarge the mic1booost*/
-	 codec_wr_control(SUN6I_MIC_CTRL, 0x7,MIC1BOOST,0x5);//36db
-	 /*enable Master microphone bias*/
-	 codec_wr_control(SUN6I_MIC_CTRL, 0x1, MBIASEN, 0x1);
+	int cap_vol = 0;
+	script_item_u val;
+	script_item_value_type_e  type;
 
-	 /*enable Right MIC1 Boost stage*/
-	 codec_wr_control(SUN6I_ADC_ACTL, 0x7f, RADCMIXMUTE, 0x40);//移到外部控制	 
-	 /*enable Left MIC1 Boost stage*/
-	 codec_wr_control(SUN6I_ADC_ACTL, 0x7f, LADCMIXMUTE, 0x40);//移到外部控制
-	 /*enable adc_r adc_l analog*/
-	 codec_wr_control(SUN6I_ADC_ACTL, 0x1,  ADCREN, 0x1);////移到外部控制
-	 codec_wr_control(SUN6I_ADC_ACTL, 0x1,  ADCLEN, 0x1);////移到外部控制
-	 /*set RX FIFO mode*/
-	 codec_wr_control(SUN6I_ADC_FIFOC, 0x1, RX_FIFO_MODE, 0x1);
-	 /*set RX FIFO rec drq level*/
-	 codec_wr_control(SUN6I_ADC_FIFOC, 0x1f, RX_TRI_LEVEL, 0xf);
-	 /*enable adc digital part*/
-	 codec_wr_control(SUN6I_ADC_FIFOC, 0x1,ADC_EN, 0x1);
+	type = script_get_item("audio_para", "cap_vol", &val);
+	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+        printk("[audiocodec] type err!\n");
+    }
+	cap_vol = val.val;
 
-	 return 0;
+	/*enable mic1 pa*/
+	codec_wr_control(SUN6I_MIC_CTRL, 0x1, MIC1AMPEN, 0x1);
+	/*mic1 gain 30dB，if capture volume is too small, enlarge the mic1booost*/
+	codec_wr_control(SUN6I_MIC_CTRL, 0x7,MIC1BOOST,cap_vol);//36db
+	/*enable Master microphone bias*/
+	codec_wr_control(SUN6I_MIC_CTRL, 0x1, MBIASEN, 0x1);
+
+	/*enable Right MIC1 Boost stage*/
+	codec_wr_control(SUN6I_ADC_ACTL, 0x7f, RADCMIXMUTE, 0x40);
+	/*enable Left MIC1 Boost stage*/
+	codec_wr_control(SUN6I_ADC_ACTL, 0x7f, LADCMIXMUTE, 0x40);
+	/*enable adc_r adc_l analog*/
+	codec_wr_control(SUN6I_ADC_ACTL, 0x1,  ADCREN, 0x1);
+	codec_wr_control(SUN6I_ADC_ACTL, 0x1,  ADCLEN, 0x1);
+	/*set RX FIFO mode*/
+	codec_wr_control(SUN6I_ADC_FIFOC, 0x1, RX_FIFO_MODE, 0x1);
+	/*set RX FIFO rec drq level*/
+	codec_wr_control(SUN6I_ADC_FIFOC, 0x1f, RX_TRI_LEVEL, 0xf);
+	/*enable adc digital part*/
+	codec_wr_control(SUN6I_ADC_FIFOC, 0x1,ADC_EN, 0x1);
+
+	return 0;
 }
 
 static int codec_play_start(void)
@@ -511,12 +532,12 @@ static int codec_capture_stop(void)
 	/*disable adc drq*/
 	codec_wr_control(SUN6I_ADC_FIFOC ,0x1, ADC_DRQ, 0x0);	
 	/*disable mic1 pa*/
-	codec_wr_control(SUN6I_MIC_CTRL, 0x1, MIC1AMPEN, 0x0);//移到外部控制	 
+	codec_wr_control(SUN6I_MIC_CTRL, 0x1, MIC1AMPEN, 0x0);
 	/*disable Master microphone bias*/
-	codec_wr_control(SUN6I_MIC_CTRL, 0x1, MBIASEN, 0x0);//移到外部控制
+	codec_wr_control(SUN6I_MIC_CTRL, 0x1, MBIASEN, 0x0);
 	/*disable adc_r adc_l analog*/
-	codec_wr_control(SUN6I_ADC_ACTL, 0x1, ADCREN, 0x0);//移到外部控制
-	codec_wr_control(SUN6I_ADC_ACTL, 0x1, ADCLEN, 0x0);//移到外部控制
+	codec_wr_control(SUN6I_ADC_ACTL, 0x1, ADCREN, 0x0);
+	codec_wr_control(SUN6I_ADC_ACTL, 0x1, ADCLEN, 0x0);
 
 	return 0;
 }
@@ -1800,7 +1821,6 @@ static int snd_sun6i_codec_resume(struct platform_device *pdev)
 		codec_wr_control(SUN6I_ADC_FIFOC, 0x1, ADC_FIFO_FLUSH, 0x1);
 	}
 
-	codec_wr_control(SUN6I_MIC_CTRL, 0x1f, LINEOUT_VOL, 0x1f);
 	/*set HPVOL volume*/
 	codec_wr_control(SUN6I_DAC_ACTL, 0x3f, VOLUME, 0x3b);
 	printk("[audio codec]:resume end\n");
