@@ -200,6 +200,11 @@ static __u32 twi_id = 0;
 /* Addresses to scan */
 static const unsigned short normal_i2c[2] = {0x40,I2C_CLIENT_END};
 
+static void glsX680_resume_events(struct work_struct *work);
+struct workqueue_struct *gslX680_wq;
+static DECLARE_WORK(glsX680_resume_work, glsX680_resume_events);
+struct i2c_client *glsX680_i2c;
+
 static int ctp_detect(struct i2c_client *client, struct i2c_board_info *info)
 {
 	struct i2c_adapter *adapter = client->adapter;
@@ -892,6 +897,14 @@ static int gsl_ts_late_resume(struct i2c_client *client)
 }
 #endif
 #endif
+
+static void glsX680_resume_events (struct work_struct *work)
+{
+	gslX680_chip_init();    	
+	init_chip(glsX680_i2c);
+	check_mem_data(glsX680_i2c);
+}
+
 static int __devinit gsl_ts_probe(struct i2c_client *client,
 			const struct i2c_device_id *id)
 {
@@ -909,7 +922,13 @@ static int __devinit gsl_ts_probe(struct i2c_client *client,
 	        printk("allocate data fail!\n");
 		return -ENOMEM;
 	}
-        
+	
+	gslX680_wq = create_singlethread_workqueue("gslX680_resume");
+	if (gslX680_wq == NULL) {
+		printk("create gslX680_wq fail!\n");
+		return -ENOMEM;
+	}
+        glsX680_i2c = client;
 	ts->client = client;
 	ts->device_id = id->driver_data;
 
@@ -922,9 +941,9 @@ static int __devinit gsl_ts_probe(struct i2c_client *client,
 		dev_err(&client->dev, "GSLX680 init failed\n");
 		goto error_mutex_destroy;
 	}
-	gslX680_chip_init();    	
-	init_chip(ts->client);
-	check_mem_data(ts->client);
+	
+	queue_work(gslX680_wq, &glsX680_resume_work);
+	
 	i2c_set_clientdata(ts->client,ts);
 	//rc=  request_irq(client->irq, gsl_ts_irq, IRQF_TRIGGER_RISING | IRQF_SHARED, client->name, ts);
 	int_handle = sw_gpio_irq_request(CTP_IRQ_NUMBER,CTP_IRQ_MODE,(peint_handle)gsl_ts_irq,ts);
