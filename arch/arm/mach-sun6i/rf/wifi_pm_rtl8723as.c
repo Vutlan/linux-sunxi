@@ -192,7 +192,6 @@ static void rtl8723as_standby(int instadby)
 	} else {
 		if (rtk_suspend) {
 			rtl8723as_gpio_ctrl("rtk_rtl8723as_wl_dis", 1);
-			sw_mci_rescan_card(1, 1);
 			rtk_suspend = 0;
 		}
 	}

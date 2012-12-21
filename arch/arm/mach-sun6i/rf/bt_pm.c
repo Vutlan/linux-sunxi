@@ -105,7 +105,7 @@ static void __exit sw_rfkill_exit(void)
     platform_driver_unregister(&sw_rfkill_driver);
 }
 
-module_init(sw_rfkill_init);
+late_initcall(sw_rfkill_init);
 module_exit(sw_rfkill_exit);
 
 MODULE_DESCRIPTION("sunxi-rfkill driver");

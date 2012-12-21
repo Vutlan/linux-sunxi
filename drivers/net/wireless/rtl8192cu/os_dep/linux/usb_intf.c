@@ -1517,6 +1517,7 @@ static int __init rtw_drv_entry(void)
 	}	
 	printk("sw_usb_enable_hcd: usbc_num = %d\n", item.val);	
 	wifi_pm_power(1);
+	mdelay(10);
 	sw_usb_enable_hcd(item.val);
 #endif //CONFIG_RTL8723A	
 #endif //CONFIG_PLATFORM_ARM_SUN4I
@@ -1565,6 +1566,7 @@ static void __exit rtw_drv_halt(void)
 	printk("sw_usb_disable_hcd: usbc_num = %d\n", item.val);
 	sw_usb_disable_hcd(item.val);
 	wifi_pm_power(0);
+	mdelay(100);
 #endif //ifndef CONFIG_RTL8723A	
 #endif	//CONFIG_PLATFORM_ARM_SUN4I
 	DBG_871X("-rtw_drv_halt\n");
