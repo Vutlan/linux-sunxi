@@ -42,15 +42,15 @@
 #elif(FANTASY_DEBUG_LEVEL == 1)
     #define FANTASY_DBG(format,args...)
     #define FANTASY_WRN(format,args...)
-    #define FANTASY_ERR(format,args...)     printk(KERN_WARNING "[fantasy] err "format,##args)
+    #define FANTASY_ERR(format,args...)     printk(KERN_ERR "[fantasy] err "format,##args)
 #elif(FANTASY_DEBUG_LEVEL == 2)
     #define FANTASY_DBG(format,args...)
-    #define FANTASY_WRN(format,args...)     printk(KERN_INFO "[fantasy] wrn "format,##args)
-    #define FANTASY_ERR(format,args...)     printk(KERN_WARNING "[fantasy] err "format,##args)
+    #define FANTASY_WRN(format,args...)     printk(KERN_WARNING "[fantasy] wrn "format,##args)
+    #define FANTASY_ERR(format,args...)     printk(KERN_ERR "[fantasy] err "format,##args)
 #elif(FANTASY_DEBUG_LEVEL == 3)
     #define FANTASY_DBG(format,args...)     printk(KERN_DEBUG "[fantasy] dbg "format,##args)
-    #define FANTASY_WRN(format,args...)     printk(KERN_INFO "[fantasy] wrn "format,##args)
-    #define FANTASY_ERR(format,args...)     printk(KERN_WARNING "[fantasy] err "format,##args)
+    #define FANTASY_WRN(format,args...)     printk(KERN_WARNING "[fantasy] wrn "format,##args)
+    #define FANTASY_ERR(format,args...)     printk(KERN_ERR "[fantasy] err "format,##args)
 #endif
 
 
@@ -777,8 +777,8 @@ static int check_down(void)
 
 #define DECRASE_FREQ_STEP_LIMIT1    (300000)   /* decrase frequency limited to 300Mhz when frequency is [900Mhz, 1008Mhz] */
 #define DECRASE_FREQ_STEP_LIMIT2    (200000)   /* decrase frequency limited to 200Mhz when frequency is [600Mhz,  900Mhz) */
-#define DECRASE_FREQ_STEP_LIMIT3    (100000)   /* decrase frequency limited to 100Mhz when frequency is [300Mhz,  600Mhz) */
-#define DECRASE_FREQ_STEP_LIMIT4    (30000)    /* decrase frequency limited to  20Mhz when frequency is [60Mhz,   200Mhz) */
+#define DECRASE_FREQ_STEP_LIMIT3    (100000)   /* decrase frequency limited to 100Mhz when frequency is [200Mhz,  600Mhz) */
+#define DECRASE_FREQ_STEP_LIMIT4    (20000)    /* decrase frequency limited to  20Mhz when frequency is [60Mhz,   200Mhz) */
 
 static int check_freq_up(struct cpufreq_policy *policy, unsigned int *target)
 {
@@ -905,7 +905,7 @@ static int check_freq_down(struct cpufreq_policy *policy, unsigned int *target)
             freq_target = freq_cur - DECRASE_FREQ_STEP_LIMIT2;
         }
     }
-    else if (freq_cur >= 300000) {
+    else if (freq_cur >= 200000) {
         if(freq_cur - freq_target > DECRASE_FREQ_STEP_LIMIT3){
             freq_target = freq_cur - DECRASE_FREQ_STEP_LIMIT3;
         }
