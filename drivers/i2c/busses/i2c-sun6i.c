@@ -943,7 +943,7 @@ static irqreturn_t sun6i_i2c_handler(int this_irq, void * dev_id)
 	struct sun6i_i2c *i2c = (struct sun6i_i2c *)dev_id;
 
 	if (!twi_query_irq_flag(i2c->base_addr)) {
-		I2C_ERR("unknown interrupt!");
+		I2C_ERR("unknown interrupt!\n");
 		return IRQ_NONE;
 	}
 
@@ -997,7 +997,7 @@ static int sun6i_i2c_xfer(struct i2c_adapter *adap, struct i2c_msg *msgs, int nu
 		return -ENODEV;
 	}
 
-	for (i = adap->retries; i >= 0; i--) {
+	for (i = 1; i <= adap->retries; i++) {
 		ret = sun6i_i2c_do_xfer(i2c, msgs, num);
 
 		if (ret != SUN6I_I2C_RETRY) {
@@ -1072,13 +1072,12 @@ static int sun6i_i2c_do_xfer(struct sun6i_i2c *i2c, struct i2c_msg *msgs, int nu
 	timeout = wait_event_timeout(i2c->wait, i2c->msg_num == 0, i2c->adap.timeout);
 	/* return code,if(msg_idx == num) succeed */
 	ret = i2c->msg_idx;
-
 	if (timeout == 0) {
-		I2C_ERR("[i2c%d] xfer timeout\n", i2c->bus_num);
+		I2C_ERR("[i2c%d] xfer timeout (dev addr:0x%x)\n", i2c->bus_num, msgs->addr);
 		ret = -ETIME;
 	}
 	else if (ret != num) {
-		I2C_ERR("[i2c%d] incomplete xfer (status: 0x%x)\n", i2c->bus_num, ret);
+		I2C_ERR("[i2c%d] incomplete xfer (status: 0x%x, dev addr: 0x%x)\n", i2c->bus_num, ret, msgs->addr);
 		ret = -ECOMM;
 	}
 out:
@@ -1238,7 +1237,7 @@ static int sun6i_i2c_probe(struct platform_device *pdev)
 	strlcpy(i2c->adap.name, "sun6i-i2c", sizeof(i2c->adap.name));
 	i2c->adap.owner   = THIS_MODULE;
 	i2c->adap.nr      = pdata->bus_num;
-	i2c->adap.retries = 2;
+	i2c->adap.retries = 3;
 	i2c->adap.timeout = 5*HZ;
 	i2c->adap.class   = I2C_CLASS_HWMON | I2C_CLASS_SPD;
 	i2c->bus_freq     = pdata->frequency;
@@ -1306,7 +1305,7 @@ static int sun6i_i2c_probe(struct platform_device *pdev)
 
 	ret = i2c_add_numbered_adapter(&i2c->adap);
 	if (ret < 0) {
-		I2C_ERR( "[i2c%d] failed to add bus\n", i2c->bus_num);
+		I2C_ERR( "[i2c%d] failed to add adapter\n", i2c->bus_num);
 		goto eadapt;
 	}
 
@@ -1408,13 +1407,13 @@ static int sun6i_i2c_suspend(struct device *dev)
 	struct sun6i_i2c *i2c = platform_get_drvdata(pdev);
 	int count = 10;
 
-	i2c->suspended = 1;
-
 	while ((i2c->status != I2C_XFER_IDLE) && (count-- > 0)) {
 		I2C_ERR("[i2c%d] suspend while xfer,dev addr = 0x%x\n",
 			i2c->adap.nr, i2c->msg? i2c->msg->addr : 0xff);
 		msleep(100);
 	}
+
+	i2c->suspended = 1;
 
 	if (sun6i_i2c_clk_exit(i2c)) {
 		I2C_ERR("[i2c%d] suspend failed.. \n", i2c->bus_num);
