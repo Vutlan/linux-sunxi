@@ -63,6 +63,34 @@ int pmu_usbcurnew = 0;
 int axp_usbcurflag = 0;
 int axp_usbvolflag = 0;
 
+int axp_chip_id_get(uint8_t chip_id[16])
+{
+	uint8_t ret,i;
+	ret = axp_write(axp_charger->master,0xff,0x01);
+	if(ret)
+	{
+		printk("[axp22x] axp22x write REG_ff fail!");
+	}
+	axp_reads(axp_charger->master,0x20,16,chip_id);
+	if(ret)
+	{
+		printk("[axp22x] axp22x reads REG_12x fail!");
+	}
+	axp_write(axp_charger->master,0xff,0x00);
+	if(ret)
+	{
+		printk("[axp22x] axp22x write REG_ff fail!");
+	}
+#if 0	
+	for(i=0;i<16;i++)
+	{
+		printk("axp22x REG12%x=%x\n",i,chip_id[i]);
+	}
+#endif
+    return ret;
+}
+EXPORT_SYMBOL_GPL(axp_chip_id_get);
+
 int axp_usbvol(void)
 {
 	axp_usbvolflag = 1;
@@ -455,7 +483,7 @@ static int axp_battery_get_property(struct power_supply *psy,
     break;
 */
   case POWER_SUPPLY_PROP_ONLINE:
-    val->intval = (!charger->is_on)&&(charger->bat_det) && (! charger->ext_valid);
+    val->intval = charger->bat_current_direction;
     break;
   case POWER_SUPPLY_PROP_PRESENT:
     val->intval = charger->bat_det;
@@ -1258,12 +1286,14 @@ static void axp_charging_monitor(struct work_struct *work)
 		DBG_PSY_MSG("Axp22 OCV_percentage = %d\n",(temp_val[0] & 0x7f));
 		DBG_PSY_MSG("Axp22 Coulumb_percentage = %d\n",(temp_val[1] & 0x7f));
 		DBG_PSY_MSG("charger->is_on = %d\n",charger->is_on);
+		DBG_PSY_MSG("charger->bat_current_direction = %d\n",charger->bat_current_direction);
 		DBG_PSY_MSG("charger->charge_on = %d\n",charger->charge_on);
 		DBG_PSY_MSG("charger->ext_valid = %d\n",charger->ext_valid);
 		DBG_PSY_MSG("pmu_runtime_chgcur           = %d\n",pmu_runtime_chgcur);
 		DBG_PSY_MSG("pmu_earlysuspend_chgcur   = %d\n",pmu_earlysuspend_chgcur);
 		DBG_PSY_MSG("pmu_suspend_chgcur        = %d\n",pmu_suspend_chgcur);
 		DBG_PSY_MSG("pmu_shutdown_chgcur       = %d\n\n\n",pmu_shutdown_chgcur);
+//		axp_chip_id_get(chip_id);
 	}
 
 	//for test usb detect
@@ -1729,24 +1759,25 @@ static int axp_battery_probe(struct platform_device *pdev)
 
 /* RDC initial */
 	axp_read(charger->master, AXP22_BATCAP0,&val2);
-	if((pmu_battery_rdc) && (!(val2 & 0x80)))		//如果配置电池内阻，则手动配置
+	if((pmu_battery_rdc) && (!(val2 & 0x40)))		//如果配置电池内阻，则手动配置
 	{
 		rdc = (pmu_battery_rdc * 10000 + 5371) / 10742;
-		axp_write(charger->master, AXP22_RDC0, ((rdc >> 8) & 0x1F));
+		axp_write(charger->master, AXP22_RDC0, ((rdc >> 8) & 0x1F)|0x80);
 		axp_write(charger->master,AXP22_RDC1,rdc & 0x00FF);
 	}
 
 //probe 时初始化RDC，使其提前计算正确的OCV，然后在此处启动计量系统
-	if(pmu_battery_cap)
+	axp_read(charger->master,AXP22_BATCAP0,&val2);
+	if((pmu_battery_cap) && (!(val2 & 0x80)))
 	{
 		Cur_CoulombCounter = pmu_battery_cap * 1000 / 1456;
 		axp_write(charger->master, AXP22_BATCAP0, ((Cur_CoulombCounter >> 8) | 0x80));
 		axp_write(charger->master,AXP22_BATCAP1,Cur_CoulombCounter & 0x00FF);		
 	}
-	else
+	else if(!pmu_battery_cap)
 	{
+		axp_write(charger->master, AXP22_BATCAP0, 0x00);
 		axp_write(charger->master,AXP22_BATCAP1,0x00);
-		axp_write(charger->master, AXP22_BATCAP0, 0x00);	
 	}
   
   axp_charger_update_state((struct axp_charger *)charger);
