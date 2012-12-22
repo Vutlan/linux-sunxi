@@ -289,7 +289,7 @@ PVRSRV_ERROR SysInitialise(IMG_VOID)
 #if !defined(SGX_DYNAMIC_TIMING_INFO)
 	SGX_TIMING_INFORMATION*	psTimingInfo;
 #endif
-	pr_debug("GPU: rc2, module  release test to yibang, frequency = %d\n",SYS_SGX_CORE_CLOCK_SPEED);
+	pr_debug("GPU: rc2, module  release--added power off gating 1222 = %d\n",SYS_SGX_CORE_CLOCK_SPEED);
 	gpsSysData = &gsSysData;
 	OSMemSet(gpsSysData, 0, sizeof(SYS_DATA));
 

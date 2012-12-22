@@ -58,7 +58,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <linux/platform_device.h>
 #include <linux/pm_runtime.h>
 #include <linux/regulator/consumer.h>
-
+#include <mach/hardware.h>
+#include <mach/platform.h>
 #include <mach/clock.h>
 
 #define	ONE_MHZ	1000000
@@ -179,17 +180,17 @@ PVRSRV_ERROR EnableSGXClocks(SYS_DATA *psSysData)
 	}
 
 	PVR_DPF((PVR_DBG_MESSAGE, "EnableSGXClocks: Enabling SGX Clocks"));
-	printk(KERN_DEBUG "Enabling SGX Clocks\n");
+	//printk(KERN_DEBUG "Enabling SGX Clocks\n");
 
 	/*open clock*/
-	if(clk_enable(h_ahb_gpu)){
-		printk((KERN_ALERT "try to enable gpu ahb clk failed!\n"));
+	if(clk_enable(h_gpu_hydclk)){
+		printk((KERN_ALERT "try to enable gpu hyd clk failed!\n"));
 	}
 	if(clk_enable(h_gpu_coreclk)){
 		printk((KERN_ALERT "try to enable gpu core clk failed!\n"));
 	}
-	if(clk_enable(h_gpu_hydclk)){
-		printk((KERN_ALERT "try to enable gpu hyd clk failed!\n"));
+	if(clk_enable(h_ahb_gpu)){
+		printk((KERN_ALERT "try to enable gpu ahb clk failed!\n"));
 	}
 	if(clk_enable(h_gpu_memclk)){
 		printk((KERN_ALERT "try to enable gpu mem clkfailed!\n"));
@@ -247,12 +248,17 @@ IMG_VOID DisableSGXClocks(SYS_DATA *psSysData)
 	}
 
 	PVR_DPF((PVR_DBG_MESSAGE, "DisableSGXClocks: Disabling SGX Clocks"));
-	printk(KERN_DEBUG "Disabling SGX Clocks\n");
+	//printk(KERN_DEBUG "Disabling SGX Clocks\n");
 	SysDisableSGXInterrupts(psSysData);
 	
 	/*close clock*/
 	if(clk_reset(h_gpu_coreclk,AW_CCU_CLK_RESET)){
 		printk((KERN_CRIT "try to RESET gpu clk failed!\n"));
+	}
+	if(NULL == h_gpu_memclk || IS_ERR(h_gpu_memclk)){
+		printk(KERN_CRIT "gpu mem clk handle is invalid, just return\n");
+	}else{
+		clk_disable(h_gpu_memclk);
 	}
 	if(NULL == h_ahb_gpu || IS_ERR(h_ahb_gpu)){
 		printk(KERN_CRIT "gpu ahb clk handle is invalid, just return\n");
@@ -269,11 +275,7 @@ IMG_VOID DisableSGXClocks(SYS_DATA *psSysData)
 	}else{
 		clk_disable(h_gpu_hydclk);
 	}
-	if(NULL == h_gpu_memclk || IS_ERR(h_gpu_memclk)){
-		printk(KERN_CRIT "gpu mem clk handle is invalid, just return\n");
-	}else{
-		clk_disable(h_gpu_memclk);
-	}
+	
 	
 #if defined(LDM_PLATFORM)
 	{
@@ -317,6 +319,7 @@ static void ReleaseGPTimer(SYS_SPECIFIC_DATA *psSysSpecData)
 PVRSRV_ERROR EnableSystemClocks(SYS_DATA *psSysData)
 {
 	SYS_SPECIFIC_DATA *psSysSpecData = (SYS_SPECIFIC_DATA *) psSysData->pvSysSpecificData;
+	int pwr_reg;
 
 	PVR_TRACE(("EnableSystemClocks: Enabling System Clocks"));
 	if (!psSysSpecData->bSysClocksOneTimeInit)
@@ -382,7 +385,13 @@ PVRSRV_ERROR EnableSystemClocks(SYS_DATA *psSysData)
 	printk(KERN_DEBUG "open gpu power!\n");
 	if(regulator_enable(gpu_power)){
 		printk(KERN_ALERT "try to enable gpu power failed!\n");
-	}
+	}	
+	//gpu power off gating as invalid
+	pwr_reg = readl(IO_ADDRESS(AW_R_PRCM_BASE) + 0x118);
+	pwr_reg &= (~(0x1));
+	writel(pwr_reg, IO_ADDRESS(AW_R_PRCM_BASE) + 0x118);
+	//printk(KERN_DEBUG "gpu power off status=%x (should be 0)\n",readl(IO_ADDRESS(AW_R_PRCM_BASE) + 0x118));
+	
 	/*open pll, in EnableSystemClocks temporarily*/
 	if(clk_enable(h_gpu_hydpll)){
 		printk(KERN_ALERT "try to enable gpu_hydpll output failed!\n");
@@ -406,7 +415,8 @@ PVRSRV_ERROR EnableSystemClocks(SYS_DATA *psSysData)
 IMG_VOID DisableSystemClocks(SYS_DATA *psSysData)
 {
 	SYS_SPECIFIC_DATA *psSysSpecData = (SYS_SPECIFIC_DATA *) psSysData->pvSysSpecificData;
-
+	int pwr_reg;
+	
 	PVR_TRACE(("DisableSystemClocks: Disabling System Clocks"));
 	/*
 	 * Always disable the SGX clocks when the system clocks are disabled.
@@ -427,6 +437,13 @@ IMG_VOID DisableSystemClocks(SYS_DATA *psSysData)
 		clk_disable(h_gpu_corepll);
 	}
 	
+	//gpu power off gating valid
+	pwr_reg = readl(IO_ADDRESS(AW_R_PRCM_BASE) + 0x118);
+	pwr_reg |= 0x1;
+	writel(pwr_reg, IO_ADDRESS(AW_R_PRCM_BASE) + 0x118);
+	//printk(KERN_DEBUG "gpu power off gating status=%x (should be 1)\n",readl(IO_ADDRESS(AW_R_PRCM_BASE) + 0x118));
+	
+	//gpu power off
 	printk(KERN_DEBUG "close gpu power!\n");
 	if(regulator_is_enabled(gpu_power)){
 		if(regulator_disable(gpu_power)){
