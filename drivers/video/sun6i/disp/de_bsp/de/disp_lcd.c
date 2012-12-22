@@ -1823,12 +1823,15 @@ __s32 BSP_disp_lcd_set_bright(__u32 sel, __u32  bright, __u32 from_iep)
     __u32 duty_ns;
     
     bright = (bright > 255)? 255:bright;
+
     if((gdisp.screen[sel].lcd_cfg.lcd_pwm_used==1) && (gdisp.screen[sel].lcd_cfg.lcd_used))
     {
         if(bright != 0)
         {
             bright += 1;
         }
+
+        bright = bright * 200 /256;
 
         if(gpanel_info[sel].lcd_pwm_pol == 0)
         {
@@ -1851,7 +1854,13 @@ __s32 BSP_disp_lcd_set_bright(__u32 sel, __u32  bright, __u32 from_iep)
 
 __s32 BSP_disp_lcd_get_bright(__u32 sel)
 {
-    return gdisp.screen[sel].lcd_cfg.backlight_bright;	
+    __u32 bright = gdisp.screen[sel].lcd_cfg.backlight_bright;
+
+    bright = bright * 256 / 200;
+
+    bright = (bright == 0)? 0:(bright -1);
+
+    return bright;	
 }
 
 __s32 BSP_disp_set_gamma_table(__u32 sel, __u32 *gamtbl_addr,__u32 gamtbl_size)
