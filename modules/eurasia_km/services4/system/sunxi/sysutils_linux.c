@@ -325,10 +325,10 @@ PVRSRV_ERROR EnableSystemClocks(SYS_DATA *psSysData)
 	if (!psSysSpecData->bSysClocksOneTimeInit)
 	{
 		//set up gpu power 
-		gpu_power = regulator_get(NULL,"axp22_dcdc2");
+		/*gpu_power = regulator_get(NULL,"axp22_dcdc2");
 		if(IS_ERR(gpu_power)){
 			printk(KERN_ALERT "get gpu power failed!\n");
-		}
+		}*/
 		
 		/*set up pll and clock parents*/	
 		h_gpu_hydpll = clk_get(NULL,CLK_SYS_PLL8);
@@ -382,7 +382,7 @@ PVRSRV_ERROR EnableSystemClocks(SYS_DATA *psSysData)
 		psSysSpecData->bSysClocksOneTimeInit = IMG_TRUE;
 	}
 	//open gpu power,
-	printk(KERN_DEBUG "open gpu power!\n");
+	/*printk(KERN_DEBUG "open gpu power!\n");
 	if(regulator_enable(gpu_power)){
 		printk(KERN_ALERT "try to enable gpu power failed!\n");
 	}	
@@ -391,7 +391,7 @@ PVRSRV_ERROR EnableSystemClocks(SYS_DATA *psSysData)
 	pwr_reg &= (~(0x1));
 	writel(pwr_reg, IO_ADDRESS(AW_R_PRCM_BASE) + 0x118);
 	//printk(KERN_DEBUG "gpu power off status=%x (should be 0)\n",readl(IO_ADDRESS(AW_R_PRCM_BASE) + 0x118));
-	
+	*/
 	/*open pll, in EnableSystemClocks temporarily*/
 	if(clk_enable(h_gpu_hydpll)){
 		printk(KERN_ALERT "try to enable gpu_hydpll output failed!\n");
@@ -437,7 +437,7 @@ IMG_VOID DisableSystemClocks(SYS_DATA *psSysData)
 		clk_disable(h_gpu_corepll);
 	}
 	
-	//gpu power off gating valid
+	/*//gpu power off gating valid
 	pwr_reg = readl(IO_ADDRESS(AW_R_PRCM_BASE) + 0x118);
 	pwr_reg |= 0x1;
 	writel(pwr_reg, IO_ADDRESS(AW_R_PRCM_BASE) + 0x118);
@@ -449,7 +449,7 @@ IMG_VOID DisableSystemClocks(SYS_DATA *psSysData)
 		if(regulator_disable(gpu_power)){
 			printk(KERN_ALERT "try to close gpu power failed!\n");
 			}
-	}
+	}*/
 	
 	ReleaseGPTimer(psSysSpecData);
 }
