@@ -339,7 +339,7 @@ free_dev:
 	sdata = NULL;
     return ret;
 }
-#define FCR_AW  0x0e1
+
 void sunxi_8250_backup_reg(int port_num ,struct uart_port *port)
 {
 	unsigned long port_base_addr;
@@ -349,10 +349,10 @@ void sunxi_8250_backup_reg(int port_num ,struct uart_port *port)
 	BACK_REG.mcr	= AW_UART_RD(UART_MCR);
 	BACK_REG.sch	= AW_UART_RD(UART_SCR);
 	BACK_REG.halt	= AW_UART_RD(UART_HALT);
-	BACK_REG.fcr	= FCR_AW;
+	BACK_REG.fcr	= AW_UART_RD(UART_FCR);
 
 	if(AW_UART_RD(UART_USR)&1)
-        AW_UART_WR(BACK_REG.halt | UART_FORCE_CFG,UART_HALT);
+        AW_UART_WR(UART_HALT,BACK_REG.halt | UART_FORCE_CFG);
 	AW_UART_WR(BACK_REG.lcr & 0x7f,UART_LCR);
 
 	BACK_REG.ier	= AW_UART_RD(UART_IER);
@@ -363,7 +363,7 @@ void sunxi_8250_backup_reg(int port_num ,struct uart_port *port)
 
 	AW_UART_WR(BACK_REG.lcr,UART_LCR);
 	if(AW_UART_RD(UART_HALT)&UART_FORCE_CFG)
-		AW_UART_WR(BACK_REG.halt & (~UART_FORCE_CFG),UART_HALT);
+		AW_UART_WR(UART_HALT,BACK_REG.halt & (~UART_FORCE_CFG));
 }
 EXPORT_SYMBOL(sunxi_8250_backup_reg);
 
@@ -377,10 +377,11 @@ void sunxi_8250_comeback_reg(int port_num,struct uart_port *port)
 	AW_UART_WR(BACK_REG.fcr,UART_FCR);
 
 	if(AW_UART_RD(UART_USR)&1)
-		AW_UART_WR(BACK_REG.halt | UART_FORCE_CFG,UART_HALT);
+		AW_UART_WR(UART_HALT,BACK_REG.halt | UART_FORCE_CFG);
 	AW_UART_WR(BACK_REG.lcr & 0x7f,UART_LCR);
 	
 	AW_UART_WR(BACK_REG.ier,UART_IER);
+
 	AW_UART_WR(BACK_REG.lcr | 0x80,UART_LCR);
 	AW_UART_WR(BACK_REG.dll,UART_DLL);
 	AW_UART_WR(BACK_REG.dlh,UART_DLM);
@@ -388,8 +389,7 @@ void sunxi_8250_comeback_reg(int port_num,struct uart_port *port)
 	AW_UART_WR(BACK_REG.lcr,UART_LCR);
 
 	if(AW_UART_RD(UART_HALT)&UART_FORCE_CFG)
-		AW_UART_WR(BACK_REG.halt & (~UART_FORCE_CFG),UART_HALT);
-
+		AW_UART_WR(UART_HALT,BACK_REG.halt & (~UART_FORCE_CFG));
 }
 EXPORT_SYMBOL(sunxi_8250_comeback_reg);
 
@@ -416,21 +416,16 @@ static int sw_serial_suspend(struct platform_device *dev, pm_message_t state)
 	UART_MSG("sw_serial_suspend uart suspend\n");
 	UART_MSG("&dev->dev is 0x%x\n",&dev->dev);
 
-	for (i = 1; i < MAX_PORTS; i++) {
-		if(!sw_serial_uart[i]){
-			continue;
-		}
+	for (i = 1; i < sw_uart_have_used; i++) {
 		up		= sw_serial_uart[i];
 		port	= &(up->port);
 		sdata	= port->private_data;
-
 		if (port->type != PORT_UNKNOWN){
 		UART_MSG("type is 0x%x  PORT_UNKNOWN is 0x%x\n",port->type,PORT_UNKNOWN);
 		UART_MSG("port.dev is 0x%x  &dev->dev is 0x%x\n",port->dev,&dev->dev);
 		}
 
 		if ((port->type != PORT_UNKNOWN)&& (port->dev == &dev->dev)){
-			printk("line %d  port %p\n",sdata->line,port);
 			sunxi_8250_backup_reg(sdata->line,port);
 			serial8250_suspend_port(sdata->line);
 
@@ -449,20 +444,15 @@ static int sw_serial_resume(struct platform_device *dev)
 	UART_MSG("sw_serial_resume SUPER_STANDBY resume\n");
 	UART_MSG("&dev->dev is 0x%x\n",&dev->dev);
 
-	for (i = 1; i < MAX_PORTS; i++) {
-		if(!sw_serial_uart[i]){
-			continue;
-		}
+	for (i = 1; i < sw_uart_have_used; i++) {
 		up		= sw_serial_uart[i];
 		port	= &(up->port);
 		sdata	= port->private_data;
-
 		if (port->type != PORT_UNKNOWN){
 		UART_MSG("type is 0x%x  PORT_UNKNOWN is 0x%x\n",port->type,PORT_UNKNOWN);
 		UART_MSG("port.dev is 0x%x  &dev->dev is 0x%x\n",port->dev,&dev->dev);
 		}
 		if ((port->type != PORT_UNKNOWN) && (port->dev == &dev->dev)){
-			printk("line %d  port %p\n",sdata->line,port);
 			serial8250_resume_port(sdata->line);
 			sunxi_8250_comeback_reg(sdata->line,port);
 		}	
@@ -541,7 +531,7 @@ static int __init sw_serial_init(void)
 	uart_used = 0;
 	for (i=1; i<MAX_PORTS; i++, used=0) {
         sprintf(uart_para, "uart_para%d", i);
-		sw_serial_uart[i]=NULL;
+ 
 		type = script_get_item(uart_para, "uart_used", &val);
 		if(SCIRPT_ITEM_VALUE_TYPE_INT != type){
 		    UART_MSG("failed to get uart%d's used information\n", i);
