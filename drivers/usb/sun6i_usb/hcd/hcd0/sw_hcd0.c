@@ -640,7 +640,7 @@ static void sw_hcd_shutdown(struct platform_device *pdev)
     DMSG_INFO_HCD0("Set aside some time to AXP\n");
 
     /* Set aside some time to AXP */
-    mdelay(100);
+    mdelay(200);
 
     DMSG_INFO_HCD0("sw_hcd shutdown end\n");
 
