@@ -483,8 +483,15 @@ static int axp_battery_get_property(struct power_supply *psy,
     break;
 */
   case POWER_SUPPLY_PROP_ONLINE:
+  {
+  	/* in order to get hardware state, we must update charger state now.
+  	 * by sunny at 2012-12-23 11:06:15.
+  	 */
+  	axp_charger_update_state(charger);
     val->intval = charger->bat_current_direction;
+    printk("axp battery hardware current direction %d\n", charger->bat_current_direction);
     break;
+  }
   case POWER_SUPPLY_PROP_PRESENT:
     val->intval = charger->bat_det;
     break;
