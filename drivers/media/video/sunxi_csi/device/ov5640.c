@@ -459,6 +459,7 @@ static struct regval_list sensor_default_regs[] = {
 	{{0x3a,0x11},{0x70}}, 
 	{{0x3a,0x1f},{0x14}}, 
 
+	{{0x30,0x31},{0x08}}, //disable internal LDO
 //	//power down release
 //	{{0x30,0x08},{0x02}}, 
 };                                	                         
@@ -1279,8 +1280,8 @@ static struct regval_list sensor_oe_disable_regs[] = {
 };
 
 static struct regval_list sensor_oe_enable_regs[] = {
-{{0x30,0x17},{0xff}},
-{{0x30,0x18},{0xff}},
+{{0x30,0x17},{0x7f}},
+{{0x30,0x18},{0xfc}},
 };
 
 static char sensor_af_fw_regs[] = {
@@ -2860,6 +2861,7 @@ static int sensor_g_single_af(struct v4l2_subdev *sd)
 	if (ret < 0)
 	{
 		csi_dev_err("sensor get af focused status err !\n");
+		info->focus_status = 0;	//idle
 		return ret;
 	}
 
@@ -2996,7 +2998,7 @@ static int sensor_s_af_zone(struct v4l2_subdev *sd, unsigned int xc, unsigned in
 	}
 	
 	csi_dev_dbg("af zone after xc=%d,yc=%d\n",xc,yc);
-		
+	
 	//set x center
 	ret = sensor_write_im(sd, 0x3024, xc);
 	if (ret < 0)
@@ -3027,10 +3029,9 @@ static int sensor_s_af_zone(struct v4l2_subdev *sd, unsigned int xc, unsigned in
 	return 0;
 }
 
-#if 0
+#if 1
 static int sensor_s_relaunch_af_zone(struct v4l2_subdev *sd)
 {
-	struct regval_list regs;
 	int ret;
 	//relaunch defalut af zone
 	csi_dev_print("sensor_s_relaunch_af_zone\n");
@@ -4370,7 +4371,20 @@ static int sensor_s_fmt(struct v4l2_subdev *sd,
 		}
 			
 		sensor_s_fps(sd);
-//		msleep(100);
+
+		msleep(100);
+		
+		ret = sensor_s_relaunch_af_zone(sd);
+		if (ret < 0) {
+			csi_dev_err("sensor_s_relaunch_af_zone err !\n");
+			return ret;
+		}
+		
+		ret = sensor_write_im(sd, 0x3022, 0x03);		//sensor_s_single_af
+		if (ret < 0) {
+			csi_dev_err("sensor_s_single_af err !\n");
+			return ret;
+		}
 		
 		if(info->af_mode != V4L2_AF_FIXED) {
 
