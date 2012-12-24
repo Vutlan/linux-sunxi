@@ -195,9 +195,6 @@ PVRSRV_ERROR EnableSGXClocks(SYS_DATA *psSysData)
 	if(clk_enable(h_gpu_memclk)){
 		printk((KERN_ALERT "try to enable gpu mem clkfailed!\n"));
 	}
-	if(clk_reset(h_gpu_coreclk,AW_CCU_CLK_NRESET)){
-		printk((KERN_ALERT "try to NRESET gpu_clk failed!\n"));
-	}
 	
 #if defined(LDM_PLATFORM)
 	{
@@ -252,9 +249,6 @@ IMG_VOID DisableSGXClocks(SYS_DATA *psSysData)
 	SysDisableSGXInterrupts(psSysData);
 	
 	/*close clock*/
-	if(clk_reset(h_gpu_coreclk,AW_CCU_CLK_RESET)){
-		printk((KERN_CRIT "try to RESET gpu clk failed!\n"));
-	}
 	if(NULL == h_gpu_memclk || IS_ERR(h_gpu_memclk)){
 		printk(KERN_CRIT "gpu mem clk handle is invalid, just return\n");
 	}else{
@@ -392,6 +386,9 @@ PVRSRV_ERROR EnableSystemClocks(SYS_DATA *psSysData)
 	writel(pwr_reg, IO_ADDRESS(AW_R_PRCM_BASE) + 0x118);
 	//printk(KERN_DEBUG "gpu power off status=%x (should be 0)\n",readl(IO_ADDRESS(AW_R_PRCM_BASE) + 0x118));
 	*/
+	if(clk_reset(h_gpu_coreclk,AW_CCU_CLK_NRESET)){
+		printk((KERN_ALERT "try to NRESET gpu_clk failed!\n"));
+	}
 	/*open pll, in EnableSystemClocks temporarily*/
 	if(clk_enable(h_gpu_hydpll)){
 		printk(KERN_ALERT "try to enable gpu_hydpll output failed!\n");
@@ -424,6 +421,10 @@ IMG_VOID DisableSystemClocks(SYS_DATA *psSysData)
 	 * active power management is enabled.
 	 */
 	DisableSGXClocks(psSysData);
+	
+	if(clk_reset(h_gpu_coreclk,AW_CCU_CLK_RESET)){
+		printk((KERN_CRIT "try to RESET gpu clk failed!\n"));
+	}
 	
 	/*disable pll, in DisableSystemClocks temporarily*/
 	if(NULL == h_gpu_hydpll || IS_ERR(h_gpu_hydpll)){
