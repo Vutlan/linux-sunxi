@@ -86,6 +86,7 @@ arch/arm/*/pm/standby/standby.code
 arch/arm/*/pm/standby/standby.map
 modules/example/*.symvers
 modules/mali/*/*/*/*/*.symvers
+modules/mali/*/*/*/*/*/*.symvers
 modules/wifi/ar6003/AR6kSDK.build_3.1_RC.514/host/os/linux/Module.symvers
 modules/wifi/ar6302/AR6K_SDK_ISC.build_3.1_RC.329/host/os/linux/Module.symvers
 modules/wifi/nano-c047.12/kernel/ic/Module.symvers
