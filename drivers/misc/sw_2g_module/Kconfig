@@ -1,0 +1,33 @@
+#
+# softwinner 2G module driver.
+#
+
+menuconfig SW_2G_MODULE
+    tristate "softwinner 2G module driver"
+    help
+        softwinner 2G module driver
+
+choice
+
+    prompt "2G modem support"
+    depends on SW_2G_MODULE
+    help
+        2G modem slecet.
+
+config HUAWEI_MU509
+    boolean "huawei mu509"
+    help
+        huawei mu509 modem support.
+
+config YUGA_CWM600
+    boolean "yuga cwm600"
+    help
+        yuga cwm600 modem support.
+
+config OVIPHONE_EM55
+    boolean "Oviphone em55"
+    help
+        Oviphone em55 modem support.
+
+endchoice
+

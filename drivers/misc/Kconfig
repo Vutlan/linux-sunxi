@@ -557,5 +557,5 @@ source "drivers/misc/iwmc3200top/Kconfig"
 source "drivers/misc/ti-st/Kconfig"
 source "drivers/misc/lis3lv02d/Kconfig"
 source "drivers/misc/carma/Kconfig"
-
+source "drivers/misc/sw_2g_module/Kconfig"
 endif # MISC_DEVICES
