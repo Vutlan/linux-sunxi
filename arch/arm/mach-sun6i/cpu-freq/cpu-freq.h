@@ -34,7 +34,7 @@
     #define CPUFREQ_INF(format,args...)   do{}while(0)
 #endif
 
-#define CPUFREQ_ERR(format,args...)   printk("[cpu_freq] ERR:"format,##args)
+#define CPUFREQ_ERR(format,args...)   printk(KERN_ERR "[cpu_freq] ERR:"format,##args)
 
 
 #define SUNXI_CPUFREQ_MAX       (1008000000)    /* config the maximum frequency of sunxi core */
