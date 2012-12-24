@@ -79,6 +79,7 @@ __u32 g_clk_status = 0x0;
 #define RESET_OSAL 
 
 volatile __ccmu_mipi_pll_reg0040_t *MipiPllCtl;
+volatile __ccmu_mipi_pll_bias_reg0240_t *MipipllBias;
 
 extern __disp_dev_t         gdisp;
 extern __panel_para_t		gpanel_info[2];
@@ -193,12 +194,14 @@ __s32 disp_mipipll_set_coefficient(__disp_ccmu_coef *coef)
 __s32 disp_mipipll_init(void)
 {
     MipiPllCtl = (__ccmu_mipi_pll_reg0040_t *)0xf1c20040;
+    MipipllBias = (__ccmu_mipi_pll_bias_reg0240_t *)0xf1c20240; 
     MipiPllCtl->PLLEn = 0;
     MipiPllCtl->Ldo1En = 0;
     MipiPllCtl->Ldo2En = 0;
     MipiPllCtl->Ldo1En = 1;
     MipiPllCtl->Ldo2En = 1;
     MipiPllCtl->PllSrc = 1; //pll7
+    MipipllBias->pllvdd_ldo_out_ctrl = 0x7; //1.45v
     msleep(200);
     MipiPllCtl->PLLEn = 1;
 

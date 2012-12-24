@@ -715,7 +715,10 @@ __s32 BSP_disp_cmu_layer_get_enable(__u32 sel,__u32 hid)
     layer_man = &gdisp.screen[sel].layer_manage[hid];
     if((layer_man->status & LAYER_USED) && (layer_man->para.mode == DISP_LAYER_WORK_MODE_SCALER))
 	{
-        return (gdisp.screen[sel].cmu.status & CMU_LAYER_EN);
+        __s32 ret;
+
+        ret = (gdisp.screen[sel].cmu.status & CMU_LAYER_EN)? 1:0;
+        return ret;
 	}
 	
 	return DIS_NOT_SUPPORT;
@@ -1001,7 +1004,10 @@ __s32 BSP_disp_cmu_enable(__u32 sel,__bool en)
 
 __s32 BSP_disp_cmu_get_enable(__u32 sel)
 {
-    return gdisp.screen[sel].cmu.status & CMU_SCREEN_EN;
+    __u32 ret;
+
+    ret = (gdisp.screen[sel].cmu.status & CMU_SCREEN_EN)? 1:0;
+    return ret;
 }
 
 __s32 BSP_disp_cmu_set_window(__u32 sel, __disp_rect_t *rect)
