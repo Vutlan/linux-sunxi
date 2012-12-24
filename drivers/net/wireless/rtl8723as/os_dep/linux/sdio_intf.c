@@ -1267,7 +1267,6 @@ static void __exit rtw_drv_halt(void)
 #ifdef CONFIG_PLATFORM_ARM_SUNxI
 #if defined(CONFIG_MMC)
 	wifi_pm_power(0);
-	mdelay(100);
 	sw_mci_rescan_card(SDIOID, 0);
 	printk("[rtl8723as] %s: remove card, power off.\n", __FUNCTION__);
 #ifdef CONFIG_RTL8188E

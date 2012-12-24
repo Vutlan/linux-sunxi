@@ -1812,7 +1812,6 @@ static void __exit rtw_drv_halt(void)
 	printk("sw_usb_disable_hcd: usbc_num = %d\n", item.val);
 	sw_usb_disable_hcd(item.val);
 	wifi_pm_power(0);
-	mdelay(100);
 #endif //ifndef CONFIG_RTL8723A	
 #endif	//CONFIG_PLATFORM_ARM_SUNxI
 
