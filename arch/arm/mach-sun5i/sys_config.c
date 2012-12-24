@@ -23,6 +23,170 @@
 #include <mach/platform.h>
 #include <mach/sys_config.h>
 
+#define RTP_IO_USED
+
+#ifdef  RTP_IO_USED
+#define TP_BASSADDRESS (0xf1c25000)
+#define TP_IO_CONFIG   (0x28)
+#define TP_IO_DATA     (0x2c)
+
+#define RTP_IO_VIRTUAL_PORT (22)
+
+typedef struct
+{   
+    int used;
+    int mul_sel;
+    int data;
+} rtp_io_set_t;
+
+typedef enum 
+{
+    RTP_IO_X1,
+    RTP_IO_X2,
+    RTP_IO_Y1,
+    RTP_IO_Y2
+}rtp_index;
+
+static rtp_io_set_t rtp_io_set[RTP_IO_Y2+1];
+static spinlock_t rtp_io_lock;
+static u32 rtp_io_request(user_gpio_set_t *this_rtp_io)
+{
+    u32 value;
+    printk("%s,%d: port=%d,port_num=%d",__FUNCTION__,__LINE__,this_rtp_io->port,this_rtp_io->port_num);
+    if(this_rtp_io->port != RTP_IO_VIRTUAL_PORT)        return EGPIO_FAIL; //not a PV port,error
+    if(this_rtp_io->port_num > RTP_IO_Y2)               return EGPIO_FAIL; //only four rtp_port
+    if(rtp_io_set[this_rtp_io->port_num].used) return EGPIO_FAIL;//already used
+
+    value=readl(TP_BASSADDRESS+TP_IO_CONFIG);
+    value&=~(7<<(this_rtp_io->port_num<<2));//clear the mul select bit
+    value|=((this_rtp_io->mul_sel)<<(this_rtp_io->port_num<<2));//set the new mul value
+    writel(value,TP_BASSADDRESS+TP_IO_CONFIG);
+    
+    rtp_io_set[this_rtp_io->port_num].mul_sel=this_rtp_io->mul_sel;//record the mul select
+    rtp_io_set[this_rtp_io->port_num].used=1; //now we used the rtp io
+    if(this_rtp_io->mul_sel!=1) {  //if not the output mul,so return,we don't need set the output value
+        
+        return (u32)(&rtp_io_set[this_rtp_io->port_num]);
+    }        
+
+    spin_lock(&rtp_io_lock);
+
+    //get the local data before we write.
+    //****************** Read **************************
+    value=rtp_io_set[RTP_IO_X1].data<<RTP_IO_X1|   \
+          rtp_io_set[RTP_IO_X2].data<<RTP_IO_X2|   \
+          rtp_io_set[RTP_IO_Y1].data<<RTP_IO_Y1|   \
+          rtp_io_set[RTP_IO_Y2].data<<RTP_IO_Y2;  
+
+    //****************** Modefiy ***********************
+    value&=~(1<<this_rtp_io->port_num);
+    rtp_io_set[this_rtp_io->port_num].data=this_rtp_io->data ? 1 : 0;
+    value|=(rtp_io_set[this_rtp_io->port_num].data<<this_rtp_io->port_num);
+
+    //****************** WriteBack *********************
+    writel(value,TP_BASSADDRESS+TP_IO_DATA);
+
+    spin_unlock(&rtp_io_lock);
+    printk("%s,%d: request ok!\n ",__FUNCTION__,__LINE__);
+    return (u32)(&rtp_io_set[this_rtp_io->port_num]);
+    
+}
+
+static u32 rtp_io_release(u32 this_rtp_io_set_t_handler,__s32 if_release_to_default_status)
+{
+    rtp_index rtp_io_index;
+    u32 value;
+    if(this_rtp_io_set_t_handler==(u32)(&rtp_io_set[RTP_IO_X1])) rtp_io_index=RTP_IO_X1;
+        else
+    if(this_rtp_io_set_t_handler==(u32)(&rtp_io_set[RTP_IO_X2])) rtp_io_index=RTP_IO_X2;
+        else
+    if(this_rtp_io_set_t_handler==(u32)(&rtp_io_set[RTP_IO_Y1])) rtp_io_index=RTP_IO_Y1;
+        else
+    if(this_rtp_io_set_t_handler==(u32)(&rtp_io_set[RTP_IO_Y2])) rtp_io_index=RTP_IO_Y2;
+        else
+    return EGPIO_FAIL;
+
+    spin_lock(&rtp_io_lock);
+    
+    rtp_io_set[rtp_io_index].used=0;
+    if(if_release_to_default_status)
+    {
+
+        value=readl(TP_BASSADDRESS+TP_IO_CONFIG);
+        value&=~(7<<(rtp_io_index<<2));//clear the mul select bit
+        value|=(2<<(rtp_io_index<<2));//set the new mul value to tp pin
+        writel(value,TP_BASSADDRESS+TP_IO_CONFIG);
+            
+    }
+    
+    spin_unlock(&rtp_io_lock);
+    
+    return EGPIO_SUCCESS;
+    
+}
+
+static u32 rtp_read_one_pin_value( u32 this_rtp_io_set_t_handler)
+{
+
+    rtp_index rtp_io_index;
+    u32 value;
+    if(this_rtp_io_set_t_handler==(u32)(&rtp_io_set[RTP_IO_X1])) rtp_io_index=RTP_IO_X1;
+        else
+    if(this_rtp_io_set_t_handler==(u32)(&rtp_io_set[RTP_IO_X2])) rtp_io_index=RTP_IO_X2;
+        else
+    if(this_rtp_io_set_t_handler==(u32)(&rtp_io_set[RTP_IO_Y1])) rtp_io_index=RTP_IO_Y1;
+        else
+    if(this_rtp_io_set_t_handler==(u32)(&rtp_io_set[RTP_IO_Y2])) rtp_io_index=RTP_IO_Y2;
+        else
+    return EGPIO_FAIL;
+
+    spin_lock(&rtp_io_lock);
+
+    value=readl(TP_BASSADDRESS+TP_IO_DATA);
+    value&=rtp_io_index;
+    rtp_io_set[rtp_io_index].data= value ? 1 : 0;
+    
+    spin_unlock(&rtp_io_lock);
+
+    return rtp_io_set[rtp_io_index].data;
+       
+}
+
+static u32 rtp_write_one_pin_value( u32 this_rtp_io_set_t_handler,u32 value_to_pin)
+{
+
+    rtp_index rtp_io_index;
+    u32 value;
+    if(this_rtp_io_set_t_handler==(u32)(&rtp_io_set[RTP_IO_X1])) rtp_io_index=RTP_IO_X1;
+        else
+    if(this_rtp_io_set_t_handler==(u32)(&rtp_io_set[RTP_IO_X2])) rtp_io_index=RTP_IO_X2;
+        else
+    if(this_rtp_io_set_t_handler==(u32)(&rtp_io_set[RTP_IO_Y1])) rtp_io_index=RTP_IO_Y1;
+        else
+    if(this_rtp_io_set_t_handler==(u32)(&rtp_io_set[RTP_IO_Y2])) rtp_io_index=RTP_IO_Y2;
+        else
+    return EGPIO_FAIL;
+    
+    spin_lock(&rtp_io_lock);
+
+    //set tht local data befor we write to the register
+    rtp_io_set[rtp_io_index].data=value_to_pin;
+    
+    //get the local data before we write.
+    value=rtp_io_set[RTP_IO_X1].data<<RTP_IO_X1|   \
+          rtp_io_set[RTP_IO_X2].data<<RTP_IO_X2|   \
+          rtp_io_set[RTP_IO_Y1].data<<RTP_IO_Y1|   \
+          rtp_io_set[RTP_IO_Y2].data<<RTP_IO_Y2;  
+
+    writel(value,TP_BASSADDRESS+TP_IO_DATA);
+    
+    spin_unlock(&rtp_io_lock);
+
+    return EGPIO_SUCCESS;
+       
+}
+
+#endif
 static script_sub_key_t *sw_cfg_get_subkey(const char *script_buf, const char *main_key, const char *sub_key)
 {
     script_head_t *hd = (script_head_t *)script_buf;
@@ -573,10 +737,18 @@ int gpio_init(void)
     printk("Init eGon pin module V2.0\n");
     gpio_g_pioMemBase = (u32)CSP_OSAL_PHY_2_VIRT(CSP_PIN_PHY_ADDR_BASE , CSP_PIN_PHY_ADDR_SIZE);
     #ifdef FPGA_RUNTIME_ENV
+    #ifdef  RTP_IO_USED
+    spin_lock_init(&rtp_io_lock);
+    #endif
     return script_parser_init((char *)(sys_cofig_data));
     #else
+    #ifdef  RTP_IO_USED
+    spin_lock_init(&rtp_io_lock);
+    #endif
     return script_parser_init((char *)__va(SYS_CONFIG_MEMBASE));
     #endif
+
+
 }
 fs_initcall(gpio_init);
 /*
@@ -647,6 +819,13 @@ u32 gpio_request(user_gpio_set_t *gpio_list, __u32 group_count_max)
             continue;
         }
         real_gpio_count ++;
+        #ifdef RTP_IO_USED
+        if(tmp_user_gpio_data->port==RTP_IO_VIRTUAL_PORT){
+                   
+            return rtp_io_request(tmp_user_gpio_data);
+            
+        }
+        #endif
     }
 
     //printk("to malloc space for pin \n");
@@ -916,6 +1095,19 @@ __s32 gpio_release(u32 p_handler, __s32 if_release_to_default_status)
     {
         return EGPIO_FAIL;
     }
+    
+    #ifdef RTP_IO_USED
+    if(p_handler==(u32)(&rtp_io_set[RTP_IO_X1])||   \
+       p_handler==(u32)(&rtp_io_set[RTP_IO_X2])||   \
+       p_handler==(u32)(&rtp_io_set[RTP_IO_Y1])||   \
+       p_handler==(u32)(&rtp_io_set[RTP_IO_Y2]))
+    {
+        //release the rtp_pin
+        return rtp_io_release( p_handler,if_release_to_default_status);
+        
+    }
+    #endif
+    
     tmp_buf = (char *)p_handler;
     group_count_max = *(int *)tmp_buf;
     if(!group_count_max)
@@ -1625,6 +1817,19 @@ __s32  gpio_read_one_pin_value(u32 p_handler, const char *gpio_name)
     {
         return EGPIO_FAIL;
     }
+
+    #ifdef RTP_IO_USED
+    if(p_handler==(u32)(&rtp_io_set[RTP_IO_X1])||   \
+       p_handler==(u32)(&rtp_io_set[RTP_IO_X2])||   \
+       p_handler==(u32)(&rtp_io_set[RTP_IO_Y1])||   \
+       p_handler==(u32)(&rtp_io_set[RTP_IO_Y2]))
+    {
+        //release the rtp_pin
+        return rtp_read_one_pin_value(p_handler);
+        
+    }
+    #endif
+    
     tmp_buf = (char *)p_handler;
     group_count_max = *(int *)tmp_buf;
     tmp_sys_gpio_data = (system_gpio_set_t *)(tmp_buf + 16);
@@ -1704,6 +1909,19 @@ __s32  gpio_write_one_pin_value(u32 p_handler, __u32 value_to_gpio, const char *
     {
         return EGPIO_FAIL;
     }
+
+    #ifdef RTP_IO_USED
+    if(p_handler==(u32)(&rtp_io_set[RTP_IO_X1])||   \
+       p_handler==(u32)(&rtp_io_set[RTP_IO_X2])||   \
+       p_handler==(u32)(&rtp_io_set[RTP_IO_Y1])||   \
+       p_handler==(u32)(&rtp_io_set[RTP_IO_Y2]))
+    {
+        //release the rtp_pin
+        return rtp_write_one_pin_value(p_handler,value_to_gpio);
+        
+    }
+    #endif
+    
     tmp_buf = (char *)p_handler;
     group_count_max = *(int *)tmp_buf;
     tmp_sys_gpio_data = (system_gpio_set_t *)(tmp_buf + 16);
