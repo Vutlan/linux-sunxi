@@ -30,8 +30,8 @@
 #include <linux/io.h>
 #include <linux/irq.h>
 
-#define  DMSG_PRINT(stuff...)		 pr_debug(stuff)
-#define  DMSG_ERR(...)        		(DMSG_PRINT("WRN:L%d(%s):", __LINE__, __FILE__), DMSG_PRINT(__VA_ARGS__))
+#define  DMSG_ERR(format,args...)   			pr_err("[sw_hci_sun6i]: "format,##args)
+#define  DMSG_PRINT(format,args...)   	  pr_debug("[sw_hci_sun6i]: "format,##args)
 
 
 #if 0
