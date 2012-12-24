@@ -30,7 +30,7 @@
 #include <mach/irqs-sun6i.h>
 
 #undef SWITCH_DBG
-#if (1)
+#if (0)
     #define SWITCH_DBG(format,args...)  printk("[SWITCH] "format,##args)    
 #else
     #define SWITCH_DBG(...)    

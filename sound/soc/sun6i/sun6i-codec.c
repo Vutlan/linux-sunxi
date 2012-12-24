@@ -455,7 +455,7 @@ static int codec_capture_open(void)
 
 	/*enable mic1 pa*/
 	codec_wr_control(SUN6I_MIC_CTRL, 0x1, MIC1AMPEN, 0x1);
-	/*mic1 gain 30dB£¬if capture volume is too small, enlarge the mic1booost*/
+	/*mic1 gain 30dB£¬if capture volume is too small, enlarge the mic1boost*/
 	codec_wr_control(SUN6I_MIC_CTRL, 0x7,MIC1BOOST,cap_vol);//36db
 	/*enable Master microphone bias*/
 	codec_wr_control(SUN6I_MIC_CTRL, 0x1, MBIASEN, 0x1);
@@ -1473,7 +1473,7 @@ static int snd_sun6i_codec_trigger(struct snd_pcm_substream *substream, int cmd)
 			capture_prtd->state |= ST_RUNNING;	 
 			codec_capture_start();
 			/*hardware fifo delay*/
-			mdelay(30);
+			mdelay(200);
 			codec_wr_control(SUN6I_ADC_FIFOC, 0x1, ADC_FIFO_FLUSH, 0x1);
 			/*
 			* start dma transfer
