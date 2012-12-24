@@ -373,11 +373,12 @@ static void report_abs(void)
 {
 	short x,y,z;
 	int result;
-	
-	do{
-		result=i2c_smbus_read_byte_data(mma8452_i2c_client, MMA8452_STATUS);
-		dprintk(DEBUG_DATA_INFO, "mma8452 check new data");
-	} while (!(result & 0x08));		/* wait for new data */
+
+	result = i2c_smbus_read_byte_data(mma8452_i2c_client, MMA8452_STATUS);
+	if (!(result & 0x08)) {
+		dprintk(DEBUG_CONTROL_INFO, "mma8452 check new data\n");
+		return;		/* wait for new data */
+	}
 
 	if (mma8452_read_data(&x,&y,&z) != 0) {
 		dprintk(DEBUG_DATA_INFO, "mma8452 no data");
