@@ -378,9 +378,3 @@ char String_Param_FT5X02[][64] = {
 #define FT5X02_INI_FILEPATH "/sdcard/"
 
 #endif
-LUE 182
-
-
-#define FT5X02_INI_FILEPATH "/sdcard/"
-
-#endif
