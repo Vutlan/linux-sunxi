@@ -403,14 +403,14 @@ ssize_t do_sync_write(struct file *filp, const char __user *buf, size_t len, lof
 	kiocb.ki_left = len;
 	kiocb.ki_nbytes = len;
 
-#if   (IO_TEST_DEBUG)
+#if   (KEN_TEST_DEBUG)
 	static unsigned char * p;
-	if((filp->f_flags & 0x01000000) && !strcmp(filp->f_path.dentry->d_iname, KEN_TEST1_VALUE))
+	if((filp->f_flags & 0x01000000) && !strcmp(filp->f_path.dentry->d_iname, ken_test1_str))
 	{
 		*ppos = *ppos + len;
 		return len;
 	}	
-	if((filp->f_flags & 0x02000000) && strstr(filp->f_path.dentry->d_iname, KEN_TEST2_VALUE))
+	if((filp->f_flags & 0x02000000) && strstr(filp->f_path.dentry->d_iname, ken_test2_str))
 	{
 		if (strlen(filp->f_path.dentry->d_iname) == 26)
 		{

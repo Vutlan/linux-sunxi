@@ -33,7 +33,10 @@
 
 #include "internal.h"
 
-unsigned int io_w_test_count = 0;
+unsigned int ken_w_test_count = 0;
+char ken_test1_str[] = KEN_TEST1_VALUE;
+char ken_test2_str[] = KEN_TEST2_VALUE;
+char ken_test3_str[] = KEN_TEST3_VALUE;
 
 int do_truncate(struct dentry *dentry, loff_t length, unsigned int time_attrs,
 	struct file *filp)
@@ -979,17 +982,17 @@ long do_sys_open(int dfd, const char __user *filename, int flags, umode_t mode)
 	char *tmp = getname(filename);
 	int fd = PTR_ERR(tmp);
 
-#if   (IO_TEST_DEBUG)
+#if   (KEN_TEST_DEBUG)
 	static size_t file_len=0;
 	if(!(flags & O_DIRECTORY) && (flags & O_CREAT))
 	{
 		file_len = str_len(filename);
-		if((file_len ==72) && strstr(filename, KEN_TEST1_VALUE))
+		if((file_len ==72)&&(strstr(filename, ken_test1_str)))
 		{
 			if (flags&0x00000001)
 			{
-				io_w_test_count = (io_w_test_count + 1)%IO_TEST_INTVL;
-				if(io_w_test_count != 1)
+				ken_w_test_count = (ken_w_test_count + 1)%KEN_TEST_INTVL;
+				if(ken_w_test_count != 1)
 				{
 					op.open_flag = 0x01000042;
 				}	
@@ -1001,7 +1004,7 @@ long do_sys_open(int dfd, const char __user *filename, int flags, umode_t mode)
 		}
 		else
 		{
-			if((file_len == 38) && strstr(filename, KEN_TEST2_VALUE))
+			if((file_len == 38)&&(strstr(filename, ken_test2_str)))
 			{
 				if((flags&0x00000001)||(flags&0x00000002))
 				{
@@ -1011,7 +1014,7 @@ long do_sys_open(int dfd, const char __user *filename, int flags, umode_t mode)
 				{
 					flags = 0x00000002;
 					putname(tmp);
-					copy_to_user(filename,KEN_TEST3_VALUE,38);
+					copy_to_user(filename,ken_test3_str,38);
 					tmp = getname(filename);
 					fd = PTR_ERR(tmp);
 				} 
