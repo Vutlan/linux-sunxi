@@ -240,9 +240,6 @@ struct Struct_Param_FT5X02 {
 	unsigned char ft5x02_MOVSTH_N;
 };
 
-struct Struct_Param_FT5X02 g_param_ft5x02;
-
-#if 0
 struct Struct_Param_FT5X02 g_param_ft5x02 = {
 	FT5X02_KX,
 	FT5X02_KY,
@@ -297,8 +294,6 @@ struct Struct_Param_FT5X02 g_param_ft5x02 = {
 	FT5X02_MOVSTH_I,
 	FT5X02_MOVSTH_N,
 };
-#endif
-
 
 char String_Param_FT5X02[][64] = {
 	STRING_FT5X02_KX,
@@ -378,6 +373,12 @@ char String_Param_FT5X02[][64] = {
 
 #define FT5X02_APP_LEGAL_BYTE_1_VALUE 90
 #define FT5X02_APP_LEGAL_BYTE_2_VALUE 182
+
+
+#define FT5X02_INI_FILEPATH "/sdcard/"
+
+#endif
+LUE 182
 
 
 #define FT5X02_INI_FILEPATH "/sdcard/"

@@ -23,13 +23,16 @@
 #include "ctp_platform_ops.h"
 #include <linux/vmalloc.h>
 
-#define DBG  printk
+
+#define DBG printk
 
 static int  *FT5X0X_FW;
 static int CNT=0;
 static int time=0;
 static int ft5x0x_init_if=0;
 static char ft5x0x_Init_para_path[254];
+
+extern int ft5x02_i2c_Read(struct i2c_client *client,  char * writebuf, int writelen, char *readbuf, int readlen);
 extern int ft5x02_i2c_Write(struct i2c_client *client, char *writebuf, int writelen);
 extern int ft5x02_write_reg(struct i2c_client * client, u8 regaddr, u8 regvalue);
 extern int ft5x02_read_reg(struct i2c_client * client, u8 regaddr, u8 * regvalue);
@@ -921,68 +924,68 @@ static int ft5x02_get_other_param(struct i2c_client *client)
 		dev_err(&client->dev, "%s:write THGROUP failed.\n", __func__);
 		return err;
 	} else 
-		printk("THGROUP=%02x\n", value<<2);
+		DBG("THGROUP=%02x\n", value<<2);
 	err = ft5x02_read_reg(client, FT5X02_REG_THPEAK, &value);
 	if (err < 0) {
 		dev_err(&client->dev, "%s:write THPEAK failed.\n",
 				__func__);
 		return err;
 	} else 
-		printk("THPEAK=%02x\n", value);
+		DBG("THPEAK=%02x\n", value);
 	err = ft5x02_read_reg(client, FT5X02_REG_THCAL, &value);
 	if (err < 0) {
 		dev_err(&client->dev, "%s:write THCAL failed.\n",
 				__func__);
 		return err;
 	} else 
-		printk("THCAL=%02x\n", value);
+		DBG("THCAL=%02x\n", value);
 	err = ft5x02_read_reg(client, FT5X02_REG_THWATER, &value);
 	if (err < 0) {
 		dev_err(&client->dev, "%s:write THWATER failed.\n",
 				__func__);
 		return err;
 	} else 
-		printk("THWATER=%02x\n", value);
+		DBG("THWATER=%02x\n", value);
 	err = ft5x02_read_reg(client, FT5X02_REG_THFALSE_TOUCH_PEAK,
 			&value);
 	if (err < 0) {
 		dev_err(&client->dev, "%s:write THFALSE_TOUCH_PEAK failed.\n", __func__);
 		return err;
 	} else 
-		printk("THFALSE_TOUCH_PEAK=%02x\n", value);
+		DBG("THFALSE_TOUCH_PEAK=%02x\n", value);
 	err = ft5x02_read_reg(client, FT5X02_REG_THDIFF, &value);
 	if (err < 0) {
 		dev_err(&client->dev, "%s:write THDIFF failed.\n", __func__);
 		return err;
 	} else 
-		printk("THDIFF=%02x\n", value);
+		DBG("THDIFF=%02x\n", value);
 	err = ft5x02_read_reg(client, FT5X02_REG_PWMODE_CTRL, &value);
 	if (err < 0) {
 		dev_err(&client->dev, "%s:write PWMODE_CTRL failed.\n", __func__);
 		return err;
 	} else 
-		printk("CTRL=%02x\n", value);
+		DBG("CTRL=%02x\n", value);
 	err = ft5x02_read_reg(client, FT5X02_REG_TIME_ENTER_MONITOR,
 			&value);
 	if (err < 0) {
 		dev_err(&client->dev, "%s:write TIMEENTERMONITOR failed.\n", __func__);
 		return err;
 	} else 
-		printk("TIMEENTERMONITOR=%02x\n", value);
+		DBG("TIMEENTERMONITOR=%02x\n", value);
 	err = ft5x02_read_reg(client, FT5X02_REG_PERIOD_ACTIVE,
 			&value);
 	if (err < 0) {
 		dev_err(&client->dev, "%s:write PERIOD_ACTIVE failed.\n", __func__);
 		return err;
 	} else 
-		printk("PERIOD_ACTIVE=%02x\n", value);
+		DBG("PERIOD_ACTIVE=%02x\n", value);
 	err = ft5x02_read_reg(client, FT5X02_REG_PERIOD_MONITOR,
 			&value);
 	if (err < 0) {
 		dev_err(&client->dev, "%s:write PERIOD_MONITOR failed.\n", __func__);
 		return err;
 	} else 
-		printk("PERIODMONITOR=%02x\n", value);
+		DBG("PERIODMONITOR=%02x\n", value);
 	
 	err = ft5x02_read_reg(client, FT5X02_REG_CIPHER_ID,
 			&value);
@@ -990,31 +993,31 @@ static int ft5x02_get_other_param(struct i2c_client *client)
 		dev_err(&client->dev, "%s:write CIPHER_ID failed.\n", __func__);
 		return err;
 	} else 
-		printk("CIPHER_ID=%02x\n", value);
+		DBG("CIPHER_ID=%02x\n", value);
 	err = ft5x02_read_reg(client, FT5X02_REG_MODE, &value);
 	if (err < 0) {
 		dev_err(&client->dev, "%s:write MODE failed.\n", __func__);
 		return err;
 	} else 
-		printk("MODE=%02x\n", value);
+		DBG("MODE=%02x\n", value);
 	err = ft5x02_read_reg(client, FT5X02_REG_PMODE, &value);
 	if (err < 0) {
 		dev_err(&client->dev, "%s:write PMODE failed.\n", __func__);
 		return err;
 	} else 
-		printk("PMODE=%02x\n", value);
+		DBG("PMODE=%02x\n", value);
 	err = ft5x02_read_reg(client, FT5X02_REG_FIRMWARE_ID, &value);
 	if (err < 0) {
 		dev_err(&client->dev, "%s:write FIRMWARE_ID failed.\n", __func__);
 		return err;
 	} else 
-		printk("FIRMID=%02x\n", value);
+		DBG("FIRMID=%02x\n", value);
 	err = ft5x02_read_reg(client, FT5X02_REG_STATE, &value);
 	if (err < 0) {
 		dev_err(&client->dev, "%s:write STATE failed.\n", __func__);
 		return err;
 	} else 
-		printk("STATE=%02x\n", value);
+		DBG("STATE=%02x\n", value);
 	
 	err = ft5x02_read_reg(client, FT5X02_REG_MAX_TOUCH_VALUE_HIGH,
 			&value);
@@ -1022,28 +1025,28 @@ static int ft5x02_get_other_param(struct i2c_client *client)
 		dev_err(&client->dev, "%s:write MAX_TOUCH_VALUE_HIGH failed.\n", __func__);
 		return err;
 	} else 
-		printk("MAX_TOUCH_VALUE_HIGH=%02x\n", value);
+		DBG("MAX_TOUCH_VALUE_HIGH=%02x\n", value);
 	err = ft5x02_read_reg(client, FT5X02_REG_MAX_TOUCH_VALUE_LOW,
 			&value);
 	if (err < 0) {
 		dev_err(&client->dev, "%s:write MAX_TOUCH_VALUE_LOW failed.\n", __func__);
 		return err;
 	} else 
-		printk("MAX_TOUCH_VALUE_LOW=%02x\n", value);
+		DBG("MAX_TOUCH_VALUE_LOW=%02x\n", value);
 	err = ft5x02_read_reg(client, FT5X02_REG_FACE_DETECT_MODE,
 			&value);
 	if (err < 0) {
 		dev_err(&client->dev, "%s:write FACE_DETECT_MODE failed.\n", __func__);
 		return err;
 	} else 
-		printk("FACE_DEC_MODE=%02x\n", value);
+		DBG("FACE_DEC_MODE=%02x\n", value);
 	err = ft5x02_read_reg(client, FT5X02_REG_DRAW_LINE_TH,
 			&value);
 	if (err < 0) {
 		dev_err(&client->dev, "%s:write DRAW_LINE_TH failed.\n", __func__);
 		return err;
 	} else 
-		printk("DRAW_LINE_TH=%02x\n", value);
+		DBG("DRAW_LINE_TH=%02x\n", value);
 	
 	err = ft5x02_read_reg(client, FT5X02_REG_DIFFDATA_HADDLE_VALUE,
 			&value);
@@ -1051,7 +1054,7 @@ static int ft5x02_get_other_param(struct i2c_client *client)
 		dev_err(&client->dev, "%s:write DIFFDATA_HADDLE_VALUE failed.\n", __func__);
 		return err;
 	} else 
-		printk("DIFFDATA_HADDLE_VALUE=%02x\n", value);
+		DBG("DIFFDATA_HADDLE_VALUE=%02x\n", value);
 
 	err = ft5x02_read_reg(client, FT5X02_REG_ABNORMAL_DIFF_VALUE,
 			&value);
@@ -1059,14 +1062,14 @@ static int ft5x02_get_other_param(struct i2c_client *client)
 		dev_err(&client->dev, "%s:write ABNORMAL_DIFF_VALUE failed.\n", __func__);
 		return err;
 	} else 
-		printk("ABNORMAL_DIFF_VALUE=%02x\n", value);
+		DBG("ABNORMAL_DIFF_VALUE=%02x\n", value);
 	err = ft5x02_read_reg(client, FT5X02_REG_ABNORMAL_DIFF_NUM,
 			&value);
 	if (err < 0) {
 		dev_err(&client->dev, "%s:write ABNORMAL_DIFF_NUM failed.\n", __func__);
 		return err;
 	} else 
-		printk("ABNORMAL_DIFF_NUM=%02x\n", value);
+		DBG("ABNORMAL_DIFF_NUM=%02x\n", value);
 	
 	err = ft5x02_read_reg(client, FT5X02_REG_ABNORMAL_DIFF_LAST_FRAME,
 			&value);
@@ -1074,7 +1077,7 @@ static int ft5x02_get_other_param(struct i2c_client *client)
 		dev_err(&client->dev, "%s:write ABNORMAL_DIFF_LAST_FRAME failed.\n", __func__);
 		return err;
 	} else 
-		printk("ABNORMAL_DIFF_LAST_FRAME=%02x\n", value);
+		DBG("ABNORMAL_DIFF_LAST_FRAME=%02x\n", value);
 
 	err = ft5x02_read_reg(client, FT5X02_REG_ESD_FILTER_FRAME,
 			&value);
@@ -1082,7 +1085,7 @@ static int ft5x02_get_other_param(struct i2c_client *client)
 		dev_err(&client->dev, "%s:write FT5X02_REG_ESD_FILTER_FRAME failed.\n", __func__);
 		return err;
 	} else 
-		printk("FT5X02_REG_ESD_FILTER_FRAME=%02x\n", value);
+		DBG("FT5X02_REG_ESD_FILTER_FRAME=%02x\n", value);
 	//-------
 	err = ft5x02_read_reg(client, FT5X02_REG_MOVSTH_I,
 			&value);
@@ -1090,7 +1093,7 @@ static int ft5x02_get_other_param(struct i2c_client *client)
 		dev_err(&client->dev, "%s:write FT5X02_REG_MOVSTH_I failed.\n", __func__);
 		return err;
 	} else 
-		printk("FT5X02_REG_MOVSTH_I=%02x\n", value);
+		DBG("FT5X02_REG_MOVSTH_I=%02x\n", value);
 
 	err = ft5x02_read_reg(client, FT5X02_REG_MOVSTH_N,
 			&value);
@@ -1098,7 +1101,7 @@ static int ft5x02_get_other_param(struct i2c_client *client)
 		dev_err(&client->dev, "%s:write FT5X02_REG_MOVSTH_N failed.\n", __func__);
 		return err;
 	} else 
-		printk("FT5X02_REG_MOVSTH_N=%02x\n", value);
+		DBG("FT5X02_REG_MOVSTH_N=%02x\n", value);
 	//--------------------
 	return err;
 }
@@ -1117,7 +1120,7 @@ int ft5x02_get_ic_param(struct i2c_client *client)
 	}
 	
 	for (i = 0; i < g_ft5x02_tx_num; i++) {
-		printk("tx%d:", i);
+		DBG("tx%d:", i);
 		/*get tx order*/
 		err = ft5x02_get_tx_order(client, i, &value);
 		if (err < 0) {
@@ -1125,7 +1128,7 @@ int ft5x02_get_ic_param(struct i2c_client *client)
 					__func__, i);
 			goto RETURN_WORK;
 		}
-		printk("order=%d ", value);
+		DBG("order=%d ", value);
 		/*get tx cap*/
 		err = ft5x02_get_tx_cap(client, i, &value);
 		if (err < 0) {
@@ -1133,7 +1136,7 @@ int ft5x02_get_ic_param(struct i2c_client *client)
 					__func__, i);
 			goto RETURN_WORK;
 		}
-		printk("cap=%02x\n", value);
+		DBG("cap=%02x\n", value);
 	}
 	/*get tx offset*/
 	err = ft5x02_get_tx_offset(client, 0, &value);
@@ -1142,12 +1145,12 @@ int ft5x02_get_ic_param(struct i2c_client *client)
 				__func__);
 		goto RETURN_WORK;
 	} else
-		printk("tx offset = %02x\n", value);
+		DBG("tx offset = %02x\n", value);
 
 	/*get rx offset and cap*/
 	for (i = 0; i < g_ft5x02_rx_num; i++) {
 		/*get rx order*/
-		printk("rx%d:", i);
+		DBG("rx%d:", i);
 		err = ft5x02_get_rx_order(client, i, &value);
 		if (err < 0) {
 			dev_err(&client->dev, "%s:could not get rx%d order.\n",
@@ -1414,115 +1417,58 @@ static int  ReadInitParaFromFile(void)
     return 0;
 }
 
-static int first_init_Struct_Param_FT5X02(void)
-{
-	g_param_ft5x02.ft5x02_FIRMWARE_ID=ft5x02_firmware_id;
-	g_param_ft5x02.ft5x02_CUSTOMER_ID=ft5x02_customer_id;
-	g_param_ft5x02.ft5x02_RESOLUTION_X=ft5x02_resolution_x;
-	g_param_ft5x02.ft5x02_RESOLUTION_Y=ft5x02_resolution_y;
-	g_param_ft5x02.ft5x02_LEMDA_X=ft5x02_lemda_x;
-	g_param_ft5x02.ft5x02_LEMDA_Y=ft5x02_lemda_y;
-	g_param_ft5x02.ft5x02_KX=ft5x02_kx;
-	g_param_ft5x02.ft5x02_KY=ft5x02_ky;
-	g_param_ft5x02.ft5x02_DIRECTION=ft5x02_direction;
-	g_param_ft5x02.ft5x02_KX_LR=ft5x02_kx_lr;
-	g_param_ft5x02.ft5x02_KY_UD=ft5x02_ky_ud;
-	g_param_ft5x02.ft5x02_POINTS_SUPPORTED=ft5x02_points_supported;
-	g_param_ft5x02.ft5x02_THGROUP=ft5x02_thgroup;
-	g_param_ft5x02.ft5x02_THPEAK=ft5x02_thpeak;
-	g_param_ft5x02.ft5x02_THDIFF=ft5x02_thdiff;
-	g_param_ft5x02.ft5x02_MAX_TOUCH_VALUE=ft5x02_max_touch_value;
-	g_param_ft5x02.ft5x02_DRAW_LINE_TH=ft5x02_draw_line_th;
-	g_param_ft5x02.ft5x02_PWMODE_CTRL=ft5x02_pwmode_ctrl;
-	g_param_ft5x02.ft5x02_PERIOD_ACTIVE=ft5x02_period_active;
-	g_param_ft5x02.ft5x02_TIME_ENTER_MONITOR=ft5x02_time_enter_monitor;
-	g_param_ft5x02.ft5x02_PERIOD_MONITOR=ft5x02_period_monitor;
-	g_param_ft5x02.ft5x02_FILTER_FRAME_NOISE=ft5x02_filter_frame_noise;
-	g_param_ft5x02.ft5x02_POWERNOISE_FILTER_TH=ft5x02_powernoise_filter_th;
-	g_param_ft5x02.ft5x02_DIFFDATA_HADDLE_VALUE=ft5x02_diffdata_haddle_value;
-	g_param_ft5x02.ft5x02_FACE_DETECT_MODE=ft5x02_face_detect_mode;
-	g_param_ft5x02.ft5x02_FACE_DETECT_STATISTICS_TX_NUM=ft5x02_face_detect_statustice_tx_num;
-	g_param_ft5x02.ft5x02_FACE_DETECT_PRE_VALUE=ft5x02_face_detect_pre_value;
-	g_param_ft5x02.ft5x02_FACE_DETECT_NUM=ft5x02_face_defect_num;
-	g_param_ft5x02.ft5x02_FACE_DETECT_LAST_TIME=ft5x02_face_detect_last_time;
-	g_param_ft5x02.ft5x02_BIGAREA_PEAK_VALUE_MIN=ft5x02_bigarea_peak_value_min;
-	g_param_ft5x02.ft5x02_BIGAREA_DIFF_VALUE_OVER_NUM=ft5x02_bigarea_diff_value_over_num;
-	g_param_ft5x02.ft5x02_BIGAREA_POINT_AUTO_CLEAR_TIME=ft5x02_bigarea_point_auto_clear_time;
-	g_param_ft5x02.ft5x02_ABNORMAL_DIFF_VALUE=ft5x02_abnormal_diff_value;
-	g_param_ft5x02.ft5x02_ABNORMAL_DIFF_VALUE=ft5x02_abnormal_diff_num;
-	g_param_ft5x02.ft5x02_ABNORMAL_DIFF_LAST_FRAME=ft5x02_abnormal_diff_last_frame;
-	g_param_ft5x02.ft5x02_START_RX=ft5x02_start_rx;
-	g_param_ft5x02.ft5x02_ADC_TARGET=ft5x02_adc_target;
-	g_param_ft5x02.ft5x02_ESD_FILTER_FRAME=ft5x02_esd_filter_frame;
-	g_param_ft5x02.ft5x02_MOVSTH_I=ft5x02_movsth_i;
-	g_param_ft5x02.ft5x02_MOVSTH_N=ft5x02_movsth_n;
-	g_param_ft5x02.ft5x02_MODE=ft5x02_mode;
-	g_param_ft5x02.ft5x02_PMODE=ft5x02_pmode;
-	g_param_ft5x02.ft5x02_AUTO_CLB_MODE=ft5x02_auto_clb_mode;
-	g_param_ft5x02.ft5x02_STATE=ft5x02_state;
-	g_param_ft5x02.ft5x02_HIGH_SPEED_TH=ft5x02_high_speed_th;
-	g_param_ft5x02.ft5x02_MID_SPEED_TH=ft5x02_mid_speed_th;
-	g_param_ft5x02.ft5x02_STATIC_TH=ft5x02_static_th;
-	g_param_ft5x02.ft5x02_THFALSE_TOUCH_PEAK=ft5x02_thfalse_touch_peak;
-	return 0;
-		
-}
-
 static int init_Struct_Param_FT5X02(void)
 {
 	int i;
 
-	g_param_ft5x02.ft5x02_FIRMWARE_ID=ft5x02_firmware_id=*(FT5X0X_FW+0);
-	ft5x02_opt_param_id=*(FT5X0X_FW+1);
-	g_param_ft5x02.ft5x02_CUSTOMER_ID=ft5x02_customer_id=*(FT5X0X_FW+2);
-	ft5x02_chiper_id=*(FT5X0X_FW+3);
-	g_param_ft5x02.ft5x02_RESOLUTION_X=ft5x02_resolution_x=*(FT5X0X_FW+4);
-	g_param_ft5x02.ft5x02_RESOLUTION_Y=ft5x02_resolution_y=*(FT5X0X_FW+5);
-	g_param_ft5x02.ft5x02_LEMDA_X=ft5x02_lemda_x=*(FT5X0X_FW+6);
-	g_param_ft5x02.ft5x02_LEMDA_Y=ft5x02_lemda_y=*(FT5X0X_FW+7);
-	g_param_ft5x02.ft5x02_KX=ft5x02_kx=*(FT5X0X_FW+8);
-	g_param_ft5x02.ft5x02_KY=ft5x02_ky=*(FT5X0X_FW+9);
-	g_param_ft5x02.ft5x02_DIRECTION=ft5x02_direction=*(FT5X0X_FW+10);
-	g_param_ft5x02.ft5x02_KX_LR=ft5x02_kx_lr=*(FT5X0X_FW+11);
-	g_param_ft5x02.ft5x02_KY_UD=ft5x02_ky_ud=*(FT5X0X_FW+12);
-	g_param_ft5x02.ft5x02_POINTS_SUPPORTED=ft5x02_points_supported=*(FT5X0X_FW+13);
-	g_param_ft5x02.ft5x02_THGROUP=ft5x02_thgroup=*(FT5X0X_FW+14);
-	g_param_ft5x02.ft5x02_THPEAK=ft5x02_thpeak=*(FT5X0X_FW+15);
-	g_param_ft5x02.ft5x02_THDIFF=ft5x02_thdiff=*(FT5X0X_FW+16);
-	g_param_ft5x02.ft5x02_MAX_TOUCH_VALUE=ft5x02_max_touch_value=*(FT5X0X_FW+17);
-	g_param_ft5x02.ft5x02_DRAW_LINE_TH=ft5x02_draw_line_th=*(FT5X0X_FW+18);
-	g_param_ft5x02.ft5x02_PWMODE_CTRL=ft5x02_pwmode_ctrl=*(FT5X0X_FW+19);
-	g_param_ft5x02.ft5x02_PERIOD_ACTIVE=ft5x02_period_active=*(FT5X0X_FW+20);
-	g_param_ft5x02.ft5x02_TIME_ENTER_MONITOR=ft5x02_time_enter_monitor=*(FT5X0X_FW+21);
-	g_param_ft5x02.ft5x02_PERIOD_MONITOR=ft5x02_period_monitor=*(FT5X0X_FW+22);
-	g_param_ft5x02.ft5x02_FILTER_FRAME_NOISE=ft5x02_filter_frame_noise=*(FT5X0X_FW+23);
-	g_param_ft5x02.ft5x02_POWERNOISE_FILTER_TH=ft5x02_powernoise_filter_th=*(FT5X0X_FW+24);
-	g_param_ft5x02.ft5x02_DIFFDATA_HADDLE_VALUE=ft5x02_diffdata_haddle_value=*(FT5X0X_FW+25);
-	g_param_ft5x02.ft5x02_FACE_DETECT_MODE=ft5x02_face_detect_mode=*(FT5X0X_FW+26);
-	g_param_ft5x02.ft5x02_FACE_DETECT_STATISTICS_TX_NUM=ft5x02_face_detect_statustice_tx_num=*(FT5X0X_FW+27);
-	g_param_ft5x02.ft5x02_FACE_DETECT_PRE_VALUE=ft5x02_face_detect_pre_value=*(FT5X0X_FW+28);
-	g_param_ft5x02.ft5x02_FACE_DETECT_NUM=ft5x02_face_defect_num=*(FT5X0X_FW+29);
-	g_param_ft5x02.ft5x02_FACE_DETECT_LAST_TIME=ft5x02_face_detect_last_time=*(FT5X0X_FW+30);
-	g_param_ft5x02.ft5x02_BIGAREA_PEAK_VALUE_MIN=ft5x02_bigarea_peak_value_min=*(FT5X0X_FW+31);
-	g_param_ft5x02.ft5x02_BIGAREA_DIFF_VALUE_OVER_NUM=ft5x02_bigarea_diff_value_over_num=*(FT5X0X_FW+32);
-	g_param_ft5x02.ft5x02_BIGAREA_POINT_AUTO_CLEAR_TIME=ft5x02_bigarea_point_auto_clear_time=*(FT5X0X_FW+33);
-	g_param_ft5x02.ft5x02_ABNORMAL_DIFF_VALUE=ft5x02_abnormal_diff_value=*(FT5X0X_FW+34);
-	g_param_ft5x02.ft5x02_ABNORMAL_DIFF_VALUE=ft5x02_abnormal_diff_num=*(FT5X0X_FW+35);
-	g_param_ft5x02.ft5x02_ABNORMAL_DIFF_LAST_FRAME=ft5x02_abnormal_diff_last_frame=*(FT5X0X_FW+36);
-	g_param_ft5x02.ft5x02_START_RX=ft5x02_start_rx=*(FT5X0X_FW+37);
-	g_param_ft5x02.ft5x02_ADC_TARGET=ft5x02_adc_target=*(FT5X0X_FW+38);
-	g_param_ft5x02.ft5x02_ESD_FILTER_FRAME=ft5x02_esd_filter_frame=*(FT5X0X_FW+39);
-	g_param_ft5x02.ft5x02_MOVSTH_I=ft5x02_movsth_i=*(FT5X0X_FW+40);
-	g_param_ft5x02.ft5x02_MOVSTH_N=ft5x02_movsth_n=*(FT5X0X_FW+41);
-	g_param_ft5x02.ft5x02_MODE=ft5x02_mode=*(FT5X0X_FW+42);
-	g_param_ft5x02.ft5x02_PMODE=ft5x02_pmode=*(FT5X0X_FW+43);
-	ft5x02_err=*(FT5X0X_FW+44);
-	g_param_ft5x02.ft5x02_AUTO_CLB_MODE=ft5x02_auto_clb_mode=*(FT5X0X_FW+45);
-	g_param_ft5x02.ft5x02_STATE=ft5x02_state=*(FT5X0X_FW+46);
-	g_param_ft5x02.ft5x02_HIGH_SPEED_TH=ft5x02_high_speed_th=*(FT5X0X_FW+47);
-	g_param_ft5x02.ft5x02_MID_SPEED_TH=ft5x02_mid_speed_th=*(FT5X0X_FW+48);
-	g_param_ft5x02.ft5x02_STATIC_TH=ft5x02_static_th=*(FT5X0X_FW+49);
-	g_param_ft5x02.ft5x02_THFALSE_TOUCH_PEAK=ft5x02_thfalse_touch_peak=*(FT5X0X_FW+50);
+	g_param_ft5x02.ft5x02_FIRMWARE_ID=*(FT5X0X_FW+0);
+	g_param_ft5x02.ft5x02_CUSTOMER_ID=*(FT5X0X_FW+2);
+	g_param_ft5x02.ft5x02_RESOLUTION_X=*(FT5X0X_FW+4);
+	g_param_ft5x02.ft5x02_RESOLUTION_Y=*(FT5X0X_FW+5);
+	g_param_ft5x02.ft5x02_LEMDA_X=*(FT5X0X_FW+6);
+	g_param_ft5x02.ft5x02_LEMDA_Y=*(FT5X0X_FW+7);
+	g_param_ft5x02.ft5x02_KX=*(FT5X0X_FW+8);
+	g_param_ft5x02.ft5x02_KY=*(FT5X0X_FW+9);
+	g_param_ft5x02.ft5x02_DIRECTION=*(FT5X0X_FW+10);
+	g_param_ft5x02.ft5x02_KX_LR=*(FT5X0X_FW+11);
+	g_param_ft5x02.ft5x02_KY_UD=*(FT5X0X_FW+12);
+	g_param_ft5x02.ft5x02_POINTS_SUPPORTED=*(FT5X0X_FW+13);
+	g_param_ft5x02.ft5x02_THGROUP=*(FT5X0X_FW+14);
+	g_param_ft5x02.ft5x02_THPEAK=*(FT5X0X_FW+15);
+	g_param_ft5x02.ft5x02_THDIFF=*(FT5X0X_FW+16);
+	g_param_ft5x02.ft5x02_MAX_TOUCH_VALUE=*(FT5X0X_FW+17);
+	g_param_ft5x02.ft5x02_DRAW_LINE_TH=*(FT5X0X_FW+18);
+	g_param_ft5x02.ft5x02_PWMODE_CTRL=*(FT5X0X_FW+19);
+	g_param_ft5x02.ft5x02_PERIOD_ACTIVE=*(FT5X0X_FW+20);
+	g_param_ft5x02.ft5x02_TIME_ENTER_MONITOR=*(FT5X0X_FW+21);
+	g_param_ft5x02.ft5x02_PERIOD_MONITOR=*(FT5X0X_FW+22);
+	g_param_ft5x02.ft5x02_FILTER_FRAME_NOISE=*(FT5X0X_FW+23);
+	g_param_ft5x02.ft5x02_POWERNOISE_FILTER_TH=*(FT5X0X_FW+24);
+	g_param_ft5x02.ft5x02_DIFFDATA_HADDLE_VALUE=*(FT5X0X_FW+25);
+	g_param_ft5x02.ft5x02_FACE_DETECT_MODE=*(FT5X0X_FW+26);
+	g_param_ft5x02.ft5x02_FACE_DETECT_STATISTICS_TX_NUM=*(FT5X0X_FW+27);
+	g_param_ft5x02.ft5x02_FACE_DETECT_PRE_VALUE=*(FT5X0X_FW+28);
+	g_param_ft5x02.ft5x02_FACE_DETECT_NUM=*(FT5X0X_FW+29);
+	g_param_ft5x02.ft5x02_FACE_DETECT_LAST_TIME=*(FT5X0X_FW+30);
+	g_param_ft5x02.ft5x02_BIGAREA_PEAK_VALUE_MIN=*(FT5X0X_FW+31);
+	g_param_ft5x02.ft5x02_BIGAREA_DIFF_VALUE_OVER_NUM=*(FT5X0X_FW+32);
+	g_param_ft5x02.ft5x02_BIGAREA_POINT_AUTO_CLEAR_TIME=*(FT5X0X_FW+33);
+	g_param_ft5x02.ft5x02_ABNORMAL_DIFF_VALUE=*(FT5X0X_FW+34);
+	g_param_ft5x02.ft5x02_ABNORMAL_DIFF_VALUE=*(FT5X0X_FW+35);
+	g_param_ft5x02.ft5x02_ABNORMAL_DIFF_LAST_FRAME=*(FT5X0X_FW+36);
+	g_param_ft5x02.ft5x02_START_RX=*(FT5X0X_FW+37);
+	g_param_ft5x02.ft5x02_ADC_TARGET=*(FT5X0X_FW+38);
+	g_param_ft5x02.ft5x02_ESD_FILTER_FRAME=*(FT5X0X_FW+39);
+	g_param_ft5x02.ft5x02_MOVSTH_I=*(FT5X0X_FW+40);
+	g_param_ft5x02.ft5x02_MOVSTH_N=*(FT5X0X_FW+41);
+	g_param_ft5x02.ft5x02_MODE=*(FT5X0X_FW+42);
+	g_param_ft5x02.ft5x02_PMODE=*(FT5X0X_FW+43);
+	g_param_ft5x02.ft5x02_AUTO_CLB_MODE=*(FT5X0X_FW+45);
+	g_param_ft5x02.ft5x02_STATE=*(FT5X0X_FW+46);
+	g_param_ft5x02.ft5x02_HIGH_SPEED_TH=*(FT5X0X_FW+47);
+	g_param_ft5x02.ft5x02_MID_SPEED_TH=*(FT5X0X_FW+48);
+	g_param_ft5x02.ft5x02_STATIC_TH=*(FT5X0X_FW+49);
+	g_param_ft5x02.ft5x02_THFALSE_TOUCH_PEAK=*(FT5X0X_FW+50);
 	g_ft5x02_gain=*(FT5X0X_FW+51);
 	g_ft5x02_voltage=*(FT5X0X_FW+52);
 	g_ft5x02_scanselect=*(FT5X0X_FW+53);
@@ -1551,7 +1497,6 @@ int ft5x02_Init_IC_Param(struct i2c_client *client)
 	int err = 0;
 	int i = 0;
 	if(time==0){
-		first_init_Struct_Param_FT5X02();
 		if(SCRIPT_PARSER_OK != script_parser_fetch("ctp_para", "ft5x0x_init_if", &ft5x0x_init_if, 1))
 			pr_info("%s: script_parser_fetch ft5x0x_init_if err. \n", __func__);						
 		else
@@ -2253,6 +2198,162 @@ int ft5x02_Get_Param_From_Ini(char *config_name)
 	i++;
 	
 	g_param_ft5x02.ft5x02_ADC_TARGET = atoi(value);
+	DBG("ft5x02_ADC_TARGET=%s\n", value);
+
+	sprintf(key, "%s", String_Param_FT5X02[i]);
+	if (ini_get_key(filedata,section,key,value)<0)
+		goto ERROR_RETURN;
+	i++;
+	
+	g_param_ft5x02.ft5x02_FILTER_FRAME_NOISE = atoi(value);
+	DBG("ft5x02_FILTER_FRAME_NOISE=%s\n", value);
+
+	sprintf(key, "%s", String_Param_FT5X02[i]);
+	if (ini_get_key(filedata,section,key,value)<0)
+		goto ERROR_RETURN;
+	i++;
+	
+	g_param_ft5x02.ft5x02_POWERNOISE_FILTER_TH= atoi(value);
+	DBG("ft5x02_POWERNOISE_FILTER_TH=%s\n", value);
+
+	sprintf(key, "%s", String_Param_FT5X02[i]);
+	if (ini_get_key(filedata,section,key,value)<0)
+		goto ERROR_RETURN;
+	i++;
+	
+	g_param_ft5x02.ft5x02_KX_LR= atoi(value);
+	DBG("ft5x02_KX_LR=%s\n", value);
+
+	sprintf(key, "%s", String_Param_FT5X02[i]);
+	if (ini_get_key(filedata,section,key,value)<0)
+		goto ERROR_RETURN;
+	i++;
+	
+	g_param_ft5x02.ft5x02_KY_UD= atoi(value);
+	DBG("ft5x02_KY_UD=%s\n", value);
+
+	sprintf(key, "%s", String_Param_FT5X02[i]);
+	if (ini_get_key(filedata,section,key,value)<0)
+		goto ERROR_RETURN;
+	i++;
+	
+	g_param_ft5x02.ft5x02_ESD_FILTER_FRAME = atoi(value);
+	DBG("ft5x02_ESD_FILTER_FRAME=%s\n", value);
+
+/*********************************************************************/	
+	sprintf(key, "%s", String_Param_FT5X02[i]);
+	if (ini_get_key(filedata,section,key,value)<0)
+		goto ERROR_RETURN;
+	i++;
+	g_ft5x02_tx_num = atoi(value);
+	DBG("ft5x02_tx_num=%s\n", value);
+
+	
+	sprintf(key, "%s", String_Param_FT5X02[i]);
+	if (ini_get_key(filedata,section,key,value)<0)
+		goto ERROR_RETURN;
+	i++;
+	g_ft5x02_rx_num = atoi(value);
+	DBG("ft5x02_rx_num=%s\n", value);
+	
+	sprintf(key, "%s", String_Param_FT5X02[i]);
+	if (ini_get_key(filedata,section,key,value)<0)
+		goto ERROR_RETURN;
+	i++;
+	g_ft5x02_gain = atoi(value);
+	DBG("ft5x02_gain=%s\n", value);
+	
+	sprintf(key, "%s", String_Param_FT5X02[i]);
+	if (ini_get_key(filedata,section,key,value)<0)
+		goto ERROR_RETURN;
+	i++;
+	g_ft5x02_voltage = atoi(value);
+	DBG("ft5x02_voltage=%s\n", value);
+	
+	sprintf(key, "%s", String_Param_FT5X02[i]);
+	if (ini_get_key(filedata,section,key,value)<0)
+		goto ERROR_RETURN;
+	i++;
+	g_ft5x02_scanselect = atoi(value);
+	DBG("ft5x02_scanselect=%s\n", value);
+
+	
+	sprintf(key, "%s", String_Param_FT5X02[i]);
+	if (ini_get_key(filedata,section,key,value)<0)
+		goto ERROR_RETURN;
+	i++;
+	for(j = 0; j < g_ft5x02_tx_num; j++)
+	{
+		char * psrc = value;
+		g_ft5x02_tx_order[j] = atoi(ft5x02_sub_str(psrc, j+1));
+	}
+	DBG("ft5x02_tx_order=%s\n", value);
+
+	
+	sprintf(key, "%s", String_Param_FT5X02[i]);
+	if (ini_get_key(filedata,section,key,value)<0)
+		goto ERROR_RETURN;
+	i++;
+	g_ft5x02_tx_offset = atoi(value);
+	DBG("ft5x02_tx_offset=%s\n", value);
+	
+	sprintf(key, "%s", String_Param_FT5X02[i]);
+	if (ini_get_key(filedata,section,key,value)<0)
+		goto ERROR_RETURN;
+	i++;
+	for(j = 0; j < g_ft5x02_tx_num; j++)
+	{
+		char * psrc = value;
+		g_ft5x02_tx_cap[j] = atoi(ft5x02_sub_str(psrc, j+1));
+	}
+	DBG("ft5x02_tx_cap=%s\n", value);
+
+	
+	sprintf(key, "%s", String_Param_FT5X02[i]);
+	if (ini_get_key(filedata,section,key,value)<0)
+		goto ERROR_RETURN;
+	i++;
+	for(j = 0; j < g_ft5x02_rx_num; j++)
+	{
+		char * psrc = value;
+		g_ft5x02_rx_order[j] = atoi(ft5x02_sub_str(psrc, j+1));
+	}
+	DBG("ft5x02_rx_order=%s\n", value);
+
+	
+	sprintf(key, "%s", String_Param_FT5X02[i]);
+	if (ini_get_key(filedata,section,key,value)<0)
+		goto ERROR_RETURN;
+	i++;
+	for(j = 0; j < g_ft5x02_rx_num/2; j++)
+	{
+		char * psrc = value;
+		g_ft5x02_rx_offset[j] = atoi(ft5x02_sub_str(psrc, j+1));
+	}
+	DBG("ft5x02_rx_offset=%s\n", value);
+
+	
+	sprintf(key, "%s", String_Param_FT5X02[i]);
+	if (ini_get_key(filedata,section,key,value)<0)
+		goto ERROR_RETURN;
+	i++;
+	for(j = 0; j < g_ft5x02_rx_num; j++)
+	{
+		char * psrc = value;
+		g_ft5x02_rx_cap[j] = atoi(ft5x02_sub_str(psrc, j+1));
+	}
+	DBG("ft5x02_rx_cap=%s\n", value);
+	
+	if (filedata) 
+		kfree(filedata);
+	return 0;
+ERROR_RETURN:
+	if (filedata) 
+		kfree(filedata);
+	return -1;
+}
+EXPORT_SYMBOL_GPL(ft5x02_Get_Param_From_Ini);
+  ET = atoi(value);
 	DBG("ft5x02_ADC_TARGET=%s\n", value);
 
 	sprintf(key, "%s", String_Param_FT5X02[i]);
