@@ -65,7 +65,7 @@ int axp_usbvolflag = 0;
 
 int axp_chip_id_get(uint8_t chip_id[16])
 {
-	uint8_t ret,i;
+	uint8_t ret;
 	ret = axp_write(axp_charger->master,0xff,0x01);
 	if(ret)
 	{
@@ -576,7 +576,7 @@ static void axp_change(struct axp_charger *charger)
   printk("charger->usb_valid = %d\n",charger->usb_valid);
 	if(!charger->usb_valid){
 		printk("set usb vol-lim to %d mV, cur-lim to %d mA\n",pmu_usbvol,pmu_usbcur);
-        cancel_delayed_work_sync(&usbwork);
+        //cancel_delayed_work_sync(&usbwork);
 		//reset usb-ac after usb removed 
 		if((pmu_usbcur) && (pmu_usbcur_limit)){
 			axp_clr_bits(charger->master, AXP22_CHARGE_VBUS, 0x01);
@@ -684,9 +684,13 @@ static int axp_battery_event(struct notifier_block *nb, unsigned long event,
     container_of(nb, struct axp_charger, nb);
 
     uint8_t w[9];
-	DBG_PSY_MSG("axp_battery_event enter...\n");
+	if(axp_debug){
+		DBG_PSY_MSG("axp_battery_event enter...\n");
+	}
     if((bool)data==0){
+		if(axp_debug){
     		DBG_PSY_MSG("low 32bit status...\n");
+		}
 			if(event & (AXP22_IRQ_BATIN|AXP22_IRQ_BATRE)) {
 				axp_capchange(charger);
 			}
@@ -724,7 +728,9 @@ static int axp_battery_event(struct notifier_block *nb, unsigned long event,
 		if((event) & (AXP22_IRQ_PEKRE>>32)) {
 			axp_keyup(charger);
 		}
-		DBG_PSY_MSG("high 32bit status...\n");
+		if(axp_debug){
+			DBG_PSY_MSG("high 32bit status...\n");
+		}
 		w[0] = 0;
     	w[1] = AXP22_INTSTS2;
     	w[2] = 0;
@@ -1333,9 +1339,15 @@ static void axp_usb(struct work_struct *work)
 	struct axp_charger *charger;
 	
 	charger = axp_charger;
-	
+	if(axp_debug)
+	{
+		printk("[axp_usb]axp_usbcurflag = %d\n",axp_usbcurflag);
+	}
 	if(axp_usbcurflag){
-		printk("set usbcur %d mA\n",pmu_usbcur_pc);
+		if(axp_debug)
+		{
+			printk("set usbcur_pc %d mA\n",pmu_usbcur_pc);
+		}
 		if(pmu_usbcur_pc){
 			axp_clr_bits(charger->master, AXP22_CHARGE_VBUS, 0x01);
 			var = pmu_usbcur_pc * 1000;
@@ -1352,7 +1364,10 @@ static void axp_usb(struct work_struct *work)
 		else//not limit
 			axp_set_bits(charger->master, AXP22_CHARGE_VBUS, 0x03);			
 	}else {
-		printk("set usbcur %d mA\n",pmu_usbcur_pc);
+		if(axp_debug)
+		{
+			printk("set usbcur %d mA\n",pmu_usbcur);
+		}
 		if((pmu_usbcur) && (pmu_usbcur_limit)){
 			axp_clr_bits(charger->master, AXP22_CHARGE_VBUS, 0x01);
 			var = pmu_usbcur * 1000;
@@ -1370,7 +1385,10 @@ static void axp_usb(struct work_struct *work)
 	}
 		
 	if(axp_usbvolflag){
-		printk("set usbvol %d mV\n",pmu_usbvol_pc);
+		if(axp_debug)
+		{
+			printk("set usbvol_pc %d mV\n",pmu_usbvol_pc);
+		}
 		if(pmu_usbvol_pc){
 		    axp_set_bits(charger->master, AXP22_CHARGE_VBUS, 0x40);
 		  	var = pmu_usbvol_pc * 1000;
@@ -1387,7 +1405,10 @@ static void axp_usb(struct work_struct *work)
 		else
 		    axp_clr_bits(charger->master, AXP22_CHARGE_VBUS, 0x40);
 	}else {
-		printk("set usbvol %d mV\n",pmu_usbvol);
+		if(axp_debug)
+		{
+			printk("set usbvol %d mV\n",pmu_usbvol);
+		}
 		if((pmu_usbvol) && (pmu_usbvol_limit)){
 		    axp_set_bits(charger->master, AXP22_CHARGE_VBUS, 0x40);
 		  	var = pmu_usbvol * 1000;
@@ -1404,6 +1425,7 @@ static void axp_usb(struct work_struct *work)
 		else
 		    axp_clr_bits(charger->master, AXP22_CHARGE_VBUS, 0x40);
 	}
+	schedule_delayed_work(&usbwork, msecs_to_jiffies(5* 1000));
 }
 
 static int axp_battery_probe(struct platform_device *pdev)
@@ -1544,7 +1566,7 @@ static int axp_battery_probe(struct platform_device *pdev)
       
 
   // set lowe power warning/shutdown level
-  axp_write(charger->master, AXP22_WARNING_LEVEL,(pmu_battery_warning_level1 << 4)+pmu_battery_warning_level2);
+  axp_write(charger->master, AXP22_WARNING_LEVEL,((pmu_battery_warning_level1-5) << 4)+pmu_battery_warning_level2);
 
   ocv_cap[0]  = pmu_bat_para1;
   ocv_cap[1]  = 0xC1;
@@ -1799,9 +1821,7 @@ static int axp_battery_probe(struct platform_device *pdev)
 
   /* set usb cur-vol limit*/
 	INIT_DELAYED_WORK(&usbwork, axp_usb);
-	if(charger->usb_valid){
-		schedule_delayed_work(&usbwork, msecs_to_jiffies(7 * 1000));
-	}
+	schedule_delayed_work(&usbwork, msecs_to_jiffies(7 * 1000));
 	/*给局部变量赋值*/
 	axp_charger = charger;
 #ifdef CONFIG_HAS_EARLYSUSPEND
@@ -1861,6 +1881,7 @@ static int axp22_suspend(struct platform_device *dev, pm_message_t state)
 
 
 	cancel_delayed_work_sync(&charger->work);
+	cancel_delayed_work_sync(&usbwork);
 
     /*clear all irqs events*/
     irq_w[0] = 0xff;
@@ -1936,6 +1957,7 @@ static int axp22_resume(struct platform_device *dev)
 	charger->disvbat = 0;
 	charger->disibat = 0;
     schedule_delayed_work(&charger->work, charger->interval);
+	schedule_delayed_work(&usbwork, msecs_to_jiffies(7 * 1000));
 
     return 0;
 }
