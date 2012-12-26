@@ -24,10 +24,11 @@ __u32 hsv_range_par[21] =
 
 __u32 hsv_adjust_vivid_par[16] = 
 {
-	0x00000000,0x068a0080,//Hgain_G,Sgain_G,Vgain_G
+	0x00000000,0x068a0000,//Hgain_G,Sgain_G,Vgain_G
 	0xff000000,0xff000000,0xff000000,0xff000000,0xff000000,0xff000000,0xff000000,//Hgain_L
-	0x00000000,0x00000000,0x00000010,0x00000000,0x00000000,0x00000000,0x00000000 //Sgain_L,Vgain_L
+	0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000 //Sgain_L,Vgain_L
 };
+
 
 __u32 hsv_adjust_flesh_par[16] = 
 {

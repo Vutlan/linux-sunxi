@@ -1762,7 +1762,7 @@ __lcd_flow_t * BSP_disp_lcd_get_open_flow(__u32 sel)
 
 __s32 BSP_disp_lcd_close_befor(__u32 sel)
 {    
-	close_flow[sel].func_num = 0;
+    close_flow[sel].func_num = 0;
 	lcd_panel_fun[sel].cfg_close_flow(sel);
     //BSP_disp_drc_enable(sel, FALSE);
     drc_enable(sel, 2);

@@ -207,6 +207,20 @@ __s32 disp_mipipll_init(void)
 
     return 0;
 }
+
+__s32 disp_mipipll_enable(__u32 en)
+{
+    if(en)
+    {
+        MipiPllCtl->PLLEn = 1;
+    }
+    else
+    {
+        MipiPllCtl->PLLEn = 0;
+    }
+
+    return 0;
+}
 __s32 image_clk_init(__u32 sel)
 {
 	__u32 pll_freq;

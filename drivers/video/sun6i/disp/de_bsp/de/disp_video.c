@@ -26,10 +26,7 @@ static __s32 video_enhancement_stop(__u32 sel, __u32 id)
 {
     if(gdisp.screen[sel].layer_manage[id].video_enhancement_en)
     {
-        if(gdisp.screen[sel].output_type == DISP_OUTPUT_TYPE_LCD)
-        {
-            BSP_disp_deu_enable(sel,IDTOHAND(id),FALSE);
-        }
+        BSP_disp_deu_enable(sel,IDTOHAND(id),FALSE);
 
         gdisp.screen[sel].layer_manage[id].video_enhancement_en = 0;;
     }
@@ -362,7 +359,7 @@ __s32 BSP_disp_video_start(__u32 sel, __u32 hid)
             g_video[sel][hid].pre_maf_flag_addr = (__u32)maf_flag_mem[layer_man->scaler_index][1];
         }
         //Disp_drc_start_video_mode(sel);
-        video_enhancement_start(sel,hid);
+        //video_enhancement_start(sel,hid);
         if(sel == 1)
         {
             disp_clk_adjust(0, 0);
@@ -385,7 +382,7 @@ __s32 BSP_disp_video_stop(__u32 sel, __u32 hid)
         memset(&g_video[sel][hid], 0, sizeof(frame_para_t));
         
         //Disp_drc_start_ui_mode(sel);
-        video_enhancement_stop(sel,hid);
+        //video_enhancement_stop(sel,hid);
         if(sel == 1)
         {
             disp_clk_adjust(0, 1);
@@ -396,6 +393,14 @@ __s32 BSP_disp_video_stop(__u32 sel, __u32 hid)
     {
         return DIS_FAIL;
     }
+}
+
+__s32 BSP_disp_video_get_start(__u32 sel, __u32 hid)
+{
+    hid = HANDTOID(hid);
+    HLID_ASSERT(hid, gdisp.screen[sel].max_layers);
+
+    return g_video[sel][hid].enable;
 }
 
 __s32 disp_video_init()

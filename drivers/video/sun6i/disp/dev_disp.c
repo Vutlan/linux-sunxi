@@ -260,7 +260,7 @@ __s32 disp_lcd_open_late(__u32 sel)
 {
     __lcd_flow_t *flow;
 
-	if(g_disp_drv.b_lcd_open[sel] == 0)
+	//if(g_disp_drv.b_lcd_open[sel] == 0)
 	{
         flow = BSP_disp_lcd_get_open_flow(sel);
         flow->func[flow->func_num-1].func(sel);
@@ -353,6 +353,57 @@ __s32 disp_set_hdmi_func(__disp_hdmi_func * func)
 
     return 0;
 }
+static void resume_work_0(struct work_struct *work)
+{
+    __u32 i = 0;
+    __lcd_flow_t *flow;
+    __u32 sel = 0;
+
+	if(BSP_disp_lcd_used(sel) && (g_disp_drv.b_lcd_open[sel] == 0))
+	{
+	    BSP_disp_lcd_open_before(sel);
+
+	    flow = BSP_disp_lcd_get_open_flow(sel);
+	    for(i=0; i<flow->func_num-1; i++)
+	    {
+	        __u32 timeout = flow->func[i].delay*HZ/1000;
+
+	        flow->func[i].func(sel);
+
+	    	set_current_state(TASK_INTERRUPTIBLE);
+	    	schedule_timeout(timeout);
+	    }
+	}
+
+    g_disp_drv.b_lcd_open[sel] = 1;
+}
+
+static void resume_work_1(struct work_struct *work)
+{
+    __lcd_flow_t *flow;
+    __u32 sel = 1;
+    __u32 i;
+
+	if(BSP_disp_lcd_used(sel) && (g_disp_drv.b_lcd_open[sel] == 0))
+	{
+	    BSP_disp_lcd_open_before(sel);
+
+	    flow = BSP_disp_lcd_get_open_flow(sel);
+	    for(i=0; i<flow->func_num-1; i++)
+	    {
+	        __u32 timeout = flow->func[i].delay*HZ/1000;
+
+	        flow->func[i].func(sel);
+
+	    	set_current_state(TASK_INTERRUPTIBLE);
+	    	schedule_timeout(timeout);
+
+	    }
+	}
+
+    g_disp_drv.b_lcd_open[sel] = 1;
+}
+
 
 __s32 DRV_DISP_Init(void)
 {
@@ -364,6 +415,8 @@ __s32 DRV_DISP_Init(void)
     init_waitqueue_head(&g_fbi.wait[1]);
     g_fbi.wait_count[0] = 0;
     g_fbi.wait_count[1] = 0;
+    INIT_WORK(&g_fbi.resume_work[0], resume_work_0);
+    INIT_WORK(&g_fbi.resume_work[1], resume_work_1);
 
     memset(&para, 0, sizeof(__disp_bsp_init_para));
     para.base_image0    = (__u32)g_fbi.base_image0;
@@ -634,6 +687,7 @@ void backlight_late_resume(struct early_suspend *h)
 
             if(2 == suspend_prestep)//late resume from  resume
             {
+#if 0
                 flow =BSP_disp_lcd_get_open_flow(i);
                 while(flow->cur_step < (flow->func_num))//open flow is finished  accept the last one
                 {
@@ -641,6 +695,9 @@ void backlight_late_resume(struct early_suspend *h)
                     set_current_state(TASK_INTERRUPTIBLE);
                     schedule_timeout(timeout);
                 }
+#else
+                flush_work(&g_fbi.resume_work[i]);
+#endif
                 disp_lcd_open_late(i);
             }
             else if(0 == suspend_prestep)//late resume from early  suspend
@@ -680,6 +737,7 @@ static struct early_suspend backlight_early_suspend_handler =
 
 static __u32 image0_reg_bak,scaler0_reg_bak;
 static __u32 image1_reg_bak,scaler1_reg_bak;
+extern __s32 disp_mipipll_enable(__u32 en);
 
 int disp_suspend(struct platform_device *pdev, pm_message_t state)
 {
@@ -710,6 +768,7 @@ int disp_suspend(struct platform_device *pdev, pm_message_t state)
         }
     }
 #else
+#if 0
 	if(2 == suspend_prestep)//suspend after resume,not  after early suspend
     {
         for(i=0; i<2; i++)
@@ -720,6 +779,19 @@ int disp_suspend(struct platform_device *pdev, pm_message_t state)
             }
         }
     }
+#else
+    if(2 == suspend_prestep)//suspend after resume,not  after early suspend
+    {   
+        for(i=0; i<2; i++)
+        {
+            if(suspend_output_type[i] == DISP_OUTPUT_TYPE_LCD)
+            {
+                flush_work(&g_fbi.resume_work[i]);
+                DRV_lcd_close(i);
+            }
+        }
+     }
+#endif
 #endif
      if(SUPER_STANDBY == standby_type)
      {
@@ -742,6 +814,7 @@ int disp_suspend(struct platform_device *pdev, pm_message_t state)
 
     BSP_disp_clk_off(1);
     BSP_disp_clk_off(2);
+    disp_mipipll_enable(0);
 
     suspend_status |= 2;
     suspend_prestep = 1;
@@ -749,13 +822,12 @@ int disp_suspend(struct platform_device *pdev, pm_message_t state)
     return 0;
 }
 
-extern __s32 disp_mipipll_init(void);
 
 int disp_resume(struct platform_device *pdev)
 {
     int i = 0;
 
-    disp_mipipll_init();
+    disp_mipipll_enable(1);
     BSP_disp_clk_on(1);
     BSP_disp_clk_on(2);
     if(SUPER_STANDBY == standby_type)
@@ -809,8 +881,12 @@ int disp_resume(struct platform_device *pdev)
     {
         if(suspend_output_type[i] == DISP_OUTPUT_TYPE_LCD)
         {
+#if 0
             disp_lcd_open_flow_init_status(i);
             disp_lcd_open_timer(i);//start lcd open flow
+#else
+            schedule_work(&g_fbi.resume_work[i]);
+#endif
         }
     }
 #endif
