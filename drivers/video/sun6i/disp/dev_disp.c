@@ -567,6 +567,8 @@ static int __init disp_probe(struct platform_device *pdev)//called when platform
 	__inf("PWM base 0x%08x\n", info->base_pwm);
 
 	(*((volatile __u32 *)(0xf1c6206c))=(0x00000003));
+	(*((volatile __u32 *)(0xf1c62014))=(0x00400302));
+	(*((volatile __u32 *)(0xf1c6201c))=(0x00400302));
 
     pr_info("[DISP]==disp_probe finish==\n");
 
@@ -867,6 +869,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     if(cmd!=DISP_CMD_TV_GET_INTERFACE && cmd!=DISP_CMD_HDMI_GET_HPD_STATUS && cmd!=DISP_CMD_GET_OUTPUT_TYPE 
     	&& cmd!=DISP_CMD_SCN_GET_WIDTH && cmd!=DISP_CMD_SCN_GET_HEIGHT
     	&& cmd!=DISP_CMD_VIDEO_SET_FB && cmd!=DISP_CMD_VIDEO_GET_FRAME_ID)
+    	&& cmd!=DISP_CMD_VSYNC_EVENT_EN)
     {
         OSAL_PRINTF("cmd:0x%x,%ld,%ld\n",cmd, ubuffer[0], ubuffer[1]);
     }
@@ -1109,7 +1112,11 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
       case DISP_CMD_VSYNC_EVENT_EN:
             ret = BSP_disp_vsync_event_enable(ubuffer[0], ubuffer[1]);
             break;
-            
+
+      case DISP_CMD_SET_OVL_MODE:
+      		ret = disp_set_ovl_mode(ubuffer[0], ubuffer[1]);
+      	    break;
+
     //----layer----
     	case DISP_CMD_LAYER_REQUEST:
     		ret = BSP_disp_layer_request(ubuffer[0], (__disp_layer_work_mode_t)ubuffer[1]);

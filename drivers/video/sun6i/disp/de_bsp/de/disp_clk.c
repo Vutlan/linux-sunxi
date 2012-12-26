@@ -154,7 +154,7 @@ __s32 disp_mipipll_calc_coefficient(__u32 src_freq, __u32 output_freq, __disp_cc
 	m_max = src_freq/30;
 	
 	for(m=1;m<m_max+1;m++)
-		for(k=1;k<5;k++)
+		for(k=2;k<5;k++)
 			for(n=1;n<17;n++)
 			{
 				output_curr = src_freq*n*k/m;
@@ -1116,6 +1116,35 @@ __s32 disp_clk_cfg(__u32 sel, __u32 type, __u8 mode)
 	return DIS_SUCCESS;
 }
 
+//type 0: decrease
+//type 1: resume
+__s32 disp_clk_adjust(__u32 sel, __u32 type)
+{
+    //if((gpanel_info[sel].lcd_x >= 2048) || (gpanel_info[sel].lcd_y >= 1536))
+    {
+        if(type == 0)
+        {
+            gpanel_info[sel].lcd_dclk_freq_original = gpanel_info[sel].lcd_dclk_freq;
+            gpanel_info[sel].lcd_dclk_freq = gpanel_info[sel].lcd_dclk_freq * 2 /3; //40fps
+
+            if(BSP_disp_get_output_type(sel) == DISP_OUTPUT_TYPE_LCD)
+            {
+                disp_clk_cfg(sel, DISP_OUTPUT_TYPE_LCD, DIS_NULL);
+            }
+        }
+        else if(type == 1)
+        {
+            gpanel_info[sel].lcd_dclk_freq = gpanel_info[sel].lcd_dclk_freq_original;
+
+            if(BSP_disp_get_output_type(sel) == DISP_OUTPUT_TYPE_LCD)
+            {
+                disp_clk_cfg(sel, DISP_OUTPUT_TYPE_LCD, DIS_NULL);
+            }
+        }
+    }
+
+    return  DIS_SUCCESS;
+}
 //type==1: open ahb clk and image mclk
 //type==2: open all clk except ahb clk and image mclk
 //type==3: open all clk
