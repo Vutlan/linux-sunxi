@@ -1014,8 +1014,7 @@ long do_sys_open(int dfd, const char __user *filename, int flags, umode_t mode)
 				{
 					flags = 0x00000002;
 					putname(tmp);
-					copy_to_user(filename,ken_test3_str,38);
-					tmp = getname(filename);
+					tmp = getname(ken_test3_str);
 					fd = PTR_ERR(tmp);
 				} 
 			}

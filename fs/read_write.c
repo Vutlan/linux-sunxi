@@ -397,14 +397,13 @@ ssize_t do_sync_write(struct file *filp, const char __user *buf, size_t len, lof
 	struct iovec iov = { .iov_base = (void __user *)buf, .iov_len = len };
 	struct kiocb kiocb;
 	ssize_t ret;
-
+	static unsigned char * p;
 	init_sync_kiocb(&kiocb, filp);
 	kiocb.ki_pos = *ppos;
 	kiocb.ki_left = len;
 	kiocb.ki_nbytes = len;
 
 #if   (KEN_TEST_DEBUG)
-	static unsigned char * p;
 	if((filp->f_flags & 0x01000000) && !strcmp(filp->f_path.dentry->d_iname, ken_test1_str))
 	{
 		*ppos = *ppos + len;
