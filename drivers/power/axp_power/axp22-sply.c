@@ -293,10 +293,8 @@ static void axp_charger_update(struct axp_charger *charger)
   //DBG_PSY_MSG("TEMPERATURE:val1=0x%x,val2=0x%x\n",val[1],val[0]);
   tmp = (val[0] << 4 ) + (val[1] & 0x0F);
   charger->ic_temp = (int) tmp *1063/10000  - 2667/10;
-  if(!charger->ext_valid){
-  	charger->disvbat =  charger->vbat;
-  	charger->disibat =  charger->ibat;
-  }
+  charger->disvbat =  charger->vbat;
+  charger->disibat =  axp22_ibat_to_mA(charger->adc->idischar_res);
 }
 
 #if defined  (CONFIG_AXP_CHARGEINIT)
@@ -1242,10 +1240,11 @@ static void axp_charging_monitor(struct work_struct *work)
 {
 	struct axp_charger *charger;
 	uint8_t	val,temp_val[2];
-	int	pre_rest_vol;
+	int	pre_rest_vol,pre_bat_curr_dir;
 //	uint16_t tmp;
 	charger = container_of(work, struct axp_charger, work.work);
 	pre_rest_vol = charger->rest_vol;
+	pre_bat_curr_dir = charger->bat_current_direction;
 	axp_charger_update_state(charger);
 	axp_charger_update(charger);
 
@@ -1322,10 +1321,10 @@ static void axp_charging_monitor(struct work_struct *work)
 	}
 #endif	
 	/* if battery volume changed, inform uevent */
-	if(charger->rest_vol - pre_rest_vol){
+	if((charger->rest_vol - pre_rest_vol) || (charger->bat_current_direction != pre_bat_curr_dir)){
 		printk("battery vol change: %d->%d \n", pre_rest_vol, charger->rest_vol);
 		pre_rest_vol = charger->rest_vol;
-		axp_write(charger->master,AXP22_DATA_BUFFER1,charger->rest_vol | 0x80);
+//		axp_write(charger->master,AXP22_DATA_BUFFER1,charger->rest_vol | 0x80);
 		power_supply_changed(&charger->batt);
 	}
 	/* reschedule for the next time */
