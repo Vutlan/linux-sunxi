@@ -1134,7 +1134,7 @@ __s32 disp_clk_cfg(__u32 sel, __u32 type, __u8 mode)
 //type 1: resume
 __s32 disp_clk_adjust(__u32 sel, __u32 type)
 {
-    //if((gpanel_info[sel].lcd_x >= 2048) || (gpanel_info[sel].lcd_y >= 1536))
+    if((gpanel_info[sel].lcd_x >= 2048) || (gpanel_info[sel].lcd_y >= 1536))
     {
         if(type == 0)
         {
