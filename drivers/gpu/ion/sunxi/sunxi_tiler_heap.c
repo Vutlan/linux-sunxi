@@ -71,7 +71,7 @@ int sunxi_tiler_alloc(struct ion_heap *heap,
 		return -EINVAL;
 	}
 
-    align_w = (((data->w) + (1) - 1L) & ~((1) - 1L));
+    align_w = (((data->w) + (32) - 1L) & ~((32) - 1L));
     
 	if(data->fmt == TILER_PIXEL_FMT_16BIT)
 	{
