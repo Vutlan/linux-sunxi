@@ -69,6 +69,14 @@ static struct resource disp_resource[DISP_IO_NUM] =
 	},
 };
 
+__s32 disp_dram_ctrl_init(void)
+{
+    (*((volatile __u32 *)(0xf1c6206c))=(0x00000003));
+	(*((volatile __u32 *)(0xf1c62014))=(0x00400302));
+	(*((volatile __u32 *)(0xf1c6201c))=(0x00400302));
+
+    return 0;
+}
 
 __s32 disp_create_heap(__u32 pHeapHead, __u32 pHeapHeadPhy, __u32 nHeapSize)
 {
@@ -619,9 +627,7 @@ static int __init disp_probe(struct platform_device *pdev)//called when platform
 	__inf("PIO base 0x%08x\n", info->base_pioc);
 	__inf("PWM base 0x%08x\n", info->base_pwm);
 
-	(*((volatile __u32 *)(0xf1c6206c))=(0x00000003));
-	(*((volatile __u32 *)(0xf1c62014))=(0x00400302));
-	(*((volatile __u32 *)(0xf1c6201c))=(0x00400302));
+	disp_dram_ctrl_init();
 
     pr_info("[DISP]==disp_probe finish==\n");
 
@@ -847,6 +853,7 @@ int disp_resume(struct platform_device *pdev)
         kfree((void*)scaler1_reg_bak);
         kfree((void*)image1_reg_bak);
     }
+    disp_dram_ctrl_init();
 
     BSP_disp_hdmi_resume();
     Bsp_disp_iep_resume(0);
