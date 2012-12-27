@@ -1715,11 +1715,7 @@ static int __init init_blklayer(void)
 		return -1;
 	}
 
-	ret = SCN_AnalyzeNandSystem();
-	if (ret < 0)
-		return ret;
-	
-#ifdef __LINUX_NAND_SUPPORT_INT__	
+	#ifdef __LINUX_NAND_SUPPORT_INT__	
     //printk("[NAND] nand driver version: 0x%x 0x%x, support int! \n", NAND_VERSION_0,NAND_VERSION_1);
 #ifdef __LINUX_SUPPORT_RB_INT__
     NAND_ClearRbInt();
@@ -1753,6 +1749,10 @@ static int __init init_blklayer(void)
 	}
 #endif		
 
+	ret = SCN_AnalyzeNandSystem();
+	if (ret < 0)
+		return ret;
+	
 	ret = PHY_ChangeMode(1);
 	if (ret < 0)
 		return ret;
