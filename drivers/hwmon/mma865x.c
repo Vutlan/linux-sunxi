@@ -738,7 +738,7 @@ static int mma865x_resume(struct i2c_client *client)
 
 	pdata->suspend_indator = 0;
 	
-	return result;
+	return 0;
 }
 
 static int mma865x_suspend(struct i2c_client *client, pm_message_t mesg)

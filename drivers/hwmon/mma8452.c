@@ -505,7 +505,7 @@ static int mma8452_resume(struct i2c_client *client)
 		mutex_lock(&enable_mutex);
 		atomic_set(&mma8452_suspend_id, 0);
 		mma8452_idev->input->open(mma8452_idev->input);
-		mutex_unlock(&enable_mutex)
+		mutex_unlock(&enable_mutex);
 	} else if (SUPER_STANDBY == standby_type) {
 		queue_work(mma8452_resume_wq, &mma8452_resume_work);
 	}
