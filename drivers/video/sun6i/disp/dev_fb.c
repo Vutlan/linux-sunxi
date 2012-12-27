@@ -1103,22 +1103,28 @@ static void post2_cb(struct work_struct *work)
 }
 
 //mode 0: fb only; 1:(fb+)ovl; 2:fb+video
-int disp_set_ovl_mode(__u32 sel, __u32 mode)
+int disp_set_ovl_mode(__u32 sel, __u32 mode, __u32 count)
 {
 	if(g_fbi.ovl_mode == 0)//fb only
 	{
-		if(mode == 1)//(fb+)ovl
+		if(mode == 1 && count>=g_fbi.cb_count)//(fb+)ovl
 		{
 			BSP_disp_layer_request(0, DISP_LAYER_WORK_MODE_NORMAL);
 			BSP_disp_layer_request(0, DISP_LAYER_WORK_MODE_NORMAL);
 			BSP_disp_layer_request(0, DISP_LAYER_WORK_MODE_NORMAL);
 	        BSP_disp_layer_alpha_enable(0, 100, 0);
 			printk(KERN_WARNING "ovl mode:%d->%d", g_fbi.ovl_mode,mode);
+			g_fbi.ovl_mode = mode;
+		}
+		else if(mode == 2)
+		{
+		    printk(KERN_WARNING "ovl mode:%d->%d", g_fbi.ovl_mode,mode);
+		    g_fbi.ovl_mode = mode;
 		}
 	}
 	else if(g_fbi.ovl_mode == 1)//(fb+)ovl
 	{
-		if(mode == 0)//fb only
+		if(mode == 0 && count>=g_fbi.cb_count)//fb only
 		{
 			BSP_disp_layer_release(0, 101);
 			BSP_disp_layer_release(0, 102);
@@ -1128,6 +1134,7 @@ int disp_set_ovl_mode(__u32 sel, __u32 mode)
 	        BSP_disp_layer_alpha_enable(0, 100, 1);
 	        BSP_disp_layer_set_top(0, 100);
 			printk(KERN_WARNING "ovl mode:%d->%d", g_fbi.ovl_mode,mode);
+			g_fbi.ovl_mode = mode;
 		}
 		else if(mode == 2)//fb+video
 		{
@@ -1139,6 +1146,7 @@ int disp_set_ovl_mode(__u32 sel, __u32 mode)
 	        BSP_disp_layer_alpha_enable(0, 100, 0);
 	        BSP_disp_layer_set_top(0, 100);
 			printk(KERN_WARNING "ovl mode:%d->%d", g_fbi.ovl_mode,mode);
+			g_fbi.ovl_mode = mode;
 		}
 	}
 	else if(g_fbi.ovl_mode == 2)//fb+video
@@ -1149,10 +1157,15 @@ int disp_set_ovl_mode(__u32 sel, __u32 mode)
 			BSP_disp_layer_request(0, DISP_LAYER_WORK_MODE_NORMAL);
 			BSP_disp_layer_request(0, DISP_LAYER_WORK_MODE_NORMAL);
 			printk(KERN_WARNING "ovl mode:%d->%d", g_fbi.ovl_mode,mode);
+			g_fbi.ovl_mode = mode;
+		}
+		else if(mode == 0)
+		{
+		    printk(KERN_WARNING "ovl mode:%d->%d", g_fbi.ovl_mode,mode);
+		    g_fbi.ovl_mode = mode;
 		}
 	}
 	
-	g_fbi.ovl_mode = mode;
 	return 0;
 }
 
@@ -1203,6 +1216,7 @@ int dispc_gralloc_queue(setup_dispc_data_t *psDispcData, int ui32DispcDataLength
 	    g_fbi.cb_w_conut++;
 	}
 	g_fbi.cb_arg[g_fbi.cb_w_conut] = cb_arg;
+	g_fbi.cb_count = psDispcData->count;
 
 	//printk(KERN_WARNING "##dispc_gralloc_queue cb_arg:%x cb_w_conut:%d use_sgx:%d post2_layers:%d\n", (__u32)cb_arg, g_fbi.cb_w_conut, psDispcData->use_sgx, psDispcData->post2_layers);
 

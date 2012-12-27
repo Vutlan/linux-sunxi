@@ -738,6 +738,7 @@ typedef struct
 
 typedef struct
 {   
+    __u32               count;
     int                 post2_layers;
     __bool              use_sgx;
     __disp_layer_info_t layer_info[4];

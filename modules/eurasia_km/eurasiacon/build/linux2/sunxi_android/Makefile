@@ -109,13 +109,13 @@ ifneq ($(strip $(KERNELDIR)),)
    PVR_LDM_PLATFORM_PRE_REGISTERED_DEV := "\"pvrsrvkm\""
   endif
  endif
- #ifeq ($(is_at_least_icecream_sandwich),1)
+ ifeq ($(is_at_least_icecream_sandwich),1)
   ifeq ($(call kernel-version-at-least,3,0),true)
    SUPPORT_DC_CMDCOMPLETE_WHEN_NO_LONGER_DISPLAYED := 1
    PVR_ANDROID_NEEDS_ACCUM_SYNC_WORKAROUND := 1
    SYS_OMAP4_HAS_DVFS_FRAMEWORK := 0
   endif
- #endif
+ endif
 else
  ifeq ($(is_at_least_icecream_sandwich),1)
   $(warning "KERNELDIR is not set, so can't feature check DVFS or dsscomp.")
