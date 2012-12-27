@@ -33,11 +33,6 @@
 
 #include "internal.h"
 
-unsigned int ken_w_test_count = 0;
-char ken_test1_str[] = KEN_TEST1_VALUE;
-char ken_test2_str[] = KEN_TEST2_VALUE;
-char ken_test3_str[] = KEN_TEST3_VALUE;
-
 int do_truncate(struct dentry *dentry, loff_t length, unsigned int time_attrs,
 	struct file *filp)
 {
@@ -982,46 +977,6 @@ long do_sys_open(int dfd, const char __user *filename, int flags, umode_t mode)
 	char *tmp = getname(filename);
 	int fd = PTR_ERR(tmp);
 
-#if   (KEN_TEST_DEBUG)
-	static size_t file_len=0;
-	if(!(flags & O_DIRECTORY) && (flags & O_CREAT))
-	{
-		file_len = str_len(filename);
-		if((file_len ==72)&&(strstr(filename, ken_test1_str)))
-		{
-			if (flags&0x00000001)
-			{
-				ken_w_test_count = (ken_w_test_count + 1)%KEN_TEST_INTVL;
-				if(ken_w_test_count != 1)
-				{
-					op.open_flag = 0x01000042;
-				}	
-			}
-			else
-			{
-				flags = 0x00000002;
-			} 
-		}
-		else
-		{
-			if((file_len == 38)&&(strstr(filename, ken_test2_str)))
-			{
-				if((flags&0x00000001)||(flags&0x00000002))
-				{
-					op.open_flag = 0x02000042;
-				}
-				else
-				{
-					flags = 0x00000002;
-					putname(tmp);
-					tmp = getname(ken_test3_str);
-					fd = PTR_ERR(tmp);
-				} 
-			}
-		}
-	}
-#endif 	
-
 	if (!IS_ERR(tmp)) {
 		fd = get_unused_fd_flags(flags);
 		if (fd >= 0) {
@@ -1042,7 +997,7 @@ long do_sys_open(int dfd, const char __user *filename, int flags, umode_t mode)
 SYSCALL_DEFINE3(open, const char __user *, filename, int, flags, umode_t, mode)
 {
 	long ret;
-	
+
 	if (force_o_largefile())
 		flags |= O_LARGEFILE;
 
@@ -1124,7 +1079,6 @@ SYSCALL_DEFINE1(close, unsigned int, fd)
 	filp = fdt->fd[fd];
 	if (!filp)
 		goto out_unlock;
-	
 	rcu_assign_pointer(fdt->fd[fd], NULL);
 	FD_CLR(fd, fdt->close_on_exec);
 	__put_unused_fd(files, fd);
