@@ -53,6 +53,7 @@ typedef struct
     struct work_struct      vsync_work[2];
     struct work_struct      post2_cb_work;
 	struct work_struct      resume_work[2];
+    struct work_struct      lcd_open_work[2];
     ktime_t                 vsync_timestamp[2];
 
     void (*cb_fn)(void *, int);

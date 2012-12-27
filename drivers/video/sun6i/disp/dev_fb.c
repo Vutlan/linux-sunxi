@@ -1063,6 +1063,16 @@ static void send_vsync_work_1(struct work_struct *work)
 	kobject_uevent_env(&g_fbi.dev->kobj, KOBJ_CHANGE, envp);
 }
 
+static void lcd_open_work_0(struct work_struct *work)
+{
+	DRV_lcd_open(0);
+}
+
+static void lcd_open_work_1(struct work_struct *work)
+{
+	DRV_lcd_open(1);
+}
+
 __s32 DRV_disp_int_process(__u32 sel)
 {
     g_fbi.wait_count[sel]++;
@@ -1521,6 +1531,8 @@ __s32 Fb_Init(__u32 from)
     INIT_WORK(&g_fbi.vsync_work[0], send_vsync_work_0);
     INIT_WORK(&g_fbi.vsync_work[1], send_vsync_work_1);
     INIT_WORK(&g_fbi.post2_cb_work, post2_cb);
+    INIT_WORK(&g_fbi.lcd_open_work[0], lcd_open_work_0);
+    INIT_WORK(&g_fbi.lcd_open_work[1], lcd_open_work_1);
     
     if(from == 0)//call from lcd driver
     {
@@ -1568,16 +1580,6 @@ __s32 Fb_Init(__u32 from)
             register_framebuffer(g_fbi.fbinfo[i]);
         }
         parser_disp_init_para(&(g_fbi.disp_init));
-#if 0//def __FPGA_DEBUG__
-    g_fbi.disp_init.b_init = 1;
-    g_fbi.disp_init.disp_mode = 0;
-    g_fbi.disp_init.output_type[0] = 1;
-    g_fbi.disp_init.tv_mode[0] = 2;
-    g_fbi.disp_init.scaler_mode[0] = 0;
-    g_fbi.disp_init.buffer_num[0] = 3;
-    g_fbi.disp_init.format[0] = 0xa;
-    g_fbi.disp_init.seq[0] = 0;
-#endif
     }
 
 
@@ -1616,7 +1618,8 @@ __s32 Fb_Init(__u32 from)
             {
                 if(g_fbi.disp_init.output_type[sel] == DISP_OUTPUT_TYPE_LCD)
                 {
-                    DRV_lcd_open(sel);
+                    //DRV_lcd_open(sel);
+                    schedule_work(&g_fbi.lcd_open_work[sel]);
                 }
                 else if(g_fbi.disp_init.output_type[sel] == DISP_OUTPUT_TYPE_TV)
                 {
