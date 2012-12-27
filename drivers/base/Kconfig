@@ -166,11 +166,11 @@ config DEBUG_DEVRES
 
 config SYS_HYPERVISOR
 	bool
-	default y
+	default n
 	
 config SYNC
 	bool "Synchronization framework"
-	default n
+	default y
 	select ANON_INODES
 	help
 	  This option enables the framework for synchronization between multiple
