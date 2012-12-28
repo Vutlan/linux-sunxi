@@ -62,6 +62,7 @@ typedef struct
     __u32   cb_count;
     void    (*cb_fn)(void *, int);
     void    *cb_arg[10];
+    __bool  b_ovl_request;
 }fb_info_t;
 
 typedef struct

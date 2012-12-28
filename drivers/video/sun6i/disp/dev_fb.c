@@ -1088,32 +1088,39 @@ __s32 DRV_disp_int_process(__u32 sel)
 
 static void post2_cb(struct work_struct *work)
 {
-    if(g_fbi.cb_r_conut >= 9)
+    while(g_fbi.cb_r_conut != g_fbi.cb_w_conut)
     {
-       g_fbi.cb_r_conut = 0; 
+        if(g_fbi.cb_r_conut >= 9)
+        {
+           g_fbi.cb_r_conut = 0; 
+        }
+        else
+        {
+            g_fbi.cb_r_conut++;
+        }
+
+        if(g_fbi.cb_arg[g_fbi.cb_r_conut] != 0)
+        {
+            g_fbi.cb_fn(g_fbi.cb_arg[g_fbi.cb_r_conut], 1);
+            g_fbi.cb_arg[g_fbi.cb_r_conut] = 0;
+        }
     }
-    else
-    {
-        g_fbi.cb_r_conut++;
-    }
-    
-    g_fbi.cb_fn(g_fbi.cb_arg[g_fbi.cb_r_conut], 1);
     
     //printk(KERN_WARNING "##post2_cb cb_arg:%x r_count:%d\n", (__u32)g_fbi.cb_arg[g_fbi.cb_r_conut], g_fbi.cb_r_conut);
 }
 
+static struct mutex ovl_mtx;
+
 //mode 0: fb only; 1:(fb+)ovl; 2:fb+video
 int disp_set_ovl_mode(__u32 sel, __u32 mode, __u32 count)
 {
+    mutex_lock(&ovl_mtx);
+    
 	if(g_fbi.ovl_mode == 0)//fb only
 	{
-		if(mode == 1 && count>=g_fbi.cb_count)//(fb+)ovl
+		if(mode == 1)//(fb+)ovl
 		{
-			BSP_disp_layer_request(0, DISP_LAYER_WORK_MODE_NORMAL);
-			BSP_disp_layer_request(0, DISP_LAYER_WORK_MODE_NORMAL);
-			BSP_disp_layer_request(0, DISP_LAYER_WORK_MODE_NORMAL);
-	        BSP_disp_layer_alpha_enable(0, 100, 0);
-			printk(KERN_WARNING "ovl mode:%d->%d", g_fbi.ovl_mode,mode);
+		    printk(KERN_WARNING "ovl mode:%d->%d", g_fbi.ovl_mode,mode);
 			g_fbi.ovl_mode = mode;
 		}
 		else if(mode == 2)
@@ -1124,7 +1131,7 @@ int disp_set_ovl_mode(__u32 sel, __u32 mode, __u32 count)
 	}
 	else if(g_fbi.ovl_mode == 1)//(fb+)ovl
 	{
-		if(mode == 0 && count>=g_fbi.cb_count)//fb only
+		if(mode == 0 && count>=(g_fbi.cb_count+5))//fb only
 		{
 			BSP_disp_layer_release(0, 101);
 			BSP_disp_layer_release(0, 102);
@@ -1135,6 +1142,7 @@ int disp_set_ovl_mode(__u32 sel, __u32 mode, __u32 count)
 	        BSP_disp_layer_set_top(0, 100);
 			printk(KERN_WARNING "ovl mode:%d->%d", g_fbi.ovl_mode,mode);
 			g_fbi.ovl_mode = mode;
+			g_fbi.b_ovl_request = 0;
 		}
 		else if(mode == 2)//fb+video
 		{
@@ -1147,15 +1155,13 @@ int disp_set_ovl_mode(__u32 sel, __u32 mode, __u32 count)
 	        BSP_disp_layer_set_top(0, 100);
 			printk(KERN_WARNING "ovl mode:%d->%d", g_fbi.ovl_mode,mode);
 			g_fbi.ovl_mode = mode;
+			g_fbi.b_ovl_request = 0;
 		}
 	}
 	else if(g_fbi.ovl_mode == 2)//fb+video
 	{
 		if(mode == 1)//(fb+)ovl
 		{
-			BSP_disp_layer_request(0, DISP_LAYER_WORK_MODE_NORMAL);
-			BSP_disp_layer_request(0, DISP_LAYER_WORK_MODE_NORMAL);
-			BSP_disp_layer_request(0, DISP_LAYER_WORK_MODE_NORMAL);
 			printk(KERN_WARNING "ovl mode:%d->%d", g_fbi.ovl_mode,mode);
 			g_fbi.ovl_mode = mode;
 		}
@@ -1165,6 +1171,7 @@ int disp_set_ovl_mode(__u32 sel, __u32 mode, __u32 count)
 		    g_fbi.ovl_mode = mode;
 		}
 	}
+	mutex_unlock(&ovl_mtx);
 	
 	return 0;
 }
@@ -1183,6 +1190,13 @@ int dispc_gralloc_queue(setup_dispc_data_t *psDispcData, int ui32DispcDataLength
             if(i < psDispcData->post2_layers)
             {            
                 memcpy(&layer_info, &psDispcData->layer_info[i], sizeof(__disp_layer_info_t));
+                if(g_fbi.b_ovl_request == 0)
+                {
+                    BSP_disp_layer_request(0, DISP_LAYER_WORK_MODE_NORMAL);
+                    BSP_disp_layer_request(0, DISP_LAYER_WORK_MODE_NORMAL);
+                    BSP_disp_layer_request(0, DISP_LAYER_WORK_MODE_NORMAL);
+                    g_fbi.b_ovl_request = 1;
+                }
 
                 BSP_disp_layer_set_para(0, hdl, &layer_info);
                 BSP_disp_layer_open(0, hdl);
@@ -1198,6 +1212,7 @@ int dispc_gralloc_queue(setup_dispc_data_t *psDispcData, int ui32DispcDataLength
 	    {
 	    	BSP_disp_layer_open(0, 100);
 	        BSP_disp_layer_set_top(0, 100);
+	        BSP_disp_layer_alpha_enable(0, 100, 0);
 	    }
 	    else
 		{
@@ -1547,6 +1562,7 @@ __s32 Fb_Init(__u32 from)
     INIT_WORK(&g_fbi.post2_cb_work, post2_cb);
     INIT_WORK(&g_fbi.lcd_open_work[0], lcd_open_work_0);
     INIT_WORK(&g_fbi.lcd_open_work[1], lcd_open_work_1);
+    mutex_init(&ovl_mtx);
     
     if(from == 0)//call from lcd driver
     {
