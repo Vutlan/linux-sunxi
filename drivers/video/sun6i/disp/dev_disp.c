@@ -74,6 +74,14 @@ __s32 disp_dram_ctrl_init(void)
     (*((volatile __u32 *)(0xf1c6206c))=(0x00000003));
 	(*((volatile __u32 *)(0xf1c62014))=(0x00400302));
 	(*((volatile __u32 *)(0xf1c6201c))=(0x00400302));
+    
+    (*((volatile __u32 *)(0xf1c62010))=(0x00800302));
+    (*((volatile __u32 *)(0xf1c62014))=(0x00400307));
+    (*((volatile __u32 *)(0xf1c62018))=(0x00800302));
+    (*((volatile __u32 *)(0xf1c6201c))=(0x00400307));
+    (*((volatile __u32 *)(0xf1c62074))=(0x00010310));
+    (*((volatile __u32 *)(0xf1c62078))=(0x00010310));
+    (*((volatile __u32 *)(0xf1c62080))=(0x00000310));
 
     return 0;
 }
