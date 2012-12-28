@@ -362,7 +362,7 @@ __s32 BSP_disp_video_start(__u32 sel, __u32 hid)
         //video_enhancement_start(sel,hid);
         if(sel == 1)
         {
-            disp_clk_adjust(0, 0);
+            //disp_clk_adjust(0, 0);
         }
     	return DIS_SUCCESS;
     }
@@ -385,7 +385,7 @@ __s32 BSP_disp_video_stop(__u32 sel, __u32 hid)
         //video_enhancement_stop(sel,hid);
         if(sel == 1)
         {
-            disp_clk_adjust(0, 1);
+            //disp_clk_adjust(0, 1);
         }
     	return DIS_SUCCESS;
     }
