@@ -2234,6 +2234,9 @@ static int sw_mci_resume(struct device *dev)
 	int ret = 0;
 
 	if (mmc) {
+		struct sunxi_mmc_host *smc_host = mmc_priv(mmc);
+		if (smc_host->cd_mode == CARD_DETECT_BY_GPIO_IRQ)
+			sw_mci_cd_cb((unsigned long)smc_host);
 		ret = mmc_resume_host(mmc);
 		SMC_MSG(NULL, "smc %d resume\n", pdev->id);
 	}
