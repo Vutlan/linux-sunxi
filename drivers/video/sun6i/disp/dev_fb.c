@@ -1152,7 +1152,7 @@ int disp_set_ovl_mode(__u32 sel, __u32 mode, __u32 count)
 	}
 	else if(g_fbi.ovl_mode == 1)//(fb+)ovl
 	{
-		if(mode == 0 && count>=(g_fbi.cb_count+3))//fb only
+		if(mode == 0)//fb only
 		{
 		    {
                 int r_count = g_fbi.cb_r_conut;
@@ -1177,19 +1177,45 @@ int disp_set_ovl_mode(__u32 sel, __u32 mode, __u32 count)
                 }
             }
 
-			BSP_disp_layer_release(0, 101);
-			BSP_disp_layer_release(0, 102);
-			BSP_disp_layer_release(0, 103);
+            if(g_fbi.b_ovl_request && count>=(g_fbi.cb_count+2))
+            {
+    			BSP_disp_layer_release(0, 101);
+    			BSP_disp_layer_release(0, 102);
+    			BSP_disp_layer_release(0, 103);
 
-	    	BSP_disp_layer_open(0, 100);
-	        BSP_disp_layer_alpha_enable(0, 100, 1);
-	        BSP_disp_layer_set_top(0, 100);
-			printk(KERN_WARNING "ovl mode:%d->%d", g_fbi.ovl_mode,mode);
-			g_fbi.ovl_mode = mode;
-			g_fbi.b_ovl_request = 0;
+    	    	BSP_disp_layer_open(0, 100);
+    	        BSP_disp_layer_alpha_enable(0, 100, 1);
+    	        BSP_disp_layer_set_top(0, 100);
+    			printk(KERN_WARNING "ovl mode:%d->%d", g_fbi.ovl_mode,mode);
+    			g_fbi.ovl_mode = mode;
+    			g_fbi.b_ovl_request = 0;
+			}
 		}
 		else if(mode == 2)//fb+video
 		{
+    		{
+                int r_count = g_fbi.cb_r_conut;
+                while(r_count != g_fbi.cb_w_conut)
+                {        
+                    if(r_count >= 9)
+                    {
+                       r_count = 0; 
+                    }
+                    else
+                    {
+                        r_count++;
+                    }
+
+                    if(g_fbi.cb_arg[r_count] != 0)
+                    {
+                        g_fbi.cb_fn(g_fbi.cb_arg[r_count], 1);
+                        g_fbi.cb_arg[r_count] = 0;
+                        g_fbi.cb_r_conut = r_count;
+                        //printk(KERN_WARNING "###r_count:%d\n", r_count);
+                    }
+                }
+            }
+            
 			BSP_disp_layer_release(0, 101);
 			BSP_disp_layer_release(0, 102);
 			BSP_disp_layer_release(0, 103);
