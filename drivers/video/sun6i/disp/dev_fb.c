@@ -1034,9 +1034,9 @@ static int Fb_cursor(struct fb_info *info, struct fb_cursor *cursor)
 
 __s32 DRV_disp_vsync_event(__u32 sel)
 {
-    g_fbi.vsync_timestamp[sel] = ktime_get();
+    //g_fbi.vsync_timestamp[sel] = ktime_get();
 
-    schedule_work(&g_fbi.vsync_work[sel]);
+    //schedule_work(&g_fbi.vsync_work[sel]);
 
     return 0;
 }
@@ -1073,13 +1073,32 @@ static void lcd_open_work_1(struct work_struct *work)
 	DRV_lcd_open(1);
 }
 
+
 __s32 DRV_disp_int_process(__u32 sel)
 {
+    g_fbi.vsync_timestamp[sel] = ktime_get();
+    schedule_work(&g_fbi.vsync_work[sel]);
+
     g_fbi.wait_count[sel]++;
     wake_up_interruptible(&g_fbi.wait[sel]);
 
-	if(sel == 0 && (g_fbi.cb_w_conut != g_fbi.cb_r_conut))
+	if(sel == 0 && (g_fbi.cb_r_conut != g_fbi.cb_w_conut))
 	{
+	    int r_count = g_fbi.cb_r_conut;
+	    
+        while(r_count != g_fbi.cb_w_conut)
+        {
+            if(r_count >= 9)
+            {
+               r_count = 0; 
+            }
+            else
+            {
+                r_count++;
+            }
+
+            g_fbi.release_count[r_count]++;
+        }
 		schedule_work(&g_fbi.post2_cb_work);
 	}
 
@@ -1088,25 +1107,27 @@ __s32 DRV_disp_int_process(__u32 sel)
 
 static void post2_cb(struct work_struct *work)
 {
-    while(g_fbi.cb_r_conut != g_fbi.cb_w_conut)
-    {
-        if(g_fbi.cb_r_conut >= 9)
+    int r_count = g_fbi.cb_r_conut;
+
+    while(r_count != g_fbi.cb_w_conut)
+    {        
+        if(r_count >= 9)
         {
-           g_fbi.cb_r_conut = 0; 
+           r_count = 0; 
         }
         else
         {
-            g_fbi.cb_r_conut++;
+            r_count++;
         }
 
-        if(g_fbi.cb_arg[g_fbi.cb_r_conut] != 0)
+        if((g_fbi.cb_arg[r_count] != 0) && (g_fbi.release_count[r_count]>=2) && (r_count!=g_fbi.cb_w_conut))
         {
-            g_fbi.cb_fn(g_fbi.cb_arg[g_fbi.cb_r_conut], 1);
-            g_fbi.cb_arg[g_fbi.cb_r_conut] = 0;
+            g_fbi.cb_fn(g_fbi.cb_arg[r_count], 1);
+            g_fbi.cb_arg[r_count] = 0;
+            g_fbi.cb_r_conut = r_count;
+            //printk(KERN_WARNING "##post2_cb r_count:%d\n", r_count);
         }
     }
-    
-    //printk(KERN_WARNING "##post2_cb cb_arg:%x r_count:%d\n", (__u32)g_fbi.cb_arg[g_fbi.cb_r_conut], g_fbi.cb_r_conut);
 }
 
 static struct mutex ovl_mtx;
@@ -1131,8 +1152,31 @@ int disp_set_ovl_mode(__u32 sel, __u32 mode, __u32 count)
 	}
 	else if(g_fbi.ovl_mode == 1)//(fb+)ovl
 	{
-		if(mode == 0 && count>=(g_fbi.cb_count+5))//fb only
+		if(mode == 0 && count>=(g_fbi.cb_count+3))//fb only
 		{
+		    {
+                int r_count = g_fbi.cb_r_conut;
+                while(r_count != g_fbi.cb_w_conut)
+                {        
+                    if(r_count >= 9)
+                    {
+                       r_count = 0; 
+                    }
+                    else
+                    {
+                        r_count++;
+                    }
+
+                    if(g_fbi.cb_arg[r_count] != 0)
+                    {
+                        g_fbi.cb_fn(g_fbi.cb_arg[r_count], 1);
+                        g_fbi.cb_arg[r_count] = 0;
+                        g_fbi.cb_r_conut = r_count;
+                        //printk(KERN_WARNING "###r_count:%d\n", r_count);
+                    }
+                }
+            }
+
 			BSP_disp_layer_release(0, 101);
 			BSP_disp_layer_release(0, 102);
 			BSP_disp_layer_release(0, 103);
@@ -1232,8 +1276,9 @@ int dispc_gralloc_queue(setup_dispc_data_t *psDispcData, int ui32DispcDataLength
 	}
 	g_fbi.cb_arg[g_fbi.cb_w_conut] = cb_arg;
 	g_fbi.cb_count = psDispcData->count;
+	g_fbi.release_count[g_fbi.cb_w_conut] = 0;
 
-	//printk(KERN_WARNING "##dispc_gralloc_queue cb_arg:%x cb_w_conut:%d use_sgx:%d post2_layers:%d\n", (__u32)cb_arg, g_fbi.cb_w_conut, psDispcData->use_sgx, psDispcData->post2_layers);
+	//printk(KERN_WARNING "##dispc_gralloc_queue w_conut:%d\n", g_fbi.cb_w_conut);
 
     return 0;
 }
