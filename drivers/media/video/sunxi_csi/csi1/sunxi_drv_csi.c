@@ -1567,14 +1567,16 @@ static unsigned int csi_poll(struct file *file, struct poll_table_struct *wait)
 static int csi_open(struct file *file)
 {
 	struct csi_dev *dev = video_drvdata(file);
-
+  int ret=0;
+  
 	down(&dev->standby_seq_sema);
 	
 	csi_dbg(0,"csi_open\n");
 
 	if (dev->opened == 1) {
 		csi_err("device open busy\n");
-		return -EBUSY;
+		ret = -EBUSY;
+    goto open_end;
 	}
 	
 	csi_clk_enable(dev);
@@ -1587,8 +1589,9 @@ static int csi_open(struct file *file)
 	dev->opened = 1;
 	dev->fmt = &formats[5]; //default format
 
+open_end:
 	up(&dev->standby_seq_sema);
-	return 0;		
+	return ret;		
 }
 
 static int csi_close(struct file *file)
@@ -2578,7 +2581,7 @@ static int csi_release(void)
 		}
 	  csi_gpio_release(dev->csi_pin_cnt);//added for 33
 	  csi_dbg(0,"csi shut axp power\n"); 
-	  if(1)
+	  if(0)
 	 	{
 		  if(dev->iovdd) {
 		  	regulator_disable(dev->iovdd);

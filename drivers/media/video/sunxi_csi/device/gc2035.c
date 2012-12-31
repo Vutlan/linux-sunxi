@@ -1583,17 +1583,14 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
 			//power supply
 			csi_gpio_write(sd,&dev->power_io,CSI_PWR_ON);
 			mdelay(10);
-			if(dev->dvdd) {
-				regulator_enable(dev->dvdd);
-				mdelay(10);
+			if(dev->iovdd) {
+				regulator_enable(dev->iovdd);
 			}
 			if(dev->avdd) {
 				regulator_enable(dev->avdd);
-				mdelay(10);
 			}
-			if(dev->iovdd) {
-				regulator_enable(dev->iovdd);
-				mdelay(10);
+			if(dev->dvdd) {
+				regulator_enable(dev->dvdd);
 			}
 			//standby off io
 			csi_gpio_write(sd,&dev->standby_io,CSI_STBY_OFF);
@@ -1614,17 +1611,14 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
 			csi_gpio_write(sd,&dev->reset_io,CSI_RST_ON);
 			mdelay(10);
 			//power supply off
-			if(dev->iovdd) {
-				regulator_disable(dev->iovdd);
-				mdelay(10);
+			if(dev->dvdd) {
+				regulator_disable(dev->dvdd);
 			}
 			if(dev->avdd) {
 				regulator_disable(dev->avdd);
-				mdelay(10);
 			}
-			if(dev->dvdd) {
-				regulator_disable(dev->dvdd);
-				mdelay(10);	
+			if(dev->iovdd) {
+				regulator_disable(dev->iovdd);
 			}
 			csi_gpio_write(sd,&dev->power_io,CSI_PWR_OFF);
 			mdelay(10);

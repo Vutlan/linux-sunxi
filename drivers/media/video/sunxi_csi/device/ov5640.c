@@ -184,8 +184,8 @@ static struct regval_list sensor_default_regs[] = {
 	{{0xff,0xff},{0x1e}},//delay 30ms
 //	{{0x30,0x08},{0x42}},//power down
 	{{0x31,0x03},{0x03}},//
-	{{0x30,0x17},{0xff}},//
-	{{0x30,0x18},{0xff}},//
+	{{0x30,0x17},{0x00}},//
+	{{0x30,0x18},{0x00}},//
 	//pll and clock setting
 	{{0x30,0x34},{0x18}},//
 	{{0x30,0x35},{0x21}},//
@@ -460,6 +460,7 @@ static struct regval_list sensor_default_regs[] = {
 	{{0x3a,0x1f},{0x14}}, 
 
 	{{0x30,0x31},{0x08}}, //disable internal LDO
+	
 //	//power down release
 //	{{0x30,0x08},{0x02}}, 
 };                                	                         
@@ -2783,6 +2784,9 @@ static int sensor_download_af_fw(struct v4l2_subdev *sd)
 {
 	int ret,cnt;
 	unsigned char rdval;
+	int reload_cnt = 0;
+	struct csi_dev *dev=(struct csi_dev *)dev_get_drvdata(sd->v4l2_dev->dev);
+	
 	struct regval_list af_fw_reset_reg[] = {
 		{{0x30,0x00},{0x20}},
 	};
@@ -2797,7 +2801,7 @@ static int sensor_download_af_fw(struct v4l2_subdev *sd)
 		{{0x30,0x29},{0x7f}},
 		{{0x30,0x00},{0x00}},	//start firmware for af
 	};
-	
+
 	//reset sensor MCU
 	ret = sensor_write_array(sd, af_fw_reset_reg, ARRAY_SIZE(af_fw_reset_reg));
 	if(ret < 0) {
@@ -2822,8 +2826,9 @@ static int sensor_download_af_fw(struct v4l2_subdev *sd)
 	//check the af firmware status
 	rdval = 0xff;
 	cnt = 0;
+
+recheck_af_fw:	
 	while(rdval!=0x70) {
-		msleep(5);
 		ret = sensor_read_im(sd, 0x3029, &rdval);
 		if (ret < 0)
 		{
@@ -2831,13 +2836,23 @@ static int sensor_download_af_fw(struct v4l2_subdev *sd)
 			return ret;
 		}
 		cnt++;
-		if(cnt > 200) {
+		if(cnt > 3) {
 			csi_dev_err("AF firmware check status time out !\n");
+			reload_cnt++;
+			if(reload_cnt <= 2) {
+				csi_dev_err("AF firmware check status retry cnt = %d!\n",reload_cnt);
+				csi_gpio_write(sd,&dev->standby_io,CSI_STBY_ON);
+				mdelay(10);
+				csi_gpio_write(sd,&dev->standby_io,CSI_STBY_OFF);
+				mdelay(10);
+				goto recheck_af_fw;
+			}
 			return -EFAULT;
 		}
+		mdelay(5);
 	}
 	csi_dev_print("AF firmware check status complete,0x3029 = 0x%x\n",rdval);
-
+	
 #if DEV_DBG_EN == 1	
 	sensor_read_im(sd, 0x3000, &rdval);
 	csi_dev_print("0x3000 = 0x%x\n",rdval);
@@ -3667,11 +3682,11 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
 			if(dev->iovdd) {
 				regulator_enable(dev->iovdd);
 			}
-			if(dev->dvdd) {
-				regulator_enable(dev->dvdd);
-			}
 			if(dev->avdd) {
 				regulator_enable(dev->avdd);
+			}
+			if(dev->dvdd) {
+				regulator_enable(dev->dvdd);
 			}
 			csi_gpio_write(sd,&dev->af_power_io,CSI_AF_PWR_ON);
 			mdelay(10);
@@ -4321,6 +4336,8 @@ static int sensor_s_fmt(struct v4l2_subdev *sd,
 		}
 	}
 	
+	sensor_write_array(sd, sensor_oe_disable_regs , ARRAY_SIZE(sensor_oe_disable_regs));
+	
 	sensor_write_array(sd, sensor_fmt->regs , sensor_fmt->regs_size);
 	
 	ret = 0;
@@ -4337,6 +4354,8 @@ static int sensor_s_fmt(struct v4l2_subdev *sd,
 		if (ret < 0)
 			return ret;
 	}
+	
+	sensor_write_array(sd, sensor_oe_enable_regs , ARRAY_SIZE(sensor_oe_enable_regs));
 	
 	info->fmt = sensor_fmt;
 	info->width = wsize->width;

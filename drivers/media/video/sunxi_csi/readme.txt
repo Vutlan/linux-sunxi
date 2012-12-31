@@ -1,10 +1,10 @@
 ===========================================
 
-Version: V1_10
+Version: V1_11
 
 Author:  raymonxiu
 
-Date:     2012-12-26 14:24:24
+Date:     2012-12-31 15:35:29
 
 Description:
 
@@ -30,3 +30,12 @@ CSI: Fix OV5640/GC0307 bugs; Optimizing standby and probe
 3)Move power ldo request and power on sequency to work queue in probe
 4)Add semaphore in resume and open to ensure open being called after resume
 5)Optimize power on timming in gc0307
+
+V1_11
+CSI: Add unlock when csi driver is opened twice; Optimizing ov5640 and gc2035
+1) Add unlock when csi driver is opened twice
+2) Force regulator disable when release
+3) Optimizing GC2035 power on sequency
+4) OV5640 disable internal LDO when initial
+5) OV5640 recheck when af fw download is failed
+6) OV5640 add IO oe disable before S_FMT and IO OE enable after S_FMT
