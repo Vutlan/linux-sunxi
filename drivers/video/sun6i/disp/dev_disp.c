@@ -655,6 +655,26 @@ static int disp_remove(struct platform_device *pdev)
 void backlight_early_suspend(struct early_suspend *h)
 {
     int i = 0;
+    int r_count = g_fbi.cb_r_conut;
+
+    while(r_count != g_fbi.cb_w_conut)
+    {        
+        if(r_count >= 9)
+        {
+           r_count = 0; 
+        }
+        else
+        {
+            r_count++;
+        }
+
+        if(g_fbi.cb_arg[r_count] != 0)
+        {
+            g_fbi.cb_fn(g_fbi.cb_arg[r_count], 1);
+            g_fbi.cb_arg[r_count] = 0;
+            g_fbi.cb_r_conut = r_count;
+        }
+    }
 
     for(i=0; i<2; i++)
     {
