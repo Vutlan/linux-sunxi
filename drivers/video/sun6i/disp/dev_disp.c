@@ -673,8 +673,10 @@ void backlight_early_suspend(struct early_suspend *h)
             g_fbi.cb_fn(g_fbi.cb_arg[r_count], 1);
             g_fbi.cb_arg[r_count] = 0;
             g_fbi.cb_r_conut = r_count;
+            //printk(KERN_WARNING "##es r_count:%d\n", r_count);
         }
     }
+    g_fbi.b_no_output = 1;
 
     for(i=0; i<2; i++)
     {
@@ -717,11 +719,10 @@ void backlight_late_resume(struct early_suspend *h)
     {
         if(suspend_output_type[i] == DISP_OUTPUT_TYPE_LCD)
         {
-            __lcd_flow_t *flow;
-
             if(2 == suspend_prestep)//late resume from  resume
             {
 #if 0
+                __lcd_flow_t *flow;
                 flow =BSP_disp_lcd_get_open_flow(i);
                 while(flow->cur_step < (flow->func_num))//open flow is finished  accept the last one
                 {
@@ -754,6 +755,7 @@ void backlight_late_resume(struct early_suspend *h)
         }
     }
 
+    g_fbi.b_no_output = 0;
     suspend_status &= (~1);
     suspend_prestep = 3;
 
@@ -778,6 +780,28 @@ int disp_suspend(struct platform_device *pdev, pm_message_t state)
     int i = 0;
     
 #ifndef CONFIG_HAS_EARLYSUSPEND
+    int r_count = g_fbi.cb_r_conut;
+
+    while(r_count != g_fbi.cb_w_conut)
+    {        
+        if(r_count >= 9)
+        {
+           r_count = 0; 
+        }
+        else
+        {
+            r_count++;
+        }
+
+        if(g_fbi.cb_arg[r_count] != 0)
+        {
+            g_fbi.cb_fn(g_fbi.cb_arg[r_count], 1);
+            g_fbi.cb_arg[r_count] = 0;
+            g_fbi.cb_r_conut = r_count;
+            //printk(KERN_WARNING "##es r_count:%d\n", r_count);
+        }
+    }
+    g_fbi.b_no_output = 1;
 
     pr_info("[DISP]>>disp_suspend call<<\n");
 
@@ -925,7 +949,7 @@ int disp_resume(struct platform_device *pdev)
         }
     }
 #endif
-
+    g_fbi.b_no_output = 0;
     suspend_status &= (~2);
     suspend_prestep = 2;
     return 0;

@@ -1240,21 +1240,28 @@ int dispc_gralloc_queue(setup_dispc_data_t *psDispcData, int ui32DispcDataLength
     	}
 	}
 
-	g_fbi.cb_fn = cb_fn;
+    if(g_fbi.b_no_output)
+    {
+        cb_fn(cb_arg, 1);
+    }
+    else
+    {
+    	g_fbi.cb_fn = cb_fn;
 
-	if(g_fbi.cb_w_conut >= 9)
-	{
-	   g_fbi.cb_w_conut = 0; 
-	}
-	else
-	{
-	    g_fbi.cb_w_conut++;
-	}
-	g_fbi.cb_arg[g_fbi.cb_w_conut] = cb_arg;
-	g_fbi.cb_count = psDispcData->count;
-	g_fbi.release_count[g_fbi.cb_w_conut] = 0;
+    	if(g_fbi.cb_w_conut >= 9)
+    	{
+    	   g_fbi.cb_w_conut = 0; 
+    	}
+    	else
+    	{
+    	    g_fbi.cb_w_conut++;
+    	}
+    	g_fbi.cb_arg[g_fbi.cb_w_conut] = cb_arg;
+    	g_fbi.cb_count = psDispcData->count;
+    	g_fbi.release_count[g_fbi.cb_w_conut] = 0;
 
-	//printk(KERN_WARNING "##w_conut:%d\n", g_fbi.cb_w_conut);
+    	//printk(KERN_WARNING "##w_conut:%d\n", g_fbi.cb_w_conut);
+	}
 
     return 0;
 }

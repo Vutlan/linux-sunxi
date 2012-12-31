@@ -64,6 +64,7 @@ typedef struct
     void    *cb_arg[10];
     __u32   release_count[10];
     __bool  b_ovl_request;
+    __bool  b_no_output;
 }fb_info_t;
 
 typedef struct
