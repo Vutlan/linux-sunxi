@@ -1497,7 +1497,7 @@ typedef struct __DE_SCAL_DEV
 	SCAL_VPP_BLE_REG         	    vpp_ble            ;//0xa14
 }__de_scal_dev_t;
 
-
+#if 0
 typedef struct __SCAL_MATRIX4X4
 {
 	__s32 x00;
@@ -1517,8 +1517,31 @@ typedef struct __SCAL_MATRIX4X4
 	__s32 x32;
 	__s32 x33;	
 }__scal_matrix4x4;
+#else
+
+typedef struct __SCAL_MATRIX4X4
+{
+	__s64 x00;
+	__s64 x01;
+	__s64 x02;
+	__s64 x03;
+	__s64 x10;
+	__s64 x11;
+	__s64 x12;
+	__s64 x13;
+	__s64 x20;
+	__s64 x21;
+	__s64 x22;
+	__s64 x23;
+	__s64 x30;
+	__s64 x31;
+	__s64 x32;
+	__s64 x33;	
+}__scal_matrix4x4;
+
+#endif
 
 extern __s32 iDE_SCAL_Matrix_Mul(__scal_matrix4x4 in1, __scal_matrix4x4 in2, __scal_matrix4x4 *result);
-extern __s32 iDE_SCAL_Csc_Lmt(__s32 *value, __s32 min, __s32 max, __s32 shift, __s32 validbit);
-
+//extern __s32 iDE_SCAL_Csc_Lmt(__s32 *value, __s32 min, __s32 max, __s32 shift, __s32 validbit);
+extern __s32 iDE_SCAL_Csc_Lmt(__s64 *value, __s32 min, __s32 max, __s32 shift, __s32 validbit);
 #endif

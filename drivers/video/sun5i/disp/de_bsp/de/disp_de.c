@@ -134,7 +134,7 @@ __s32 BSP_disp_set_output_csc(__u32 sel, __u32 out_type, __u32 drc_en)
             out_color_range = value;
             DE_INF("screen0_out_color_range = %d\n", value);
         }
-        out_csc = 0;
+        out_csc = 2;
     }
     else if(out_type == DISP_OUTPUT_TYPE_LCD)
     {
@@ -147,10 +147,11 @@ __s32 BSP_disp_set_output_csc(__u32 sel, __u32 out_type, __u32 drc_en)
     
     if(drc_en)
     {
-        out_csc = 2;
+        out_csc = 3;
     }
     
-    DE_BE_Set_Enhance(sel, out_csc, out_color_range, gdisp.screen[sel].bright, gdisp.screen[sel].contrast, gdisp.screen[sel].saturation, gdisp.screen[sel].hue);
+    //DE_BE_Set_Enhance(sel, out_csc, out_color_range, gdisp.screen[sel].bright, gdisp.screen[sel].contrast, gdisp.screen[sel].saturation, gdisp.screen[sel].hue);
+    DE_BE_Set_Enhance_ex(sel, out_csc, out_color_range, 1, gdisp.screen[sel].bright, gdisp.screen[sel].contrast, gdisp.screen[sel].saturation, gdisp.screen[sel].hue);
 
     return DIS_SUCCESS;
 }

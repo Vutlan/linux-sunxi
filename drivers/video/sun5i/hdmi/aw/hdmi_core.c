@@ -313,9 +313,15 @@ __s32 video_config(__s32 vic)
     HDMI_WUINT8 (0x080,0x82);
     HDMI_WUINT8 (0x081,0x02);
     HDMI_WUINT8 (0x082,0x0d);
-    HDMI_WUINT8 (0x083,0xF7);
-    HDMI_WUINT8 (0x084,0x1E);
-    HDMI_WUINT8 (0x085,0x58);
+    HDMI_WUINT8 (0x083,0x00);
+    HDMI_WUINT8 (0x084,0x50);
+    if( video_timing[i].PCLK < 74250000)				//SD format
+    {
+    	HDMI_WUINT8 (0x085,0x58);							//4:3 601
+    }else													//HD format
+    {
+    	HDMI_WUINT8 (0x085,0xa8);							//16:9 709
+    }
     HDMI_WUINT8 (0x086,0x00); 
     HDMI_WUINT8 (0x087,video_timing[i].VIC	 );
     HDMI_WUINT8 (0x088,video_timing[i].AVI_PR);    
@@ -328,8 +334,22 @@ __s32 video_config(__s32 vic)
     HDMI_WUINT8 (0x08f,0x00);
     HDMI_WUINT8 (0x090,0x00);
     
-    reg_val = 0x82 + 0x02 + 0x0d + 0x1E + 0x58 + 
-              video_timing[i].VIC + video_timing[i].AVI_PR;
+    reg_val = 	HDMI_RUINT8(0x080) + 
+    			HDMI_RUINT8(0x081) +
+    			HDMI_RUINT8(0x082) +  
+    			HDMI_RUINT8(0x084) + 
+    			HDMI_RUINT8(0x085) + 
+    			HDMI_RUINT8(0x086) + 
+    			HDMI_RUINT8(0x087) +
+    			HDMI_RUINT8(0x088) + 
+    			HDMI_RUINT8(0x089) +
+    			HDMI_RUINT8(0x08a) +
+    			HDMI_RUINT8(0x08b) +
+    			HDMI_RUINT8(0x08c) +
+    			HDMI_RUINT8(0x08d) + 
+    			HDMI_RUINT8(0x08e) + 
+    			HDMI_RUINT8(0x08f) +
+    			HDMI_RUINT8(0x090);      
     reg_val = reg_val & 0xff;
     if(reg_val != 0)
     	reg_val = 0x100 - reg_val;
