@@ -237,7 +237,7 @@ __s32 BSP_disp_deu_enable(__u8 sel, __u32 hid,  __u32 enable)
 
         scaler = &(gdisp.scaler[layer_man->scaler_index]);
         
-        if(enable && (!gdisp.scaler[layer_man->scaler_index].deu.enable))
+        if((enable == 1) && (!gdisp.scaler[layer_man->scaler_index].deu.enable))
         {
             disp_deu_set_frame_info(sel, IDTOHAND(hid));
             IEP_Deu_Set_Luma_Sharpness_Level(layer_man->scaler_index, scaler->deu.luma_sharpe_level);
@@ -293,7 +293,7 @@ __s32 BSP_disp_deu_enable(__u8 sel, __u32 hid,  __u32 enable)
             IEP_Deu_Enable(layer_man->scaler_index, enable);
             BSP_disp_cfg_finish(sel);
         }
-        else if(!enable && gdisp.scaler[layer_man->scaler_index].deu.enable)
+        else if((enable == 0) && (gdisp.scaler[layer_man->scaler_index].deu.enable))
         {
             //pr_warn("BSP_disp_deu_disable, ====2======sel=%d,hid=%d,enable=%d\n", sel, hid, enable);
             BSP_disp_cfg_start(sel);
@@ -340,6 +340,7 @@ __s32 BSP_disp_deu_enable(__u8 sel, __u32 hid,  __u32 enable)
             DE_SCAL_Set_CSC_Coef(sel, scaler->in_fb.cs_mode, DISP_BT601, get_fb_type(scaler->in_fb.format), get_fb_type(scaler->out_fb.format), scaler->in_fb.br_swap, 0);
             DE_SCAL_Set_Out_Format(sel, &out_type);
             }
+            enable = (BSP_disp_get_output_type(sel) == DISP_OUTPUT_TYPE_NONE)? 2:0;
             IEP_Deu_Enable(layer_man->scaler_index, enable);
             BSP_disp_cfg_finish(sel);
         }

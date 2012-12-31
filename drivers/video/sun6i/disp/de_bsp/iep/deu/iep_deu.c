@@ -183,6 +183,7 @@ __s32 DEU_ALG(__u32 sel)
         {
             count = 0;
             //pr_warn("<<deu-I>>\n");
+            //pr_warn("frameinfo.disp_size: <%dx%d>\n", gdeu[sel].frameinfo.disp_size.width,  gdeu[sel].frameinfo.disp_size.height);
         }
     }
 	
@@ -269,14 +270,16 @@ __s32 DEU_ALG(__u32 sel)
 }
 
 #define ____SEPARATOR_DEU_BSP____
-
+//enable: 0 disable
+//           1 enable
+//           2 disable right now
 __s32 IEP_Deu_Enable(__u32 sel, __u32 enable)
 {
 	__u32 strtab_addr;
 
     //pr_warn("BSP_disp_deu_disable, ====3======sel=%d, enable=%d\n", sel, enable);
     strtab_addr =(__u32)g_strtab_addr;
-	if(enable)
+	if(enable == 1)
 	{
 		deu_clk_open(sel);
 		DEU_EBIOS_Enable(sel, 1);
@@ -302,6 +305,11 @@ __s32 IEP_Deu_Enable(__u32 sel, __u32 enable)
 		DEU_EBIOS_Enable(sel, 0);
 				
 		g_deu_status[sel] |= DEU_NEED_CLOSED;
+
+        if(enable == 2)
+        {
+            IEP_Deu_Operation_In_Vblanking(sel);
+        }
 		
 	}
 
@@ -426,7 +434,7 @@ __s32 IEP_Deu_Exit(__u32 sel)
 
 __s32 IEP_Deu_Operation_In_Vblanking(__u32 sel)
 {
-	if(g_deu_status[sel] & DEU_USED)
+    if(g_deu_status[sel] & DEU_USED)
 	{
 		//function about setting level through frameinfo
 		
