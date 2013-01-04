@@ -1356,6 +1356,36 @@ static struct fb_ops dispfb_ops =
 	.fb_cursor      = Fb_cursor,
 };
 
+/* Greatest common divisor of x and y */
+static unsigned long GCD(unsigned long x, unsigned long y)
+{
+	while (y != 0)
+	{
+		unsigned long r = x % y;
+		x = y;
+		y = r;
+	}
+
+	return x;
+}
+
+/* Least common multiple of x and y */
+static unsigned long LCM(unsigned long x, unsigned long y)
+{
+	unsigned long gcd = GCD(x, y);
+
+	return (gcd == 0) ? 0 : ((x / gcd) * y);
+}
+
+/* Round x up to a multiple of y */
+static inline unsigned long RoundUpToMultiple(unsigned long x, unsigned long y)
+{
+	unsigned long div = x / y;
+	unsigned long rem = x % y;
+
+	return (div + ((rem == 0) ? 0 : 1)) * y;
+}
+
 __s32 Display_Fb_Request(__u32 fb_id, __disp_fb_create_para_t *fb_para)
 {
 	struct fb_info *info = NULL;
@@ -1363,6 +1393,7 @@ __s32 Display_Fb_Request(__u32 fb_id, __disp_fb_create_para_t *fb_para)
 	__disp_layer_info_t layer_para;
 	__u32 sel;
 	__u32 xres, yres;
+	unsigned long ulLCM;
     
 	__inf("Display_Fb_Request,fb_id:%d\n", fb_id);
 
@@ -1381,9 +1412,10 @@ __s32 Display_Fb_Request(__u32 fb_id, __disp_fb_create_para_t *fb_para)
 	info->var.xres          = xres;
 	info->var.yres          = yres;
 	info->var.xres_virtual  = xres;
-	info->var.yres_virtual  = yres * fb_para->buffer_num;
     info->fix.line_length   = (fb_para->width * info->var.bits_per_pixel) >> 3;
-    info->fix.smem_len      = info->fix.line_length * fb_para->height * fb_para->buffer_num;
+    ulLCM = LCM(info->fix.line_length, PAGE_SIZE);
+    info->fix.smem_len      = RoundUpToMultiple(info->fix.line_length * fb_para->height, ulLCM) * fb_para->buffer_num;
+    info->var.yres_virtual  = info->fix.smem_len / info->fix.line_length;
     Fb_map_video_memory(info);
 
     for(sel = 0; sel < 2; sel++)
