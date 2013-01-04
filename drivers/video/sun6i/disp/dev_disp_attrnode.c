@@ -150,6 +150,9 @@ static ssize_t disp_layer_para_store(struct device *dev,
 	return count;
 }
 
+static DEVICE_ATTR(layer_para, S_IRUGO|S_IWUSR|S_IWGRP,
+		disp_layer_para_show, disp_layer_para_store);
+
 
 #define ____SEPARATOR_SCRIPT_DUMP____
 static ssize_t disp_script_dump_show(struct device *dev,
@@ -1128,6 +1131,7 @@ static struct attribute *disp_attributes[] = {
     &dev_attr_hdmi.attr,
     &dev_attr_script_dump.attr,
     &dev_attr_colorbar.attr,
+    &dev_attr_layer_para.attr,
 	NULL
 };
 

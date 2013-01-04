@@ -1,11 +1,14 @@
 #include "ebios_lcdc_tve.h"
 #include "de_dsi.h"
 
+extern void LCD_delay_us(__u32 us);
+
 static volatile __de_dsi_dev_t *dsi_dev[1];
 static volatile __de_dsi_dphy_dev_t *dphy_dev[1];
 
 __u32 const dsi_pixel_bits[4] = {24,24,18,16};
 __u32 const dsi_lane_den[4] = {0x1,0x3,0x7,0xf};
+
 
 __s32 dsi_set_reg_base(__u32 sel, __u32 base)
 {
@@ -137,11 +140,6 @@ __s32 dsi_close(__u32 sel)
 __s32 dsi_tri_start(__u32 sel)
 {
 	dsi_start(sel,DSI_START_HSTX);
-/*	{
-		__u32 dbg = 0xcc;
-		__inf("infinit loop\n");
-		while(dbg);
-	}*/
 	while(dsi_dev[sel]->dsi_debug_inst.bits.curr_instru_num != DSI_INST_ID_HSD);
 //	while(dphy_dev[sel]->dphy_dbg0.bits.lptx_sta_d0 != 5);
 	return 0;
@@ -447,7 +445,7 @@ __s32 dsi_dphy_cfg(__u32 sel,__panel_para_t * panel)
 	};	
 
 	dphy_dev[sel]->dphy_gctl.bits.module_en = 0;
-	dphy_dev[sel]->dphy_gctl.bits.lane_num = dsi_lane_den[panel->lcd_dsi_lane-1];
+	dphy_dev[sel]->dphy_gctl.bits.lane_num = panel->lcd_dsi_lane-1;
 
 	dphy_dev[sel]->dphy_tx_ctl.bits.hstx_clk_cont = 1;
 
@@ -478,16 +476,12 @@ __s32 dsi_dphy_cfg(__u32 sel,__panel_para_t * panel)
 	return 0;
 }
 
-__s32 DSI_delay_us(__u32 us)
-{
-    return 0;
-}
 __u32 dsi_io_open(__u32 sel,__panel_para_t * panel)
 {
 	dphy_dev[sel]->dphy_ana1.bits.reg_vttmode = 0;
 	dphy_dev[sel]->dphy_ana0.bits.reg_selsck = 0;
-	dphy_dev[sel]->dphy_ana0.bits.reg_pws = 0;//0	1
-	dphy_dev[sel]->dphy_ana0.bits.reg_sfb = 2;//2	0
+	dphy_dev[sel]->dphy_ana0.bits.reg_pws = 1;//0	1
+	dphy_dev[sel]->dphy_ana0.bits.reg_sfb = 0;//2	0
 	dphy_dev[sel]->dphy_ana0.bits.reg_dmpc = 1;
 	dphy_dev[sel]->dphy_ana0.bits.reg_dmpd = dsi_lane_den[panel->lcd_dsi_lane-1];
 	dphy_dev[sel]->dphy_ana0.bits.reg_slv = 0x7;
@@ -504,35 +498,41 @@ __u32 dsi_io_open(__u32 sel,__panel_para_t * panel)
 	dphy_dev[sel]->dphy_ana4.bits.reg_dmplvd = dsi_lane_den[panel->lcd_dsi_lane-1];	
 
 	dphy_dev[sel]->dphy_ana2.bits.enib = 1;
-	DSI_delay_us(5);
+	LCD_delay_us(5);
 	dphy_dev[sel]->dphy_ana3.bits.enldor = 1;
 	dphy_dev[sel]->dphy_ana3.bits.enldoc = 1;
 	dphy_dev[sel]->dphy_ana3.bits.enldod = 1;
-	DSI_delay_us(1);
+	LCD_delay_us(1);
 	dphy_dev[sel]->dphy_ana3.bits.envttc = 1;
 	dphy_dev[sel]->dphy_ana3.bits.envttd = dsi_lane_den[panel->lcd_dsi_lane-1];
-	DSI_delay_us(1);
+	LCD_delay_us(1);
 	dphy_dev[sel]->dphy_ana3.bits.endiv = 1;
-	DSI_delay_us(1);
+	LCD_delay_us(1);
 	dphy_dev[sel]->dphy_ana2.bits.enck_cpu = 1;
-	DSI_delay_us(1);	
+	LCD_delay_us(1);	
+
+    dphy_dev[sel]->dphy_ana1.bits.reg_vttmode = 1;
+	dphy_dev[sel]->dphy_ana2.bits.enp2s_cpu = dsi_lane_den[panel->lcd_dsi_lane-1];
 
 	return 0;	
 }
 
 __u32 dsi_io_close(__u32 sel)
 {
+	dphy_dev[sel]->dphy_ana2.bits.enp2s_cpu = 0;
+    dphy_dev[sel]->dphy_ana1.bits.reg_vttmode = 0;
+	LCD_delay_us(1);
 	dphy_dev[sel]->dphy_ana2.bits.enck_cpu = 0;
-	DSI_delay_us(1);
+	LCD_delay_us(1);
 	dphy_dev[sel]->dphy_ana3.bits.endiv = 0;
-	DSI_delay_us(1);
+	LCD_delay_us(1);
 	dphy_dev[sel]->dphy_ana3.bits.envttd = 0;	
 	dphy_dev[sel]->dphy_ana3.bits.envttc = 0;
-	DSI_delay_us(1);	
+	LCD_delay_us(1);	
 	dphy_dev[sel]->dphy_ana3.bits.enldod = 0;
 	dphy_dev[sel]->dphy_ana3.bits.enldoc = 0;
 	dphy_dev[sel]->dphy_ana3.bits.enldor = 0;	
-	DSI_delay_us(5);	
+	LCD_delay_us(5);	
 	dphy_dev[sel]->dphy_ana2.bits.enib = 0;	
 		
 	dphy_dev[sel]->dphy_ana4.bits.reg_dmplvd = 0;	
@@ -590,7 +590,7 @@ __s32 dsi_basic_cfg(__u32 sel,__panel_para_t * panel)
 	else
 	{
 		dsi_dev[sel]->dsi_basic_ctl0.bits.ecc_en = 1;
-		dsi_dev[sel]->dsi_basic_ctl0.bits.crc_en = 0;
+		dsi_dev[sel]->dsi_basic_ctl0.bits.crc_en = 1;
 		dsi_dev[sel]->dsi_basic_ctl0.bits.hs_eotp_en = 0;	
 		dsi_dev[sel]->dsi_basic_ctl1.bits.dsi_mode = 0;
 		dsi_dev[sel]->dsi_trans_start.bits.trans_start_set = 10;
@@ -665,8 +665,8 @@ __s32 dsi_packet_cfg(__u32 sel,__panel_para_t * panel)
 		dsi_dev[sel]->dsi_pixel_ctl0.bits.pd_plug_dis = 0;
 		dsi_dev[sel]->dsi_pixel_ph.bits.vc = panel->lcd_dsi_vc;
 		dsi_dev[sel]->dsi_pixel_ph.bits.dt = DSI_DT_DCS_LONG_WR;
-		dsi_dev[sel]->dsi_pixel_ph.bits.wc = 1+panel->lcd_x*panel->lcd_dsi_format/8;
         dsi_dev[sel]->dsi_pixel_ph.bits.ecc = dsi_ecc_pro(dsi_dev[sel]->dsi_pixel_ph.dwval);
+        dsi_dev[sel]->dsi_pixel_ph.bits.wc = 1+panel->lcd_x*dsi_pixel_bits[panel->lcd_dsi_format]/8;
 		dsi_dev[sel]->dsi_pixel_pd.bits.pd_tran0 = DSI_DCS_WRITE_MEMORY_START;
 		dsi_dev[sel]->dsi_pixel_pd.bits.pd_trann = DSI_DCS_WRITE_MEMORY_CONTINUE;
 		dsi_dev[sel]->dsi_pixel_pf0.bits.crc_force = 0xffff;
@@ -740,8 +740,8 @@ __s32 dsi_packet_cfg(__u32 sel,__panel_para_t * panel)
 		dsi_dev[sel]->dsi_blk_vblk0.bits.dt = DSI_DT_BLK;
 		dsi_dev[sel]->dsi_blk_vblk0.bits.wc = dsi_vblk;
 		dsi_dev[sel]->dsi_blk_vblk0.bits.ecc = dsi_ecc_pro(dsi_dev[sel]->dsi_blk_vblk0.dwval);
-		dsi_dev[sel]->dsi_blk_vblk1.bits.pd = 0xff;
-		dsi_dev[sel]->dsi_blk_vblk1.bits.pf = 0xffff;
+		dsi_dev[sel]->dsi_blk_vblk1.bits.pd = 0;
+		dsi_dev[sel]->dsi_blk_vblk1.bits.pf = dsi_crc_pro_pd_repeat(0,dsi_vblk);
 	}
 	return 0;
 }
@@ -749,7 +749,8 @@ __s32 dsi_packet_cfg(__u32 sel,__panel_para_t * panel)
 
 __s32 dsi_cfg(__u32 sel,__panel_para_t * panel)
 {
-	dsi_basic_cfg(sel,panel);
+	dsi_close(sel);
+    dsi_basic_cfg(sel,panel);
 	dsi_packet_cfg(sel,panel);
 	dsi_dphy_cfg(sel,panel);
 	return 0;

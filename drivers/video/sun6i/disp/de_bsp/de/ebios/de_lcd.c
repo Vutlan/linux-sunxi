@@ -141,6 +141,9 @@ __s32 tcon_init(__u32 sel)
 	lcd_dev[sel]->tcon0_ctl.bits.tcon0_en = 0;
 	lcd_dev[sel]->tcon1_ctl.bits.tcon1_en = 0;
 	lcd_dev[sel]->tcon0_dclk.bits.tcon0_dclk_en = 0xf;
+	lcd_dev[sel]->tcon_gctl.bits.tcon_en = 0;
+	lcd_dev[sel]->tcon_gint0.bits.tcon_irq_en = 0;
+	lcd_dev[sel]->tcon_gint0.bits.tcon_irq_flag = 0;
 	lcd_dev[sel]->tcon_gctl.bits.tcon_en = 1;
 	return 0;
 }
@@ -229,6 +232,7 @@ __s32 tcon0_src_select(__u32 sel, __lcd_src_t src)
 
 __s32 tcon0_open(__u32 sel, __panel_para_t * panel)
 {
+	lcd_dev[sel]->tcon_gint0.bits.tcon_irq_flag = 0;
 	if((panel->lcd_if == LCD_IF_HV) || (panel->lcd_if == LCD_IF_LVDS) || (panel->lcd_if == LCD_IF_EDP))
 	{
 		lcd_dev[sel]->tcon0_ctl.bits.tcon0_en = 1;
@@ -350,7 +354,7 @@ __s32 tcon0_cfg_mode_tri(__u32 sel, __panel_para_t * panel)
 	    }
 	    else
 	    {
-	        __u32 cntr_set = (panel->lcd_dclk_freq*1000*1000/60);//todo? panel->lcd_fps);
+	        __u32 cntr_set = (panel->lcd_dclk_freq*1000*1000/(60*4));//todo? panel->lcd_fps);
 	        __u32 cntr_n,cntr_m;
 	        for(cntr_m=1;cntr_m<256;cntr_m++)
 	        {

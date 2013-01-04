@@ -736,7 +736,6 @@ __s32 dsi_clk_init(void)
     OSAL_CCMU_SetMclkDiv(h_dsimclk_p, 2);
 #ifdef RESET_OSAL
     OSAL_CCMU_MclkReset(h_dsimclk_s, RST_INVAILD);
-    OSAL_CCMU_MclkReset(h_dsimclk_p, RST_INVAILD);
 #endif
     OSAL_CCMU_MclkOnOff(h_dsiahbclk, CLK_ON);
     OSAL_CCMU_MclkOnOff(h_dsimclk_s, CLK_ON);
