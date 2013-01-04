@@ -1,5 +1,5 @@
 /*
- *  arch/arm/mach-sun6i/ar100/interfaces/ar100_debug_level.c
+ *  arch/arm/mach-sun6i/ar100/interfaces/ar100_dram_crc.c
  *
  * Copyright (c) 2012 Allwinner.
  * Superm (superm@allwinnertech.com)
@@ -22,26 +22,30 @@
 #include "../ar100_i.h"
 
 /**
- * set ar100 debug level.
- * @level: ar100 debug level;
+ * set ar100 debug dram crc paras.
+ * @dram_crc_en: ar100 debug dram crc enable or disable;
+ * @dram_crc_srcaddr: source address of dram crc area
+ * @dram_crc_len: lenght of dram crc area
  *
- * return: 0 - set ar100 debug level successed, !0 - set ar100 debug level failed;
+ * return: 0 - set ar100 debug dram crc paras successed, !0 - set ar100 debug dram crc paras failed;
  */
-int ar100_set_debug_level(unsigned int level)
+int ar100_set_dram_crc_paras(unsigned int dram_crc_en, unsigned int dram_crc_srcaddr, unsigned int dram_crc_len)
 {
 	struct ar100_message *pmessage;
 	
 	/* allocate a message frame */
 	pmessage = ar100_message_allocate(0);
 	if (pmessage == NULL) {
-		AR100_ERR("allocate message for power management request failed\n");
+		AR100_ERR("allocate message for seting dram crc paras request failed\n");
 		return -ENOMEM;
 	}
 	
 	/* initialize message */
-	pmessage->type     = AR100_SET_DEBUG_LEVEL;
+	pmessage->type     = AR100_SET_DEBUG_DRAM_CRC_PARAS;
 	pmessage->attr     = 0;
-	pmessage->paras[0] = level;
+	pmessage->paras[0] = dram_crc_en;
+	pmessage->paras[1] = dram_crc_srcaddr;
+	pmessage->paras[2] = dram_crc_len;
 	pmessage->state    = AR100_MESSAGE_INITIALIZED;
 	
 	/* send set debug level request to ar100 */
@@ -49,3 +53,4 @@ int ar100_set_debug_level(unsigned int level)
 	
 	return 0;
 }
+
