@@ -1168,6 +1168,7 @@ ft5x_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
 	struct input_dev *input_dev;
 	struct device *dev;
 	struct i2c_dev *i2c_dev;
+	struct gpio_eint_debounce ft5x_int_gpio;
 	int err = 0;
         
 
@@ -1277,6 +1278,9 @@ ft5x_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
 		printk("ft5x_ts_probe: request irq failed\n");
 		goto exit_irq_request_failed;
 	}
+	ft5x_int_gpio.clk_sel = 1;
+	ft5x_int_gpio.clk_pre_scl = 0;
+	sw_gpio_eint_set_debounce(CTP_IRQ_NUMBER, ft5x_int_gpio);
 
     	i2c_dev = get_free_i2c_dev(client->adapter);	
 	if (IS_ERR(i2c_dev)){	

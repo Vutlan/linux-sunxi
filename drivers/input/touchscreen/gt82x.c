@@ -608,6 +608,7 @@ return£º
 static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
 	struct goodix_ts_data *ts;
+	struct gpio_eint_debounce goodix_int_gpio;
 	int ret = 0;
 	dprintk(DEBUG_INIT,"=============GT82x Probe==================\n");
         
@@ -705,6 +706,10 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 		pr_info( "goodix_probe: request irq failed\n");
 		goto exit_irq_request_failed;
 	}
+	goodix_int_gpio.clk_sel = 1;
+	goodix_int_gpio.clk_pre_scl = 0;
+	sw_gpio_eint_set_debounce(CTP_IRQ_NUMBER, goodix_int_gpio);
+
 	goodix_ts_version(ts);
 		
 	dprintk(DEBUG_INIT,"========Probe Ok================\n");
