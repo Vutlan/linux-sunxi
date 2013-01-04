@@ -1394,7 +1394,6 @@ static int wemac_phy_read(struct net_device *dev, int phyaddr, int reg)
 	writel((phyaddr << 8) | reg, db->emac_vbase + EMAC_MAC_MADR_REG);
 	/* pull up the phy io line */
 	writel(0x1, db->emac_vbase + EMAC_MAC_MCMD_REG);
-	spin_unlock_irqrestore(&db->lock,flags);
 
 	/* time out is 10ms */
 	timeout = jiffies + HZ/100;
@@ -1405,12 +1404,11 @@ static int wemac_phy_read(struct net_device *dev, int phyaddr, int reg)
 		}
 	}
 
-	/* push down the phy io line and read data */
-	spin_lock_irqsave(&db->lock,flags);
+	/* and read data */
+	ret = readl(db->emac_vbase + EMAC_MAC_MRDD_REG);
+
 	/* push down the phy io line */
 	writel(0x0, db->emac_vbase + EMAC_MAC_MCMD_REG);
-	/* and write data */
-	ret = readl(db->emac_vbase + EMAC_MAC_MRDD_REG);
 	spin_unlock_irqrestore(&db->lock,flags);
 
 	mutex_unlock(&db->addr_lock);
@@ -1422,7 +1420,7 @@ static int wemac_phy_read(struct net_device *dev, int phyaddr, int reg)
  *   Write a word to phyxcer
  */
 static void wemac_phy_write(struct net_device *dev,
-							int phyaddr, int reg, int value)
+			int phyaddr, int reg, int value)
 {
 	wemac_board_info_t *db = netdev_priv(dev);
 	unsigned long flags;
@@ -1433,23 +1431,20 @@ static void wemac_phy_write(struct net_device *dev,
 	spin_lock_irqsave(&db->lock,flags);
 	/* issue the phy address and reg */
 	writel((phyaddr << 8) | reg, db->emac_vbase + EMAC_MAC_MADR_REG);
-	writel(0x1, db->emac_vbase + EMAC_MAC_MCMD_REG);
-	spin_unlock_irqrestore(&db->lock, flags);
+	writel(0x0, db->emac_vbase + EMAC_MAC_MCMD_REG);
+
+	/* and write data */
+	writel(value, db->emac_vbase + EMAC_MAC_MWTD_REG);
 
 	/* time out is 10ms */
 	timeout = jiffies + HZ/100;
 	while(readl(db->emac_vbase + EMAC_MAC_MIND_REG) & 0x01){
 		if(time_after(jiffies, timeout)){
-			printk(KERN_WARNING "Read the EMAC_MAC_MCMD_REG is timeout!\n");
+			printk(KERN_WARNING "Write the EMAC_MAC_MWTD_REG is timeout!\n");
 			break;
 		}
 	}
 
-	spin_lock_irqsave(&db->lock,flags);
-	/* push down the phy io line */
-	writel(0x0, db->emac_vbase + EMAC_MAC_MCMD_REG);
-	/* and write data */
-	writel(value, db->emac_vbase + EMAC_MAC_MWTD_REG);
 	spin_unlock_irqrestore(&db->lock, flags);
 
 	mutex_unlock(&db->addr_lock);
