@@ -903,8 +903,6 @@ static void gsl_ts_late_resume(struct early_suspend *h)
 
 static void glsX680_init_events (struct work_struct *work)
 {
-	struct gpio_eint_debounce glsX680_int_gpio;
-
 	gslX680_chip_init();    	
 	init_chip(glsX680_i2c);
 	check_mem_data(glsX680_i2c);
@@ -912,10 +910,6 @@ static void glsX680_init_events (struct work_struct *work)
 	if (!int_handle) {
 		printk( "gsl_probe: request irq failed\n");
 	}
-
-	glsX680_int_gpio.clk_sel = 1;
-	glsX680_int_gpio.clk_pre_scl = 0;
-	sw_gpio_eint_set_debounce(CTP_IRQ_NUMBER, glsX680_int_gpio);
 	return;
 }
 
