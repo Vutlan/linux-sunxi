@@ -827,18 +827,22 @@ static int __init aw_pm_init(void)
 	pr_info("wakeup src cnt is : %d. \n", wakeup_src_cnt);
 
 	//script_dump_mainkey("wakeup_src_para");
-	
+	mem_para_info.cpus_gpio_wakeup = 0;
 	if(0 != wakeup_src_cnt){
 		while(wakeup_src_cnt--){
 			gpio = (list + (i++) )->gpio.gpio;
+			//pr_info("gpio == 0x%x.\n", gpio);
 			if( gpio > GPIO_INDEX_END){
 				pr_info("gpio config err. \n");
 			}else if( gpio >= AXP_NR_BASE){
-				mem_para_info.cpus_gpio_wakeup |= (WAKEUP_GPIO_PL((gpio - AXP_NR_BASE)));
+				mem_para_info.cpus_gpio_wakeup |= (WAKEUP_GPIO_AXP((gpio - AXP_NR_BASE)));
+				//pr_info("gpio - AXP_NR_BASE == 0x%x.\n", gpio - AXP_NR_BASE);
 			}else if( gpio >= PM_NR_BASE){
-				mem_para_info.cpus_gpio_wakeup |= (WAKEUP_GPIO_PL((gpio - PM_NR_BASE)));
-			}if( gpio >= PL_NR_BASE){
+				mem_para_info.cpus_gpio_wakeup |= (WAKEUP_GPIO_PM((gpio - PM_NR_BASE)));
+				//pr_info("gpio - PM_NR_BASE == 0x%x.\n", gpio - PM_NR_BASE);
+			}else if( gpio >= PL_NR_BASE){
 				mem_para_info.cpus_gpio_wakeup |= (WAKEUP_GPIO_PL((gpio - PL_NR_BASE)));
+				//pr_info("gpio - PL_NR_BASE == 0x%x.\n", gpio - PL_NR_BASE);
 			}else{
 				pr_info("cpux need care gpio %d. but, notice, currently, \
 					cpux not support it.\n", gpio);
