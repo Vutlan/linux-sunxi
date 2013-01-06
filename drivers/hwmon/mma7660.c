@@ -688,7 +688,7 @@ static void mma7660_late_resume(struct early_suspend *h)
 #ifdef CONFIG_PM
 static int mma7660_resume(struct i2c_client *client)
 {
-	int result;
+	int result = 0;
 	dprintk(DEBUG_SUSPEND, "mma7660 resume\n");
 	
 	if (SUPER_STANDBY == standby_type) {
