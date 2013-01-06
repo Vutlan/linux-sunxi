@@ -844,7 +844,7 @@ static int __devinit goodix_ts_init(void)
                 printk("%s:read config fail!\n",__func__);
                 return ret;
         }
-	ctp_wakeup(0,1);
+	ctp_wakeup(0,2);
 	goodix_ts_driver.detect = ctp_detect;
 	ret = i2c_add_driver(&goodix_ts_driver);
 	

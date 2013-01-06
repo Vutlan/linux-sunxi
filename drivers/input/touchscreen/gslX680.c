@@ -1004,7 +1004,7 @@ static int __devexit gsl_ts_remove(struct i2c_client *client)
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	unregister_early_suspend(&ts->early_suspend);
 #endif
-
+	device_remove_file(&ts->input->dev, &dev_attr_debug_enable);
 	device_init_wakeup(&client->dev, 0);
 	cancel_work_sync(&ts->work);
 	cancel_work_sync(&glsX680_init_work);
@@ -1015,7 +1015,6 @@ static int __devexit gsl_ts_remove(struct i2c_client *client)
 	destroy_workqueue(gslX680_resume_wq);
 	input_unregister_device(ts->input);
 	mutex_destroy(&ts->sus_lock);
-	device_remove_file(&ts->input->dev, &dev_attr_debug_enable);
 	kfree(ts->touch_data);
 	kfree(ts);
 
