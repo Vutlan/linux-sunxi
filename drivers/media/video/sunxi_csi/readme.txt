@@ -39,10 +39,3 @@ CSI: Add unlock when csi driver is opened twice; Optimizing ov5640 and gc2035
 4) OV5640 disable internal LDO when initial
 5) OV5640 recheck when af fw download is failed
 6) OV5640 add IO oe disable before S_FMT and IO OE enable after S_FMT
-
-V1_12
-CSI: Modify probe; Move standby to early standby; OV5640 add 1080p@15fps
-1) Modify probe handle insure that the video node and platform suspend/resume function
-   is not registered when the module is installed failed.
-2) Modify the suspend/resume to early suspend/late resume
-3) Modify ov5640 1080p to 15fps
