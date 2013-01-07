@@ -1103,25 +1103,6 @@ __s32 DRV_disp_int_process(__u32 sel)
             }
     		schedule_work(&g_fbi.post2_cb_work);
         }
-        else if((g_fbi.ovl_mode==0) && g_fbi.b_ovl_request)
-        {
-            BSP_disp_layer_release(0, 101);
-            BSP_disp_layer_release(0, 102);
-            BSP_disp_layer_release(0, 103);
-
-            BSP_disp_layer_open(0, 100);
-            if(g_fbi.ovl_mode == 0)
-            {
-                BSP_disp_layer_alpha_enable(0, 100, 1);
-            }
-            else
-            {
-                BSP_disp_layer_alpha_enable(0, 100, 1);
-            }
-            BSP_disp_layer_set_top(0, 100);
-            g_fbi.b_ovl_request = 0;
-            //printk(KERN_WARNING "##>>>release layer\n");
-        }
 	}
 
     return 0;
@@ -1130,6 +1111,7 @@ __s32 DRV_disp_int_process(__u32 sel)
 static void post2_cb(struct work_struct *work)
 {
     int r_count = g_fbi.cb_r_conut;
+    int cur_count = 0;
 
     while(r_count != g_fbi.cb_w_conut)
     {        
@@ -1141,57 +1123,56 @@ static void post2_cb(struct work_struct *work)
         {
             r_count++;
         }
-
-        if(g_fbi.cb_arg[r_count] != 0)
+        if(g_fbi.release_count[r_count] >= 1)
         {
-            if(g_fbi.ovl_mode == 1)
+            cur_count = r_count;
+        }
+    }
+
+    r_count = g_fbi.cb_r_conut;
+    while(r_count != g_fbi.cb_w_conut)
+    {
+        if(r_count >= 9)
+        {
+           r_count = 0; 
+        }
+        else
+        {
+            r_count++;
+        }
+        if(r_count == cur_count)
+        {
+            if(g_fbi.release_count[r_count] >= 3)
             {
-                if((g_fbi.release_count[r_count]>=2) && ((r_count!=g_fbi.cb_w_conut) || (g_fbi.release_count[r_count]>=4)))
-                {
-                    g_fbi.cb_fn(g_fbi.cb_arg[r_count], 1);
-                    g_fbi.cb_arg[r_count] = 0;
-                    g_fbi.cb_r_conut = r_count;
-                    //printk(KERN_WARNING "##r_count:%d\n", r_count);
-                }
-            }
-            else if(g_fbi.release_count[r_count]>=4)
-            {
+                //printk(KERN_WARNING "##r_conut:%d %x\n", r_count, (unsigned int)g_fbi.cb_arg[r_count]);
                 g_fbi.cb_fn(g_fbi.cb_arg[r_count], 1);
                 g_fbi.cb_arg[r_count] = 0;
                 g_fbi.cb_r_conut = r_count;
-                //printk(KERN_WARNING "##r_count:%d mode:%d\n", r_count, g_fbi.ovl_mode);
             }
+            break;
+        }
+        else
+        {
+            //printk(KERN_WARNING "##r_conut:%d %x\n", r_count, (unsigned int)g_fbi.cb_arg[r_count]);
+            g_fbi.cb_fn(g_fbi.cb_arg[r_count], 1);
+            g_fbi.cb_arg[r_count] = 0;
+            g_fbi.cb_r_conut = r_count;
         }
     }
 }
 
-//mode 0: fb only; 1:(fb+)ovl; 2:fb+video
-int disp_set_ovl_mode(__u32 sel, __u32 mode, __u32 count)
+int disp_set_ovl_mode(__u32 sel, __u32 mode)
 {
-    if(g_fbi.ovl_mode != mode)
+    if(mode == 2 && g_fbi.b_ovl_request)
     {
-        if(mode == 2 && g_fbi.b_ovl_request)
-        {
-            BSP_disp_layer_release(0, 101);
-            BSP_disp_layer_release(0, 102);
-            BSP_disp_layer_release(0, 103);
-
-            BSP_disp_layer_open(0, 100);
-            if(g_fbi.ovl_mode == 0)
-            {
-                BSP_disp_layer_alpha_enable(0, 100, 1);
-            }
-            else
-            {
-                BSP_disp_layer_alpha_enable(0, 100, 1);
-            }
-            BSP_disp_layer_set_top(0, 100);
-            g_fbi.b_ovl_request = 0;
-            //printk(KERN_WARNING "##>>>release layer\n");
-        }
-        //printk(KERN_WARNING "##vol_mode %d->%d\n", g_fbi.ovl_mode, mode);
-        g_fbi.ovl_mode = mode;
+        BSP_disp_layer_release(0, 101);
+        BSP_disp_layer_release(0, 102);
+        BSP_disp_layer_release(0, 103);
+        g_fbi.b_ovl_request = 0;
+        //printk(KERN_WARNING "##>>>release layer\n");
     }
+    g_fbi.ovl_mode = mode;
+
     return 0;
 }
 
@@ -1200,8 +1181,8 @@ int dispc_gralloc_queue(setup_dispc_data_t *psDispcData, int ui32DispcDataLength
     __disp_layer_info_t         layer_info;
     int i = 0;
 
-	if(g_fbi.ovl_mode == 1)
-	{
+    if(g_fbi.ovl_mode != 2)
+    {
         for(i=0; i<3; i++)
         {
             int hdl = 101 + i;
@@ -1224,20 +1205,43 @@ int dispc_gralloc_queue(setup_dispc_data_t *psDispcData, int ui32DispcDataLength
             }
             else
             {
-                BSP_disp_layer_close(0, hdl);
+                if(g_fbi.b_ovl_request)
+                {
+                    BSP_disp_layer_close(0, hdl);
+                }
             }
         }
-
-        if(psDispcData->use_sgx)
+    }
+    
+    if(psDispcData->use_sgx)
+    {
+        __disp_layer_info_t layer_para;
+        
+    	BSP_disp_layer_open(0, 100);
+        BSP_disp_layer_set_top(0, 100);
+        if(psDispcData->post2_layers == 0 && g_fbi.ovl_mode!=2)
         {
-        	BSP_disp_layer_open(0, 100);
-            BSP_disp_layer_set_top(0, 100);
-            BSP_disp_layer_alpha_enable(0, 100, 0);
+            BSP_disp_layer_alpha_enable(0, 100, 1);
         }
         else
-    	{
-    		BSP_disp_layer_close(0, 100);
-    	}
+        {
+            BSP_disp_layer_alpha_enable(0, 100, 0);
+        }
+
+        BSP_disp_layer_get_para(0, 100, &layer_para);
+        layer_para.src_win.x = psDispcData->fb_scn_win.x;
+        layer_para.src_win.y = psDispcData->fb_yoffset + psDispcData->fb_scn_win.y;
+        layer_para.src_win.width = psDispcData->fb_scn_win.width;
+        layer_para.src_win.height = psDispcData->fb_scn_win.height;
+        layer_para.scn_win.x = psDispcData->fb_scn_win.x;
+        layer_para.scn_win.y = psDispcData->fb_scn_win.y;
+        layer_para.scn_win.width = psDispcData->fb_scn_win.width;
+        layer_para.scn_win.height = psDispcData->fb_scn_win.height;
+        BSP_disp_layer_set_para(0, 100, &layer_para);
+    }
+    else
+	{
+		BSP_disp_layer_close(0, 100);
 	}
 
     if(g_fbi.b_no_output)
@@ -1257,10 +1261,9 @@ int dispc_gralloc_queue(setup_dispc_data_t *psDispcData, int ui32DispcDataLength
     	    g_fbi.cb_w_conut++;
     	}
     	g_fbi.cb_arg[g_fbi.cb_w_conut] = cb_arg;
-    	g_fbi.cb_count = psDispcData->count;
     	g_fbi.release_count[g_fbi.cb_w_conut] = 0;
 
-    	//printk(KERN_WARNING "##w_conut:%d\n", g_fbi.cb_w_conut);
+    	//printk(KERN_WARNING "##w_conut:%d %x %d %d %d\n", g_fbi.cb_w_conut, (unsigned int)cb_arg, psDispcData->use_sgx, psDispcData->post2_layers, psDispcData->fb_yoffset);
 	}
 
     return 0;

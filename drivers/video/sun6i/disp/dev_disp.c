@@ -1249,7 +1249,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
             break;
 
       case DISP_CMD_SET_OVL_MODE:
-      		ret = disp_set_ovl_mode(ubuffer[0], ubuffer[1], ubuffer[2]);
+      		ret = disp_set_ovl_mode(ubuffer[0], ubuffer[1]);
       	    break;
 
     //----layer----
