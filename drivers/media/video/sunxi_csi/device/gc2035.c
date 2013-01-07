@@ -1394,7 +1394,7 @@ static int sensor_read(struct v4l2_subdev *sd, unsigned char *reg,
 	/*
 	 * Send out the register address...
 	 */
-	msg.addr = client->addr;
+	msg.addr = (I2C_ADDR>>1);//client->addr;
 	msg.flags = 0;
 	msg.len = REG_ADDR_STEP;
 	msg.buf = data;
@@ -1437,7 +1437,7 @@ static int sensor_write(struct v4l2_subdev *sd, unsigned char *reg,
 	for(i = REG_ADDR_STEP; i < REG_STEP; i++)
 			data[i] = value[i-REG_ADDR_STEP];
 	
-	msg.addr = client->addr;
+	msg.addr = (I2C_ADDR>>1);//client->addr;
 	msg.flags = 0;
 	msg.len = REG_STEP;
 	msg.buf = data;
