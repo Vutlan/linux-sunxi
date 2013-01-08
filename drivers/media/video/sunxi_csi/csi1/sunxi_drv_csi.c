@@ -2653,6 +2653,10 @@ static int csi_release(void)
 				regulator_put(dev->dvdd);
 			}
 		}
+		
+#ifdef CONFIG_HAS_EARLYSUSPEND
+	unregister_early_suspend(&dev->early_suspend);
+#endif
 
 		v4l2_info(&dev->v4l2_dev, "unregistering %s\n", video_device_node_name(dev->vfd));
 		video_unregister_device(dev->vfd);
@@ -2671,10 +2675,7 @@ static int csi_release(void)
 
 static int __devexit csi_remove(struct platform_device *pdev)
 {
-#ifdef CONFIG_HAS_EARLYSUSPEND
-  struct csi_dev *dev=(struct csi_dev *)dev_get_drvdata(&(pdev)->dev);
-	unregister_early_suspend(&dev->early_suspend);
-#endif
+
 	csi_print("csi_remove ok!\n");
 	return 0;
 }
