@@ -265,7 +265,7 @@ static ssize_t gslX680_debug_enable_store(
 	return count;
 }
 
-static DEVICE_ATTR(debug_enable, 0666, gslX680_debug_enable_show, gslX680_debug_enable_store);
+static DEVICE_ATTR(debug_enable, 0664, gslX680_debug_enable_show, gslX680_debug_enable_store);
 
 
 static int gslX680_chip_init(void)

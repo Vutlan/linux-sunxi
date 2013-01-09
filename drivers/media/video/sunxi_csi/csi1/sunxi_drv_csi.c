@@ -1593,8 +1593,12 @@ static int csi_open(struct file *file)
 	dev->fmt = &formats[5]; //default format
 
 open_end:
+
+	if (ret != 0){
+		up(&dev->standby_seq_sema);
+	}
 	
-	return ret;		
+	return ret;
 }
 
 static int csi_close(struct file *file)
