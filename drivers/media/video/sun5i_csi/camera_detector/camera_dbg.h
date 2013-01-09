@@ -10,16 +10,16 @@
 #define CAMERA_DBG_LEVEL 2
 
 #if (CAMERA_DBG_LEVEL == 2)
-#define camera_inf(x...) printk("[camera_print][INF][L%d]", __LINE__);printk(x)
-#define camera_msg(x...) printk("[camera_print][MSG][L%d]", __LINE__);printk(x)
+#define detect_print(x...) printk("[camera_print][detect][L%d]", __LINE__);printk(x)
+#define list_print(x...) printk("[camera_print][list][L%d]", __LINE__);printk(x)
 #define camera_err(x...) printk("[camera_print][ERR][L%d]", __LINE__);printk(x)
 #elif (CAMERA_DBG_LEVEL == 1)
-#define camera_inf(x...) printk("[camera_print][INF][L%d]", __LINE__);printk(x)
-#define camera_msg(x...) printk("[camera_print][MSG][L%d]", __LINE__);printk(x)
+#define detect_print(x...) printk("[camera_print][detect][L%d]", __LINE__);printk(x)
+#define list_print(x...) printk("[camera_print][list][L%d]", __LINE__);printk(x)
 #define camera_err(x...) 
 #else
-#define camera_inf(x...) 
-#define camera_msg(x...) 
+#define detect_print(x...) 
+#define list_print(x...) 
 #define camera_err(x...) 
 #endif
 

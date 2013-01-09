@@ -63,7 +63,7 @@ static __s32 camera_mclk_open(__camera_detector_t *camera_detector)
 {
     __u32 i, csi_cnt = 0;
     
-    camera_inf("camera_mclk_open !!\n");
+    detect_print("camera_mclk_open !!\n");
     
     if (camera_sub_name_exist("csi0_para", "csi_used")) {
         csi_cnt++;
@@ -88,7 +88,7 @@ static __s32 camera_mclk_open(__camera_detector_t *camera_detector)
 
 void camera_mclk_close(__camera_detector_t *camera_detector)
 {
-    camera_inf("camera_mclk_close !!\n");
+    detect_print("camera_mclk_close !!\n");
 
     if (camera_detector->camera[0].module_clk != NULL) {
         camera_release_clk(camera_detector->camera[0].module_clk);
@@ -138,7 +138,8 @@ static __s32 camera_get_para(__camera_detector_t *camera_detector,
     __u32 para_index;
     __u32 pin_struct_size;
     //char csi_drv_node[2][MAX_NODE_NAME_LEN] = {"/dev/video0", "/dev/video1"};  
-    char csi_drv_node[2][MAX_NODE_NAME_LEN] = {"sun5i_csi0", "sun5i_csi1"};      
+    char csi_drv_node[2][MAX_NODE_NAME_LEN] = {"sun5i_csi0", "sun5i_csi1"};  
+    __s32 ret;
     
     pin_struct_size = sizeof(user_gpio_set_t)/sizeof(__s32);
     
@@ -154,8 +155,13 @@ static __s32 camera_get_para(__camera_detector_t *camera_detector,
     if (use_b_para) {
         camera_get_sysconfig(main_name, "csi_twi_id_b",
                                 &(camera_detector->camera[camera_index].i2c_id), 1);
-        camera_get_sysconfig(main_name, "csi_facing_b",
+        ret = camera_get_sysconfig(main_name, "csi_facing_b",
                                 (__s32 *)(&(camera_detector->camera[camera_index].facing)), 1);
+        if (ret < 0) {
+            detect_print("if you want to use camera detector, "
+                "please add csi_facing_b in the [csi0_para]!! \n");
+        }
+        
         camera_get_sysconfig(main_name, "csi_reset_b",
                                 (__s32 *)camera_detector->camera[camera_index].reset_pin, 
                                 pin_struct_size);
@@ -183,6 +189,11 @@ static __s32 camera_get_para(__camera_detector_t *camera_detector,
                                 &(camera_detector->camera[camera_index].i2c_id), 1);
         camera_get_sysconfig(main_name, "csi_facing",
                                 (__s32 *)(&(camera_detector->camera[camera_index].facing)), 1);
+        if (ret < 0) {
+            detect_print("if you want to use camera detector, "
+                "please add csi_facing in the [csi0_para]!! \n");
+        }
+        
         camera_get_sysconfig(main_name, "csi_reset",
                                 (__s32 *)camera_detector->camera[camera_index].reset_pin, 
                                 pin_struct_size);
@@ -303,12 +314,12 @@ static __s32 camera_init_module_list(__u32 camera_list_size)
 {
     __u32 i;
     
-    camera_inf("camera_list_size: %d \n", camera_list_size);
+    detect_print("camera_list_size: %d \n", camera_list_size);
     
     for (i = 0; i < camera_list_size; i++) {
         if (camera_sub_name_exist("camera_list_para", camera_list[i].name)) {
             camera_list[i].need_detect = TRUE;
-            camera_inf("modules: %s need detect!!\n", camera_list[i].name);
+            detect_print("modules: %s need detect!!\n", camera_list[i].name);
         }
     }
 
@@ -323,7 +334,7 @@ static __s32 camera_diff_i2c_id_detect(__camera_detector_t *camera_detector,
     __u32 camera_detected = 0;
     __s32 ret = 0;
     
-    camera_inf("camera_diff_i2c_id_detect!!\n");
+    detect_print("camera_diff_i2c_id_detect!!\n");
     
     for (i = 0; i < camera_detector->num; i++) {
         for (j = 0; j < camera_list_size; j++) {
@@ -361,7 +372,7 @@ static __s32 camera_same_i2c_id_detect(__camera_detector_t *camera_detector,
     __u32 scan_cnt[2] = {0, 0};
     __u32 scan_index;
     
-    camera_inf("camera_same_i2c_id_detect!!\n");
+    detect_print("camera_same_i2c_id_detect!!\n");
     
     for (i = 0; i < camera_detector->num; i++) {
         for (j = 0; j < camera_list_size; j++) {
@@ -568,12 +579,31 @@ static struct device camera_detector_device = {
 static int __init camera_detector_init(void) {
 	int err = 0;
     __u32 camera_list_size;
+    char *camera_list_para      = "camera_list_para";
+    char *camera_list_para_used = "camera_list_para_used";
     
-	camera_inf("camera detect driver init\n");
+	detect_print("camera detect driver init\n");
+    
+    if (!camera_sub_name_exist(camera_list_para, camera_list_para_used)) {
+        __s32 value, ret;
+        
+        ret = camera_get_sysconfig(camera_list_para, camera_list_para_used, &value, 1);
+        if (ret < 0) {
+            detect_print("[camera_list_para] not exist in sys_config1.fex !! \n");
+        }
+        else if (value == 0) {
+            detect_print("[camera_list_para]->camera_list_para_used = 0," 
+                "maybe somebody does not want to use camera detector ...... \n");
+        }
+        
+        detect_print("camera detector exit, it will do nothing ...... \n");
+        
+        goto exit;
+    }
     
     camera_detector_device.groups = dev_attr_groups;
 	err = device_register(&camera_detector_device);
-	if(err) {
+	if (err) {
 		camera_err("%s register camera detect driver as misc device error\n", __FUNCTION__);
 		goto exit;
 	}
@@ -610,7 +640,7 @@ exit:
 
 static void __exit camera_detector_exit(void) {
 
-	camera_inf("Bye, camera detect driver exit\n");
+	detect_print("Bye, camera detect driver exit\n");
 	device_unregister(&camera_detector_device);
 }
 

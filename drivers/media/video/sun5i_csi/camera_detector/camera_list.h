@@ -3,7 +3,7 @@
 
 #include "camera_includes.h"
 
-#define MAX_CAMERA_LIST_ITEM                19
+#define MAX_CAMERA_LIST_ITEM                20
 
 #define CAMERA_LIST_ITEM_INIT(camera_name, i2c_addr_step, i2c_data_step, i2c_address, stby_on_pol, stby_off_pol, rst_on_pol, rst_off_pol, pwr_on_pol, pwr_off_pol) \
 {\
