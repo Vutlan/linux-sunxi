@@ -173,10 +173,10 @@ ssize_t ar100_dram_crc_result_store(struct class *class, struct class_attribute 
 
 
 static struct class_attribute ar100_class_attrs[] = {
-	__ATTR(debug_mask, 	    0666, ar100_debug_mask_show,      ar100_debug_mask_store),
-	__ATTR(debug_baudrate,	0666, ar100_debug_baudrate_show,  ar100_debug_baudrate_store),
-	__ATTR(dram_crc_paras,	0666, ar100_dram_crc_paras_show,  ar100_dram_crc_paras_store),
-	__ATTR(dram_crc_result,	0666, ar100_dram_crc_result_show, ar100_dram_crc_result_store),
+	__ATTR(debug_mask, 	    0644, ar100_debug_mask_show,      ar100_debug_mask_store),
+	__ATTR(debug_baudrate,	0644, ar100_debug_baudrate_show,  ar100_debug_baudrate_store),
+	__ATTR(dram_crc_paras,	0644, ar100_dram_crc_paras_show,  ar100_dram_crc_paras_store),
+	__ATTR(dram_crc_result,	0644, ar100_dram_crc_result_show, ar100_dram_crc_result_store),
 	__ATTR_NULL,
 };
 
