@@ -1566,11 +1566,14 @@ int serial8250_handle_irq(struct uart_port *port, unsigned int iir)
 	 */
 		unsigned int mcr_t = serial_inp(up, UART_MCR);
 		AW_UART_LOG(">>> ttyS%d bus busy...", up->port.line);
-		serial_outp(up, UART_MCR, mcr_t|(1<<4));
-		while (serial_in(up, UART_USR)&1)
-		    serial_inp(up, UART_RX);
-		serial_outp(up, UART_LCR, up->lcr);
-		serial_outp(up, UART_MCR, mcr_t);
+		if(serial_in(up, UART_USR)&1){
+			debug_mask = (1 << 29);
+			serial_outp(up,	UART_HALT, UART_FORCE_CFG);
+			serial_outp(up, UART_LCR, up->lcr);
+			serial_outp(up, UART_HALT, UART_FORCE_CFG |UART_FORCE_UPDATE);
+			while(serial_inp(up, UART_HALT)&UART_FORCE_UPDATE);
+		}else
+			serial_outp(up, UART_LCR, up->lcr);
 		return 1;
 	}
 
@@ -1579,7 +1582,7 @@ int serial8250_handle_irq(struct uart_port *port, unsigned int iir)
 		return 0;
 	}
 	if(!(debug_mask & 0x1))
-		debug_mask = 0;
+		debug_mask &= (1 << 29);
 	spin_lock_irqsave(&up->port.lock, flags);
 	status = serial_inp(up, UART_LSR);
 
@@ -1902,7 +1905,15 @@ static void serial8250_break_ctl(struct uart_port *port, int break_state)
 		up->lcr |= UART_LCR_SBC;
 	else
 		up->lcr &= ~UART_LCR_SBC;
-	serial_out(up, UART_LCR, up->lcr);
+
+
+	if(serial_inp(up, UART_USR)&0x01){
+		serial_outp(up,	UART_HALT, UART_FORCE_CFG);
+		serial_outp(up, UART_LCR, up->lcr);
+		serial_outp(up, UART_HALT, UART_FORCE_CFG |UART_FORCE_UPDATE);
+		while(serial_inp(up, UART_HALT)&UART_FORCE_UPDATE);
+	}else
+		serial_out(up, UART_LCR, up->lcr);
 	spin_unlock_irqrestore(&up->port.lock, flags);
 }
 
