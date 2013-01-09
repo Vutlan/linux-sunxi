@@ -1142,13 +1142,6 @@ static void post2_cb(struct work_struct *work)
         }
         if(r_count == cur_count)
         {
-            if(g_fbi.release_count[r_count] >= 3)
-            {
-                //printk(KERN_WARNING "##r_conut:%d %x\n", r_count, (unsigned int)g_fbi.cb_arg[r_count]);
-                g_fbi.cb_fn(g_fbi.cb_arg[r_count], 1);
-                g_fbi.cb_arg[r_count] = 0;
-                g_fbi.cb_r_conut = r_count;
-            }
             break;
         }
         else
