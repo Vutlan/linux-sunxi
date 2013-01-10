@@ -2121,7 +2121,7 @@ static int __devinit sw_mci_probe(struct platform_device *pdev)
 	mmc->ocr_avail	= smc_host->pdata->ocr_avail;
 	mmc->caps	= smc_host->pdata->caps;
 	mmc->caps2	= smc_host->pdata->caps2;
-	mmc->pm_caps	= MMC_PM_KEEP_POWER;
+	mmc->pm_caps	= MMC_PM_KEEP_POWER|MMC_PM_WAKE_SDIO_IRQ;
 	mmc->f_min	= smc_host->pdata->f_min;
 	mmc->f_max      = smc_host->pdata->f_max;
 	mmc->max_blk_count	= 8192;

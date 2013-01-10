@@ -140,6 +140,8 @@ source "drivers/devfreq/Kconfig"
 
 source "drivers/gsensor/Kconfig"
 
+source "drivers/mtk_wcn_combo/Kconfig"
+
 # for test
 # source "drivers/test/Kconfig"
 
