@@ -243,6 +243,7 @@ __s32 tcon0_open(__u32 sel, __panel_para_t * panel)
 	{
 		lcd_dev[sel]->tcon0_ctl.bits.tcon0_en = 1;
 		tcon_irq_enable(sel,LCD_IRQ_TCON0_CNTR);
+	//	tcon_irq_enable(sel,LCD_IRQ_TCON0_TRIF);
 	}
 	else if(panel->lcd_if==LCD_IF_DSI && panel->lcd_dsi_if==LCD_DSI_IF_VIDEO_MODE)
 	{
@@ -290,9 +291,7 @@ __s32 tcon0_cfg_mode_tri(__u32 sel, __panel_para_t * panel)
 	lcd_dev[sel]->tcon0_cpu_tri0.bits.block_size = panel->lcd_x-1;
 	lcd_dev[sel]->tcon0_cpu_tri1.bits.block_num = panel->lcd_y-1;
 	lcd_dev[sel]->tcon0_cpu_tri2.bits.trans_start_mode = 0;
-	lcd_dev[sel]->tcon0_cpu_tri2.bits.trans_start_set = panel->lcd_x-1;
-	lcd_dev[sel]->tcon0_cpu_tri2.bits.sync_mode = 0;
-	
+	lcd_dev[sel]->tcon0_cpu_tri2.bits.sync_mode = 0;	
 	lcd_dev[sel]->tcon0_cpu_tri2.bits.start_delay = 3;	
 	/*
 	if(panel->lcd_if==LCD_IF_DSI && panel->lcd_dsi_if==LCD_DSI_IF_VIDEO_MODE)
@@ -324,6 +323,7 @@ __s32 tcon0_cfg_mode_tri(__u32 sel, __panel_para_t * panel)
 	lcd_dev[sel]->tcon0_cpu_ctl.bits.flush = 1;
 	lcd_dev[sel]->tcon0_ctl.bits.tcon0_en = 1;
 	lcd_dev[sel]->tcon_gctl.bits.tcon_en = 1;
+	/*
 	if(panel->lcd_if==LCD_IF_CPU)
 	{
 		lcd_dev[sel]->tcon0_cpu_tri0.bits.block_space = 30;
@@ -331,6 +331,12 @@ __s32 tcon0_cfg_mode_tri(__u32 sel, __panel_para_t * panel)
 	else if((panel->lcd_if==LCD_IF_DSI) && 	(panel->lcd_dsi_if==LCD_DSI_IF_COMMAND_MODE))
 	{
 		lcd_dev[sel]->tcon0_cpu_tri0.bits.block_space = 200;
+	}
+	*/
+	if((panel->lcd_if==LCD_IF_CPU) || (panel->lcd_if==LCD_IF_DSI &&	panel->lcd_dsi_if==LCD_DSI_IF_COMMAND_MODE))
+	{
+		lcd_dev[sel]->tcon0_cpu_tri0.bits.block_space = panel->lcd_ht - panel->lcd_x - 1;
+		lcd_dev[sel]->tcon0_cpu_tri2.bits.trans_start_set = panel->lcd_x-1;
 	}
 	else if((panel->lcd_if==LCD_IF_DSI) && 	(panel->lcd_dsi_if==LCD_DSI_IF_VIDEO_MODE))
 	{
@@ -354,7 +360,8 @@ __s32 tcon0_cfg_mode_tri(__u32 sel, __panel_para_t * panel)
 	    }
 	    else
 	    {
-	        __u32 cntr_set = (panel->lcd_dclk_freq*1000*1000/(60*4));//todo? panel->lcd_fps);
+	   //     __u32 cntr_set = (panel->lcd_dclk_freq*1000*1000/(60*4));
+	     	__u32 cntr_set = panel->lcd_ht*panel->lcd_vt/4;
 	        __u32 cntr_n,cntr_m;
 	        for(cntr_m=1;cntr_m<256;cntr_m++)
 	        {

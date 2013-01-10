@@ -25,6 +25,8 @@ static dev_t devid ;
 static struct class *disp_class;
 struct device	*display_dev;
 
+__u32 disp_cmd_print_level = 0;
+
 static struct resource disp_resource[DISP_IO_NUM] =
 {
 	[DISP_IO_SCALER0] = {
@@ -678,7 +680,7 @@ void backlight_early_suspend(struct early_suspend *h)
     }
     g_fbi.b_no_output = 1;
 
-    for(i=0; i<2; i++)
+    for(i=1; i>=0; i--)
     {
         suspend_output_type[i] = BSP_disp_get_output_type(i);
         if(suspend_output_type[i] == DISP_OUTPUT_TYPE_LCD)
@@ -715,7 +717,7 @@ void backlight_late_resume(struct early_suspend *h)
     {
         BSP_disp_clk_on(2);
     }
-    for(i=0; i<2; i++)
+    for(i=1; i>=0; i--)
     {
         if(suspend_output_type[i] == DISP_OUTPUT_TYPE_LCD)
         {
@@ -805,7 +807,7 @@ int disp_suspend(struct platform_device *pdev, pm_message_t state)
 
     pr_info("[DISP]>>disp_suspend call<<\n");
 
-    for(i=0; i<2; i++)
+    for(i=1; i>=0; i--)
     {
         suspend_output_type[i] = BSP_disp_get_output_type(i);
         if(suspend_output_type[i] == DISP_OUTPUT_TYPE_LCD)
@@ -840,7 +842,7 @@ int disp_suspend(struct platform_device *pdev, pm_message_t state)
 #else
     if(2 == suspend_prestep)//suspend after resume,not  after early suspend
     {   
-        for(i=0; i<2; i++)
+        for(i=1; i>=0; i--)
         {
             if(suspend_output_type[i] == DISP_OUTPUT_TYPE_LCD)
             {
@@ -914,7 +916,7 @@ int disp_resume(struct platform_device *pdev)
 
     pr_info("[DISP]==disp_resume call==\n");
 
-    for(i=0; i<2; i++)
+    for(i=1; i>=0; i--)
     {
         if(suspend_output_type[i] == DISP_OUTPUT_TYPE_LCD)
         {
@@ -936,7 +938,7 @@ int disp_resume(struct platform_device *pdev)
     }
 #else
    pr_info("[DISP]>>disp_resume call<<\n");
-   for(i=0; i<2; i++)
+   for(i=1; i>=0; i--)
     {
         if(suspend_output_type[i] == DISP_OUTPUT_TYPE_LCD)
         {
@@ -1000,15 +1002,16 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
         return -1;
     }
     
-#if 0
-    if(cmd!=DISP_CMD_TV_GET_INTERFACE && cmd!=DISP_CMD_HDMI_GET_HPD_STATUS && cmd!=DISP_CMD_GET_OUTPUT_TYPE 
-    	&& cmd!=DISP_CMD_SCN_GET_WIDTH && cmd!=DISP_CMD_SCN_GET_HEIGHT
-    	&& cmd!=DISP_CMD_VIDEO_SET_FB && cmd!=DISP_CMD_VIDEO_GET_FRAME_ID)
-    	&& cmd!=DISP_CMD_VSYNC_EVENT_EN)
+    if(disp_cmd_print_level == 1)
     {
-        OSAL_PRINTF("cmd:0x%x,%ld,%ld\n",cmd, ubuffer[0], ubuffer[1]);
+        if(cmd!=DISP_CMD_TV_GET_INTERFACE && cmd!=DISP_CMD_HDMI_GET_HPD_STATUS && cmd!=DISP_CMD_GET_OUTPUT_TYPE 
+        	&& cmd!=DISP_CMD_SCN_GET_WIDTH && cmd!=DISP_CMD_SCN_GET_HEIGHT
+        	&& cmd!=DISP_CMD_VIDEO_SET_FB && cmd!=DISP_CMD_VIDEO_GET_FRAME_ID
+        	&& cmd!=DISP_CMD_VSYNC_EVENT_EN)
+        {
+            OSAL_PRINTF("cmd:0x%x,%ld,%ld\n",cmd, ubuffer[0], ubuffer[1]);
+        }
     }
-#endif
 
     switch(cmd)
     {

@@ -1207,7 +1207,7 @@ __s32 Disp_lcdc_event_proc(void *parg)
 #endif
 {
     __u32 sel = (__u32)parg;
-	static __u32 count = 0;
+	static __u32 cntr=0;
 
     if(tcon_irq_query(sel,LCD_IRQ_TCON0_VBLK))
     {
@@ -1219,19 +1219,31 @@ __s32 Disp_lcdc_event_proc(void *parg)
     }
     if(tcon_irq_query(sel,LCD_IRQ_TCON0_CNTR))
     {
-       LCD_vbi_event_proc(sel, 0);
+   	   LCD_vbi_event_proc(sel, 0);
+			
+		if(dsi_inst_busy(sel))
+		{
+			if(cntr>=1)
+			{
+				cntr = 0;
+			}
+			else
+			{
+				cntr++;
+			}
+		}
+		else
+		{
+			cntr = 0;		
+		}
+		
+		if(cntr==0)
+		{
+			if(gpanel_info[sel].lcd_if == LCD_IF_DSI)
+				dsi_tri_start(sel);
+		   	tcon0_tri_start(sel);
+		}
 
-//	   count ++;
-//	   if(2 == count)
-//	   {
-		   if(gpanel_info[sel].lcd_if == LCD_IF_DSI)
-		   {
-		       dsi_tri_start(sel);
-		   }
-	       tcon0_tri_start(sel);
-
-//		   count = 0;
-//	   }
     }
     if(tcon_irq_query(sel,LCD_IRQ_TCON0_TRIF))
     {
@@ -1738,7 +1750,7 @@ __s32 BSP_disp_lcd_open_before(__u32 sel)
     {
         dsi_cfg(sel, (__panel_para_t*)&gpanel_info[sel]);
     }
-    BSP_disp_set_output_csc(sel, DISP_OUTPUT_TYPE_LCD);
+    //BSP_disp_set_output_csc(sel, DISP_OUTPUT_TYPE_LCD);
     DE_BE_set_display_size(sel, gpanel_info[sel].lcd_x, gpanel_info[sel].lcd_y);
     DE_BE_Output_Select(sel, sel);
 
