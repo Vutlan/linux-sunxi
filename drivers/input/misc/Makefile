@@ -4,6 +4,12 @@
 
 # Each configuration option enables a list of files.
 
+
+
+
+
+
+
 obj-$(CONFIG_INPUT_88PM860X_ONKEY)	+= 88pm860x_onkey.o
 obj-$(CONFIG_INPUT_AB8500_PONKEY)	+= ab8500-ponkey.o
 obj-$(CONFIG_INPUT_AD714X)		+= ad714x.o
@@ -55,3 +61,9 @@ obj-$(CONFIG_INPUT_WISTRON_BTNS)	+= wistron_btns.o
 obj-$(CONFIG_INPUT_WM831X_ON)		+= wm831x-on.o
 obj-$(CONFIG_INPUT_XEN_KBDDEV_FRONTEND)	+= xen-kbdfront.o
 obj-$(CONFIG_INPUT_YEALINK)		+= yealink.o
+
+KBUILD_CFLAGS := $(filter-out -msoft-float ,$(KBUILD_CFLAGS))
+lp_ltr_501als-y := ltr_501als.o
+obj-$(CONFIG_INPUT_LTR_501ALS)		+= lp_ltr_501als.o
+
+
