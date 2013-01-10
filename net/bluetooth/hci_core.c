@@ -1542,6 +1542,8 @@ int hci_register_dev(struct hci_dev *hdev)
 	if (error < 0)
 		goto err_wqueue;
 
+#ifndef CONFIG_MTK_COMBO
+
 	hdev->rfkill = rfkill_alloc(hdev->name, &hdev->dev,
 				RFKILL_TYPE_BLUETOOTH, &hci_rfkill_ops, hdev);
 	if (hdev->rfkill) {
@@ -1554,6 +1556,8 @@ int hci_register_dev(struct hci_dev *hdev)
 	set_bit(HCI_AUTO_OFF, &hdev->flags);
 	set_bit(HCI_SETUP, &hdev->flags);
 	schedule_work(&hdev->power_on);
+
+#endif
 
 	hci_notify(hdev, HCI_DEV_REG);
 
