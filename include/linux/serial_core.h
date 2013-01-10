@@ -210,6 +210,7 @@
 /* Atheros AR933X SoC */
 #define PORT_AR933X	99
 
+#define PORT_SW		100
 
 #ifdef __KERNEL__
 
@@ -380,7 +381,6 @@ struct uart_port {
 	unsigned char		irq_wake;
 	unsigned char		unused[2];
 	void			*private_data;		/* generic platform data pointer */
-	unsigned char		lock_status;
 };
 
 /*

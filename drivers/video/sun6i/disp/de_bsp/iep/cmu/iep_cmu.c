@@ -155,7 +155,8 @@ __s32 IEP_CMU_Set_Imgsize(__u8 sel, __u32 width, __u32 height)
 __s32 IEP_CMU_Set_Par(__u8 sel, __u32 hue, __u32 saturaion, __u32 brightness, __u32 mode)
 {
 	char primary_key[20];
-	__u32 i,j,reg_val,ret;
+	__u32 i,j,reg_val;
+	__s32 ret = 0;
 	__u32 hue_g,hue_l,i_hue,i_saturaion,i_brightness;
 
 	hue_l = 41*hue-0x7FF;

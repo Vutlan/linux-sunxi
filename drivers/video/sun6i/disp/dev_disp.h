@@ -59,10 +59,10 @@ typedef struct
     __u32   ovl_mode;
     __u32	cb_w_conut;
     __u32	cb_r_conut;
-    __u32   cb_count;
     void    (*cb_fn)(void *, int);
     void    *cb_arg[10];
     __u32   release_count[10];
+    __u32   release_type[10];
     __bool  b_ovl_request;
     __bool  b_no_output;
 }fb_info_t;
@@ -119,6 +119,6 @@ extern __s32 DRV_lcd_close(__u32 sel);
 extern __s32 Fb_Init(__u32 from);
 extern __s32 Fb_Exit(void);
 
-extern int disp_set_ovl_mode(__u32 sel, __u32 mode, __u32 count);
+extern int disp_set_ovl_mode(__u32 sel, __u32 mode);
 
 #endif

@@ -686,8 +686,6 @@ void LCD_CLOSE_FUNC(__u32 sel, LCD_FUNC func, __u32 delay)
 
 void TCON_open(__u32 sel)
 {    
-    Disp_lcdc_pin_cfg(sel, DISP_OUTPUT_TYPE_LCD, 1);
-
     if(gpanel_info[sel].tcon_index == 0)
     {
         tcon0_open(sel,gpanel_info+sel);
@@ -729,7 +727,6 @@ void TCON_close(__u32 sel)
         gdisp.screen[sel].lcdc_status &= LCDC_TCON1_USED_MASK;
     }
 
-    Disp_lcdc_pin_cfg(sel, DISP_OUTPUT_TYPE_LCD, 0);
 }
 
 __s32 TCON_get_cur_line(__u32 sel, __u32 tcon_index)
@@ -1005,10 +1002,15 @@ __s32 LCD_POWER_EN(__u32 sel, __bool b_en)
 				}
 
 	        }
+            msleep(50);
+            Disp_lcdc_pin_cfg(sel, DISP_OUTPUT_TYPE_LCD, 1);
+            msleep(2);
 		}
 		else
 		{
-			if((gpanel_info[sel].lcd_if == LCD_IF_EDP) && (gpanel_info[sel].lcd_edp_tx_ic == 0))
+			Disp_lcdc_pin_cfg(sel, DISP_OUTPUT_TYPE_LCD, 0);
+            msleep(2);
+            if((gpanel_info[sel].lcd_if == LCD_IF_EDP) && (gpanel_info[sel].lcd_edp_tx_ic == 0))
 	        {
 				__u8 data;
 				__u32 ret;
@@ -1040,6 +1042,7 @@ __s32 LCD_POWER_EN(__u32 sel, __bool b_en)
 	        OSAL_GPIO_Release(hdl, 2);
 		}
     }
+
     return 0;
 }
 
@@ -1213,17 +1216,17 @@ __s32 Disp_lcdc_event_proc(void *parg)
     {
        LCD_vbi_event_proc(sel, 0);
 
-	   count ++;
-	   if(10 == count)
-	   {
+//	   count ++;
+//	   if(2 == count)
+//	   {
 		   if(gpanel_info[sel].lcd_if == LCD_IF_DSI)
 		   {
 		       dsi_tri_start(sel);
 		   }
 	       tcon0_tri_start(sel);
 
-		   count = 0;
-	   }
+//		   count = 0;
+//	   }
     }
     if(tcon_irq_query(sel,LCD_IRQ_TCON0_TRIF))
     {

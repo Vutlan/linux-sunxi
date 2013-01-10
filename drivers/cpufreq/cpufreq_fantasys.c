@@ -280,16 +280,25 @@ static void apply_hotplug_lock(void)
 int cpufreq_fantasys_cpu_lock(int num_core)
 {
     int prev_lock;
+    struct cpu_dbs_info_s *dbs_info;
 
-    if (num_core < 1 || num_core > num_possible_cpus())
+    dbs_info = &per_cpu(od_cpu_dbs_info, 0);
+    mutex_lock(&dbs_info->timer_mutex);
+
+    if (num_core < 1 || num_core > num_possible_cpus()) {
+        mutex_unlock(&dbs_info->timer_mutex);
         return -EINVAL;
+    }
 
     prev_lock = atomic_read(&g_hotplug_lock);
-    if (prev_lock != 0 && prev_lock < num_core)
+    if (prev_lock != 0 && prev_lock < num_core) {
+        mutex_unlock(&dbs_info->timer_mutex);
         return -EINVAL;
+    }
 
     atomic_set(&g_hotplug_lock, num_core);
     apply_hotplug_lock();
+    mutex_unlock(&dbs_info->timer_mutex);
 
     return 0;
 }
@@ -300,11 +309,18 @@ int cpufreq_fantasys_cpu_lock(int num_core)
 int cpufreq_fantasys_cpu_unlock(int num_core)
 {
     int prev_lock = atomic_read(&g_hotplug_lock);
+    struct cpu_dbs_info_s *dbs_info;
 
-    if(prev_lock != num_core)
+    dbs_info = &per_cpu(od_cpu_dbs_info, 0);
+    mutex_lock(&dbs_info->timer_mutex);
+
+    if (prev_lock != num_core) {
+        mutex_unlock(&dbs_info->timer_mutex);
         return -EINVAL;
+    }
 
     atomic_set(&g_hotplug_lock, 0);
+    mutex_unlock(&dbs_info->timer_mutex);
 
     return 0;
 }
