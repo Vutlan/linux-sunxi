@@ -26,7 +26,7 @@
 #include <linux/device.h>
 
 
-#define SUNXI_HW_TEST_START	0xf0100000
+#define SUNXI_HW_TEST_START	IO_ADDRESS(AW_BROM_BASE)
 #define SUNXI_HW_TEST_SIZE	1024
 
 static ssize_t in_show(struct file *filp, struct kobject *kobj, struct bin_attribute *a,
