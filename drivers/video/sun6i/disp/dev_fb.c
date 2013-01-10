@@ -1034,9 +1034,9 @@ static int Fb_cursor(struct fb_info *info, struct fb_cursor *cursor)
 
 __s32 DRV_disp_vsync_event(__u32 sel)
 {
-    //g_fbi.vsync_timestamp[sel] = ktime_get();
+    g_fbi.vsync_timestamp[sel] = ktime_get();
 
-    //schedule_work(&g_fbi.vsync_work[sel]);
+    schedule_work(&g_fbi.vsync_work[sel]);
 
     return 0;
 }
@@ -1076,9 +1076,6 @@ static void lcd_open_work_1(struct work_struct *work)
 
 __s32 DRV_disp_int_process(__u32 sel)
 {
-    g_fbi.vsync_timestamp[sel] = ktime_get();
-    schedule_work(&g_fbi.vsync_work[sel]);
-
     g_fbi.wait_count[sel]++;
     wake_up_interruptible(&g_fbi.wait[sel]);
 
