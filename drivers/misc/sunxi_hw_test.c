@@ -24,7 +24,8 @@
 #include <linux/slab.h>
 #include <linux/miscdevice.h>
 #include <linux/device.h>
-
+#include <mach/hardware.h>
+#include <mach/platform.h>
 
 #define SUNXI_HW_TEST_START	IO_ADDRESS(AW_BROM_BASE)
 #define SUNXI_HW_TEST_SIZE	1024
