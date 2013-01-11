@@ -76,6 +76,8 @@
       
 #define info(str, x...)     printk("%s:" str, module_tag, ##x)
 
+#define PS_DISTANCE  500 
+
 enum {
 	LIGHT_ENABLED = BIT(0),
 	PROXIMITY_ENABLED = BIT(1),
@@ -132,7 +134,9 @@ int ltr558_als_read(void)
 	alsval_ch1_hi = ltr558_i2c_read_reg(LTR558_ALS_DATA_CH1_1);
 	alsval_ch1 = (alsval_ch1_hi * 256) + alsval_ch1_lo;
 #if 1
-	//kernel_fpu_begin();
+	if ( 0 == alsval_ch0 )//Division by zero in kernel.
+		return -1;
+
 	ratio = alsval_ch1 / alsval_ch0;
 
 	if (ratio < 0.69){
@@ -149,7 +153,6 @@ int ltr558_als_read(void)
 	if (gainrange == ALS_RANGE1_320)
 		luxdata_flt = luxdata_flt / 150;
 
-	//kernel_fpu_end();
 #endif
 
 	// convert float to integer;
@@ -687,7 +690,7 @@ static void ltr558_schedwork(struct work_struct *work)
 	debug(" ps val =%d\n", val);
 	
 	/* 0 is close, 1 is far */
-	val = val >= 200 ? 0: 1;
+	val = val >= PS_DISTANCE ? 0: 1;
 
 	input_report_abs(ltr->proximity_input_dev, ABS_DISTANCE, val);
 	input_sync(ltr->proximity_input_dev);
