@@ -72,7 +72,7 @@ int main(struct aw_pm_info *arg)
 	char    *tmpPtr = (char *)&__bss_start;
 
 	//don't need init serial ,depend kernel?
-	//serial_init();
+	serial_init();
 	if(!arg){
 		/* standby parameter is invalid */
 		return -1;

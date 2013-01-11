@@ -121,7 +121,6 @@ __u32 serial_gets_nommu(char* buf, __u32 n)
 
 void serial_init(void)
 {
-
 	__u32 p2clk;
 	__u32 df;
 	__u32 lcr;
@@ -137,8 +136,18 @@ void serial_init(void)
 	for( i = 0; i < 100; i++ );
 	*reg |=  (1 << (16 + port));
 	// config uart gpio
+	//de-assert uart reset
+	reg = (volatile unsigned int *)(CCU_UART_RESET_VA);
+	*reg &= ~(1 << (16 + port));
+	for( i = 0; i < 100; i++ );
+	*reg |=  (1 << (16 + port));
+
 	// config tx gpio
 	//fpga not need care gpio config;
+	reg = (volatile unsigned int *)(0xf1c20800 + 0x104);
+	*reg &= ~(0x77 << (16 + port));
+	for( i = 0; i < 100; i++ );
+	*reg |=  (0x22 << (16 + port));
 
 	/* set baudrate */
 	df = (p2clk + (SUART_BAUDRATE<<3))/(SUART_BAUDRATE<<4);
