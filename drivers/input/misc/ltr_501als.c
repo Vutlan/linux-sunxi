@@ -67,8 +67,8 @@
 
 #define module_tag "sensor:"
 
-#define DEBUG 
-#ifdef  DEBUG
+//#define  SENSOR_DEBUG
+#ifdef  SENSOR_DEBUG
 #define debug(str, x...)     printk("%s:" str, module_tag, ##x)
 #else
 #define debug(str, x...)
