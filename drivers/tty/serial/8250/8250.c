@@ -1564,7 +1564,6 @@ int serial8250_handle_irq(struct uart_port *port, unsigned int iir)
 	 *and the measure which under here will not be execute never,
 	 *I think so.
 	 */
-		unsigned int mcr_t = serial_inp(up, UART_MCR);
 		AW_UART_LOG(">>> ttyS%d bus busy...", up->port.line);
 		if(serial_in(up, UART_USR)&1){
 			debug_mask = (1 << 29);
@@ -1572,6 +1571,8 @@ int serial8250_handle_irq(struct uart_port *port, unsigned int iir)
 			serial_outp(up, UART_LCR, up->lcr);
 			serial_outp(up, UART_HALT, UART_FORCE_CFG |UART_FORCE_UPDATE);
 			while(serial_inp(up, UART_HALT)&UART_FORCE_UPDATE);
+			serial_outp(up, UART_HALT, 0x00);
+			serial_in(up, UART_USR);
 		}else
 			serial_outp(up, UART_LCR, up->lcr);
 		return 1;
@@ -2154,11 +2155,14 @@ static int serial8250_startup(struct uart_port *port)
 	/*
 	 * Now, initialize the UART
 	 */
+
+	up->lcr = UART_LCR_WLEN8;					/* Save LCR */
 	if(serial_inp(up, UART_USR)&0x01){
 		serial_outp(up,	UART_HALT, UART_FORCE_CFG);
 		serial_outp(up, UART_LCR, UART_LCR_WLEN8);
 		serial_outp(up, UART_HALT, UART_FORCE_CFG |UART_FORCE_UPDATE);
 		while(serial_inp(up, UART_HALT)&UART_FORCE_UPDATE);
+		serial_outp(up, UART_HALT, 0x00);
 	}else
 		serial_outp(up, UART_LCR, UART_LCR_WLEN8);
 
@@ -2501,6 +2505,7 @@ serial8250_do_set_termios(struct uart_port *port, struct ktermios *termios,
 	if (up->port.type == PORT_16750)
 		serial_outp(up, UART_FCR, fcr);
 
+	up->lcr = cval;					/* Save LCR */
 	serial_outp(up, UART_LCR, cval);
 
 	/*
@@ -2516,7 +2521,6 @@ serial8250_do_set_termios(struct uart_port *port, struct ktermios *termios,
 		serial_outp(up, UART_HALT, 0x00);
 	}
 
-	up->lcr = cval;					/* Save LCR */
 	if (up->port.type != PORT_16750) {
 		if (fcr & UART_FCR_ENABLE_FIFO) {
 			/* emulated UARTs (Lucent Venus 167x) need two steps */
@@ -3185,8 +3189,7 @@ static int serial8250_suspend(struct platform_device *dev, pm_message_t state)
 		struct uart_8250_port *up = &serial8250_ports[i];
 
 		if (up->port.type != PORT_UNKNOWN && up->port.dev == &dev->dev){
-			//uart_suspend_port(&serial8250_reg, &up->port);
-			sunxi_8250_backup_reg(i,&up->port);
+			uart_suspend_port(&serial8250_reg, &up->port);
 		}
 	}
 	return 0;
@@ -3200,8 +3203,7 @@ static int serial8250_resume(struct platform_device *dev)
 		struct uart_8250_port *up = &serial8250_ports[i];
 
 		if (up->port.type != PORT_UNKNOWN && up->port.dev == &dev->dev){
-			sunxi_8250_comeback_reg(i,&up->port);
-			//serial8250_resume_port(i);
+			serial8250_resume_port(i);
 		}
 	}
 

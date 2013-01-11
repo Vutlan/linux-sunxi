@@ -20,6 +20,7 @@
 #include <asm/ecard.h>
 #include <asm/string.h>
 #include <linux/clk.h>
+#include <linux/console.h>
 #include <linux/serial_reg.h>
 #include <linux/gpio.h>
 #include <linux/delay.h>
@@ -29,6 +30,8 @@
 #include <mach/irqs.h>
 #include <mach/gpio.h>
 #include "8250.h"
+
+
 #define MAX_PORTS	    6
 
 //static int sw_serial[MAX_PORTS];
@@ -234,7 +237,8 @@ sw_serial_pm(struct uart_port *port, unsigned int state,
           unsigned int oldstate)
 {
 	struct sw_serial_port *up = sw_serial_uart[port->irq-32];
-
+	if(console_suspend_enabled && (port->irq == AW_IRQ_UART_DEBUG))
+		return;
 	if (!state){
         clk_enable(up->bus_clk);
 		clk_enable(up->mod_clk);
@@ -312,12 +316,7 @@ sw_serial_probe(struct platform_device *dev)
     sport->port.dev     	= &dev->dev;
 	sport->port.membase 	= (unsigned char __iomem    *)sport->mmres->start + OFFSET;
     sport->port.mapbase 	= sport->mmres->start;
-/*
-	if(sport->port_no) 
-		sdata->line = serial8250_register_port(&sport->port);
-	else
-		sdata->line = 0;
-*/
+
 	sdata->line = serial8250_register_port(&sport->port);
 	if(sdata->line<0){
 		ret = sdata->line;
@@ -327,10 +326,11 @@ sw_serial_probe(struct platform_device *dev)
 	UART_MSG("\nserial line %d probe %d, membase %p irq %d mapbase 0x%08x\n", 
              sdata->line,dev->id, sport->port.membase, sport->port.irq, sport->port.mapbase);
 
-	clk_reset(sport->mod_clk,AW_CCU_CLK_RESET);
-	clk_disable(sport->mod_clk);
-	clk_disable(sport->bus_clk);
-
+	if(sdata->line){
+		clk_reset(sport->mod_clk,AW_CCU_CLK_RESET);
+		clk_disable(sport->mod_clk);
+		clk_disable(sport->bus_clk);
+	}
    	return 0;
 free_dev:
     kfree(sport);
@@ -383,6 +383,7 @@ void sunxi_8250_comeback_reg(int port_num,struct uart_port *port)
 
 		AW_UART_WR(BACK_REG.halt |UART_FORCE_CFG |UART_FORCE_UPDATE ,UART_HALT);
 		while(AW_UART_RD(UART_HALT)&UART_FORCE_UPDATE);
+		AW_UART_WR(BACK_REG.halt ,UART_HALT);
 		AW_UART_WR(BACK_REG.ier,UART_IER);
 	}else{
 		debug_mask=0;
@@ -422,7 +423,7 @@ static int sw_serial_suspend(struct platform_device *dev, pm_message_t state)
 	UART_MSG("sw_serial_suspend uart suspend\n");
 	UART_MSG("&dev->dev is 0x%x\n",&dev->dev);
 
-	for (i = 1; i < MAX_PORTS; i++) {
+	for (i = 0; i < MAX_PORTS; i++) {
 		if(!sw_serial_uart[i]){
 			continue;
 		}
@@ -454,7 +455,7 @@ static int sw_serial_resume(struct platform_device *dev)
 	UART_MSG("sw_serial_resume SUPER_STANDBY resume\n");
 	UART_MSG("&dev->dev is 0x%x\n",&dev->dev);
 
-	for (i = 1; i < MAX_PORTS; i++) {
+	for (i = 0; i < MAX_PORTS; i++) {
 		if(!sw_serial_uart[i]){
 			continue;
 		}
@@ -540,10 +541,9 @@ static int __init sw_serial_init(void)
 	script_item_u   val;
 	script_item_value_type_e  type;
 	debug_mask = 0;
-	//memset(sw_serial, 0, sizeof(sw_serial));
-    //uart_used = 0;
+
 	uart_used = 0;
-	for (i=1; i<MAX_PORTS; i++, used=0) {
+	for (i=0; i<MAX_PORTS; i++, used=0) {
         sprintf(uart_para, "uart_para%d", i);
 		sw_serial_uart[i]=NULL;
 		type = script_get_item(uart_para, "uart_used", &val);
