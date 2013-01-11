@@ -361,6 +361,14 @@ static int __init sw_module_init(void)
 
     modem_dbg("sw_module_init %s\n", DRIVER_VERSION);
 
+#if defined(CONFIG_SW_USB_3G_MODULE)
+    printk("CONFIG_SW_USB_3G_MODULE\n");
+#elif defined(CONFIG_SW_UART_3G_MODULE)
+    printk("CONFIG_SW_UART_3G_MODULE\n");
+#else
+    printk("unkown 3g module\n");
+#endif
+
 	sw_module_class = class_create(THIS_MODULE, "sw_3g_module");
 	if (IS_ERR(sw_module_class)) {
 		modem_err("err: failed to allocate class\n");

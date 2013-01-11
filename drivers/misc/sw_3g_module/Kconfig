@@ -16,18 +16,28 @@ choice
 
 config HUAWEI_MU509
     boolean "huawei mu509"
+    select SW_USB_3G_MODULE
     help
         huawei mu509 modem support.
 
 config YUGA_CWM600
     boolean "yuga cwm600"
+    select SW_USB_3G_MODULE
     help
         yuga cwm600 modem support.
 
 config OVIPHONE_EM55
     boolean "Oviphone em55"
+    select SW_UART_3G_MODULE
     help
         Oviphone em55 modem support.
 
 endchoice
 
+# Selected by 3G modem that use usb interface
+config SW_USB_3G_MODULE
+	bool
+
+# Selected by 3G modem that use uart interface
+config SW_UART_3G_MODULE
+	bool
