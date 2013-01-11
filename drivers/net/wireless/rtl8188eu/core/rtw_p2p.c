@@ -4275,10 +4275,10 @@ int rtw_init_wifi_display_info(_adapter* padapter)
 	struct wifi_display_info *pwfd_info = &padapter->wfd_info;
 
 	// Used in P2P and TDLS
-	pwfd_info->rtsp_ctrlport = 554;
+	//pwfd_info->rtsp_ctrlport = 8554;  //don't modify
 	pwfd_info->peer_rtsp_ctrlport = 0;	//	Reset to 0
-	pwfd_info->wfd_enable = _FALSE;
-	pwfd_info->wfd_device_type = WFD_DEVINFO_PSINK;
+	pwfd_info->wfd_enable = _TRUE;//default enable
+	//pwfd_info->wfd_device_type = WFD_DEVINFO_PSINK;//don't modify
 
 	// Used in P2P	
 	pwfd_info->peer_session_avail = _TRUE;
