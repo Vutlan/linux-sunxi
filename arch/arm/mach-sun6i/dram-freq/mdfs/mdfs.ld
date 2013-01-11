@@ -7,11 +7,11 @@ SECTIONS
 	__mdfs_start = . ;
 	.text 0xf0000000 :
 	{
-		mdfs.o(.text.startup)
+		mdfs_entry.o(.text.startup)
 		*(.text)
 		*(.rodata)
 	}
-	
+
 	.data   : { *(.data) }
 	__bss_start = . ;
 	.bss : { *(.sbss) *(.scommon) *(.bss) *(COMMON) }
