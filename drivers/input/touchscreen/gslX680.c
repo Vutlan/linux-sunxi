@@ -458,6 +458,16 @@ static int gsl_ts_read(struct i2c_client *client, u8 addr, u8 *pdata, unsigned i
 	return i2c_master_recv(client, pdata, datalen);
 }
 
+static void gls_ts_irq_onoff(u32 onoff)
+{
+#ifndef GSL_TIMER
+	if (onoff)
+		sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,1);
+	else
+		sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,0);
+#endif
+}
+
 static void startup_chip(struct i2c_client *client)
 {
 	u8 tmp = 0x00;
@@ -723,10 +733,8 @@ static void gsl_ts_xy_worker(struct work_struct *work)
 		reset_chip(ts->client);
 		startup_chip(ts->client);
 	}
-
 schedule:
-        sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,1);
-
+	gls_ts_irq_onoff(1);
 }
 
 static u32 gsl_ts_irq(struct gsl_ts *ts)
@@ -833,8 +841,7 @@ static void glsX680_resume_events (struct work_struct *work)
         reset_chip(glsX680_i2c);
         startup_chip(glsX680_i2c);
         check_mem_data(glsX680_i2c);
-        sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,1);
-
+	gls_ts_irq_onoff(1);
 }
 
 static int gsl_ts_suspend(struct i2c_client *client, pm_message_t mesg)
@@ -854,7 +861,7 @@ static int gsl_ts_suspend(struct i2c_client *client, pm_message_t mesg)
 	del_timer(&ts->gsl_timer);
 #endif
         if(ts->is_suspended == true ){
-                sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,0);
+		gls_ts_irq_onoff(0);
         	flush_workqueue(gslX680_resume_wq);
         	cancel_work_sync(&ts->work);
         	flush_workqueue(ts->wq);
@@ -894,8 +901,8 @@ static void gsl_ts_early_suspend(struct early_suspend *h)
 	dprintk(DEBUG_SUSPEND,"gsl_ts_suspend () : delete gsl_timer\n");
 	del_timer(&ts->gsl_timer);
 #endif
-        ts->is_suspended = false;
-        sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,0);
+	ts->is_suspended = false;
+	gls_ts_irq_onoff(0);
 
 	cancel_work_sync(&ts->work);
 	flush_workqueue(ts->wq);
@@ -914,7 +921,7 @@ static void gsl_ts_late_resume(struct early_suspend *h)
 	        msleep(10);
 	        reset_chip(glsX680_i2c);
 	        startup_chip(glsX680_i2c);
-	        sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,1);
+	        gls_ts_irq_onoff(1);
       }
 #endif
 
