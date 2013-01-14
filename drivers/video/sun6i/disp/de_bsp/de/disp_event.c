@@ -41,6 +41,7 @@ __s32 BSP_disp_vsync_event_enable(__u32 sel, __bool enable)
     
     return DIS_SUCCESS;
 }
+
 void LCD_vbi_event_proc(__u32 sel, __u32 tcon_index)
 {    
     __u32 cur_line = 0, start_delay = 0;
@@ -94,6 +95,9 @@ void LCD_vbi_event_proc(__u32 sel, __u32 tcon_index)
         DE_BE_Cfg_Ready(sel);
         IEP_CMU_Operation_In_Vblanking(sel);
 		gdisp.screen[sel].have_cfg_reg = TRUE;
+
+		gdisp.init_para.take_effect(sel);
+
     }
 
 #if 0

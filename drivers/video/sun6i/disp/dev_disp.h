@@ -59,10 +59,9 @@ typedef struct
     __u32   ovl_mode;
     __u32	cb_w_conut;
     __u32	cb_r_conut;
+    __u32   cur_count;
     void    (*cb_fn)(void *, int);
     void    *cb_arg[10];
-    __u32   release_count[10];
-    __u32   release_type[10];
     __bool  b_ovl_request;
     __bool  b_no_output;
 }fb_info_t;
@@ -105,6 +104,7 @@ extern __s32 Display_get_disp_init_para(__disp_init_t * init_para);
 
 extern __s32 DRV_disp_int_process(__u32 sel);
 extern __s32 DRV_disp_vsync_event(__u32 sel);
+extern __s32 DRV_disp_take_effect_event(__u32 sel);
 
 
 extern __s32 DRV_DISP_Init(void);

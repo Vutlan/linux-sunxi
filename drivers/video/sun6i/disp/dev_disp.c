@@ -458,6 +458,7 @@ __s32 DRV_DISP_Init(void)
 
 	para.disp_int_process       = DRV_disp_int_process;
     para.vsync_event            = DRV_disp_vsync_event;
+    para.take_effect            = DRV_disp_take_effect_event;
 
 	memset(&g_disp_drv, 0, sizeof(__disp_drv_t));
 
