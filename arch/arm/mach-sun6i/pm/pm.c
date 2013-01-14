@@ -18,6 +18,7 @@
 
 #include <linux/module.h>
 #include <linux/suspend.h>
+#include <linux/cpufreq.h>
 #include <linux/cdev.h>
 #include <linux/fs.h>
 #include <linux/syscalls.h>
@@ -73,7 +74,8 @@
 #define AW_PMU_MAJOR    267
 
 static int debug_mask = PM_STANDBY_PRINT_STANDBY | PM_STANDBY_PRINT_RESUME;
-module_param_named(debug_mask, debug_mask, int, S_IRUGO | S_IWUSR | S_IWGRP);
+static int suspend_freq = SUSPEND_FREQ;
+static int suspend_delay_ms = SUSPEND_DELAY_MS;
 
 extern char *standby_bin_start;
 extern char *standby_bin_end;
@@ -237,20 +239,31 @@ static int aw_pm_valid(suspend_state_t state)
 */
 int aw_pm_begin(suspend_state_t state)
 {
-    PM_DBG("%d state begin\n", state);
+	struct cpufreq_policy policy;
+
+	PM_DBG("%d state begin\n", state);
 
 	//set freq max
 #ifdef CONFIG_CPU_FREQ_USR_EVNT_NOTIFY
-	cpufreq_user_event_notify();
+	//cpufreq_user_event_notify();
 #endif
+	
+	if (cpufreq_get_policy(&policy, 0))
+		goto out;
 
-/*must init perfcounter, because delay_us and delay_ms is depandant perf counter*/
+	cpufreq_driver_target(&policy, suspend_freq, CPUFREQ_RELATION_L);
+
+
+	/*must init perfcounter, because delay_us and delay_ms is depandant perf counter*/
 #ifndef GET_CYCLE_CNT
-		backup_perfcounter();
-		init_perfcounters (1, 0);
+	backup_perfcounter();
+	init_perfcounters (1, 0);
 #endif
 
 	return 0;
+
+out:
+	return -1;
 }
 
 
@@ -523,6 +536,7 @@ mem_enter:
 	standby_level = STANDBY_WITH_POWER_OFF;
 	mem_para_info.resume_pointer = (void *)&&mem_enter;
 	mem_para_info.debug_mask = debug_mask;
+	mem_para_info.suspend_delay_ms = suspend_delay_ms;
 	//busy_waiting();
 	if(unlikely(debug_mask&PM_STANDBY_PRINT_STANDBY)){
 		pr_info("resume_pointer = 0x%x. \n", (unsigned int)(mem_para_info.resume_pointer));
@@ -600,6 +614,14 @@ static int aw_pm_enter(suspend_state_t state)
 		for(i=0; i<(GPIO_REG_LENGTH); i++){
 			printk(KERN_INFO "ADDR = %x, value = %x .\n", \
 				IO_ADDRESS(AW_PIO_BASE) + i*0x04, *(volatile __u32 *)(IO_ADDRESS(AW_PIO_BASE) + i*0x04));
+		}
+	}
+
+	if(unlikely(debug_mask&PM_STANDBY_PRINT_CCU_STATUS)){
+		printk(KERN_INFO "CCU status as follow:");
+		for(i=0; i<(CCU_REG_LENGTH); i++){
+			printk(KERN_INFO "ADDR = %x, value = %x .\n", \
+				IO_ADDRESS(AW_CCM_BASE) + i*0x04, *(volatile __u32 *)(IO_ADDRESS(AW_CCM_BASE) + i*0x04));
 		}
 	}
 
@@ -883,6 +905,9 @@ static void __exit aw_pm_exit(void)
 	suspend_set_ops(NULL);
 }
 
+module_param_named(debug_mask, debug_mask, int, S_IRUGO | S_IWUSR | S_IWGRP);
+module_param_named(suspend_freq, suspend_freq, int, S_IRUGO | S_IWUSR | S_IWGRP);
+module_param_named(suspend_delay_ms, suspend_delay_ms, int, S_IRUGO | S_IWUSR | S_IWGRP);
 module_init(aw_pm_init);
 module_exit(aw_pm_exit);
 
