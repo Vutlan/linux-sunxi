@@ -43,8 +43,10 @@
 #include <linux/pm.h>
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
-#include <linux/pm.h>
 #include <linux/earlysuspend.h>
+#endif
+#if defined(CONFIG_HAS_EARLYSUSPEND) || defined(CONFIG_PM)
+#include <linux/pm.h>
 #endif
 
 #define FOR_TSLIB_TEST
@@ -70,12 +72,13 @@ struct goodix_ts_data {
 	uint32_t gpio_irq;
 	uint32_t screen_width;
 	uint32_t screen_height;
+	bool is_suspended;
 	struct ts_event		event;
 	struct hrtimer timer;
 	struct work_struct  work;
 	int (*power)(struct goodix_ts_data * ts, int on);
 #ifdef CONFIG_HAS_EARLYSUSPEND	
-    struct early_suspend early_suspend;
+	struct early_suspend early_suspend;
 #endif
 };
 
@@ -534,8 +537,17 @@ static int goodix_ts_power(struct goodix_ts_data * ts, int on)
 static void goodix_resume_events (struct work_struct *work)
 {
 	int ret;
+	u8 i2c_control_buf[3] = {0x0F,0xF2,0x00};
 
-	if (ts_init->power) {
+	if (ts_init->is_suspended == false) {
+		ctp_wakeup(0,2);
+		ret = i2c_write_bytes(ts_init->client, i2c_control_buf, 3);
+		if( ret != 1){
+                        printk("set active mode fail!\n");
+                        return ;
+		}
+		msleep(10);
+	} else if (ts_init->power) {
 		ret = ts_init->power(ts_init, 1);
 		if (ret < 0)
 			dprintk(DEBUG_SUSPEND,"%s power on failed\n", f3x_ts_name);
@@ -544,48 +556,27 @@ static void goodix_resume_events (struct work_struct *work)
 }
 
 //停用设备
-#ifdef CONFIG_HAS_EARLYSUSPEND
-static void goodix_ts_suspend(struct early_suspend *h)
-{
-	int ret;
-	struct goodix_ts_data *ts = container_of(h, struct goodix_ts_data, early_suspend);
-
-	dprintk(DEBUG_SUSPEND,"CONFIG_HAS_EARLYSUSPEND:enter earlysuspend: goodix_ts_suspend. \n");
-	flush_workqueue(goodix_resume_wq);
-	sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,0);
-	ret = cancel_work_sync(&ts->work);
-	flush_workqueue(goodix_wq);
-	if (ts->power) {
-		ret = ts->power(ts,0);
-		if (ret < 0)
-			dprintk(DEBUG_SUSPEND,"%s power off failed\n", f3x_ts_name);
-	}
-	return ;
-}
-
-//重新唤醒
-static void goodix_ts_resume(struct early_suspend *h)
-{
-	dprintk(DEBUG_SUSPEND,"CONFIG_HAS_EARLYSUSPEND:enter laterresume: goodix_ts_resume. \n"); 
-	queue_work(goodix_resume_wq, &goodix_resume_work);
-	return ;
-}
-#else
-#ifdef CONFIG_PM
 static int goodix_ts_suspend(struct i2c_client *client, pm_message_t mesg)
 {
 	int ret;
         struct goodix_ts_data *ts = i2c_get_clientdata(client);
 
 	dprintk(DEBUG_SUSPEND,"CONFIG_PM:enter earlysuspend: goodix_ts_suspend. \n");
-	flush_workqueue(goodix_resume_wq);
-	sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,0);
-	ret = cancel_work_sync(&ts->work);
-	flush_workqueue(goodix_wq);
-	if (ts->power) {
-		ret = ts->power(ts,0);
-		if (ret < 0)
-			dprintk(DEBUG_SUSPEND,"%s power off failed\n", f3x_ts_name);
+
+#ifndef CONFIG_HAS_EARLYSUSPEND
+	ts->is_suspended = true;
+#endif
+
+	if (ts->is_suspended == true) {
+		flush_workqueue(goodix_resume_wq);
+		sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,0);
+		ret = cancel_work_sync(&ts->work);
+		flush_workqueue(goodix_wq);
+		if (ts->power) {
+			ret = ts->power(ts,0);
+			if (ret < 0)
+				dprintk(DEBUG_SUSPEND,"%s power off failed\n", f3x_ts_name);
+		}
 	}
 	return 0 ;
 }
@@ -593,11 +584,48 @@ static int goodix_ts_suspend(struct i2c_client *client, pm_message_t mesg)
 //重新唤醒
 static int goodix_ts_resume(struct i2c_client *client)
 {
+	struct goodix_ts_data *ts = i2c_get_clientdata(client);
+
         dprintk(DEBUG_SUSPEND,"CONFIG_PM:enter laterresume: goodix_ts_resume. \n");
-	queue_work(goodix_resume_wq, &goodix_resume_work); 
+	ts->is_suspended = true;
+	queue_work(goodix_resume_wq, &goodix_resume_work);
 	return 0;
 }
-#endif
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
+//停用设备
+static void goodix_ts_early_suspend(struct early_suspend *h)
+{
+	int ret;
+	struct goodix_ts_data *ts = container_of(h, struct goodix_ts_data, early_suspend);
+
+	dprintk(DEBUG_SUSPEND,"CONFIG_HAS_EARLYSUSPEND:enter earlysuspend: goodix_ts_suspend. \n");
+	ts->is_suspended = false;
+	flush_workqueue(goodix_resume_wq);
+	sw_gpio_eint_set_enable(CTP_IRQ_NUMBER,0);
+	ret = cancel_work_sync(&ts->work);
+	flush_workqueue(goodix_wq);
+	if (ts->power) {
+		ret = ts->power(ts,0);
+		if (ret < 0)
+			dprintk(DEBUG_SUSPEND,"%s power off failed\n", f3x_ts_name);
+	}
+	return ;
+}
+
+//重新唤醒
+static void goodix_ts_late_resume(struct early_suspend *h)
+{
+	struct goodix_ts_data *ts = container_of(h, struct goodix_ts_data, early_suspend);
+
+	dprintk(DEBUG_SUSPEND,"CONFIG_HAS_EARLYSUSPEND:enter laterresume: goodix_ts_resume. \n");
+
+	if (ts->is_suspended == false)
+		queue_work(goodix_resume_wq, &goodix_resume_work);
+
+	printk("ts->is_suspended:%d\n",ts->is_suspended);
+	return ;
+}
 #endif
 
 static void goodix_init_events (struct work_struct *work)
@@ -699,6 +727,8 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 	ts->input_dev->id.product = 0xBEEF;
 	ts->input_dev->id.version = 0x1105;	
 
+	ts->is_suspended = false;
+
 	ret = input_register_device(ts->input_dev);
 	if (ret) {
 		dev_err(&client->dev,"Unable to register %s input device\n", ts->input_dev->name);
@@ -732,8 +762,8 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 	
 #ifdef CONFIG_HAS_EARLYSUSPEND	
 	ts->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;	
-	ts->early_suspend.suspend = goodix_ts_suspend;
-	ts->early_suspend.resume	= goodix_ts_resume;	
+	ts->early_suspend.suspend = goodix_ts_early_suspend;
+	ts->early_suspend.resume= goodix_ts_late_resume;
 	register_early_suspend(&ts->early_suspend);
 #endif   
 
@@ -799,14 +829,8 @@ static struct i2c_driver goodix_ts_driver = {
 	.probe		= goodix_ts_probe,
 	.remove		= goodix_ts_remove,
 	.id_table	= goodix_ts_id,
-#ifdef CONFIG_HAS_EARLYSUSPEND
-
-#else
-#ifdef CONFIG_PM
-	.suspend  =  goodix_ts_suspend,
-	.resume   =  goodix_ts_resume,
-#endif
-#endif
+	.suspend        =  goodix_ts_suspend,
+	.resume         =  goodix_ts_resume,
 	.driver = {
 		.name	= CTP_NAME,
 		.owner = THIS_MODULE,
