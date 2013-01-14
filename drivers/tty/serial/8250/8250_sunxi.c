@@ -237,8 +237,6 @@ sw_serial_pm(struct uart_port *port, unsigned int state,
           unsigned int oldstate)
 {
 	struct sw_serial_port *up = sw_serial_uart[port->irq-32];
-	if(console_suspend_enabled && (port->irq == AW_IRQ_UART_DEBUG))
-		return;
 	if (!state){
         clk_enable(up->bus_clk);
 		clk_enable(up->mod_clk);
@@ -439,7 +437,6 @@ static int sw_serial_suspend(struct platform_device *dev, pm_message_t state)
 		if ((port->type != PORT_UNKNOWN)&& (port->dev == &dev->dev)){
 			sunxi_8250_backup_reg(sdata->line,port);
 			serial8250_suspend_port(sdata->line);
-
 		}
 	}
 
