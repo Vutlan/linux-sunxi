@@ -649,8 +649,10 @@ static void sw_uart_set_termios(struct uart_port *port, struct ktermios *termios
 	}
 
 	#ifdef CONFIG_SW_UART_FORCE_LCR
-	if (lcr_fail)
+	if (lcr_fail) {
 		sw_uart_force_lcr(sw_uport, 50);
+		serial_in(port, SW_UART_USR);
+	}
 	#endif
 	port->ops->set_mctrl(port, port->mctrl);
 
