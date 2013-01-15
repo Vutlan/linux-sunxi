@@ -126,9 +126,13 @@
 #include <mach/hardware.h>
 #include <mach/sys_config.h>
 
+#define  COMBO_CONFIG_PARA     "wifi_para"
+
 extern void wifi_pm_power(int on);
 
+static u32 gpio_eint_wifi = 0;
 static u32 gpio_eint_bgf = 0;
+static u32 eint_wifi_handle = 0;
 static u32 eint_bgf_handle = 0;
 
 extern void sw_mci_rescan_card(unsigned id, unsigned insert);
@@ -161,6 +165,7 @@ static u32 gpio_rst = 0;
 
 static VOID wmt_plat_func_ctrl (UINT32 type, UINT32 on);
 static VOID wmt_plat_bgf_eirq_cb (VOID);
+static VOID wmt_plat_wifi_eirq_cb (VOID);
 
 static INT32 wmt_plat_ldo_ctrl (ENUM_PIN_STATE state);
 static INT32 wmt_plat_pmu_ctrl (ENUM_PIN_STATE state);
@@ -185,7 +190,8 @@ static INT32 wmt_plat_dump_pin_conf (VOID);
 ********************************************************************************
 */
 
-unsigned int g_balance_flag;
+unsigned int bgf_g_balance_flag;
+unsigned int wifi_g_balance_flag;
 spinlock_t g_balance_lock;
 //unsigned int g_bgf_irq;//bgf eint number
 /*******************************************************************************
@@ -201,7 +207,6 @@ spinlock_t g_balance_lock;
  */
 static void aw_enable_irq(__u32 gpio)
 {
-	
 	sw_gpio_eint_set_enable(gpio, 1);
 	return;
 }
@@ -216,93 +221,50 @@ static void aw_disable_irq(__u32 gpio)
 	return;
 }
 
-static void aw_free_irq_resource(void)
+static void aw_free_irq_resource(__u32 gpio)
 {
 	WMT_INFO_FUNC("=======%s: free irq resource =========.\n", __func__);
-	if(gpio_eint_bgf){
-		gpio_free(gpio_eint_bgf);
-		gpio_eint_bgf = 0;
-	}
+	if(gpio){
+    gpio_free(gpio);
+    gpio = 0;
+  }
 }
 
 
 /**
- * aw_set_bgf_gpio_mode - according sysconfig's subkey to config io port.
+ * aw_set_gpio_mode - according sysconfig's subkey to config io port.
  *
  * return value: 
  *              0:      success;
  *              others: fail; 
  */
-static int aw_set_bgf_gpio_mode(void)
+static int aw_set_gpio_mode(__u32 gpio)
 {
 	int ret = 0;	 
-  unsigned long flags = 0;
-  script_item_u val ;
-  script_item_value_type_e type;
-	
+  
 	//config gpio to io mode
-	WMT_INFO_FUNC("%s: config bgf to io mode. \n", __func__);
-/*
-	if(gpio_eint_bgf){
-		gpio_free(gpio_eint_bgf);
-		gpio_eint_bgf = 0;
-	}
-	
-	type = script_get_item("mtk_6620_combo","mtk_6620_bgf_int",&val);
-  if (SCIRPT_ITEM_VALUE_TYPE_PIO!=type){ 
-    WMT_INFO_FUNC("get mtk mtk_6620_ldo gpio failed\n");
-    ret = -1;
-  }else{
-    gpio_eint_bgf = val.gpio.gpio;
-	}
-	
-	ret = gpio_request(gpio_eint_bgf, NULL);
-	if (ret) {
-		WMT_INFO_FUNC("request mtk_6620_bgf_int gpio failed\n");
-	}
-	*/
-	sw_gpio_setcfg(gpio_eint_bgf, GPIO_CFG_INPUT);
+	WMT_INFO_FUNC("%s: config %s to io mode. \n", __func__);
+
+	sw_gpio_setcfg(gpio, GPIO_CFG_INPUT);
 	
 	return ret;
 }
 
 /**
- * aw_set_bgf_eint_mode - according sysconfig's subkey to config io port.
+ * aw_set_eint_mode - according sysconfig's subkey to config io port.
  *
  * return value: 
  *              0:      success;
  *              others: fail; 
  */
-static int aw_set_bgf_eint_mode(void)
+static int aw_set_eint_mode(__u32 gpio)
 {
 	int ret = 0;	 
-  unsigned long flags = 0;
-  script_item_u val ;
-  script_item_value_type_e type;
   
-	//config gpio to io mode
-	WMT_INFO_FUNC("%s: config bgf to eint mode. \n", __func__);
+	WMT_INFO_FUNC("%s: config %s to eint mode. \n", __func__);
 	
-	if(gpio_eint_bgf){
-		//gpio_free(gpio_eint_bgf);
-		//gpio_eint_bgf = 0;
-	}
-	/*
-	type = script_get_item("mtk_6620_combo","mtk_6620_bgf_int",&val);
-  if (SCIRPT_ITEM_VALUE_TYPE_PIO!=type){ 
-    WMT_INFO_FUNC("get mtk mtk_6620_bgf_int gpio failed\n");
-    ret = -1;
-	}else{
-    gpio_eint_bgf = val.gpio.gpio;
-	}
-	
-	ret = gpio_request(gpio_eint_bgf, NULL);
-	if (ret) {
-		WMT_INFO_FUNC("request mtk_6620_bgf_int gpio failed\n");
-	}
-	*/
-	sw_gpio_setcfg(gpio_eint_bgf, R_GPIO_CFG_EINT);
-	sw_gpio_setpull(gpio_eint_bgf, 1);
+	sw_gpio_setcfg(gpio, R_GPIO_CFG_EINT);
+	sw_gpio_setpull(gpio, 1);
 	
 	return ret;
 }
@@ -427,11 +389,11 @@ static VOID wmt_plat_func_ctrl (UINT32 type, UINT32 on)
 }
 
 #if CFG_WMT_PS_SUPPORT
-irqreturn_t irq_handler(void *arg)
+irqreturn_t bgf_irq_handler(void *arg)
 {
   int pin_state = 0;
   
-  aw_set_bgf_gpio_mode();
+  aw_set_gpio_mode(gpio_eint_bgf);
   pin_state = __gpio_get_value(gpio_eint_bgf);
   printk("========%s, pin_state:%d =========\n",__func__,pin_state);
   if (likely(pin_state == 0)) {		
@@ -440,10 +402,29 @@ irqreturn_t irq_handler(void *arg)
     printk(KERN_INFO "%s bgf_irq false alarm:pin_state(%d)!\n", __FUNCTION__, pin_state);
   }
 	
-  aw_set_bgf_eint_mode();
+  aw_set_eint_mode(gpio_eint_bgf);
   
 	return 0;
 }
+
+irqreturn_t wifi_irq_handler(void *arg)
+{
+  int pin_state = 0;
+  
+  aw_set_gpio_mode(gpio_eint_wifi);
+  pin_state = __gpio_get_value(gpio_eint_wifi);
+  printk("========%s, pin_state:%d =========\n",__func__,pin_state);
+  if (likely(pin_state == 0)) {		
+    wmt_plat_wifi_eirq_cb();
+	} else {			   
+    printk(KERN_INFO "%s wifi_irq false alarm:pin_state(%d)!\n", __FUNCTION__, pin_state);
+  }
+	
+  aw_set_eint_mode(gpio_eint_wifi);
+  
+	return 0;
+}
+
 #endif
 
 static VOID
@@ -460,6 +441,22 @@ wmt_plat_bgf_eirq_cb (VOID)
 #endif
 
 }
+
+static VOID
+wmt_plat_wifi_eirq_cb (VOID)
+{
+#if CFG_WMT_PS_SUPPORT
+//#error "need to disable EINT here"
+    WMT_INFO_FUNC("WMT-PLAT:WiFiInt (++) \n");
+    wmt_lib_ps_irq_cb();
+    WMT_INFO_FUNC("WMT-PLAT:WiFiInt (++) \n");
+
+#else
+    return;
+#endif
+
+}
+
 
 INT32
 wmt_plat_init (P_PWR_SEQ_TIME pPwrSeqTime)
@@ -611,65 +608,97 @@ wmt_plat_eirq_ctrl (
     switch (id) {
     case PIN_BGF_EINT:
         if (PIN_STA_INIT == state) {
-            /*request irq,low level triggered*/
-	    
-	    	g_balance_flag = 1;//do not modify this value
-            WMT_INFO_FUNC("WMT-PLAT:BGFInt (init) \n");
-
-			printk("wmt_plat_eirq_ctrl 11 gpio_eint_bgf:%d\n",gpio_eint_bgf);
-			//if(gpio_eint_bgf){
-			//	gpio_free(gpio_eint_bgf);
-			//} 
-      printk("wmt_plat_eirq_ctrl 22 gpio_eint_bgf:%d\n",gpio_eint_bgf);
-      eint_bgf_handle = sw_gpio_irq_request(gpio_eint_bgf, TRIG_LEVL_LOW,(peint_handle)irq_handler, NULL);
-		  if (!eint_bgf_handle) {
-         WMT_INFO_FUNC( "%s: request irq failed err:%d \n",__func__,err);
-			   goto exit_irq_request_failed;
-			}
-        }
-        else if (PIN_STA_EINT_EN == state) {
-            /*enable irq*/
-		    spin_lock_irqsave(&g_balance_lock,flags);
-		    if(g_balance_flag)
-		    {
-				/*if enter this case, the bgf eint has been enabled,so skip it.*/
-				WMT_INFO_FUNC("BGF_EINT has been enabled,g_balance_flag(%d)!\n",g_balance_flag);
-		    }
-		    else
-		    {
-				/*do real irq enable implement is this case*/
-		        g_balance_flag++;
-                WMT_INFO_FUNC("WMT-PLAT:BGFInt (en),g_balance_flag(%d)\n",g_balance_flag);
-				//enable_irq(SW_INT_IRQNO_PIO);
-				aw_enable_irq(gpio_eint_bgf);
-	    	}
-	    	spin_unlock_irqrestore(&g_balance_lock,flags);
-        }
-        else if (PIN_STA_EINT_DIS == state) {
-            /*disable irq*/
-		    spin_lock_irqsave(&g_balance_lock,flags);
-	 	    if(!g_balance_flag)
-		    {
-				/*if enter this case, the bgf eint has been disabled,so skip it.*/
-		        WMT_INFO_FUNC("BGF_EINT has been disabled,g_balance_flag(%d)!\n",g_balance_flag);
-			}
-		    else
-		    {
-				/*do real irq disable implement is this case*/
-				g_balance_flag--;
-				WMT_INFO_FUNC("WMT-PLAT:BGFInt (dis) g_balance_flag(%d)\n",g_balance_flag);
-				aw_disable_irq(gpio_eint_bgf);
-		    }
-		    spin_unlock_irqrestore(&g_balance_lock,flags);
-        }
-        else {
-            /* de-init: free irq*/
-            WMT_INFO_FUNC("WMT-PLAT:BGFInt (deinit) \n");
-
-			      sw_gpio_irq_free(eint_bgf_handle);
+          /*request irq,low level triggered*/
+          bgf_g_balance_flag = 1;//do not modify this value
+          WMT_INFO_FUNC("WMT-PLAT:BGFInt (init) \n");
+          
+          eint_bgf_handle = sw_gpio_irq_request(gpio_eint_bgf, TRIG_LEVL_LOW,(peint_handle)bgf_irq_handler, NULL);
+          if (!eint_bgf_handle) {
+            WMT_INFO_FUNC( "%s: request irq failed err:%d \n",__func__,err);
+            goto exit_irq_request_failed;
+          }
+        } else if (PIN_STA_EINT_EN == state) {
+          /*enable irq*/
+          spin_lock_irqsave(&g_balance_lock,flags);
+          if (bgf_g_balance_flag) {
+            /*if enter this case, the bgf eint has been enabled,so skip it.*/
+            WMT_INFO_FUNC("BGF_EINT has been enabled,bgf_g_balance_flag(%d)!\n",bgf_g_balance_flag);
+          } else {
+				    /*do real irq enable implement is this case*/
+		        bgf_g_balance_flag++;
+            WMT_INFO_FUNC("WMT-PLAT:BGFInt (en),bgf_g_balance_flag(%d)\n",bgf_g_balance_flag);
+           //enable_irq(SW_INT_IRQNO_PIO);
+           aw_enable_irq(gpio_eint_bgf);
+	    	  }
+          spin_unlock_irqrestore(&g_balance_lock,flags);
+        } else if (PIN_STA_EINT_DIS == state) {
+          /*disable irq*/
+          spin_lock_irqsave(&g_balance_lock,flags);
+	 	      if (!bgf_g_balance_flag) {
+            /*if enter this case, the bgf eint has been disabled,so skip it.*/
+            WMT_INFO_FUNC("BGF_EINT has been disabled,bgf_g_balance_flag(%d)!\n",bgf_g_balance_flag);
+          } else {
+            /*do real irq disable implement is this case*/
+            bgf_g_balance_flag--;
+            WMT_INFO_FUNC("WMT-PLAT:BGFInt (dis) bgf_g_balance_flag(%d)\n",bgf_g_balance_flag);
+            aw_disable_irq(gpio_eint_bgf);
+		      }
+		      spin_unlock_irqrestore(&g_balance_lock,flags);
+        } else {
+          /* de-init: free irq*/
+          WMT_INFO_FUNC("WMT-PLAT:BGFInt (deinit) \n");
+          sw_gpio_irq_free(eint_bgf_handle);
         }
         iRet = 0;
         break;
+
+    case PIN_WIFI_EINT:
+        if (PIN_STA_INIT == state) {
+          /*request irq,low level triggered*/
+          wifi_g_balance_flag = 1;//do not modify this value
+          WMT_INFO_FUNC("WMT-PLAT:WiFiInt (init) \n");
+          
+          eint_wifi_handle = sw_gpio_irq_request(gpio_eint_wifi, TRIG_LEVL_LOW,(peint_handle)wifi_irq_handler, NULL);
+          if (!eint_wifi_handle) {
+            WMT_INFO_FUNC( "%s: request irq failed err:%d \n",__func__,err);
+            goto exit_irq_request_failed;
+          }
+        } else if (PIN_STA_EINT_EN == state) {
+          /*enable irq*/
+          spin_lock_irqsave(&g_balance_lock,flags);
+          if (wifi_g_balance_flag) {
+            /*if enter this case, the bgf eint has been enabled,so skip it.*/
+            WMT_INFO_FUNC("WiFi_EINT has been enabled,wifi_g_balance_flag(%d)!\n",wifi_g_balance_flag);
+          } else {
+				    /*do real irq enable implement is this case*/
+		        wifi_g_balance_flag++;
+            WMT_INFO_FUNC("WMT-PLAT:WiFiInt (en),wifi_g_balance_flag(%d)\n",wifi_g_balance_flag);
+           //enable_irq(SW_INT_IRQNO_PIO);
+           aw_enable_irq(gpio_eint_wifi);
+	    	  }
+          spin_unlock_irqrestore(&g_balance_lock,flags);
+        } else if (PIN_STA_EINT_DIS == state) {
+          /*disable irq*/
+          spin_lock_irqsave(&g_balance_lock,flags);
+	 	      if (!wifi_g_balance_flag) {
+            /*if enter this case, the wifi eint has been disabled,so skip it.*/
+            WMT_INFO_FUNC("WiFi_EINT has been disabled,wifi_g_balance_flag(%d)!\n",wifi_g_balance_flag);
+          } else {
+            /*do real irq disable implement is this case*/
+            wifi_g_balance_flag--;
+            WMT_INFO_FUNC("WMT-PLAT:WiFiInt (dis) wifi_g_balance_flag(%d)\n",wifi_g_balance_flag);
+            aw_disable_irq(gpio_eint_wifi);
+		      }
+		      spin_unlock_irqrestore(&g_balance_lock,flags);
+        } else {
+          /* de-init: free irq*/
+          WMT_INFO_FUNC("WMT-PLAT:Wi-FiInt (deinit) \n");
+          sw_gpio_irq_free(eint_wifi_handle);
+        }
+        iRet = 0;
+        
+    	  break;
+
 
     case PIN_ALL_EINT:
 #if 0
@@ -742,7 +771,7 @@ wmt_plat_ldo_ctrl (
         
         wifi_pm_power(1);
         
-        type = script_get_item("mtk_6620_combo","mtk_6620_ldo",&val);
+        type = script_get_item(COMBO_CONFIG_PARA,"mtk_6620_ldo",&val);
         if (SCIRPT_ITEM_VALUE_TYPE_PIO!=type){ 
 		      WMT_INFO_FUNC("get mtk mtk_6620_ldo gpio failed\n");
 	      }else{
@@ -800,17 +829,15 @@ wmt_plat_ldo_ctrl (
         break;
 
     case PIN_STA_IN_L:
+    case PIN_STA_DEINIT:
     	  /*set to gpio input low, pull down enable*/
+    	  WMT_DBG_FUNC("WMT-PLAT:LDO deinit (in pd) \n");
         ret = sw_gpio_setcfg(gpio_ldo, GPIO_CFG_INPUT);
         if (ret) {
         	WMT_ERR_FUNC("failed to set gpio %d to input!\n", gpio_ldo);
         	return -1;
         }
-    	  break;
-    	
-    	
-    case PIN_STA_DEINIT:
-        WMT_DBG_FUNC("WMT-PLAT:LDO deinit (in pd) \n");
+
         if (gpio_ldo) {
           gpio_free(gpio_ldo);
           gpio_ldo = 0;
@@ -840,7 +867,7 @@ wmt_plat_pmu_ctrl (
         /*set to gpio output low, disable pull*/
         WMT_INFO_FUNC("WMT-PLAT:PMU init (out 0) \n");
         
-        type = script_get_item("mtk_6620_combo","mtk_6620_pmu_en",&val);
+        type = script_get_item(COMBO_CONFIG_PARA,"mtk_6620_pmu_en",&val);
         if (SCIRPT_ITEM_VALUE_TYPE_PIO!=type){ 
 		      WMT_INFO_FUNC("get mtk mtk_6620_pmu_en gpio failed\n");
 	      }else{
@@ -895,17 +922,15 @@ wmt_plat_pmu_ctrl (
         break;
 
     case PIN_STA_IN_L:
-    	  /*set to gpio input low, pull down enable*/
+    case PIN_STA_DEINIT:
+        /*set to gpio input low, pull down enable*/
+        WMT_DBG_FUNC("WMT-PLAT:PMU deinit (in pd) \n");
         ret = sw_gpio_setcfg(gpio_pmuen, GPIO_CFG_INPUT);
         if (ret) {
         	WMT_ERR_FUNC("failed to set gpio %d to input!\n", gpio_ldo);
         	return -1;
         }
-    	  break;
-    	
-    case PIN_STA_DEINIT:
-        /*set to gpio input low, pull down enable*/
-        WMT_DBG_FUNC("WMT-PLAT:PMU deinit (in pd) \n");
+        
         if (gpio_pmuen) {
           gpio_free(gpio_pmuen);
           gpio_pmuen = 0;
@@ -955,7 +980,7 @@ wmt_plat_rst_ctrl (
             /*set to gpio output low, disable pull*/
             WMT_INFO_FUNC("WMT-PLAT:RST init (out 0) \n");
         
-            type = script_get_item("mtk_6620_combo","mtk_6620_sys_rst",&val);
+            type = script_get_item(COMBO_CONFIG_PARA,"mtk_6620_sys_rst",&val);
             if (SCIRPT_ITEM_VALUE_TYPE_PIO!=type){ 
 		          WMT_INFO_FUNC("get mtk mtk_6620_sys_rst gpio failed\n");
 	          }else{
@@ -1013,18 +1038,14 @@ wmt_plat_rst_ctrl (
             break;
 
         case PIN_STA_IN_L:
-        	  /*set to gpio input low, pull down enable*/
+        case PIN_STA_DEINIT:
+            /*set to gpio input low, pull down enable*/
+            WMT_DBG_FUNC("WMT-PLAT:RST deinit (in pd) \n");
             ret = sw_gpio_setcfg(gpio_rst, GPIO_CFG_INPUT);
             if (ret) {
         	    WMT_ERR_FUNC("failed to set gpio %d to input!\n", gpio_ldo);
         	    return -1;
             }
-    	      break;
-        	
-        	
-        case PIN_STA_DEINIT:
-            /*set to gpio input low, pull down enable*/
-            WMT_DBG_FUNC("WMT-PLAT:RST deinit (in pd) \n");
             
             if (gpio_rst) {
               gpio_free(gpio_rst);
@@ -1062,9 +1083,9 @@ wmt_plat_bgf_eint_ctrl (
 							gpio_eint_bgf = 0;
 						}
 						
-						type = script_get_item("mtk_6620_combo","mtk_6620_bgf_int",&val);
+						type = script_get_item(COMBO_CONFIG_PARA,"mtk_6620_bgf_int",&val);
 					  if (SCIRPT_ITEM_VALUE_TYPE_PIO!=type){ 
-					    WMT_INFO_FUNC("get mtk mtk_6620_ldo gpio failed\n");
+					    WMT_INFO_FUNC("get mtk mtk_6620_bgf_int gpio failed\n");
 					    ret = -1;
 					  }else{
 					    gpio_eint_bgf = val.gpio.gpio;
@@ -1075,13 +1096,13 @@ wmt_plat_bgf_eint_ctrl (
 							WMT_INFO_FUNC("request mtk_6620_bgf_int gpio failed\n");
 						}            
             
-			      aw_set_bgf_gpio_mode();
+			      aw_set_gpio_mode(gpio_eint_bgf);
             break;
 
         case PIN_STA_MUX:
             /* first: set to EINT mode,interrupt input, pull up enable*/
             WMT_INFO_FUNC("WMT-PLAT:BGFInt mux (eint) \n");
-			      aw_set_bgf_eint_mode();//set bgf to eint mode
+			      aw_set_eint_mode(gpio_eint_bgf);    //set bgf to eint mode
 						udelay(1);
 						aw_disable_irq(gpio_eint_bgf);
             break;
@@ -1102,10 +1123,10 @@ wmt_plat_bgf_eint_ctrl (
                 }
             } while (0);
 */
- 	    /* second: set to gpio input low, pull down enable*/
+ 	          /* second: set to gpio input low, pull down enable*/
             WMT_DBG_FUNC("WMT-PLAT:BGFInt deinit(in pd) \n");
-			      aw_set_bgf_gpio_mode();//set mtk_6620_bgf_gpio to gpio input mode
-            aw_free_irq_resource();	
+			      aw_set_gpio_mode(gpio_eint_bgf);       //set mtk_6620_bgf_gpio to gpio input mode
+            aw_free_irq_resource(gpio_eint_bgf);	
 			
             break;
 
@@ -1120,21 +1141,65 @@ exit_ioremap_failed:
 
 INT32 wmt_plat_wifi_eint_ctrl(ENUM_PIN_STATE state)
 {
-#if 0
+#if 1
+    int ret = 0;
+    script_item_u val ;
+    script_item_value_type_e type;	
+
     switch(state)
     {
         case PIN_STA_INIT:
+        	  /*set to gpio input low, pull down eanble*/
+            WMT_DBG_FUNC("WMT-PLAT:WIFi Int init(in pd) \n");
+            
+						if(gpio_eint_wifi){
+							gpio_free(gpio_eint_wifi);
+							gpio_eint_wifi = 0;
+						}
+						
+						type = script_get_item(COMBO_CONFIG_PARA,"mtk_6620_wifi_int",&val);
+					  if (SCIRPT_ITEM_VALUE_TYPE_PIO!=type){ 
+					    WMT_INFO_FUNC("get mtk mtk_6620_wifi_int gpio failed\n");
+					    ret = -1;
+					  }else{
+					    gpio_eint_wifi = val.gpio.gpio;
+						}
+						
+						ret = gpio_request(gpio_eint_wifi, NULL);
+						if (ret) {
+							WMT_INFO_FUNC("request mtk_6620_wifi_int gpio failed\n");
+							return -1;
+						}            
+            
+            /* set eint_wifi gpio to input mode */
+            aw_set_gpio_mode(gpio_eint_wifi);
+            
             break;
+            
         case PIN_STA_MUX:
-
+            /* first: set to EINT mode,interrupt input, pull up enable*/
+            WMT_INFO_FUNC("WMT-PLAT:Wi-Fi Int mux (eint) \n");
+			      aw_set_eint_mode(gpio_eint_wifi);//set wifi to eint mode
+						udelay(1);
+						aw_disable_irq(gpio_eint_wifi);
             break;
+            
         case PIN_STA_EINT_EN:
+        	  WMT_INFO_FUNC("WMT-PLAT:Wi-Fi Int enable \n");
+            aw_enable_irq(gpio_eint_wifi);
             break;
+
         case PIN_STA_EINT_DIS:
+            WMT_INFO_FUNC("WMT-PLAT:Wi-Fi Int disable \n");
+            aw_disable_irq(gpio_eint_wifi);
             break;
+            
         case PIN_STA_IN_L:
         case PIN_STA_DEINIT:
             /*set to gpio input low, pull down enable*/
+            WMT_DBG_FUNC("WMT-PLAT:Wi-Fi Int deinit(in pd) \n");
+			      aw_set_gpio_mode(gpio_eint_wifi);   //set mtk_6620_wifi_gpio to gpio input mode
+            aw_free_irq_resource(gpio_eint_wifi);
             break;
         default:
             WMT_WARN_FUNC("WMT-PLAT:Warnning, invalid state(%d) on WIFI EINT\n", state);
@@ -1143,6 +1208,7 @@ INT32 wmt_plat_wifi_eint_ctrl(ENUM_PIN_STATE state)
 #else
     WMT_INFO_FUNC("WMT-PLAT:WIFI EINT is controlled by MSDC driver \n");
 #endif
+
     return 0;
 }
 
