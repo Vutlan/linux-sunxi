@@ -118,7 +118,8 @@
 #define SDXC_DMAEnb		BIT(5)
 #define SDXC_DebounceEnb	BIT(8)
 #define SDXC_DDR_MODE		BIT(10)
-#define SDXC_WaitMemAccessDone	BIT(30)
+#define SDXC_MemAccessDone	BIT(29)
+#define SDXC_AccessDoneDirect	BIT(30)
 #define SDXC_ACCESS_BY_AHB	BIT(31)
 #define SDXC_ACCESS_BY_DMA	(0U << 31)
 /* Clock control */
@@ -308,6 +309,7 @@ struct sunxi_mmc_host {
 	/* irq */
 	int 		irq;
 	volatile u32	int_sum;
+	volatile u32	dodma;
 
 	volatile u32 	trans_done:1;
 	volatile u32 	dma_done:1;
