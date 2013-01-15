@@ -1762,6 +1762,8 @@ static int hif_sdio_probe (
     }
 #endif
 
+    /*set host pm  MMC_PM_IGNORE_PM_NOTIFY flag */
+    sdio_set_host_pm_flags(func, MMC_PM_IGNORE_PM_NOTIFY);
     hif_sdio_dump_probe_list();
 
 out:
