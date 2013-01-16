@@ -51,13 +51,7 @@
 
 void sw_module_mdelay(u32 time)
 {
-    spinlock_t lock;
-	unsigned long flags = 0;
-
-	spin_lock_init(&lock);
-	spin_lock_irqsave(&lock, flags);
-	mdelay(time);
-	spin_unlock_irqrestore(&lock, flags);
+	msleep(time);
 }
 EXPORT_SYMBOL(sw_module_mdelay);
 
