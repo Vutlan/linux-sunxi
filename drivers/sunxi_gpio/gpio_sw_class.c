@@ -220,11 +220,11 @@ static ssize_t trigger_store(struct device *dev,
 }
 
 static struct device_attribute gpio_sw_class_attrs[] = {
-	__ATTR(mul_sel, 0666, mul_sel_show, mul_sel_store),
-	__ATTR(pull, 0666, pull_show, pull_store),
-	__ATTR(drv_level, 0666, drv_level_show, drv_level_store),
-	__ATTR(data, 0666, data_show, data_store),
-	__ATTR(trigger, 0666,trigger_show,trigger_store),
+	__ATTR(mul_sel, 0660, mul_sel_show, mul_sel_store),
+	__ATTR(pull, 0660, pull_show, pull_store),
+	__ATTR(drv_level, 0660, drv_level_show, drv_level_store),
+	__ATTR(data, 0660, data_show, data_store),
+	__ATTR(trigger, 0660,trigger_show,trigger_store),
 	__ATTR_NULL,
 };
 
