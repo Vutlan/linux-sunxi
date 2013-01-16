@@ -144,11 +144,11 @@ static int sw_serial_get_resource(struct sw_serial_port *sport)
         goto iounmap;
     }
 
-	if(sport->irq != 32){
+/*	if(sport->irq != AW_IRQ_UART_DEBUG){ */
 		clk_enable(sport->bus_clk);
 		clk_enable(sport->mod_clk);
 		clk_reset(sport->mod_clk,AW_CCU_CLK_NRESET);
-	}
+//	}
     /* get gpio resource */
     sprintf(uart_para, "uart_para%d", sport->port_no);
     cnt = script_get_pio_list(uart_para, &list);
@@ -237,7 +237,7 @@ static void
 sw_serial_pm(struct uart_port *port, unsigned int state,
           unsigned int oldstate)
 {
-	struct sw_serial_port *up = sw_serial_uart[port->irq-32];
+	struct sw_serial_port *up = sw_serial_uart[port->irq-AW_IRQ_UART_DEBUG];
 
 	if (!state){
 		clk_enable(up->bus_clk);
@@ -249,6 +249,13 @@ sw_serial_pm(struct uart_port *port, unsigned int state,
         clk_disable(up->bus_clk);
 	}
 }
+
+void sw_serial_do_pm(struct uart_port *port, unsigned int state,
+		unsigned int oldstate)
+{
+	sw_serial_pm(port,state,oldstate);
+}
+EXPORT_SYMBOL(sw_serial_do_pm);
 
 static void sunxi_serial_out(struct uart_port *p, int offset, int value)
 {
@@ -308,7 +315,7 @@ sw_serial_probe(struct platform_device *dev)
 	sport->port.regshift	= 2;
     sport->port.iotype  	= UPIO_MEM32;
     sport->port.type 		= PORT_U6_16550A;
-	sport->port.flags   	= UPF_IOREMAP | UPF_BOOT_AUTOCONF;
+	sport->port.flags   	= UPF_IOREMAP | UPF_BOOT_AUTOCONF | ASYNC_CTS_FLOW;
     sport->port.serial_in	= sunxi_serial_in;
 	sport->port.serial_out	= sunxi_serial_out;
 	sport->port.uartclk 	= sport->sclk;
@@ -316,8 +323,10 @@ sw_serial_probe(struct platform_device *dev)
     sport->port.dev     	= &dev->dev;
 	sport->port.membase 	= (unsigned char __iomem    *)sport->mmres->start + OFFSET;
     sport->port.mapbase 	= sport->mmres->start;
-
-	sdata->line = serial8250_register_port(&sport->port);
+	if(sport->irq != AW_IRQ_UART_DEBUG)
+		sdata->line = serial8250_register_port(&sport->port);
+	else
+		sdata->line = 0;
 	if(sdata->line<0){
 		ret = sdata->line;
 		goto free_dev;	
@@ -361,6 +370,7 @@ void sunxi_8250_backup_reg(int port_num ,struct uart_port *port)
 	BACK_REG.halt	= 0x00;
 	BACK_REG.ier	= AW_UART_RD(UART_IER);
 	BACK_REG.dll	= BACK_REG.sch & 0xff;
+	printk("BACK_REG.lcr 0x%2x BACK_REG.ier 0x%2x\n",BACK_REG.lcr,BACK_REG.ier);
 }
 EXPORT_SYMBOL(sunxi_8250_backup_reg);
 
@@ -369,9 +379,9 @@ void sunxi_8250_comeback_reg(int port_num,struct uart_port *port)
 	unsigned long port_base_addr;
 	port_base_addr = port->mapbase + OFFSET;
 	AW_UART_WR(BACK_REG.sch,UART_SCH);
-
 	if(AW_UART_RD(UART_USR)&1){
-	//	debug_mask=1;
+		if(port->irq==32)
+			debug_mask=1;
 		AW_UART_WR(BACK_REG.fcr,UART_FCR);
 		AW_UART_WR(BACK_REG.mcr,UART_MCR);
 
@@ -386,7 +396,8 @@ void sunxi_8250_comeback_reg(int port_num,struct uart_port *port)
 		AW_UART_WR(BACK_REG.halt ,UART_HALT);
 		AW_UART_WR(BACK_REG.ier,UART_IER);
 	}else{
-	//	debug_mask=0;
+		if(port->irq==32)
+			debug_mask=0;
 		AW_UART_WR(BACK_REG.lcr | 0x80,UART_LCR);
 		AW_UART_WR(BACK_REG.dll,UART_DLL);
 		AW_UART_WR(BACK_REG.dlh,UART_DLM);
@@ -397,6 +408,7 @@ void sunxi_8250_comeback_reg(int port_num,struct uart_port *port)
 		AW_UART_WR(BACK_REG.ier,UART_IER);
 
 	}
+	printk("%s %d BACK_REG.ier 0x%2x\n",__func__,__LINE__,BACK_REG.ier);
 }
 EXPORT_SYMBOL(sunxi_8250_comeback_reg);
 
@@ -423,7 +435,7 @@ static int sw_serial_suspend(struct platform_device *dev, pm_message_t state)
 	UART_MSG("sw_serial_suspend uart suspend\n");
 	UART_MSG("&dev->dev is 0x%x\n",&dev->dev);
 
-	for (i = 0; i < MAX_PORTS; i++) {
+	for (i = 1; i < MAX_PORTS; i++) {
 		if(!sw_serial_uart[i]){
 			continue;
 		}
@@ -454,7 +466,7 @@ static int sw_serial_resume(struct platform_device *dev)
 	UART_MSG("sw_serial_resume SUPER_STANDBY resume\n");
 	UART_MSG("&dev->dev is 0x%x\n",&dev->dev);
 
-	for (i = 0; i < MAX_PORTS; i++) {
+	for (i = 1; i < MAX_PORTS; i++) {
 		if(!sw_serial_uart[i]){
 			continue;
 		}
