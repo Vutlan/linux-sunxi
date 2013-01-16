@@ -1465,9 +1465,10 @@ serial8250_rx_chars(struct uart_8250_port *up, unsigned char lsr)
 			else if (lsr & UART_LSR_FE)
 				flag = TTY_FRAME;
 		}
+#ifndef CONFIG_SERIAL_8250_SUNXI
 		if (uart_handle_sysrq_char(&up->port, ch))
 			goto ignore_char;
-
+#endif
 		uart_insert_char(&up->port, lsr, UART_LSR_OE, ch, flag);
 
 ignore_char:
