@@ -24,6 +24,7 @@
 #include <mach/sys_config.h>
 
 #define RTP_IO_USED
+#undef  RTP_IO_USED
 
 #ifdef  RTP_IO_USED
 #define TP_BASSADDRESS (0xf1c25000)
