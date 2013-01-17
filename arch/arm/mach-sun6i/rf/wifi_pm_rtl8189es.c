@@ -36,7 +36,7 @@ static int rtl8189es_module_power(int onoff)
 		ret = regulator_force_disable(wifi_ldo);
 		if (ret < 0) {
 			rtl8189es_msg("regulator_force_disable fail, return %d.\n", ret);
-			return ret;
+			goto out;
 		}
 		first = 0;
 	}
@@ -46,22 +46,25 @@ static int rtl8189es_module_power(int onoff)
 		ret = regulator_set_voltage(wifi_ldo, 3300000, 3300000);
 		if (ret < 0) {
 			rtl8189es_msg("regulator_set_voltage fail, return %d.\n", ret);
-			return ret;
+			goto out;
 		}
 
 		ret = regulator_enable(wifi_ldo);
 		if (ret < 0) {
 			rtl8189es_msg("regulator_enable fail, return %d.\n", ret);
-			return ret;
+			goto out;
 		}
 	} else {
 		rtl8189es_msg("regulator off.\n");
 		ret = regulator_disable(wifi_ldo);
 		if (ret < 0) {
 			rtl8189es_msg("regulator_disable fail, return %d.\n", ret);
-			return ret;
+			goto out;
 		}
 	}
+out:
+	regulator_put(wifi_ldo);
+	wifi_ldo = NULL;
 	return ret;
 }
 
