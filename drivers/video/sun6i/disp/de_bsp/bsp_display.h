@@ -56,19 +56,19 @@ typedef unsigned int __hdle;
 #include "../OSAL/OSAL.h"
 #include "iep/iep.h"
 
-#if 1
+#if 0
 #define OSAL_PRINTF(msg...) {printk(KERN_WARNING "[DISP] ");printk(msg);}
 #define __inf(msg...)       
 #define __msg(msg...)
 #define __wrn(msg...)       {printk(KERN_WARNING "[DISP WRN] file:%s,line:%d:    ",__FILE__,__LINE__);printk(msg);}
 #define __here__
 #else
-#define OSAL_PRINTF(msg...) {printk(KERN_WARNING "[DISP] ");printk(msg);}
-#define __inf(msg...)       {printk(KERN_WARNING "[DISP] ");printk(msg);}
-#define __msg(msg...)       {printk(KERN_WARNING "[DISP] file:%s,line:%d:    ",__FILE__,__LINE__);printk(msg);}
+#define OSAL_PRINTF(msg...) do{printk(KERN_WARNING "[DISP] ");printk(msg);}while(0)
+#define __inf(msg...)       do{if(bsp_disp_get_print_level()){printk(KERN_WARNING "[DISP] ");printk(msg);}}while(0)
+#define __msg(msg...)       do{if(bsp_disp_get_print_level()){printk(KERN_WARNING "[DISP] file:%s,line:%d:    ",__FILE__,__LINE__);printk(msg);}}while(0)
 #define __wrn(msg...)       {printk(KERN_WARNING "[DISP WRN] file:%s,line:%d:    ",__FILE__,__LINE__);printk(msg);}
-#define __here__            {printk(KERN_WARNING "[DISP] file:%s,line:%d\n",__FILE__,__LINE__);}
-#define __debug(msg...)       {printk(KERN_WARNING "[DISP] ");printk(msg);}
+#define __here__            do{if(bsp_disp_get_print_level()){printk(KERN_WARNING "[DISP] file:%s,line:%d\n",__FILE__,__LINE__);}}while(0)
+#define __debug(msg...)     do{if(bsp_disp_get_print_level()){printk(KERN_WARNING "[DISP] ");printk(msg);}}while(0)
 #endif
 
 
@@ -135,6 +135,9 @@ extern __s32 BSP_disp_exit(__u32 mode);
 extern __s32 BSP_disp_open(void);
 extern __s32 BSP_disp_close(void);
 extern __s32 BSP_disp_print_reg(__bool b_force_on, __u32 id);
+extern __s32 bsp_disp_set_print_level(__u32 print_level);
+extern __s32 bsp_disp_get_print_level(void);
+
 extern __s32 BSP_disp_cmd_cache(__u32 sel);
 extern __s32 BSP_disp_cmd_submit(__u32 sel);
 extern __s32 BSP_disp_set_bk_color(__u32 sel, __disp_color_t *color);
