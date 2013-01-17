@@ -40,6 +40,13 @@ struct sw_uart_port {
 	unsigned char msr_saved_flags;
 	unsigned int lsr_break_flag;
 	struct sw_uart_pdata *pdata;
+
+	/* for debug */
+#define MAX_DUMP_SIZE	1024
+	unsigned int dump_len;
+	char* dump_buff;
+	struct proc_dir_entry *proc_root;
+	struct proc_dir_entry *proc_info;
 };
 
 /* register offset define */
