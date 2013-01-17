@@ -57,6 +57,8 @@ static script_item_value_type_e  type;
 static bool codec_lineinin_enabled = false;
 static bool codec_lineincap_enabled = false;
 static bool codec_speakerout_enabled = false;
+static bool codec_adcphonein_enabled = false;
+static bool codec_dacphoneout_enabled = false;
 static bool codec_headphoneout_enabled = false;
 static bool codec_earpieceout_enabled = false;
 static bool codec_phonecap_enabled = false;
@@ -135,7 +137,7 @@ static struct snd_pcm_hardware sun6i_pcm_playback_hardware =
 	.channels_min		= 1,
 	.channels_max		= 2,
 	.buffer_bytes_max	= 128*1024,
-	.period_bytes_min	= 1024*4,
+	.period_bytes_min	= 1024*2,
 	.period_bytes_max	= 1024*32,
 	.periods_min		= 2,
 	.periods_max		= 8,
@@ -158,7 +160,7 @@ static struct snd_pcm_hardware sun6i_pcm_capture_hardware =
 	.channels_min		= 1,
 	.channels_max		= 2,
 	.buffer_bytes_max	= 128*1024,
-	.period_bytes_min	= 1024*4,
+	.period_bytes_min	= 1024*2,
 	.period_bytes_max	= 1024*32,
 	.periods_min		= 2,
 	.periods_max		= 8,
@@ -346,6 +348,8 @@ static  void codec_init(void)
 	codec_wr_control(SUN6I_DAC_FIFOC, 0x1, DAC_FIFO_FLUSH, 0x1);
 	/*write 1 to flush rx fifo*/
 	codec_wr_control(SUN6I_ADC_FIFOC, 0x1, ADC_FIFO_FLUSH, 0x1);
+	
+	codec_wr_control(SUN6I_DAC_FIFOC, 0x1, FIR_VERSION, 0x1);
 
 	/*set HPVOL volume*/
 	codec_wr_control(SUN6I_DAC_ACTL, 0x3f, VOLUME, 0x3b);
@@ -523,7 +527,9 @@ static int codec_play_stop(void)
 
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPIS, 0x0);
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPIS, 0x0);
-
+	
+	codec_wr_control(SUN6I_MIC_CTRL, 0x1, PHONEOUTS2, 0x0);
+	codec_wr_control(SUN6I_MIC_CTRL, 0x1, PHONEOUTS3, 0x0);
 	return 0;
 }
 
@@ -761,11 +767,17 @@ static int codec_set_phonecap(struct snd_kcontrol *kcontrol,
 		codec_wr_control(SUN6I_ADC_ACTL, 0x1, RADCMIXMUTEPHONEPN, 0x1);
 		/*enable PHONEP-PHONEN Boost stage*/
 		codec_wr_control(SUN6I_ADC_ACTL, 0x1, LADCMIXMUTEPHONEPN, 0x1);
+		
+		codec_wr_control(SUN6I_ADC_ACTL, 0x1, RADCMIXMUTEROUTPUT, 0x1);
+		codec_wr_control(SUN6I_ADC_ACTL, 0x1, LADCMIXMUTELOUTPUT, 0x1);
 	} else {
 		/*disable PHONEP-PHONEN Boost stage*/
 		codec_wr_control(SUN6I_ADC_ACTL, 0x1, RADCMIXMUTEPHONEPN, 0x0);
 		/*disable PHONEP-PHONEN Boost stage*/
 		codec_wr_control(SUN6I_ADC_ACTL, 0x1, LADCMIXMUTEPHONEPN, 0x0);
+
+		codec_wr_control(SUN6I_ADC_ACTL, 0x1, RADCMIXMUTEROUTPUT, 0x0);
+		codec_wr_control(SUN6I_ADC_ACTL, 0x1, LADCMIXMUTELOUTPUT, 0x0);
 	}
 	return 0;
 }
@@ -788,9 +800,9 @@ static int codec_set_phonein(struct snd_kcontrol *kcontrol,
 {
 	codec_phonein_enabled = ucontrol->value.integer.value[0];
 	if (codec_phonein_enabled) {
-		/*choice PHONEP-PHONEN*/
+		/*select PHONEP-PHONEN*/
 		codec_wr_control(SUN6I_DAC_ACTL, 0x7f, RMIXMUTE, 0x10);
-		/*choice PHONEP-PHONEN*/
+		/*select PHONEP-PHONEN*/
 		codec_wr_control(SUN6I_DAC_ACTL, 0x7f, LMIXMUTE, 0x10);
 		codec_wr_control(SUN6I_DAC_ACTL, 0x1, LMIXEN, 0x1);
 		codec_wr_control(SUN6I_DAC_ACTL, 0x1, RMIXEN, 0x1);
@@ -857,6 +869,110 @@ static int codec_get_phoneout(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
+static int codec_dacphoneout_open(void)
+{
+	/*mute l_pa and r_pa*/
+	codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPPA_MUTE, 0x0);
+	codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPPA_MUTE, 0x0);
+
+	/*enable dac digital*/
+	codec_wr_control(SUN6I_DAC_DPC, 0x1, DAC_EN, 0x1);
+	/*set TX FIFO send drq level*/
+	codec_wr_control(SUN6I_DAC_FIFOC ,0x7f, TX_TRI_LEVEL, 0xf);
+	/*set TX FIFO MODE*/
+	codec_wr_control(SUN6I_DAC_FIFOC ,0x1, TX_FIFO_MODE, 0x1);
+
+	//send last sample when dac fifo under run
+	codec_wr_control(SUN6I_DAC_FIFOC ,0x1, LAST_SE, 0x0);
+
+	/*enable dac_l and dac_r*/
+	codec_wr_control(SUN6I_DAC_ACTL, 0x1, DACALEN, 0x1);
+	codec_wr_control(SUN6I_DAC_ACTL, 0x1, DACAREN, 0x1);
+
+	codec_wr_control(SUN6I_DAC_ACTL, 0x7f, RMIXMUTE, 0x2);
+	codec_wr_control(SUN6I_DAC_ACTL, 0x7f, LMIXMUTE, 0x2);
+
+	codec_wr_control(SUN6I_DAC_ACTL, 0x1, LMIXEN, 0x1);
+	codec_wr_control(SUN6I_DAC_ACTL, 0x1, RMIXEN, 0x1);
+	
+	codec_wr_control(SUN6I_MIC_CTRL, 0x1, PHONEOUTS2, 0x1);
+	codec_wr_control(SUN6I_MIC_CTRL, 0x1, PHONEOUTS3, 0x1);
+	return 0;
+}
+
+/*
+*	codec_dacphoneout_enabled == 1, the dac phone out is open. the receiver can hear the voice from system.
+*	codec_dacphoneout_enabled == 0,	the dac phone out is close.
+*/
+static int codec_set_dacphoneout(struct snd_kcontrol *kcontrol,
+	struct snd_ctl_elem_value *ucontrol)
+{
+	int ret = 0;
+	codec_dacphoneout_enabled = ucontrol->value.integer.value[0];
+
+	if (codec_dacphoneout_enabled) {
+		ret = codec_dacphoneout_open();
+	} else {
+		codec_wr_control(SUN6I_MIC_CTRL, 0x1, PHONEOUTS2, 0x0);
+		codec_wr_control(SUN6I_MIC_CTRL, 0x1, PHONEOUTS3, 0x0);
+	}
+
+	return ret;
+}
+
+static int codec_get_dacphoneout(struct snd_kcontrol *kcontrol,
+	struct snd_ctl_elem_value *ucontrol)
+{
+	ucontrol->value.integer.value[0] = codec_dacphoneout_enabled;
+	return 0;
+}
+static int codec_adcphonein_open(void)
+{
+	/*enable PHONEP-PHONEN Boost stage*/
+	codec_wr_control(SUN6I_ADC_ACTL, 0x1, RADCMIXMUTEPHONEPN, 0x1);
+	/*enable PHONEP-PHONEN Boost stage*/
+	codec_wr_control(SUN6I_ADC_ACTL, 0x1, LADCMIXMUTEPHONEPN, 0x1);
+	/*enable adc_r adc_l analog*/
+	codec_wr_control(SUN6I_ADC_ACTL, 0x1,  ADCREN, 0x1);
+	codec_wr_control(SUN6I_ADC_ACTL, 0x1,  ADCLEN, 0x1);
+	/*set RX FIFO mode*/
+	codec_wr_control(SUN6I_ADC_FIFOC, 0x1, RX_FIFO_MODE, 0x1);
+	/*set RX FIFO rec drq level*/
+	codec_wr_control(SUN6I_ADC_FIFOC, 0x1f, RX_TRI_LEVEL, 0xf);
+	/*enable adc digital part*/
+	codec_wr_control(SUN6I_ADC_FIFOC, 0x1,ADC_EN, 0x1);
+	return 0;
+}
+
+/*
+*	codec_adcphonein_enabled == 1, the adc phone in is open. you can record the phonein from adc.
+*	codec_adcphonein_enabled == 0,	the adc phone in is close.
+*/
+static int codec_set_adcphonein(struct snd_kcontrol *kcontrol,
+	struct snd_ctl_elem_value *ucontrol)
+{
+	int ret = 0;
+	codec_adcphonein_enabled = ucontrol->value.integer.value[0];
+
+	if (codec_adcphonein_enabled) {
+		ret = codec_adcphonein_open();
+	} else {
+		/*disable PHONEP-PHONEN Boost stage*/
+		codec_wr_control(SUN6I_ADC_ACTL, 0x1, RADCMIXMUTEPHONEPN, 0x0);
+		/*disable PHONEP-PHONEN Boost stage*/
+		codec_wr_control(SUN6I_ADC_ACTL, 0x1, LADCMIXMUTEPHONEPN, 0x0);
+	}
+
+	return ret;
+}
+
+static int codec_get_adcphonein(struct snd_kcontrol *kcontrol,
+	struct snd_ctl_elem_value *ucontrol)
+{
+	ucontrol->value.integer.value[0] = codec_adcphonein_enabled;
+	return 0;
+}
+
 /*
 *	codec_speaker_enabled == 1, speaker is open, headphone is close.
 *	codec_speaker_enabled == 0, speaker is closed, headphone is open.
@@ -899,7 +1015,7 @@ static int codec_get_spk(struct snd_kcontrol *kcontrol,
 /*
 * 	.info = snd_codec_info_volsw, .get = snd_codec_get_volsw,\.put = snd_codec_put_volsw, 
 */
-static const struct snd_kcontrol_new codec_snd_controls[] = {	
+static const struct snd_kcontrol_new codec_snd_controls[] = {
 	/*SUN6I_DAC_ACTL = 0x20,PAVOL*/
 	CODEC_SINGLE("Master Playback Volume", SUN6I_DAC_ACTL,0,0x3f,0),			/*0*/
 	/*total output switch PAMUTE, if set this bit to 0, the voice is mute*/
@@ -979,7 +1095,7 @@ static const struct snd_kcontrol_new codec_snd_controls[] = {
 	CODEC_SINGLE("HPF enable control", SUN6I_DAC_DAP_CTL,14,0x1,0),						/*54*/
 	CODEC_SINGLE("DE function control", SUN6I_DAC_DAP_CTL,12,0x3,0),					/*55*/
 	CODEC_SINGLE("Ram address", SUN6I_DAC_DAP_CTL,0,0x7f,0),							/*56*/
-	
+
 	/*SUN6I_DAC_DAP_VOL = 0x64*/
 	CODEC_SINGLE("DAP DAC left chan soft mute ctrl", SUN6I_DAC_DAP_VOL,30,0x1,0),		/*57*/
 	CODEC_SINGLE("DAP DAC right chan soft mute ctrl", SUN6I_DAC_DAP_VOL,29,0x1,0),		/*58*/
@@ -1030,10 +1146,13 @@ static const struct snd_kcontrol_new codec_snd_controls[] = {
 	SOC_SINGLE_BOOL_EXT("Audio phone record", 0, codec_get_phonecap, codec_set_phonecap),	 	/*94*/
 	SOC_SINGLE_BOOL_EXT("Audio earpiece out", 0, codec_get_earpieceout, codec_set_earpieceout), 	/*95*/
 	SOC_SINGLE_BOOL_EXT("Audio headphone out", 0, codec_get_headphoneout, codec_set_headphoneout), /*96*/
-	SOC_SINGLE_BOOL_EXT("Audio speaker out", 0, codec_get_speakerout, codec_set_speakerout), 	/*97*/
+	SOC_SINGLE_BOOL_EXT("Audio speaker out", 0, codec_get_speakerout, codec_set_speakerout), 		/*97*/
+	
+	SOC_SINGLE_BOOL_EXT("Audio adc phonein", 0, codec_get_adcphonein, codec_set_adcphonein), 		/*98*/
+	SOC_SINGLE_BOOL_EXT("Audio dac phoneout", 0, codec_get_dacphoneout, codec_set_dacphoneout),    	/*99*/
 
-	SOC_SINGLE_BOOL_EXT("Audio linein record", 0, codec_get_lineincap, codec_set_lineincap), 	/*98*/
-	SOC_SINGLE_BOOL_EXT("Audio linein in", 0, codec_get_lineinin, codec_set_lineinin),    	/*99*/
+	SOC_SINGLE_BOOL_EXT("Audio linein record", 0, codec_get_lineincap, codec_set_lineincap), 		/*100*/
+	SOC_SINGLE_BOOL_EXT("Audio linein in", 0, codec_get_lineinin, codec_set_lineinin),    			/*101*/
 };
 
 int __init snd_chip_codec_mixer_new(struct sun6i_codec *chip)
@@ -1671,6 +1790,8 @@ static int snd_sun6i_codec_prepare(struct snd_pcm_substream	*substream)
    	 	/*open the dac channel register*/
 		if (codec_speaker_enabled) {
 			play_ret = codec_pa_play_open();
+		} else if (codec_dacphoneout_enabled) {
+			play_ret = codec_dacphoneout_open();
 		} else {
 			play_ret = codec_headphone_play_open();
 		}
@@ -1703,7 +1824,11 @@ static int snd_sun6i_codec_prepare(struct snd_pcm_substream	*substream)
 			return 0;
 		}
 	   	/*open the adc channel register*/
-	   	codec_capture_open();
+	   	if (codec_adcphonein_enabled) {
+	   		codec_adcphonein_open();
+		} else {
+	   		codec_capture_open();
+		}
 		memset(&capture_dma_config, 0, sizeof(capture_dma_config));
 		capture_dma_config.xfer_type = DMAXFER_D_BHALF_S_BHALF;/*16bit*/
 		capture_dma_config.address_type = DMAADDRT_D_LN_S_IO;
