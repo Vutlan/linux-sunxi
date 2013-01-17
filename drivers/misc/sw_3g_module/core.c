@@ -301,6 +301,7 @@ EXPORT_SYMBOL(modem_vbat);
 /* modem reset delay is 100 */
 void modem_reset(struct sw_modem *modem, u32 value)
 {
+/*
     u32 negated = 0;  //取反
 
     if(!modem->bb_rst.valid){
@@ -312,8 +313,9 @@ void modem_reset(struct sw_modem *modem, u32 value)
     }else{
         negated = value ? 0 : 1;
     }
+    */
 
-    __gpio_set_value(modem->bb_rst.pio.gpio.gpio, negated);
+    __gpio_set_value(modem->bb_rst.pio.gpio.gpio, value);
 
     return;
 }
@@ -321,6 +323,7 @@ EXPORT_SYMBOL(modem_reset);
 
 void modem_sleep(struct sw_modem *modem, u32 value)
 {
+	/*
     u32 negated = 0;  //取反
 
     if(!modem->bb_wake.valid){
@@ -332,8 +335,9 @@ void modem_sleep(struct sw_modem *modem, u32 value)
     }else{
         negated = value ? 0 : 1;
     }
+    */
 
-    __gpio_set_value(modem->bb_wake.pio.gpio.gpio, negated);
+    __gpio_set_value(modem->bb_wake.pio.gpio.gpio, value);
 
     return;
 }
