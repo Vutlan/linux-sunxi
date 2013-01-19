@@ -2267,7 +2267,13 @@ static int sw_mci_suspend(struct device *dev)
 	int ret = 0;
 
 	if (mmc) {
+		struct sunxi_mmc_host *smc_host = mmc_priv(mmc);
 		ret = mmc_suspend_host(mmc);
+		if (mmc_card_keep_power(mmc)) {
+			sw_mci_regs_save(smc_host);
+			/* gate clock for lower power */
+			clk_disable(smc_host->hclk);
+		}
 
 		SMC_MSG(NULL, "smc %d suspend\n", pdev->id);
 	}
@@ -2283,6 +2289,12 @@ static int sw_mci_resume(struct device *dev)
 
 	if (mmc) {
 		struct sunxi_mmc_host *smc_host = mmc_priv(mmc);
+		if (mmc_card_keep_power(mmc)) {
+			/* enable clock for resotre */
+			clk_enable(smc_host->hclk);
+			sw_mci_regs_restore(smc_host);
+			sw_mci_update_clk(smc_host);
+		}
 		if (smc_host->cd_mode == CARD_DETECT_BY_GPIO_IRQ)
 			sw_mci_cd_cb((unsigned long)smc_host);
 		ret = mmc_resume_host(mmc);
