@@ -117,15 +117,15 @@ static ssize_t disp_reg_dump_store(struct device *dev,
 static DEVICE_ATTR(reg_dump, S_IRUGO|S_IWUSR|S_IWGRP,
 		disp_reg_dump_show, disp_reg_dump_store);
 
-#define ____SEPARATOR_CMD_PRINT____
-extern __u32 disp_cmd_print_level;
-static ssize_t disp_cmd_print_show(struct device *dev,
+#define ____SEPARATOR_PRINT_CMD_LEVEL____
+extern __u32 disp_print_cmd_level;
+static ssize_t disp_print_cmd_level_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%d\n", disp_cmd_print_level);
+	return sprintf(buf, "%d\n", disp_print_cmd_level);
 }
 
-static ssize_t disp_cmd_print_store(struct device *dev,
+static ssize_t disp_print_cmd_level_store(struct device *dev,
 				struct device_attribute *attr,
 				const char *buf, size_t count)
 {
@@ -143,14 +143,46 @@ static ssize_t disp_cmd_print_store(struct device *dev,
         printk("Invalid value, 0/1 is expected!\n");
     }else
     {
-        disp_cmd_print_level = val;
+        disp_print_cmd_level = val;
 	}
+    
+	return count;
+}
+
+static DEVICE_ATTR(print_cmd_level, S_IRUGO|S_IWUSR|S_IWGRP,
+		disp_print_cmd_level_show, disp_print_cmd_level_store);
+
+#define ____SEPARATOR_CMD_PRINT_LEVEL____
+extern __u32 disp_cmd_print;
+static ssize_t disp_cmd_print_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%x\n", disp_cmd_print);
+}
+
+static ssize_t disp_cmd_print_store(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+	int err;
+    unsigned long val;
+    
+	err = strict_strtoul(buf, 16, &val);
+	if (err) {
+		printk("Invalid size\n");
+		return err;
+	}
+
+   
+    disp_cmd_print = val;    
     
 	return count;
 }
 
 static DEVICE_ATTR(cmd_print, S_IRUGO|S_IWUSR|S_IWGRP,
 		disp_cmd_print_show, disp_cmd_print_store);
+
+
 
 #define ____SEPARATOR_PRINT_LEVEL____
 static ssize_t disp_print_level_show(struct device *dev,
@@ -201,7 +233,7 @@ static ssize_t disp_layer_para_show(struct device *dev,
     }
     else
     {
-        return sprintf(buf, "=== screen%d layer%d para ====\nmode: %d\nfb.width=%d,  height=%d\nfb.mode=%d,  fb.format=%d, fb.seq=%d\ntrd_src=%d,  trd_src_mode=%d,  trd_out=%d,  trd_out_mode=%d\npipe:%d\tprio: %d\nalpha_en: %d, alpha_val=%d\tcolor_key_en: %d\nsrc_window:<%d,%d,%d,%d>\nscreen_window:<%d,%d,%d,%d>\npre_multiply=%d\n======= screen%d layer%d para ====\n", 
+        return sprintf(buf, "=== screen%d layer%d para ====\nmode: %d\nfb.size=<%dx%d>\nfb.fmt=<%d, %d, %d>\ntrd_src=<%d, %d> trd_out=<%d, %d>\npipe:%d\tprio: %d\nalpha: <%d, %d>\tcolor_key_en: %d\nsrc_window:<%d,%d,%d,%d>\nscreen_window:<%d,%d,%d,%d>\npre_multiply=%d\n======= screen%d layer%d para ====\n", 
         sel, HANDTOID(hid),layer_para.mode, layer_para.fb.size.width, 
         layer_para.fb.size.height, layer_para.fb.mode, layer_para.fb.format, 
         layer_para.fb.seq, layer_para.fb.b_trd_src,  layer_para.fb.trd_mode, 
@@ -230,7 +262,20 @@ static DEVICE_ATTR(layer_para, S_IRUGO|S_IWUSR|S_IWGRP,
 static ssize_t disp_script_dump_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%s", "there is nothing here!");
+	if(sel == 0)
+    {
+        script_dump_mainkey("disp_init");
+        script_dump_mainkey("lcd0_para");
+        script_dump_mainkey("hdmi_para");
+        script_dump_mainkey("power_sply");
+        script_dump_mainkey("clock");
+        script_dump_mainkey("dram_para");
+    }else if(sel == 1)
+    {
+        script_dump_mainkey("lcd1_para");
+    }
+
+    return sprintf(buf, "%s", "oh yeah!");
 }
 
 static ssize_t disp_script_dump_store(struct device *dev,
@@ -246,9 +291,18 @@ static ssize_t disp_script_dump_store(struct device *dev,
 
     memcpy(main_key, buf, strlen(buf)+1);
 
-    script_dump_mainkey("lcd0_para");
-    script_dump_mainkey("disp_init");
-    script_dump_mainkey("hdmi_para");
+    if(sel == 0)
+    {
+        script_dump_mainkey("disp_init");
+        script_dump_mainkey("lcd0_para");
+        script_dump_mainkey("hdmi_para");
+        script_dump_mainkey("power_sply");
+        script_dump_mainkey("clock");
+        script_dump_mainkey("dram_para");
+    }else if(sel == 1)
+    {
+        script_dump_mainkey("lcd1_para");
+    }
 
 	return count;
 }
@@ -331,6 +385,52 @@ static ssize_t disp_lcd_bl_store(struct device *dev,
 
 static DEVICE_ATTR(lcd_bl, S_IRUGO|S_IWUSR|S_IWGRP,
 		disp_lcd_bl_show, disp_lcd_bl_store);
+
+static ssize_t disp_lcd_bright_curve_en_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "bright_curve_en=%d\n", bsp_disp_lcd_get_bright_curve_en(sel));
+}
+
+static ssize_t disp_lcd_bright_curve_en_store(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+	int err;
+    unsigned long val;
+    
+	err = strict_strtoul(buf, 10, &val);
+	if (err) {
+		printk("Invalid size\n");
+		return err;
+	}
+
+    val = (val == 0)? 0:1;
+    bsp_disp_lcd_set_bright_curve_en(sel, val);
+    
+	return count;
+}
+
+static DEVICE_ATTR(lcd_bright_curve_en, S_IRUGO|S_IWUSR|S_IWGRP,
+		disp_lcd_bright_curve_en_show, disp_lcd_bright_curve_en_store);
+
+
+static ssize_t disp_lcd_fps_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "screen%d fps=%d\n", sel, 0xff);
+}
+
+static ssize_t disp_lcd_fps_store(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t count)
+{   
+	return count;
+}
+
+static DEVICE_ATTR(lcd_fps, S_IRUGO|S_IWUSR|S_IWGRP,
+		disp_lcd_fps_show, disp_lcd_fps_store);
+
 
 
 #define ____SEPARATOR_HDMI____
@@ -1308,9 +1408,12 @@ static struct attribute *disp_attributes[] = {
     &dev_attr_colorbar.attr,
     &dev_attr_layer_para.attr,
     &dev_attr_hdmi_hpd.attr,
+    &dev_attr_print_cmd_level.attr,
     &dev_attr_cmd_print.attr,
     &dev_attr_gamma_test.attr,
     &dev_attr_print_level.attr,
+    &dev_attr_lcd_bright_curve_en.attr,
+    &dev_attr_lcd_fps.attr,
 	NULL
 };
 

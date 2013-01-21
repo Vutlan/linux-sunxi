@@ -109,6 +109,7 @@ typedef struct
     __u32 base_deu1;
     __u32 base_dsi0;
     __u32 base_dsi1;
+    __u32 base_timer;
 
 	void (*tve_interrup) (__u32 sel);
 	__s32 (*hdmi_set_mode)(__disp_tv_mode_t mode);
@@ -148,6 +149,8 @@ extern __s32 BSP_disp_set_palette_table(__u32 sel, __u32 *pbuffer, __u32 offset,
 extern __s32 BSP_disp_get_palette_table(__u32 sel, __u32 * pbuffer, __u32 offset,__u32 size);
 extern __s32 BSP_disp_get_screen_height(__u32 sel);
 extern __s32 BSP_disp_get_screen_width(__u32 sel);
+extern __s32 BSP_disp_get_screen_physical_height(__u32 sel);
+extern __s32 BSP_disp_get_screen_physical_width(__u32 sel);
 extern __s32 BSP_disp_get_output_type(__u32 sel);
 extern __s32 BSP_disp_get_frame_rate(__u32 sel);
 extern __s32 BSP_disp_gamma_correction_enable(__u32 sel);
@@ -261,6 +264,10 @@ extern __s32 BSP_disp_close_lcd_backlight(__u32 sel);
 extern __s32 BSP_disp_lcd_set_bright_dimming(__u32 sel, __u32 bright_dimming);  //for drc 
 extern __s32 BSP_disp_lcd_used(__u32 sel);
 extern __s32 BSP_disp_restore_lcdc_reg(__u32 sel);
+extern __s32 bsp_disp_lcd_get_bright_curve_en(__u32 sel);
+extern __s32 bsp_disp_lcd_set_bright_curve_en(__u32 sel, __u32 en);
+extern __s32 bsp_disp_get_fps(__u32 sel);
+
 
 extern __s32 BSP_disp_tv_open(__u32 sel);
 extern __s32 BSP_disp_tv_close(__u32 sel);
