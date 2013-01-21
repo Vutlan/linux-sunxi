@@ -172,7 +172,7 @@
 */
 #define PA_SLOPE_SECECT			  (30)
 #define DITHER				   	  (25)
-
+#define ZERO_CROSS_EN			  (22)
 /*bias&DA16 Calibration verify register
 * codecbase+0x34
 */
