@@ -629,8 +629,8 @@ static int hci_dev_do_close(struct hci_dev *hdev)
 
 	hci_dev_lock(hdev);
 	inquiry_cache_flush(hdev);
-	hci_conn_hash_flush(hdev);
 	hci_dev_unlock(hdev);
+	hci_conn_hash_flush(hdev);
 
 	hci_notify(hdev, HCI_DEV_DOWN);
 
@@ -713,8 +713,8 @@ int hci_dev_reset(__u16 dev)
 
 	hci_dev_lock(hdev);
 	inquiry_cache_flush(hdev);
-	hci_conn_hash_flush(hdev);
 	hci_dev_unlock(hdev);
+	hci_conn_hash_flush(hdev);
 
 	if (hdev->flush)
 		hdev->flush(hdev);
