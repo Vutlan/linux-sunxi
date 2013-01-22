@@ -116,10 +116,6 @@ __s32 BSP_disp_drc_enable(__u32 sel, __u32 en)
                 DE_BE_Set_Enhance_ex(sel, 0,DISP_COLOR_RANGE_0_255, 0,50, 50, 50,50);
             }
             BSP_disp_cfg_finish(sel);
-            drc->rect.x = 0;
-            drc->rect.y = 0;
-            drc->rect.width = BSP_disp_get_screen_width(sel);
-            drc->rect.height = BSP_disp_get_screen_height(sel);
             gdisp.screen[sel].drc.enable = 0;
         }
 
@@ -133,27 +129,17 @@ __s32 BSP_disp_drc_enable(__u32 sel, __u32 en)
 
 __s32 BSP_disp_drc_get_enable(__u32 sel)
 {
-    if(DISP_OUTPUT_TYPE_LCD == BSP_disp_get_output_type(sel))
-    {
-        return gdisp.screen[sel].drc.enable;
-    }
-
-    return DIS_NOT_SUPPORT;
+    return gdisp.screen[sel].drc.enable;
 }
 
 __s32 BSP_disp_drc_set_window(__u32 sel,__disp_rect_t *regn)	
-{
-    if(DISP_OUTPUT_TYPE_LCD == BSP_disp_get_output_type(sel))
+{  
+    memcpy(&gdisp.screen[sel].drc.rect, regn, sizeof(__disp_rect_t));
+    if(BSP_disp_drc_get_enable(sel) == 1)
     {
-        memcpy(&gdisp.screen[sel].drc.rect, regn, sizeof(__disp_rect_t));
-        if(BSP_disp_drc_get_enable(sel) == 1)
-        {
-            IEP_Drc_Set_Winodw(sel,*regn);
-        }
-        return DIS_SUCCESS;
+        IEP_Drc_Set_Winodw(sel,*regn);
     }
-
-    return DIS_NOT_SUPPORT;
+    return DIS_SUCCESS;
 }
 
 __s32 BSP_disp_drc_get_window(__u32 sel,__disp_rect_t *regn)	
@@ -255,7 +241,7 @@ __s32 BSP_disp_deu_enable(__u8 sel, __u32 hid,  __u32 enable)
                 {      
                     if(scaler->out_fb.mode == DISP_MOD_NON_MB_PLANAR)
                     {
-                        out_type.fmt = Scaler_sw_para_to_reg(3, scaler->out_fb.format);
+                        out_type.fmt = Scaler_sw_para_to_reg(3, scaler->out_fb.mode, scaler->out_fb.format, scaler->out_fb.seq);
                     }
                     else
                     {   
@@ -282,7 +268,7 @@ __s32 BSP_disp_deu_enable(__u8 sel, __u32 hid,  __u32 enable)
                         return DIS_FAIL;
                     }
                 }  
-                out_type.byte_seq = Scaler_sw_para_to_reg(2,scaler->out_fb.seq);
+                out_type.byte_seq = Scaler_sw_para_to_reg(2,scaler->out_fb.mode, scaler->out_fb.format, scaler->out_fb.seq);
                 out_type.alpha_en = 1;
                 out_type.alpha_coef_type = 0;
 
@@ -306,7 +292,7 @@ __s32 BSP_disp_deu_enable(__u8 sel, __u32 hid,  __u32 enable)
             {      
                 if(scaler->out_fb.mode == DISP_MOD_NON_MB_PLANAR)
                 {
-                    out_type.fmt = Scaler_sw_para_to_reg(3, scaler->out_fb.format);
+                    out_type.fmt = Scaler_sw_para_to_reg(3, scaler->out_fb.mode, scaler->out_fb.format, scaler->out_fb.seq);
                 }
                 else
                 {   
@@ -333,7 +319,7 @@ __s32 BSP_disp_deu_enable(__u8 sel, __u32 hid,  __u32 enable)
                     return DIS_FAIL;
                 }
             }  
-            out_type.byte_seq = Scaler_sw_para_to_reg(2,scaler->out_fb.seq);
+            out_type.byte_seq = Scaler_sw_para_to_reg(2,scaler->out_fb.mode, scaler->out_fb.format, scaler->out_fb.seq);
             out_type.alpha_en = 1;
             out_type.alpha_coef_type = 0;
 

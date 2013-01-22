@@ -163,6 +163,7 @@ void em55_power(struct sw_modem *modem, u32 on)
         modem_power_on_off(modem, 0);
         sw_module_mdelay(2000);
         modem_power_on_off(modem, 1);
+        sw_module_mdelay(1000);
     }else{
 		//modem_vbat(modem, 0);
 		em55_reset(modem);

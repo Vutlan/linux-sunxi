@@ -247,22 +247,22 @@ int aw_pm_begin(suspend_state_t state)
 {
 	struct cpufreq_policy policy;
 
-    PM_DBG("%d state begin\n", state);
+	PM_DBG("%d state begin\n", state);
 
 	//set freq max
 #ifdef CONFIG_CPU_FREQ_USR_EVNT_NOTIFY
 	//cpufreq_user_event_notify();
 #endif
-
+	
 	if (cpufreq_get_policy(&policy, 0))
 		goto out;
 
 	cpufreq_driver_target(&policy, suspend_freq, CPUFREQ_RELATION_L);
 
-/*must init perfcounter, because delay_us and delay_ms is depandant perf counter*/
+	/*must init perfcounter, because delay_us and delay_ms is depandant perf counter*/
 #ifndef GET_CYCLE_CNT
-		backup_perfcounter();
-		init_perfcounters (1, 0);
+	backup_perfcounter();
+	init_perfcounters (1, 0);
 #endif
 
 	return 0;

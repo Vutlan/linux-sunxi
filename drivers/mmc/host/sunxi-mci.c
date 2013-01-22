@@ -49,7 +49,7 @@
 
 static struct sunxi_mmc_host* sw_host[4] = {NULL, NULL, NULL, NULL};
 
-#define CONFIG_CACULATE_TRANS_TIME
+//#define CONFIG_CACULATE_TRANS_TIME
 
 #ifdef CONFIG_CACULATE_TRANS_TIME
 static unsigned long long begin_time, over_time, end_time;

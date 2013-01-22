@@ -130,8 +130,15 @@ void serial_init(void)
 
 	p2clk = (24000000);
 
+	//judge uart clk
+	
 	//config uart clk
 	reg = (volatile unsigned int *)(CCU_UART_VA);
+	*reg &= ~(1 << (16 + port));
+	for( i = 0; i < 100; i++ );
+	*reg |=  (1 << (16 + port));
+	//de-assert uart reset
+	reg = (volatile unsigned int *)(IO_ADDRESS(CCU_UART_RESET_PA));
 	*reg &= ~(1 << (16 + port));
 	for( i = 0; i < 100; i++ );
 	*reg |=  (1 << (16 + port));
