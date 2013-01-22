@@ -2097,11 +2097,19 @@ static int __init sun6i_codec_probe(struct platform_device *pdev)
 }
 
 #ifdef CONFIG_PM
+static unsigned long clk_codec_mod = 0;
+extern long phone_actived = 0;
+
 static int snd_sun6i_codec_suspend(struct platform_device *pdev,pm_message_t state)
 {
 	printk("[audio codec]:suspend\n");
+
+	printk("[sun6i-codec] %s, %d, clk_codec_mod = %ld, phone_actived=%ld\n",
+			__func__, __LINE__, clk_get_rate(codec_moduleclk), phone_actived);
+
 	item.gpio.data = 0;
 
+	if (!phone_actived) {
 	codec_wr_control(SUN6I_MIC_CTRL, 0x1, HBIASADCEN, 0x0);
 	/*mute l_pa and r_pa*/
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPPA_MUTE, 0x0);
@@ -2109,23 +2117,29 @@ static int snd_sun6i_codec_suspend(struct platform_device *pdev,pm_message_t sta
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPPA_MUTE, 0x0);
 	mdelay(100);
 	codec_wr_control(SUN6I_DAC_ACTL, 0x3f, VOLUME, 0x0);
+	}
 	codec_wr_control(SUN6I_MIC_CTRL, 0x1f, LINEOUT_VOL, 0x0);
 
+	if (!phone_actived) {
 	/*fix the resume blaze blaze noise*/
 	codec_wr_control(SUN6I_ADDAC_TUNE, 0x1, PA_SLOPE_SECECT, 0x1);
 	/*disable pa*/
 	codec_wr_control(SUN6I_PA_CTRL, 0x1, HPPAEN, 0x0);
 	mdelay(400);
+	}
 
 	if (0 != sw_gpio_setall_range(&item.gpio, 1)) {
 		printk("sw_gpio_setall_range failed\n");
 	}
 
+	/* talking standby still open HPOUTL/HPOUTR, close LINEOUTR/LINEOUTL */
+	if (!phone_actived) {
 	if ((NULL == codec_moduleclk)||(IS_ERR(codec_moduleclk))) {
 		printk("codec_moduleclk handle is invaled, just return\n");
 		return -EINVAL;
 	} else {
 		clk_disable(codec_moduleclk);
+	}
 	}
 	printk("[audio codec]:suspend end\n");
 	return 0;
@@ -2135,6 +2149,8 @@ static int snd_sun6i_codec_resume(struct platform_device *pdev)
 {
 	printk("[audio codec]:resume start\n");
 
+	/* talking standby still open HPOUTL/HPOUTR, close LINEOUTR/LINEOUTL */
+	if (!phone_actived) {
 	if (clk_enable(codec_moduleclk)) {
 		printk("open codec_moduleclk failed; \n");
 	}
@@ -2145,6 +2161,7 @@ static int snd_sun6i_codec_resume(struct platform_device *pdev)
 	/*fix the resume blaze blaze noise*/
 	codec_wr_control(SUN6I_ADDAC_TUNE, 0x1, PA_SLOPE_SECECT, 0x1);
 	codec_wr_control(SUN6I_PA_CTRL, 0x1, HPPAEN, 0x1);
+
 	/*process for normal standby*/
 	if (NORMAL_STANDBY == standby_type) {
 	/*process for super standby*/
@@ -2161,6 +2178,8 @@ static int snd_sun6i_codec_resume(struct platform_device *pdev)
 
 	/*set HPVOL volume*/
 	codec_wr_control(SUN6I_DAC_ACTL, 0x3f, VOLUME, 0x3b);
+	}
+
 	printk("[audio codec]:resume end\n");
 	return 0;
 }
