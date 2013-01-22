@@ -309,7 +309,6 @@ struct sunxi_mmc_host {
 	/* irq */
 	int 		irq;
 	volatile u32	int_sum;
-	volatile u32	dodma;
 
 	volatile u32 	trans_done:1;
 	volatile u32 	dma_done:1;

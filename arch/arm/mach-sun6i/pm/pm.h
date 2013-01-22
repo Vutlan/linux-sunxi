@@ -28,6 +28,7 @@
 #define PM_STANDBY_PRINT_RESUME (1U << 1)
 #define PM_STANDBY_PRINT_IO_STATUS (1U << 2)
 #define PM_STANDBY_PRINT_CACHE_TLB_MISS (1U << 3)
+#define PM_STANDBY_PRINT_CCU_STATUS (1U << 4)
 
 #ifdef CONFIG_ARCH_SUN4I
 #define INT_REG_LENGTH	((0x90+0x4)>>2)
@@ -40,6 +41,7 @@
 #elif defined CONFIG_ARCH_SUN6I
 #define GPIO_REG_LENGTH	((0x278+0x4)>>2)
 #define SRAM_REG_LENGTH	((0x94+0x4)>>2)
+#define CCU_REG_LENGTH ((0x200+0x4)>>2)			// tmp
 #elif defined CONFIG_ARCH_SUN7I
 #define GPIO_REG_LENGTH	((0x218+0x4)>>2)
 #define SRAM_REG_LENGTH	((0x94+0x4)>>2)
@@ -82,6 +84,7 @@ struct aw_mem_para{
 	struct pll_factor_t pll_factor;
 	struct mmu_state saved_mmu_state;
 	struct saved_context saved_cpu_context;
+	int suspend_delay_ms;
 };
 
 typedef  int (*suspend_func)(void);

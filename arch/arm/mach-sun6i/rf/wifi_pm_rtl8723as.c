@@ -39,7 +39,7 @@ static int rtl8723as_module_power(int onoff)
 		ret = regulator_force_disable(wifi_ldo);
 		if (ret < 0) {
 			rtl8723as_msg("regulator_force_disable fail, return %d.\n", ret);
-			return ret;
+			goto out;
 		}
 		first = 0;
 	}
@@ -50,13 +50,13 @@ static int rtl8723as_module_power(int onoff)
 			ret = regulator_set_voltage(wifi_ldo, 3300000, 3300000);
 			if (ret < 0) {
 				rtl8723as_msg("regulator_set_voltage fail, return %d.\n", ret);
-				return ret;
+				goto out;
 			}
 
 			ret = regulator_enable(wifi_ldo);
 			if (ret < 0) {
 				rtl8723as_msg("regulator_enable fail, return %d.\n", ret);
-				return ret;
+				goto out;
 			}
 			axp_power_on = true;
 		}
@@ -66,11 +66,14 @@ static int rtl8723as_module_power(int onoff)
 			ret = regulator_disable(wifi_ldo);
 			if (ret < 0) {
 				rtl8723as_msg("regulator_disable fail, return %d.\n", ret);
-				return ret;
+				goto out;
 			}
 			axp_power_on = false;
 		}
 	}
+out:
+	regulator_put(wifi_ldo);
+	wifi_ldo = NULL;
 	return ret;
 }
 
@@ -229,7 +232,7 @@ void rtl8723as_gpio_init(void)
 	rtl8723as_bt_on = 0;
 	rtk_suspend 	= 0;
 	ops->gpio_ctrl	= rtl8723as_gpio_ctrl;
-	ops->power 		= rtl8723as_power;
+	ops->power 	= rtl8723as_power;
 	ops->standby	= rtl8723as_standby;
 }
 

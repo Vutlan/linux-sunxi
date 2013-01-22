@@ -59,9 +59,12 @@ void em55_reset(struct sw_modem *modem)
 {
     modem_dbg("reset %s modem\n", modem->name);
 
-	modem_reset(modem, 0);
-    sw_module_mdelay(60);
+	//modem_reset(modem, 0);
 	modem_reset(modem, 1);
+    sw_module_mdelay(60);
+	modem_reset(modem, 0);
+	sw_module_mdelay(10);
+	//modem_reset(modem, 1);
 
     return;
 }
@@ -79,9 +82,9 @@ static void em55_sleep(struct sw_modem *modem, u32 sleep)
     modem_dbg("%s modem %s\n", modem->name, (sleep ? "sleep" : "wakeup"));
 
     if(sleep){
-        modem_sleep(modem, 1);
-    }else{
         modem_sleep(modem, 0);
+    }else{
+        modem_sleep(modem, 1);
     }
 
     return;
@@ -148,7 +151,10 @@ void em55_power(struct sw_modem *modem, u32 on)
     modem_dbg("set %s modem power %s\n", modem->name, (on ? "on" : "off"));
 
     if(on){
-        modem_sleep(modem, 0);
+
+		em55_reset(modem);
+		
+        modem_sleep(modem, 1);
 
     	/* power on */
 		modem_vbat(modem, 1);
@@ -158,7 +164,8 @@ void em55_power(struct sw_modem *modem, u32 on)
         sw_module_mdelay(2000);
         modem_power_on_off(modem, 1);
     }else{
-		modem_vbat(modem, 0);
+		//modem_vbat(modem, 0);
+		em55_reset(modem);
     }
 
     return;

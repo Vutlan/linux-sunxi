@@ -19,6 +19,9 @@
 #include <linux/clk.h>
 #include <linux/gpio.h>
 #include <linux/delay.h>
+#include <linux/ctype.h>
+#include <linux/slab.h>
+#include <linux/proc_fs.h>
 #include <linux/platform_device.h>
 
 #include <linux/console.h>
@@ -37,56 +40,104 @@
 
 #define SW_UART_NR	6
 
-//#define CONFIG_SW_UART_PTIME_MODE
 #define CONFIG_SW_UART_FORCE_LCR
 //#define CONFIG_SW_UART_DEBUG
-
+//#define CONFIG_SW_UART_DUMP_DATA
+/*
+ * ********************* Note **********************
+ * CONFIG_SW_UART_DUMP_DATA may cause some problems
+ * with some commands of 'dmesg', 'logcat', and
+ * 'cat /proc/kmsg' in the console. This problem may
+ * cause kernel to dead. These commands will work fine
+ * in the adb shell. So you must be very clear with
+ * this problem if you want define this macro to debug.
+ */
 /* debug control */
-#define SERIAL_MSG(...) printk("[uart]: "__VA_ARGS__)
-#ifdef CONFIG_SW_UART_DEBUG
 #define DEBUG_CONDITION (sw_uport->id == 2)
+#define SERIAL_MSG(...) printk("[uart]: "__VA_ARGS__)
+
+#ifdef CONFIG_SW_UART_DEBUG
 #define SERIAL_DBG(...) do { \
 				if (DEBUG_CONDITION) \
-					printk("[uart]: "__VA_ARGS__); \
-			} while (0)
-#define SERIAL_FUNC_RUN(...) do { \
-				if (DEBUG_CONDITION) \
-					printk("[uart]: %s:%d\n", __FUNCTION__, __LINE__); \
-			} while (0)
-#define SERIAL_DUMP(...) do { \
-				if (DEBUG_CONDITION) \
-					printk(__VA_ARGS__); \
+					printk(KERN_DEBUG "[uart]: "__VA_ARGS__); \
 			} while (0)
 static void dumpreg(struct sw_uart_port* sw_uport)
 {
 	u32 i;
 	char* base = sw_uport->port.membase;
 
-	printk("uart %d registers:", sw_uport->id);
+	printk(KERN_DEBUG "uart %d registers:", sw_uport->id);
 	for (i=0; i<0x20; i+=4) {
 		if (!(i&0xf))
-			printk("\n0x%p : ", base + i);
+			printk(KERN_DEBUG "\n0x%p : ", base + i);
 		if (i==0 || i==8)
-			printk("  %8s ", " ");
+			printk(KERN_DEBUG "  %8s ", " ");
 		else
-			printk("0x%08x ", readl(base + i));
+			printk(KERN_DEBUG "0x%08x ", readl(base + i));
 	}
 	for (i=0x70; i<0xa8; i+=4) {
 		if (!(i&0xf))
-			printk("\n0x%p : ", base + i);
+			printk(KERN_DEBUG "\n0x%p : ", base + i);
 		if (i==0 || i==8)
-			printk("  %8s ", " ");
+			printk(KERN_DEBUG "  %8s ", " ");
 		else
-			printk("0x%08x ", readl(base + i));
+			printk(KERN_DEBUG "0x%08x ", readl(base + i));
 	}
-	printk("\n");
+	printk(KERN_DEBUG "\n");
 }
-
 #else
 #define SERIAL_DBG(up, ...)
-#define SERIAL_FUNC_RUN(...)
-#define SERIAL_DUMP(...)
 #endif
+
+#ifdef CONFIG_SW_UART_DUMP_DATA
+static void sw_uart_dump_data(struct sw_uart_port *sw_uport, char* prompt)
+{
+	int i, j;
+	int head = 0;
+	char* buf = sw_uport->dump_buff;
+	u32 len = sw_uport->dump_len;
+	static char pbuff[128];
+	u32 idx = 0;
+
+	BUG_ON(sw_uport->dump_len > MAX_DUMP_SIZE);
+	BUG_ON(!sw_uport->dump_buff);
+	#define MAX_DUMP_PER_LINE	(16)
+	#define MAX_DUMP_PER_LINE_HALF	(MAX_DUMP_PER_LINE >> 1)
+	printk(KERN_DEBUG "%s len %d\n", prompt, len);
+	for (i = 0; i < len;) {
+		if ((i & (MAX_DUMP_PER_LINE-1)) == 0) {
+			idx += sprintf(&pbuff[idx], "%04x: ", i);
+			head = i;
+		}
+		idx += sprintf(&pbuff[idx], "%02x ", buf[i]&0xff);
+		if ((i & (MAX_DUMP_PER_LINE-1)) == MAX_DUMP_PER_LINE-1
+			|| i==len-1) {
+			for (j=i-head+1; j<MAX_DUMP_PER_LINE; j++)
+				idx += sprintf(&pbuff[idx], "   ");
+			idx += sprintf(&pbuff[idx], " |");
+			for (j=head; j<=i; j++) {
+				if (isascii(buf[j]) && isprint(buf[j]))
+					idx += sprintf(&pbuff[idx], "%c", buf[j]);
+				else
+					idx += sprintf(&pbuff[idx], ".");
+			}
+			idx += sprintf(&pbuff[idx], "|\n");
+			pbuff[idx] = '\0';
+			printk(KERN_DEBUG "%s", pbuff);
+			idx = 0;
+		}
+		i++;
+	}
+	sw_uport->dump_len = 0;
+}
+#define SERIAL_DUMP(up, ...) do { \
+				if (DEBUG_CONDITION) \
+					sw_uart_dump_data(up, __VA_ARGS__); \
+			} while (0)
+#else
+#define SERIAL_DUMP(up, ...)	{up->dump_len = 0;}
+#endif
+
 #define UART_TO_SPORT(port)	((struct sw_uart_port*)port)
 
 static inline unsigned char serial_in(struct uart_port *port, int offs)
@@ -106,11 +157,12 @@ static unsigned int sw_uart_handle_rx(struct sw_uart_port *sw_uport, unsigned in
 	int max_count = 256;
 	char flag;
 
-	SERIAL_DBG("rx: ");
 	do {
 		if (likely(lsr & SW_UART_LSR_DR)) {
 			ch = serial_in(&sw_uport->port, SW_UART_RBR);
-			SERIAL_DUMP("%02x-", ch);
+#ifdef CONFIG_SW_UART_DUMP_DATA
+			sw_uport->dump_buff[sw_uport->dump_len++] = ch;
+#endif
 		}
 
 		flag = TTY_NORMAL;
@@ -157,7 +209,7 @@ ignore_char:
 		lsr = serial_in(&sw_uport->port, SW_UART_LSR);
 	} while ((lsr & (SW_UART_LSR_DR | SW_UART_LSR_BI)) && (max_count-- > 0));
 
-	SERIAL_DUMP("\n");
+	SERIAL_DUMP(sw_uport, "Rx");
 	spin_unlock(&sw_uport->port.lock);
 	tty_flip_buffer_push(tty);
 	spin_lock(&sw_uport->port.lock);
@@ -192,12 +244,14 @@ static void sw_uart_handle_tx(struct sw_uart_port *sw_uport)
 	struct circ_buf *xmit = &sw_uport->port.state->xmit;
 	int count;
 
-	SERIAL_DBG("tx: ");
 	if (sw_uport->port.x_char) {
-		SERIAL_DUMP("%02x-\n", sw_uport->port.x_char);
 		serial_out(&sw_uport->port, sw_uport->port.x_char, SW_UART_THR);
 		sw_uport->port.icount.tx++;
 		sw_uport->port.x_char = 0;
+#ifdef CONFIG_SW_UART_DUMP_DATA
+		sw_uport->dump_buff[sw_uport->dump_len++] = sw_uport->port.x_char;
+		SERIAL_DUMP(sw_uport, "Tx");
+#endif
 		return;
 	}
 	if (uart_circ_empty(xmit) || uart_tx_stopped(&sw_uport->port)) {
@@ -205,25 +259,24 @@ static void sw_uart_handle_tx(struct sw_uart_port *sw_uport)
 		return;
 	}
 	count = sw_uport->port.fifosize / 2;
-	SERIAL_DUMP("(%d): ", count);
 	do {
-		SERIAL_DUMP("%02x-", xmit->buf[xmit->tail]);
+#ifdef CONFIG_SW_UART_DUMP_DATA
+		sw_uport->dump_buff[sw_uport->dump_len++] = xmit->buf[xmit->tail];
+#endif
 		serial_out(&sw_uport->port, xmit->buf[xmit->tail], SW_UART_THR);
 		xmit->tail = (xmit->tail + 1) & (UART_XMIT_SIZE - 1);
 		sw_uport->port.icount.tx++;
 		if (uart_circ_empty(xmit)) {
-			SERIAL_DUMP("\n");
 			break;
 		}
 	} while (--count > 0);
-	SERIAL_DUMP("\n");
 
+	SERIAL_DUMP(sw_uport, "Tx");
 	if (uart_circ_chars_pending(xmit) < WAKEUP_CHARS) {
 		spin_unlock(&sw_uport->port.lock);
 		uart_write_wakeup(&sw_uport->port);
 		spin_lock(&sw_uport->port.lock);
 	}
-
 	if (uart_circ_empty(xmit))
 		sw_uart_stop_tx(&sw_uport->port);
 }
@@ -929,7 +982,7 @@ static struct uart_driver sw_uart_driver = {
 	.cons = SW_CONSOLE,
 };
 
-static int sw_uart_get_resource(struct sw_uart_port* sw_uport)
+static int sw_uart_request_resource(struct sw_uart_port* sw_uport)
 {
 	struct uart_port *port = &sw_uport->port;
 	char clk_name[16] = {0};
@@ -967,6 +1020,13 @@ static int sw_uart_get_resource(struct sw_uart_port* sw_uport)
 		goto free_pclk;
 	}
 
+	#ifdef CONFIG_SW_UART_DUMP_DATA
+	sw_uport->dump_buff = (char*)kmalloc(MAX_DUMP_SIZE, GFP_KERNEL);
+	if (!sw_uport->dump_buff) {
+		SERIAL_MSG("fail to alloc dump buffer\n");
+	}
+	#endif
+
 	return 0;
 free_gpio:
 	for (i=0; i<sw_uport->pdata->io_num; i++) {
@@ -985,6 +1045,13 @@ static int sw_uart_release_resource(struct sw_uart_port* sw_uport)
 	u32 i;
 
 	SERIAL_DBG("put system resource(clk & IO)\n");
+
+	#ifdef CONFIG_SW_UART_DUMP_DATA
+	kfree(sw_uport->dump_buff);
+	sw_uport->dump_buff = NULL;
+	sw_uport->dump_len = 0;
+	#endif
+
 	/* release pclk */
 	clk_disable(sw_uport->pclk);
 	clk_put(sw_uport->pclk);
@@ -997,6 +1064,53 @@ static int sw_uart_release_resource(struct sw_uart_port* sw_uport)
 
 	return 0;
 }
+
+#ifdef CONFIG_PROC_FS
+static int sw_uart_proc_info(char *page, char **start, off_t off,
+				int count, int *eof, void *data)
+{
+	char *p = page;
+	struct sw_uart_port *sw_uport = (struct sw_uart_port *)data;
+	u32 dl = (u32)sw_uport->dlh << 8 | (u32)sw_uport->dll;
+
+	p += sprintf(p, " Uart%d Infomation:\n", sw_uport->id);
+	p += sprintf(p, " ier  : 0x%02x\n", sw_uport->ier);
+	p += sprintf(p, " lcr  : 0x%02x\n", sw_uport->lcr);
+	p += sprintf(p, " mcr  : 0x%02x\n", sw_uport->mcr);
+	p += sprintf(p, " fcr  : 0x%02x\n", sw_uport->fcr);
+	p += sprintf(p, " dll  : 0x%02x\n", sw_uport->dll);
+	p += sprintf(p, " dlh  : 0x%02x\n", sw_uport->dlh);
+	p += sprintf(p, " pclk : %d\n", sw_uport->port.uartclk);
+	p += sprintf(p, " last baud : %d\n", (sw_uport->port.uartclk>>4)/dl);
+
+	return p - page;
+}
+
+void sw_uart_procfs_attach(struct sw_uart_port *sw_uport)
+{
+	char proc_root[32] = {0};
+
+	sprintf(proc_root, "driver/uart%d", sw_uport->id);
+	sw_uport->proc_root = proc_mkdir(proc_root, NULL);
+	if (IS_ERR(sw_uport->proc_root))
+		SERIAL_MSG("failed to create \"driver/uart%d\".\n",
+				sw_uport->id);
+
+	sw_uport->proc_info = create_proc_read_entry("ctrller_info", 0444,
+				sw_uport->proc_root, sw_uart_proc_info, sw_uport);
+	if (IS_ERR(sw_uport->proc_info))
+		SERIAL_MSG("failed to create \"driver/uart%d/ctrller_info\".\n", sw_uport->id);
+}
+
+void sw_uart_procfs_remove(struct sw_uart_port *sw_uport)
+{
+	char proc_root[32] = {0};
+
+	sprintf(proc_root, "driver/uart%d", sw_uport->id);
+	remove_proc_entry("ctrller_info", sw_uport->proc_root);
+	remove_proc_entry(proc_root, NULL);
+}
+#endif
 
 static int __devinit sw_uart_probe(struct platform_device *pdev)
 {
@@ -1020,7 +1134,7 @@ static int __devinit sw_uart_probe(struct platform_device *pdev)
 	sw_uport->dlh = 0;
 
 	/* request system resource and init them */
-	ret = sw_uart_get_resource(sw_uport);
+	ret = sw_uart_request_resource(sw_uport);
 	if (unlikely(ret)) {
 		SERIAL_MSG("error to get resource\n");
 		return -ENXIO;
@@ -1045,7 +1159,9 @@ static int __devinit sw_uart_probe(struct platform_device *pdev)
 	port->mapbase = sw_uport->pdata->base;
 	port->irq = sw_uport->pdata->irq;
 	platform_set_drvdata(pdev, port);
-
+#ifdef CONFIG_PROC_FS
+	sw_uart_procfs_attach(sw_uport);
+#endif
 	SERIAL_DBG("add uart%d port, port_type %d, uartclk %d\n",
 			id, port->type, port->uartclk);
 	return uart_add_one_port(&sw_uart_driver, port);
@@ -1056,6 +1172,9 @@ static int __devexit sw_uart_remove(struct platform_device *pdev)
 	struct sw_uart_port *sw_uport = platform_get_drvdata(pdev);
 
 	SERIAL_DBG("release uart%d port\n", sw_uport->id);
+#ifdef CONFIG_PROC_FS
+	sw_uart_procfs_remove(sw_uport);
+#endif
 	sw_uart_release_resource(sw_uport);
 	return 0;
 }
