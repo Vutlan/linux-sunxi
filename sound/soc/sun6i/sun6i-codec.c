@@ -2097,8 +2097,7 @@ static int __init sun6i_codec_probe(struct platform_device *pdev)
 }
 
 #ifdef CONFIG_PM
-static unsigned long clk_codec_mod = 0;
-extern long phone_actived = 0;
+extern long phone_actived;
 
 static int snd_sun6i_codec_suspend(struct platform_device *pdev,pm_message_t state)
 {
