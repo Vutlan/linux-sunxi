@@ -69,7 +69,7 @@ static bool codec_speaker_enabled = false;
 struct sun6i_codec {
 	long samplerate;
 	struct snd_card *card;
-	struct snd_pcm *pcm;		
+	struct snd_pcm *pcm;
 };
 
 /*------------- Structure/enum declaration ------------------- */
@@ -83,12 +83,12 @@ typedef struct codec_board_info {
 
 static struct sun6i_pcm_dma_params sun6i_codec_pcm_stereo_play = {
 	.name		= "audio_play",
-	.dma_addr	= CODEC_BASSADDRESS + SUN6I_DAC_TXDATA,//send data address	
+	.dma_addr	= CODEC_BASSADDRESS + SUN6I_DAC_TXDATA,//send data address
 };
 
 static struct sun6i_pcm_dma_params sun6i_codec_pcm_stereo_capture = {
 	.name   	= "audio_capture",
-	.dma_addr	= CODEC_BASSADDRESS + SUN6I_ADC_RXDATA,//accept data address	
+	.dma_addr	= CODEC_BASSADDRESS + SUN6I_ADC_RXDATA,//accept data address
 };
 
 struct sun6i_playback_runtime_data {
@@ -191,7 +191,7 @@ static struct snd_pcm_hw_constraint_list hw_constraints_rates = {
 int codec_wrreg_bits(unsigned short reg, unsigned int	mask,	unsigned int value)
 {
 	unsigned int old, new;
-		
+
 	old	=	codec_rdreg(reg);
 	new	=	(old & ~mask) | value;
 	codec_wrreg(reg,new);
@@ -246,7 +246,7 @@ int snd_codec_get_volsw(struct snd_kcontrol	*kcontrol,
 	unsigned int invert = mc->invert;
 	unsigned int reg = mc->reg;
 
-	ucontrol->value.integer.value[0] =	
+	ucontrol->value.integer.value[0] =
 		(codec_rdreg(reg)>>	shift) & mask;
 	if(shift != rshift)
 		ucontrol->value.integer.value[1] =
@@ -259,7 +259,7 @@ int snd_codec_get_volsw(struct snd_kcontrol	*kcontrol,
 			ucontrol->value.integer.value[1] =
 				max - ucontrol->value.integer.value[1];
 		}
-	
+
 		return 0;
 }
 
@@ -283,7 +283,7 @@ int snd_codec_put_volsw(struct	snd_kcontrol	*kcontrol,
 	unsigned int mask = (1<<fls(max))-1;
 	unsigned int invert = mc->invert;
 	unsigned int	val, val2, val_mask;
-	
+
 	val = (ucontrol->value.integer.value[0] & mask);
 	if(invert)
 		val = max - val;
@@ -296,7 +296,7 @@ int snd_codec_put_volsw(struct	snd_kcontrol	*kcontrol,
 		val_mask |= mask <<rshift;
 		val |= val2 <<rshift;
 	}
-	
+
 	return codec_wrreg_bits(reg,val_mask,val);
 }
 
@@ -333,7 +333,7 @@ static  void codec_init(void)
     }
 	headphone_direct_used = val.val;
 	if (headphone_direct_used) {
-		codec_wr_control(SUN6I_PA_CTRL, 0x1, HPCOM_PRO, 0x1);	
+		codec_wr_control(SUN6I_PA_CTRL, 0x1, HPCOM_PRO, 0x1);
 	} else {
 		codec_wr_control(SUN6I_PA_CTRL, 0x1, HPCOM_PRO, 0x0);
 	}
@@ -363,9 +363,9 @@ static  void codec_init(void)
 	codec_wr_control(SUN6I_DAC_FIFOC, 0x1, DAC_FIFO_FLUSH, 0x1);
 	/*write 1 to flush rx fifo*/
 	codec_wr_control(SUN6I_ADC_FIFOC, 0x1, ADC_FIFO_FLUSH, 0x1);
-	
+
 	codec_wr_control(SUN6I_DAC_FIFOC, 0x1, FIR_VERSION, 0x1);
-	
+
 	type = script_get_item("audio_para", "headphone_vol", &val);
 	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
         printk("[audiocodec] type err!\n");
@@ -429,13 +429,13 @@ static int codec_pa_play_open(void)
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPIS, 0x1);
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPIS, 0x1);
 
-	codec_wr_control(SUN6I_MIC_CTRL, 0x1f, LINEOUT_VOL, pa_vol);
-
 	codec_wr_control(SUN6I_DAC_ACTL, 0x7f, RMIXMUTE, 0x2);
 	codec_wr_control(SUN6I_DAC_ACTL, 0x7f, LMIXMUTE, 0x2);
 
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, LMIXEN, 0x1);
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, RMIXEN, 0x1);
+
+	codec_wr_control(SUN6I_MIC_CTRL, 0x1f, LINEOUT_VOL, pa_vol);
 
 	mdelay(3);
 	item.gpio.data = 1;
@@ -565,6 +565,7 @@ static int codec_play_stop(void)
 		i++;
 		if (i > headphone_vol-1) {
 			codec_wr_control(SUN6I_DAC_ACTL, 0x3f, VOLUME, 0x0);
+			break;
 		}
 	}
 	/*mute l_pa and r_pa*/
@@ -595,7 +596,7 @@ static int codec_play_stop(void)
 
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPIS, 0x0);
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPIS, 0x0);
-	
+
 	codec_wr_control(SUN6I_MIC_CTRL, 0x1, PHONEOUTS2, 0x0);
 	codec_wr_control(SUN6I_MIC_CTRL, 0x1, PHONEOUTS3, 0x0);
 	return 0;
@@ -613,7 +614,7 @@ static int codec_capture_stop(void)
 	/*disable adc digital part*/
 	codec_wr_control(SUN6I_ADC_FIFOC, 0x1,ADC_EN, 0x0);
 	/*disable adc drq*/
-	codec_wr_control(SUN6I_ADC_FIFOC ,0x1, ADC_DRQ, 0x0);	
+	codec_wr_control(SUN6I_ADC_FIFOC ,0x1, ADC_DRQ, 0x0);
 	/*disable mic1 pa*/
 	codec_wr_control(SUN6I_MIC_CTRL, 0x1, MIC1AMPEN, 0x0);
 	/*disable Master microphone bias*/
@@ -848,7 +849,7 @@ static int codec_set_phonecap(struct snd_kcontrol *kcontrol,
 		codec_wr_control(SUN6I_ADC_ACTL, 0x1, RADCMIXMUTEPHONEPN, 0x1);
 		/*enable PHONEP-PHONEN Boost stage*/
 		codec_wr_control(SUN6I_ADC_ACTL, 0x1, LADCMIXMUTEPHONEPN, 0x1);
-		
+
 		codec_wr_control(SUN6I_ADC_ACTL, 0x1, RADCMIXMUTEROUTPUT, 0x1);
 		codec_wr_control(SUN6I_ADC_ACTL, 0x1, LADCMIXMUTELOUTPUT, 0x1);
 	} else {
@@ -975,7 +976,7 @@ static int codec_dacphoneout_open(void)
 
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, LMIXEN, 0x1);
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, RMIXEN, 0x1);
-	
+
 	codec_wr_control(SUN6I_MIC_CTRL, 0x1, PHONEOUTS2, 0x1);
 	codec_wr_control(SUN6I_MIC_CTRL, 0x1, PHONEOUTS3, 0x1);
 	return 0;
@@ -1064,13 +1065,14 @@ static int codec_set_spk(struct snd_kcontrol *kcontrol,
 	struct snd_ctl_elem_value *ucontrol)
 {
 	int ret = 0;
-	codec_speaker_enabled = ucontrol->value.integer.value[0];
+	int headphone_vol = 0;
+	script_item_u val;
+	script_item_value_type_e  type;
 
-	printk("%s, line:%d\n", __func__, __LINE__);
+	codec_speaker_enabled = ucontrol->value.integer.value[0];
 	if (codec_speaker_enabled) {
 		ret = codec_pa_play_open();
 	} else {
-		printk("%s, line:%d\n", __func__, __LINE__);
 		item.gpio.data = 0;
 		codec_wr_control(SUN6I_MIC_CTRL, 0x1f, LINEOUT_VOL, 0x0);
 		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTL_EN, 0x0);
@@ -1084,9 +1086,19 @@ static int codec_set_spk(struct snd_kcontrol *kcontrol,
 		/*unmute l_pa and r_pa*/
 		codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPPA_MUTE, 0x1);
 		codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPPA_MUTE, 0x1);
+		codec_wr_control(SUN6I_ADDAC_TUNE, 0x1, ZERO_CROSS_EN, 0x1);
+
+		type = script_get_item("audio_para", "headphone_vol", &val);
+		if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+			printk("[audiocodec] type err!\n");
+		}
+		headphone_vol = val.val;
+		/*set HPVOL volume*/
+		codec_wr_control(SUN6I_DAC_ACTL, 0x3f, VOLUME, headphone_vol);
 	}
 	return 0;
 }
+
 
 static int codec_get_spk(struct snd_kcontrol *kcontrol,
 	struct snd_ctl_elem_value *ucontrol)
@@ -1096,7 +1108,7 @@ static int codec_get_spk(struct snd_kcontrol *kcontrol,
 }
 
 /*
-* 	.info = snd_codec_info_volsw, .get = snd_codec_get_volsw,\.put = snd_codec_put_volsw, 
+* 	.info = snd_codec_info_volsw, .get = snd_codec_get_volsw,\.put = snd_codec_put_volsw,
 */
 static const struct snd_kcontrol_new codec_snd_controls[] = {
 	/*SUN6I_DAC_ACTL = 0x20,PAVOL*/
@@ -1153,9 +1165,9 @@ static const struct snd_kcontrol_new codec_snd_controls[] = {
 	CODEC_SINGLE("ADC input gain ctrl", SUN6I_ADC_ACTL,27,0x7,0),						/*43*/
 	CODEC_SINGLE("Right ADC mixer mute ctrl", SUN6I_ADC_ACTL,7,0x7f,0),					/*44*/
 	CODEC_SINGLE("Left ADC mixer mute ctrl", SUN6I_ADC_ACTL,0,0x7f,0),					/*45*/
-	/*SUN6I_ADDAC_TUNE = 0x30*/		
+	/*SUN6I_ADDAC_TUNE = 0x30*/
 	CODEC_SINGLE("ADC dither on_off ctrl", SUN6I_ADDAC_TUNE,25,0x7f,0),					/*46*/
-	
+
 	/*SUN6I_HMIC_CTL = 0x50
 	* warning:
 	* the key and headphone should be check in the switch driver,
@@ -1165,7 +1177,7 @@ static const struct snd_kcontrol_new codec_snd_controls[] = {
 	*/
 	CODEC_SINGLE("Hmic_M debounce key down_up", SUN6I_HMIC_CTL,28,0xf,0),				/*47*/
 	CODEC_SINGLE("Hmic_N debounce earphone plug in_out", SUN6I_HMIC_CTL,24,0xf,0),		/*48*/
-	
+
 	/*SUN6I_DAC_DAP_CTL = 0x60
 	* warning:the DAP should be realize in a DAP driver?
 	* it may be strange using the mixer control to realize the DAP function.
@@ -1187,7 +1199,7 @@ static const struct snd_kcontrol_new codec_snd_controls[] = {
 	CODEC_SINGLE("DAP DAC master volume", SUN6I_DAC_DAP_VOL,16,0xff,0),					/*61*/
 	CODEC_SINGLE("DAP DAC left chan volume", SUN6I_DAC_DAP_VOL,8,0xff,0),				/*62*/
 	CODEC_SINGLE("DAP DAC right chan volume", SUN6I_DAC_DAP_VOL,0,0xff,0),				/*63*/
-	
+
 	/*SUN6I_ADC_DAP_CTL = 0x70*/
 	CODEC_SINGLE("DAP for ADC en", SUN6I_ADC_DAP_CTL,31,0x1,0),							/*64*/
 	CODEC_SINGLE("DAP for ADC start up", SUN6I_ADC_DAP_CTL,30,0x1,0),					/*65*/
@@ -1204,7 +1216,7 @@ static const struct snd_kcontrol_new codec_snd_controls[] = {
 	CODEC_SINGLE("DAP ADC volume skew mute", SUN6I_ADC_DAP_VOL,16,0x1,0),				/*74*/
 	CODEC_SINGLE("DAP ADC left chan vol set", SUN6I_ADC_DAP_VOL,8,0x3f,0),				/*75*/
 	CODEC_SINGLE("DAP ADC right chan vol set", SUN6I_ADC_DAP_VOL,0,0x3f,0),				/*76*/
-	
+
 	/*SUN6I_ADC_DAP_LCTL = 0x78*/
 	CODEC_SINGLE("DAP ADC Left chan noise-threshold set", SUN6I_ADC_DAP_VOL,16,0xff,0),	/*77*/
 	CODEC_SINGLE("DAP Left AGC en", SUN6I_ADC_DAP_VOL,14,0x1,0),						/*78*/
@@ -1230,7 +1242,7 @@ static const struct snd_kcontrol_new codec_snd_controls[] = {
 	SOC_SINGLE_BOOL_EXT("Audio earpiece out", 0, codec_get_earpieceout, codec_set_earpieceout), 	/*95*/
 	SOC_SINGLE_BOOL_EXT("Audio headphone out", 0, codec_get_headphoneout, codec_set_headphoneout), /*96*/
 	SOC_SINGLE_BOOL_EXT("Audio speaker out", 0, codec_get_speakerout, codec_set_speakerout), 		/*97*/
-	
+
 	SOC_SINGLE_BOOL_EXT("Audio adc phonein", 0, codec_get_adcphonein, codec_set_adcphonein), 		/*98*/
 	SOC_SINGLE_BOOL_EXT("Audio dac phoneout", 0, codec_get_dacphoneout, codec_set_dacphoneout),    	/*99*/
 
@@ -1252,7 +1264,7 @@ int __init snd_chip_codec_mixer_new(struct sun6i_codec *chip)
 			return err;
 		}
 	}
-	
+
 	if ((err = snd_device_new(card, SNDRV_DEV_CODEC, chip, &ops)) < 0) {
 		return err;
 	}
@@ -1261,7 +1273,7 @@ int __init snd_chip_codec_mixer_new(struct sun6i_codec *chip)
 }
 
 static void sun6i_pcm_enqueue(struct snd_pcm_substream *substream)
-{	
+{
 	int play_ret = 0, capture_ret = 0;
 	struct sun6i_playback_runtime_data *play_prtd = NULL;
 	struct sun6i_capture_runtime_data *capture_prtd = NULL;
@@ -1290,7 +1302,6 @@ static void sun6i_pcm_enqueue(struct snd_pcm_substream *substream)
 			} else {
 				break;
 			}
-			//printk("%s, line:%d, play_pos:%x, play_len:%x, play_limit:%d\n", __func__, __LINE__, play_pos, play_len, play_limit);
 		}
 		play_prtd->dma_pos = play_pos;
 	} else {
@@ -1314,7 +1325,7 @@ static void sun6i_pcm_enqueue(struct snd_pcm_substream *substream)
 				capture_pos = capture_prtd->dma_start;
 			} else {
 				break;
-			}	  
+			}
 		}
 		capture_prtd->dma_pos = capture_pos;
 	}
@@ -1352,7 +1363,7 @@ static u32 sun6i_audio_play_buffdone(dm_hdl_t dma_hdl, void *parg,
 {
 	struct sun6i_playback_runtime_data *play_prtd = NULL;
 	struct snd_pcm_substream *substream = NULL;
-	
+
 	if ((result == DMA_CB_ABORT) || (parg == NULL)) {
 		return 0;
 	}
@@ -1363,7 +1374,7 @@ static u32 sun6i_audio_play_buffdone(dm_hdl_t dma_hdl, void *parg,
 	} else {
 		return 0;
 	}
-	//printk("%s,line:%d\n", __func__, __LINE__);
+
 	spin_lock(&play_prtd->lock);
 	{
 		play_prtd->dma_loaded--;
@@ -1375,7 +1386,7 @@ static u32 sun6i_audio_play_buffdone(dm_hdl_t dma_hdl, void *parg,
 }
 
 static snd_pcm_uframes_t snd_sun6i_codec_pointer(struct snd_pcm_substream *substream)
-{	
+{
 	unsigned long capture_res = 0;
 	struct sun6i_playback_runtime_data *play_prtd = NULL;
 	struct sun6i_capture_runtime_data *capture_prtd = NULL;
@@ -1419,12 +1430,11 @@ static int sun6i_codec_pcm_hw_params(struct snd_pcm_substream *substream, struct
     struct sun6i_playback_runtime_data *play_prtd = NULL;
     struct sun6i_capture_runtime_data *capture_prtd = NULL;
     unsigned long play_totbytes = 0, capture_totbytes = 0;
-	
+
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 	  	play_runtime = substream->runtime;
 		play_prtd = play_runtime->private_data;
 		play_totbytes = params_buffer_bytes(params);
-		//printk("%s, line:%d, play_totbytes:%x\n", __func__, __LINE__, play_totbytes);
 		snd_pcm_lib_malloc_pages(substream, params_buffer_bytes(params));
 		if (play_prtd->params == NULL) {
 			play_prtd->params = &sun6i_codec_pcm_stereo_play;
@@ -1454,12 +1464,11 @@ static int sun6i_codec_pcm_hw_params(struct snd_pcm_substream *substream, struct
 			play_prtd->dma_loaded = 0;
 			play_prtd->dma_limit = play_runtime->hw.periods_min;
 			play_prtd->dma_period = params_period_bytes(params);
-			play_prtd->dma_start = play_runtime->dma_addr;	
+			play_prtd->dma_start = play_runtime->dma_addr;
 
 			play_dmasrc = play_prtd->dma_start;
 			play_prtd->dma_pos = play_prtd->dma_start;
 			play_prtd->dma_end = play_prtd->dma_start + play_totbytes;
-			//printk("%s,%d,play_prtd->dma_limit:%x, play_prtd->dma_period:%x, play_dmasrc:%x, play_runtime->dma_addr:%x, play_prtd->dma_pos:%x, play_prtd->dma_end:%x\n", __func__, __LINE__, play_prtd->dma_limit, play_prtd->dma_period, play_dmasrc, play_runtime->dma_addr, play_prtd->dma_pos, play_prtd->dma_end);
 			spin_unlock_irq(&play_prtd->lock);
 		}
 	} else if (substream->stream == SNDRV_PCM_STREAM_CAPTURE) {
@@ -1510,7 +1519,7 @@ static int sun6i_codec_pcm_hw_params(struct snd_pcm_substream *substream, struct
 static int snd_sun6i_codec_hw_free(struct snd_pcm_substream *substream)
 {
 	struct sun6i_playback_runtime_data *play_prtd = NULL;
-	struct sun6i_capture_runtime_data *capture_prtd = NULL;	
+	struct sun6i_capture_runtime_data *capture_prtd = NULL;
    	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		play_prtd = substream->runtime->private_data;
 		snd_pcm_set_runtime_buffer(substream, NULL);
@@ -1591,7 +1600,7 @@ static int snd_sun6i_codec_prepare(struct snd_pcm_substream	*substream)
 					printk("set codec_moduleclk rate fail\n");
 				}
 				reg_val = readl(baseaddr + SUN6I_DAC_FIFOC);
-				reg_val &=~(7<<29); 
+				reg_val &=~(7<<29);
 				reg_val |=(2<<29);
 				writel(reg_val, baseaddr + SUN6I_DAC_FIFOC);
 				break;
@@ -1603,7 +1612,7 @@ static int snd_sun6i_codec_prepare(struct snd_pcm_substream	*substream)
 					printk("set codec_moduleclk rate fail\n");
 				}
 				reg_val = readl(baseaddr + SUN6I_DAC_FIFOC);
-				reg_val &=~(7<<29); 
+				reg_val &=~(7<<29);
 				reg_val |=(4<<29);
 				writel(reg_val, baseaddr + SUN6I_DAC_FIFOC);
 				break;
@@ -1615,7 +1624,7 @@ static int snd_sun6i_codec_prepare(struct snd_pcm_substream	*substream)
 					printk("set codec_moduleclk rate fail\n");
 				}
 				reg_val = readl(baseaddr + SUN6I_DAC_FIFOC);
-				reg_val &=~(7<<29); 
+				reg_val &=~(7<<29);
 				reg_val |=(0<<29);
 				writel(reg_val, baseaddr + SUN6I_DAC_FIFOC);
 				break;
@@ -1651,7 +1660,7 @@ static int snd_sun6i_codec_prepare(struct snd_pcm_substream	*substream)
 					printk("set codec_moduleclk rate fail\n");
 				}
 				reg_val = readl(baseaddr + SUN6I_DAC_FIFOC);
-				reg_val &=~(7<<29); 
+				reg_val &=~(7<<29);
 				reg_val |=(1<<29);
 				writel(reg_val, baseaddr + SUN6I_DAC_FIFOC);
 				break;
@@ -1663,7 +1672,7 @@ static int snd_sun6i_codec_prepare(struct snd_pcm_substream	*substream)
 					printk("set codec_moduleclk rate fail\n");
 				}
 				reg_val = readl(baseaddr + SUN6I_DAC_FIFOC);
-				reg_val &=~(7<<29); 
+				reg_val &=~(7<<29);
 				reg_val |=(2<<29);
 				writel(reg_val, baseaddr + SUN6I_DAC_FIFOC);
 				break;
@@ -1675,7 +1684,7 @@ static int snd_sun6i_codec_prepare(struct snd_pcm_substream	*substream)
 					printk("set codec_moduleclk rate fail\n");
 				}
 				reg_val = readl(baseaddr + SUN6I_DAC_FIFOC);
-				reg_val &=~(7<<29); 
+				reg_val &=~(7<<29);
 				reg_val |=(3<<29);
 				writel(reg_val, baseaddr + SUN6I_DAC_FIFOC);
 				break;
@@ -1687,7 +1696,7 @@ static int snd_sun6i_codec_prepare(struct snd_pcm_substream	*substream)
 					printk("set codec_moduleclk rate fail\n");
 				}
 				reg_val = readl(baseaddr + SUN6I_DAC_FIFOC);
-				reg_val &=~(7<<29); 
+				reg_val &=~(7<<29);
 				reg_val |=(4<<29);
 				writel(reg_val, baseaddr + SUN6I_DAC_FIFOC);
 				break;
@@ -1711,16 +1720,16 @@ static int snd_sun6i_codec_prepare(struct snd_pcm_substream	*substream)
 					printk("set codec_moduleclk rate fail\n");
 				}
 				reg_val = readl(baseaddr + SUN6I_DAC_FIFOC);
-				reg_val &=~(7<<29); 
+				reg_val &=~(7<<29);
 				reg_val |=(0<<29);
-				writel(reg_val, baseaddr + SUN6I_DAC_FIFOC);		
+				writel(reg_val, baseaddr + SUN6I_DAC_FIFOC);
 				break;
 		}
 		switch (substream->runtime->channels) {
 			case 1:
 				reg_val = readl(baseaddr + SUN6I_DAC_FIFOC);
 				reg_val |=(1<<6);
-				writel(reg_val, baseaddr + SUN6I_DAC_FIFOC);			
+				writel(reg_val, baseaddr + SUN6I_DAC_FIFOC);
 				break;
 			case 2:
 				reg_val = readl(baseaddr + SUN6I_DAC_FIFOC);
@@ -1743,7 +1752,7 @@ static int snd_sun6i_codec_prepare(struct snd_pcm_substream	*substream)
 					printk("set codec_moduleclk rate fail\n");
 				}
 				reg_val = readl(baseaddr + SUN6I_ADC_FIFOC);
-				reg_val &=~(7<<29); 
+				reg_val &=~(7<<29);
 				reg_val |=(0<<29);
 				writel(reg_val, baseaddr + SUN6I_ADC_FIFOC);
 				break;
@@ -1755,7 +1764,7 @@ static int snd_sun6i_codec_prepare(struct snd_pcm_substream	*substream)
 					printk("set codec_moduleclk rate fail\n");
 				}
 				reg_val = readl(baseaddr + SUN6I_ADC_FIFOC);
-				reg_val &=~(7<<29); 
+				reg_val &=~(7<<29);
 				reg_val |=(2<<29);
 				writel(reg_val, baseaddr + SUN6I_ADC_FIFOC);
 				break;
@@ -1767,7 +1776,7 @@ static int snd_sun6i_codec_prepare(struct snd_pcm_substream	*substream)
 					printk("set codec_moduleclk rate fail\n");
 				}
 				reg_val = readl(baseaddr + SUN6I_ADC_FIFOC);
-				reg_val &=~(7<<29); 
+				reg_val &=~(7<<29);
 				reg_val |=(4<<29);
 				writel(reg_val, baseaddr + SUN6I_ADC_FIFOC);
 				break;
@@ -1779,7 +1788,7 @@ static int snd_sun6i_codec_prepare(struct snd_pcm_substream	*substream)
 					printk("set codec_moduleclk rate fail\n");
 				}
 				reg_val = readl(baseaddr + SUN6I_ADC_FIFOC);
-				reg_val &=~(7<<29); 
+				reg_val &=~(7<<29);
 				reg_val |=(0<<29);
 				writel(reg_val, baseaddr + SUN6I_ADC_FIFOC);
 				break;
@@ -1791,7 +1800,7 @@ static int snd_sun6i_codec_prepare(struct snd_pcm_substream	*substream)
 					printk("set codec_moduleclk rate fail\n");
 				}
 				reg_val = readl(baseaddr + SUN6I_ADC_FIFOC);
-				reg_val &=~(7<<29); 
+				reg_val &=~(7<<29);
 				reg_val |=(1<<29);
 				writel(reg_val, baseaddr + SUN6I_ADC_FIFOC);
 				break;
@@ -1803,7 +1812,7 @@ static int snd_sun6i_codec_prepare(struct snd_pcm_substream	*substream)
 					printk("set codec_moduleclk rate fail\n");
 				}
 				reg_val = readl(baseaddr + SUN6I_ADC_FIFOC);
-				reg_val &=~(7<<29); 
+				reg_val &=~(7<<29);
 				reg_val |=(2<<29);
 				writel(reg_val, baseaddr + SUN6I_ADC_FIFOC);
 				break;
@@ -1815,7 +1824,7 @@ static int snd_sun6i_codec_prepare(struct snd_pcm_substream	*substream)
 					printk("set codec_moduleclk rate fail\n");
 				}
 				reg_val = readl(baseaddr + SUN6I_ADC_FIFOC);
-				reg_val &=~(7<<29); 
+				reg_val &=~(7<<29);
 				reg_val |=(3<<29);
 				writel(reg_val, baseaddr + SUN6I_ADC_FIFOC);
 				break;
@@ -1827,7 +1836,7 @@ static int snd_sun6i_codec_prepare(struct snd_pcm_substream	*substream)
 					printk("set codec_moduleclk rate fail\n");
 				}
 				reg_val = readl(baseaddr + SUN6I_ADC_FIFOC);
-				reg_val &=~(7<<29); 
+				reg_val &=~(7<<29);
 				reg_val |=(4<<29);
 				writel(reg_val, baseaddr + SUN6I_ADC_FIFOC);
 				break;
@@ -1839,7 +1848,7 @@ static int snd_sun6i_codec_prepare(struct snd_pcm_substream	*substream)
 					printk("set codec_moduleclk rate fail\n");
 				}
 				reg_val = readl(baseaddr + SUN6I_ADC_FIFOC);
-				reg_val &=~(7<<29); 
+				reg_val &=~(7<<29);
 				reg_val |=(5<<29);
 				writel(reg_val, baseaddr + SUN6I_ADC_FIFOC);
 				break;
@@ -1851,16 +1860,16 @@ static int snd_sun6i_codec_prepare(struct snd_pcm_substream	*substream)
 					printk("set codec_moduleclk rate fail\n");
 				}
 				reg_val = readl(baseaddr + SUN6I_ADC_FIFOC);
-				reg_val &=~(7<<29); 
+				reg_val &=~(7<<29);
 				reg_val |=(0<<29);
-				writel(reg_val, baseaddr + SUN6I_ADC_FIFOC);		
+				writel(reg_val, baseaddr + SUN6I_ADC_FIFOC);
 				break;
 		}
 		switch (substream->runtime->channels) {
 			case 1:
 				reg_val = readl(baseaddr + SUN6I_ADC_FIFOC);
 				reg_val |=(1<<7);
-				writel(reg_val, baseaddr + SUN6I_ADC_FIFOC);			
+				writel(reg_val, baseaddr + SUN6I_ADC_FIFOC);
 			break;
 			case 2:
 				reg_val = readl(baseaddr + SUN6I_ADC_FIFOC);
@@ -1877,7 +1886,7 @@ static int snd_sun6i_codec_prepare(struct snd_pcm_substream	*substream)
    if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK){
    	 	play_prtd = substream->runtime->private_data;
    	 	/* return if this is a bufferless transfer e.g.
-	  	* codec <--> BT codec or GSM modem -- lg FIXME */       
+	  	* codec <--> BT codec or GSM modem -- lg FIXME */
    	 	if (!play_prtd->params) {
 			return 0;
 		}
@@ -1903,7 +1912,7 @@ static int snd_sun6i_codec_prepare(struct snd_pcm_substream	*substream)
 		if (0 != sw_dma_config(play_prtd->dma_hdl, &play_dma_config, ENQUE_PHASE_NORMAL)) {
 			return -EINVAL;
 		}
-		//printk("%s,line:%d,play_dma_config.byte_cnt:%x, play_dma_config.dst_addr:%x, play_dma_config.src_addr:%x\n", __func__, __LINE__, play_dma_config.byte_cnt, play_dma_config.dst_addr, play_dma_config.src_addr);
+
 		play_prtd->dma_loaded = 0;
 		play_prtd->dma_pos = play_prtd->dma_start;
 		play_prtd->play_dma_flag = false;
@@ -1994,7 +2003,7 @@ static int snd_sun6i_codec_trigger(struct snd_pcm_substream *substream, int cmd)
 					return -EINVAL;
 				}
 				break;
-			case SNDRV_PCM_TRIGGER_PAUSE_PUSH:							
+			case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
 				play_prtd->state &= ~ST_RUNNING;
 				/*
 				 * stop play dma transfer
@@ -2016,7 +2025,7 @@ static int snd_sun6i_codec_trigger(struct snd_pcm_substream *substream, int cmd)
 		case SNDRV_PCM_TRIGGER_START:
 		case SNDRV_PCM_TRIGGER_RESUME:
 		case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
-			capture_prtd->state |= ST_RUNNING;	 
+			capture_prtd->state |= ST_RUNNING;
 			codec_capture_start();
 			/*hardware fifo delay*/
 			mdelay(200);
@@ -2037,7 +2046,7 @@ static int snd_sun6i_codec_trigger(struct snd_pcm_substream *substream, int cmd)
 				return -EINVAL;
 			}
 			break;
-		case SNDRV_PCM_TRIGGER_STOP:		 
+		case SNDRV_PCM_TRIGGER_STOP:
 			capture_prtd->state &= ~ST_RUNNING;
 			codec_capture_stop();
 			/*
@@ -2047,7 +2056,7 @@ static int snd_sun6i_codec_trigger(struct snd_pcm_substream *substream, int cmd)
 				return -EINVAL;
 			}
 			break;
-		case SNDRV_PCM_TRIGGER_PAUSE_PUSH:		
+		case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
 			capture_prtd->state &= ~ST_RUNNING;
 			/*
 			 * stop capture dma transfer
@@ -2085,7 +2094,7 @@ static int snd_sun6icard_capture_open(struct snd_pcm_substream *substream)
 		return err;
 	if ((err = snd_pcm_hw_constraint_list(runtime, 0, SNDRV_PCM_HW_PARAM_RATE, &hw_constraints_rates)) < 0)
 		return err;
-        
+
 	return 0;
 }
 
@@ -2108,7 +2117,7 @@ static int snd_sun6icard_playback_open(struct snd_pcm_substream *substream)
 	spin_lock_init(&play_prtd->lock);
 	runtime->private_data = play_prtd;
 	runtime->hw = sun6i_pcm_playback_hardware;
-	
+
 	/* ensure that buffer size is a multiple of period size */
 	if ((err = snd_pcm_hw_constraint_integer(runtime, SNDRV_PCM_HW_PARAM_PERIODS)) < 0)
 		return err;
@@ -2152,7 +2161,7 @@ static int __init snd_card_sun6i_codec_pcm(struct sun6i_codec *sun6i_codec, int 
 	struct snd_pcm *pcm;
 	int err;
 
-	if ((err = snd_pcm_new(sun6i_codec->card, "M1 PCM", device, 1, 1, &pcm)) < 0){	
+	if ((err = snd_pcm_new(sun6i_codec->card, "M1 PCM", device, 1, 1, &pcm)) < 0){
 		printk("error,the func is: %s,the line is:%d\n", __func__, __LINE__);
 		return err;
 	}
@@ -2162,10 +2171,10 @@ static int __init snd_card_sun6i_codec_pcm(struct sun6i_codec *sun6i_codec, int 
 	 * isa works but I'm not sure why (or if) it's the right choice
 	 * this may be too large, trying it for now
 	 */
-	 
-	snd_pcm_lib_preallocate_pages_for_all(pcm, SNDRV_DMA_TYPE_DEV, 
+
+	snd_pcm_lib_preallocate_pages_for_all(pcm, SNDRV_DMA_TYPE_DEV,
 					      snd_dma_isa_data(),
-					      64*1024, 64*1024);
+					      32*1024, 32*1024);
 
 	snd_pcm_set_ops(pcm, SNDRV_PCM_STREAM_PLAYBACK, &sun6i_pcm_playback_ops);
 	snd_pcm_set_ops(pcm, SNDRV_PCM_STREAM_CAPTURE, &sun6i_pcm_capture_ops);
@@ -2187,8 +2196,8 @@ static int __init sun6i_codec_probe(struct platform_device *pdev)
 	int ret;
 	struct snd_card *card;
 	struct sun6i_codec *chip;
-	struct codec_board_info  *db;    
-    printk("enter sun6i Audio codec!!!\n"); 
+	struct codec_board_info  *db;
+    printk("enter sun6i Audio codec!!!\n");
 	/* register the soundcard */
 	ret = snd_card_create(SNDRV_DEFAULT_IDX1, SNDRV_DEFAULT_STR1, THIS_MODULE, sizeof(struct sun6i_codec), &card);
 	if (ret != 0) {
@@ -2376,7 +2385,6 @@ static int snd_sun6i_codec_resume(struct platform_device *pdev)
 	/*fix the resume blaze blaze noise*/
 	codec_wr_control(SUN6I_ADDAC_TUNE, 0x1, PA_SLOPE_SECECT, 0x1);
 	codec_wr_control(SUN6I_PA_CTRL, 0x1, HPPAEN, 0x1);
-
 	/*process for normal standby*/
 	if (NORMAL_STANDBY == standby_type) {
 	/*process for super standby*/
@@ -2393,6 +2401,7 @@ static int snd_sun6i_codec_resume(struct platform_device *pdev)
 
 	/*set HPVOL volume*/
 	codec_wr_control(SUN6I_DAC_ACTL, 0x3f, VOLUME, headphone_vol);
+	}
 	printk("[audio codec]:resume end\n");
 	return 0;
 }
@@ -2429,7 +2438,7 @@ static void sun6i_codec_shutdown(struct platform_device *devptr)
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPPA_MUTE, 0x0);
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPPA_MUTE, 0x0);
 	/*disable pa*/
-	codec_wr_control(SUN6I_PA_CTRL, 0x1, HPPAEN, 0x0);	
+	codec_wr_control(SUN6I_PA_CTRL, 0x1, HPPAEN, 0x0);
 	/*disable dac_l and dac_r*/
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, DACALEN, 0x0);
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, DACAREN, 0x0);
@@ -2439,7 +2448,7 @@ static void sun6i_codec_shutdown(struct platform_device *devptr)
 	/*disable Master microphone bias*/
 	codec_wr_control(SUN6I_MIC_CTRL, 0x1, MBIASEN, 0x0);
 	/*disable mic1 pa*/
-	codec_wr_control(SUN6I_MIC_CTRL, 0x1, MIC1AMPEN, 0x0);	
+	codec_wr_control(SUN6I_MIC_CTRL, 0x1, MIC1AMPEN, 0x0);
 	codec_wr_control(SUN6I_ADC_ACTL, 0x1,  ADCREN, 0x0);
 	codec_wr_control(SUN6I_ADC_ACTL, 0x1,  ADCLEN, 0x0);
 	/*disable adc digital part*/
@@ -2450,7 +2459,7 @@ static struct resource sun6i_codec_resource[] = {
 	[0] = {
     	.start = CODEC_BASSADDRESS,
         .end   = CODEC_BASSADDRESS + 0x40,
-		.flags = IORESOURCE_MEM,      
+		.flags = IORESOURCE_MEM,
 	},
 };
 
@@ -2484,7 +2493,7 @@ static int __init sun6i_codec_init(void)
 
 	if ((err = platform_driver_register(&sun6i_codec_driver)) < 0)
 		return err;
-	
+
 	return 0;
 }
 

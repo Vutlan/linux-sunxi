@@ -87,7 +87,6 @@ struct aw_mem_para{
 	struct pll_factor_t pll_factor;
 	struct mmu_state saved_mmu_state;
 	struct saved_context saved_cpu_context;
-	int suspend_delay_ms;
 };
 
 typedef  int (*suspend_func)(void);

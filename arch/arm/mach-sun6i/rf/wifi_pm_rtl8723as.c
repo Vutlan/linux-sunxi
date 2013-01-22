@@ -71,7 +71,8 @@ static int rtl8723as_module_power(int onoff)
 			ret = regulator_disable(wifi_ldo);
 			if (ret < 0) {
 				rtl8723as_msg("regulator_disable fail, return %d.\n", ret);
-				goto out;
+			regulator_put(wifi_ldo);
+				return ret;
 			}
 			axp_power_on = false;
 		}
