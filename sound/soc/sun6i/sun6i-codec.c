@@ -26,6 +26,7 @@
 #include <linux/delay.h>
 #include <linux/slab.h>
 #include <linux/gpio.h>
+#include <linux/regulator/consumer.h>
 #include <asm/io.h>
 #include <mach/dma.h>
 #include <mach/gpio.h>
@@ -47,6 +48,8 @@
 #include "sun6i-codec.h"
 
 struct clk *codec_apbclk,*codec_pll2clk,*codec_moduleclk;
+static struct regulator* hp_ldo = NULL;
+static char *hp_ldo_str = NULL;
 static unsigned int capture_dmadst = 0;
 static unsigned int play_dmasrc = 0;
 
@@ -2452,7 +2455,7 @@ static int __init sun6i_codec_probe(struct platform_device *pdev)
 	struct snd_card *card;
 	struct sun6i_codec *chip;
 	struct codec_board_info  *db;
-    printk("enter sun6i Audio codec!!!\n");
+	printk("enter sun6i Audio codec!!!\n");
 	/* register the soundcard */
 	ret = snd_card_create(SNDRV_DEFAULT_IDX1, SNDRV_DEFAULT_STR1, THIS_MODULE, sizeof(struct sun6i_codec), &card);
 	if (ret != 0) {
@@ -2540,6 +2543,24 @@ static int __init sun6i_codec_probe(struct platform_device *pdev)
 	kfree(db);
 	codec_init();
 
+	/* check if hp_vcc_ldo exist, if exist enable it */
+	type = script_get_item("audio_para", "audio_hp_ldo", &item);
+	if (SCIRPT_ITEM_VALUE_TYPE_STR != type) {
+		printk("script_get_item return type err, consider it no ldo\n");
+	} else {
+		if (!strcmp(item.str, "none"))
+			hp_ldo = NULL;
+		else {
+			hp_ldo_str = item.str;
+			hp_ldo = regulator_get(NULL, hp_ldo_str);
+			if (!hp_ldo) {
+				printk("get audio hp-vcc(%s) failed\n", hp_ldo_str);
+				return -EFAULT;
+			}
+			regulator_set_voltage(hp_ldo, 3000000, 3000000);
+			regulator_enable(hp_ldo);
+		}
+	}
 	/*get the default pa val(close)*/
 	type = script_get_item("audio_para", "audio_pa_ctrl", &item);
 	if (SCIRPT_ITEM_VALUE_TYPE_PIO != type) {
@@ -2622,8 +2643,8 @@ static int snd_sun6i_codec_resume(struct platform_device *pdev)
 
 	type = script_get_item("audio_para", "headphone_vol", &val);
 	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
-        printk("[audiocodec] headphone_vol type err!\n");
-    }
+		printk("[audiocodec] headphone_vol type err!\n");
+	}
 	headphone_vol = val.val;
 
 	printk("[audio codec]:resume start\n");
@@ -2681,6 +2702,11 @@ static int __devexit sun6i_codec_remove(struct platform_device *devptr)
 		return -EINVAL;
 	} else {
 		clk_put(codec_apbclk);
+	}
+	/* disable audio hp-vcc ldo if it exist */
+	if (hp_ldo) {
+		regulator_disable(hp_ldo);
+		hp_ldo = NULL;
 	}
 	snd_card_free(platform_get_drvdata(devptr));
 	platform_set_drvdata(devptr, NULL);
