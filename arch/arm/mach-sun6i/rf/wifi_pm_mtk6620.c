@@ -92,12 +92,13 @@ static void mtk6620_standby(int instadby)
 {
 	if (instadby) {
 		if (mtk6620_powerup) {
-			mtk6620_module_power(0);
+			/*can't poweroff axp_dldo2 because mtk6620 VRTC pin links it. fix by huzhen2013-1-23*/
+			//mtk6620_module_power(0); 
 			mtk6620_suspend = 1;
 		}
 	} else {
 		if (mtk6620_suspend) {
-			mtk6620_module_power(1);
+			//mtk6620_module_power(1);
 			mtk6620_suspend = 0;
 		}
 	}

@@ -610,6 +610,7 @@ wmt_plat_eirq_ctrl (
           WMT_INFO_FUNC("WMT-PLAT:BGFInt (deinit) \n");
           sw_gpio_irq_free(eint_bgf_handle);
           eint_bgf_handle = 0;
+          gpio_eint_bgf = -1;
         }
         iRet = 0;
         break;
@@ -991,25 +992,12 @@ wmt_plat_bgf_eint_ctrl (
 
         case PIN_STA_IN_L:
         case PIN_STA_DEINIT:
-	    /* first: disable bgf irq wake up host function*/
-/*
-            do {
-                int iret;
-                iret = disable_irq_wake(g_bgf_irq);//disable bgf irq wake up host function
-                if (iret) {
-                    WMT_WARN_FUNC("disable_irq_wake(bgf:%d) fail(%d)\n", g_bgf_irq, iret);
-                    iret = 0;
-                }
-                else {
-                    WMT_INFO_FUNC("disable_irq_wake(bgf:%d)--, ret(%d)\n", g_bgf_irq, iret);
-                }
-            } while (0);
-*/
+	          /* first: disable bgf irq wake up host function*/
  	          /* second: set to gpio input low, pull down enable*/
             WMT_DBG_FUNC("WMT-PLAT:BGFInt deinit(in pd) \n");
-			      aw_set_gpio_mode(gpio_eint_bgf);       //set mtk_6620_bgf_gpio to gpio input mode
-            aw_free_irq_resource(gpio_eint_bgf);	
-            gpio_eint_bgf = -1;
+            /*do nothing on A31,because sw_gpio_irq_request and sw_gpio_irq_free */
+ 	          /*will request and free gpio_eint_bgf */
+
             break;
 
         default:
