@@ -6,6 +6,7 @@
 #include "disp_iep.h"
 #include "disp_lcd.h"
 
+
 extern __panel_para_t gpanel_info[2];
 
 __s32 BSP_disp_cmd_cache(__u32 sel)
@@ -41,15 +42,19 @@ __s32 BSP_disp_vsync_event_enable(__u32 sel, __bool enable)
     
     return DIS_SUCCESS;
 }
+
+__s32 bsp_disp_get_fps(__u32 sel)
+{
+    return 0;
+}
+
+
 void LCD_vbi_event_proc(__u32 sel, __u32 tcon_index)
 {    
     __u32 cur_line = 0, start_delay = 0;
     __u32 i = 0;
+
     
-    if(gdisp.screen[sel].vsync_event_en && gdisp.init_para.vsync_event)
-    {
-        gdisp.init_para.vsync_event(sel);
-    }
 	Video_Operation_In_Vblanking(sel, tcon_index);
 
     cur_line = TCON_get_cur_line(sel, tcon_index);
@@ -68,7 +73,7 @@ void LCD_vbi_event_proc(__u32 sel, __u32 tcon_index)
     	(*gdisp.screen[sel].LCD_CPUIF_ISR)();
     }
 
-    if(gdisp.screen[sel].cache_flag == FALSE)// && gdisp.screen[sel].cfg_cnt == 0)
+    if(gdisp.screen[sel].cache_flag == FALSE && gdisp.screen[sel].cfg_cnt == 0)
     {
         for(i=0; i<2; i++)
         {            
@@ -98,6 +103,9 @@ void LCD_vbi_event_proc(__u32 sel, __u32 tcon_index)
         DE_BE_Cfg_Ready(sel);
         IEP_CMU_Operation_In_Vblanking(sel);
 		gdisp.screen[sel].have_cfg_reg = TRUE;
+
+		gdisp.init_para.take_effect(sel);
+
     }
 
 #if 0
@@ -114,9 +122,14 @@ void LCD_vbi_event_proc(__u32 sel, __u32 tcon_index)
 
 void LCD_line_event_proc(__u32 sel)
 {    
+    if(gdisp.screen[sel].vsync_event_en && gdisp.init_para.vsync_event)
+    {
+        gdisp.init_para.vsync_event(sel);
+    }
+
 	if(gdisp.screen[sel].have_cfg_reg)
 	{   
-	    gdisp.init_para.disp_int_process(sel);
+        gdisp.init_para.disp_int_process(sel);
 	    gdisp.screen[sel].have_cfg_reg = FALSE;
 	}
 }

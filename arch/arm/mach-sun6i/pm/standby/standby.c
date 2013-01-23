@@ -71,7 +71,6 @@ int main(struct aw_pm_info *arg)
 {
 	char    *tmpPtr = (char *)&__bss_start;
 
-	//don't need init serial ,depend kernel?
 	serial_init();
 	if(!arg){
 		/* standby parameter is invalid */
@@ -104,6 +103,8 @@ int main(struct aw_pm_info *arg)
 	mem_tmr_init();
 
 	if(unlikely(pm_info.standby_para.debug_mask&PM_STANDBY_PRINT_STANDBY)){
+		//don't need init serial ,depend kernel?
+		serial_init();
 		printk("pm_info.standby_para.event = 0x%x. \n", pm_info.standby_para.event);
 	}
 

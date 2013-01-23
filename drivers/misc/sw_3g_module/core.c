@@ -51,13 +51,7 @@
 
 void sw_module_mdelay(u32 time)
 {
-    spinlock_t lock;
-	unsigned long flags = 0;
-
-	spin_lock_init(&lock);
-	spin_lock_irqsave(&lock, flags);
-	mdelay(time);
-	spin_unlock_irqrestore(&lock, flags);
+	msleep(time);
 }
 EXPORT_SYMBOL(sw_module_mdelay);
 
@@ -292,13 +286,7 @@ void modem_vbat(struct sw_modem *modem, u32 value)
         return;
     }
 
-    if(modem->bb_vbat.pio.gpio.data == 0){
-        negated = value ? 1 : 0;
-    }else{
-        negated = value ? 0 : 1;
-    }
-
-    __gpio_set_value(modem->bb_vbat.pio.gpio.gpio, negated);
+    __gpio_set_value(modem->bb_vbat.pio.gpio.gpio, value);
 
     return;
 }
@@ -307,19 +295,14 @@ EXPORT_SYMBOL(modem_vbat);
 /* modem reset delay is 100 */
 void modem_reset(struct sw_modem *modem, u32 value)
 {
+
     u32 negated = 0;  //È¡·´
 
     if(!modem->bb_rst.valid){
         return;
     }
 
-    if(modem->bb_rst.pio.gpio.data == 0){
-        negated = value ? 1 : 0;
-    }else{
-        negated = value ? 0 : 1;
-    }
-
-    __gpio_set_value(modem->bb_rst.pio.gpio.gpio, negated);
+    __gpio_set_value(modem->bb_rst.pio.gpio.gpio, value);
 
     return;
 }
@@ -333,13 +316,7 @@ void modem_sleep(struct sw_modem *modem, u32 value)
         return;
     }
 
-    if(modem->bb_wake.pio.gpio.data == 0){
-        negated = value ? 1 : 0;
-    }else{
-        negated = value ? 0 : 1;
-    }
-
-    __gpio_set_value(modem->bb_wake.pio.gpio.gpio, negated);
+    __gpio_set_value(modem->bb_wake.pio.gpio.gpio, value);
 
     return;
 }
@@ -353,13 +330,7 @@ void modem_power_on_off(struct sw_modem *modem, u32 value)
         return;
     }
 
-    if(modem->bb_pwr_on.pio.gpio.data == 0){
-        negated = value ? 1 : 0;
-    }else{
-        negated = value ? 0 : 1;
-    }
-
-    __gpio_set_value(modem->bb_pwr_on.pio.gpio.gpio, negated);
+    __gpio_set_value(modem->bb_pwr_on.pio.gpio.gpio, value);
 
     return;
 }
@@ -373,13 +344,7 @@ void modem_rf_disable(struct sw_modem *modem, u32 value)
         return;
     }
 
-    if(modem->bb_rf_dis.pio.gpio.data == 0){
-        negated = value ? 1 : 0;
-    }else{
-        negated = value ? 0 : 1;
-    }
-
-    __gpio_set_value(modem->bb_rf_dis.pio.gpio.gpio, negated);
+    __gpio_set_value(modem->bb_rf_dis.pio.gpio.gpio, value);
 
     return;
 }

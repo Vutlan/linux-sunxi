@@ -133,9 +133,9 @@ static __inline __s32 Hal_Set_Frame(__u32 sel, __u32 tcon_index, __u32 id)
     	    g_video[sel][id].diagintp_en = FALSE;
     	}
         
-    	in_type.fmt= Scaler_sw_para_to_reg(0,scaler->in_fb.format);
-    	in_type.mod= Scaler_sw_para_to_reg(1,scaler->in_fb.mode);
-    	in_type.ps= Scaler_sw_para_to_reg(2,scaler->in_fb.seq);
+    	in_type.fmt= Scaler_sw_para_to_reg(0,scaler->in_fb.mode, scaler->in_fb.format, scaler->in_fb.seq);
+        in_type.mod= Scaler_sw_para_to_reg(1,scaler->in_fb.mode, scaler->in_fb.format, scaler->in_fb.seq);
+        in_type.ps= Scaler_sw_para_to_reg(2,scaler->in_fb.mode, scaler->in_fb.format, (__u8)scaler->in_fb.seq);
     	in_type.byte_seq = 0;
     	in_type.sample_method = 0;
 
@@ -358,7 +358,7 @@ __s32 BSP_disp_video_start(__u32 sel, __u32 hid)
             g_video[sel][hid].cur_maf_flag_addr = (__u32)maf_flag_mem[layer_man->scaler_index][0];
             g_video[sel][hid].pre_maf_flag_addr = (__u32)maf_flag_mem[layer_man->scaler_index][1];
         }
-        //Disp_drc_start_video_mode(sel);
+        Disp_drc_start_video_mode(sel);
         video_enhancement_start(sel,hid);
         if(sel == 1)
         {
@@ -381,7 +381,7 @@ __s32 BSP_disp_video_stop(__u32 sel, __u32 hid)
     {
         memset(&g_video[sel][hid], 0, sizeof(frame_para_t));
         
-        //Disp_drc_start_ui_mode(sel);
+        Disp_drc_start_ui_mode(sel);
         video_enhancement_stop(sel,hid);
         if(sel == 1)
         {

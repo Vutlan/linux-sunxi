@@ -68,6 +68,7 @@ typedef struct
 
     __u32                   backlight_bright;
     __u32                   backlight_dimming;//IEP-drc backlight dimming rate: 0 -256 (256: no dimming; 0: the most dimming)
+    __u32                   backlight_max_limit;
     
     __u32                   lcd_bright;
     __u32                   lcd_contrast;
@@ -169,6 +170,7 @@ typedef struct
     __disp_screen_t         screen[2];
     __disp_scaler_t         scaler[2];
     __disp_pwm_t            pwm[4];
+    __u32                   print_level;
 }__disp_dev_t;
 
 extern __disp_dev_t gdisp;

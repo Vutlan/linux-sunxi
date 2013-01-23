@@ -73,7 +73,7 @@ int resume1_c_part(void)
 	mem_clk_setdiv(&mem_para_info.clk_div);
 	mem_clk_set_pll_factor(&mem_para_info.pll_factor);
 	change_runtime_env(0);
-	delay_ms(5);
+	delay_ms(mem_para_info.suspend_delay_ms);
 	
 	if(unlikely(mem_para_info.debug_mask&PM_STANDBY_PRINT_RESUME)){
 		serial_puts_nommu("resume1: 1. before restore mmu. \n");

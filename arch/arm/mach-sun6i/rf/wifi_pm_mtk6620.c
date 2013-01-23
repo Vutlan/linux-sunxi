@@ -34,7 +34,7 @@ static int mtk6620_module_power(int onoff)
 		ret = regulator_force_disable(wifi_ldo);
 		if (ret < 0) {
 			mtk6620_msg("regulator_force_disable fail, return %d.\n", ret);
-			return ret;
+			goto out;
 		}
 		first = 0;
 	}
@@ -44,22 +44,25 @@ static int mtk6620_module_power(int onoff)
 		ret = regulator_set_voltage(wifi_ldo, 3000000, 3000000);
 		if (ret < 0) {
 			mtk6620_msg("regulator_set_voltage fail, return %d.\n", ret);
-			return ret;
+			goto out;
 		}
 
 		ret = regulator_enable(wifi_ldo);
 		if (ret < 0) {
 			mtk6620_msg("regulator_enable fail, return %d.\n", ret);
-			return ret;
+			goto out;
 		}
 	} else {
 		mtk6620_msg("regulator off.\n");
 		ret = regulator_disable(wifi_ldo);
 		if (ret < 0) {
 			mtk6620_msg("regulator_disable fail, return %d.\n", ret);
-			return ret;
+			goto out;
 		}
 	}
+out:
+	regulator_put(wifi_ldo);
+	wifi_ldo = NULL;
 	return ret;
 }
 
@@ -89,12 +92,13 @@ static void mtk6620_standby(int instadby)
 {
 	if (instadby) {
 		if (mtk6620_powerup) {
-			mtk6620_module_power(0);
+			/*can't poweroff axp_dldo2 because mtk6620 VRTC pin links it. fix by huzhen2013-1-23*/
+			//mtk6620_module_power(0); 
 			mtk6620_suspend = 1;
 		}
 	} else {
 		if (mtk6620_suspend) {
-			mtk6620_module_power(1);
+			//mtk6620_module_power(1);
 			mtk6620_suspend = 0;
 		}
 	}

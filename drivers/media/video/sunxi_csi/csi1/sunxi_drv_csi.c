@@ -1524,7 +1524,8 @@ static int vidioc_s_parm(struct file *file, void *priv,
 	int ret;
 	
 	if(parms->parm.capture.capturemode != V4L2_MODE_VIDEO && \
-		parms->parm.capture.capturemode != V4L2_MODE_IMAGE) {
+		parms->parm.capture.capturemode != V4L2_MODE_IMAGE && \
+		parms->parm.capture.capturemode != V4L2_MODE_PREVIEW) {
 		
 		parms->parm.capture.capturemode = V4L2_MODE_VIDEO;
 	}

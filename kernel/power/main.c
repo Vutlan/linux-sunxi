@@ -18,6 +18,9 @@
 
 #include "power.h"
 
+long phone_actived = 0;
+EXPORT_SYMBOL_GPL(phone_actived);
+
 DEFINE_MUTEX(pm_mutex);
 
 #ifdef CONFIG_PM_SLEEP
@@ -317,6 +320,24 @@ static ssize_t state_store(struct kobject *kobj, struct kobj_attribute *attr,
 
 power_attr(state);
 
+static ssize_t phone_actived_show(struct kobject *kobj, struct kobj_attribute *attr,
+			  char *buf)
+{
+	return sprintf(buf, "%ld\n", phone_actived);
+}
+
+static ssize_t phone_actived_store(struct kobject *kobj, struct kobj_attribute *attr,
+			   const char *buf, size_t n)
+{
+	if (strict_strtol(buf, 10, &phone_actived))
+		return -EINVAL;
+
+	printk("%s, buf=%s, phone_actived=%ld\n", __func__, buf, phone_actived);
+	return n;
+}
+
+power_attr(phone_actived);
+
 #ifdef CONFIG_PM_SLEEP
 /*
  * The 'wakeup_count' attribute, along with the functions defined in
@@ -435,6 +456,7 @@ static struct attribute * g[] = {
 	&wake_unlock_attr.attr,
 #endif
 #endif
+	&phone_actived_attr.attr,
 	NULL,
 };
 
