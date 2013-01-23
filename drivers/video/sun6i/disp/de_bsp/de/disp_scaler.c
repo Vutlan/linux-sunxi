@@ -293,9 +293,12 @@ __s32 Scaler_event_proc(void *parg)
     __u8 fe_intflags, be_intflags;
     __u32 sel = (__u32)parg;
 
-    fe_intflags = DE_SCAL_QueryINT(sel);
+    if(gdisp.scaler[sel].status & SCALER_USED)
+    {
+        fe_intflags = DE_SCAL_QueryINT(sel);
+        DE_SCAL_ClearINT(sel,fe_intflags);
+    }
     be_intflags = DE_BE_QueryINT(sel);
-    DE_SCAL_ClearINT(sel,fe_intflags);
     DE_BE_ClearINT(sel,be_intflags);
     
     //DE_INF("scaler %d interrupt, scal_int_status:0x%x!\n", sel, fe_intflags);
@@ -305,7 +308,7 @@ __s32 Scaler_event_proc(void *parg)
         LCD_line_event_proc(sel); 
     }
 
-    if(fe_intflags & DE_WB_END_IE)
+    if((gdisp.scaler[sel].status & SCALER_USED) && (fe_intflags & DE_WB_END_IE))
     {        
         DE_SCAL_DisableINT(sel,DE_FE_INTEN_ALL);
 #ifdef __LINUX_OSAL__
@@ -327,7 +330,7 @@ __s32 Scaler_event_proc(void *parg)
 __s32 Scaler_Init(__u32 sel)
 {
     scaler_clk_init(sel);
-    DE_SCAL_EnableINT(sel,DE_WB_END_IE);
+    DE_SCAL_DisableINT(sel,DE_WB_END_IE);
     
     if(sel == 0)
     {
@@ -371,6 +374,7 @@ __s32 Scaler_open(__u32 sel)
     DE_INF("scaler %d open\n", sel);
 
     scaler_clk_on(sel);
+    deu_clk_open(sel, 0);
     DE_SCAL_Reset(sel);
     DE_SCAL_Enable(sel);
 
@@ -384,6 +388,7 @@ __s32 Scaler_close(__u32 sel)
     DE_SCAL_Reset(sel);
     DE_SCAL_Disable(sel);
     scaler_clk_off(sel);
+    deu_clk_close(sel, 0);
 
     memset(&gdisp.scaler[sel], 0, sizeof(__disp_scaler_t));
     gdisp.scaler[sel].bright = 32;
@@ -1156,6 +1161,8 @@ __s32 BSP_disp_scaler_start_ex(__u32 handle,__disp_scaler_para_t *para)
     DE_SCAL_Reset(sel);
     DE_SCAL_Writeback_Disable(sel);
     DE_SCAL_Writeback_Linestride_Disable(sel);
+    DE_SCAL_ClearINT(sel,DE_WB_END_IE);
+    DE_SCAL_DisableINT(sel,DE_WB_END_IE);
 
     return ret;
 
@@ -1317,6 +1324,9 @@ __s32 BSP_disp_scaler_start(__u32 handle,__disp_scaler_para_t *para)
 #endif
     DE_SCAL_Reset(sel);
     DE_SCAL_Writeback_Disable(sel);
+    DE_SCAL_ClearINT(sel,DE_WB_END_IE);
+    DE_SCAL_DisableINT(sel,DE_WB_END_IE);
+
     return ret;
 
 }
@@ -1436,7 +1446,7 @@ __s32 BSP_disp_capture_screen(__u32 sel, __disp_capture_screen_para_t * para)
         DE_SCAL_Input_Select(scaler_idx, 6 + sel);
         DE_BE_set_display_size(sel, para->screen_size.width, para->screen_size.height);
         DE_BE_Output_Select(sel, 6 + scaler_idx);
-        image_clk_on(sel);
+        image_clk_on(sel, 1);
         Image_open(sel);
         DE_BE_Cfg_Ready(sel);
     }
@@ -1487,9 +1497,11 @@ __s32 BSP_disp_capture_screen(__u32 sel, __disp_capture_screen_para_t * para)
     if(BSP_disp_get_output_type(sel) == DISP_OUTPUT_TYPE_NONE)
     {
         Image_close(sel);
-        image_clk_off(sel);
+        image_clk_off(sel, 1);
     }
     DE_BE_Output_Select(sel, sel);
+    DE_SCAL_ClearINT(scaler_idx,DE_WB_END_IE);
+    DE_SCAL_DisableINT(scaler_idx,DE_WB_END_IE);
 
     return ret;
 

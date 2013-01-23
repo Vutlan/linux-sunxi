@@ -722,7 +722,7 @@ void backlight_late_resume(struct early_suspend *h)
     {
         BSP_disp_clk_on(2);
     }
-    for(i=1; i>=0; i--)
+    for(i=0; i<2; i++)
     {
         if(suspend_output_type[i] == DISP_OUTPUT_TYPE_LCD)
         {

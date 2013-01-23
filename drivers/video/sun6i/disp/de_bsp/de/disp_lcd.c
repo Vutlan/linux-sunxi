@@ -430,6 +430,24 @@ __s32 LCD_parse_panel_para(__u32 sel, __panel_para_t * info)
         info->lcd_io_phase = value;
     }
 
+    ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_gamma_en", &value, 1);
+    if(ret == 0)
+    {
+        info->lcd_gamma_en = value;
+    }
+
+    ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_cmap_en", &value, 1);
+    if(ret == 0)
+    {
+        info->lcd_cmap_en = value;
+    }
+
+    ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_bright_curve_en", &value, 1);
+    if(ret == 0)
+    {
+        info->lcd_bright_curve_en = value;
+    }
+
     return 0;
 }
 
@@ -1270,9 +1288,7 @@ __s32 Disp_lcdc_init(__u32 sel)
     {
         dsi_clk_init();
     }
-    lcdc_clk_on(sel);	//??need to be open
-    tcon_init(sel);
-    lcdc_clk_off(sel);
+    
     if(sel == 0)
     {        
         OSAL_RegISR(INTC_IRQNO_LCDC0,0,Disp_lcdc_event_proc,(void*)sel,0,0);
@@ -1744,8 +1760,11 @@ __s32 BSP_disp_get_frame_rate(__u32 sel)
 
 __s32 BSP_disp_lcd_open_before(__u32 sel)
 {    
+    lcdc_clk_on(sel, 0, 0);
     disp_clk_cfg(sel, DISP_OUTPUT_TYPE_LCD, DIS_NULL);
-    lcdc_clk_on(sel);
+    lcdc_clk_on(sel, 0, 1);
+    drc_clk_open(sel,0);
+    tcon_init(sel);
     if(gpanel_info[sel].lcd_if == LCD_IF_LVDS)
     {
         lvds_clk_on();
@@ -1754,7 +1773,7 @@ __s32 BSP_disp_lcd_open_before(__u32 sel)
     {
         dsi_clk_on();
     }
-    image_clk_on(sel);
+    image_clk_on(sel, 1);
     Image_open(sel);//set image normal channel start bit , because every de_clk_off( )will reset this bit
     //Disp_lcdc_pin_cfg(sel, DISP_OUTPUT_TYPE_LCD, 1);
     if(gpanel_info[sel].tcon_index == 0)
@@ -1821,7 +1840,7 @@ __s32 BSP_disp_lcd_close_after(__u32 sel)
     Image_close(sel);
 
     //Disp_lcdc_pin_cfg(sel, DISP_OUTPUT_TYPE_LCD, 0);
-	image_clk_off(sel);
+	image_clk_off(sel, 1);
 	lcdc_clk_off(sel);
     if(gpanel_info[sel].lcd_if == LCD_IF_LVDS)
     {
@@ -1831,6 +1850,7 @@ __s32 BSP_disp_lcd_close_after(__u32 sel)
     {
         dsi_clk_off();
     }
+    drc_clk_close(sel,0);
 
 	gdisp.screen[sel].pll_use_status &= ((gdisp.screen[sel].pll_use_status == VIDEO_PLL0_USED)? VIDEO_PLL0_USED_MASK : VIDEO_PLL1_USED_MASK);
 	
@@ -1844,7 +1864,7 @@ __lcd_flow_t * BSP_disp_lcd_get_close_flow(__u32 sel)
 
 __s32 __disp_lcd_bright_get_adjust_value(__u32 sel, __u32 bright)
 {
-    if(gpanel_info[sel].lcd_extend_para.lcd_bright_curve_en)
+    if(gpanel_info[sel].lcd_bright_curve_en)
     {
         bright = (bright > 255)? 255:bright;
     
@@ -1857,12 +1877,12 @@ __s32 __disp_lcd_bright_get_adjust_value(__u32 sel, __u32 bright)
 
 __s32 bsp_disp_lcd_get_bright_curve_en(__u32 sel)
 {
-    return gpanel_info[sel].lcd_extend_para.lcd_bright_curve_en;
+    return gpanel_info[sel].lcd_bright_curve_en;
 }
 
 __s32 bsp_disp_lcd_set_bright_curve_en(__u32 sel, __u32 en)
 {
-    gpanel_info[sel].lcd_extend_para.lcd_bright_curve_en = en;
+    gpanel_info[sel].lcd_bright_curve_en = en;
 
     return 0;
 }
@@ -1932,7 +1952,7 @@ __s32 BSP_disp_gamma_correction_enable(__u32 sel)
 //	TCON1_set_gamma_Enable(sel,TRUE);
     if(BSP_disp_lcd_used(sel))
     {
-        gpanel_info[sel].lcd_extend_para.lcd_gamma_en = TRUE;
+        gpanel_info[sel].lcd_gamma_en = TRUE;
     }
         
 	return DIS_SUCCESS;
@@ -1943,7 +1963,7 @@ __s32 BSP_disp_gamma_correction_disable(__u32 sel)
 	if(BSP_disp_lcd_used(sel))
     {
         tcon_gamma(sel, 0, 0);
-        gpanel_info[sel].lcd_extend_para.lcd_gamma_en = FALSE;
+        gpanel_info[sel].lcd_gamma_en = FALSE;
     }
     
 	return DIS_SUCCESS;

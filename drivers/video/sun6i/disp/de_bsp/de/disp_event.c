@@ -6,6 +6,9 @@
 #include "disp_iep.h"
 #include "disp_lcd.h"
 
+#define VINT_TIME_LEN 100
+unsigned long vint_time_index[2] = {0,0};
+unsigned long vint_time[2][VINT_TIME_LEN];//jiffies
 
 extern __panel_para_t gpanel_info[2];
 
@@ -45,15 +48,40 @@ __s32 BSP_disp_vsync_event_enable(__u32 sel, __bool enable)
 
 __s32 bsp_disp_get_fps(__u32 sel)
 {
-    return 0;
+    __u32 pre_time_index, cur_time_index;
+    __u32 pre_time, cur_time;
+    __u32 fps = 0xff;
+
+    pre_time_index = vint_time_index[sel];
+    cur_time_index = (pre_time_index == 0)? (VINT_TIME_LEN -1):(pre_time_index-1);
+
+    pre_time = vint_time[sel][pre_time_index];
+    cur_time = vint_time[sel][cur_time_index];
+
+    if(pre_time != cur_time)
+    {
+        fps = 1000 * 100 * 10 / (cur_time - pre_time);
+    }
+    
+    return fps;
 }
 
+__s32 disp_vint_checkin(__u32 sel)
+{
+    vint_time[sel][vint_time_index[sel]] = jiffies;
+    vint_time_index[sel] ++;
+
+    vint_time_index[sel] = (vint_time_index[sel] >= VINT_TIME_LEN)? 0:vint_time_index[sel];
+
+    return 0;
+}
 
 void LCD_vbi_event_proc(__u32 sel, __u32 tcon_index)
 {    
     __u32 cur_line = 0, start_delay = 0;
     __u32 i = 0;
 
+    disp_vint_checkin(sel);
     
 	Video_Operation_In_Vblanking(sel, tcon_index);
 
