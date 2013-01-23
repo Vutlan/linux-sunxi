@@ -42,10 +42,10 @@
 /*#define I2S_COMMUNICATION*/
 #define PCM_COMMUNICATION
 /*-----------------------------------------------*/
-static unsigned long over_sample_rate = 256;		/*128fs/192fs/256fs/384fs/512fs/768fs*/
+static unsigned long over_sample_rate = 512; //256;		/*128fs/192fs/256fs/384fs/512fs/768fs*/
 static unsigned long sample_resolution = 16;		/*16bits/20bits/24bits*/
 static unsigned long word_select_size = 32;			/*16bits/20bits/24bits/32bits*/
-static unsigned long pcm_sync_period = 256;			/*16/32/64/128/256*/
+static unsigned long pcm_sync_period = 64;			/*16/32/64/128/256*/
 static unsigned long msb_lsb_first = 0;				/*0: msb first; 1: lsb first*/
 static unsigned long slot_index = 0;				/*slot index: 0: the 1st slot - 3: the 4th slot*/
 static unsigned long slot_width = 16;				/*8 bit width / 16 bit width*/
@@ -358,12 +358,13 @@ static int sun6i_pcm_set_clkdiv(struct snd_soc_dai *cpu_dai, int div_id, int div
 
 	fs = div;
 	mclk = over_sample_rate;
+
 	
-#ifdef PCM_COMMUNICATION
+#ifdef I2S_COMMUNICATION
 	wss = word_select_size;
 #endif
 
-#ifdef PCM_COMMUNICATION
+#ifdef I2S_COMMUNICATION
 	/*mclk div caculate*/
 	switch(fs)
 	{
@@ -512,9 +513,10 @@ static int sun6i_pcm_set_clkdiv(struct snd_soc_dai *cpu_dai, int div_id, int div
 	
 	/*bclk div caculate*/
 	bclk_div = mclk/(2*wss);
+
 #else
-	mclk_div = 2;
-	bclk_div = 6;
+	mclk_div = 4;
+	bclk_div = 12;
 #endif
 
 	/*calculate MCLK Divide Ratio*/
@@ -543,6 +545,8 @@ static int sun6i_pcm_set_clkdiv(struct snd_soc_dai *cpu_dai, int div_id, int div
 		case 64: mclk_div = 0xA;
 				 break;
 	}
+
+
 	mclk_div &= 0xf;
 
 	/*calculate BCLK Divide Ratio*/
@@ -566,7 +570,8 @@ static int sun6i_pcm_set_clkdiv(struct snd_soc_dai *cpu_dai, int div_id, int div
 				 break;
 	}
 	bclk_div &= 0x7;
-	
+
+
 	/*set mclk and bclk dividor register*/
 	reg_val = mclk_div;
 	reg_val |= (bclk_div<<4);
@@ -626,7 +631,10 @@ static int sun6i_pcm_set_clkdiv(struct snd_soc_dai *cpu_dai, int div_id, int div
 	else if (sun6i_pcm.pcm_sync_period == 32)
 		reg_val |= 0x1<<12;
 	writel(reg_val, sun6i_pcm.regs + SUN6I_PCMFAT1);
-	
+
+
+
+
 	return 0;
 }
 
@@ -875,8 +883,8 @@ static int __init sun6i_pcm_init(void)
 
 	type = script_get_item("pcm_para", "pcm_used", &val);
 	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
-        printk("[PCM] type err!\n");
-    }
+		printk("[PCM] type err!\n");
+	}
 
 	pcm_used = val.val;
 	if (pcm_used) {
@@ -900,13 +908,13 @@ static int __init sun6i_pcm_init(void)
 
 		if((err = platform_device_register(&sun6i_pcm_device)) < 0)
 			return err;
-	
+
 		if ((err = platform_driver_register(&sun6i_pcm_driver)) < 0)
 			return err;	
 	} else {
-        printk("[PCM]sun6i-pcm cannot find any using configuration for controllers, return directly!\n");
-        return 0;
-    }
+		printk("[PCM]sun6i-pcm cannot find any using configuration for controllers, return directly!\n");
+		return 0;
+	}
 
 end:
 	/* release gpio */
