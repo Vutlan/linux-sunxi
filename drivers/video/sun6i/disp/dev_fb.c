@@ -1034,9 +1034,20 @@ static int Fb_cursor(struct fb_info *info, struct fb_cursor *cursor)
 
 __s32 DRV_disp_vsync_event(__u32 sel)
 {
-    //g_fbi.vsync_timestamp[sel] = ktime_get();
+    g_fbi.vsync_timestamp[sel] = ktime_get();
 
-    //schedule_work(&g_fbi.vsync_work[sel]);
+    schedule_work(&g_fbi.vsync_work[sel]);
+
+    return 0;
+}
+
+__s32 DRV_disp_take_effect_event(__u32 sel)
+{
+    if(sel == 0 && g_fbi.cur_count != g_fbi.cb_w_conut)
+    {
+        g_fbi.cur_count = g_fbi.cb_w_conut;
+        //printk(KERN_WARNING "##take effect:%d\n", g_fbi.cur_count);
+    }
 
     return 0;
 }
@@ -1073,12 +1084,8 @@ static void lcd_open_work_1(struct work_struct *work)
 	DRV_lcd_open(1);
 }
 
-
 __s32 DRV_disp_int_process(__u32 sel)
 {
-    g_fbi.vsync_timestamp[sel] = ktime_get();
-    schedule_work(&g_fbi.vsync_work[sel]);
-
     g_fbi.wait_count[sel]++;
     wake_up_interruptible(&g_fbi.wait[sel]);
 
@@ -1086,21 +1093,6 @@ __s32 DRV_disp_int_process(__u32 sel)
 	{
 	    if(g_fbi.cb_r_conut != g_fbi.cb_w_conut)
 	    {
-    	    int r_count = g_fbi.cb_r_conut;
-    	    
-            while(r_count != g_fbi.cb_w_conut)
-            {
-                if(r_count >= 9)
-                {
-                   r_count = 0; 
-                }
-                else
-                {
-                    r_count++;
-                }
-
-                g_fbi.release_count[r_count]++;
-            }
     		schedule_work(&g_fbi.post2_cb_work);
         }
 	}
@@ -1111,25 +1103,7 @@ __s32 DRV_disp_int_process(__u32 sel)
 static void post2_cb(struct work_struct *work)
 {
     int r_count = g_fbi.cb_r_conut;
-    int cur_count = 0;
 
-    while(r_count != g_fbi.cb_w_conut)
-    {        
-        if(r_count >= 9)
-        {
-           r_count = 0; 
-        }
-        else
-        {
-            r_count++;
-        }
-        if(g_fbi.release_count[r_count] >= 1)
-        {
-            cur_count = r_count;
-        }
-    }
-
-    r_count = g_fbi.cb_r_conut;
     while(r_count != g_fbi.cb_w_conut)
     {
         if(r_count >= 9)
@@ -1140,18 +1114,11 @@ static void post2_cb(struct work_struct *work)
         {
             r_count++;
         }
-        if(r_count == cur_count)
+        if(r_count == g_fbi.cur_count)
         {
-            if(g_fbi.release_count[r_count] >= 3)
-            {
-                //printk(KERN_WARNING "##r_conut:%d %x\n", r_count, (unsigned int)g_fbi.cb_arg[r_count]);
-                g_fbi.cb_fn(g_fbi.cb_arg[r_count], 1);
-                g_fbi.cb_arg[r_count] = 0;
-                g_fbi.cb_r_conut = r_count;
-            }
             break;
         }
-        else
+        else if(g_fbi.cb_arg[r_count] != 0)
         {
             //printk(KERN_WARNING "##r_conut:%d %x\n", r_count, (unsigned int)g_fbi.cb_arg[r_count]);
             g_fbi.cb_fn(g_fbi.cb_arg[r_count], 1);
@@ -1261,7 +1228,6 @@ int dispc_gralloc_queue(setup_dispc_data_t *psDispcData, int ui32DispcDataLength
     	    g_fbi.cb_w_conut++;
     	}
     	g_fbi.cb_arg[g_fbi.cb_w_conut] = cb_arg;
-    	g_fbi.release_count[g_fbi.cb_w_conut] = 0;
 
     	//printk(KERN_WARNING "##w_conut:%d %x %d %d %d\n", g_fbi.cb_w_conut, (unsigned int)cb_arg, psDispcData->use_sgx, psDispcData->post2_layers, psDispcData->fb_yoffset);
 	}
@@ -1444,6 +1410,8 @@ __s32 Display_Fb_Request(__u32 fb_id, __disp_fb_create_para_t *fb_para)
                     info->var.hsync_len = tt.hor_sync_time;
                     info->var.vsync_len = tt.ver_sync_time;
                 }
+                info->var.width = BSP_disp_get_screen_physical_width(sel);
+                info->var.height = BSP_disp_get_screen_physical_height(sel);
             }
 
             if(fb_para->fb_mode == FB_MODE_DUAL_SAME_SCREEN_TB)

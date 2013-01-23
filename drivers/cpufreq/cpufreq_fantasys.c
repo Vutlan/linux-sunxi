@@ -24,7 +24,6 @@
 #include <linux/sched.h>
 #include <linux/slab.h>
 #include <linux/threads.h>
-#include <linux/reboot.h>
 #include <linux/suspend.h>
 #include <linux/delay.h>
 
@@ -528,8 +527,7 @@ define_one_global_rw(cpu_down_rate);
 define_one_global_rw(max_cpu_lock);
 define_one_global_rw(hotplug_lock);
 define_one_global_rw(dvfs_debug);
-static struct global_attr max_power = \
-__ATTR(max_power, 0666, show_max_power, store_max_power);
+define_one_global_rw(max_power);
 
 static struct attribute *dbs_attributes[] = {
     &sampling_rate.attr,
@@ -1183,16 +1181,6 @@ static inline void dbs_timer_exit(struct cpu_dbs_info_s *dbs_info)
     cancel_work_sync(&dbs_info->down_work);
 }
 
-static int reboot_notifier_call(struct notifier_block *this,
-                unsigned long code, void *_cmd)
-{
-    atomic_set(&g_hotplug_lock, 1);
-    return NOTIFY_DONE;
-}
-static struct notifier_block reboot_notifier = {
-    .notifier_call = reboot_notifier_call,
-};
-
 
 /*
  * cpufreq dbs governor
@@ -1202,7 +1190,6 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy, unsigned int even
     unsigned int cpu = policy->cpu;
     struct cpu_dbs_info_s *this_dbs_info;
     unsigned int j;
-    int rc;
 
     this_dbs_info = &per_cpu(od_cpu_dbs_info, cpu);
 
@@ -1232,19 +1219,10 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy, unsigned int even
              * is used for first time
              */
             if (dbs_enable == 1) {
-                rc = sysfs_create_group(cpufreq_global_kobject, &dbs_attr_group);
-                if (rc) {
-                    mutex_unlock(&dbs_mutex);
-                    return rc;
-                }
-
                 dbs_tuners_ins.sampling_rate = DEF_SAMPLING_RATE;
                 dbs_tuners_ins.io_is_busy = 1;
             }
             mutex_unlock(&dbs_mutex);
-
-            /* register reboot notifier for process cpus when reboot */
-            register_reboot_notifier(&reboot_notifier);
 
             mutex_init(&this_dbs_info->timer_mutex);
             dbs_timer_init(this_dbs_info);
@@ -1259,13 +1237,8 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy, unsigned int even
             mutex_lock(&dbs_mutex);
             mutex_destroy(&this_dbs_info->timer_mutex);
 
-            unregister_reboot_notifier(&reboot_notifier);
-
             dbs_enable--;
             mutex_unlock(&dbs_mutex);
-
-            if (!dbs_enable)
-                sysfs_remove_group(cpufreq_global_kobject, &dbs_attr_group);
 
             break;
         }
@@ -1355,8 +1328,15 @@ static int __init cpufreq_gov_dbs_init(void)
     if (ret)
         goto err_reg;
 
+    ret = sysfs_create_group(cpufreq_global_kobject, &dbs_attr_group);
+    if (ret) {
+        goto err_governor;
+    }
+
     return ret;
 
+err_governor:
+    cpufreq_unregister_governor(&cpufreq_gov_fantasys);
 err_reg:
     destroy_workqueue(dvfs_workqueue);
 err_queue:

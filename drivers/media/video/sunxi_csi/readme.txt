@@ -1,10 +1,10 @@
 ===========================================
 
-Version: V1_11
+Version: V1_21
 
 Author:  raymonxiu
 
-Date:     2012-12-31 15:35:29
+Date:     2013-1-17 15:39:42
 
 Description:
 
@@ -46,3 +46,17 @@ CSI: Modify probe; Move standby to early standby; OV5640 add 1080p@15fps
    is not registered when the module is installed failed.
 2) Modify the suspend/resume to early suspend/late resume
 3) Modify ov5640 1080p to 15fps
+
+V1_20
+CSI: Optimizing ov5640 and add preview mode(s5k4ec)
+1) Modify ov5640 to auto fps
+2) Reduce denoise level and enhance sharpness in ov5640
+3) Add preview mode in ov5640 and s5k4ec
+
+V1_21
+CSI: Optimizing ov5640/gc2035 and fix bugs
+1) Optimizing lens and cmx parameter for LA ov5640 module
+2) Disable ov5640 oe before s_fmt and enable oe after s_fmt
+3) Fix af firmware download error
+4) Fix fps setting bug on test app
+5) Optimizing gc2035 power timing
