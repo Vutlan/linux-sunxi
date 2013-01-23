@@ -33,6 +33,7 @@
 #include <mach/gpio.h>
 #include <linux/clk.h>
 #include <linux/gpio.h>
+#include <linux/regulator/consumer.h>
 
 #include "sw_module.h"
 
@@ -148,9 +149,20 @@ void em55_power(struct sw_modem *modem, u32 on)
 #else
 void em55_power(struct sw_modem *modem, u32 on)
 {
-    modem_dbg("set %s modem power %s\n", modem->name, (on ? "on" : "off"));
+    struct regulator *ldo = NULL;
+	modem_dbg("set %s modem power %s\n", modem->name, (on ? "on" : "off"));
+	
+	ldo = regulator_get(NULL, "axp22_dldo4");
+	if (!ldo) {
+		modem_err("enable em55 regulator failed\n");
+		goto out;
+	}
 
     if(on){
+		regulator_set_voltage(ldo, 2800000, 2800000);
+		regulator_enable(ldo);
+		
+		//sw_module_mdelay(500);
 
 		em55_reset(modem);
 		
@@ -164,10 +176,15 @@ void em55_power(struct sw_modem *modem, u32 on)
         sw_module_mdelay(2000);
         modem_power_on_off(modem, 0);
     }else{
+
 		//modem_vbat(modem, 0);
 		em55_reset(modem);
+		regulator_disable(ldo);
     }
 
+out:
+	if (ldo)
+		regulator_put(ldo);
     return;
 }
 #endif
