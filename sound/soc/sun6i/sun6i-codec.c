@@ -699,6 +699,7 @@ if ( !(codec_speakerout_enabled || codec_headphoneout_enabled || codec_earpieceo
 
 	codec_wr_control(SUN6I_MIC_CTRL, 0x1, PHONEOUTS2, 0x0);
 	codec_wr_control(SUN6I_MIC_CTRL, 0x1, PHONEOUTS3, 0x0);
+}
 	return 0;
 }
 
