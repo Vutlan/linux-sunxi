@@ -68,6 +68,7 @@
 #define module_tag "sensor:"
 
 //#define  SENSOR_DEBUG
+
 #ifdef  SENSOR_DEBUG
 #define debug(str, x...)     printk("%s:" str, module_tag, ##x)
 #else
@@ -380,8 +381,16 @@ int ltr558_devinit(void)
 
 	ltr558_i2c_write_reg(LTR558_PS_LED, 0x7f );
 	ltr558_i2c_write_reg(LTR558_PS_N_PULSES, 0x08);
+	ltr558_i2c_write_reg(LTR558_INTERRUPT_PERSIST, 0x70);
+	//ltr558_i2c_write_reg(LTR558_PS_MEAS_RATE, 0x20);
 
-#if 0
+	/* 0 ~ 500 */
+	ltr558_i2c_write_reg(LTR558_PS_THRES_LOW_0, 0xf4);
+	ltr558_i2c_write_reg(LTR558_PS_THRES_LOW_1, 0x1);
+	ltr558_i2c_write_reg(LTR558_PS_THRES_UP_0, 0xff);
+	ltr558_i2c_write_reg(LTR558_PS_THRES_UP_1, 0x03);
+
+#if 1
 //printf reg
 	unsigned char upper_low,upper_high;
 	unsigned char lower_low,lower_high;
@@ -389,8 +398,8 @@ int ltr558_devinit(void)
 	upper_low = ltr558_i2c_read_reg(LTR558_PS_THRES_UP_0);
 	upper_high = ltr558_i2c_read_reg(LTR558_PS_THRES_UP_1);
 
-	lower_low = ltr558_i2c_read_reg(LTR558_ALS_THRES_LOW_0);
-	lower_high = ltr558_i2c_read_reg(LTR558_ALS_THRES_LOW_1);
+	lower_low = ltr558_i2c_read_reg(LTR558_PS_THRES_LOW_0);
+	lower_high = ltr558_i2c_read_reg(LTR558_PS_THRES_LOW_1);
 
 	debug(" read thres upper =%d\n", ((upper_high & 0x7) << 7) |  upper_low );
 	debug(" read thres lower =%d\n", ((lower_high & 0x7) << 7) |  lower_low );
@@ -633,13 +642,13 @@ static enum hrtimer_restart ltr_timer_func(struct hrtimer *timer)
 	return HRTIMER_RESTART;
 }
 
-#if 0
+#if 1
 /* interrupt happened due to transition/change of near/far proximity state */
 static u32 ltr_irq_handler(void *data)
 {
 	struct ltr_data *ltr =(struct ltr_data *)data;
-//	schedule_work(&ltr->irq_workqueue);
-
+//	schedule_work(&ltr->irq_workqueue)
+	debug("in irq\n");
 	return 0;
 }
 #endif
@@ -699,7 +708,7 @@ static void ltr558_schedwork(struct work_struct *work)
 	//wake_lock_timeout(&ip->prx_wake_lock, 3*HZ);
 }
 
-#if 0
+#if 1
 static int ltr_setup_irq(struct ltr_data *ltr)
 {
 	int ret = -EIO;
@@ -707,7 +716,7 @@ static int ltr_setup_irq(struct ltr_data *ltr)
 	debug(" enter %s\n", __func__);
 
 	if (ltr->sensor_config->int1 >= 0) {
-		ret = sw_gpio_irq_request(ltr->sensor_config->int1, TRIG_LEVL_LOW, ltr_irq_handler, ltr);
+		ret = sw_gpio_irq_request(ltr->sensor_config->int1, TRIG_EDGE_NEGATIVE, ltr_irq_handler, ltr);//TRIG_LEVL_LOW
 		if (!ret) {
 			info("Failed to request gpio irq \n");
 			ret = -EIO;
@@ -717,7 +726,7 @@ static int ltr_setup_irq(struct ltr_data *ltr)
 	}
 
 	ret = 0;
-	debug("success\n");
+	debug("ltr_setup_irq success\n");
 	return ret;
 }
 #endif
@@ -837,7 +846,7 @@ static int ltr_i2c_probe(struct i2c_client *client,
 	ltr558_set_client(ltr->i2c_client);
 	ltr558_devinit();
 	
-#if 0
+#if 1
 // PS IRQ triger
 	ret = ltr_setup_irq(ltr);
 	if (ret) {
@@ -861,7 +870,7 @@ err_sysfs_create_group_proximity:
 err_input_register_device_proximity:
 err_input_allocate_device_proximity:
 	free_irq(ltr->irq, 0);
-//err_setup_irq:
+err_setup_irq:
 	mutex_destroy(&ltr->power_lock);
 	//wake_lock_destroy(&ltr->prx_wake_lock);
 	kfree(ltr);
