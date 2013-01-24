@@ -149,20 +149,13 @@ void em55_power(struct sw_modem *modem, u32 on)
 #else
 void em55_power(struct sw_modem *modem, u32 on)
 {
-    struct regulator *ldo = NULL;
-	modem_dbg("set %s modem power %s\n", modem->name, (on ? "on" : "off"));
-	
-	ldo = regulator_get(NULL, "axp22_dldo4");
-	if (!ldo) {
-		modem_err("enable em55 regulator failed\n");
-		goto out;
-	}
+	modem_dbg("set %s modem power %s\n", modem->name, (on ? "on" : "off"));	
 
     if(on){
-		regulator_set_voltage(ldo, 2800000, 2800000);
-		regulator_enable(ldo);
 		
 		//sw_module_mdelay(500);
+
+		modem_power_on_off(modem, 1);
 
 		em55_reset(modem);
 		
@@ -179,12 +172,9 @@ void em55_power(struct sw_modem *modem, u32 on)
 
 		//modem_vbat(modem, 0);
 		em55_reset(modem);
-		regulator_disable(ldo);
-    }
 
-out:
-	if (ldo)
-		regulator_put(ldo);
+		modem_power_on_off(modem, 0);
+    }
     return;
 }
 #endif

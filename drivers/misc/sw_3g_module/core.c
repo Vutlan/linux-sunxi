@@ -42,6 +42,7 @@
 #include <mach/gpio.h>
 #include <linux/clk.h>
 #include <linux/gpio.h>
+#include <linux/regulator/consumer.h>
 
 #include "sw_module.h"
 
@@ -94,6 +95,15 @@ s32 modem_get_config(struct sw_modem *modem)
         modem_dbg("%s modem support\n", modem->name);
     }else{
         modem_err("ERR: get bb_name failed\n");
+    }
+
+	 /* bb_dldo */
+    type = script_get_item("3g_para", "bb_dldo", &item_temp);
+    if(type == SCIRPT_ITEM_VALUE_TYPE_STR){
+        strcpy(modem->dldo_name, item_temp.str);
+        modem_dbg("%s modem support\n", modem->dldo_name);
+    }else{
+        modem_err("ERR: get dldo_name failed\n");
     }
 
     /* bb_vbat */
@@ -321,6 +331,44 @@ void modem_sleep(struct sw_modem *modem, u32 value)
     return;
 }
 EXPORT_SYMBOL(modem_sleep);
+
+void modem_dldo_on_off(struct sw_modem *modem, u32 value)
+{
+	struct regulator *ldo = NULL;
+
+	int ret = 0;
+
+	ldo = regulator_get(NULL, modem->dldo_name);
+	if (!ldo) {		
+		modem_err("get em55 power regulator failed.\n");
+		return;
+	}
+
+	if(value)
+	{
+		regulator_set_voltage(ldo, 2800000, 2800000);
+		ret = regulator_enable(ldo);
+		if(ret < 0)
+		{
+			modem_err("em55 regulator_enable failed.\n");
+			regulator_put(ldo);
+			return;
+		}		
+	}
+	else
+	{
+		ret = regulator_disable(ldo);
+		if(ret < 0)
+		{
+			modem_err("em55 regulator_disable failed.\n");
+			regulator_put(ldo);
+			return;
+		}
+	}
+	regulator_put(ldo);
+	return;
+}
+EXPORT_SYMBOL(modem_dldo_on_off);
 
 void modem_power_on_off(struct sw_modem *modem, u32 value)
 {
