@@ -18,8 +18,8 @@
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
-#define  modem_dbg(format,args...)      pr_debug("[sw_module]: "format,##args)
-#define  modem_err(format,args...)      pr_debug("[sw_module]: "format,##args)
+#define  modem_dbg(format,args...)      pr_err("[sw_module]: "format,##args)
+#define  modem_err(format,args...)      pr_err("[sw_module]: "format,##args)
 
 //-----------------------------------------------------------------------------
 //
