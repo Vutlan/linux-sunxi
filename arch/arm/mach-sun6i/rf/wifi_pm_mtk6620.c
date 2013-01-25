@@ -29,16 +29,6 @@ static int mtk6620_module_power(int onoff)
 		return -ret;
 	}
 
-	if (first) {
-		mtk6620_msg("first time\n");
-		ret = regulator_force_disable(wifi_ldo);
-		if (ret < 0) {
-			mtk6620_msg("regulator_force_disable fail, return %d.\n", ret);
-			goto out;
-		}
-		first = 0;
-	}
-
 	if (onoff) {
 		mtk6620_msg("regulator on.\n");
 		ret = regulator_set_voltage(wifi_ldo, 3000000, 3000000);
@@ -77,7 +67,7 @@ void mtk6620_power(int mode, int *updown)
 			mtk6620_module_power(0);
 			mtk6620_powerup = 0;
         }
-        mtk6620_msg("mtk6620 wifi power(aldo1) state: %s\n", *updown ? "on" : "off");
+        mtk6620_msg("mtk6620 wifi power state: %s\n", *updown ? "on" : "off");
     } else {
         if (mtk6620_powerup)
             *updown = 1;

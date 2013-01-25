@@ -45,7 +45,7 @@ OBJ_PATH := $(src)
 
 obj-$(CONFIG_MTK_COMBO_FM) += mtk_fm_priv.o
 mtk_fm_priv-objs	:= mtk_fm.o
-always := $(shell cp -f $(KERNEL_PATH)/mtk_fm.o.new $(OBJ_PATH)/mtk_fm.o)
+#always := $(shell cp -f $(KERNEL_PATH)/mtk_fm.o.new $(OBJ_PATH)/mtk_fm.o)
 	
 endif
 endif
