@@ -243,7 +243,7 @@ struct cpufreq_governor cpufreq_gov_fantasys = {
 /*
  * CPU hotplug lock interface
  */
-static atomic_t g_hotplug_lock = ATOMIC_INIT(0);
+atomic_t g_hotplug_lock = ATOMIC_INIT(0);
 
 /*
  * apply cpu hotplug lock, up or down cpu
