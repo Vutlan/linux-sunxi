@@ -61,6 +61,7 @@ struct sw_modem_ops{
 
 struct sw_modem{
     char name[SW_3G_NAME_LEN];
+	char dldo_name[SW_3G_NAME_LEN];
     u8 start;
 
     struct work_struct irq_work;
@@ -100,5 +101,6 @@ int modem_irq_init(struct sw_modem *modem, enum gpio_eint_trigtype trig_type);
 int modem_irq_exit(struct sw_modem *modem);
 void modem_early_suspend(struct sw_modem *modem);
 void modem_early_resume(struct sw_modem *modem);
+void modem_dldo_on_off(struct sw_modem *modem, u32 value);
 
 

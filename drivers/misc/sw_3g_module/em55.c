@@ -33,6 +33,7 @@
 #include <mach/gpio.h>
 #include <linux/clk.h>
 #include <linux/gpio.h>
+#include <linux/regulator/consumer.h>
 
 #include "sw_module.h"
 
@@ -60,9 +61,9 @@ void em55_reset(struct sw_modem *modem)
     modem_dbg("reset %s modem\n", modem->name);
 
 	//modem_reset(modem, 0);
-	modem_reset(modem, 1);
-    sw_module_mdelay(60);
 	modem_reset(modem, 0);
+    sw_module_mdelay(60);
+	modem_reset(modem, 1);
 	sw_module_mdelay(10);
 	//modem_reset(modem, 1);
 
@@ -82,9 +83,9 @@ static void em55_sleep(struct sw_modem *modem, u32 sleep)
     modem_dbg("%s modem %s\n", modem->name, (sleep ? "sleep" : "wakeup"));
 
     if(sleep){
-        modem_sleep(modem, 0);
-    }else{
         modem_sleep(modem, 1);
+    }else{
+        modem_sleep(modem, 0);
     }
 
     return;
@@ -148,27 +149,32 @@ void em55_power(struct sw_modem *modem, u32 on)
 #else
 void em55_power(struct sw_modem *modem, u32 on)
 {
-    modem_dbg("set %s modem power %s\n", modem->name, (on ? "on" : "off"));
+	modem_dbg("set %s modem power %s\n", modem->name, (on ? "on" : "off"));	
 
     if(on){
+		
+		//sw_module_mdelay(500);
+
+		modem_power_on_off(modem, 1);
 
 		em55_reset(modem);
 		
-        modem_sleep(modem, 1);
+        modem_sleep(modem, 0);
 
     	/* power on */
-		modem_vbat(modem, 1);
-		sw_module_mdelay(120);
+		//modem_vbat(modem, 1);
+		//sw_module_mdelay(120);
 
-        modem_power_on_off(modem, 0);
-        sw_module_mdelay(2000);
         modem_power_on_off(modem, 1);
-        sw_module_mdelay(1000);
+        sw_module_mdelay(2000);
+        modem_power_on_off(modem, 0);
     }else{
+
 		//modem_vbat(modem, 0);
 		em55_reset(modem);
-    }
 
+		modem_power_on_off(modem, 0);
+    }
     return;
 }
 #endif

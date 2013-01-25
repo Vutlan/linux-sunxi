@@ -194,6 +194,12 @@ static unsigned int sw_uart_handle_rx(struct sw_uart_port *sw_uport, unsigned in
 			 * Mask off conditions which should be ignored.
 			 */
 			lsr &= sw_uport->port.read_status_mask;
+#ifdef CONFIG_SERIAL_SW_CONSOLE
+			if (sw_uport->port.line == sw_uport->port.cons->index) {
+				/* Recover the break flag from console xmit */
+				lsr |= sw_uport->lsr_break_flag;
+			}
+#endif
 			if (lsr & SW_UART_LSR_BI)
 				flag = TTY_BREAK;
 			else if (lsr & SW_UART_LSR_PE)
@@ -203,7 +209,6 @@ static unsigned int sw_uart_handle_rx(struct sw_uart_port *sw_uport, unsigned in
 		}
 		if (uart_handle_sysrq_char(&sw_uport->port, ch))
 			goto ignore_char;
-
 		uart_insert_char(&sw_uport->port, lsr, SW_UART_LSR_OE, ch, flag);
 ignore_char:
 		lsr = serial_in(&sw_uport->port, SW_UART_LSR);
@@ -433,9 +438,9 @@ static inline void wait_for_xmitr(struct sw_uart_port *sw_uport)
 		udelay(1);
 	} while ((status & mask) != mask);
 
-	/* Wait up to 1s for flow control if necessary */
+	/* Wait up to 500ms for flow control if necessary */
 	if (sw_uport->port.flags & UPF_CONS_FLOW) {
-		tmout = 1000000;
+		tmout = 500000;
 		for (tmout = 1000000; tmout; tmout--) {
 			unsigned int msr = serial_in(&sw_uport->port, SW_UART_MSR);
 
@@ -546,23 +551,12 @@ static int sw_uart_startup(struct uart_port *port)
 		return ret;
 	}
 
-	/* reset FIFO and config trigger level */
-	serial_out(port, SW_UART_FCR_FIFO_EN, SW_UART_FCR);
-	serial_out(port,
-		SW_UART_FCR_TXFIFO_RST|SW_UART_FCR_RXFIFO_RST|SW_UART_FCR_FIFO_EN,
-		SW_UART_FCR);
+	clk_reset(sw_uport->mclk, AW_CCU_CLK_RESET);
+	usleep_range(100, 200);
+	clk_reset(sw_uport->mclk, AW_CCU_CLK_NRESET);
 	serial_out(port, 0, SW_UART_FCR);
 
-	/* clear all interrupt flags */
-	sw_uport->ier = 0;
-	serial_out(port, sw_uport->ier, SW_UART_IER);
-	serial_in(port, SW_UART_LSR);
-	serial_in(port, SW_UART_RBR);
-	serial_in(port, SW_UART_IIR);
-	serial_in(port, SW_UART_MSR);
-
 	sw_uport->msr_saved_flags = 0;
-	sw_uport->ier = SW_UART_IER_RLSI | SW_UART_IER_RDI;
 	/*
 	 * PTIME mode to select the THRE trigger condition:
 	 * if PTIME=1(IER[7]), the THRE interrupt will be generated when the
@@ -574,11 +568,12 @@ static int sw_uart_startup(struct uart_port *port)
 	 * interrupt id of the IIR register to decide whether some data need to
 	 * send.
 	 */
+	sw_uport->ier = SW_UART_IER_RLSI | SW_UART_IER_RDI;
 	#ifdef CONFIG_SW_UART_PTIME_MODE
 	sw_uport->ier |= SW_UART_IER_PTIME;
 	#endif
-	SERIAL_DBG("stop tx, ier %x\n", sw_uport->ier);
 	serial_out(port, sw_uport->ier, SW_UART_IER);
+	SERIAL_DBG("startup, ier %x\n", sw_uport->ier);
 
 	return 0;
 }
@@ -587,6 +582,7 @@ static void sw_uart_shutdown(struct uart_port *port)
 {
 	struct sw_uart_port *sw_uport = UART_TO_SPORT(port);
 
+	SERIAL_DBG("shut down ...\n");
 	sw_uport->ier = 0;
 	sw_uport->lcr = 0;
 	sw_uport->mcr = 0;
@@ -1082,6 +1078,12 @@ static int sw_uart_proc_info(char *page, char **start, off_t off,
 	p += sprintf(p, " dlh  : 0x%02x\n", sw_uport->dlh);
 	p += sprintf(p, " pclk : %d\n", sw_uport->port.uartclk);
 	p += sprintf(p, " last baud : %d\n", (sw_uport->port.uartclk>>4)/dl);
+	p += sprintf(p, " TxRx Statistics:\n");
+	p += sprintf(p, " tx   : %d\n", sw_uport->port.icount.tx);
+	p += sprintf(p, " rx   : %d\n", sw_uport->port.icount.rx);
+	p += sprintf(p, " pe   : %d\n", sw_uport->port.icount.parity);
+	p += sprintf(p, " fe   : %d\n", sw_uport->port.icount.frame);
+	p += sprintf(p, " or   : %d\n", sw_uport->port.icount.overrun);
 
 	return p - page;
 }

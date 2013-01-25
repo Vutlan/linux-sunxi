@@ -2335,7 +2335,7 @@ static struct sunxi_mmc_platform_data sw_mci_pdata[4] = {
 		.ocr_avail = MMC_VDD_28_29 | MMC_VDD_29_30 | MMC_VDD_30_31 | MMC_VDD_31_32
 				| MMC_VDD_32_33 | MMC_VDD_33_34,
 		.caps = MMC_CAP_4_BIT_DATA | MMC_CAP_MMC_HIGHSPEED | MMC_CAP_SD_HIGHSPEED
-			| MMC_CAP_SDIO_IRQ,
+			| MMC_CAP_SDIO_IRQ | MMC_CAP_NONREMOVABLE,
 		.f_min = 400000,
 		.f_max = 50000000,
 		.dma_tl= 0x20070008,
