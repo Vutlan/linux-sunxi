@@ -415,8 +415,8 @@ static void __exit sw_module_exit(void)
     return;
 }
 
-//module_init(sw_module_init);
 late_initcall(sw_module_init);
+//module_init(sw_module_init);
 module_exit(sw_module_exit);
 
 MODULE_AUTHOR(DRIVER_AUTHOR);

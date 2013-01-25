@@ -522,9 +522,9 @@ static u32 modem_irq_interrupt(void *para)
 
 int modem_irq_init(struct sw_modem *modem, enum gpio_eint_trigtype trig_type)
 {
+#ifdef  SW_3G_GPIO_WAKEUP_SYSTEM
     int ret = 0;
 
-#ifdef  SW_3G_GPIO_WAKEUP_SYSTEM
     ret = modem_create_input_device(modem);
     if(ret != 0){
         modem_err("err: modem_create_input_device failed\n");
