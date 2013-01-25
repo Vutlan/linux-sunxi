@@ -628,6 +628,7 @@ wmt_lib_ps_handler (
             //osal_msleep(1000);
             WMT_INFO_FUNC("enable host eirq \n");
             wmt_plat_eirq_ctrl(PIN_BGF_EINT, PIN_STA_EINT_EN);
+            wmt_plat_eirq_ctrl(PIN_WIFI_EINT, PIN_STA_EINT_EN);
             WMT_INFO_FUNC("enable host eirq done\n");
         }
         else {
@@ -661,6 +662,7 @@ wmt_lib_ps_handler (
         if (!mtk_wcn_stp_is_sdio_mode()) {
             WMT_DBG_FUNC("disable host eirq \n");
             wmt_plat_eirq_ctrl(PIN_BGF_EINT, PIN_STA_EINT_DIS);
+            wmt_plat_eirq_ctrl(PIN_WIFI_EINT, PIN_STA_EINT_DIS);
             ret = wmt_lib_ps_do_wakeup();
         }
         else {
@@ -724,6 +726,7 @@ wmt_lib_ps_handler (
             WMT_DBG_FUNC("disable host eirq \n");
             //Disable interrupt
             wmt_plat_eirq_ctrl(PIN_BGF_EINT, PIN_STA_EINT_DIS);
+            wmt_plat_eirq_ctrl(PIN_WIFI_EINT, PIN_STA_EINT_DIS);
             ret = mtk_wcn_stp_psm_notify_stp(EIRQ);
         }
         else {
