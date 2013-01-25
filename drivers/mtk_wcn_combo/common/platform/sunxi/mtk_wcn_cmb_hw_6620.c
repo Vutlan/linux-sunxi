@@ -164,6 +164,11 @@ mtk_wcn_cmb_hw_pwr_off (VOID)
     iRet += wmt_plat_eirq_ctrl(PIN_BGF_EINT, PIN_STA_DEINIT);
     iRet += wmt_plat_gpio_ctrl(PIN_BGF_EINT, PIN_STA_DEINIT);
     WMT_INFO_FUNC("CMB-HW, BGF_EINT IRQ unregistered and set BGF_EINT GPIO to correct state!\n");
+    
+    iRet += wmt_plat_eirq_ctrl(PIN_WIFI_EINT, PIN_STA_DEINIT);
+    iRet += wmt_plat_gpio_ctrl(PIN_WIFI_EINT, PIN_STA_DEINIT);
+    WMT_INFO_FUNC("CMB-HW, WIFI_EINT IRQ unregistered and set WIFI_EINT GPIO to correct state!\n");
+    
     /* 2.1 set ALL_EINT pin to correct state even it is not used currently */
     iRet += wmt_plat_eirq_ctrl(PIN_ALL_EINT, PIN_STA_EINT_DIS);
     WMT_INFO_FUNC("CMB-HW, ALL_EINT IRQ unregistered and disabled\n");
@@ -214,6 +219,7 @@ mtk_wcn_cmb_hw_pwr_on (VOID)
     iRet += wmt_plat_gpio_ctrl(PIN_RST, PIN_STA_INIT);
     iRet += wmt_plat_gpio_ctrl(PIN_SDIO_GRP, PIN_STA_INIT);
     iRet += wmt_plat_gpio_ctrl(PIN_BGF_EINT, PIN_STA_INIT);
+    iRet += wmt_plat_gpio_ctrl(PIN_WIFI_EINT, PIN_STA_INIT);
     iRet += wmt_plat_gpio_ctrl(PIN_ALL_EINT, PIN_STA_INIT);
     iRet += wmt_plat_gpio_ctrl(PIN_GPS_SYNC, PIN_STA_INIT);
     iRet += wmt_plat_gpio_ctrl(PIN_GPS_LNA, PIN_STA_INIT);
@@ -258,6 +264,11 @@ mtk_wcn_cmb_hw_pwr_on (VOID)
     iRet += wmt_plat_eirq_ctrl(PIN_BGF_EINT, PIN_STA_INIT);
     iRet += wmt_plat_eirq_ctrl(PIN_BGF_EINT, PIN_STA_EINT_DIS);
     WMT_INFO_FUNC("CMB-HW, BGF_EINT IRQ registered and disabled \n");
+
+    iRet += wmt_plat_gpio_ctrl(PIN_WIFI_EINT, PIN_STA_MUX);
+    iRet += wmt_plat_eirq_ctrl(PIN_WIFI_EINT, PIN_STA_INIT);
+    iRet += wmt_plat_eirq_ctrl(PIN_WIFI_EINT, PIN_STA_EINT_DIS);
+    WMT_INFO_FUNC("CMB-HW, WIFI_EINT IRQ registered and disabled \n");
 
     /* 8.1 set ALL_EINT pin to correct state even it is not used currently */
     iRet += wmt_plat_gpio_ctrl(PIN_ALL_EINT, PIN_STA_MUX);
