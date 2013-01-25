@@ -170,8 +170,10 @@ dhd_customer_gpio_wlan_ctrl(int onoff)
 		case WLAN_RESET_OFF:
 		{
 			WL_TRACE(("%s: call customer specific GPIO to insert WLAN RESET\n", __FUNCTION__));
-      mmc_pm_gpio_ctrl("bcm40181_shdn", 0);
-      printk("[bcm40181]: bcm40181_shdn=>0 !!\n");
+ 
+                       mmc_pm_gpio_ctrl("bcm40181_vcc_en", 0);
+                        printk("[bcm40181]: bcm40181_shdn=>0 !!\n");
+
 
 			WL_ERROR(("=========== WLAN placed in RESET ========\n"));
 		}
@@ -180,10 +182,10 @@ dhd_customer_gpio_wlan_ctrl(int onoff)
 		case WLAN_RESET_ON:
 		{
 			WL_TRACE(("%s: callc customer specific GPIO to remove WLAN RESET\n", __FUNCTION__));
-      mdelay(10);
-      mmc_pm_gpio_ctrl("bcm40181_shdn", 1);
-      mdelay(10);
+			mdelay(100);
+			mmc_pm_gpio_ctrl("bcm40181_vcc_en", 1);
 			printk("[bcm40181]: bcm40181_shdn=>1 !!\n");
+			mdelay(100);
 
 			WL_ERROR(("=========== WLAN going back to live  ========\n"));
 		}
@@ -192,11 +194,11 @@ dhd_customer_gpio_wlan_ctrl(int onoff)
 		case WLAN_POWER_OFF:
 		{
 			WL_TRACE(("%s: call customer specific GPIO to turn off WL_REG_ON\n", __FUNCTION__));
-			mmc_pm_gpio_ctrl("bcm40181_shdn", 0);
-      *updown = 0;
-      udelay(200);      //for test
-      mmc_pm_power(1, updown);
-      sunximmc_rescan_card(1, 0);
+			mmc_pm_gpio_ctrl("bcm40181_vcc_en", 0);
+                        *updown = 0;
+                        udelay(200);         //for test
+                        mmc_pm_power(1, updown);
+                        sunximmc_rescan_card(1, 0);
 
 #ifdef CUSTOMER_HW
 			bcm_wlan_power_off(1);
@@ -207,11 +209,10 @@ dhd_customer_gpio_wlan_ctrl(int onoff)
 		case WLAN_POWER_ON:
 		{
 			WL_TRACE(("%s: call customer specific GPIO to turn on WL_REG_ON\n", __FUNCTION__));
-      *updown = 1;
-      mmc_pm_power(1, updown);
-      udelay(2000);
-      mmc_pm_gpio_ctrl("bcm40181_shdn", 1);
-      udelay(100);
+                        *updown = 1;
+                        mmc_pm_power(1, updown);
+                        udelay(2000);
+			mmc_pm_gpio_ctrl("bcm40181_vcc_en", 1);
 
 #ifdef CUSTOMER_HW
 			bcm_wlan_power_on(1);
