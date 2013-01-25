@@ -1288,6 +1288,11 @@ __s32 Disp_lcdc_init(__u32 sel)
     {
         dsi_clk_init();
     }
+
+    lcdc_clk_on(sel, 0, 0);
+    lcdc_clk_on(sel, 0, 1);
+    tcon_init(sel);
+    lcdc_clk_off(sel);
     
     if(sel == 0)
     {        
