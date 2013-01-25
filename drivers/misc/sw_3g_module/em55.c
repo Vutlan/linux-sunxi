@@ -62,7 +62,7 @@ void em55_reset(struct sw_modem *modem)
 
 	//modem_reset(modem, 0);
 	modem_reset(modem, 0);
-    sw_module_mdelay(60);
+    sw_module_mdelay(100);
 	modem_reset(modem, 1);
 	sw_module_mdelay(10);
 	//modem_reset(modem, 1);
