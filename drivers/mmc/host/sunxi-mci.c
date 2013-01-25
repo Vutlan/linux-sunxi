@@ -152,8 +152,6 @@ static s32 sw_mci_init_host(struct sunxi_mmc_host* smc_host)
 	mci_writel(smc_host, REG_GCTRL, rval);
 
 	smc_host->voltage = SDC_WOLTAGE_OFF;
-	if (smc_host->pdata->isiodev)
-		smc_host->io_flag = 1;
 	return 0;
 }
 
@@ -1750,7 +1748,6 @@ void sw_mci_rescan_card(unsigned id, unsigned insert)
 	BUG_ON(id > 3);
 	BUG_ON(sw_host[id] == NULL);
 	smc_host = sw_host[id];
-
 	smc_host->present = insert ? 1 : 0;
 	mmc_detect_change(smc_host->mmc, 0);
 	return;
@@ -2125,6 +2122,7 @@ static int __devinit sw_mci_probe(struct platform_device *pdev)
 	smc_host->pdev	= pdev;
 	smc_host->pdata	= pdev->dev.platform_data;
 	smc_host->cd_mode = smc_host->pdata->cdmode;
+	smc_host->io_flag = smc_host->pdata->isiodev ? 1 : 0;
 	smc_host->debuglevel = CONFIG_MMC_PRE_DBGLVL_SUNXI;
 
 	spin_lock_init(&smc_host->lock);
@@ -2177,6 +2175,8 @@ static int __devinit sw_mci_probe(struct platform_device *pdev)
 	mmc->max_req_size	= mmc->max_blk_size * mmc->max_blk_count;
 	mmc->max_seg_size	= mmc->max_req_size;
 	mmc->max_segs	    	= 128;
+	if (smc_host->io_flag)
+		mmc->pm_flags = MMC_PM_IGNORE_PM_NOTIFY;
 
 	ret = mmc_add_host(mmc);
 	if (ret) {
@@ -2335,7 +2335,7 @@ static struct sunxi_mmc_platform_data sw_mci_pdata[4] = {
 		.ocr_avail = MMC_VDD_28_29 | MMC_VDD_29_30 | MMC_VDD_30_31 | MMC_VDD_31_32
 				| MMC_VDD_32_33 | MMC_VDD_33_34,
 		.caps = MMC_CAP_4_BIT_DATA | MMC_CAP_MMC_HIGHSPEED | MMC_CAP_SD_HIGHSPEED
-			| MMC_CAP_SDIO_IRQ | MMC_CAP_NONREMOVABLE,
+			| MMC_CAP_SDIO_IRQ,
 		.f_min = 400000,
 		.f_max = 50000000,
 		.dma_tl= 0x20070008,
