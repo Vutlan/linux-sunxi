@@ -37,6 +37,7 @@
 
 #include <mach/sys_config.h>
 #include <mach/system.h>
+#include <mach/sunxi_dump_reg.h>
 
 //#define CROSS_MAPPING_STANDBY
 
@@ -651,6 +652,7 @@ static int aw_pm_enter(suspend_state_t state)
 		}
 
 		standby_info.standby_para.gpio_enable_bitmap = mem_para_info.cpus_gpio_wakeup;
+		standby_info.standby_para.cpux_gpiog_bitmap = mem_para_info.cpux_gpiog_wakeup;
 		standby_info.standby_para.timeout = 0;
 		standby_info.standby_para.debug_mask = debug_mask;
 
@@ -867,6 +869,7 @@ static int __init aw_pm_init(void)
 
 	//script_dump_mainkey("wakeup_src_para");
 	mem_para_info.cpus_gpio_wakeup = 0;
+	mem_para_info.cpux_gpiog_wakeup = 0;
 	if(0 != wakeup_src_cnt){
 		while(wakeup_src_cnt--){
 			gpio = (list + (i++) )->gpio.gpio;
@@ -882,14 +885,20 @@ static int __init aw_pm_init(void)
 			}else if( gpio >= PL_NR_BASE){
 				mem_para_info.cpus_gpio_wakeup |= (WAKEUP_GPIO_PL((gpio - PL_NR_BASE)));
 				//pr_info("gpio - PL_NR_BASE == 0x%x.\n", gpio - PL_NR_BASE);
+			} else if (gpio >= PG_NR_BASE && gpio < PH_NR_BASE) {
+				mem_para_info.cpux_gpiog_wakeup |= (WAKEUP_GPIO_PG((gpio - PG_NR_BASE)));
+				pr_info("gpio - PG_NR_BASE == 0x%x.\n", gpio - PG_NR_BASE);
 			}else{
 				pr_info("cpux need care gpio %d. but, notice, currently, \
 					cpux not support it.\n", gpio);
 			}
 		}
 		super_standby_para_info.gpio_enable_bitmap = mem_para_info.cpus_gpio_wakeup;
+		super_standby_para_info.cpux_gpiog_bitmap = mem_para_info.cpux_gpiog_wakeup;
 		pr_info("cpus need care gpio: mem_para_info.cpus_gpio_wakeup = 0x%x. \n",\
 			mem_para_info.cpus_gpio_wakeup);
+		pr_info("cpux need care gpio: mem_para_info.cpux_gpiog_wakeup = 0x%lx. \n",\
+			super_standby_para_info.cpux_gpiog_bitmap);
 	}
 
 	suspend_set_ops(&aw_pm_ops);

@@ -189,6 +189,7 @@ module_param_named(debug_mask, debug_mask, int, S_IRUGO | S_IWUSR | S_IWGRP);
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 static struct sun6i_keyboard_data *keyboard_data;
+extern long phone_actived;
 #endif
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
@@ -223,12 +224,14 @@ static void sun6i_keyboard_late_resume(struct early_suspend *h)
 			|LRADC_SAMPLE_250HZ|LRADC_EN,KEY_BASSADDRESS + LRADC_CTRL);
 	/* process for super standby */	
 	} else if (SUPER_STANDBY == standby_type) {
+		if (!phone_actived) {
 #ifdef ONE_CHANNEL
 		writel(LRADC_ADC0_DOWN_EN|LRADC_ADC0_UP_EN|LRADC_ADC0_DATA_EN,KEY_BASSADDRESS + LRADC_INTC);	
 		writel(FIRST_CONCERT_DLY|LEVELB_VOL|KEY_MODE_SELECT|LRADC_HOLD_EN|ADC_CHAN_SELECT \
 			|LRADC_SAMPLE_250HZ|LRADC_EN,KEY_BASSADDRESS + LRADC_CTRL);
 #else
 #endif
+		}
 	}
 	
 	return ; 
@@ -405,7 +408,9 @@ static int __init sun6ikbd_init(void)
 		set_bit(sun6i_scankeycodes[i], sun6ikbd_dev->keybit);
 	
 #ifdef ONE_CHANNEL
+	// 4 1 0
 	writel(LRADC_ADC0_DOWN_EN|LRADC_ADC0_UP_EN|LRADC_ADC0_DATA_EN,KEY_BASSADDRESS + LRADC_INTC);	
+	// 23 22 6 0
 	writel(FIRST_CONCERT_DLY|LEVELB_VOL|KEY_MODE_SELECT|LRADC_HOLD_EN|ADC_CHAN_SELECT \
 		|LRADC_SAMPLE_250HZ|LRADC_EN,KEY_BASSADDRESS + LRADC_CTRL);
 #else

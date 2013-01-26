@@ -18,6 +18,10 @@
 
 #include "power.h"
 
+/*
+ * 0: standby isnot talkstandby;
+ * 1: talkstandby && standby_type == SUPER_STANDBY
+ * */
 long phone_actived = 0;
 EXPORT_SYMBOL_GPL(phone_actived);
 

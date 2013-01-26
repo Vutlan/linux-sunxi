@@ -294,6 +294,9 @@ err_switch_dev_register:
 
 	return ret;
 }
+
+extern long phone_actived;
+
 static int switch_suspend(struct platform_device *pdev,pm_message_t state)
 {
 	return 0;
@@ -301,6 +304,7 @@ static int switch_suspend(struct platform_device *pdev,pm_message_t state)
 
 static int switch_resume(struct platform_device *pdev)
 {
+	if (!phone_actived) {
 	hmic_wr_control(SUN6I_MIC_CTRL, 0x1, HBIASEN, 0x1);
 	hmic_wr_control(SUN6I_MIC_CTRL, 0x1, HBIASADCEN, 0x1);
 	hmic_wr_control(SUN6I_HMIC_CTL, 0xf, HMIC_M, 0xf);/*0xf should be get from hw_debug 28*/
@@ -310,6 +314,7 @@ static int switch_resume(struct platform_device *pdev)
 	hmic_wr_control(SUN6I_HMIC_CTL, 0x3, HMIC_DS_SAMP, 0x1); /*14*/
 	hmic_wr_control(SUN6I_HMIC_CTL, 0x1f, HMIC_TH2_KEY, 0x8);/*0xf should be get from hw_debug 8*/
 	hmic_wr_control(SUN6I_HMIC_CTL, 0x1f, HMIC_TH1_EARPHONE, 0x1);/*0x1 should be get from hw_debug 0*/
+	}
 
 	return 0;
 }

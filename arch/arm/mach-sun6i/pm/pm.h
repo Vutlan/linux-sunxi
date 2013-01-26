@@ -80,6 +80,7 @@ struct aw_mem_para{
 	__u32 axp_event;
 	__u32 sys_event;
 	__u32 cpus_gpio_wakeup;
+	__u32 cpux_gpiog_wakeup;
 	__u32 debug_mask;
 	__u32 suspend_delay_ms;
 	__u32 saved_runtime_context_svc[RUNTIME_CONTEXT_SIZE];

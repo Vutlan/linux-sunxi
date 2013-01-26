@@ -51,11 +51,16 @@
 #define CPUS_WAKEUP_ALM1  		(1<<11)
 #define CPUS_WAKEUP_TIMEOUT		(1<<12)
 #define CPUS_WAKEUP_GPIO		(1<<13)
+#define CPUS_WAKEUP_LRADC       (1<<14)
+#define CPUS_WAKEUP_CODEC		(1<<15)
+#define CPUS_WAKEUP_GPIOG		(1<<16)
 #define CPUS_WAKEUP_KEY        	(CPUS_WAKEUP_SHORT_KEY | CPUS_WAKEUP_LONG_KEY)
 
 #define WAKEUP_GPIO_PL(num)     (1 << (num))
 #define WAKEUP_GPIO_PM(num)     (1 << (num + 12))
 #define WAKEUP_GPIO_AXP(num)    (1 << (num + 24))
+
+#define WAKEUP_GPIO_PG(num)		(1 << (num))
 
 typedef	struct super_standby_para
 {
@@ -65,6 +70,7 @@ typedef	struct super_standby_para
 	unsigned long resume_entry; 		//cpux resume entry
 	unsigned long timeout;			//wakeup after timeout seconds
 	unsigned long gpio_enable_bitmap;
+	unsigned long cpux_gpiog_bitmap;
 } super_standby_para_t;
 
 typedef	struct normal_standby_para
@@ -72,12 +78,14 @@ typedef	struct normal_standby_para
 	unsigned long event;		//cpus wakeup event types
 	unsigned long timeout;		//wakeup after timeout seconds
 	unsigned long gpio_enable_bitmap;
+	unsigned long cpux_gpiog_bitmap;
 } normal_standby_para_t;
 
 
 //define cpus wakeup src
 #define CPUS_MEM_WAKEUP              (CPUS_WAKEUP_LOWBATT | CPUS_WAKEUP_USB | CPUS_WAKEUP_AC | \
-						CPUS_WAKEUP_DESCEND | CPUS_WAKEUP_ASCEND | CPUS_WAKEUP_ALM0 | CPUS_WAKEUP_IR | CPUS_WAKEUP_GPIO)
+						CPUS_WAKEUP_DESCEND | CPUS_WAKEUP_ASCEND | CPUS_WAKEUP_ALM0 | CPUS_WAKEUP_IR | CPUS_WAKEUP_GPIO | \
+									 CPUS_WAKEUP_LRADC | CPUS_WAKEUP_CODEC | CPUS_WAKEUP_GPIOG)
 #define CPUS_BOOTFAST_WAKEUP         (CPUS_WAKEUP_LOWBATT | CPUS_WAKEUP_LONG_KEY |CPUS_WAKEUP_ALM0)
 
 /*used in normal standby*/
@@ -103,6 +111,7 @@ struct aw_standby_para{
 	unsigned int debug_mask;	/* debug mask */
 	signed int   timeout;		/**<time to power off system from now, based on second */
 	unsigned long gpio_enable_bitmap;
+	unsigned long cpux_gpiog_bitmap;
 };
 
 
