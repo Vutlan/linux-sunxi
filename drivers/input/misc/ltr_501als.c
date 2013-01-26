@@ -36,6 +36,7 @@
 #include <linux/module.h>
 #include <linux/timer.h>
 #include <linux/suspend.h>
+#include <linux/regulator/consumer.h>
 #include <mach/sys_config.h>
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
@@ -91,6 +92,7 @@ struct sensor_config{
 	int twi_addr;
 	int int1;
 	int int_mode;
+	char *ldo;
 };
 static struct sensor_config sensor_config ;
 
@@ -297,7 +299,7 @@ static int ltr558_ps_disable(void)
 	return error;
 }
 
-static int ltr558_als_enable()
+static int ltr558_als_enable(void)
 {
 	int error;
 	int gainrange = 2;//lkj Dynamic Range 2 (2 lux to 64k lux) 
@@ -392,6 +394,7 @@ int ltr558_devinit(void)
 
 #if 1
 //printf reg
+	{
 	unsigned char upper_low,upper_high;
 	unsigned char lower_low,lower_high;
 
@@ -424,7 +427,7 @@ int ltr558_devinit(void)
 
 	error = ltr558_i2c_read_reg(LTR558_INTERRUPT_PERSIST);
 	debug(" LTR558_INTERRUPT_PERSIST =0x%0x\n", error );
-
+	}
 #endif
 
 
@@ -646,7 +649,7 @@ static enum hrtimer_restart ltr_timer_func(struct hrtimer *timer)
 /* interrupt happened due to transition/change of near/far proximity state */
 static u32 ltr_irq_handler(void *data)
 {
-	struct ltr_data *ltr =(struct ltr_data *)data;
+//	struct ltr_data *ltr =(struct ltr_data *)data;
 //	schedule_work(&ltr->irq_workqueue)
 	debug("in irq\n");
 	return 0;
@@ -845,7 +848,7 @@ static int ltr_i2c_probe(struct i2c_client *client,
 
 	ltr558_set_client(ltr->i2c_client);
 	ltr558_devinit();
-	
+
 #if 1
 // PS IRQ triger
 	ret = ltr_setup_irq(ltr);
@@ -936,6 +939,7 @@ static int ltr_resume(struct i2c_client *client)
 static int ltr_i2c_remove(struct i2c_client *client)
 {
 	struct ltr_data *ltr = i2c_get_clientdata(client);
+
 	sysfs_remove_group(&ltr->light_input_dev->dev.kobj,
 			   &light_attribute_group);
 	input_unregister_device(ltr->light_input_dev);
@@ -1026,6 +1030,7 @@ static int gyr_fetch_sysconfig_para(void)
 	int twi_id = 0;
 	int twi_addr = 0;
 	int sensor_int = 0;
+	char* ldo_str = NULL;
 
 	script_item_u	val;
 	script_item_value_type_e  type;
@@ -1062,7 +1067,12 @@ static int gyr_fetch_sysconfig_para(void)
 			return -1;
 		} 
 		*/
-
+		/* get ldo string */
+		type = script_get_item("light_distance_sensor_para", "light_distance_sensor_ldo", &val);
+		if (SCIRPT_ITEM_VALUE_TYPE_STR != type)
+			info("%s: no ldo for light distance sensor, ignore it\n", __func__);
+		else
+			ldo_str = val.str;
 	} else {
 		info("%s: unused. \n",  __func__);
 		return -1;
@@ -1071,9 +1081,10 @@ static int gyr_fetch_sysconfig_para(void)
 	sensor_config.twi_id=twi_id;
 	sensor_config.twi_addr = twi_addr;
 	sensor_config.int1 = sensor_int;
+	sensor_config.ldo = ldo_str;
 
 	debug("twi id=0x%0x, addr=0x%x\n", sensor_config.twi_id, sensor_config.twi_addr);
-	debug("twi gpio=%d\n", sensor_config.int1);
+	debug("twi gpio=%d, ldo: '%s'\n", sensor_config.int1, sensor_config.ldo);
 
         return 0;
 
@@ -1085,6 +1096,7 @@ script_parser_fetch_err:
 
 static int ltr_init(void)
 {
+	struct regulator *ldo = NULL;
 	debug("%s:  sysfs driver init\n", __func__ );
 
 	if(gyr_fetch_sysconfig_para()){
@@ -1092,13 +1104,36 @@ static int ltr_init(void)
 		return -1;
 	}
 
+	/* enalbe ldo if it exist */
+	if (sensor_config.ldo) {
+		ldo = regulator_get(NULL, sensor_config.ldo);
+		if (!ldo) {
+			info("%s: could not get sensor ldo '%s' in probe, maybe config error,"
+					"ignore firstly !!!!!!!\n", __func__, sensor_config.ldo);
+		}
+		regulator_set_voltage(ldo, 3000000, 3000000);
+		regulator_enable(ldo);
+		regulator_put(ldo);
+		usleep_range(10000, 15000);
+	}
 	ltr_i2c_driver.detect = sensor_detect;
 	return i2c_add_driver(&ltr_i2c_driver);
 }
 
 static void ltr_exit(void)
 {
+	struct regulator *ldo = NULL;
 	i2c_del_driver(&ltr_i2c_driver);
+
+	/* disable ldo if it exist */
+	ldo = regulator_get(NULL, sensor_config.ldo);
+	if (!ldo) {
+		info("%s: could not get ldo '%s' in remove, something error ???, "
+				"ignore it here !!!!!!!!!\n", __func__, sensor_config.ldo);
+	} else {
+		regulator_disable(ldo);
+		regulator_put(ldo);
+	}
 }
 
 module_init(ltr_init);
