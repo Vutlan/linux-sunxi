@@ -625,7 +625,8 @@ static void ltr_work_func_light(struct work_struct *work)
 	int adc = ltr558_als_read();
 	if (adc < 0)
 	{
-		info("light val err");
+		debug("light val 0");
+		adc = 0; // no light 
 	}
 
 	debug("light val=%d\n",  adc);
