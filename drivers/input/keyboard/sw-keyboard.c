@@ -29,6 +29,7 @@
 #include <asm/irq.h>
 #include <asm/io.h>
 #include <linux/timer.h> 
+#include <linux/wakelock.h>
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 #include <linux/earlysuspend.h>
@@ -192,6 +193,8 @@ static struct sun6i_keyboard_data *keyboard_data;
 extern long phone_actived;
 #endif
 
+static struct wake_lock lradc_lock;
+
 #ifdef CONFIG_HAS_EARLYSUSPEND
 /* Í£ÓÃÉè±¸ */
 static void sun6i_keyboard_early_suspend(struct early_suspend *h)
@@ -283,7 +286,6 @@ static int sun6i_keyboard_resume(struct device *dev)
 #endif
 #endif
 
-
 static irqreturn_t sun6i_isr_key(int irq, void *dummy)
 {
 	unsigned int  reg_val;
@@ -293,6 +295,9 @@ static irqreturn_t sun6i_isr_key(int irq, void *dummy)
 	
 	reg_val  = readl(KEY_BASSADDRESS + LRADC_INT_STA);
 	//writel(reg_val,KEY_BASSADDRESS + LRADC_INT_STA);
+
+	if (phone_actived)
+		wake_lock_timeout(&lradc_lock, msecs_to_jiffies(1000));
 
 	if (reg_val & LRADC_ADC0_DOWNPEND) {	
 		dprintk(DEBUG_INT, "key down\n");
@@ -450,6 +455,9 @@ static int __init sun6ikbd_init(void)
 	keyboard_data->early_suspend.resume	= sun6i_keyboard_late_resume;
 	register_early_suspend(&keyboard_data->early_suspend);
 #endif
+
+	wake_lock_init(&lradc_lock, WAKE_LOCK_SUSPEND, "lradc_wakelock");
+
 	dprintk(DEBUG_INIT, "sun6ikbd_init end\n");
 
 	return 0;
@@ -468,6 +476,7 @@ fail1:
 
 static void __exit sun6ikbd_exit(void)
 {	
+	wake_lock_destroy(&lradc_lock);
 #ifdef CONFIG_HAS_EARLYSUSPEND	
 	unregister_early_suspend(&keyboard_data->early_suspend);	
 #endif
