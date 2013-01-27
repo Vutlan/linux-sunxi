@@ -369,7 +369,7 @@ static  void codec_init(void)
 	/*write 1 to flush rx fifo*/
 	codec_wr_control(SUN6I_ADC_FIFOC, 0x1, ADC_FIFO_FLUSH, 0x1);
 
-	codec_wr_control(SUN6I_DAC_FIFOC, 0x1, FIR_VERSION, 0x1);
+	//codec_wr_control(SUN6I_DAC_FIFOC, 0x1, FIR_VERSION, 0x1);
 
 	type = script_get_item("audio_para", "headphone_vol", &val);
 	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
@@ -468,7 +468,7 @@ static int codec_headphone_play_open(void)
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPPA_MUTE, 0x0);
 	codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPPA_MUTE, 0x0);
 
-	codec_wr_control(SUN6I_ADDAC_TUNE, 0x1, ZERO_CROSS_EN, 0x1);
+	//codec_wr_control(SUN6I_ADDAC_TUNE, 0x1, ZERO_CROSS_EN, 0x1);
 	/*enable dac digital*/
 	codec_wr_control(SUN6I_DAC_DPC, 0x1, DAC_EN, 0x1);
 
@@ -656,7 +656,7 @@ static int codec_play_stop(void)
 	/*set the default output is HPOUTL/R for 3gpad earpiece: HPL inverting output*/
 	codec_wr_control(SUN6I_PA_CTRL, 0x3, HPCOM_CTL, 0x0);
 	#endif
-	codec_wr_control(SUN6I_ADDAC_TUNE, 0x1, ZERO_CROSS_EN, 0x0);
+	//codec_wr_control(SUN6I_ADDAC_TUNE, 0x1, ZERO_CROSS_EN, 0x0);
 	for (i = 0; i < headphone_vol; i++) {
 		/*set HPVOL volume*/
 		codec_wr_control(SUN6I_DAC_ACTL, 0x3f, VOLUME, headphone_vol);
@@ -878,9 +878,19 @@ static int codec_get_speakerout(struct snd_kcontrol *kcontrol,
 static int codec_set_headphoneout(struct snd_kcontrol *kcontrol,
 	struct snd_ctl_elem_value *ucontrol)
 {
+	script_item_u val;
+	script_item_value_type_e  type;
+
 	codec_headphoneout_enabled = ucontrol->value.integer.value[0];
 
 	if (codec_headphoneout_enabled) {
+		type = script_get_item("audio_para", "headphone_vol", &val);
+		if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+			printk("[audiocodec] headphone_vol type err!\n");
+		}
+		/*set HPVOL volume*/
+		codec_wr_control(SUN6I_DAC_ACTL, 0x3f, VOLUME, val.val);
+
 		/*unmute l_pa and r_pa*/
 		codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPPA_MUTE, 0x1);
 		codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPPA_MUTE, 0x1);
@@ -914,9 +924,20 @@ static int codec_get_headphoneout(struct snd_kcontrol *kcontrol,
 static int codec_set_earpieceout(struct snd_kcontrol *kcontrol,
 	struct snd_ctl_elem_value *ucontrol)
 {
+	script_item_u val;
+	script_item_value_type_e  type;
+
 	codec_earpieceout_enabled = ucontrol->value.integer.value[0];
 
 	if (codec_earpieceout_enabled) {
+		type = script_get_item("audio_para", "earpiece_vol", &val);
+		if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+			printk("[audiocodec] earpiece_vol type err!\n");
+		}
+
+		/*set HPVOL volume*/
+		codec_wr_control(SUN6I_DAC_ACTL, 0x3f, VOLUME, val.val);
+
 		/*unmute l_pa and r_pa*/
 		codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPPA_MUTE, 0x1);
 		codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPPA_MUTE, 0x1);
@@ -1332,7 +1353,7 @@ static int codec_set_spk(struct snd_kcontrol *kcontrol,
 		/*unmute l_pa and r_pa*/
 		codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPPA_MUTE, 0x1);
 		codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPPA_MUTE, 0x1);
-		codec_wr_control(SUN6I_ADDAC_TUNE, 0x1, ZERO_CROSS_EN, 0x1);
+//		codec_wr_control(SUN6I_ADDAC_TUNE, 0x1, ZERO_CROSS_EN, 0x1);
 
 		type = script_get_item("audio_para", "headphone_vol", &val);
 		if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
