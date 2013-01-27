@@ -392,7 +392,7 @@ static int sun6i_pcm_prepare(struct snd_pcm_substream *substream)
 		}
 
 		memset(&play_dma_config, 0, sizeof(play_dma_config));
-		play_dma_config.xfer_type = DMAXFER_D_BHALF_S_BHALF;
+		play_dma_config.xfer_type = DMAXFER_D_BWORD_S_BWORD; //old ,DMAXFER_D_BHALF_S_BHALF 
 		play_dma_config.address_type = DMAADDRT_D_IO_S_LN;
 		play_dma_config.para = 0;
 		play_dma_config.irq_spt = CHAN_IRQ_QD;
