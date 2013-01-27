@@ -41,7 +41,7 @@
 #define SW_UART_NR	6
 
 #define CONFIG_SW_UART_FORCE_LCR
-//#define CONFIG_SW_UART_DEBUG
+#define CONFIG_SW_UART_DEBUG
 //#define CONFIG_SW_UART_DUMP_DATA
 /*
  * ********************* Note **********************
@@ -53,7 +53,7 @@
  * this problem if you want define this macro to debug.
  */
 /* debug control */
-#define DEBUG_CONDITION (sw_uport->id == 2)
+#define DEBUG_CONDITION (sw_uport->id == 3)
 #define SERIAL_MSG(...) printk("[uart]: "__VA_ARGS__)
 
 #ifdef CONFIG_SW_UART_DEBUG
@@ -148,6 +148,12 @@ static inline unsigned char serial_in(struct uart_port *port, int offs)
 static inline void serial_out(struct uart_port *port, unsigned char value, int offs)
 {
 	__raw_writeb(value, port->membase + offs);
+}
+
+static inline void sw_uart_reset(struct sw_uart_port *sw_uport)
+{
+	clk_reset(sw_uport->mclk, AW_CCU_CLK_RESET);
+	clk_reset(sw_uport->mclk, AW_CCU_CLK_NRESET);
 }
 
 static unsigned int sw_uart_handle_rx(struct sw_uart_port *sw_uport, unsigned int lsr)
@@ -323,7 +329,7 @@ static void sw_uart_force_lcr(struct sw_uart_port *sw_uport, unsigned msecs)
 	serial_out(port, SW_UART_HALT_FORCECFG|SW_UART_HALT_LCRUP, SW_UART_HALT);
 	while (jiffies < expire && (serial_in(port, SW_UART_HALT) & SW_UART_HALT_LCRUP));
 	if (serial_in(port, SW_UART_HALT) & SW_UART_HALT_LCRUP)
-		SERIAL_MSG("Force LCR failed\n");
+		SERIAL_MSG("uart%d, Force LCR failed\n", sw_uport->id);
 	serial_out(port, 0, SW_UART_HALT);
 }
 
@@ -342,7 +348,7 @@ static irqreturn_t sw_uart_irq(int irq, void *dev_id)
 
 	if (iir == SW_UART_IIR_IID_BUSBSY) {
 		/* handle busy */
-		SERIAL_MSG("ttyS%d busy...\n", port->line);
+		SERIAL_MSG("uart%d busy...\n", sw_uport->id);
 		serial_in(port, SW_UART_USR);
 
 		#ifdef CONFIG_SW_UART_FORCE_LCR
@@ -375,6 +381,7 @@ struct baudset {
 
 static inline int sw_uart_check_baudset(struct uart_port *port, unsigned int baud)
 {
+	struct sw_uart_port *sw_uport = UART_TO_SPORT(port);
 	static struct baudset  baud_set[] = {
 		{115200, 24000000, 24000000},
 		{230400, 30000000, 30000000},
@@ -393,8 +400,8 @@ static inline int sw_uart_check_baudset(struct uart_port *port, unsigned int bau
 
 	if (baud < 115200) {
 		if (port->uartclk < 24000000) {
-			SERIAL_MSG("uartclk(%d) too small for baud %d\n",
-				port->uartclk, baud);
+			SERIAL_MSG("uart%d, uartclk(%d) too small for baud %d\n",
+				sw_uport->id, port->uartclk, baud);
 			return -1;
 		}
 	} else {
@@ -402,14 +409,15 @@ static inline int sw_uart_check_baudset(struct uart_port *port, unsigned int bau
 		     i<sizeof(baud_set)/sizeof(baud_set[0]) && baud != baud_set[i].baud;
 		     i++);
 		if (i==sizeof(baud_set)/sizeof(baud_set[0])) {
-			SERIAL_MSG("baud %d beyond rance\n", baud);
+			SERIAL_MSG("uart%d, baud %d beyond rance\n", sw_uport->id, baud);
 			return -1;
 		}
 		setsel = &baud_set[i];
 		if (port->uartclk < setsel->uartclk_min
 			|| port->uartclk > setsel->uartclk_max) {
-			SERIAL_MSG("uartclk %d beyond rance[%d, %d]\n",
-				port->uartclk, setsel->uartclk_min, setsel->uartclk_max);
+			SERIAL_MSG("uart%d, uartclk %d beyond rance[%d, %d]\n",
+				sw_uport->id, port->uartclk,
+				setsel->uartclk_min, setsel->uartclk_max);
 			return -1;
 		}
 	}
@@ -476,7 +484,8 @@ static void sw_uart_set_mctrl(struct uart_port *port, unsigned int mctrl)
 		mcr |= SW_UART_MCR_DTR;
 	if (mctrl & TIOCM_LOOP)
 		mcr |= SW_UART_MCR_LOOP;
-	sw_uport->mcr = mcr;
+	sw_uport->mcr &= ~(SW_UART_MCR_RTS|SW_UART_MCR_DTR|SW_UART_MCR_LOOP);
+	sw_uport->mcr |= mcr;
 	SERIAL_DBG("set mcr %x\n", mcr);
 	serial_out(port, sw_uport->mcr, SW_UART_MCR);
 }
@@ -547,14 +556,9 @@ static int sw_uart_startup(struct uart_port *port)
 		 "sw_serial%d", port->line);
 	ret = request_irq(port->irq, sw_uart_irq, 0, sw_uport->name, port);
 	if (unlikely(ret)) {
-		SERIAL_MSG("cannot get irq %d\n", port->irq);
+		SERIAL_MSG("uart%d cannot get irq %d\n", sw_uport->id, port->irq);
 		return ret;
 	}
-
-	clk_reset(sw_uport->mclk, AW_CCU_CLK_RESET);
-	usleep_range(100, 200);
-	clk_reset(sw_uport->mclk, AW_CCU_CLK_NRESET);
-	serial_out(port, 0, SW_UART_FCR);
 
 	sw_uport->msr_saved_flags = 0;
 	/*
@@ -572,8 +576,6 @@ static int sw_uart_startup(struct uart_port *port)
 	#ifdef CONFIG_SW_UART_PTIME_MODE
 	sw_uport->ier |= SW_UART_IER_PTIME;
 	#endif
-	serial_out(port, sw_uport->ier, SW_UART_IER);
-	SERIAL_DBG("startup, ier %x\n", sw_uport->ier);
 
 	return 0;
 }
@@ -595,7 +597,7 @@ static void sw_uart_set_termios(struct uart_port *port, struct ktermios *termios
 {
 	struct sw_uart_port *sw_uport = UART_TO_SPORT(port);
 	unsigned long flags;
-	unsigned int baud, quot, lcr = 0;
+	unsigned int baud, quot, lcr = 0, dll, dlh;
 	unsigned int lcr_fail = 0;
 
 	SERIAL_DBG("set termios ...\n");
@@ -628,8 +630,9 @@ static void sw_uart_set_termios(struct uart_port *port, struct ktermios *termios
 				  port->uartclk / 16);
 	sw_uart_check_baudset(port, baud);
 	quot = uart_get_divisor(port, baud);
-	sw_uport->dll = quot & 0xff;
-	sw_uport->dlh = quot >> 8;
+	dll = quot & 0xff;
+	dlh = quot >> 8;
+	SERIAL_DBG("set baudrate %d, quot %d\n", baud, quot);
 
 	spin_lock_irqsave(&port->lock, flags);
 	uart_update_timeout(port, termios->c_cflag, baud);
@@ -661,6 +664,16 @@ static void sw_uart_set_termios(struct uart_port *port, struct ktermios *termios
 	if ((termios->c_cflag & CREAD) == 0)
 		port->ignore_status_mask |= SW_UART_LSR_DR;
 
+	/*
+	 * if lcr & baud are changed, reset controller to disable transfer
+	 */
+	if (lcr != sw_uport->lcr || dll != sw_uport->dll || dlh != sw_uport->dlh) {
+		SERIAL_DBG("LCR & BAUD changed, reset controller...\n");
+		sw_uart_reset(sw_uport);
+	}
+	sw_uport->dll = dll;
+	sw_uport->dlh = dlh;
+
 	/* flow control */
 	sw_uport->mcr &= ~SW_UART_MCR_AFE;
 	if (termios->c_cflag & CRTSCTS)
@@ -675,15 +688,16 @@ static void sw_uart_set_termios(struct uart_port *port, struct ktermios *termios
 		sw_uport->ier |= SW_UART_IER_MSI;
 	serial_out(port, sw_uport->ier, SW_UART_IER);
 
-	sw_uport->fcr = SW_UART_FCR_RXTRG_1_4 | SW_UART_FCR_TXTRG_1_2
+	sw_uport->fcr = SW_UART_FCR_RXTRG_1_2 | SW_UART_FCR_TXTRG_1_2
 			| SW_UART_FCR_FIFO_EN;
 	serial_out(port, sw_uport->fcr, SW_UART_FCR);
 
 	sw_uport->lcr = lcr;
 	serial_out(port, sw_uport->lcr|SW_UART_LCR_DLAB, SW_UART_LCR);
 	if (serial_in(port, SW_UART_LCR) != (sw_uport->lcr|SW_UART_LCR_DLAB)) {
-		SERIAL_MSG("write LCR(pre-dlab) failed, lcr %x reg %x\n",
-			sw_uport->lcr|(u32)SW_UART_LCR_DLAB, serial_in(port, SW_UART_LCR));
+		SERIAL_MSG("uart%d write LCR(pre-dlab) failed, lcr %x reg %x\n",
+			sw_uport->id, sw_uport->lcr|(u32)SW_UART_LCR_DLAB,
+			serial_in(port, SW_UART_LCR));
 		lcr_fail = 1;
 	} else {
 		sw_uport->lcr = lcr;
@@ -691,8 +705,8 @@ static void sw_uart_set_termios(struct uart_port *port, struct ktermios *termios
 		serial_out(port, sw_uport->dlh, SW_UART_DLH);
 		serial_out(port, sw_uport->lcr, SW_UART_LCR);
 		if (serial_in(port, SW_UART_LCR) != sw_uport->lcr) {
-			SERIAL_MSG("write LCR(post-dlab) failed, lcr %x reg %x\n",
-				sw_uport->lcr, serial_in(port, SW_UART_LCR));
+			SERIAL_MSG("uart%d write LCR(post-dlab) failed, lcr %x reg %x\n",
+				sw_uport->id, sw_uport->lcr, serial_in(port, SW_UART_LCR));
 			lcr_fail = 1;
 		}
 	}
@@ -709,6 +723,9 @@ static void sw_uart_set_termios(struct uart_port *port, struct ktermios *termios
 	/* Don't rewrite B0 */
 	if (tty_termios_baud_rate(termios))
 		tty_termios_encode_baud_rate(termios, baud, baud);
+	SERIAL_DBG("termios lcr 0x%x fcr 0x%x mcr 0x%x dll 0x%x dlh 0x%x\n",
+			sw_uport->lcr, sw_uport->fcr, sw_uport->mcr,
+			sw_uport->dll, sw_uport->dlh);
 }
 
 static const char *sw_uart_type(struct uart_port *port)
@@ -734,17 +751,17 @@ static void sw_uart_release_port(struct uart_port *port)
 		gpio = &sw_uport->pdata->uart_io[i];
 		ret = sw_gpio_setcfg(gpio->gpio, 7);
 		if (ret) {
-			SERIAL_MSG("uart%d set io%d mulsel failed\n", port->line, i);
+			SERIAL_MSG("uart%d set io%d mulsel failed\n", sw_uport->id, i);
 			return;
 		}
 		ret = sw_gpio_setdrvlevel(gpio->gpio, 1);
 		if (ret) {
-			SERIAL_MSG("uart%d set io%d drvlel failed\n", port->line, i);
+			SERIAL_MSG("uart%d set io%d drvlel failed\n", sw_uport->id, i);
 			return;
 		}
 		ret = sw_gpio_setpull(gpio->gpio, 0);
 		if (ret) {
-			SERIAL_MSG("uart%d set io%d pull failed\n", port->line, i);
+			SERIAL_MSG("uart%d set io%d pull failed\n", sw_uport->id, i);
 			return;
 		}
 	}
@@ -760,12 +777,12 @@ static int sw_uart_request_port(struct uart_port *port)
 	SERIAL_DBG("request port(ioremap & request io)\n");
 	/* request memory resource */
 	if (!request_mem_region(port->mapbase, MAP_SIZE, "sw_serial")) {
-		SERIAL_MSG("request mem region failed\n");
+		SERIAL_MSG("uart%d, request mem region failed\n", sw_uport->id);
 		return -EBUSY;
 	}
 	port->membase = ioremap(port->mapbase, MAP_SIZE);
 	if (!port->membase) {
-		SERIAL_MSG("ioremap failed\n");
+		SERIAL_MSG("uart%d, ioremap failed\n", sw_uport->id);
 		ret = -EBUSY;
 		goto fail_release_port;
 	}
@@ -775,19 +792,19 @@ static int sw_uart_request_port(struct uart_port *port)
 		gpio = &sw_uport->pdata->uart_io[i];
 		ret = sw_gpio_setpull(gpio->gpio, gpio->pull);
 		if (ret) {
-			SERIAL_MSG("uart%d set io%d pull failed\n", port->line, i);
+			SERIAL_MSG("uart%d set io%d pull failed\n", sw_uport->id, i);
 			ret = -EBUSY;
 			goto fail_release_port;
 		}
 		ret = sw_gpio_setdrvlevel(gpio->gpio, gpio->drv_level);
 		if (ret) {
-			SERIAL_MSG("uart%d set io%d drvlel failed\n", port->line, i);
+			SERIAL_MSG("uart%d set io%d drvlel failed\n", sw_uport->id, i);
 			ret = -EBUSY;
 			goto fail_release_port;
 		}
 		ret = sw_gpio_setcfg(gpio->gpio, gpio->mul_sel);
 		if (ret) {
-			SERIAL_MSG("uart%d set io%d mulsel failed\n", port->line, i);
+			SERIAL_MSG("uart%d set io%d mulsel failed\n", sw_uport->id, i);
 			ret = -EBUSY;
 			goto fail_release_port;
 		}
@@ -832,22 +849,22 @@ static void sw_uart_pm(struct uart_port *port, unsigned int state,
 	case 0:
 		ret = clk_enable(sw_uport->pclk);
 		if (ret) {
-			SERIAL_MSG("uart%d enable pclk failed\n", port->line);
+			SERIAL_MSG("uart%d enable pclk failed\n", sw_uport->id);
 		}
 		ret = clk_reset(sw_uport->mclk, AW_CCU_CLK_NRESET);
 		if (ret) {
-			SERIAL_MSG("uart%d release reset failed\n", port->line);
+			SERIAL_MSG("uart%d release reset failed\n", sw_uport->id);
 		}
 		break;
 	case 3:
 		ret = clk_reset(sw_uport->mclk, AW_CCU_CLK_RESET);
 		if (ret) {
-			SERIAL_MSG("uart%d set reset failed\n", port->line);
+			SERIAL_MSG("uart%d set reset failed\n", sw_uport->id);
 		}
 		clk_disable(sw_uport->pclk);
 		break;
 	default:
-		SERIAL_MSG(" Unknown PM state %d\n", state);
+		SERIAL_MSG("uart%d, Unknown PM state %d\n", sw_uport->id, state);
 	}
 }
 
@@ -1004,7 +1021,7 @@ static int sw_uart_request_resource(struct sw_uart_port* sw_uport)
 	sw_uport->pclk = clk_get(port->dev, clk_name);
 	if (IS_ERR(sw_uport->pclk)) {
 		ret = PTR_ERR(sw_uport->pclk);
-		SERIAL_MSG("get pclk failed\n");
+		SERIAL_MSG("uart%d get pclk failed\n", sw_uport->id);
 		goto free_gpio;
 	}
 	clk_disable(sw_uport->pclk);
@@ -1012,14 +1029,14 @@ static int sw_uart_request_resource(struct sw_uart_port* sw_uport)
 	sw_uport->mclk = clk_get(port->dev, clk_name);
 	if (IS_ERR(sw_uport->mclk)) {
 		ret = PTR_ERR(sw_uport->pclk);
-		SERIAL_MSG("get pclk failed\n");
+		SERIAL_MSG("uart%d get pclk failed\n", sw_uport->id);
 		goto free_pclk;
 	}
 
 	#ifdef CONFIG_SW_UART_DUMP_DATA
 	sw_uport->dump_buff = (char*)kmalloc(MAX_DUMP_SIZE, GFP_KERNEL);
 	if (!sw_uport->dump_buff) {
-		SERIAL_MSG("fail to alloc dump buffer\n");
+		SERIAL_MSG("uart%d fail to alloc dump buffer\n", sw_uport->id);
 	}
 	#endif
 
@@ -1138,13 +1155,13 @@ static int __devinit sw_uart_probe(struct platform_device *pdev)
 	/* request system resource and init them */
 	ret = sw_uart_request_resource(sw_uport);
 	if (unlikely(ret)) {
-		SERIAL_MSG("error to get resource\n");
+		SERIAL_MSG("uart%d error to get resource\n", id);
 		return -ENXIO;
 	}
 
 	apbclk = clk_get(&pdev->dev, CLK_SYS_APB2);
 	if (IS_ERR(apbclk)) {
-		SERIAL_MSG("error to get source clock\n");
+		SERIAL_MSG("uart%d error to get source clock\n", id);
 		return -ENXIO;
 	}
 	ret = clk_set_parent(sw_uport->pclk, apbclk);
