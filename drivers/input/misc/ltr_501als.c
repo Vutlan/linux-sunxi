@@ -96,6 +96,8 @@ struct sensor_config{
 };
 static struct sensor_config sensor_config ;
 
+extern long phone_actived;
+
 /* driver data */
 struct ltr_data {
 	struct input_dev *proximity_input_dev;
@@ -390,7 +392,7 @@ int ltr558_devinit(void)
 	ltr558_i2c_write_reg(LTR558_PS_THRES_LOW_0, 0xf4);
 	ltr558_i2c_write_reg(LTR558_PS_THRES_LOW_1, 0x1);
 	ltr558_i2c_write_reg(LTR558_PS_THRES_UP_0, 0xff);
-	ltr558_i2c_write_reg(LTR558_PS_THRES_UP_1, 0x03);
+	ltr558_i2c_write_reg(LTR558_PS_THRES_UP_1, 0x07);
 
 #if 1
 //printf reg
@@ -595,7 +597,7 @@ static struct device_attribute dev_attr_light_enable =
 	       light_enable_show, light_enable_store);
 
 static struct device_attribute dev_attr_proximity_enable =
-	__ATTR(enable, S_IRUGO | S_IWUSR | S_IWGRP,
+	__ATTR(enable, S_IRUGO | S_IWUGO,
 	       proximity_enable_show, proximity_enable_store);
 
 static struct attribute *light_sysfs_attrs[] = {
@@ -720,6 +722,7 @@ static int ltr_setup_irq(struct ltr_data *ltr)
 	debug(" enter %s\n", __func__);
 
 	if (ltr->sensor_config->int1 >= 0) {
+		// TRIG_LEVL_LOW made interrupt too frequently, so use TRIG_EDGE_NEGATIVE
 		ret = sw_gpio_irq_request(ltr->sensor_config->int1, TRIG_EDGE_NEGATIVE, ltr_irq_handler, ltr);//TRIG_LEVL_LOW
 		if (!ret) {
 			info("Failed to request gpio irq \n");
@@ -915,7 +918,9 @@ static int ltr_suspend(struct i2c_client *client, pm_message_t mesg)
 
 	if (ltr->power_state & PROXIMITY_ENABLED){
 		ltr_ps_disable(ltr);
-		ltr558_ps_power(false);
+		if (!phone_actived) {
+			ltr558_ps_power(false);
+		}
 	}
 
 	return 0;
@@ -929,8 +934,10 @@ static int ltr_resume(struct i2c_client *client)
 		ltr558_als_power(true);
 	}
 	if (ltr->power_state & PROXIMITY_ENABLED){
+		if (!phone_actived) {
+			ltr558_ps_power(true);
+		}
 		ltr_ps_enable(ltr);
-		ltr558_ps_power(true);
 	}
 	return 0;
 		
