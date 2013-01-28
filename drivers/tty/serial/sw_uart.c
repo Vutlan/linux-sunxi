@@ -41,7 +41,7 @@
 #define SW_UART_NR	6
 
 #define CONFIG_SW_UART_FORCE_LCR
-#define CONFIG_SW_UART_DEBUG
+//#define CONFIG_SW_UART_DEBUG
 //#define CONFIG_SW_UART_DUMP_DATA
 /*
  * ********************* Note **********************
