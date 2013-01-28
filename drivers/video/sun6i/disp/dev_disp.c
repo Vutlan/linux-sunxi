@@ -662,8 +662,12 @@ static int disp_remove(struct platform_device *pdev)
 void backlight_early_suspend(struct early_suspend *h)
 {
     int i = 0;
-    int r_count = g_fbi.cb_r_conut;
+    int r_count = 0;
 
+    g_fbi.b_no_output = 1;
+
+    mutex_lock(&g_fbi.runtime_lock);
+    r_count = g_fbi.cb_r_conut;
     while(r_count != g_fbi.cb_w_conut)
     {        
         if(r_count >= 9)
@@ -683,7 +687,7 @@ void backlight_early_suspend(struct early_suspend *h)
             //printk(KERN_WARNING "##es r_count:%d\n", r_count);
         }
     }
-    g_fbi.b_no_output = 1;
+    mutex_unlock(&g_fbi.runtime_lock);
 
     for(i=1; i>=0; i--)
     {
@@ -787,8 +791,12 @@ int disp_suspend(struct platform_device *pdev, pm_message_t state)
     int i = 0;
     
 #ifndef CONFIG_HAS_EARLYSUSPEND
-    int r_count = g_fbi.cb_r_conut;
+    int r_count = 0;
 
+    g_fbi.b_no_output = 1;
+
+    mutex_lock(&g_fbi.runtime_lock);
+    r_count = g_fbi.cb_r_conut;
     while(r_count != g_fbi.cb_w_conut)
     {        
         if(r_count >= 9)
@@ -808,7 +816,7 @@ int disp_suspend(struct platform_device *pdev, pm_message_t state)
             //printk(KERN_WARNING "##es r_count:%d\n", r_count);
         }
     }
-    g_fbi.b_no_output = 1;
+    mutex_unlock(&g_fbi.runtime_lock);
 
     pr_info("[DISP]>>disp_suspend call<<\n");
 
