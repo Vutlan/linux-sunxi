@@ -1680,6 +1680,7 @@ static void nand_flush_all(void)
     /* get nand ops mutex */
     down(&mytr.nand_ops_mutex);
 
+#if 0
     #ifdef NAND_CACHE_RW
     NAND_CacheFlush();
     #else
@@ -1687,6 +1688,20 @@ static void nand_flush_all(void)
     #endif
     BMM_WriteBackAllMapTbl();
     printk("Nand flash shutdown ok!\n");
+#else
+	#ifdef NAND_CACHE_RW
+    	NAND_CacheFlush();
+		NAND_CacheClose();
+	#else
+		LML_FlushPageCache();
+	#endif
+
+	LML_Exit();
+	FMT_Exit();
+	PHY_Exit();
+
+#endif
+
 }
 
 
