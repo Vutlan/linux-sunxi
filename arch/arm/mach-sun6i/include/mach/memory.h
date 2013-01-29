@@ -31,7 +31,7 @@
 #define SUPER_STANDBY_MEM_SIZE  (SZ_1K)                                 /* 1K */
 
 #define HW_RESERVED_MEM_BASE    (PLAT_PHYS_OFFSET + SZ_64M + SZ_32M + SZ_4M)    /* +100M */
-#define HW_RESERVED_MEM_SIZE    (SZ_128M + SZ_64M + SZ_32M + SZ_8M)   		/* 232M(DE+VE(CSI)+MP) */
+#define HW_RESERVED_MEM_SIZE    (SZ_128M + SZ_32M + SZ_8M)   		/* 264M(DE+VE(CSI)+MP), reduce the reserved memory for app5, yemao */
 
 #if defined(CONFIG_ION) || defined(CONFIG_ION_MODULE)
 #define ION_CARVEOUT_MEM_BASE   (HW_RESERVED_MEM_BASE + HW_RESERVED_MEM_SIZE)	/* +332M */
