@@ -658,6 +658,18 @@ mtk_p2p_cfg80211_change_beacon(
     struct cfg80211_beacon_data *info
     );
 
+#else
+int
+mtk_p2p_cfg80211_add_set_beacon(
+    struct wiphy *wiphy,
+    struct net_device *dev,
+    struct beacon_parameters *info
+    );
+
+#endif
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 2, 0)
+
 int
 mtk_p2p_cfg80211_mgmt_tx(
     struct wiphy *wiphy,
@@ -670,16 +682,12 @@ mtk_p2p_cfg80211_mgmt_tx(
     const u8 *buf, 
     size_t len, 
     bool no_cck,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 3, 0)
     bool dont_wait_for_ack,
+#endif
     u64 *cookie);
 
 #else
-int
-mtk_p2p_cfg80211_add_set_beacon(
-    struct wiphy *wiphy,
-    struct net_device *dev,
-    struct beacon_parameters *info
-    );
 
 int
 mtk_p2p_cfg80211_mgmt_tx(
@@ -696,7 +704,6 @@ mtk_p2p_cfg80211_mgmt_tx(
     );
 
 #endif
-
 
 int
 mtk_p2p_cfg80211_stop_ap(

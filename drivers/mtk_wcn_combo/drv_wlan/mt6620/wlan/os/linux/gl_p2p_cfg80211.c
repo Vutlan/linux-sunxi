@@ -1299,9 +1299,11 @@ mtk_p2p_cfg80211_mgmt_tx (
     bool channel_type_valid, unsigned int wait,
     const u8 *buf,
     size_t len,
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 2, 0)
     bool no_cck,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 3, 0)
     bool dont_wait_for_ack,
+#endif
 #endif
     u64 *cookie
     )
@@ -1326,12 +1328,11 @@ mtk_p2p_cfg80211_mgmt_tx (
 
         prGlueInfo = *((P_GLUE_INFO_T *) wiphy_priv(wiphy));
         prGlueP2pInfo = prGlueInfo->prP2PInfo;
-
+        
         *cookie = prGlueP2pInfo->u8Cookie++;
 
         /* Channel & Channel Type & Wait time are ignored. */
         prMsgTxReq = cnmMemAlloc(prGlueInfo->prAdapter, RAM_TYPE_MSG, sizeof(MSG_P2P_MGMT_TX_REQUEST_T));
-
         if (prMsgTxReq == NULL) {
             ASSERT(FALSE);
             i4Rslt = -ENOMEM;
@@ -1353,7 +1354,6 @@ mtk_p2p_cfg80211_mgmt_tx (
         prMsgTxReq->rMsgHdr.eMsgId = MID_MNY_P2P_MGMT_TX;
 
         pucFrameBuf = (PUINT_8)((UINT_32)prMgmtFrame->prPacket + MAC_TX_RESERVED_FIELD);
-
         kalMemCopy(pucFrameBuf, buf, len);
 
         prMgmtFrame->u2FrameLength = len;
@@ -1362,7 +1362,6 @@ mtk_p2p_cfg80211_mgmt_tx (
                             MBOX_ID_0,
                             (P_MSG_HDR_T)prMsgTxReq,
                             MSG_SEND_METHOD_BUF);
-
         i4Rslt = 0;
     } while (FALSE);
 
@@ -1370,7 +1369,6 @@ mtk_p2p_cfg80211_mgmt_tx (
         if (prMsgTxReq->prMgmtMsduInfo != NULL) {
             cnmMgtPktFree(prGlueInfo->prAdapter, prMsgTxReq->prMgmtMsduInfo);
         }
-
         cnmMemFree(prGlueInfo->prAdapter, prMsgTxReq);
     }
 
