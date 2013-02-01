@@ -1095,7 +1095,6 @@ static void sw_mci_hold_io(struct sunxi_mmc_host* smc_host)
 		}
 	}
 	SMC_DBG(smc_host, "mmc %d suspend pins\n", smc_host->pdev->id);
-	smc_host->suspend = 1;
 
 	return;
 }
@@ -1491,9 +1490,11 @@ static void sw_mci_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	u32 byte_cnt = 0;
 	int ret;
 
-	if (sw_mci_card_present(mmc) == 0 || smc_host->ferror || !smc_host->power_on) {
-		SMC_DBG(smc_host, "no medium present, ferr %d, pwd %d\n",
-			    smc_host->ferror, smc_host->power_on);
+	if (sw_mci_card_present(mmc) == 0 || smc_host->ferror
+			|| smc_host->suspend || !smc_host->power_on) {
+		SMC_DBG(smc_host, "no medium present, ferr %d, suspend %d pwd %d\n",
+			    smc_host->ferror, smc_host->suspend, smc_host->power_on);
+		mrq->cmd->error = -ENOMEDIUM;
 		mrq->cmd->error = -ENOMEDIUM;
 		mmc_request_done(mmc, mrq);
 		return;
@@ -2269,12 +2270,13 @@ static int sw_mci_suspend(struct device *dev)
 	if (mmc) {
 		struct sunxi_mmc_host *smc_host = mmc_priv(mmc);
 		ret = mmc_suspend_host(mmc);
+		if (!ret)
+			smc_host->suspend = 1;
 		if (mmc_card_keep_power(mmc)) {
 			sw_mci_regs_save(smc_host);
 			/* gate clock for lower power */
 			clk_disable(smc_host->hclk);
 		}
-
 		SMC_MSG(NULL, "smc %d suspend\n", pdev->id);
 	}
 
@@ -2298,6 +2300,8 @@ static int sw_mci_resume(struct device *dev)
 		if (smc_host->cd_mode == CARD_DETECT_BY_GPIO_IRQ)
 			sw_mci_cd_cb((unsigned long)smc_host);
 		ret = mmc_resume_host(mmc);
+		if (!ret)
+			smc_host->suspend = 0;
 		SMC_MSG(NULL, "smc %d resume\n", pdev->id);
 	}
 
