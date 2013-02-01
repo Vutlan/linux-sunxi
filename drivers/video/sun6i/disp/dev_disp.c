@@ -1785,6 +1785,14 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
             ret = BSP_disp_lcd_user_defined_func(ubuffer[0], ubuffer[1], ubuffer[2], ubuffer[3]);
             break;
 
+        case DISP_CMD_LCD_BACKLIGHT_ON:
+            ret = BSP_disp_open_lcd_backlight(ubuffer[0]);
+            break;
+
+        case DISP_CMD_LCD_BACKLIGHT_OFF:
+            ret = BSP_disp_close_lcd_backlight(ubuffer[0]);
+            break;
+
 	//----pwm----
         case DISP_CMD_PWM_SET_PARA:
             ret = pwm_set_para(ubuffer[0], (__pwm_info_t *)ubuffer[1]);
