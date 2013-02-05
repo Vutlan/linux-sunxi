@@ -269,7 +269,7 @@ void hdmi_report_hpd_work(struct work_struct *work)
 	if(Hdmi_get_HPD_status())
     {
         //snprintf(buf, sizeof(buf), "HDMI_PLUGIN");
-        switch_set_state(&hdmi_switch_dev, 1);
+        //switch_set_state(&hdmi_switch_dev, 1);
         __inf("switch_set_state 1\n");
     }
     else
@@ -284,7 +284,18 @@ void hdmi_report_hpd_work(struct work_struct *work)
 	//kobject_uevent_env(&ghdmi.dev->kobj, KOBJ_CHANGE, envp);
 }
 
+__s32 hdmi_hpd_state(__u32 state)
+{
+    if(state == 0)
+    {
+        switch_set_state(&hdmi_switch_dev, 0);
+    }else
+    {
+        switch_set_state(&hdmi_switch_dev, 1);
+    }
 
+    return 0;
+}
 /**
  * hdmi_hpd_report - report hdmi hot plug state to user space
  * @hotplug:	0: hdmi plug out;   1:hdmi plug in
