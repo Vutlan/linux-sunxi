@@ -128,7 +128,7 @@ static int sunxi_cpufreq_target(struct cpufreq_policy *policy, __u32 freq, __u32
     /* update the target frequency */
     freq_cfg.pll = sunxi_freq_tbl[index].frequency * 1000;
     freq_cfg.div = *(struct sunxi_clk_div_t *)&sunxi_freq_tbl[index].index;
-    CPUFREQ_DBG("target frequency find is %u, entry %u\n", freq_cfg.pll, index);
+    CPUFREQ_ERR("target frequency find is %u, entry %u\n", freq_cfg.pll, index);
 
     /* notify that cpu clock will be adjust if needed */
     if (policy) {
@@ -191,7 +191,7 @@ static int sunxi_cpufreq_target(struct cpufreq_policy *policy, __u32 freq, __u32
     }
 
     last_target = freq;
-    CPUFREQ_DBG("set cpu frequency to %uMHz ok\n", freq / 1000);
+    CPUFREQ_ERR("set cpu frequency to %uMHz ok\n", freq / 1000);
 
 out:
 #ifdef CONFIG_CPU_FREQ_SETFREQ_DEBUG
@@ -331,15 +331,6 @@ fail:
  */
 static int sunxi_cpufreq_init(struct cpufreq_policy *policy)
 {
-    /* init cpu frequency from sysconfig */
-    if(__init_freq_syscfg()) {
-        CPUFREQ_ERR("%s, use default cpu max/min frequency, max freq: %uMHz, min freq: %uMHz\n",
-                    __func__, cpu_freq_max/1000, cpu_freq_min/1000);
-    }else{
-        CPUFREQ_INF("%s, get cpu frequency from sysconfig, max freq: %uMHz, min freq: %uMHz\n",
-                    __func__, cpu_freq_max/1000, cpu_freq_min/1000);
-    }
-
     policy->cur = sunxi_cpufreq_get(0);
     policy->min = policy->cpuinfo.min_freq = cpu_freq_min;
     policy->max = policy->cpuinfo.max_freq = cpu_freq_max;
@@ -457,6 +448,15 @@ static int __init sunxi_cpufreq_initcall(void)
     /* initialise current frequency configuration */
     sunxi_cpufreq_getcur(&cpu_cur);
     sunxi_cpufreq_show("cur", &cpu_cur);
+
+    /* init cpu frequency from sysconfig */
+    if(__init_freq_syscfg()) {
+        CPUFREQ_ERR("%s, use default cpu max/min frequency, max freq: %uMHz, min freq: %uMHz\n",
+                    __func__, cpu_freq_max/1000, cpu_freq_min/1000);
+    }else{
+        CPUFREQ_INF("%s, get cpu frequency from sysconfig, max freq: %uMHz, min freq: %uMHz\n",
+                    __func__, cpu_freq_max/1000, cpu_freq_min/1000);
+    }
 
     /* register cpu frequency driver */
     ret = cpufreq_register_driver(&sunxi_cpufreq_driver);

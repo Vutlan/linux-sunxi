@@ -17,6 +17,7 @@ static void LCD_panel_exit(__u32 sel);
 static void LCD_cfg_panel_info(__panel_extend_para_t * info)
 {
     __u32 i = 0, j=0;
+    __u32 items;
     __u8 lcd_gamma_tbl[][2] = 
     {
     //{input value, corrected value}
@@ -42,25 +43,25 @@ static void LCD_cfg_panel_info(__panel_extend_para_t * info)
 
     __u8 lcd_bright_curve_tbl[][2] = 
     {
-    //{input value, corrected value}
-        {0, 0},
-        {15, 15},
-        {30, 30},
-        {45, 45},
-        {60, 60},
-        {75, 75},
-        {90, 90},
-        {105, 105},
-        {120, 120},
-        {135, 135},
-        {150, 150},
-        {165, 165},
-        {180, 180},
-        {195, 195},
-        {210, 210},
-        {225, 225},
-        {240, 240},
-        {255, 255},
+        //{input value, corrected value}
+        {0    ,0  },//0
+        {15   ,3  },//0
+        {30   ,6  },//0
+        {45   ,9  },// 1
+        {60   ,12  },// 2
+        {75   ,16  },// 5
+        {90   ,22  },//9
+        {105   ,28 }, //15
+        {120  ,36 },//23
+        {135  ,44 },//33
+        {150  ,54 },
+        {165  ,67 },
+        {180  ,84 },
+        {195  ,108}, 
+        {210  ,137}, 
+        {225 ,171}, 
+        {240 ,210}, 
+        {255 ,255},
     };
 
     __u32 lcd_cmap_tbl[2][3][4] = {
@@ -78,50 +79,38 @@ static void LCD_cfg_panel_info(__panel_extend_para_t * info)
 
     memset(info,0,sizeof(__panel_extend_para_t));
 
-    info->lcd_gamma_en = 0;
-    info->lcd_cmap_en = 0;
-    info->lcd_bright_curve_en = 1;
-    
-    if(info->lcd_gamma_en)
+    items = sizeof(lcd_gamma_tbl)/2;   
+    for(i=0; i<items-1; i++)
     {
-        __u32 items = sizeof(lcd_gamma_tbl)/2;
-        
-        for(i=0; i<items-1; i++)
+        __u32 num = lcd_gamma_tbl[i+1][0] - lcd_gamma_tbl[i][0];
+
+        for(j=0; j<num; j++)
         {
-            __u32 num = lcd_gamma_tbl[i+1][0] - lcd_gamma_tbl[i][0];
+            __u32 value = 0;
 
-            for(j=0; j<num; j++)
-            {
-                __u32 value = 0;
-
-                value = lcd_gamma_tbl[i][1] + ((lcd_gamma_tbl[i+1][1] - lcd_gamma_tbl[i][1]) * j)/num;
-                info->lcd_gamma_tbl[lcd_gamma_tbl[i][0] + j] = (value<<16) + (value<<8) + value;
-            }
+            value = lcd_gamma_tbl[i][1] + ((lcd_gamma_tbl[i+1][1] - lcd_gamma_tbl[i][1]) * j)/num;
+            info->lcd_gamma_tbl[lcd_gamma_tbl[i][0] + j] = (value<<16) + (value<<8) + value;
         }
-        info->lcd_gamma_tbl[255] = (lcd_gamma_tbl[items-1][1]<<16) + (lcd_gamma_tbl[items-1][1]<<8) + lcd_gamma_tbl[items-1][1];
     }
-    
-    if(info->lcd_bright_curve_en)
+    info->lcd_gamma_tbl[255] = (lcd_gamma_tbl[items-1][1]<<16) + (lcd_gamma_tbl[items-1][1]<<8) + lcd_gamma_tbl[items-1][1];
+
+    items = sizeof(lcd_bright_curve_tbl)/2;   
+    for(i=0; i<items-1; i++)
     {
-        __u32 items = sizeof(lcd_bright_curve_tbl)/2;
-        
-        for(i=0; i<items-1; i++)
+        __u32 num = lcd_bright_curve_tbl[i+1][0] - lcd_bright_curve_tbl[i][0];
+
+        for(j=0; j<num; j++)
         {
-            __u32 num = lcd_bright_curve_tbl[i+1][0] - lcd_bright_curve_tbl[i][0];
+            __u32 value = 0;
 
-            for(j=0; j<num; j++)
-            {
-                __u32 value = 0;
-
-                value = lcd_bright_curve_tbl[i][1] + ((lcd_bright_curve_tbl[i+1][1] - lcd_bright_curve_tbl[i][1]) * j)/num;
-                info->lcd_bright_curve_tbl[lcd_bright_curve_tbl[i][0] + j] = value;
-            }
+            value = lcd_bright_curve_tbl[i][1] + ((lcd_bright_curve_tbl[i+1][1] - lcd_bright_curve_tbl[i][1]) * j)/num;
+            info->lcd_bright_curve_tbl[lcd_bright_curve_tbl[i][0] + j] = value;
         }
-        info->lcd_bright_curve_tbl[255] = lcd_bright_curve_tbl[items-1][1];
     }
+    info->lcd_bright_curve_tbl[255] = lcd_bright_curve_tbl[items-1][1];
 
     memcpy(info->lcd_cmap_tbl, lcd_cmap_tbl, sizeof(lcd_cmap_tbl));
-    
+
 }
 
 static __s32 LCD_open_flow(__u32 sel)
@@ -187,7 +176,7 @@ static void LCD_panel_init(__u32 sel)
 
 static void LCD_panel_exit(__u32 sel)
 {
-	return;
+	return ;
 }
 
 //sel: 0:lcd0; 1:lcd1

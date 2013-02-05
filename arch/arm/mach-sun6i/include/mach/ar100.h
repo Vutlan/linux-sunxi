@@ -121,7 +121,6 @@ int ar100_enable_axp_irq(void);
 
 int ar100_message_loopback(void);
 
-
 /* talk-standby interfaces */
 int ar100_standby_talk(struct super_standby_para *para);
 int ar100_cpux_talkstandby_ready_notify(void);

@@ -662,8 +662,12 @@ static int disp_remove(struct platform_device *pdev)
 void backlight_early_suspend(struct early_suspend *h)
 {
     int i = 0;
-    int r_count = g_fbi.cb_r_conut;
+    int r_count = 0;
 
+    g_fbi.b_no_output = 1;
+
+    mutex_lock(&g_fbi.runtime_lock);
+    r_count = g_fbi.cb_r_conut;
     while(r_count != g_fbi.cb_w_conut)
     {        
         if(r_count >= 9)
@@ -683,7 +687,7 @@ void backlight_early_suspend(struct early_suspend *h)
             //printk(KERN_WARNING "##es r_count:%d\n", r_count);
         }
     }
-    g_fbi.b_no_output = 1;
+    mutex_unlock(&g_fbi.runtime_lock);
 
     for(i=1; i>=0; i--)
     {
@@ -722,7 +726,7 @@ void backlight_late_resume(struct early_suspend *h)
     {
         BSP_disp_clk_on(2);
     }
-    for(i=1; i>=0; i--)
+    for(i=0; i<2; i++)
     {
         if(suspend_output_type[i] == DISP_OUTPUT_TYPE_LCD)
         {
@@ -787,8 +791,12 @@ int disp_suspend(struct platform_device *pdev, pm_message_t state)
     int i = 0;
     
 #ifndef CONFIG_HAS_EARLYSUSPEND
-    int r_count = g_fbi.cb_r_conut;
+    int r_count = 0;
 
+    g_fbi.b_no_output = 1;
+
+    mutex_lock(&g_fbi.runtime_lock);
+    r_count = g_fbi.cb_r_conut;
     while(r_count != g_fbi.cb_w_conut)
     {        
         if(r_count >= 9)
@@ -808,7 +816,7 @@ int disp_suspend(struct platform_device *pdev, pm_message_t state)
             //printk(KERN_WARNING "##es r_count:%d\n", r_count);
         }
     }
-    g_fbi.b_no_output = 1;
+    mutex_unlock(&g_fbi.runtime_lock);
 
     pr_info("[DISP]>>disp_suspend call<<\n");
 
@@ -1775,6 +1783,14 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
         case DISP_CMD_LCD_USER_DEFINED_FUNC:
             ret = BSP_disp_lcd_user_defined_func(ubuffer[0], ubuffer[1], ubuffer[2], ubuffer[3]);
+            break;
+
+        case DISP_CMD_LCD_BACKLIGHT_ON:
+            ret = BSP_disp_open_lcd_backlight(ubuffer[0]);
+            break;
+
+        case DISP_CMD_LCD_BACKLIGHT_OFF:
+            ret = BSP_disp_close_lcd_backlight(ubuffer[0]);
             break;
 
 	//----pwm----

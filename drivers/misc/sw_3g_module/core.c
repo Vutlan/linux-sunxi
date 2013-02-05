@@ -46,14 +46,29 @@
 
 #include "sw_module.h"
 
+//#define  SW_3G_GPIO_WAKEUP_SYSTEM
+
 //-----------------------------------------------------------------------------
 //
 //-----------------------------------------------------------------------------
 
+#if 0
 void sw_module_mdelay(u32 time)
 {
-	msleep(time);
+    spinlock_t lock;
+	unsigned long flags = 0;
+
+	spin_lock_init(&lock);
+	spin_lock_irqsave(&lock, flags);
+	mdelay(time);
+	spin_unlock_irqrestore(&lock, flags);
 }
+#else
+void sw_module_mdelay(u32 time)
+{
+	mdelay(time);
+}
+#endif
 EXPORT_SYMBOL(sw_module_mdelay);
 
 s32 modem_get_config(struct sw_modem *modem)
@@ -290,8 +305,6 @@ EXPORT_SYMBOL(modem_pin_exit);
 
 void modem_vbat(struct sw_modem *modem, u32 value)
 {
-    u32 negated = 0;  //取反
-
     if(!modem->bb_vbat.valid){
         return;
     }
@@ -305,9 +318,6 @@ EXPORT_SYMBOL(modem_vbat);
 /* modem reset delay is 100 */
 void modem_reset(struct sw_modem *modem, u32 value)
 {
-
-    u32 negated = 0;  //取反
-
     if(!modem->bb_rst.valid){
         return;
     }
@@ -320,8 +330,6 @@ EXPORT_SYMBOL(modem_reset);
 
 void modem_sleep(struct sw_modem *modem, u32 value)
 {
-    u32 negated = 0;  //取反
-
     if(!modem->bb_wake.valid){
         return;
     }
@@ -372,8 +380,6 @@ EXPORT_SYMBOL(modem_dldo_on_off);
 
 void modem_power_on_off(struct sw_modem *modem, u32 value)
 {
-    u32 negated = 0;  //取反
-
     if(!modem->bb_pwr_on.valid){
         return;
     }
@@ -386,8 +392,6 @@ EXPORT_SYMBOL(modem_power_on_off);
 
 void modem_rf_disable(struct sw_modem *modem, u32 value)
 {
-    u32 negated = 0;  //取反
-
     if(!modem->bb_rf_dis.valid){
         return;
     }
@@ -398,6 +402,7 @@ void modem_rf_disable(struct sw_modem *modem, u32 value)
 }
 EXPORT_SYMBOL(modem_rf_disable);
 
+#ifdef  SW_3G_GPIO_WAKEUP_SYSTEM
 static int modem_create_input_device(struct sw_modem *modem)
 {
     int ret = 0;
@@ -451,6 +456,7 @@ static void modem_wakeup_system(struct sw_modem *modem)
 
     return ;
 }
+#endif
 
 static int modem_irq_config(struct sw_modem *modem)
 {
@@ -529,6 +535,7 @@ static void modem_irq_clear_pending(struct sw_modem *modem)
     return ;
 }
 
+#ifdef  SW_3G_GPIO_WAKEUP_SYSTEM
 static void modem_irq_work(struct work_struct *data)
 {
 	struct sw_modem *modem = container_of(data, struct sw_modem, irq_work);
@@ -537,6 +544,7 @@ static void modem_irq_work(struct work_struct *data)
 
 	return;
 }
+#endif
 
 static u32 modem_irq_interrupt(void *para)
 {
@@ -551,15 +559,18 @@ static u32 modem_irq_interrupt(void *para)
     modem_irq_config_clear(modem);
     modem_irq_clear_pending(modem);
 
+#ifdef  SW_3G_GPIO_WAKEUP_SYSTEM
     if(result){
         schedule_work(&modem->irq_work);
     }
+#endif
 
 	return 0;
 }
 
 int modem_irq_init(struct sw_modem *modem, enum gpio_eint_trigtype trig_type)
 {
+#ifdef  SW_3G_GPIO_WAKEUP_SYSTEM
     int ret = 0;
 
     ret = modem_create_input_device(modem);
@@ -569,15 +580,18 @@ int modem_irq_init(struct sw_modem *modem, enum gpio_eint_trigtype trig_type)
     }
 
 	INIT_WORK(&modem->irq_work, modem_irq_work);
-	modem->trig_type = trig_type;
+#endif
 
+    modem->trig_type = trig_type;
     modem->irq_hd = sw_gpio_irq_request(modem->bb_wake_ap.pio.gpio.gpio,
                                         modem->trig_type,
                                         modem_irq_interrupt,
                                         modem);
     if(modem->irq_hd == 0){
         modem_err("err: sw_gpio_irq_request failed\n");
+#ifdef  SW_3G_GPIO_WAKEUP_SYSTEM
         modem_free_input_device(modem);
+#endif
         return -1;
     }
 
@@ -591,14 +605,19 @@ EXPORT_SYMBOL(modem_irq_init);
 
 int modem_irq_exit(struct sw_modem *modem)
 {
+    if(!modem->bb_wake_ap.valid){
+        return -1;
+    }
+
 	modem_irq_disable(modem);
     modem_irq_config_clear(modem);
     modem_irq_clear_pending(modem);
 
     sw_gpio_irq_free(modem->irq_hd);
     cancel_work_sync(&modem->irq_work);
+#if 0
     modem_free_input_device(modem);
-
+#endif
     return 0;
 }
 EXPORT_SYMBOL(modem_irq_exit);

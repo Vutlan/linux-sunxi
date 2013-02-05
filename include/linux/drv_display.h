@@ -553,11 +553,8 @@ typedef struct
 
 typedef struct
 {
-    __u32   lcd_gamma_en;
 	__u32   lcd_gamma_tbl[256];
-	__u32 	lcd_cmap_en;
 	__u32	lcd_cmap_tbl[2][3][4];
-    __u32   lcd_bright_curve_en;
     __u32   lcd_bright_curve_tbl[256];
 }__panel_extend_para_t;
 
@@ -618,13 +615,11 @@ typedef struct
 	__u32   lcd_io_phase;
 
 	__u32   lcd_frm;
-    __panel_extend_para_t lcd_extend_para;
-#if 0
 	__u32   lcd_gamma_en;
-	__u32   lcd_gamma_tbl[256];
-	__u32 	lcd_cmap;
-	__u32	lcd_cmap_tbl[2][3][4];
-#endif
+	__u32 	lcd_cmap_en;
+    __u32   lcd_bright_curve_en;
+    __panel_extend_para_t lcd_extend_para;
+
 	__u32   tcon_index; //not need to config for user
 	__u32	lcd_fresh_mode;//not need to config for user
 	__u32   lcd_dclk_freq_original; //not need to config for user
@@ -894,6 +889,8 @@ typedef enum tag_DISP_CMD
     DISP_CMD_LCD_CHECK_CLOSE_FINISH = 0x14b,
     DISP_CMD_LCD_SET_SRC = 0x14c,
     DISP_CMD_LCD_USER_DEFINED_FUNC = 0x14d,
+    DISP_CMD_LCD_BACKLIGHT_ON  = 0x14e,
+    DISP_CMD_LCD_BACKLIGHT_OFF  = 0x14f,
 
 //----tv----
     DISP_CMD_TV_ON = 0x180,

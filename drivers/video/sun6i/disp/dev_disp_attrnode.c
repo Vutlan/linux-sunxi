@@ -87,7 +87,7 @@ static DEVICE_ATTR(hid, S_IRUGO|S_IWUSR|S_IWGRP,
 static ssize_t disp_reg_dump_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%s", "there is nothing here!");
+	return sprintf(buf, "%s\n", "there is nothing here!");
 }
 
 static ssize_t disp_reg_dump_store(struct device *dev,
@@ -185,38 +185,37 @@ static DEVICE_ATTR(cmd_print, S_IRUGO|S_IWUSR|S_IWGRP,
 
 
 #define ____SEPARATOR_PRINT_LEVEL____
-static ssize_t disp_print_level_show(struct device *dev,
+static ssize_t disp_debug_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%d\n", bsp_disp_get_print_level());
+	return sprintf(buf, "debug=%s\n", bsp_disp_get_print_level()?"on" : "off");
 }
 
-static ssize_t disp_print_level_store(struct device *dev,
+static ssize_t disp_debug_store(struct device *dev,
 				struct device_attribute *attr,
 				const char *buf, size_t count)
 {
-	int err;
-    unsigned long val;
-    
-	err = strict_strtoul(buf, 10, &val);
-	if (err) {
-		printk("Invalid size\n");
-		return err;
-	}
+	if (count < 1)
+        return -EINVAL;
 
-    if((val != 0) && (val != 1))
+    if (strnicmp(buf, "on", 2) == 0 || strnicmp(buf, "1", 1) == 0)
     {
-        printk("Invalid value, 0/1 is expected!\n");
-    }else
-    {
-        bsp_disp_set_print_level(val);
+        bsp_disp_set_print_level(1);
 	}
+    else if (strnicmp(buf, "off", 3) == 0 || strnicmp(buf, "0", 1) == 0)
+	{
+        bsp_disp_set_print_level(0);
+    }
+    else
+    {
+        return -EINVAL;
+    }
     
 	return count;
 }
 
-static DEVICE_ATTR(print_level, S_IRUGO|S_IWUSR|S_IWGRP,
-		disp_print_level_show, disp_print_level_store);
+static DEVICE_ATTR(debug, S_IRUGO|S_IWUSR|S_IWGRP,
+		disp_debug_show, disp_debug_store);
 
 
 #define ____SEPARATOR_LAYER_PARA____
@@ -275,7 +274,7 @@ static ssize_t disp_script_dump_show(struct device *dev,
         script_dump_mainkey("lcd1_para");
     }
 
-    return sprintf(buf, "%s", "oh yeah!");
+    return sprintf(buf, "%s\n", "oh yeah!");
 }
 
 static ssize_t disp_script_dump_store(struct device *dev,
@@ -415,21 +414,22 @@ static DEVICE_ATTR(lcd_bright_curve_en, S_IRUGO|S_IWUSR|S_IWGRP,
 		disp_lcd_bright_curve_en_show, disp_lcd_bright_curve_en_store);
 
 
-static ssize_t disp_lcd_fps_show(struct device *dev,
+static ssize_t disp_fps_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "screen%d fps=%d\n", sel, 0xff);
+	__u32 screen_fps = bsp_disp_get_fps(sel);
+    return sprintf(buf, "screen%d fps=%d.%d\n", sel, screen_fps/10,screen_fps%10);
 }
 
-static ssize_t disp_lcd_fps_store(struct device *dev,
+static ssize_t disp_fps_store(struct device *dev,
 				struct device_attribute *attr,
 				const char *buf, size_t count)
 {   
 	return count;
 }
 
-static DEVICE_ATTR(lcd_fps, S_IRUGO|S_IWUSR|S_IWGRP,
-		disp_lcd_fps_show, disp_lcd_fps_store);
+static DEVICE_ATTR(fps, S_IRUGO|S_IWUSR|S_IWGRP,
+		disp_fps_show, disp_fps_store);
 
 
 
@@ -598,7 +598,7 @@ static DEVICE_ATTR(layer_mode, S_IRUGO|S_IWUSR|S_IWGRP,
 static ssize_t disp_video_dit_mode_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%d", (unsigned int)disp_video_get_dit_mode(sel));
+	return sprintf(buf, "%d\n", (unsigned int)disp_video_get_dit_mode(sel));
 }
 
 static ssize_t disp_video_dit_mode_store(struct device *dev,
@@ -628,12 +628,87 @@ static ssize_t disp_video_dit_mode_store(struct device *dev,
 static DEVICE_ATTR(video_dit_mode, S_IRUGO|S_IWUSR|S_IWGRP,
 		disp_video_dit_mode_show, disp_video_dit_mode_store);
 
+static ssize_t disp_video_info_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	__disp_layer_info_t layer_para;
+    __disp_video_fb_t video_fb;
+    __s32 ret = 0;
+    __u32 i;
+    __u32 cnt = 0;
+
+    for(i=100; i<104; i++)
+    {
+        ret = BSP_disp_layer_get_para(sel, i, &layer_para);
+        if(ret == 0)
+        {
+            ret = BSP_disp_video_get_fb(sel, i, &video_fb);
+            if(ret == 0)
+            {
+                cnt += sprintf(buf+cnt, "=== screen%d layer%d para ====\nmode: %d\nfb.size=<%dx%d>\nfb.fmt=<%d, %d, %d>\ntrd_src=<%d, %d> trd_out=<%d, %d>\npipe:%d\tprio: %d\nalpha: <%d, %d>\tcolor_key_en: %d\nsrc_window:<%d,%d,%d,%d>\nscreen_window:<%d,%d,%d,%d>\npre_multiply=%d\n======= screen%d layer%d para ====\n", 
+                        sel, HANDTOID(i),layer_para.mode, layer_para.fb.size.width, 
+                        layer_para.fb.size.height, layer_para.fb.mode, layer_para.fb.format, 
+                        layer_para.fb.seq, layer_para.fb.b_trd_src,  layer_para.fb.trd_mode, 
+                        layer_para.b_trd_out, layer_para.out_trd_mode, layer_para.pipe, 
+                        layer_para.prio, layer_para.alpha_en, layer_para.alpha_val, 
+                        layer_para.ck_enable, layer_para.src_win.x, layer_para.src_win.y, 
+                        layer_para.src_win.width, layer_para.src_win.height, layer_para.scn_win.x, layer_para.scn_win.y, 
+                        layer_para.scn_win.width, layer_para.scn_win.height,layer_para.fb.pre_multiply, sel, HANDTOID(i));
+
+                cnt += sprintf(buf+cnt, "=== video info ==\nid=%d\n%s\nmaf_valid=%d\tfre_frame_valid=%d\ttop_field_first=%d\n=== video info ===\n",
+                    video_fb.id, (video_fb.interlace? "Interlace":"Progressive"), video_fb.maf_valid, video_fb.pre_frame_valid, video_fb.top_field_first);
+            }
+        }
+    }
+
+    return cnt;
+    
+}
+
+static ssize_t disp_video_info_store(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t count)
+{ 
+	return count;
+}
+static DEVICE_ATTR(video_info, S_IRUGO|S_IWUSR|S_IWGRP,
+		disp_video_info_show, disp_video_info_store);
+
+static ssize_t disp_video_fps_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	__u32 i;
+    __u32 fps;
+    __u32 cnt = 0;
+
+    for(i=100; i<104; i++)
+    {
+        if(BSP_disp_video_get_start(sel, i) == 1)
+        {
+            fps = bsp_disp_video_get_fps(sel, i);
+            cnt += sprintf(buf+cnt, "screen%d layer%d fps=%d.%d\n", sel, HANDTOID(i), fps/10,fps%10);
+        }
+    }
+    return cnt;
+}
+
+static ssize_t disp_video_fps_store(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t count)
+{   
+	return count;
+}
+
+static DEVICE_ATTR(video_fps, S_IRUGO|S_IWUSR|S_IWGRP,
+		disp_video_fps_show, disp_video_fps_store);
+
+
 
 #define ____SEPARATOR_DEU_NODE____
 static ssize_t disp_deu_enable_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%d", BSP_disp_deu_get_enable(sel, hid));
+	return sprintf(buf, "%d\n", BSP_disp_deu_get_enable(sel, hid));
 }
 
 static ssize_t disp_deu_enable_store(struct device *dev,
@@ -665,7 +740,7 @@ static ssize_t disp_deu_enable_store(struct device *dev,
 static ssize_t disp_deu_luma_sharp_level_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%d", BSP_disp_deu_get_luma_sharp_level(sel, hid));
+	return sprintf(buf, "%d\n", BSP_disp_deu_get_luma_sharp_level(sel, hid));
 }
 
 static ssize_t disp_deu_luma_sharp_level_store(struct device *dev,
@@ -696,7 +771,7 @@ static ssize_t disp_deu_luma_sharp_level_store(struct device *dev,
 static ssize_t disp_deu_chroma_sharp_level_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%d", BSP_disp_deu_get_chroma_sharp_level(sel, hid));
+	return sprintf(buf, "%d\n", BSP_disp_deu_get_chroma_sharp_level(sel, hid));
 }
 
 static ssize_t disp_deu_chroma_sharp_level_store(struct device *dev,
@@ -727,7 +802,7 @@ static ssize_t disp_deu_chroma_sharp_level_store(struct device *dev,
 static ssize_t disp_deu_black_exten_level_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%d", BSP_disp_deu_get_black_exten_level(sel, hid));
+	return sprintf(buf, "%d\n", BSP_disp_deu_get_black_exten_level(sel, hid));
 }
 
 static ssize_t disp_deu_black_exten_level_store(struct device *dev,
@@ -758,7 +833,7 @@ static ssize_t disp_deu_black_exten_level_store(struct device *dev,
 static ssize_t disp_deu_white_exten_level_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%d", BSP_disp_deu_get_white_exten_level(sel, hid));
+	return sprintf(buf, "%d\n", BSP_disp_deu_get_white_exten_level(sel, hid));
 }
 
 static ssize_t disp_deu_white_exten_level_store(struct device *dev,
@@ -807,7 +882,7 @@ static DEVICE_ATTR(deu_white_level, S_IRUGO|S_IWUSR|S_IWGRP,
 static ssize_t disp_layer_enhance_enable_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%d", BSP_disp_cmu_layer_get_enable(sel, hid));
+	return sprintf(buf, "%d\n", BSP_disp_cmu_layer_get_enable(sel, hid));
 }
 
 static ssize_t disp_layer_enhance_enable_store(struct device *dev,
@@ -840,7 +915,7 @@ static ssize_t disp_layer_enhance_enable_store(struct device *dev,
 static ssize_t disp_layer_bright_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%d", BSP_disp_cmu_layer_get_bright(sel, hid));
+	return sprintf(buf, "%d\n", BSP_disp_cmu_layer_get_bright(sel, hid));
 }
 
 static ssize_t disp_layer_bright_store(struct device *dev,
@@ -872,7 +947,7 @@ static ssize_t disp_layer_bright_store(struct device *dev,
 static ssize_t disp_layer_contrast_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%d", BSP_disp_cmu_layer_get_contrast(sel, hid));
+	return sprintf(buf, "%d\n", BSP_disp_cmu_layer_get_contrast(sel, hid));
 }
 
 static ssize_t disp_layer_contrast_store(struct device *dev,
@@ -904,7 +979,7 @@ static ssize_t disp_layer_contrast_store(struct device *dev,
 static ssize_t disp_layer_saturation_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%d", BSP_disp_cmu_layer_get_saturation(sel, hid));
+	return sprintf(buf, "%d\n", BSP_disp_cmu_layer_get_saturation(sel, hid));
 }
 
 static ssize_t disp_layer_saturation_store(struct device *dev,
@@ -936,7 +1011,7 @@ static ssize_t disp_layer_saturation_store(struct device *dev,
 static ssize_t disp_layer_hue_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%d", BSP_disp_cmu_layer_get_hue(sel,hid));
+	return sprintf(buf, "%d\n", BSP_disp_cmu_layer_get_hue(sel,hid));
 }
 
 static ssize_t disp_layer_hue_store(struct device *dev,
@@ -968,7 +1043,7 @@ static ssize_t disp_layer_hue_store(struct device *dev,
 static ssize_t disp_layer_enhance_mode_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%d", BSP_disp_cmu_layer_get_mode(sel,hid));
+	return sprintf(buf, "%d\n", BSP_disp_cmu_layer_get_mode(sel,hid));
 }
 
 static ssize_t disp_layer_enhance_mode_store(struct device *dev,
@@ -1001,7 +1076,7 @@ static ssize_t disp_layer_enhance_mode_store(struct device *dev,
 static ssize_t disp_enhance_enable_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%d", BSP_disp_cmu_get_enable(sel));
+	return sprintf(buf, "%d\n", BSP_disp_cmu_get_enable(sel));
 }
 
 static ssize_t disp_enhance_enable_store(struct device *dev,
@@ -1035,7 +1110,7 @@ static ssize_t disp_enhance_enable_store(struct device *dev,
 static ssize_t disp_bright_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%d", BSP_disp_cmu_get_bright(sel));
+	return sprintf(buf, "%d\n", BSP_disp_cmu_get_bright(sel));
 }
 
 static ssize_t disp_bright_store(struct device *dev,
@@ -1067,7 +1142,7 @@ static ssize_t disp_bright_store(struct device *dev,
 static ssize_t disp_contrast_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%d", BSP_disp_cmu_get_contrast(sel));
+	return sprintf(buf, "%d\n", BSP_disp_cmu_get_contrast(sel));
 }
 
 static ssize_t disp_contrast_store(struct device *dev,
@@ -1099,7 +1174,7 @@ static ssize_t disp_contrast_store(struct device *dev,
 static ssize_t disp_saturation_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%d", BSP_disp_cmu_get_saturation(sel));
+	return sprintf(buf, "%d\n", BSP_disp_cmu_get_saturation(sel));
 }
 
 static ssize_t disp_saturation_store(struct device *dev,
@@ -1131,7 +1206,7 @@ static ssize_t disp_saturation_store(struct device *dev,
 static ssize_t disp_hue_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%d", BSP_disp_cmu_get_hue(sel));
+	return sprintf(buf, "%d\n", BSP_disp_cmu_get_hue(sel));
 }
 
 static ssize_t disp_hue_store(struct device *dev,
@@ -1163,7 +1238,7 @@ static ssize_t disp_hue_store(struct device *dev,
 static ssize_t disp_enhance_mode_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%d", BSP_disp_cmu_get_mode(sel));
+	return sprintf(buf, "%d\n", BSP_disp_cmu_get_mode(sel));
 }
 
 static ssize_t disp_enhance_mode_store(struct device *dev,
@@ -1234,7 +1309,7 @@ static DEVICE_ATTR(screen_enhance_mode, S_IRUGO|S_IWUSR|S_IWGRP,
 static ssize_t disp_drc_enable_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%d", BSP_disp_drc_get_enable(sel));
+	return sprintf(buf, "%d\n", BSP_disp_drc_get_enable(sel));
 }
 
 static ssize_t disp_drc_enable_store(struct device *dev,
@@ -1271,7 +1346,7 @@ static DEVICE_ATTR(drc_en, S_IRUGO|S_IWUSR|S_IWGRP,
 static ssize_t disp_colorbar_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%s", "there is nothing here!");
+	return sprintf(buf, "%s\n", "there is nothing here!");
 }
 
 extern __s32 fb_draw_colorbar(__u32 base, __u32 width, __u32 height, struct fb_var_screeninfo *var);
@@ -1411,9 +1486,11 @@ static struct attribute *disp_attributes[] = {
     &dev_attr_print_cmd_level.attr,
     &dev_attr_cmd_print.attr,
     &dev_attr_gamma_test.attr,
-    &dev_attr_print_level.attr,
+    &dev_attr_debug.attr,
     &dev_attr_lcd_bright_curve_en.attr,
-    &dev_attr_lcd_fps.attr,
+    &dev_attr_fps.attr,
+    &dev_attr_video_info.attr,
+    &dev_attr_video_fps.attr,
 	NULL
 };
 

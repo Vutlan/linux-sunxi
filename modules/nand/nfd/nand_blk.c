@@ -69,7 +69,7 @@ struct nand_disk disk_array[ND_MAX_PART_COUNT];
 *1	:	merge bvc in one bio
 *2	:	merge bvc in one bio and merge bios in one request
 */
-#define USE_BIO_MERGE			4
+#define USE_BIO_MERGE			2
 #define NAND_TEST_TICK			0
 
 #ifdef NAND_CACHE_FLUSH_EVERY_SEC
@@ -1096,7 +1096,7 @@ static int nand_blktrans_thread(void *arg)
 				#endif
 					
 				#if 1//if (iocnt>1)&&(seccnt>half_single_page), cache mode, else partial mode
-					if((io_cnt_for_page[i] > 1)&&(sec_cnt_for_page[i] >=(sector_cnt_of_single_page>>1)))
+					if((io_cnt_for_page[i] > 1)||(sec_cnt_for_page[i] >=(sector_cnt_of_single_page>>1)))
 					partial_flag = 0;
 				else
 					partial_flag = 1;
@@ -1680,6 +1680,7 @@ static void nand_flush_all(void)
     /* get nand ops mutex */
     down(&mytr.nand_ops_mutex);
 
+#if 0
     #ifdef NAND_CACHE_RW
     NAND_CacheFlush();
     #else
@@ -1687,6 +1688,20 @@ static void nand_flush_all(void)
     #endif
     BMM_WriteBackAllMapTbl();
     printk("Nand flash shutdown ok!\n");
+#else
+	#ifdef NAND_CACHE_RW
+    	NAND_CacheFlush();
+		NAND_CacheClose();
+	#else
+		LML_FlushPageCache();
+	#endif
+
+	LML_Exit();
+	FMT_Exit();
+	PHY_Exit();
+
+#endif
+
 }
 
 
@@ -1708,6 +1723,8 @@ static int __init init_blklayer(void)
 	unsigned long irqflags_ch0, irqflags_ch1;
 #endif
 	ClearNandStruct();
+
+	printk("[NAND] nand IO Merge: 0x%x \n", USE_BIO_MERGE);
 
 	ret = PHY_Init();
 	if (ret) {
