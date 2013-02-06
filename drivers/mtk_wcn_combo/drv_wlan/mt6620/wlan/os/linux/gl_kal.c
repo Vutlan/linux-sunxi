@@ -2617,7 +2617,7 @@ int tx_thread(void *data)
     prTxQueue = &prGlueInfo->rTxQueue;
     prCmdQue = &prGlueInfo->rCmdQueue;
 
-    current->flags |= PF_NOFREEZE;
+    //current->flags |= PF_NOFREEZE;
 
     DBGLOG(INIT, INFO, ("tx_thread starts running... \n"));
 
