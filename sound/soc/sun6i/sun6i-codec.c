@@ -876,6 +876,9 @@ static int codec_set_fm_headset(struct snd_kcontrol *kcontrol,
 		codec_wr_control(SUN6I_DAC_ACTL, 0x1, DACALEN, 0x0);
 		codec_wr_control(SUN6I_DAC_ACTL, 0x1, DACAREN, 0x0);
 
+		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTR_EN, 0x0);
+		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTL_EN, 0x0);
+
 		codec_wr_control(SUN6I_DAC_ACTL, 0x1, LMIXEN, 0x1);
 		codec_wr_control(SUN6I_DAC_ACTL, 0x1, RMIXEN, 0x1);
 
