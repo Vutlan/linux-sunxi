@@ -676,7 +676,7 @@ static int codec_play_stop(void)
 	/*disable dac digital*/
 	codec_wr_control(SUN6I_DAC_DPC ,  0x1, DAC_EN, 0x0);
 
-if ( !(codec_speakerout_enabled || codec_headphoneout_enabled || codec_earpieceout_enabled || codec_dacphoneout_enabled || codec_lineinin_enabled) ){
+if ( !(codec_speakerout_enabled || codec_headphoneout_enabled || codec_earpieceout_enabled || codec_dacphoneout_enabled || codec_lineinin_enabled || codec_voice_record_enable ) ){
 
 	for (i = 0; i < headphone_vol; i++) {
 		/*set HPVOL volume*/
