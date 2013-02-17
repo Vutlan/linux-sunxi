@@ -1214,6 +1214,7 @@ int dispc_gralloc_queue(setup_dispc_data_t *psDispcData, int ui32DispcDataLength
 		BSP_disp_layer_close(0, 100);
 	}
 
+    mutex_lock(&g_fbi.runtime_lock);
     if(g_fbi.b_no_output)
     {
         cb_fn(cb_arg, 1);
@@ -1234,6 +1235,7 @@ int dispc_gralloc_queue(setup_dispc_data_t *psDispcData, int ui32DispcDataLength
 
     	//printk(KERN_WARNING "##w_conut:%d %x %d %d %d\n", g_fbi.cb_w_conut, (unsigned int)cb_arg, psDispcData->use_sgx, psDispcData->post2_layers, psDispcData->fb_yoffset);
 	}
+	mutex_unlock(&g_fbi.runtime_lock);
 
     return 0;
 }

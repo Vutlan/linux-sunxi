@@ -664,9 +664,8 @@ void backlight_early_suspend(struct early_suspend *h)
     int i = 0;
     int r_count = 0;
 
-    g_fbi.b_no_output = 1;
-
     mutex_lock(&g_fbi.runtime_lock);
+    g_fbi.b_no_output = 1;
     r_count = g_fbi.cb_r_conut;
     while(r_count != g_fbi.cb_w_conut)
     {        
@@ -793,9 +792,8 @@ int disp_suspend(struct platform_device *pdev, pm_message_t state)
 #ifndef CONFIG_HAS_EARLYSUSPEND
     int r_count = 0;
 
-    g_fbi.b_no_output = 1;
-
     mutex_lock(&g_fbi.runtime_lock);
+    g_fbi.b_no_output = 1;
     r_count = g_fbi.cb_r_conut;
     while(r_count != g_fbi.cb_w_conut)
     {        
