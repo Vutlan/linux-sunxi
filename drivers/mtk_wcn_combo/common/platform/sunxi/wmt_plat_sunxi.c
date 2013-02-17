@@ -121,6 +121,7 @@
 #include "mtk_wcn_cmb_hw.h"
 #include "osal.h"
 
+#include <linux/export.h>
 #include <linux/gpio.h>
 #include <mach/irqs.h>
 #include <mach/system.h>
@@ -183,8 +184,6 @@ static INT32 wmt_plat_gps_sync_ctrl (ENUM_PIN_STATE state);
 static INT32 wmt_plat_gps_lna_ctrl (ENUM_PIN_STATE state);
 
 static INT32 wmt_plat_dump_pin_conf (VOID);
-
-
 
 /*******************************************************************************
 *                            P U B L I C   D A T A
@@ -783,7 +782,8 @@ wmt_plat_ldo_ctrl (
         
         type = script_get_item(COMBO_CONFIG_PARA,"mtk_6620_ldo",&val);
         if (SCIRPT_ITEM_VALUE_TYPE_PIO!=type){ 
-		      WMT_INFO_FUNC("get mtk mtk_6620_ldo gpio failed\n");
+		      WMT_INFO_FUNC("has no mtk mtk_6620_ldo gpio\n");
+		      return 0;
 	      }else{
 		      gpio_ldo = val.gpio.gpio;
         }
@@ -807,6 +807,12 @@ wmt_plat_ldo_ctrl (
 
     case PIN_STA_OUT_H:
         WMT_INFO_FUNC("WMT-PLAT:LDO (out 1) \n");
+        
+        if (gpio_ldo == -1)
+        {
+        	  return 0;
+        }
+        
         //set the gpio to output mode,high level
         ret = sw_gpio_setcfg(gpio_ldo, GPIO_CFG_OUTPUT);
         if (ret) {
@@ -821,6 +827,11 @@ wmt_plat_ldo_ctrl (
 
     case PIN_STA_OUT_L:
         WMT_INFO_FUNC("WMT-PLAT:LDO (out 0) \n");
+		    
+		    if (gpio_ldo == -1)
+        {
+        	  return 0;
+        }
 		    
         //set the gpio to output mode
         ret = sw_gpio_setcfg(gpio_ldo, GPIO_CFG_OUTPUT);
@@ -838,14 +849,19 @@ wmt_plat_ldo_ctrl (
     case PIN_STA_DEINIT:
     	  /*set to gpio input low, pull down enable*/
     	  WMT_DBG_FUNC("WMT-PLAT:LDO deinit (in pd) \n");
-        ret = sw_gpio_setcfg(gpio_ldo, GPIO_CFG_INPUT);
-        if (ret) {
-        	WMT_ERR_FUNC("failed to set gpio %d to input!\n", gpio_ldo);
-        	return -1;
-        }
+    	  
+    	  if (gpio_ldo != -1)
+        {
+        	  ret = sw_gpio_setcfg(gpio_ldo, GPIO_CFG_INPUT);
+            if (ret) 
+            {
+        	      WMT_ERR_FUNC("failed to set gpio %d to input!\n", gpio_ldo);
+        	      return -1;
+             }
 
-        gpio_free(gpio_ldo);
-        gpio_ldo = -1;
+             gpio_free(gpio_ldo);
+             gpio_ldo = -1;
+        }
         
         wifi_pm_power(0);
         break;
@@ -1356,3 +1372,53 @@ INT32 wmt_plat_wake_lock_ctrl(ENUM_WL_OP opId)
 #endif
 }
 
+void mt6620_pm_shutdown(void)
+{
+	 int ret = 0;
+	 
+	 printk("mt6620 shutdown!\n");
+	 
+	 if (gpio_ldo != -1)
+	 {
+	 	   //set the gpio to output mode
+        ret = sw_gpio_setcfg(gpio_ldo, GPIO_CFG_OUTPUT);
+        if (ret) 
+        {
+        	  WMT_ERR_FUNC("failed to set gpio %d to output!\n", gpio_ldo);
+        	  return ;
+        }
+        
+        //set val to low
+        __gpio_set_value(gpio_ldo, 0);
+   }
+   
+   if (gpio_pmuen != -1)
+   {
+       //set the gpio to output mode
+        ret = sw_gpio_setcfg(gpio_pmuen, GPIO_CFG_OUTPUT);
+        if (ret) 
+        {
+        	  WMT_ERR_FUNC("failed to set gpio %d to output!\n", gpio_ldo);
+        	  return ;
+        }
+        
+        //set val to low
+        __gpio_set_value(gpio_pmuen, 0);
+   }
+   
+   if (gpio_rst != -1)
+   {
+   	   //set the gpio to output mode
+       ret = sw_gpio_setcfg(gpio_rst, GPIO_CFG_OUTPUT);
+       if (ret)
+       {
+        	 WMT_ERR_FUNC("failed to set gpio %d to output!\n", gpio_ldo);
+        	 return ;
+       }
+        
+       //set val to low
+       __gpio_set_value(gpio_rst, 0);
+   }
+	 return ;
+}
+EXPORT_SYMBOL(mt6620_pm_shutdown);

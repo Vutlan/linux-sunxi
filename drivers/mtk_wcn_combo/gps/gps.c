@@ -90,6 +90,8 @@
 #define TRUE 1
 #endif
 
+extern void mt6620_pm_shutdown(void);
+
 struct mt3326_gps_hardware{
 	int (*ext_power_on)(int);
 	int (*ext_power_off)(int);
@@ -1032,7 +1034,7 @@ static int mt3326_gps_remove(struct platform_device *dev)
     cdev_del(&devobj->chdev);
     unregister_chrdev_region(devobj->devno, 1);
 
-    mt3326_gps_hw_exit(devobj->hw);
+    mt3326_gps_hw_exit(drvobj->hw);
     if ((err = mt3326_gps_delete_attr(devobj->dev)))
         GPS_ERR("delete attr fails: %d\n", err);
     device_destroy(devobj->cls, devobj->devno);
@@ -1043,9 +1045,13 @@ static int mt3326_gps_remove(struct platform_device *dev)
 /*****************************************************************************/
 static void mt3326_gps_shutdown(struct platform_device *dev)
 {
-    struct gps_dev_obj *devobj = (struct gps_dev_obj*)platform_get_drvdata(dev);    
+    //struct gps_dev_obj *devobj = (struct gps_dev_obj*)platform_get_drvdata(dev); 
+    //struct gps_drv_obj *drvobj = (struct gps_drv_obj*)dev_get_drvdata(devobj->dev);
+       
     GPS_DBG("Shutting down\n");
-    mt3326_gps_hw_exit(devobj->hw);
+    
+    mt6620_pm_shutdown();
+    //mt3326_gps_hw_exit(drvobj->hw);
 }
 /*****************************************************************************/
 #ifdef CONFIG_PM
