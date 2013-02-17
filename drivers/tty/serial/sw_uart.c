@@ -995,6 +995,11 @@ static struct uart_driver sw_uart_driver = {
 	.cons = SW_CONSOLE,
 };
 
+static inline bool sw_is_console_port(struct uart_port *port)
+{
+	return port->cons && port->cons->index == port->line;
+}
+
 static int sw_uart_request_resource(struct sw_uart_port* sw_uport)
 {
 	struct uart_port *port = &sw_uport->port;
@@ -1217,8 +1222,19 @@ static int sw_uart_resume(struct device *dev)
 {
 	struct platform_device *pdev = to_platform_device(dev);
 	struct uart_port *port = &sw_uart_port[pdev->id].port;
+	struct sw_uart_port *sw_uport = &sw_uart_port[pdev->id];
 
 	if (port) {
+		if (sw_is_console_port(port) && !console_suspend_enabled) {
+			sw_uart_reset(sw_uport);
+			serial_out(port, sw_uport->fcr, SW_UART_FCR);
+			serial_out(port, sw_uport->mcr, SW_UART_MCR);
+			serial_out(port, sw_uport->lcr|SW_UART_LCR_DLAB, SW_UART_LCR);
+			serial_out(port, sw_uport->dll, SW_UART_DLL);
+			serial_out(port, sw_uport->dlh, SW_UART_DLH);
+			serial_out(port, sw_uport->lcr, SW_UART_LCR);
+			serial_out(port, sw_uport->ier, SW_UART_IER);
+		}
 		uart_resume_port(&sw_uart_driver, port);
 		SERIAL_MSG("uart%d resume\n", port->line);
 	}
