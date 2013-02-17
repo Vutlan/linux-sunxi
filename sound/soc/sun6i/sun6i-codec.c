@@ -70,6 +70,7 @@ static bool codec_phonecap_enabled = false;
 static bool codec_phonein_enabled = false;
 static bool codec_phoneout_enabled = false;
 static bool codec_speaker_enabled = false;
+static int codec_speaker_headset_enabled = 0;
 
 static bool codec_phonemic_enabled = false;
 static bool codec_headsetmic_enabled = false;
@@ -509,6 +510,93 @@ static int codec_headphone_play_open(void)
 
 	return 0;
 }
+
+static int codec_pa_and_headset_play_open(void)
+{
+	int pa_vol = 0,	headphone_vol = 0;
+	script_item_u val;
+	script_item_value_type_e  type;
+	int pa_double_used = 0;
+	type = script_get_item("audio_para", "pa_double_used", &val);
+	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+		printk("[audiocodec] pa_double_used type err!\n");
+	}
+
+	pa_double_used = val.val;
+	if (!pa_double_used) {
+		type = script_get_item("audio_para", "pa_single_vol", &val);
+		if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+			printk("[audiocodec] pa_single_vol type err!\n");
+		}
+		pa_vol = val.val;
+	} else {
+		type = script_get_item("audio_para", "pa_double_vol", &val);
+		if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+			printk("[audiocodec] pa_double_vol type err!\n");
+		}
+		pa_vol = val.val;
+	}
+
+	type = script_get_item("audio_para", "headphone_vol", &val);
+	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+        	printk("[audiocodec] headphone_vol type err!\n");
+    	}
+	headphone_vol = val.val;
+
+	/*unmute l_pa and r_pa*/
+	codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPPA_MUTE, 0x1);
+	codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPPA_MUTE, 0x1);
+
+	/*enable dac digital*/
+	codec_wr_control(SUN6I_DAC_DPC, 0x1, DAC_EN, 0x1);
+	/*set TX FIFO send drq level*/
+	codec_wr_control(SUN6I_DAC_FIFOC ,0x7f, TX_TRI_LEVEL, 0xf);
+	/*set TX FIFO MODE*/
+	codec_wr_control(SUN6I_DAC_FIFOC ,0x1, TX_FIFO_MODE, 0x1);
+
+	//send last sample when dac fifo under run
+	codec_wr_control(SUN6I_DAC_FIFOC ,0x1, LAST_SE, 0x0);
+
+	/*enable dac_l and dac_r*/
+	codec_wr_control(SUN6I_DAC_ACTL, 0x1, DACALEN, 0x1);
+	codec_wr_control(SUN6I_DAC_ACTL, 0x1, DACAREN, 0x1);
+
+	codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTR_EN, 0x1);
+	codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTL_EN, 0x1);
+	if (!pa_double_used) {
+		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTL_SRC_SEL, 0x1);
+		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTR_SRC_SEL, 0x1);
+	} else {
+		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTL_SRC_SEL, 0x0);
+		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTR_SRC_SEL, 0x0);
+	}
+	codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPIS, 0x1);
+	codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPIS, 0x1);
+
+	codec_wr_control(SUN6I_DAC_ACTL, 0x7f, RMIXMUTE, 0x2);
+	codec_wr_control(SUN6I_DAC_ACTL, 0x7f, LMIXMUTE, 0x2);
+
+	codec_wr_control(SUN6I_DAC_ACTL, 0x1, LMIXEN, 0x1);
+	codec_wr_control(SUN6I_DAC_ACTL, 0x1, RMIXEN, 0x1);
+	
+	codec_wr_control(SUN6I_MIC_CTRL, 0x1f, LINEOUT_VOL, pa_vol);
+
+	codec_wr_control(SUN6I_MIC_CTRL, 0x1f, LINEOUT_VOL, pa_vol);
+
+	/*set HPVOL volume*/
+	codec_wr_control(SUN6I_DAC_ACTL, 0x3f, VOLUME, headphone_vol);
+
+	mdelay(3);
+	item.gpio.data = 1;
+	/*config gpio info of audio_pa_ctrl open*/
+	if (0 != sw_gpio_setall_range(&item.gpio, 1)) {
+		printk("sw_gpio_setall_range failed\n");
+	}
+	mdelay(62);
+	return 0;
+}
+
+
 
 static int codec_voice_main_mic_capture_open(void)
 {
@@ -1613,6 +1701,94 @@ static int codec_get_spk(struct snd_kcontrol *kcontrol,
 }
 
 /*
+*	codec_speaker_headset_enabled == 2, speaker is open, headphone is open.
+*	codec_speaker_headset_enabled == 1, speaker is open, headphone is close.
+*	codec_speaker_headset_enabled == 0, speaker is closed, headphone is open.
+*	this function just used for the system voice(such as music and moive voice and so on),
+*	no the phone call.
+*/
+static int codec_set_spk_headset(struct snd_kcontrol *kcontrol,
+	struct snd_ctl_elem_value *ucontrol)
+{
+	int ret = 0;
+	int headphone_vol = 0;
+	script_item_u val;
+	script_item_value_type_e  type;
+	int headphone_direct_used = 0;
+	enum sw_ic_ver  codec_chip_ver;
+
+	printk("[lkj] 222 codec_set_spk_headset enter !\n");
+
+	 if (codec_speaker_headset_enabled == ucontrol->value.integer.value[0]){
+		return 0;
+	}
+
+	codec_speaker_headset_enabled = ucontrol->value.integer.value[0];
+
+	codec_chip_ver = sw_get_ic_ver();
+	type = script_get_item("audio_para", "headphone_direct_used", &val);
+	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+		printk("[audiocodec] type err!\n");
+	}
+	headphone_direct_used = val.val;
+	if (headphone_direct_used && (codec_chip_ver != MAGIC_VER_A31A)) {
+		codec_wr_control(SUN6I_PA_CTRL, 0x3, HPCOM_CTL, 0x3);
+		codec_wr_control(SUN6I_PA_CTRL, 0x1, HPCOM_PRO, 0x1);
+	} else {
+		codec_wr_control(SUN6I_PA_CTRL, 0x3, HPCOM_CTL, 0x0);
+		codec_wr_control(SUN6I_PA_CTRL, 0x1, HPCOM_PRO, 0x0);
+	}
+
+
+	if (codec_speaker_headset_enabled == 1) {
+		printk("[lkj] codec_set_spk_headset codec_speaker_headset_enabled = 1 !\n");
+		ret = codec_pa_play_open();
+	} else if (codec_speaker_headset_enabled == 0) {
+		printk("[lkj] codec_set_spk_headset codec_speaker_headset_enabled = 0 !\n");
+		item.gpio.data = 0;
+		codec_wr_control(SUN6I_MIC_CTRL, 0x1f, LINEOUT_VOL, 0x0);
+		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTL_EN, 0x0);
+		codec_wr_control(SUN6I_MIC_CTRL, 0x1, LINEOUTR_EN, 0x0);
+		codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPIS, 0x0);
+		codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPIS, 0x0);
+		/*config gpio info of audio_pa_ctrl close*/
+		if (0 != sw_gpio_setall_range(&item.gpio, 1)) {
+			printk("sw_gpio_setall_range failed\n");
+		}
+		/*unmute l_pa and r_pa*/
+		codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPPA_MUTE, 0x1);
+		codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPPA_MUTE, 0x1);
+//		codec_wr_control(SUN6I_ADDAC_TUNE, 0x1, ZERO_CROSS_EN, 0x1);
+
+		type = script_get_item("audio_para", "headphone_vol", &val);
+		if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+			printk("[audiocodec] headphone_vol type err!\n");
+		}
+		headphone_vol = val.val;
+		/*set HPVOL volume*/
+		codec_wr_control(SUN6I_DAC_ACTL, 0x3f, VOLUME, headphone_vol);
+	} else if (codec_speaker_headset_enabled == 2) {
+		printk("[lkj] codec_set_spk_headset codec_speaker_headset_enabled = 2 !\n");
+		codec_pa_and_headset_play_open();
+	}
+	return 0;
+}
+
+
+static int codec_get_spk_headset(struct snd_kcontrol *kcontrol,
+	struct snd_ctl_elem_value *ucontrol)
+{
+	ucontrol->value.integer.value[0] = codec_speaker_headset_enabled;
+	return 0;
+}
+
+
+static const char *spk_headset_function[] = {"headset", "spk", "spk_headset"};
+static const struct soc_enum spk_headset_enum[] = { 
+        SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(spk_headset_function), spk_headset_function),
+};
+
+/*
 * 	.info = snd_codec_info_volsw, .get = snd_codec_get_volsw,\.put = snd_codec_put_volsw,
 */
 static const struct snd_kcontrol_new codec_snd_controls[] = {
@@ -1758,7 +1934,11 @@ static const struct snd_kcontrol_new codec_snd_controls[] = {
 	SOC_SINGLE_BOOL_EXT("Audio linein in", 0, codec_get_lineinin, codec_set_lineinin),    			/*101*/
 	SOC_SINGLE_BOOL_EXT("Audio fm headset", 0, codec_get_fm_headset, codec_set_fm_headset),    			/**/
 	SOC_SINGLE_BOOL_EXT("Audio fm speaker", 0, codec_get_fm_speaker, codec_set_fm_speaker),    			/**/
+
+	SOC_ENUM_EXT("Speaker Function", spk_headset_enum[0], codec_get_spk_headset, codec_set_spk_headset),    /**/
 };
+
+
 
 int __init snd_chip_codec_mixer_new(struct sun6i_codec *chip)
 {
@@ -2401,9 +2581,12 @@ static int snd_sun6i_codec_prepare(struct snd_pcm_substream	*substream)
 			return 0;
 		}
    	 	/*open the dac channel register*/
-		if (codec_speaker_enabled) {
+		if (codec_speaker_headset_enabled == 1) {
 			play_ret = codec_pa_play_open();
-			printk("codec_speaker_enabled\n");
+			printk("codec_speaker_headset_enabled == 1\n");
+		} else if (codec_speaker_headset_enabled == 2) {
+			play_ret = codec_pa_and_headset_play_open();
+			printk("codec_speaker_headset_enabled == 2\n");
 		} else if (codec_dacphoneout_enabled) {
 			play_ret = codec_dacphoneout_open();
 			printk("codec_dacphoneout_enabled\n");
@@ -2492,7 +2675,7 @@ static int snd_sun6i_codec_trigger(struct snd_pcm_substream *substream, int cmd)
 				if (0 != sw_dma_ctl(play_prtd->dma_hdl, DMA_OP_START, NULL)) {
 					return -EINVAL;
 				}
-				if (codec_speaker_enabled) {
+				if (codec_speaker_headset_enabled==1 || codec_speaker_headset_enabled==2) {
 					;
 				} else if ( (codec_speakerout_enabled || codec_headphoneout_enabled || codec_earpieceout_enabled || codec_dacphoneout_enabled) ){
 					;
