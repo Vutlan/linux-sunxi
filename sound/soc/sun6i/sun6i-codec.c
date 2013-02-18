@@ -2581,15 +2581,15 @@ static int snd_sun6i_codec_prepare(struct snd_pcm_substream	*substream)
 			return 0;
 		}
    	 	/*open the dac channel register*/
-		if (codec_speaker_headset_enabled == 1) {
-			play_ret = codec_pa_play_open();
-			printk("codec_speaker_headset_enabled == 1\n");
+		if (codec_dacphoneout_enabled) {
+			play_ret = codec_dacphoneout_open();
+			printk("codec_dacphoneout_enabled 2\n");
 		} else if (codec_speaker_headset_enabled == 2) {
 			play_ret = codec_pa_and_headset_play_open();
 			printk("codec_speaker_headset_enabled == 2\n");
-		} else if (codec_dacphoneout_enabled) {
-			play_ret = codec_dacphoneout_open();
-			printk("codec_dacphoneout_enabled\n");
+		} else if (codec_speaker_headset_enabled == 1) {
+			play_ret = codec_pa_play_open();
+			printk("codec_speaker_headset_enabled == 1\n");
 		} else {
 			play_ret = codec_headphone_play_open();
 			printk("codec_headphone_play_open\n");
