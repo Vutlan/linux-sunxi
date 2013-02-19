@@ -2001,6 +2001,12 @@ axp_set_startup_sequence(charger);
   if(((charger->vbat) >= 4100) && !charger->is_on && charger->ext_valid && charger->charge_on){
 	charger->rest_vol = 100;
   }
+  	//add by laotie121107 <<<
+	if((val1&0x7f) == 0 &&  charger->rest_vol != 0){
+		axp_write(charger->master,AXP20_DATA_BUFFER1,charger->rest_vol|0x80);
+		printk("change AXP20_DATA_BUFFER1 by laotie\n");
+	}
+	//add end >
 
   printk("last_rest_vol = %d, now_rest_vol = %d\n",(val1 & 0x7F),(val2 & 0x7F));
   memset(Bat_Cap_Buffer, 0, sizeof(Bat_Cap_Buffer));
@@ -2262,7 +2268,8 @@ static int axp20_resume(struct platform_device *dev)
   		}
 
   		if( ((pre_rest_vol - charger->rest_vol) < 10) && (pre_rest_vol > charger->rest_vol )){
-  			charger->rest_vol = --pre_rest_vol;
+  			//charger->rest_vol = --pre_rest_vol;
+  			charger->rest_vol = pre_rest_vol - 1; //add by laotie
   		}
 
     if(charger->bat_current_direction && (charger->rest_vol < pre_rest_vol)){

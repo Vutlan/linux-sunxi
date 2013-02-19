@@ -2093,6 +2093,13 @@ static int axp_battery_probe(struct platform_device *pdev)
 
 	axp_read(charger->master,AXP20_DATA_BUFFER1,&val1);
 	DBG_PSY_MSG("last_rest_vol = %d, now_rest_vol	= %d\n",(val1 &	0x7F),charger->ocv_rest_vol);
+	//add by laotie121107 <<<
+	if((val1&0x7f) == 0 && charger->ocv_rest_vol != 0){
+		axp_write(charger->master,AXP20_DATA_BUFFER1,charger->ocv_rest_vol|0x80);
+		printk("change AXP20_DATA_BUFFER1 by laotie\n");
+	}
+	//add end >>>
+	
 
 	bat_cap =	Get_Buffer_Cou(charger);
 
