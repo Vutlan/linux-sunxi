@@ -39,6 +39,11 @@
 #include "mali_profiling_internal.h"
 #endif
 
+#ifdef CONFIG_ARCH_SUN4I
+#undef CONFIG_PM_RUNTIME
+#endif
+
+
 /* Streamline support for the Mali driver */
 #if defined(CONFIG_TRACEPOINTS) && defined(CONFIG_MALI400_PROFILING)
 /* Ask Linux to create the tracepoints */
@@ -50,7 +55,7 @@
 extern const char *__malidrv_build_info(void);
 
 /* Module parameter to control log level */
-int mali_debug_level = 8;
+int mali_debug_level = 2;
 module_param(mali_debug_level, int, S_IRUSR | S_IWUSR | S_IWGRP | S_IRGRP | S_IROTH); /* rw-rw-r-- */
 MODULE_PARM_DESC(mali_debug_level, "Higher number, more dmesg output");
 

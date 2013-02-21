@@ -31,6 +31,11 @@
 #define MALI_MMU4GP_IRQ 70
 #define MALI_MMU4PP_IRQ 72
 
+#ifdef CONFIG_ARCH_SUN4I
+#undef CONFIG_PM_RUNTIME
+#endif
+
+
 static void mali_platform_device_release(struct device *device);
 void mali_gpu_utilization_handler(u32 utilization);
 
@@ -223,10 +228,10 @@ int sun5i_mali_platform_device_register(void)
             if (0 == err)
             {
                 mali_platform_init();
-#ifdef CONFIG_PM_RUNTIME
+//#ifdef CONFIG_PM_RUNTIME
 //#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2.6.37))
 //#endif
-#endif
+//#endif
  
                  MALI_DEBUG_PRINT(2,("sun5i__mali_platform_device_register() sucess!!\n"));
 

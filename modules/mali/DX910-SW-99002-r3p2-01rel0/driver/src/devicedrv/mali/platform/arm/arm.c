@@ -14,6 +14,11 @@
  * - Realview Versatile platforms with ARM11 Mpcore and virtex 5.
  * - Versatile Express platforms with ARM Cortex-A9 and virtex 6.
  */
+#ifdef CONFIG_ARCH_SUN4I
+#undef CONFIG_PM_RUNTIME
+#endif
+
+ 
 #include <linux/platform_device.h>
 #include <linux/version.h>
 #include <linux/pm.h>

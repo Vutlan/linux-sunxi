@@ -15,6 +15,11 @@
 
 #include <linux/sched.h>
 
+#ifdef CONFIG_ARCH_SUN4I
+#undef CONFIG_PM_RUNTIME
+#endif
+
+
 #ifdef CONFIG_PM_RUNTIME
 #include <linux/pm_runtime.h>
 #endif /* CONFIG_PM_RUNTIME */
@@ -39,7 +44,7 @@ void _mali_osk_pm_dev_disable(void) /* @@@@ todo: change to term of some kind */
 /* Can NOT run in atomic context */
 _mali_osk_errcode_t _mali_osk_pm_dev_ref_add(void)
 {
-#if 0 //def CONFIG_PM_RUNTIME
+#ifdef CONFIG_PM_RUNTIME
 	int err;
 	MALI_DEBUG_ASSERT_POINTER(mali_platform_device);
 	err = pm_runtime_get_sync(&(mali_platform_device->dev));
