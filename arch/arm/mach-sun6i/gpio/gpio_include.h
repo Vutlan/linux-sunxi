@@ -28,13 +28,15 @@
 #include <linux/types.h>
 #include <linux/clk.h>
 #include <linux/pm.h>
-#include <asm-generic/gpio.h>
+#include <linux/gpio.h>
 #include <linux/mfd/axp-mfd.h>
 
 #include <mach/memory.h>
 #include <mach/platform.h>
 #include <mach/gpio.h>
 #include <mach/clock.h>
+#include <mach/sunxi_dump_reg.h>
+#include <mach/sys_config.h>
 
 #include "gpio_common.h"
 #include "gpio_eint.h"

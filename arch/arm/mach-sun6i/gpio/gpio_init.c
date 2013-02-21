@@ -297,6 +297,57 @@ static struct platform_driver sw_gpio_driver = {
 #endif /* GPIO_SUPPORT_STANDBY */
 };
 
+
+void sw_gpio_hold_output_enabled(bool enabled)
+{
+	script_item_u		used, *list = NULL;
+	script_item_value_type_e type;
+	u32					pl_values, pm_values;
+	u32					gpio_index, gpio_pl_bits = 0, gpio_pm_bits = 0;
+	int					gpio_hold_count;
+
+	type = script_get_item("gpio_hold_para", "gpio_hold_used", &used);
+	if (SCIRPT_ITEM_VALUE_TYPE_INT != type || !used.val) {
+		printk("[gpio_init] gpio_hold_para.gpio_hold_used type error or == 0\n");
+		return;
+	}
+
+	gpio_hold_count = script_get_pio_list("gpio_hold_para", &list);
+	// printk("[gpio_init] gpio hold count is : %d.\n", gpio_hold_count);
+	if (!gpio_hold_count) {
+		printk("[gpio_init] gpio_hold_para get gpio list failed\n");
+		return;
+	}
+
+	while (gpio_hold_count--) {
+		gpio_index = (list + gpio_hold_count)->gpio.gpio;
+
+		if (gpio_index >= GPIOL(0) && gpio_index <= GPIOL(8))
+			gpio_pl_bits |= 1 << (gpio_index - GPIOL(0));
+
+		if (gpio_index >= GPIOM(0) && gpio_index <= GPIOM(7))
+			gpio_pm_bits |= 1 << (gpio_index - GPIOM(0));
+	}
+
+	// printk("[gpio_init] gpio_pl_bits = %#x, gpio_pm_bits = %#x\n",
+	//         gpio_pl_bits, gpio_pm_bits);
+
+	pl_values = ioread32(AW_VIR_RTC_BASE + 0x180);
+	pm_values = ioread32(AW_VIR_RTC_BASE + 0x184);
+
+	if (enabled) {
+		pl_values |= gpio_pl_bits;
+		pm_values |= gpio_pm_bits;
+	} else {
+		pl_values &= ~gpio_pl_bits;
+		pm_values &= ~gpio_pm_bits;
+	}
+
+	iowrite32(pl_values, AW_VIR_RTC_BASE + 0x180);
+	iowrite32(pm_values, AW_VIR_RTC_BASE + 0x184);
+}
+EXPORT_SYMBOL(sw_gpio_hold_output_enabled);
+
 /**
  * aw_gpio_init - gpio driver init function
  *
@@ -306,6 +357,9 @@ static __init int aw_gpio_init(void)
 {
 	u32	uret = 0;
 	u32 	i = 0;
+
+	// disable gpio hold output
+	sw_gpio_hold_output_enabled(false);
 
 	/* init gpio clock */
 	if(0 != gpio_clk_init())
@@ -326,8 +380,14 @@ static __init int aw_gpio_init(void)
 		printk("%s(%d) err: platform_driver_register failed\n", __func__, __LINE__);
 
 #if (CONFIG_ARCH_SUN6I == 1) /* pull up all pl pin, in case electricity leak, sunny */
-	for(i = PL_NR_BASE; i < PL_NR_BASE + PL_NR - 1; i++)
-		WARN_ON(sw_gpio_setpull(i, 0b01));
+	for(i = PL_NR_BASE; i < PL_NR_BASE + PL_NR - 1; i++) {
+		// reduce PL GPIO current when shutdown
+		// for app5 inetq70 board: PL0~PL1 pull-up, PL2~PL8 pull-down
+		if (i <= PL_NR_BASE + 1)
+			WARN_ON(sw_gpio_setpull(i, 0x01));
+		if (i >= PL_NR_BASE + 2)
+			WARN_ON(sw_gpio_setpull(i, 0x02));
+	}
 #endif
 
 end:

@@ -23,6 +23,7 @@
 #include "axp22-mfd.h"
 
 #include <mach/sys_config.h>
+#include <linux/gpio.h>
 
 static int power_start;
 
@@ -349,6 +350,9 @@ static void axp_power_off(void)
 	    	}
 		}
 	}
+
+    sw_gpio_hold_output_enabled(true);
+
     axp_write(&axp->dev, AXP22_BUFFERC, 0x00);
     mdelay(20);
 	axp_set_bits(&axp->dev, AXP22_OFF_CTL, 0x80);

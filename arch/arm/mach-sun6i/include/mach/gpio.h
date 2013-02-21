@@ -194,5 +194,8 @@ u32 sw_gpio_eint_setall_range(struct gpio_config_eint_all *pcfg, u32 cfg_num);
 u32 sw_gpio_eint_getall_range(struct gpio_config_eint_all *pcfg, u32 cfg_num);
 void sw_gpio_eint_dumpall_range(struct gpio_config_eint_all *pcfg, u32 cfg_num);
 
+/* api for enable pl/pm gpio output hold function */
+void sw_gpio_hold_output_enabled(bool enabled);
+
 #endif /* __SW_GPIO_H */
 
