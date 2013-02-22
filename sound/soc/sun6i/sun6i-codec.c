@@ -74,7 +74,7 @@ static int codec_speaker_headset_enabled = 0;
 
 static bool codec_phonemic_enabled = false;
 static bool codec_headsetmic_enabled = false;
-static int codec_voice_record_enable = -1;
+static int codec_voice_record_enable = 0;
 
 struct sun6i_codec {
 	long samplerate;
@@ -341,8 +341,8 @@ static  void codec_init(void)
 	codec_chip_ver = sw_get_ic_ver();
 	type = script_get_item("audio_para", "headphone_direct_used", &val);
 	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
-        printk("[audiocodec] type err!\n");
-    }
+        	printk("[audiocodec] headphone_direct_used type err!\n");
+    	}
 	headphone_direct_used = val.val;
 	if (headphone_direct_used && (codec_chip_ver != MAGIC_VER_A31A)) {
 		codec_wr_control(SUN6I_PA_CTRL, 0x3, HPCOM_CTL, 0x3);
@@ -382,8 +382,9 @@ static  void codec_init(void)
 
 	type = script_get_item("audio_para", "headphone_vol", &val);
 	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
-        printk("[audiocodec] headphone_vol type err!\n");
-    }
+        	printk("[audiocodec] headphone_vol type err!\n");
+		val.val = 0x3a; 
+        }
 	headphone_vol = val.val;
 	/*set HPVOL volume*/
 	codec_wr_control(SUN6I_DAC_ACTL, 0x3f, VOLUME, headphone_vol);
@@ -398,6 +399,7 @@ static int codec_pa_play_open(void)
 	type = script_get_item("audio_para", "pa_double_used", &val);
 	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
 		printk("[audiocodec] pa_double_used type err!\n");
+		val.val = 0;
 	}
 
 	pa_double_used = val.val;
@@ -405,12 +407,14 @@ static int codec_pa_play_open(void)
 		type = script_get_item("audio_para", "pa_single_vol", &val);
 		if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
 			printk("[audiocodec] pa_single_vol type err!\n");
+			val.val = 0x1b; 
 		}
 		pa_vol = val.val;
 	} else {
 		type = script_get_item("audio_para", "pa_double_vol", &val);
 		if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
 			printk("[audiocodec] pa_double_vol type err!\n");
+			val.val = 0x1b; 
 		}
 		pa_vol = val.val;
 	}
@@ -477,6 +481,7 @@ static int codec_headphone_play_open(void)
 	type = script_get_item("audio_para", "headphone_vol", &val);
 	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
         	printk("[audiocodec] headphone_vol type err!\n");
+		val.val = 0x3a; 
     	}
 	headphone_vol = val.val;
 	/*mute l_pa and r_pa*/
@@ -520,6 +525,7 @@ static int codec_pa_and_headset_play_open(void)
 	type = script_get_item("audio_para", "pa_double_used", &val);
 	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
 		printk("[audiocodec] pa_double_used type err!\n");
+		val.val = 0;
 	}
 
 	pa_double_used = val.val;
@@ -527,12 +533,14 @@ static int codec_pa_and_headset_play_open(void)
 		type = script_get_item("audio_para", "pa_single_vol", &val);
 		if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
 			printk("[audiocodec] pa_single_vol type err!\n");
+			val.val = 0x1b; 
 		}
 		pa_vol = val.val;
 	} else {
 		type = script_get_item("audio_para", "pa_double_vol", &val);
 		if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
 			printk("[audiocodec] pa_double_vol type err!\n");
+			val.val = 0x1b; 
 		}
 		pa_vol = val.val;
 	}
@@ -540,6 +548,7 @@ static int codec_pa_and_headset_play_open(void)
 	type = script_get_item("audio_para", "headphone_vol", &val);
 	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
         	printk("[audiocodec] headphone_vol type err!\n");
+		val.val = 0x3a; 
     	}
 	headphone_vol = val.val;
 
@@ -701,6 +710,7 @@ static int codec_capture_open(void)
 	type = script_get_item("audio_para", "cap_vol", &val);
 	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
 		printk("[audiocodec] cap_vol type err!\n");
+		val.val = 0x7;
 	}
 	cap_vol = val.val;
 
@@ -748,6 +758,7 @@ static int codec_play_stop(void)
 	type = script_get_item("audio_para", "headphone_vol", &val);
 	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
 		printk("[audiocodec] headphone_vol type err!\n");
+		val.val = 0x3b;
 	}
 	headphone_vol = val.val;
 
@@ -864,25 +875,14 @@ static int codec_set_fm_speaker(struct snd_kcontrol *kcontrol,
 	printk("codec_set_lineinin codec_fm_speaker_enabled: %d\n", codec_fm_speaker_enabled);
 
 	if (codec_fm_speaker_enabled) {
-		type = script_get_item("audio_para", "pa_double_used", &val);
+		type = script_get_item("audio_para", "fm_speaker_vol", &val);
 		if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
-			printk("[audiocodec] pa_double_used type err!\n");
+			printk("[audiocodec] pa_single_vol type err!\n");
+			val.val = 0x15;
 		}
+		pa_vol = val.val;
+	        printk("codec_set_lineinin speaker vol: %d\n", val.val);
 
-		pa_double_used = val.val;
-		if (!pa_double_used) {
-			type = script_get_item("audio_para", "pa_single_vol", &val);
-			if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
-				printk("[audiocodec] pa_single_vol type err!\n");
-			}
-			pa_vol = val.val;
-		} else {
-			type = script_get_item("audio_para", "pa_double_vol", &val);
-			if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
-				printk("[audiocodec] pa_double_vol type err!\n");
-			}
-			pa_vol = val.val;
-		}
 		/*mute l_pa and r_pa*/
 		codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPPA_MUTE, 0x0);
 		codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPPA_MUTE, 0x0);
@@ -922,8 +922,6 @@ static int codec_set_fm_speaker(struct snd_kcontrol *kcontrol,
 			printk("sw_gpio_setall_range failed\n");
 		}
 		mdelay(62);
-
-
 	} else {
 		codec_wr_control(SUN6I_DAC_ACTL, 0x7f, RMIXMUTE, 0x0);
 		codec_wr_control(SUN6I_DAC_ACTL, 0x7f, LMIXMUTE, 0x0);
@@ -952,11 +950,14 @@ static int codec_set_fm_headset(struct snd_kcontrol *kcontrol,
 	printk(" codec_set_lineinin codec_fm_headset_enabled: %d\n", codec_fm_headset_enabled);
 
 	if (codec_fm_headset_enabled) {
-		type = script_get_item("audio_para", "headphone_vol", &val);
+		type = script_get_item("audio_para", "fm_headset_vol", &val);
 		if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
-			printk("[audiocodec] headphone_vol type err!\n");
+			printk("[audiocodec] fm_headset_vol type err!\n");
+			val.val = 0x30;
 		}
 		headphone_vol = val.val;
+
+	        printk("codec_set_lineinin headset vol: %d\n", val.val);
 
 		/*enable dac digital*/
 		codec_wr_control(SUN6I_DAC_DPC, 0x1, DAC_EN, 0x0);
@@ -1037,25 +1038,14 @@ static int codec_set_speakerout(struct snd_kcontrol *kcontrol,
 	int pa_vol = 0;
 	script_item_u val;
 	script_item_value_type_e  type;
-	int pa_double_used = 0;
-	type = script_get_item("audio_para", "pa_double_used", &val);
+
+	type = script_get_item("audio_para", "phone_speaker_vol", &val);
 	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
-        printk("[audiocodec] type err!\n");
-    }
-    pa_double_used = val.val;
-    if (!pa_double_used) {
-		type = script_get_item("audio_para", "pa_single_vol", &val);
-		if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
-	        printk("[audiocodec] type err!\n");
-	    }
-		pa_vol = val.val;
-	} else {
-		type = script_get_item("audio_para", "pa_double_vol", &val);
-		if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
-	        printk("[audiocodec] type err!\n");
-	    }
-		pa_vol = val.val;
+	        printk("[audiocodec] phone_speaker_vol type err!\n");
+		val.val = 0x1b;
 	}
+
+	pa_vol = val.val;
 
 	codec_speakerout_enabled = ucontrol->value.integer.value[0];
 
@@ -1117,21 +1107,15 @@ static int codec_set_headphoneout(struct snd_kcontrol *kcontrol,
 	script_item_u val;
 	script_item_value_type_e  type;
 
-	type = script_get_item("audio_para", "headphone_vol", &val);
-	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
-		printk("[audiocodec] type err!\n");
-	}
-	headphone_vol = val.val;
-
 	codec_headphoneout_enabled = ucontrol->value.integer.value[0];
 
 	if (codec_headphoneout_enabled) {
-		type = script_get_item("audio_para", "headphone_vol", &val);
+		type = script_get_item("audio_para", "phone_headset_vol", &val);
 		if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
-			printk("[audiocodec] headphone_vol type err!\n");
+			printk("[audiocodec] phone_headset_vol type err!\n");
+			val.val = 0x3a;
 		}
-		/*set HPVOL volume*/
-		codec_wr_control(SUN6I_DAC_ACTL, 0x3f, VOLUME, val.val);
+		headphone_vol = val.val;
 
 		/*unmute l_pa and r_pa*/
 		codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPPA_MUTE, 0x1);
@@ -1153,7 +1137,7 @@ static int codec_set_headphoneout(struct snd_kcontrol *kcontrol,
 		codec_wr_control(SUN6I_DAC_ACTL, 0x1, RHPIS, 0x0);
 		codec_wr_control(SUN6I_ADDAC_TUNE, 0x1, ZERO_CROSS_EN, 0x0);
 		/*set HPVOL volume*/
-		codec_wr_control(SUN6I_DAC_ACTL, 0x3f, VOLUME, 0x0);
+		//codec_wr_control(SUN6I_DAC_ACTL, 0x3f, VOLUME, 0x0);
 	}
 
 	return 0;
@@ -1173,26 +1157,19 @@ static int codec_get_headphoneout(struct snd_kcontrol *kcontrol,
 static int codec_set_earpieceout(struct snd_kcontrol *kcontrol,
 	struct snd_ctl_elem_value *ucontrol)
 {
-	int headphone_vol = 0;
+	int earpiece_vol = 0;
 	script_item_u val;
 	script_item_value_type_e  type;
-
-	type = script_get_item("audio_para", "headphone_vol", &val);
-	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
-		printk("[audiocodec] type err!\n");
-	}
-	headphone_vol = val.val;
 
 	codec_earpieceout_enabled = ucontrol->value.integer.value[0];
 
 	if (codec_earpieceout_enabled) {
-		type = script_get_item("audio_para", "earpiece_vol", &val);
+		type = script_get_item("audio_para", "phone_earpiece_vol", &val);
 		if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
-			printk("[audiocodec] earpiece_vol type err!\n");
+			printk("[audiocodec] phone_earpiece_vol type err!\n");
+			val.val = 0x3a;
 		}
-
-		/*set HPVOL volume*/
-		codec_wr_control(SUN6I_DAC_ACTL, 0x3f, VOLUME, val.val);
+		earpiece_vol = val.val;
 
 		/*unmute l_pa and r_pa*/
 		codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPPA_MUTE, 0x1);
@@ -1208,7 +1185,7 @@ static int codec_set_earpieceout(struct snd_kcontrol *kcontrol,
 
 		codec_wr_control(SUN6I_ADDAC_TUNE, 0x1, ZERO_CROSS_EN, 0x1);
 		/*set HPVOL volume*/
-		codec_wr_control(SUN6I_DAC_ACTL, 0x3f, VOLUME, headphone_vol);
+		codec_wr_control(SUN6I_DAC_ACTL, 0x3f, VOLUME, earpiece_vol);
 	} else {
 		/*mute l_pa and r_pa*/
 		codec_wr_control(SUN6I_DAC_ACTL, 0x1, LHPPA_MUTE, 0x0);
@@ -1219,7 +1196,7 @@ static int codec_set_earpieceout(struct snd_kcontrol *kcontrol,
 
 		codec_wr_control(SUN6I_ADDAC_TUNE, 0x1, ZERO_CROSS_EN, 0x0);
 		/*set HPVOL volume*/
-		codec_wr_control(SUN6I_DAC_ACTL, 0x3f, VOLUME, 0x0);
+		//codec_wr_control(SUN6I_DAC_ACTL, 0x3f, VOLUME, 0x0);
 	}
 
 	return 0;
@@ -1506,13 +1483,18 @@ static int codec_get_adcphonein(struct snd_kcontrol *kcontrol,
 static int codec_set_phonemic(struct snd_kcontrol *kcontrol,
 	struct snd_ctl_elem_value *ucontrol)
 {
+	int mic_val = 0;
 	script_item_u val;
 	script_item_value_type_e  type;
 
 	type = script_get_item("audio_para", "main_mic_vol", &val);
 	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
 	        printk("[audiocodec] codec_set_phonemic type err!\n");
+		val.val = 0;
         }
+	mic_val = val.val;
+
+	printk("[audiocodec] codec_set_phonemic type val.val=%d\n", val.val);
 
 	codec_phonemic_enabled = ucontrol->value.integer.value[0];
 
@@ -1520,7 +1502,8 @@ static int codec_set_phonemic(struct snd_kcontrol *kcontrol,
 		/*enable mic1 pa*/
 		codec_wr_control(SUN6I_MIC_CTRL, 0x1, MIC1AMPEN, 0x1);
 		/*mic1 gain 36dB,if capture volume is too small, enlarge the mic1boost*/
-		codec_wr_control(SUN6I_MIC_CTRL, 0x7,MIC1BOOST,val.val);
+		codec_wr_control(SUN6I_MIC_CTRL, 0x7,MIC1BOOST,mic_val);
+//		codec_wr_control(SUN6I_MIC_CTRL, 0x7,MIC1BOOST, 0);
 		/*enable Master microphone bias*/
 		codec_wr_control(SUN6I_MIC_CTRL, 0x1, MBIASEN, 0x1);
 		codec_wr_control(SUN6I_MIC_CTRL, 0x1, PHONEOUTS0, 0x1);
@@ -1590,13 +1573,16 @@ static int codec_get_voicerecord(struct snd_kcontrol *kcontrol,
 static int codec_set_headsetmic(struct snd_kcontrol *kcontrol,
 	struct snd_ctl_elem_value *ucontrol)
 {
+	int mic_val=0;
 	script_item_u val;
 	script_item_value_type_e  type;
 
 	type = script_get_item("audio_para", "headset_mic_vol", &val);
 	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
-	        printk("[audiocodec] codec_set_headsetmic type err!\n");
+	        printk("[audiocodec] headset_mic_vol type err!\n");
+		val.val = 0;
         }
+	mic_val = val.val;
 
 	codec_headsetmic_enabled = ucontrol->value.integer.value[0];
 
@@ -1604,7 +1590,7 @@ static int codec_set_headsetmic(struct snd_kcontrol *kcontrol,
 		/*enable mic2 pa*/
 		codec_wr_control(SUN6I_MIC_CTRL, 0x1, MIC2AMPEN, 0x1);
 		/*mic2 gain 36dB,if capture volume is too small, enlarge the mic2boost*/
-		codec_wr_control(SUN6I_MIC_CTRL, 0x7,MIC2BOOST,val.val);
+		codec_wr_control(SUN6I_MIC_CTRL, 0x7,MIC2BOOST,mic_val);
 		/*select mic2 source */
 		codec_wr_control(SUN6I_MIC_CTRL, 0x1, MIC2_SEL, 0x1);
 		//codec_wr_control(SUN6I_PA_CTRL, 0x7, MIG2G, 0x1);
@@ -1651,7 +1637,8 @@ static int codec_set_spk(struct snd_kcontrol *kcontrol,
 	codec_chip_ver = sw_get_ic_ver();
 	type = script_get_item("audio_para", "headphone_direct_used", &val);
 	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
-		printk("[audiocodec] type err!\n");
+		printk("[audiocodec] headphone_direct_used type err!\n");
+		val.val = 0;
 	}
 	headphone_direct_used = val.val;
 	if (headphone_direct_used && (codec_chip_ver != MAGIC_VER_A31A)) {
@@ -1684,6 +1671,7 @@ static int codec_set_spk(struct snd_kcontrol *kcontrol,
 		type = script_get_item("audio_para", "headphone_vol", &val);
 		if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
 			printk("[audiocodec] headphone_vol type err!\n");
+			val.val = 0x3a;
 		}
 		headphone_vol = val.val;
 		/*set HPVOL volume*/
@@ -1729,6 +1717,7 @@ static int codec_set_spk_headset(struct snd_kcontrol *kcontrol,
 	type = script_get_item("audio_para", "headphone_direct_used", &val);
 	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
 		printk("[audiocodec] type err!\n");
+		val.val = 0;
 	}
 	headphone_direct_used = val.val;
 	if (headphone_direct_used && (codec_chip_ver != MAGIC_VER_A31A)) {
@@ -1763,6 +1752,7 @@ static int codec_set_spk_headset(struct snd_kcontrol *kcontrol,
 		type = script_get_item("audio_para", "headphone_vol", &val);
 		if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
 			printk("[audiocodec] headphone_vol type err!\n");
+			val.val = 0x3a;
 		}
 		headphone_vol = val.val;
 		/*set HPVOL volume*/
@@ -3088,6 +3078,7 @@ static int snd_sun6i_codec_resume(struct platform_device *pdev)
 	type = script_get_item("audio_para", "headphone_vol", &val);
 	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
 		printk("[audiocodec] headphone_vol type err!\n");
+		val.val = 0x3a;
 	}
 	headphone_vol = val.val;
 
