@@ -68,6 +68,7 @@
 
 #define module_tag "sensor:"
 
+
 //#define  SENSOR_DEBUG
 
 #ifdef  SENSOR_DEBUG
@@ -593,7 +594,7 @@ static DEVICE_ATTR(poll_delay, S_IRUGO | S_IWUSR | S_IWGRP,
 		   poll_delay_show, poll_delay_store);
 
 static struct device_attribute dev_attr_light_enable =
-	__ATTR(enable, S_IRUGO | S_IWUSR | S_IWGRP,
+	__ATTR(enable, S_IRUGO | S_IWUGO,
 	       light_enable_show, light_enable_store);
 
 static struct device_attribute dev_attr_proximity_enable =
