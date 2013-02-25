@@ -307,6 +307,12 @@ struct l2cap_chan *l2cap_chan_create(struct sock *sk)
 void l2cap_chan_destroy(struct l2cap_chan *chan)
 {
 	write_lock(&chan_list_lock);
+	
+	if(!chan || !atomic_read(&chan->refcnt)){
+		write_unlock(&chan_list_lock);
+		return ;
+  }
+	
 	list_del(&chan->global_l);
 	write_unlock(&chan_list_lock);
 
