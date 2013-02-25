@@ -155,6 +155,13 @@ static VOID wmt_ctrl_rx_event_cb (VOID);
 static INT32 wmt_ctrl_rx_flag_checker(PVOID pvData);
 static INT32 wmt_ctrl_rx_timeout (P_OSAL_EVENT pEvent);
 static INT32 wmt_ctrl_rx(P_WMT_CTRL_DATA);
+static INT32  wmt_ctrl_patch_search(P_WMT_CTRL_DATA);
+
+#if 1    //#ifdef MTK_MULTI_PATCH_SUPPORT
+static INT32 wmt_ctrl_get_patch_num(P_WMT_CTRL_DATA);
+static INT32 wmt_ctrl_get_patch_info(P_WMT_CTRL_DATA);
+#endif
+
 static INT32
 wmt_ctrl_rx_flush (
     P_WMT_CTRL_DATA
@@ -214,6 +221,12 @@ const static WMT_CTRL_FUNC wmt_ctrl_func[] =
     [WMT_CTRL_RX_FLUSH] = wmt_ctrl_rx_flush,
     [WMT_CTRL_GPS_SYNC_SET] = wmt_ctrl_gps_sync_set,
     [WMT_CTRL_GPS_LNA_SET] = wmt_ctrl_gps_lna_set,
+#if 1    //#ifdef MTK_MULTI_PATCH_SUPPORT
+    [WMT_CTRL_GET_PATCH_NUM] = wmt_ctrl_get_patch_num,
+    [WMT_CTRL_GET_PATCH_INFO] = wmt_ctrl_get_patch_info,
+#endif
+    [WMT_CTRL_PATCH_SEARCH] = wmt_ctrl_patch_search,
+//    [WMT_CTRL_HW_STATE_DUMP] = wmt_ctrl_hw_state_show,
     [WMT_CTRL_MAX] = wmt_ctrl_others,
 };
 
@@ -597,6 +610,55 @@ INT32  wmt_ctrl_stp_open(P_WMT_CTRL_DATA pWmtCtrlData)
     return 0;
 }
 
+INT32  wmt_ctrl_patch_search(P_WMT_CTRL_DATA pWmtCtrlData)
+{
+    P_DEV_WMT pDev = &gDevWmt; /* single instance */
+    INT32 iRet;
+    UCHAR cmdStr[NAME_MAX + 1] = {0};
+    osal_snprintf(cmdStr, NAME_MAX, "srh_patch");
+    iRet = wmt_ctrl_ul_cmd(pDev, cmdStr);
+    if (iRet) {
+        WMT_WARN_FUNC("wmt_ctrl_ul_cmd fail(%d)\n", iRet);
+        return -1;
+    }
+	return 0;
+}
+
+#if 1    //#ifdef MTK_MULTI_PATCH_SUPPORT
+INT32 wmt_ctrl_get_patch_num(P_WMT_CTRL_DATA pWmtCtrlData)
+{
+	P_DEV_WMT pDev = &gDevWmt; /* single instance */
+	pWmtCtrlData->au4CtrlData[0] = pDev->patchNum;
+	return 0;
+}
+INT32 wmt_ctrl_get_patch_info(P_WMT_CTRL_DATA pWmtCtrlData)
+{
+	P_DEV_WMT pDev = &gDevWmt; /* single instance */
+	UINT32 downLoadSeq = 0;
+	P_WMT_PATCH_INFO pPatchinfo = NULL;
+	PUCHAR pNbuf = NULL;
+	PUCHAR pAbuf =NULL;
+	
+	downLoadSeq = pWmtCtrlData->au4CtrlData[0];
+	WMT_DBG_FUNC("download seq is %d\n",downLoadSeq);
+
+	pPatchinfo = pDev->pWmtPatchInfo + downLoadSeq - 1;
+	pNbuf = (PUCHAR)pWmtCtrlData->au4CtrlData[1];
+	pAbuf = (PUCHAR)pWmtCtrlData->au4CtrlData[2];
+	if(pPatchinfo)
+	{
+		osal_memcpy(pNbuf,pPatchinfo->patchName,osal_sizeof(pPatchinfo->patchName));
+		osal_memcpy(pAbuf,pPatchinfo->addRess,osal_sizeof(pPatchinfo->addRess));
+		WMT_DBG_FUNC("get 4 address bytes is 0x%2x,0x%2x,0x%2x,0x%2x",pAbuf[0],pAbuf[1],pAbuf[2],pAbuf[3]);
+	}
+	else
+	{
+		WMT_ERR_FUNC("NULL patchinfo pointer\n");
+	}
+
+	return 0;
+}
+#endif
 
 INT32  wmt_ctrl_stp_conf_ex (WMT_STP_CONF_TYPE type, UINT32 value)
 {
@@ -656,12 +718,22 @@ INT32  wmt_ctrl_stp_conf(P_WMT_CTRL_DATA pWmtCtrlData)
 
 INT32  wmt_ctrl_free_patch(P_WMT_CTRL_DATA pWmtCtrlData)
 {
+#if 1    //#ifdef MTK_MULTI_PATCH_SUPPORT
+	  UINT32 patchSeq = pWmtCtrlData->au4CtrlData[0];
+#endif
     WMT_DBG_FUNC("BF free patch, gDevWmt.pPatch(0x%08x)\n", gDevWmt.pPatch);
     if (NULL != gDevWmt.pPatch)
     {
         wmt_dev_patch_put((OSAL_FIRMWARE **)(&gDevWmt.pPatch));
     }
     WMT_DBG_FUNC("AF free patch, gDevWmt.pPatch(0x%08x)\n", gDevWmt.pPatch);
+#if 1    //#ifdef MTK_MULTI_PATCH_SUPPORT
+	  if (patchSeq == gDevWmt.patchNum)
+	  {
+		  WMT_DBG_FUNC("the %d patch has been download\n",patchSeq);
+		  wmt_dev_patch_info_free();
+	  }
+#endif
     return 0;
 }
 
@@ -779,6 +851,35 @@ INT32  wmt_ctrl_sdio_hw(P_WMT_CTRL_DATA pWmtCtrlData)
     else  {
         if (osal_test_and_clear_bit(statBit, &pDev->state)) {
             iRet = wmt_plat_sdio_ctrl(sdioSlotNum, FUNC_OFF);
+#if 1 /*WCNAE00042501 sdio hw off and on race condition */
+            if (iRet) {
+                WMT_WARN_FUNC("wmt_plat_sdio_ctrl(%d, FUNC_OFF) fail:%d \n", sdioSlotNum, iRet);
+                return iRet;
+            }
+            do {
+                int retry;
+                int type;
+                /* make sure all sdio funcs are removed */
+                iRet = 0;
+                for (type = WMT_SDIO_FUNC_STP; type < WMT_SDIO_FUNC_MAX; ++type) {
+                    retry = 0;
+                    while (retry++ < 10) {
+                        iRet = mtk_wcn_hif_sdio_wmt_control(type, MTK_WCN_BOOL_FALSE);
+                        WMT_DBG_FUNC("type:%d, retry:%d iRet:%d\n", type, retry, iRet);
+                        if (HIF_SDIO_ERR_NOT_PROBED == iRet) {
+                            WMT_INFO_FUNC("WMT_SDIO_FUNC_%d removed!retry(%d)\n", type, retry);
+                            iRet = 0;
+                            break;
+                        }
+                        /* sleep 150ms before next retry */
+                        osal_msleep(150);
+                    }
+                    if (retry > 10) {
+                        WMT_WARN_FUNC("WMT_SDIO_FUNC_%d not removed!retry:%d\n", type, retry);
+                    }
+                }
+            } while (0);
+#endif
         }
         else {
             WMT_WARN_FUNC("CTRL_SDIO_SLOT slotNum(%d) already OFF \n", sdioSlotNum);

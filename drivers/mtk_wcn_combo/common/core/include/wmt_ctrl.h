@@ -149,6 +149,10 @@ typedef enum _ENUM_WMT_CTRL_T {
     WMT_CTRL_RX_FLUSH = 18, /* [FixMe][SeanWang]: to be removed by Sean's stp integration */
     WMT_CTRL_GPS_SYNC_SET = 19,
     WMT_CTRL_GPS_LNA_SET = 20,
+    WMT_CTRL_PATCH_SEARCH = 21,
+    //WMT_CTRL_HW_STATE_DUMP = 22,
+    WMT_CTRL_GET_PATCH_NUM = 23,
+    WMT_CTRL_GET_PATCH_INFO = 24,
     WMT_CTRL_MAX
 } ENUM_WMT_CTRL_T, *P_ENUM_WMT_CTRL_T;
 

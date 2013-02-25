@@ -214,6 +214,22 @@ typedef struct {
     PF_WMT_CB fDrvRst[4];
 } WMT_FDRV_CB, *P_WMT_FDRV_CB;
 
+#if 1    //#ifdef MTK_MULTI_PATCH_SUPPORT
+typedef struct {
+	UINT32 dowloadSeq;
+	UCHAR addRess[4];
+	UCHAR patchName[256];
+}WMT_PATCH_INFO,*P_WMT_PATCH_INFO;
+#endif
+
+typedef enum _ENUM_WMTCHIN_TYPE_T{
+   WMTCHIN_CHIPID = 0x0,
+   WMTCHIN_HWVER = WMTCHIN_CHIPID + 1,
+   WMTCHIN_MAPPINGHWVER = WMTCHIN_HWVER + 1,
+   WMTCHIN_FWVER = WMTCHIN_MAPPINGHWVER + 1,
+   WMTCHIN_MAX,
+   
+}ENUM_WMT_CHIPINFO_TYPE_T, *P_ENUM_WMT_CHIPINFO_TYPE_T;
 
 /* OS independent wrapper for WMT_OP */
 typedef struct _DEV_WMT_ {
@@ -262,6 +278,10 @@ typedef struct _DEV_WMT_ {
     // TODO:  [FixMe][GeorgeKuo] remove this translated version code in the
     // future. Just return the above 3 info to querist
     ENUM_WMTHWVER_TYPE_T eWmtHwVer;
+#if 1    //#ifdef MTK_MULTI_PATCH_SUPPORT
+		UINT32 patchNum;
+		P_WMT_PATCH_INFO pWmtPatchInfo;
+#endif
 }DEV_WMT, *P_DEV_WMT;
 
 /*******************************************************************************
@@ -350,6 +370,12 @@ extern INT32 wmt_lib_set_patch_name(UCHAR *cPatchName);
 extern INT32 wmt_lib_set_hif(ULONG hifconf);
 extern P_WMT_HIF_CONF wmt_lib_get_hif(VOID);
 
+#endif
+
+extern UINT32 wmt_lib_get_icinfo (ENUM_WMT_CHIPINFO_TYPE_T type);
+#if 1    //#ifdef MTK_MULTI_PATCH_SUPPORT
+extern VOID wmt_lib_set_patch_num(ULONG num);
+extern VOID wmt_lib_set_patch_info(P_WMT_PATCH_INFO pPatchinfo);
 #endif
 /*******************************************************************************
 *                              F U N C T I O N S

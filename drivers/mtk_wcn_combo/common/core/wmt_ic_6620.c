@@ -166,6 +166,14 @@ static UCHAR WMT_SET_BAUD_CMD_X[] = {0x01, 0x04, 0x05, 0x00, 0x01, 0xAA, 0xAA, 0
 static UCHAR WMT_SET_BAUD_EVT[] = {0x02, 0x04, 0x02, 0x00, 0x00, 0x01};
 static UCHAR WMT_SET_WAKEUP_WAKE_CMD_RAW[] = {0xFF};
 static UCHAR WMT_SET_WAKEUP_WAKE_EVT[] = {0x02, 0x03, 0x02, 0x00, 0x00, 0x03};
+
+#if 1    //#ifdef MTK_MULTI_PATCH_SUPPORT
+static UCHAR WMT_PATCH_ADDRESS_CMD[] = {0x01,0x08,0x10,0x00,0x01,0x01,0x00,0x01,0x64,0x0E,0x00,0x01,0x00,0x00,0x00,0x00,0xff,0xff,0xff,0xff};
+static UCHAR WMT_PATCH_ADDRESS_EVT[] = {0x02,0x08,0x04,0x00,0x00,0x00,0x00,0x01};
+static UCHAR WMT_PATCH_P_ADDRESS_CMD[] = {0x01,0x08,0x10,0x00,0x01,0x01,0x00,0x01,0x38,0x00,0x00,0x01,0x00,0x00,0x00,0x00,0xff,0xff,0xff,0xff};
+static UCHAR WMT_PATCH_P_ADDRESS_EVT[] = {0x02,0x08,0x04,0x00,0x00,0x00,0x00,0x01};
+#endif
+
 static UCHAR WMT_PATCH_CMD[] = {0x01, 0x01, 0x00, 0x00, 0x00};
 static UCHAR WMT_PATCH_EVT[] = {0x02, 0x01, 0x01, 0x00, 0x00};
 static UCHAR WMT_RESET_CMD[] = {0x01, 0x07, 0x01, 0x00, 0x04};
@@ -550,8 +558,12 @@ mt6620_find_wmt_ic_info (
 static INT32
 wmt_stp_init_coex (VOID);
 
+
+#if 1    //#ifdef MTK_MULTI_PATCH_SUPPORT
 static INT32
-mt6620_update_patch_name (VOID);
+mt6620_patch_dwn (UINT32 index);
+static INT32 mt6620_patch_info_prepare(VOID);
+#else
 
 #if CFG_PATCH_DWN_DIVISION
 static INT32
@@ -561,9 +573,12 @@ static INT32
 mt6620_patch_dwn_nodiv(PUINT8 pBuf, UINT32 patchSize, UINT32 patchSizePerFrag);
 #endif
 
+static INT32
+mt6620_update_patch_name (VOID);
 
 static INT32
 mt6620_patch_dwn (VOID);
+#endif
 
 
 /*******************************************************************************
@@ -596,7 +611,10 @@ mt6620_sw_init (
     UINT32 ctrlPa1;
     UINT32 ctrlPa2;
     UINT32 hw_ver;
-
+#if 1    //#ifdef MTK_MULTI_PATCH_SUPPORT
+	  UINT32 patch_num = 0;
+	  UINT32 patch_index = 0;
+#endif
     WMT_DBG_FUNC(" start\n");
 
     osal_assert(NULL != gp_mt6620_info);
@@ -735,6 +753,33 @@ mt6620_sw_init (
     }
 
     /* 14. download patch */
+#if 1    //#ifdef MTK_MULTI_PATCH_SUPPORT
+		iRet = mt6620_patch_info_prepare();
+		if(iRet)
+		{
+			WMT_ERR_FUNC("patch info perpare fail(%d)\n",iRet);
+			return -11;
+		}
+		
+		ctrlPa1 = 0;ctrlPa2 = 0;
+		wmt_core_ctrl(WMT_CTRL_GET_PATCH_NUM,&ctrlPa1,&ctrlPa2);
+		patch_num = ctrlPa1;
+		WMT_INFO_FUNC("patch total num = [%d]\n",patch_num);
+	
+		for(patch_index = 0;patch_index < patch_num;patch_index++)
+		{
+			iRet = mt6620_patch_dwn(patch_index);
+			if(iRet){
+				WMT_ERR_FUNC("patch dwn fail (%d),patch_index(%d)\n", iRet,patch_index);
+	        	return -12;
+			}
+			iRet = wmt_core_init_script(init_table_3, osal_array_size(init_table_3));
+		    if (iRet) {
+		        WMT_ERR_FUNC("init_table_3 fail(%d)\n", iRet);
+		        return -13;
+		    }
+		}
+#else
     iRet = mt6620_patch_dwn();
 
     WMT_INFO_FUNC("Not to check the patch validity\n");
@@ -751,12 +796,13 @@ mt6620_sw_init (
     iRet = wmt_core_init_script(init_table_3, osal_array_size(init_table_3));
     if (iRet) {
         WMT_ERR_FUNC("init_table_3 fail(%d)\n", iRet);
-        return -11;
+        return -13;
     }
+#endif
     iRet = wmt_stp_init_coex();
     if (iRet) {
         WMT_ERR_FUNC("init_coex fail(%d)\n", iRet);
-        return -12;
+        return -14;
     }
     else {
         WMT_INFO_FUNC("init_coex ok\n");
@@ -1202,6 +1248,254 @@ wmt_stp_init_coex (VOID)
     return iRet;
 }
 
+
+
+
+#if 1    //#ifdef MTK_MULTI_PATCH_SUPPORT
+
+static INT32 mt6620_patch_info_prepare(VOID)
+{
+	INT32 iRet = -1;
+	WMT_CTRL_DATA ctrlData;
+
+	ctrlData.ctrlId = WMT_CTRL_PATCH_SEARCH;
+	iRet = wmt_ctrl(&ctrlData);
+
+	return iRet;
+}
+static INT32
+mt6620_patch_dwn (UINT32 index)
+{
+    INT32 iRet = -1;
+    P_WMT_PATCH patchHdr = NULL;
+    PUINT8 pbuf = NULL;
+    UINT32 patchSize = 0;
+    UINT32 fragSeq = 0;
+    UINT32 fragNum = 0;
+    UINT16 fragSize = 0;
+    UINT16 cmdLen;
+    UINT32 offset;
+    UINT32 u4Res;
+    UINT8 patchevtBuf[8];
+		UINT8 addressevtBuf[12];
+		UCHAR addressByte[4];
+    PCHAR cDataTime = NULL;
+    /*PCHAR cPlat = NULL;*/
+    UINT16 u2HwVer = 0;
+    UINT16 u2SwVer = 0;
+    UINT32 u4PatchVer = 0;
+    UINT32 patchSizePerFrag = 0;
+    WMT_CTRL_DATA ctrlData;
+
+    /*1.check hardware information */
+    if (NULL == gp_mt6620_info) {
+        WMT_ERR_FUNC("null gp_mt6620_info!\n");
+        return -1;
+    }
+
+		osal_memset(gFullPatchName,0,osal_sizeof(gFullPatchName));
+		
+		ctrlData.ctrlId = WMT_CTRL_GET_PATCH_INFO;
+		ctrlData.au4CtrlData[0] = index + 1;
+		ctrlData.au4CtrlData[1] = (UINT32)&gFullPatchName;
+		ctrlData.au4CtrlData[2] = (UINT32)&addressByte;
+		iRet = wmt_ctrl(&ctrlData);
+		WMT_INFO_FUNC("the %d time valid patch found: (%s)\n", index+1,gFullPatchName);
+		//<2.2> read patch content
+		ctrlData.ctrlId = WMT_CTRL_GET_PATCH;
+		ctrlData.au4CtrlData[0] = (UINT32)NULL;
+		ctrlData.au4CtrlData[1] = (UINT32)&gFullPatchName;
+				
+		ctrlData.au4CtrlData[2] = (UINT32)&pbuf;
+		ctrlData.au4CtrlData[3] = (UINT32)&patchSize;
+		iRet = wmt_ctrl(&ctrlData);
+		if (iRet) {
+			WMT_ERR_FUNC("wmt_core: WMT_CTRL_GET_PATCH fail:%d \n", iRet);
+			iRet -= 1;
+			goto done;
+		}
+	
+    /* |<-BCNT_PATCH_BUF_HEADROOM(8) bytes dummy allocated->|<-patch file->| */
+    pbuf += BCNT_PATCH_BUF_HEADROOM;
+    /* patch file with header:
+     * |<-patch header: 28 Bytes->|<-patch body: X Bytes ----->|
+     */
+    patchHdr = (P_WMT_PATCH)pbuf;
+    // check patch file information
+
+    cDataTime = patchHdr->ucDateTime;
+    u2HwVer = patchHdr->u2HwVer;
+    u2SwVer = patchHdr->u2SwVer;
+    u4PatchVer = patchHdr->u4PatchVer;
+    /*cPlat = &patchHdr->ucPLat[0];*/
+    cDataTime[15] = '\0';
+
+    /* remove patch header:
+    * |<-patch body: X Bytes (X=patchSize)--->|
+    */
+    patchSize -= sizeof(WMT_PATCH);
+    pbuf += sizeof(WMT_PATCH);
+
+		if(index == 0)
+		{
+		    WMT_INFO_FUNC("===========================================\n");
+		    WMT_INFO_FUNC("[Combo Patch] Built Time = %s\n", cDataTime);
+		    WMT_INFO_FUNC("[Combo Patch] Hw Ver = 0x%x\n", ((u2HwVer & 0x00ff) << 8) | ((u2HwVer & 0xff00) >> 8));
+		    WMT_INFO_FUNC("[Combo Patch] Sw Ver = 0x%x\n", ((u2SwVer & 0x00ff) << 8) | ((u2SwVer & 0xff00) >> 8));
+		    WMT_INFO_FUNC("[Combo Patch] Ph Ver = 0x%04x\n",  ((u4PatchVer & 0xff000000) >> 24) | ((u4PatchVer & 0x00ff0000) >> 16));
+		    WMT_INFO_FUNC("[Combo Patch] Platform = %c%c%c%c\n", patchHdr->ucPLat[0],
+		        patchHdr->ucPLat[1], patchHdr->ucPLat[2], patchHdr->ucPLat[3]);
+		    WMT_INFO_FUNC("[Combo Patch] Content Size = 0x%x\n", patchSize);
+		    //WMT_INFO_FUNC("[Combo Patch] Content CRC = 0x%04x\n", osal_crc16(pbuf, patchSize));
+		    WMT_INFO_FUNC("===========================================\n");
+		}
+
+    patchSizePerFrag = (MAJORNUM(gp_mt6620_info->u4HwVer) != 0) ?
+        DEFAULT_PATCH_FRAG_SIZE : MT6620E2_PATCH_FRAG_SIZE;
+
+  /* reserve 1st patch cmd space before patch body
+     *        |<-WMT_CMD: 5Bytes->|<-patch body: X Bytes (X=patchSize)----->|
+     */
+    pbuf -= sizeof(WMT_PATCH_CMD);
+
+    fragNum = patchSize / patchSizePerFrag;
+    fragNum += ((fragNum * patchSizePerFrag) == patchSize) ? 0 : 1;
+
+    WMT_DBG_FUNC("patch size(%d) fragNum(%d)\n", patchSize, fragNum);
+
+		/*send wmt part patch address command*/
+		iRet = wmt_core_tx((PUINT8)&WMT_PATCH_ADDRESS_CMD[0],sizeof(WMT_PATCH_ADDRESS_CMD),&u4Res,MTK_WCN_BOOL_FALSE);
+		if(iRet || (u4Res != sizeof(WMT_PATCH_ADDRESS_CMD)))
+		{
+			WMT_ERR_FUNC("wmt_core:wmt patch address CMD fail(%d),size(%d)\n",iRet,u4Res);
+			iRet -= 1;
+			goto done;
+		}
+		osal_memset(addressevtBuf,0,sizeof(addressevtBuf));
+		iRet = wmt_core_rx(addressevtBuf,sizeof(WMT_PATCH_ADDRESS_EVT),&u4Res);
+		if(iRet || (u4Res != sizeof(WMT_PATCH_ADDRESS_EVT)))
+		{
+			WMT_ERR_FUNC("wmt_core:wmt patch address EVT fail(%d),size(%d)\n",iRet,u4Res);
+			iRet -= 1;
+			goto done;
+		}
+#if CFG_CHECK_WMT_RESULT
+    if (osal_memcmp(addressevtBuf, WMT_PATCH_ADDRESS_EVT, osal_sizeof(WMT_PATCH_ADDRESS_EVT)) != 0) {
+        WMT_ERR_FUNC("wmt_core: write WMT_PATCH_ADDRESS_CMD status fail\n");
+        iRet -= 1;
+		goto done;
+    }
+#endif
+
+		/*send part patch address command*/
+		osal_memcpy(&WMT_PATCH_P_ADDRESS_CMD[12], addressByte,osal_sizeof(addressByte));
+		WMT_INFO_FUNC("4 bytes address command:0x%02x,0x%02x,0x%02x,0x%02x",WMT_PATCH_P_ADDRESS_CMD[12],WMT_PATCH_P_ADDRESS_CMD[13],WMT_PATCH_P_ADDRESS_CMD[14],WMT_PATCH_P_ADDRESS_CMD[15]);
+		iRet = wmt_core_tx((PUINT8)&WMT_PATCH_P_ADDRESS_CMD[0],sizeof(WMT_PATCH_P_ADDRESS_CMD),&u4Res,MTK_WCN_BOOL_FALSE);
+		if(iRet || (u4Res != sizeof(WMT_PATCH_P_ADDRESS_CMD)))
+		{
+			WMT_ERR_FUNC("wmt_core:wmt part patch address CMD fail(%d),size(%d),index(%d)\n",iRet,u4Res,index);
+			iRet -= 1;
+			goto done;
+		}
+		osal_memset(addressevtBuf,0,sizeof(addressevtBuf));
+		iRet = wmt_core_rx(addressevtBuf,sizeof(WMT_PATCH_P_ADDRESS_EVT),&u4Res);
+		if(iRet || (u4Res != sizeof(WMT_PATCH_P_ADDRESS_EVT)))
+		{
+			WMT_ERR_FUNC("wmt_core:wmt patch address EVT fail(%d),size(%d),index(%d)\n",iRet,u4Res,index);
+			iRet -= 1;
+			goto done;
+		}
+#if CFG_CHECK_WMT_RESULT
+    if (osal_memcmp(addressevtBuf, WMT_PATCH_P_ADDRESS_EVT, osal_sizeof(WMT_PATCH_ADDRESS_EVT)) != 0) {
+        WMT_ERR_FUNC("wmt_core: write WMT_PATCH_ADDRESS_CMD status fail,index(%d)\n",index);
+        iRet -= 1;
+		goto done;
+    }
+#endif
+    /* send all fragments */
+    offset = sizeof(WMT_PATCH_CMD);
+    fragSeq = 0;
+    while (fragSeq < fragNum) {
+        WMT_DBG_FUNC("patch size(%d) fragNum(%d)\n", patchSize, fragNum);
+        if (fragSeq == (fragNum-1)) {
+            /* last fragment */
+            fragSize = patchSize - fragSeq * patchSizePerFrag;
+            WMT_PATCH_CMD[4] = WMT_PATCH_FRAG_LAST;
+        }
+        else {
+            fragSize = patchSizePerFrag;
+            WMT_PATCH_CMD[4] = (fragSeq == 0) ? WMT_PATCH_FRAG_1ST: WMT_PATCH_FRAG_MID;
+        }
+        /* update length field in CMD:flag+frag*/
+        cmdLen = 1 + fragSize;
+        osal_memcpy(&WMT_PATCH_CMD[2], &cmdLen, 2);
+        /* copy patch CMD to buf (overwrite last 5-byte in prev frag) */
+        osal_memcpy(pbuf + offset - sizeof(WMT_PATCH_CMD), WMT_PATCH_CMD, sizeof(WMT_PATCH_CMD));
+
+        //iRet = (*kal_stp_tx)(pbuf + offset - sizeof(WMT_PATCH_CMD), fragSize + sizeof(WMT_PATCH_CMD), &u4Res);
+        iRet = wmt_core_tx(pbuf + offset - sizeof(WMT_PATCH_CMD), fragSize + sizeof(WMT_PATCH_CMD), &u4Res, MTK_WCN_BOOL_FALSE);
+        if (iRet || (u4Res != fragSize + sizeof(WMT_PATCH_CMD))) {
+            WMT_ERR_FUNC("wmt_core: write fragSeq(%d) size(%d, %d) fail(%d)\n", fragSeq, fragSize + sizeof(WMT_PATCH_CMD), u4Res, iRet );
+            iRet = -4;
+            break;
+        }
+        WMT_DBG_FUNC("wmt_core: write fragSeq(%d) size(%d, %d) ok\n",
+            fragSeq, fragSize + sizeof(WMT_PATCH_CMD), u4Res);
+
+        osal_memset(patchevtBuf, 0, sizeof(patchevtBuf));
+        //iRet = (*kal_stp_rx)(evtBuf, sizeof(WMT_PATCH_EVT), &u4Res);
+        iRet = wmt_core_rx(patchevtBuf, sizeof(WMT_PATCH_EVT), &u4Res);
+        if (iRet || (u4Res != sizeof(WMT_PATCH_EVT))) {
+            WMT_ERR_FUNC("wmt_core: read WMT_PATCH_EVT length(%d, %d) fail(%d)\n", sizeof(WMT_PATCH_EVT), u4Res, iRet);
+            iRet = -5;
+            break;
+        }
+#if CFG_CHECK_WMT_RESULT
+        if (osal_memcmp(patchevtBuf, WMT_PATCH_EVT, sizeof(WMT_PATCH_EVT)) != 0) {
+            WMT_ERR_FUNC("wmt_core: compare WMT_PATCH_EVT result error rx(%d):[%02X,%02X,%02X,%02X,%02X] exp(%d):[%02X,%02X,%02X,%02X,%02X]\n",
+                u4Res, patchevtBuf[0], patchevtBuf[1], patchevtBuf[2], patchevtBuf[3], patchevtBuf[4], sizeof(WMT_PATCH_EVT), WMT_PATCH_EVT[0], WMT_PATCH_EVT[1], WMT_PATCH_EVT[2], WMT_PATCH_EVT[3], WMT_PATCH_EVT[4]);
+            iRet = -6;
+            break;
+        }
+#endif
+        WMT_DBG_FUNC("wmt_core: read WMT_PATCH_EVT length(%d, %d) ok\n",
+            sizeof(WMT_PATCH_EVT), u4Res);
+
+#if 0
+        WMT_DBG_FUNC("wmt_core: send patch frag(%d) [%02X,%02X,%02X,%02X,%02X] (%d) ok",
+            fragSeq, WMT_PATCH_CMD[0], WMT_PATCH_CMD[1], WMT_PATCH_CMD[2],
+            WMT_PATCH_CMD[3], WMT_PATCH_CMD[4], fragSize);
+#endif
+
+        offset += patchSizePerFrag;
+        ++fragSeq;
+    }
+
+    WMT_INFO_FUNC("wmt_core: patch dwn:%d frag(%d, %d) %s\n",
+        iRet, fragSeq, fragSize, (!iRet && (fragSeq == fragNum)) ? "ok": "fail");
+
+    if (fragSeq != fragNum) {
+        iRet = -7;
+    }
+done:
+    /* WMT_CTRL_FREE_PATCH always return 0 */
+		ctrlData.ctrlId = WMT_CTRL_FREE_PATCH;
+		ctrlData.au4CtrlData[0] = index + 1;
+		wmt_ctrl(&ctrlData);
+    //wmt_core_ctrl(WMT_CTRL_FREE_PATCH, NULL, NULL);
+    if ( (iRet == -2) || (iRet == -3) ) {
+        /*no patch found or patch version does not match with hw version, we check if patch is mandatory or not, if yes, return iRet, if not return 0*/
+        if (MTK_WCN_BOOL_FALSE != gp_mt6620_info->bWorkWithoutPatch) {
+            iRet = 0;
+        }
+    }
+
+    return iRet;
+}
+
+
+#else
+
 #if CFG_PATCH_DWN_DIVISION
 static INT32
 mt6620_patch_dwn_div(PUINT8 pBuf, UINT32 patchSize, UINT32 patchSizePerFrag)
@@ -1604,4 +1898,4 @@ mt6620_update_patch_name (VOID)
 
     return 0;
 }
-
+#endif

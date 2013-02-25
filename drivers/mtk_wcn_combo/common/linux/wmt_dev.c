@@ -109,6 +109,7 @@
 #include "wmt_dev.h"
 #include "core_exp.h"
 
+#include "wmt_lib.h"
 
 #define MTK_WMT_VERSION  "Combo WMT Driver - v4.0"
 #define MTK_WMT_DATE     "2012/08/16"
@@ -131,6 +132,12 @@ static atomic_t gWmtRefCnt = ATOMIC_INIT(0);
 /* WMT driver information */
 static UINT8 gLpbkBuf[1024] = {0};
 static UINT32 gLpbkBufLog; // George LPBK debug
+
+#if 1    //#ifdef MTK_MULTI_PATCH_SUPPORT
+P_WMT_PATCH_INFO pPatchInfo = NULL;
+UINT32 pAtchNum = 0;
+#endif
+
 static int gWmtInitDone = 0;
 static wait_queue_head_t gWmtInitWq;
 
@@ -356,6 +363,17 @@ INT32 wmt_dev_patch_put(OSAL_FIRMWARE **ppPatch)
     return 0;
 
 }
+
+#if 1    //#ifdef MTK_MULTI_PATCH_SUPPORT
+VOID wmt_dev_patch_info_free(VOID)
+{
+	if(pPatchInfo)
+	{
+		kfree(pPatchInfo);
+		pPatchInfo = NULL;
+	}
+}
+#endif
 
 MTK_WCN_BOOL wmt_dev_is_file_exist(UCHAR *pFileName)
 {
@@ -729,6 +747,71 @@ WMT_unlocked_ioctl (
         }
         break;
 #endif
+
+       case 12:
+    		{
+    			if (0 == arg)
+    			{
+    			    return wmt_lib_get_icinfo(WMTCHIN_CHIPID);
+    			}
+    			else if (1 == arg)
+    			{
+    			    return wmt_lib_get_icinfo(WMTCHIN_HWVER);
+    			}
+    			else if (2 == arg)
+    			{
+    			    return wmt_lib_get_icinfo(WMTCHIN_FWVER);
+    			}
+    		}
+		   break;
+
+#if 1    //#ifdef MTK_MULTI_PATCH_SUPPORT
+		case 14:
+		{
+
+				pAtchNum = arg;
+				WMT_INFO_FUNC(" get patch num from launcher = %d\n",pAtchNum);
+				wmt_lib_set_patch_num(pAtchNum);
+				pPatchInfo = kzalloc(sizeof(WMT_PATCH_INFO)*pAtchNum,GFP_ATOMIC);
+				if(!pPatchInfo)
+				{
+					WMT_ERR_FUNC("allocate memory fail!\n");
+					break;
+				}
+		}
+		break;
+
+		case 15:
+		{
+				WMT_PATCH_INFO wMtPatchInfo;
+				P_WMT_PATCH_INFO pTemp = NULL;
+				UINT32 dWloadSeq;
+				static UINT32 counter = 0;
+				
+				if(!pPatchInfo)
+				{
+					WMT_ERR_FUNC("NULL patch info pointer\n");
+					break;
+				}
+        if (copy_from_user(&wMtPatchInfo, (void *)arg, sizeof(WMT_PATCH_INFO))) {
+            WMT_ERR_FUNC("copy_from_user failed at %d\n", __LINE__);
+            iRet = -EFAULT;
+            break;
+        }
+
+				dWloadSeq = wMtPatchInfo.dowloadSeq;
+				WMT_DBG_FUNC("current download seq no is %d,patch name is %s,addres info is 0x%02x,0x%02x,0x%02x,0x%02x\n",dWloadSeq,wMtPatchInfo.patchName,wMtPatchInfo.addRess[0],wMtPatchInfo.addRess[1],wMtPatchInfo.addRess[2],wMtPatchInfo.addRess[3]);
+				osal_memcpy(pPatchInfo + dWloadSeq - 1,&wMtPatchInfo,sizeof(WMT_PATCH_INFO));
+				pTemp = pPatchInfo + dWloadSeq - 1;
+				if(++counter == pAtchNum)
+				{
+					wmt_lib_set_patch_info(pPatchInfo);
+					counter = 0;
+				}
+		}
+		break;
+#endif
+
     default:
         iRet = -EINVAL;
         WMT_WARN_FUNC("unknown cmd (%d)\n", cmd);

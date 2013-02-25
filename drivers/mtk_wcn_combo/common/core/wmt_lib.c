@@ -1093,6 +1093,30 @@ wmt_lib_get_hwver (VOID)
     return gDevWmt.eWmtHwVer;
 }
 
+UINT32
+wmt_lib_get_icinfo (ENUM_WMT_CHIPINFO_TYPE_T index)
+{
+    if (WMTCHIN_CHIPID == index)
+    {
+        return gDevWmt.chip_id;
+    }
+    else if (WMTCHIN_HWVER == index)
+    {
+        return gDevWmt.hw_ver;
+    }
+    else if (WMTCHIN_MAPPINGHWVER == index)
+    {
+        return gDevWmt.eWmtHwVer;
+    }
+	else if (WMTCHIN_FWVER == index)
+    {
+        return gDevWmt.fw_ver;
+		WMT_ERR_FUNC("return gDevWmt.fw_ver");
+    }
+    return 0;
+    
+}
+
 
 UCHAR* wmt_lib_def_patch_name (VOID)
 {
@@ -1628,4 +1652,19 @@ UINT32 wmt_lib_dbg_level_set(UINT32 level)
     return 0;
 }
 
+#if 1    //#ifdef MTK_MULTI_PATCH_SUPPORT
+VOID wmt_lib_set_patch_num(ULONG num)
+{
+		P_DEV_WMT pWmtDev = &gDevWmt;
+		pWmtDev->patchNum = num;
+}
 
+VOID wmt_lib_set_patch_info(P_WMT_PATCH_INFO pPatchinfo)
+{
+		P_DEV_WMT pWmtDev = &gDevWmt;
+		if(pPatchinfo)
+		{
+			pWmtDev->pWmtPatchInfo = pPatchinfo;
+		}
+}
+#endif

@@ -46,5 +46,9 @@
 extern INT32 wmt_dev_patch_get (UCHAR *pPatchName, OSAL_FIRMWARE **ppPatch,INT32 padSzBuf);
 extern INT32 wmt_dev_patch_put(OSAL_FIRMWARE **ppPatch);
 
+#if 1    //#ifdef MTK_MULTI_PATCH_SUPPORT
+extern VOID wmt_dev_patch_info_free(VOID);
+#endif
+
 #endif /*_WMT_DEV_H_*/
 
