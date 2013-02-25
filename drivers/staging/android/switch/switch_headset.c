@@ -31,8 +31,9 @@
 #include <mach/sys_config.h>
 #include <mach/system.h>
 #include <mach/gpio.h>
+
 #undef SWITCH_DBG
-#if (0)
+#ifdef SWITCH_DBG
     #define SWITCH_DBG(format,args...)  printk("[SWITCH] "format,##args)    
 #else
     #define SWITCH_DBG(...)    
@@ -93,6 +94,8 @@
 
 static int gpio_earphone_switch = 0;
 static void __iomem *hmic_base;
+static int headphone_direct_used = 0;
+static int headphone_state = 0; // 1=headphone in slot, else 0
 
 struct gpio_switch_data {
 	struct switch_dev sdev;
@@ -101,6 +104,7 @@ struct gpio_switch_data {
 	int pre_state;
 
 	struct work_struct work;
+	struct semaphore sem;
 	struct timer_list timer;
 };
 
@@ -134,37 +138,47 @@ int hmic_wr_control(u32 reg, u32 mask, u32 shift, u32 val)
 	return 0;
 }
 
+static void earphone_switch_timer_poll(unsigned long data)
+{
+	int tmp = 0;
+	struct gpio_switch_data	*switch_data =(struct gpio_switch_data *)data;
+	
+	tmp = hmic_rdreg(SUN6I_HMIC_DATA);
+	SWITCH_DBG("%s,line:%d,tmp:%x\n", __func__, __LINE__, (tmp&0x1f));
+	if ( (tmp & (0x1<<20)) || (headphone_state ==1 && tmp == 0) )  { //plug out
+		SWITCH_DBG("%s,line:%d,tmp:%x\n", __func__, __LINE__, (tmp&0x1f));
+		/*if the irq is hmic earphone pull out, when the irq coming, clean the pending bit*/
+		hmic_wr_control(SUN6I_HMIC_DATA, 0x1, HMIC_EARPHONE_OUT_IRQ_PEND, 0x1);
+		switch_data->state = 0;
+		headphone_state = 0;
+		schedule_work(&switch_data->work);
+	}
+	mod_timer(&switch_data->timer, jiffies +  HZ/4);
+}
+
 static void earphone_switch_work(struct work_struct *work)
 {
-	struct gpio_switch_data	*data =
+	struct gpio_switch_data	*switch_data =
 		container_of(work, struct gpio_switch_data, work);
 
-	SWITCH_DBG("%s,line:%d, data->state:%d\n", __func__, __LINE__, data->state);
-	switch_set_state(&data->sdev, data->state);
+	SWITCH_DBG("%s,line:%d, data->state:%d\n", __func__, __LINE__, switch_data->state);
+	down(&switch_data->sem);
+	switch_set_state(&switch_data->sdev, switch_data->state);
+	up(&switch_data->sem);
 }
 
 static irqreturn_t audio_hmic_irq(int irq, void *dev_id)
 {
 	int tmp = 0;
-	script_item_u val;
-	int headphone_direct_used = 0;
-	script_item_value_type_e  type;
 	struct gpio_switch_data *switch_data = (struct gpio_switch_data *)dev_id;
-
-	type = script_get_item("audio_para", "headphone_direct_used", &val);
-	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
-        printk("[audiocodec] type err!\n");
-    }
-	headphone_direct_used = val.val;
-	
+		
 	if (switch_data == NULL) {
 		return IRQ_NONE;
 	}
-	SWITCH_DBG("%s,line:%d\n", __func__, __LINE__);
+
 	tmp = hmic_rdreg(SUN6I_HMIC_DATA);
 	/*bit19 is 1 means the earphone plug in*/
-	tmp &= (0x1<<19);
-	if (tmp) {
+	if (tmp & (0x1<<19)) {
 		/* if the 17 bit assert 1, it means the three sections earphone has plun in
 		 * if the 17 bit assert 0, it means the four sections earphone has plun in
 		 */
@@ -205,13 +219,12 @@ static irqreturn_t audio_hmic_irq(int irq, void *dev_id)
 				hmic_wr_control(SUN6I_HMIC_DATA, 0x1, HMIC_DATA_IRQ_PEND, 0x1);
 			}
 		}
-	}
-
-	tmp = hmic_rdreg(SUN6I_HMIC_DATA);
-	if (tmp & (0x1<<20)) {
+	        headphone_state = 1;
+	} else if (tmp & (0x1<<20)) {
 		SWITCH_DBG("%s,line:%d,tmp:%x\n", __func__, __LINE__, (tmp&0x1f));
 		/*if the irq is hmic earphone pull out, when the irq coming, clean the pending bit*/
 		hmic_wr_control(SUN6I_HMIC_DATA, 0x1, HMIC_EARPHONE_OUT_IRQ_PEND, 0x1);
+		headphone_state = 0;
 		switch_data->state = 0;
 	}
 
@@ -240,10 +253,19 @@ static int gpio_switch_probe(struct platform_device *pdev)
 	struct gpio_switch_platform_data *pdata = pdev->dev.platform_data;
 	struct gpio_switch_data *switch_data;
 	int ret = 0;
-	
+	script_item_u val;
+	script_item_value_type_e  type;
+
 	if (!pdata) {
 		return -EBUSY;
 	}
+
+	type = script_get_item("audio_para", "headphone_direct_used", &val);
+	if (SCIRPT_ITEM_VALUE_TYPE_INT != type) {
+		printk("[audiocodec] type err!\n");
+	}
+	headphone_direct_used = val.val;
+
 
 	hmic_base = (void __iomem *)VIR_CODEC_BASSADDRESS;
 	hmic_wr_control(SUN6I_MIC_CTRL, 0x1, HBIASEN, 0x1);
@@ -277,7 +299,16 @@ static int gpio_switch_probe(struct platform_device *pdev)
 	switch_data->sdev.print_state = switch_gpio_print_state;
 	INIT_WORK(&switch_data->work, earphone_switch_work);
 
-    ret = switch_dev_register(&switch_data->sdev);
+	init_timer(&switch_data->timer);
+	switch_data->timer.function = earphone_switch_timer_poll;
+	switch_data->timer.data = (unsigned long)switch_data;
+	mod_timer(&switch_data->timer, jiffies +  HZ/4 );
+
+	headphone_state = 0;
+	sema_init(&switch_data->sem, 1);
+
+
+        ret = switch_dev_register(&switch_data->sdev);
 	if (ret < 0) {
 		goto err_switch_dev_register;
 	}
@@ -323,8 +354,10 @@ static int __devexit gpio_switch_remove(struct platform_device *pdev)
 {
 	struct gpio_switch_data *switch_data = platform_get_drvdata(pdev);
 
-    switch_dev_unregister(&switch_data->sdev);    
+    	switch_dev_unregister(&switch_data->sdev);    
+	del_timer(&switch_data->timer);
 	kfree(switch_data);	
+
 	return 0;
 }
 
