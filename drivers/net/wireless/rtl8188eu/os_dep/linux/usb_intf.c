@@ -1145,7 +1145,7 @@ error_exit:
 extern void rtd2885_wlan_netlink_sendMsg(char *action_string, char *name);
 #endif
 
-#include <mach/sys_config.h>
+#include <plat/sys_config.h>
 extern int sw_usb_disable_hcd(__u32 usbc_no);
 extern int sw_usb_enable_hcd(__u32 usbc_no);
 static int usb_wifi_host = 2;
