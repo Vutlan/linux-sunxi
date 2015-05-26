@@ -1382,10 +1382,10 @@ __s32 DE_SCAL_Set_CSC_Coef_Enhance(__u8 sel, __u8 in_csc_mode,
 	__u32 i;
 	__s32 sinv, cosv; /* sin_tab: 7 bit fractional */
 
-	bright = bright * 64 / 100;
-	bright = saturation * 64 / 100;
-	bright = contrast * 64 / 100;
-	bright = hue * 64 / 100;
+	bright = DIV_ROUND_CLOSEST((clamp(bright, 0, 100) * 63), 100);
+	saturation = DIV_ROUND_CLOSEST((clamp(saturation, 0, 100) * 63), 100);
+	contrast = DIV_ROUND_CLOSEST((clamp(contrast, 0, 100) * 63), 100);
+	hue = DIV_ROUND_CLOSEST((clamp(hue, 0, 100) * 63), 100);
 
 	sinv = image_enhance_tab[8 * 12 + (hue & 0x3f)];
 	cosv = image_enhance_tab[8 * 12 + 8 * 8 + (hue & 0x3f)];
