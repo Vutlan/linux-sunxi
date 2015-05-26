@@ -71,10 +71,14 @@ static __s32 video_enhancement_start(__u32 sel, __u32 id)
 	/* !!! assume open HDMI before video start */
 	if (gdisp.screen[sel].output_type == DISP_OUTPUT_TYPE_HDMI) {
 		scaler_index = gdisp.screen[sel].layer_manage[id].scaler_index;
-		scaleuprate =
-			gdisp.screen[sel].layer_manage[id].para.scn_win.width *
-			2 /
-			gdisp.screen[sel].layer_manage[id].para.src_win.width;
+
+		if ((gdisp.screen[sel].layer_manage[id].para.scn_win.width ==
+		     gdisp.screen[sel].layer_manage[id].para.src_win.width) ||
+		    (gdisp.screen[sel].layer_manage[id].para.src_win.width < 1280))
+			scaleuprate = 0;
+		else
+			scaleuprate = gdisp.screen[sel].layer_manage[id].para.scn_win.width * 2 /
+			              gdisp.screen[sel].layer_manage[id].para.src_win.width;
 
 		switch (scaleuprate) {
 		case 0:	/* scale down, do noting */
