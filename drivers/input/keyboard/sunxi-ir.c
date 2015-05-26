@@ -114,6 +114,7 @@ static u32 ir_gpio_hdle;
 #define IR_REPEAT_CODE	(0x00000000)
 #define DRV_VERSION	"1.00"
 
+#define REPORT_REPEAT_KEY_VALUE
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 struct sunxi_ir_data {
