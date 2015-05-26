@@ -563,8 +563,8 @@ __s32 BSP_disp_layer_get_src_window(__u32 sel, __u32 hid, __disp_rect_t *regn)
 		} else {
 			regn->x = layer_man->para.src_win.x;
 			regn->y = layer_man->para.src_win.y;
-			regn->width = layer_man->para.scn_win.width;
-			regn->height = layer_man->para.scn_win.height;
+			regn->width = layer_man->para.src_win.width;
+			regn->height = layer_man->para.src_win.height;
 			return 0;
 		}
 	} else {
