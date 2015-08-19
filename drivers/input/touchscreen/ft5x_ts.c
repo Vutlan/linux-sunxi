@@ -28,6 +28,7 @@
 #endif
 #include <linux/interrupt.h>
 #include <linux/delay.h>
+#include <linux/gpio.h>
 #include <linux/interrupt.h>
 #include <linux/errno.h>
 #include <linux/kernel.h>
@@ -76,6 +77,8 @@ struct i2c_adapter *adap;
 struct device *dev;
 };
 
+int ctp_int_gpio = 0;
+
 static struct class *i2c_dev_class;
 static LIST_HEAD (i2c_dev_list);
 static DEFINE_SPINLOCK(i2c_dev_list_lock);
@@ -117,8 +120,8 @@ static int key_val = 0;
 #define CTP_NAME			FT5X_NAME
 #define TS_RESET_LOW_PERIOD		(1)
 #define TS_INITIAL_HIGH_PERIOD		(30)
-#define TS_WAKEUP_LOW_PERIOD	(20)
-#define TS_WAKEUP_HIGH_PERIOD	(20)
+#define TS_WAKEUP_LOW_PERIOD	(20 * 4)
+#define TS_WAKEUP_HIGH_PERIOD	(20 * 4)
 #define TS_POLL_DELAY			(10)	/* ms delay between samples */
 #define TS_POLL_PERIOD			(10)	/* ms delay between samples */
 #define SCREEN_MAX_X			(screen_max_x)
@@ -181,16 +184,6 @@ static int ctp_get_pendown_state(void)
  */
 static void ctp_clear_penirq(void)
 {
-	int reg_val;
-	//clear the IRQ_EINT29 interrupt pending
-	//pr_info("clear pend irq pending\n");
-	reg_val = readl(gpio_addr + PIO_INT_STAT_OFFSET);
-	//writel(reg_val,gpio_addr + PIO_INT_STAT_OFFSET);
-	//writel(reg_val&(1<<(IRQ_EINT21)),gpio_addr + PIO_INT_STAT_OFFSET);
-	if((reg_val = (reg_val&(1<<(CTP_IRQ_NO))))){
-		print_int_info("==CTP_IRQ_NO=\n");
-		writel(reg_val,gpio_addr + PIO_INT_STAT_OFFSET);
-	}
 	return;
 }
 
@@ -203,49 +196,7 @@ static void ctp_clear_penirq(void)
  */
 static int ctp_set_irq_mode(char *major_key, char *subkey, ext_int_mode int_mode)
 {
-	int ret = 0;
-	__u32 reg_num = 0;
-	__u32 reg_addr = 0;
-	__u32 reg_val = 0;
-	//config gpio to int mode
-	pr_info("%s: config gpio to int mode. \n", __func__);
-#ifndef SYSCONFIG_GPIO_ENABLE
-#else
-	if(gpio_int_hdle){
-		gpio_release(gpio_int_hdle, 2);
-	}
-	gpio_int_hdle = gpio_request_ex(major_key, subkey);
-	if(!gpio_int_hdle){
-		pr_info("request tp_int_port failed. \n");
-		ret = -1;
-		goto request_tp_int_port_failed;
-	}
-	gpio_get_one_pin_status(gpio_int_hdle, gpio_int_info, subkey, 1);
-	pr_info("%s, %d: gpio_int_info, port = %d, port_num = %d. \n", __func__, __LINE__, \
-		gpio_int_info[0].port, gpio_int_info[0].port_num);
-#endif
-
-#ifdef AW_GPIO_INT_API_ENABLE
-#else
-	pr_info(" INTERRUPT CONFIG\n");
-	reg_num = (gpio_int_info[0].port_num)%8;
-	reg_addr = (gpio_int_info[0].port_num)/8;
-	reg_val = readl(gpio_addr + int_cfg_addr[reg_addr]);
-	reg_val &= (~(7 << (reg_num * 4)));
-	reg_val |= (int_mode << (reg_num * 4));
-	writel(reg_val,gpio_addr+int_cfg_addr[reg_addr]);
-
-	ctp_clear_penirq();
-
-	reg_val = readl(gpio_addr+PIO_INT_CTRL_OFFSET);
-	reg_val |= (1 << (gpio_int_info[0].port_num));
-	writel(reg_val,gpio_addr+PIO_INT_CTRL_OFFSET);
-
-	udelay(1);
-#endif
-
-request_tp_int_port_failed:
-	return ret;
+	return 0;
 }
 
 /**
@@ -288,15 +239,7 @@ request_tp_io_port_failed:
  */
 static int ctp_judge_int_occur(void)
 {
-	//int reg_val[3];
-	int reg_val;
-	int ret = -1;
-
-	reg_val = readl(gpio_addr + PIO_INT_STAT_OFFSET);
-	if(reg_val&(1<<(CTP_IRQ_NO))){
-		ret = 0;
-	}
-	return ret;
+	return 0;
 }
 
 /**
@@ -356,6 +299,7 @@ static int ctp_init_platform_resource(void)
 	}
 	/* On some tables (for example: Explay informer 801) ts powered over*/
 	/* MOSFET switch, with gate connected to GPIO pin. */
+#if 0
 	gpio_power_hdle = gpio_request_ex("ctp_para", "ctp_power_port");
 	if (!gpio_power_hdle)
 		pr_info("%s: No power port feature present.\n", __func__);
@@ -366,7 +310,11 @@ static int ctp_init_platform_resource(void)
 		else
 			pr_info("%s: power port enabled\n", __func__);
 	}
-	return ret;
+	//return ret;
+#endif
+	gpio_power_hdle = 0;
+	
+	return 0;
 
 exit_ioremap_failed:
 	ctp_free_platform_resource();
@@ -474,11 +422,11 @@ static void ctp_reset(void)
 {
 	if(gpio_reset_enable){
 		pr_info("%s. \n", __func__);
-		if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_reset_hdle, 0, "ctp_reset")){
+		if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_reset_hdle, 0, "ctp_wakeup")){
 			pr_info("%s: err when operate gpio. \n", __func__);
 		}
 		mdelay(TS_RESET_LOW_PERIOD);
-		if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_reset_hdle, 1, "ctp_reset")){
+		if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_reset_hdle, 1, "ctp_wakeup")){
 			pr_info("%s: err when operate gpio. \n", __func__);
 		}
 		mdelay(TS_INITIAL_HIGH_PERIOD);
@@ -514,6 +462,9 @@ static void ctp_wakeup(void)
 int ctp_detect(struct i2c_client *client, struct i2c_board_info *info)
 {
 	struct i2c_adapter *adapter = client->adapter;
+
+	pr_info("%s:twi_id is %d and adapter->nr is %d  \n",
+			 __func__, twi_id, adapter->nr);
 
 	if(twi_id == adapter->nr)
 	{
@@ -650,7 +601,7 @@ typedef unsigned char         FTS_BOOL;    //8 bit
 
 #define I2C_CTPM_ADDRESS        (0x70>>1)
 
-void delay_ms(FTS_WORD  w_ms)
+static void delay_ms(FTS_WORD  w_ms)
 {
 	//platform related, please implement this function
 	msleep( w_ms );
@@ -1578,6 +1529,7 @@ static irqreturn_t ft5x_ts_interrupt(int irq, void *dev_id)
 {
 	struct ft5x_ts_data *ft5x_ts = dev_id;
 
+
 	print_int_info("==========------ft5x_ts TS Interrupt-----============\n");
 	if(!ctp_ops.judge_int_occur()){
 		print_int_info("==IRQ_EINT21=\n");
@@ -1762,7 +1714,8 @@ ft5x_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
 		pr_info("%s:ctp_ops.set_irq_mode err.\n", __func__);
 		goto exit_set_irq_mode;
 	}
-	err = request_irq(SW_INT_IRQNO_PIO, ft5x_ts_interrupt, IRQF_TRIGGER_FALLING | IRQF_SHARED, "ft5x_ts", ft5x_ts);
+	//err = request_irq(SW_INT_IRQNO_PIO, ft5x_ts_interrupt, IRQF_TRIGGER_FALLING | IRQF_SHARED, "ft5x_ts", ft5x_ts);
+	err = request_irq(gpio_to_irq(ctp_int_gpio), ft5x_ts_interrupt,  IRQF_TRIGGER_FALLING | IRQF_SHARED, "ft5x_ts", ft5x_ts);
 
 	if (err < 0) {
 		dev_err(&client->dev, "ft5x_ts_probe: request irq failed\n");
@@ -1792,7 +1745,7 @@ exit_set_irq_mode:
 exit_input_register_device_failed:
 	input_free_device(input_dev);
 exit_input_dev_alloc_failed:
-	free_irq(SW_INT_IRQNO_PIO, ft5x_ts);
+	free_irq(gpio_to_irq(ctp_int_gpio), ft5x_ts);
 exit_create_singlethread:
 	pr_info("==singlethread error =\n");
 	i2c_set_clientdata(client, NULL);
@@ -1809,7 +1762,7 @@ static int __devexit ft5x_ts_remove(struct i2c_client *client)
 	ft5x_set_reg(FT5X0X_REG_PMODE, PMODE_HIBERNATE);
 
 	pr_info("==ft5x_ts_remove=\n");
-	free_irq(SW_INT_IRQNO_PIO, ft5x_ts);
+	free_irq(gpio_to_irq(ctp_int_gpio), ft5x_ts);
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	unregister_early_suspend(&ft5x_ts->early_suspend);
 #endif
@@ -1945,7 +1898,9 @@ static int __init ft5x_ts_init(void)
 	int ret = -1;
 	int err = -1;
 
-	pr_info("===========================%s=====================\n", __func__);
+	pr_info("===========================%s-v2.0=====================\n", __func__);
+	
+	
 
 	if (ctp_ops.fetch_sysconfig_para)
 	{
@@ -1961,6 +1916,14 @@ static int __init ft5x_ts_init(void)
 	if(0 != err){
 	    pr_info("%s:ctp_ops.init_platform_resource err. \n", __func__);
 	}
+
+	if (gpio_request(3, "ft5x")) {
+		ctp_int_gpio = -1;
+		pr_err("failed to request ft5x gpio\n");
+		return -1;
+	}
+	ctp_int_gpio = 3;
+
 
 	//reset
 	ctp_ops.ts_reset();
@@ -1982,6 +1945,9 @@ static int __init ft5x_ts_init(void)
 	}
 
 	ret = i2c_add_driver(&ft5x_ts_driver);
+	
+	//ft5x_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
+	//ft5x_ts_probe(this_client, ft5x_ts_id);
 
 	return ret;
 }
@@ -1989,6 +1955,7 @@ static int __init ft5x_ts_init(void)
 static void __exit ft5x_ts_exit(void)
 {
 	pr_info("==ft5x_ts_exit==\n");
+	gpio_free(ctp_int_gpio);
 	i2c_del_driver(&ft5x_ts_driver);
 }
 
