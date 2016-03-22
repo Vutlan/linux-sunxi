@@ -274,5 +274,12 @@ config IR_GPIO_CIR
 
 	   To compile this driver as a module, choose M here: the module will
 	   be called gpio-ir-recv.
+	   
+config LIRC_SUNXI_NEW
+	tristate "rc-core sunxi IR support"
+	depends on ARCH_SUN7I
+	---help---
+	Rc-core driver for cubietruck A20 in legacy kernel
+	this allow decoding of all remote decoded by rc-core
 
 endif #RC_CORE
