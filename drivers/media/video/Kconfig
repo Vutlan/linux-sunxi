@@ -1242,3 +1242,5 @@ menuconfig VIDEO_CSI_SUN4I
 if VIDEO_CSI_SUN4I
 source "drivers/media/video/sun4i_csi/Kconfig"	   	  
 endif
+
+source "drivers/media/video/sun7i_tvd/Kconfig"
