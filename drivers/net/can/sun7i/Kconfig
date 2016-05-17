@@ -1,5 +1,7 @@
 config CAN_SUN7I
-        tristate "Sun7i CAN bus controller"
-        default n
-        help
-        This is the Sun7i CAN BUS driver.
+	tristate "Sun7i CAN bus controller"
+	default n
+	---help---
+	  This is the Sun7i CAN BUS driver.
+
+
