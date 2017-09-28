@@ -682,6 +682,7 @@ static const struct usb_device_id products[] = {
 	},
 
 	/* Gobi 1000 devices */
+	{QMI_GOBI_DEVICE(0x1e0e, 0x9001)},	/* SIM7100 Modem Device */
 	{QMI_GOBI1K_DEVICE(0x05c6, 0x9212)},	/* Acer Gobi Modem Device */
 	{QMI_GOBI1K_DEVICE(0x03f0, 0x1f1d)},	/* HP un2400 Gobi Modem Device */
 	{QMI_GOBI1K_DEVICE(0x03f0, 0x371d)},	/* HP un2430 Mobile Broadband Module */
