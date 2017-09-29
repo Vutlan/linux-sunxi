@@ -1715,7 +1715,7 @@ ft5x_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
 		goto exit_set_irq_mode;
 	}
 	//err = request_irq(SW_INT_IRQNO_PIO, ft5x_ts_interrupt, IRQF_TRIGGER_FALLING | IRQF_SHARED, "ft5x_ts", ft5x_ts);
-	err = request_irq(gpio_to_irq(ctp_int_gpio), ft5x_ts_interrupt,  IRQF_TRIGGER_FALLING | IRQF_SHARED, "ft5x_ts", ft5x_ts);
+	err = request_irq(SW_INT_IRQNO_PIO, ft5x_ts_interrupt, IRQF_SHARED, "ft5x_ts", ft5x_ts);
 
 	if (err < 0) {
 		dev_err(&client->dev, "ft5x_ts_probe: request irq failed\n");
@@ -1943,6 +1943,10 @@ static int __init ft5x_ts_init(void)
 		ret = PTR_ERR(i2c_dev_class);
 		class_destroy(i2c_dev_class);
 	}
+
+	//The delay is required to make the touchscreen work reliable on the Bananian
+	//Be fixed by Nico(contact@bananian.org)
+	msleep(100); 
 
 	ret = i2c_add_driver(&ft5x_ts_driver);
 	
