@@ -45,7 +45,7 @@ static const struct snd_pcm_hardware sunxi_pcm_out_hardware = {
 	.channels_min		= 1,
 	.channels_max		= 2,
 	.buffer_bytes_max	= 128*1024,  /* value must be (2^n)Kbyte size */
-	.period_bytes_min	= 1024,//1024*4,
+	.period_bytes_min	= 1024*4,
 	.period_bytes_max	= 1024*32,//1024*128,
 	.periods_min		= 4,
 	.periods_max		= 8,
@@ -63,7 +63,7 @@ static const struct snd_pcm_hardware sunxi_pcm_in_hardware = {
 	.channels_min		= 1,
 	.channels_max		= 2,
 	.buffer_bytes_max	= 128*1024,  /* value must be (2^n)Kbyte size */
-	.period_bytes_min	= 1024,//1024*4,
+	.period_bytes_min	= 1024*4,
 	.period_bytes_max	= 1024*32,//1024*128,
 	.periods_min		= 4,
 	.periods_max		= 8,
@@ -88,12 +88,11 @@ static void sunxi_pcm_enqueue(struct snd_pcm_substream *substream)
 {
 	struct sunxi_runtime_data *prtd = substream->runtime->private_data;
 	dma_addr_t pos = prtd->dma_pos;
-	unsigned int limit;
 	int ret;
+	unsigned int limit = prtd->dma_limit;
 	unsigned long len = prtd->dma_period;
 	int read = (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) ? 0 : 1;
 
-  	limit = prtd->dma_limit;
   	while(prtd->dma_loaded < limit){
 		if((pos + len) > prtd->dma_end){
 			len  = prtd->dma_end - pos;
@@ -296,15 +295,20 @@ static int sunxi_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 	case SNDRV_PCM_TRIGGER_START:
 	case SNDRV_PCM_TRIGGER_RESUME:
 	case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
-		sunxi_dma_start(prtd->params);
 		prtd->state |= ST_RUNNING;
+		/* enqueue dma buffers */
+		sunxi_pcm_enqueue(substream);
+		sunxi_dma_start(prtd->params);
+		ret =0;
 		break;
 
 	case SNDRV_PCM_TRIGGER_SUSPEND:
 	case SNDRV_PCM_TRIGGER_STOP:
 	case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
-		sunxi_dma_stop(prtd->params);
 		prtd->state &= ~ST_RUNNING;
+		sunxi_dma_stop(prtd->params);
+		prtd->dma_loaded = 0;
+		ret = 0;
 		break;
 
 	default:

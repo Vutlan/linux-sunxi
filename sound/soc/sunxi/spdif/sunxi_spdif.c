@@ -62,51 +62,39 @@ static struct clk *spdif_apbclk, *spdif_pll2clk, *spdif_pllx8, *spdif_moduleclk;
 void sunxi_snd_txctrl(struct snd_pcm_substream *substream, int on)
 {
 	u32 reg_val;
-
-	reg_val = readl(sunxi_spdif.regs + SUNXI_SPDIF_TXCFG);
-	if (substream->runtime->channels == 1) {
-		reg_val |= SUNXI_SPDIF_TXCFG_SINGLEMOD;
-	}
-	else {
-		reg_val &= ~SUNXI_SPDIF_TXCFG_SINGLEMOD;
-	}
-	reg_val |= SUNXI_SPDIF_TXCFG_ASS;	//Sending the last audio (may be 0?)
-	reg_val |= SUNXI_SPDIF_TXCFG_CHSTMODE;	//Channel status A&B generated form TX_CHSTA
-	writel(reg_val, sunxi_spdif.regs + SUNXI_SPDIF_TXCFG);
-
-	/*flush TX FIFO and set FIFO empty trigger level*/
-	reg_val = readl(sunxi_spdif.regs + SUNXI_SPDIF_FCTL);
-	reg_val |= SUNXI_SPDIF_FCTL_TXTL(0x10);	//TX FIFO empty Trigger Level
-	reg_val |= SUNXI_SPDIF_FCTL_FTX;	//flush TX FIFO
-	writel(reg_val, sunxi_spdif.regs + SUNXI_SPDIF_FCTL);
-
-	/*clear interrupt status*/
-	reg_val = readl(sunxi_spdif.regs + SUNXI_SPDIF_ISTA);
-	reg_val |= SUNXI_SPDIF_ISTA_TXCLR;
-	writel(reg_val, sunxi_spdif.regs + SUNXI_SPDIF_ISTA);
-
-	/*clear TX counter*/
-	writel(0, sunxi_spdif.regs + SUNXI_SPDIF_TXCNT);
-
 	if (on) {
-		//SPDIF TX ENABLE
+		reg_val = readl(sunxi_spdif.regs + SUNXI_SPDIF_FCTL);
+		reg_val |= SUNXI_SPDIF_FCTL_FTX;	//flush TX FIFO
+		reg_val |= SUNXI_SPDIF_FCTL_TXTL(0x10);	//TX FIFO empty Trigger Level
+		writel(reg_val, sunxi_spdif.regs + SUNXI_SPDIF_FCTL);
+
+		reg_val = readl(sunxi_spdif.regs + SUNXI_SPDIF_ISTA);
+		reg_val |= SUNXI_SPDIF_ISTA_TXCLR;	//clear interrupt status
+		writel(reg_val, sunxi_spdif.regs + SUNXI_SPDIF_ISTA);
+
+		writel(0, sunxi_spdif.regs + SUNXI_SPDIF_TXCNT);	//clear TX counter
+
 		reg_val = readl(sunxi_spdif.regs + SUNXI_SPDIF_TXCFG);
-		reg_val |= SUNXI_SPDIF_TXCFG_TXEN;
+		if (substream->runtime->channels == 1)
+			reg_val |= SUNXI_SPDIF_TXCFG_SINGLEMOD;
+		else
+			reg_val &= ~SUNXI_SPDIF_TXCFG_SINGLEMOD;
+		reg_val |= SUNXI_SPDIF_TXCFG_ASS;	//Sending the last audio (may be 0?)
+		reg_val |= SUNXI_SPDIF_TXCFG_CHSTMODE;	//Channel status A&B generated form TX_CHSTA
+		reg_val |= SUNXI_SPDIF_TXCFG_TXEN;	//SPDIF TX ENABLE
 		writel(reg_val, sunxi_spdif.regs + SUNXI_SPDIF_TXCFG);
 
-		//DRQ ENABLE
 		reg_val = readl(sunxi_spdif.regs + SUNXI_SPDIF_INT);
-		reg_val |= SUNXI_SPDIF_INT_TXDRQEN;
+		reg_val |= SUNXI_SPDIF_INT_TXDRQEN;	//DRQ ENABLE
 		writel(reg_val, sunxi_spdif.regs + SUNXI_SPDIF_INT);
+
 	} else {
-		//SPDIF TX DISABLE
 		reg_val = readl(sunxi_spdif.regs + SUNXI_SPDIF_TXCFG);
-		reg_val &= ~SUNXI_SPDIF_TXCFG_TXEN;
+		reg_val &= ~SUNXI_SPDIF_TXCFG_TXEN;	//SPDIF TX DISABLE
 		writel(reg_val, sunxi_spdif.regs + SUNXI_SPDIF_TXCFG);
 
-		//DRQ DISABLE
 		reg_val = readl(sunxi_spdif.regs + SUNXI_SPDIF_INT);
-		reg_val &= ~SUNXI_SPDIF_INT_TXDRQEN;
+		reg_val &= ~SUNXI_SPDIF_INT_TXDRQEN;	//DRQ DISABLE
 		writel(reg_val, sunxi_spdif.regs + SUNXI_SPDIF_INT);
 	}
 }
@@ -114,40 +102,33 @@ void sunxi_snd_txctrl(struct snd_pcm_substream *substream, int on)
 void sunxi_snd_rxctrl(struct snd_pcm_substream *substream, int on)
 {
 	u32 reg_val;
-
-	/*flush RX FIFO and set FIFO empty trigger level*/
-	reg_val = readl(sunxi_spdif.regs + SUNXI_SPDIF_FCTL);
-	reg_val |= SUNXI_SPDIF_FCTL_RXTL(0x0F);	//RX FIFO Trigger Level
-	reg_val |= SUNXI_SPDIF_FCTL_FRX;	//flush RX FIFO	
-	writel(reg_val, sunxi_spdif.regs + SUNXI_SPDIF_FCTL);
 	
-	/*clear interrupt status*/
-	reg_val = readl(sunxi_spdif.regs + SUNXI_SPDIF_ISTA);
-	reg_val |= SUNXI_SPDIF_ISTA_RXCLR;
-	writel(reg_val, sunxi_spdif.regs + SUNXI_SPDIF_ISTA);
-	
-	/*clear RX counter*/
-	writel(0, sunxi_spdif.regs + SUNXI_SPDIF_RXCNT);
-
 	if (on) {
-		/*SPDIF RX ENABLE*/
+		reg_val = readl(sunxi_spdif.regs + SUNXI_SPDIF_FCTL);
+		reg_val |= SUNXI_SPDIF_FCTL_RXTL(0x0F);	//RX FIFO Trigger Level
+		reg_val |= SUNXI_SPDIF_FCTL_FRX;	//flush RX FIFO	
+		writel(reg_val, sunxi_spdif.regs + SUNXI_SPDIF_FCTL);
+
+		reg_val = readl(sunxi_spdif.regs + SUNXI_SPDIF_ISTA);
+		reg_val |= SUNXI_SPDIF_ISTA_RXCLR;	//clear interrupt status
+		writel(reg_val, sunxi_spdif.regs + SUNXI_SPDIF_ISTA);
+
+		writel(0, sunxi_spdif.regs + SUNXI_SPDIF_RXCNT);	//clear RX counter
+
 		reg_val = readl(sunxi_spdif.regs + SUNXI_SPDIF_RXCFG);
-		reg_val |= SUNXI_SPDIF_RXCFG_RXEN;	
+		reg_val |= SUNXI_SPDIF_RXCFG_RXEN;	//SPDIF RX ENABLE
 		writel(reg_val, sunxi_spdif.regs + SUNXI_SPDIF_RXCFG);
 		
-		/*DRQ ENABLE*/
 		reg_val = readl(sunxi_spdif.regs + SUNXI_SPDIF_INT);
-		reg_val |= SUNXI_SPDIF_INT_RXDRQEN;	
+		reg_val |= SUNXI_SPDIF_INT_RXDRQEN;	//DRQ ENABLE
 		writel(reg_val, sunxi_spdif.regs + SUNXI_SPDIF_INT);
 	} else {
-		/*SPDIF TX DISABLE*/
 		reg_val = readl(sunxi_spdif.regs + SUNXI_SPDIF_RXCFG);
-		reg_val &= ~SUNXI_SPDIF_RXCFG_RXEN;	
+		reg_val &= ~SUNXI_SPDIF_RXCFG_RXEN;	//SPDIF RX DISABLE
 		writel(reg_val, sunxi_spdif.regs + SUNXI_SPDIF_RXCFG);
 		
-		/*DRQ DISABLE*/
 		reg_val = readl(sunxi_spdif.regs + SUNXI_SPDIF_INT);
-		reg_val &= ~SUNXI_SPDIF_INT_RXDRQEN;	
+		reg_val &= ~SUNXI_SPDIF_INT_RXDRQEN;	//DRQ DISABLE
 		writel(reg_val, sunxi_spdif.regs + SUNXI_SPDIF_INT);
 	}
 }
@@ -285,8 +266,7 @@ static int sunxi_spdif_trigger(struct snd_pcm_substream *substream,
 {
 	int ret = 0;
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct sunxi_dma_params *dma_data =
-					snd_soc_dai_get_dma_data(rtd->cpu_dai, substream);
+	struct sunxi_dma_params *dma_data = snd_soc_dai_get_dma_data(rtd->cpu_dai, substream);
 
 	switch (cmd) {
 		case SNDRV_PCM_TRIGGER_START:
