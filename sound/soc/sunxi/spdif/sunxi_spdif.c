@@ -267,6 +267,7 @@ static int sunxi_spdif_trigger(struct snd_pcm_substream *substream,
 	int ret = 0;
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct sunxi_dma_params *dma_data = snd_soc_dai_get_dma_data(rtd->cpu_dai, substream);
+	udelay(300);
 
 	switch (cmd) {
 		case SNDRV_PCM_TRIGGER_START:
