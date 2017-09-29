@@ -69,6 +69,21 @@ config LIRC_TTUSBIR
 	help
 	  Driver for the Technotrend USB IR Receiver
 
+config LIRC_GPIO
+	tristate "LIRC GPIO receiver/transmitter"
+	depends on LIRC && GPIOLIB
+	help
+	  Driver for GPIOLIB enabled gpio chip. Module setup for and tested
+	  on Allwinner A10 Gpio SOC.
+	  change/redefine LIRC_GPIO_ID_STRING to the correct gpiochip label
+
+config LIRC_SUNXI_RAW
+	tristate "LIRC for sunxi CIR interface"
+	depends on LIRC
+	help
+	  Driver for Allwinner's native CIR interface, passing
+	  data (almost) unfiltered to LIRC device
+
 config LIRC_ZILOG
 	tristate "Zilog/Hauppauge IR Transmitter"
 	depends on LIRC && I2C
