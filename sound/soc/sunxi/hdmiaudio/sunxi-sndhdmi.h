@@ -1,5 +1,5 @@
 /*
- * sound\soc\sunxi\i2s\sunxi_sndi2s.h
+ * sound\soc\sunxi\hdmiaudio\sunxi-sndhdmi.h
  * (C) Copyright 2007-2011
  * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
  * chenpailin <chenpailin@allwinnertech.com>
@@ -12,15 +12,15 @@
  * the License, or (at your option) any later version.
  *
  */
-#ifndef SUNXI_SNDI2S_H_
-#define SUNXI_SNDI2S_H_
-/* cleaning code
-struct sunxi_sndi2s_platform_data {
-	int iis_bclk;
-	int iis_ws;
-	int iis_data;
+
+#ifndef SUNXI_SNDHDMI_H_
+#define SUNXI_SNDHDMI_H_
+
+struct sunxi_sndhdmi_platform_data {
+	int hdmiaudio_bclk;
+	int hdmiaudio_ws;
+	int hdmiaudio_data;
 	void (*power)(int);
 	int model;
 }
-*/
 #endif

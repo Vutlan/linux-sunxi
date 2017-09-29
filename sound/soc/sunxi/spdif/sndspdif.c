@@ -26,7 +26,7 @@
 #include "sndspdif.h"
 
 #define SNDSPDIF_RATES  (SNDRV_PCM_RATE_8000_192000|SNDRV_PCM_RATE_KNOT)
-#define SNDSPDIF_FORMATS (SNDRV_PCM_FMTBIT_S16_LE)
+#define SNDSPDIF_FORMATS (SNDRV_PCM_FMTBIT_S16_LE|SNDRV_PCM_FMTBIT_S20_3LE| SNDRV_PCM_FMTBIT_S24_LE | SNDRV_PCM_FMTBIT_S32_LE)
 
 struct sndspdif_priv {
 	int sysclk;
@@ -94,9 +94,18 @@ struct snd_soc_dai_driver sndspdif_dai = {
 		.rates = SNDSPDIF_RATES,
 		.formats = SNDSPDIF_FORMATS,
 	},
+	.capture = {
+		.stream_name = "Capture",
+		.channels_min = 1,
+		.channels_max = 2,
+		.rates = SNDSPDIF_RATES,
+		.formats = SNDSPDIF_FORMATS,
+	},
 	/* pcm operations */
 	.ops = &sndspdif_dai_ops,
+	//clear start?
 	.symmetric_rates = 1,
+	//clear end?
 };
 EXPORT_SYMBOL(sndspdif_dai);
 
@@ -106,7 +115,7 @@ static int sndspdif_soc_probe(struct snd_soc_codec *codec)
 
 	sndspdif = kzalloc(sizeof(struct sndspdif_priv), GFP_KERNEL);
 	if(sndspdif == NULL){
-		printk("%s,%d\n",__func__,__LINE__);
+		pr_err("[SPDIF] try to alloc sndspdif failed %s,%d\n", __func__,__LINE__);
 		return -ENOMEM;
 	}
 	snd_soc_codec_set_drvdata(codec, sndspdif);
@@ -161,22 +170,27 @@ static int __init sndspdif_codec_init(void)
 	int ret, spdif_used = 0;
 
 	ret = script_parser_fetch("spdif_para", "spdif_used", &spdif_used, 1);
-	if (ret != 0 || !spdif_used)
+	if (ret != 0 || !spdif_used) {
+		printk("[SPDIF] [spdif_para] isn't defined or spdif_used=0\n");
 		return -ENODEV;
+	}
 
 	spd_gpio_hdle = gpio_request_ex("spdif_para", "spdif_dout");
 	if (0 == spd_gpio_hdle) {
-		pr_err("try to request spdif_para gpio failed\n");
+		pr_err("[SPDIF] try to request spdif_para gpio failed %s,%d\n", __func__,__LINE__);
 		return -1;
 	}
 
 	ret = platform_device_register(&sndspdif_codec_device);
-	if (ret < 0)
+	if (ret < 0) {
+		pr_err("[SPDIF] try to SPDIF platform_device_register failed (ret=(%d)) failed %s,%d\n", ret, __func__,__LINE__);
 		return ret;
+	}
 
 	ret = platform_driver_register(&sndspdif_codec_driver);
 	if (ret < 0) {
 		platform_device_unregister(&sndspdif_codec_device);
+		pr_err("[SPDIF] try to SPDIF platform_driver_register failed (ret=(%d)) failed %s,%d\n", ret, __func__,__LINE__);
 		return ret;
 	}
 

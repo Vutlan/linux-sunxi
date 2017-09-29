@@ -22,12 +22,9 @@
 #include <sound/initval.h>
 #include <plat/sys_config.h>
 #include <linux/io.h>
-#include <linux/drv_hdmi.h>
 
-static __audio_hdmi_func	g_hdmi_func;
-static hdmi_audio_t		hdmi_para;
+#include "sndhdmi.h"
 
-/* The struct is just for registering the hdmiaudio codec node */
 struct sndhdmi_priv {
 	int sysclk;
 	int dai_fmt;
@@ -36,11 +33,15 @@ struct sndhdmi_priv {
 	struct snd_pcm_substream *slave_substream;
 };
 
-void audio_set_hdmi_func(__audio_hdmi_func *hdmi_func)
+static hdmi_audio_t hdmi_para;
+static __audio_hdmi_func g_hdmi_func;
+
+void audio_set_hdmi_func(__audio_hdmi_func * hdmi_func)
 {
 	g_hdmi_func.hdmi_audio_enable = hdmi_func->hdmi_audio_enable;
 	g_hdmi_func.hdmi_set_audio_para = hdmi_func->hdmi_set_audio_para;
 }
+
 EXPORT_SYMBOL(audio_set_hdmi_func);
 
 #define SNDHDMI_RATES  (SNDRV_PCM_RATE_8000_192000|SNDRV_PCM_RATE_KNOT)
@@ -53,25 +54,21 @@ static int sndhdmi_mute(struct snd_soc_dai *dai, int mute)
 }
 
 static int sndhdmi_startup(struct snd_pcm_substream *substream,
-						struct snd_soc_dai *dai)
+	struct snd_soc_dai *dai)
 {
 	return 0;
 }
 
 static void sndhdmi_shutdown(struct snd_pcm_substream *substream,
-						struct snd_soc_dai *dai)
+	struct snd_soc_dai *dai)
 {
 
 }
 
 static int sndhdmi_hw_params(struct snd_pcm_substream *substream,
-				struct snd_pcm_hw_params *params,
-				struct snd_soc_dai *dai)
+	struct snd_pcm_hw_params *params,
+	struct snd_soc_dai *dai)
 {
-	if ((!substream) || (!params)) {
-		printk("error:%s,line:%d\n", __func__, __LINE__);
-		return -EAGAIN;
-	}
 	hdmi_para.sample_rate = params_rate(params);
 	hdmi_para.channel_num = params_channels(params);
 	switch (params_format(params)) {
@@ -94,14 +91,13 @@ static int sndhdmi_hw_params(struct snd_pcm_substream *substream,
 	return 0;
 }
 
-static int sndhdmi_set_dai_sysclk(struct snd_soc_dai *codec_dai, int clk_id,
-						unsigned int freq, int dir)
+static int sndhdmi_set_dai_sysclk(struct snd_soc_dai *codec_dai,
+				  int clk_id, unsigned int freq, int dir)
 {
 	return 0;
 }
 
-static int sndhdmi_set_dai_clkdiv(struct snd_soc_dai *codec_dai, int div_id,
-									int div)
+static int sndhdmi_set_dai_clkdiv(struct snd_soc_dai *codec_dai, int div_id, int div)
 {
 
 	hdmi_para.fs_between = div;
@@ -110,12 +106,13 @@ static int sndhdmi_set_dai_clkdiv(struct snd_soc_dai *codec_dai, int div_id,
 }
 
 
-static int sndhdmi_set_dai_fmt(struct snd_soc_dai *codec_dai, unsigned int fmt)
+static int sndhdmi_set_dai_fmt(struct snd_soc_dai *codec_dai,
+			       unsigned int fmt)
 {
 	return 0;
 }
 
-/* codec dai operation */
+//codec dai operation
 struct snd_soc_dai_ops sndhdmi_dai_ops = {
 	.startup = sndhdmi_startup,
 	.shutdown = sndhdmi_shutdown,
@@ -126,7 +123,7 @@ struct snd_soc_dai_ops sndhdmi_dai_ops = {
 	.set_fmt = sndhdmi_set_dai_fmt,
 };
 
-/* codec dai */
+//codec dai
 struct snd_soc_dai_driver sndhdmi_dai = {
 	.name = "sndhdmi",
 	/* playback capabilities */
@@ -147,17 +144,11 @@ static int sndhdmi_soc_probe(struct snd_soc_codec *codec)
 {
 	struct sndhdmi_priv *sndhdmi;
 
-	if (!codec) {
-		printk("error:%s,line:%d\n", __func__, __LINE__);
-		return -EAGAIN;
-	}
-
 	sndhdmi = kzalloc(sizeof(struct sndhdmi_priv), GFP_KERNEL);
-	if (sndhdmi == NULL) {
-		printk("error at:%s,%d\n", __func__, __LINE__);
+	if(sndhdmi == NULL){
+		printk("error at:%s,%d\n",__func__,__LINE__);
 		return -ENOMEM;
 	}
-
 	snd_soc_codec_set_drvdata(codec, sndhdmi);
 
 	return 0;
@@ -165,13 +156,7 @@ static int sndhdmi_soc_probe(struct snd_soc_codec *codec)
 
 static int sndhdmi_soc_remove(struct snd_soc_codec *codec)
 {
-	struct sndhdmi_priv *sndhdmi;
-
-	if (!codec) {
-		printk("error:%s,line:%d\n", __func__, __LINE__);
-		return -EAGAIN;
-	}
-	sndhdmi = snd_soc_codec_get_drvdata(codec);
+	struct sndhdmi_priv *sndhdmi = snd_soc_codec_get_drvdata(codec);
 
 	kfree(sndhdmi);
 
@@ -179,26 +164,17 @@ static int sndhdmi_soc_remove(struct snd_soc_codec *codec)
 }
 
 static struct snd_soc_codec_driver soc_codec_dev_sndhdmi = {
-	.probe		= sndhdmi_soc_probe,
-	.remove		= sndhdmi_soc_remove,
+	.probe =        sndhdmi_soc_probe,
+	.remove =       sndhdmi_soc_remove,
 };
 
 static int __devinit sndhdmi_codec_probe(struct platform_device *pdev)
 {
-	if (!pdev) {
-		printk("error:%s,line:%d\n", __func__, __LINE__);
-		return -EAGAIN;
-	}
-	return snd_soc_register_codec(&pdev->dev, &soc_codec_dev_sndhdmi,
-							&sndhdmi_dai, 1);
+	return snd_soc_register_codec(&pdev->dev, &soc_codec_dev_sndhdmi, &sndhdmi_dai, 1);
 }
 
-static int __exit sndhdmi_codec_remove(struct platform_device *pdev)
+static int __devexit sndhdmi_codec_remove(struct platform_device *pdev)
 {
-	if (!pdev) {
-		printk("error:%s,line:%d\n", __func__, __LINE__);
-		return -EAGAIN;
-	}
 	snd_soc_unregister_codec(&pdev->dev);
 	return 0;
 }
@@ -209,15 +185,14 @@ static struct platform_driver sndhdmi_codec_driver = {
 		.owner = THIS_MODULE,
 	},
 	.probe = sndhdmi_codec_probe,
-	.remove = __exit_p(sndhdmi_codec_remove),
+	.remove = __devexit_p(sndhdmi_codec_remove),
 };
 
 static int __init sndhdmi_codec_init(void)
 {
 	int err = 0;
 
-	err = platform_driver_register(&sndhdmi_codec_driver);
-	if (err < 0)
+	if ((err = platform_driver_register(&sndhdmi_codec_driver)) < 0)
 		return err;
 
 	return 0;
@@ -233,3 +208,4 @@ module_exit(sndhdmi_codec_exit);
 MODULE_DESCRIPTION("SNDHDMI ALSA soc codec driver");
 MODULE_AUTHOR("Zoltan Devai, Christian Pellegrin <chripell@evolware.org>");
 MODULE_LICENSE("GPL");
+

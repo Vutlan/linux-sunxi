@@ -45,7 +45,7 @@ static int sunxi_sndspdif_startup(struct snd_pcm_substream *substream)
 {
 	int ret = 0;
 	#ifdef ENFORCE_RATES
-		struct snd_pcm_runtime *runtime = substream->runtime;;
+		struct snd_pcm_runtime *runtime = substream->runtime;
 	#endif
 	if (!ret) {
 	#ifdef ENFORCE_RATES
@@ -71,7 +71,7 @@ static void sunxi_sndspdif_shutdown(struct snd_pcm_substream *substream)
 typedef struct __MCLK_SET_INF
 {
     __u32   samp_rate;      // sample rate
-	__u16 	mult_fs;        // multiply of smaple rate
+    __u16 	mult_fs;    // multiply of smaple rate
 
     __u8    clk_div;        // mpll division
     __u8    mpll;           // select mpll, 0 - 24.576 Mhz, 1 - 22.5792 Mhz
@@ -83,7 +83,7 @@ typedef struct __BCLK_SET_INF
 {
     __u8    bitpersamp;     // bits per sample
     __u8    clk_div;        // clock division
-    __u16   mult_fs;        // multiplay of sample rate
+    __u16   mult_fs;        // multiply of sample rate
 
 } __bclk_set_inf;
 
@@ -218,13 +218,13 @@ static struct snd_soc_ops sunxi_sndspdif_ops = {
 };
 
 static struct snd_soc_dai_link sunxi_sndspdif_dai_link = {
-	.name 			= "SPDIF",
+	.name 		= "SPDIF",
 	.stream_name 	= "SUNXI-SPDIF",
 	.cpu_dai_name 	= "sunxi-spdif.0",
 	.codec_dai_name = "sndspdif",
 	.platform_name 	= "sunxi-spdif-pcm-audio.0",
 	.codec_name 	= "sunxi-spdif-codec.0",
-	.ops 			= &sunxi_sndspdif_ops,
+	.ops 		= &sunxi_sndspdif_ops,
 };
 
 static struct snd_soc_card snd_soc_sunxi_sndspdif = {
@@ -236,6 +236,12 @@ static struct snd_soc_card snd_soc_sunxi_sndspdif = {
 
 static int __devinit sunxi_sndspdif_probe(struct platform_device *pdev)
 {
+	int ret, spdif_used = 0;
+
+	ret = script_parser_fetch("spdif_para", "spdif_used", &spdif_used, 1);
+	if (ret != 0 || !spdif_used)
+		return -ENODEV;
+
 	snd_soc_sunxi_sndspdif.dev = &pdev->dev;
 	return snd_soc_register_card(&snd_soc_sunxi_sndspdif);
 }

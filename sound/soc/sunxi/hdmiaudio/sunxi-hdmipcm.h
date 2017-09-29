@@ -1,5 +1,5 @@
 /*
- * sound\soc\sunxi\i2s\sunxi_sndi2s.h
+ * sound\soc\sunxi\hdmiaudio\sunxi-hdmipcm.h
  * (C) Copyright 2007-2011
  * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
  * chenpailin <chenpailin@allwinnertech.com>
@@ -12,15 +12,14 @@
  * the License, or (at your option) any later version.
  *
  */
-#ifndef SUNXI_SNDI2S_H_
-#define SUNXI_SNDI2S_H_
-/* cleaning code
-struct sunxi_sndi2s_platform_data {
-	int iis_bclk;
-	int iis_ws;
-	int iis_data;
-	void (*power)(int);
-	int model;
-}
-*/
-#endif
+
+#ifndef SUNXI_HDMIPCM_H_
+#define SUNXI_HDMIPCM_H_
+
+enum sunxi_dma_buffresult {
+	SUNXI_RES_OK,
+	SUNXI_RES_ERR,
+	SUNXI_RES_ABORT
+};
+
+#endif //SUNXI_HDMIPCM_H_

@@ -29,9 +29,8 @@
 
 #include "sndi2s.h"
 
-static struct clk *xtal;
-static int clk_users;
-static DEFINE_MUTEX(clk_lock);
+/* slave mode flag*/
+static int sunxi_i2s_slave = 0;
 
 #ifdef ENFORCE_RATES
 static struct snd_pcm_hw_constraint_list hw_constraints_rates = {
@@ -45,7 +44,7 @@ static int sunxi_sndi2s_startup(struct snd_pcm_substream *substream)
 {
 	int ret = 0;
 	#ifdef ENFORCE_RATES
-		struct snd_pcm_runtime *runtime = substream->runtime;;
+		struct snd_pcm_runtime *runtime = substream->runtime;
 	#endif
 
 	if (!ret) {
@@ -62,14 +61,6 @@ static int sunxi_sndi2s_startup(struct snd_pcm_substream *substream)
 
 static void sunxi_sndi2s_shutdown(struct snd_pcm_substream *substream)
 {
-	mutex_lock(&clk_lock);
-	clk_users -= 1;
-	if (clk_users == 0) {
-		clk_put(xtal);
-		xtal = NULL;
-
-	}
-	mutex_unlock(&clk_lock);
 }
 
 typedef struct __MCLK_SET_INF
@@ -90,6 +81,14 @@ typedef struct __BCLK_SET_INF
     __u16       mult_fs;        // multiplay of sample rate
 
 } __bclk_set_inf;
+
+typedef struct __EXTCLK_SET_INF
+{
+    __u32       samp_rate;      // sample rate
+    __u16       clk_div;        // masterclock division
+    __u16       mpll;           // select mpll, 0 - 24.576 Mhz, 1 - 22.5792 Mhz
+
+} __extclk_set_inf;
 
 
 static __bclk_set_inf BCLK_INF[] =
@@ -164,7 +163,50 @@ static __mclk_set_inf  MCLK_INF[] =
     {0xffffffff, 0, 0, 0},
 };
 
-static s32 get_clock_divder(u32 sample_rate, u32 sample_width, u32 * mclk_div, u32* mpll, u32* bclk_div, u32* mult_fs)
+static __extclk_set_inf  EXTCLK_INF[] =
+{
+    //44.1k bitrate
+    { 44100, 512,  1},
+    //48k bitrate
+    { 48000, 512,  0},
+    //88.2k bitrate
+    { 88200, 256,  1},
+    //96k bitrate
+    { 96000, 256,  0},
+    //176.4k bitrate
+    { 176400, 128,  1},
+    //192k bitrate
+    { 192000, 128,  0},
+
+    //352.8k bitrate
+    { 352800, 64,  1},
+    //384 bitrate
+    { 384000, 64,  0},
+
+    //end flag 0xffffffff
+    {0xffffffff, 0, 0}
+};
+
+
+static s32 get_clock_divder_slave(u32 sample_rate, u32 sample_width, u32* bclk_div, u32* mpll, u32* mult_fs)
+{
+	u32 i, ret = -EINVAL;
+
+	for(i=0; i< 100; i++) {
+		if(EXTCLK_INF[i].samp_rate == sample_rate) {
+			//set mpll and bclk division
+			*mpll = EXTCLK_INF[i].mpll;
+			*bclk_div = EXTCLK_INF[i].clk_div;
+			ret = 0;
+			break;
+		}
+		else if(EXTCLK_INF[i].samp_rate == 0xffffffff)
+			break;
+	}
+	return ret;
+}
+
+static s32 get_clock_divder_master(u32 sample_rate, u32 sample_width, u32 * mclk_div, u32* mpll, u32* bclk_div, u32* mult_fs)
 {
 	u32 i, j, ret = -EINVAL;
 
@@ -201,34 +243,56 @@ static int sunxi_sndi2s_hw_params(struct snd_pcm_substream *substream,
 	unsigned long rate = params_rate(params);
 	u32 mclk_div=0, mpll=0, bclk_div=0, mult_fs=0;
 
-	get_clock_divder(rate, 32, &mclk_div, &mpll, &bclk_div, &mult_fs);
+	if(!sunxi_i2s_slave) {
+		get_clock_divder_master(rate, /*fixed sample width*/32, &mclk_div, &mpll, &bclk_div, &mult_fs);
+		printk("[IIS-0] get_clock_divder_master: rate=(%lu), mclk_div=(%d), mpll=(%d), bclk_div=(%d), mult_fs=(%d)\n", 
+			rate, mclk_div, mpll, bclk_div, mult_fs);
+	} else {
+		get_clock_divder_slave(rate, /*fixed sample width*/32, &bclk_div, &mpll, &mult_fs);
+		printk("[IIS-0] get_clock_divder_slave: rate=(%lu), bclk_div=(%d), mpll=(%d), mult_fs=(%d)\n",
+			rate, bclk_div, mpll, mult_fs);
+	}
 
+	//call sunxi_iis_set_fmt
 	ret = snd_soc_dai_set_fmt(codec_dai, SND_SOC_DAIFMT_I2S |
-			SND_SOC_DAIFMT_NB_NF | SND_SOC_DAIFMT_CBS_CFS);
+			SND_SOC_DAIFMT_NB_NF/* | SND_SOC_DAIFMT_CBM_CFM*/);
 	if (ret < 0)
 		return ret;
 
+	//call sunxi_iis_set_fmt
 	ret = snd_soc_dai_set_fmt(cpu_dai, SND_SOC_DAIFMT_I2S |
-			SND_SOC_DAIFMT_NB_NF | SND_SOC_DAIFMT_CBS_CFS);
+			SND_SOC_DAIFMT_NB_NF/* | SND_SOC_DAIFMT_CBM_CFM*/);
 	if (ret < 0)
 		return ret;
 
+	//call sunxi_iis_set_sysclk
 	ret = snd_soc_dai_set_sysclk(cpu_dai, 0 , mpll, 0);
 	if (ret < 0)
 		return ret;
 
+	//call sndi2s_set_dai_sysclk
 	ret = snd_soc_dai_set_sysclk(codec_dai, 0 , mpll, 0);
 	if (ret < 0)
 		return ret;
 
-	ret = snd_soc_dai_set_clkdiv(cpu_dai, SUNXI_DIV_MCLK, mclk_div);
-	if (ret < 0)
-		return ret;
+	if(!sunxi_i2s_slave) {
+		//call sunxi_iis_set_clkdiv	
+		ret = snd_soc_dai_set_clkdiv(cpu_dai, SUNXI_DIV_MCLK, mclk_div);
+		if (ret < 0)
+			return ret;
 
-	ret = snd_soc_dai_set_clkdiv(cpu_dai, SUNXI_DIV_BCLK, bclk_div);
-	if (ret < 0)
-		return ret;
+		//call sunxi_iis_set_clkdiv	
+		ret = snd_soc_dai_set_clkdiv(cpu_dai, SUNXI_DIV_BCLK, bclk_div);
+		if (ret < 0)
+			return ret;
+	} else {
+		//call sunxi_iis_set_clkdiv	
+		ret = snd_soc_dai_set_clkdiv(cpu_dai, SUNXI_DIV_EXTCLK, bclk_div);
+		if (ret < 0)
+			return ret;
+	}
 
+	//call sndi2s_set_dai_clkdiv
 	ret = snd_soc_dai_set_clkdiv(codec_dai, 0, mult_fs);
 	if (ret < 0)
 		return ret;
@@ -243,7 +307,7 @@ static struct snd_soc_ops sunxi_sndi2s_ops = {
 };
 
 static struct snd_soc_dai_link sunxi_sndi2s_dai_link = {
-	.name 			= "I2S",
+	.name 		= "I2S",
 	.stream_name 	= "SUNXI-I2S",
 	.cpu_dai_name 	= "sunxi-i2s.0",
 	.codec_dai_name = "sndi2s",
@@ -286,11 +350,25 @@ static struct platform_driver sunxi_sndi2s_driver = {
 
 static int __init sunxi_sndi2s_init(void)
 {
-	int ret, i2s_used = 0;
+	int ret, i2s_used = 0, i2s_slave = 0;
+
+	printk("[I2S-0] Entered %s\n", __func__);
 
 	ret = script_parser_fetch("i2s_para", "i2s_used", &i2s_used, 1);
 	if (ret != 0 || !i2s_used)
 		return -ENODEV;
+
+	script_parser_fetch("i2s_para","i2s_slave", &i2s_slave, sizeof(int));
+	if (i2s_slave)
+	{
+		sunxi_i2s_slave = 1;
+		printk("[I2S-0] sunxi_sndi2s_init I2S used in slave mode\n");
+	}
+	else
+	{
+		sunxi_i2s_slave = 0;
+		printk("[I2S-0] sunxi_sndi2s_init I2S used in master mode\n");
+	}
 
 	ret = platform_device_register(&sunxi_sndi2s_device);
 	if (ret < 0)

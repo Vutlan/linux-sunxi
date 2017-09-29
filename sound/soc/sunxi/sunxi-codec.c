@@ -1155,8 +1155,8 @@ static int snd_sunxi_codec_prepare(struct	snd_pcm_substream	*substream)
 	  					&codec_play_dma_conf, 0);
 	  	/* flush the DMA channel */
 		play_prtd->dma_loaded = 0;
-		if (sunxi_dma_flush(play_prtd->params) == 0)
-			play_prtd->dma_pos = play_prtd->dma_start;
+		sunxi_dma_flush(play_prtd->params);
+		play_prtd->dma_pos = play_prtd->dma_start;
 		/* enqueue dma buffers */
 		sunxi_pcm_enqueue(substream);
 		return play_ret;
@@ -1196,8 +1196,8 @@ static int snd_sunxi_codec_prepare(struct	snd_pcm_substream	*substream)
 	  					&codec_capture_dma_conf, 0);
 	  	/* flush the DMA channel */
 		capture_prtd->dma_loaded = 0;
-		if (sunxi_dma_flush(capture_prtd->params) == 0)
-			capture_prtd->dma_pos = capture_prtd->dma_start;
+		sunxi_dma_flush(capture_prtd->params);
+		capture_prtd->dma_pos = capture_prtd->dma_start;
 
 		/* enqueue dma buffers */
 		sunxi_pcm_enqueue(substream);
