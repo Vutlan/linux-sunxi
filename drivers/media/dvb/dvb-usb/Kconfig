@@ -429,3 +429,12 @@ config DVB_USB_RTL2832U
 	default m
 	help
 	  Say Y or M to support the Realtek RTL2832 / R820T DVB-T receiver
+
+config DVB_USB_TBS5520
+	tristate "Turbosight TBS5520 support"
+	depends on DVB_USB
+	select DVB_AVL6882 if !MEDIA_TUNER_CUSTOMISE
+	select MEDIA_TUNER_R848 if !MEDIA_TUNER_CUSTOMISE
+	help
+	  Say Y here to support the Turbosight TBS5520 USB2 DVB-T/T2/C/S/S2 device
+

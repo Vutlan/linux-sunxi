@@ -122,6 +122,10 @@ dvb-usb-rtl2832u-objs := demod_rtl2832.o	dvbt_demod_base.o dvbt_nim_base.o found
                         nim_rtl2832_fc0013.o tuner_fc0013.o rtl2832u_audio.o tuner_r820t.o nim_rtl2832_r820t.o
 obj-$(CONFIG_DVB_USB_RTL2832U) += dvb-usb-rtl2832u.o
 
+# DVB-T/T2/C/S/S2 (TBS5520)
+dvb-usb-tbs5520-objs := tbs5520.o
+obj-$(CONFIG_DVB_USB_TBS5520) += dvb-usb-tbs5520.o
+
 ccflags-y += -I$(srctree)/drivers/media/dvb/dvb-core
 ccflags-y += -I$(srctree)/drivers/media/dvb/frontends/
 # due to tuner-xc3028
