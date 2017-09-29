@@ -82,7 +82,9 @@ static int sndhdmi_hw_params(struct snd_pcm_substream *substream,
 		return -EINVAL;
 	}
 
-	if (4 == hdmi_para.channel_num)
+        if (2 < hdmi_para.channel_num)
+		hdmi_para.channel_num = 8;
+	if (2 > hdmi_para.channel_num)
 		hdmi_para.channel_num = 2;
 
 	g_hdmi_func.hdmi_set_audio_para(&hdmi_para);
@@ -126,11 +128,11 @@ struct snd_soc_dai_ops sndhdmi_dai_ops = {
 //codec dai
 struct snd_soc_dai_driver sndhdmi_dai = {
 	.name = "sndhdmi",
-	/* playback capabilities */
+	/* playback capabilities, hdmi_core::audio_config() claims 8ch cap */
 	.playback = {
 		.stream_name = "Playback",
-		.channels_min = 1,
-		.channels_max = 2,
+		.channels_min = 2,
+		.channels_max = 8,
 		.rates = SNDHDMI_RATES,
 		.formats = SNDHDMI_FORMATS,
 	},

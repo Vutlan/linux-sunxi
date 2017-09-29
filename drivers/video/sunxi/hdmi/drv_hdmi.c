@@ -314,7 +314,7 @@ __s32 Hdmi_init(struct platform_device *dev)
 	if (err)
 		return err;
 
-	audio_info.channel_num = 2;
+	audio_info.channel_num = 8;
 #if 0
 	{ /* for audio test */
 		hdmi_audio_t audio_para;

@@ -40,8 +40,8 @@
 //save the register value
 static int regsave[8];
 
-static struct sunxi_dma_params sunxi_hdmiaudio_pcm_stereo_out = {
-	.client.name	=	"HDMIAUDIO PCM Stereo out",
+static struct sunxi_dma_params sunxi_hdmiaudio_pcm_iec60958_out = {
+	.client.name	=	"HDMIAUDIO PCM IEC60958 out",
 #if defined CONFIG_ARCH_SUN4I || defined CONFIG_ARCH_SUN5I
 	.channel	=	DMACH_HDMIAUDIO,
 #endif
@@ -325,7 +325,7 @@ static int sunxi_hdmiaudio_hw_params(struct snd_pcm_substream *substream,
 
 	/* play or record */
 	if(substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
-		dma_data = &sunxi_hdmiaudio_pcm_stereo_out;
+		dma_data = &sunxi_hdmiaudio_pcm_iec60958_out;
 	else
 		dma_data = &sunxi_hdmiaudio_pcm_stereo_in;
 
@@ -554,8 +554,8 @@ static struct snd_soc_dai_driver sunxi_hdmiaudio_dai = {
 	.resume 	= sunxi_hdmiaudio_resume,
 	.remove 	= sunxi_hdmiaudio_dai_remove,
 	.playback = {
-		.channels_min = 1,
-		.channels_max = 2,
+		.channels_min = 2,
+		.channels_max = 8,
 		.rates = SUNXI_I2S_RATES,
 		.formats = SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S32_LE
 	},
