@@ -22,6 +22,7 @@
 #include <linux/init.h>
 #include <linux/interrupt.h>
 #include <linux/cpufreq.h>
+#include <linux/delay.h>
 #include <linux/cpu.h>
 #include <linux/clk.h>
 #include <linux/err.h>
@@ -500,7 +501,7 @@ static int sunxi_cpufreq_settarget(struct cpufreq_policy *policy, struct sunxi_c
 {
     struct cpufreq_freqs    freqs;
     struct sunxi_cpu_freq_t cpu_new;
-    int                     i;
+    int                     i, ret = 0;
 
     #ifdef CONFIG_CPU_FREQ_DVFS
     unsigned int    new_vdd;
@@ -524,8 +525,6 @@ static int sunxi_cpufreq_settarget(struct cpufreq_policy *policy, struct sunxi_c
             freqs.cpu = i;
             cpufreq_notify_transition(&freqs, CPUFREQ_PRECHANGE);
         }
-#else
-        cpufreq_notify_transition(&freqs, CPUFREQ_PRECHANGE);
 #endif
 	}
 
@@ -540,12 +539,11 @@ static int sunxi_cpufreq_settarget(struct cpufreq_policy *policy, struct sunxi_c
 
             /* notify everyone that clock transition finish */
     	    if (policy) {
-                freqs.cpu = policy->cpu;
 	            freqs.old = freqs.new;
 	            freqs.new = cpu_cur.pll / 1000;
-		        cpufreq_notify_transition(&freqs, CPUFREQ_POSTCHANGE);
 	        }
             return -EINVAL;
+			goto done;
         }
     }
     #endif
@@ -566,21 +564,11 @@ static int sunxi_cpufreq_settarget(struct cpufreq_policy *policy, struct sunxi_c
 
         /* notify everyone that clock transition finish */
     	if (policy) {
-            freqs.cpu = policy->cpu;
-	        freqs.old = freqs.new;
-	        freqs.new = cpu_cur.pll / 1000;
-#ifdef CONFIG_SMP
-            /* notifiers */
-            for_each_cpu(i, policy->cpus) {
-                freqs.cpu = i;
-                cpufreq_notify_transition(&freqs, CPUFREQ_POSTCHANGE);
-            }
-#else
-            cpufreq_notify_transition(&freqs, CPUFREQ_POSTCHANGE);
-#endif
-	    }
-
-        return -EINVAL;
+            freqs.old = freqs.new;
+            freqs.new = cpu_cur.pll / 1000;
+        }
+        ret = -EINVAL;
+        goto done;
     }
 
     #ifdef CONFIG_CPU_FREQ_DVFS
@@ -597,7 +585,6 @@ static int sunxi_cpufreq_settarget(struct cpufreq_policy *policy, struct sunxi_c
 	/* update our current settings */
 	cpu_cur = cpu_new;
 
-	/* notify everyone we've done this */
 	if (policy) {
 #ifdef CONFIG_SMP
         /*
@@ -608,16 +595,23 @@ static int sunxi_cpufreq_settarget(struct cpufreq_policy *policy, struct sunxi_c
         for_each_cpu(i, policy->cpus) {
             per_cpu(cpu_data, i).loops_per_jiffy =
                  cpufreq_scale(per_cpu(cpu_data, i).loops_per_jiffy, freqs.old, freqs.new);
-            freqs.cpu = i;
-            cpufreq_notify_transition(&freqs, CPUFREQ_POSTCHANGE);
         }
-#else
-        cpufreq_notify_transition(&freqs, CPUFREQ_POSTCHANGE);
+        /* adjust global jiffies */
+        loops_per_jiffy = cpufreq_scale(loops_per_jiffy, freqs.old, freqs.new);
 #endif
 	}
 
+done:
+        /* notify everyone we've done this */
+        if (policy) {
+        for_each_cpu(i, policy->cpus) {
+            freqs.cpu = i;
+            cpufreq_notify_transition(&freqs, CPUFREQ_POSTCHANGE);
+        }
+        }
+
 	CPUFREQ_DBG("%s: finished\n", __func__);
-	return 0;
+	return ret;
 }
 
 
