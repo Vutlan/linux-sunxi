@@ -886,7 +886,7 @@ static const struct net_device_ops sun4ican_netdev_ops = {
 static struct resource sun4i_can_resources[] = {
 	{
 		.start  = SUN4I_CAN_BASE,
-		.end	= SUN4I_CAN_BASE + SUN4I_CAN_SIZE,
+		.end	= SUN4I_CAN_BASE + SUN4I_CAN_SIZE - 1,
 		.flags	= IORESOURCE_MEM,
 	}, {
 		.start	= SUN4I_CAN_IRQ,
