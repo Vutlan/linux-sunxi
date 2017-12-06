@@ -10,4 +10,11 @@ config SENSORS_A20_TP_HWMON
 	  sensor present in the touch screen controler present on A20 SoC.
 	  This driver handle only this, if you want the full usage of the TP
 	  you need the other driver named sun4i-ts.
+	  
+config VT900_GPADC
+	tristate "VT900 ADC driver"
+	depends on STAGING && !TOUCHSCREEN_SUN4I_TS && !SENSORS_A20_TP_HWMON
+	default m
+	help
+		VT900 internal ADC
 
