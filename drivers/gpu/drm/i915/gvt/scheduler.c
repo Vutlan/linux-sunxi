@@ -1137,6 +1137,9 @@ alloc_workload(struct intel_vgpu *vgpu)
 	struct intel_vgpu_submission *s = &vgpu->submission;
 	struct intel_vgpu_workload *workload;
 
+	if (INTEL_INFO(vgpu->gvt->dev_priv)->has_logical_ring_preemption)
+		vgpu->shadow_ctx->priority = INT_MAX;
+
 	workload = kmem_cache_zalloc(s->workloads, GFP_KERNEL);
 	if (!workload)
 		return ERR_PTR(-ENOMEM);
