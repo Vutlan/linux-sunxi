@@ -434,7 +434,8 @@ static int hdmi_avi_infoframe_config(struct sti_hdmi *hdmi)
 
 	DRM_DEBUG_DRIVER("\n");
 
-	ret = drm_hdmi_avi_infoframe_from_display_mode(&infoframe, mode, false);
+	ret = drm_hdmi_avi_infoframe_from_display_mode(&infoframe,
+						       hdmi->drm_connector, mode);
 	if (ret < 0) {
 		DRM_ERROR("failed to setup AVI infoframe: %d\n", ret);
 		return ret;
@@ -977,7 +978,7 @@ static int sti_hdmi_connector_get_modes(struct drm_connector *connector)
 	cec_notifier_set_phys_addr_from_edid(hdmi->notifier, edid);
 
 	count = drm_add_edid_modes(connector, edid);
-	drm_mode_connector_update_edid_property(connector, edid);
+	drm_connector_update_edid_property(connector, edid);
 
 	kfree(edid);
 	return count;
@@ -1290,7 +1291,7 @@ static int sti_hdmi_bind(struct device *dev, struct device *master, void *data)
 
 	hdmi->drm_connector = drm_connector;
 
-	err = drm_mode_connector_attach_encoder(drm_connector, encoder);
+	err = drm_connector_attach_encoder(drm_connector, encoder);
 	if (err) {
 		DRM_ERROR("Failed to attach a connector to a encoder\n");
 		goto err_sysfs;
@@ -1315,7 +1316,6 @@ static int sti_hdmi_bind(struct device *dev, struct device *master, void *data)
 	return 0;
 
 err_sysfs:
-	drm_bridge_remove(bridge);
 	hdmi->drm_connector = NULL;
 	return -EINVAL;
 }

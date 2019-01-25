@@ -22,12 +22,13 @@
  *
  */
 
-#ifndef _I915_GUC_SUBMISSION_H_
-#define _I915_GUC_SUBMISSION_H_
+#ifndef _INTEL_GUC_SUBMISSION_H_
+#define _INTEL_GUC_SUBMISSION_H_
 
 #include <linux/spinlock.h>
 
 #include "i915_gem.h"
+#include "i915_selftest.h"
 
 struct drm_i915_private;
 
@@ -71,11 +72,16 @@ struct intel_guc_client {
 	spinlock_t wq_lock;
 	/* Per-engine counts of GuC submissions */
 	u64 submissions[I915_NUM_ENGINES];
+
+	/* For testing purposes, use nop WQ items instead of real ones */
+	I915_SELFTEST_DECLARE(bool use_nop_wqi);
 };
 
 int intel_guc_submission_init(struct intel_guc *guc);
 int intel_guc_submission_enable(struct intel_guc *guc);
 void intel_guc_submission_disable(struct intel_guc *guc);
 void intel_guc_submission_fini(struct intel_guc *guc);
+int intel_guc_preempt_work_create(struct intel_guc *guc);
+void intel_guc_preempt_work_destroy(struct intel_guc *guc);
 
 #endif

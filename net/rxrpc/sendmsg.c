@@ -130,7 +130,9 @@ static inline void rxrpc_instant_resend(struct rxrpc_call *call, int ix)
 	spin_lock_bh(&call->lock);
 
 	if (call->state < RXRPC_CALL_COMPLETE) {
-		call->rxtx_annotations[ix] = RXRPC_TX_ANNO_RETRANS;
+		call->rxtx_annotations[ix] =
+			(call->rxtx_annotations[ix] & RXRPC_TX_ANNO_LAST) |
+			RXRPC_TX_ANNO_RETRANS;
 		if (!test_and_set_bit(RXRPC_CALL_EV_RESEND, &call->events))
 			rxrpc_queue_call(call);
 	}
@@ -167,10 +169,8 @@ static void rxrpc_queue_packet(struct rxrpc_sock *rx, struct rxrpc_call *call,
 
 	ASSERTCMP(seq, ==, call->tx_top + 1);
 
-	if (last) {
+	if (last)
 		annotation |= RXRPC_TX_ANNO_LAST;
-		set_bit(RXRPC_CALL_TX_LASTQ, &call->flags);
-	}
 
 	/* We have to set the timestamp before queueing as the retransmit
 	 * algorithm can see the packet as soon as we queue it.
@@ -221,6 +221,15 @@ static void rxrpc_queue_packet(struct rxrpc_sock *rx, struct rxrpc_call *call,
 
 	ret = rxrpc_send_data_packet(call, skb, false);
 	if (ret < 0) {
+		switch (ret) {
+		case -ENETUNREACH:
+		case -EHOSTUNREACH:
+		case -ECONNREFUSED:
+			rxrpc_set_call_completion(call,
+						  RXRPC_CALL_LOCAL_ERROR,
+						  0, ret);
+			goto out;
+		}
 		_debug("need instant resend %d", ret);
 		rxrpc_instant_resend(call, ix);
 	} else {
@@ -233,12 +242,13 @@ static void rxrpc_queue_packet(struct rxrpc_sock *rx, struct rxrpc_call *call,
 		if (resend_at < 1)
 			resend_at = 1;
 
-		resend_at = now + rxrpc_resend_timeout;
+		resend_at += now;
 		WRITE_ONCE(call->resend_at, resend_at);
 		rxrpc_reduce_call_timer(call, resend_at, now,
 					rxrpc_timer_set_for_send);
 	}
 
+out:
 	rxrpc_free_skb(skb, rxrpc_skb_tx_freed);
 	_leave("");
 }
@@ -374,6 +384,11 @@ static int rxrpc_send_data(struct rxrpc_sock *rx,
 				call->tx_total_len -= copy;
 		}
 
+		/* check for the far side aborting the call or a network error
+		 * occurring */
+		if (call->state == RXRPC_CALL_COMPLETE)
+			goto call_terminated;
+
 		/* add the packet to the send queue if it's now full */
 		if (sp->remain <= 0 ||
 		    (msg_data_left(msg) == 0 && !more)) {
@@ -413,16 +428,6 @@ static int rxrpc_send_data(struct rxrpc_sock *rx,
 					   notify_end_tx);
 			skb = NULL;
 		}
-
-		/* Check for the far side aborting the call or a network error
-		 * occurring.  If this happens, save any packet that was under
-		 * construction so that in the case of a network error, the
-		 * call can be retried or redirected.
-		 */
-		if (call->state == RXRPC_CALL_COMPLETE) {
-			ret = call->error;
-			goto out;
-		}
 	} while (msg_data_left(msg) > 0);
 
 success:
@@ -431,6 +436,11 @@ out:
 	call->tx_pending = skb;
 	_leave(" = %d", ret);
 	return ret;
+
+call_terminated:
+	rxrpc_free_skb(skb, rxrpc_skb_tx_freed);
+	_leave(" = %d", call->error);
+	return call->error;
 
 maybe_error:
 	if (copied)
@@ -554,6 +564,7 @@ static struct rxrpc_call *
 rxrpc_new_client_call_for_sendmsg(struct rxrpc_sock *rx, struct msghdr *msg,
 				  struct rxrpc_send_params *p)
 	__releases(&rx->sk.sk_lock.slock)
+	__acquires(&call->user_mutex)
 {
 	struct rxrpc_conn_parameters cp;
 	struct rxrpc_call *call;
@@ -579,9 +590,11 @@ rxrpc_new_client_call_for_sendmsg(struct rxrpc_sock *rx, struct msghdr *msg,
 	cp.exclusive		= rx->exclusive | p->exclusive;
 	cp.upgrade		= p->upgrade;
 	cp.service_id		= srx->srx_service;
-	call = rxrpc_new_client_call(rx, &cp, srx, &p->call, GFP_KERNEL);
+	call = rxrpc_new_client_call(rx, &cp, srx, &p->call, GFP_KERNEL,
+				     atomic_inc_return(&rxrpc_debug_id));
 	/* The socket is now unlocked */
 
+	rxrpc_put_peer(cp.peer);
 	_leave(" = %p\n", call);
 	return call;
 }
@@ -593,6 +606,7 @@ rxrpc_new_client_call_for_sendmsg(struct rxrpc_sock *rx, struct msghdr *msg,
  */
 int rxrpc_do_sendmsg(struct rxrpc_sock *rx, struct msghdr *msg, size_t len)
 	__releases(&rx->sk.sk_lock.slock)
+	__releases(&call->user_mutex)
 {
 	enum rxrpc_call_state state;
 	struct rxrpc_call *call;

@@ -42,8 +42,6 @@
 #define DEVICE_TYPE_EFP3   0x20
 #define DEVICE_TYPE_EFP4   0x10
 
-#define DEV_SIZE	38
-
 struct opregion_header {
 	u8 signature[16];
 	u32 size;
@@ -63,6 +61,10 @@ struct bdb_data_header {
 	u16 size; /* data size */
 } __packed;
 
+/* For supporting windows guest with opregion, here hardcode the emulated
+ * bdb header version as '186', and the corresponding child_device_config
+ * length should be '33' but not '38'.
+ */
 struct efp_child_device_config {
 	u16 handle;
 	u16 device_type;
@@ -109,12 +111,6 @@ struct efp_child_device_config {
 	u8 mipi_bridge_type; /* 171 */
 	u16 device_class_ext;
 	u8 dvo_function;
-	u8 dp_usb_type_c:1; /* 195 */
-	u8 skip6:7;
-	u8 dp_usb_type_c_2x_gpio_index; /* 195 */
-	u16 dp_usb_type_c_2x_gpio_pin; /* 195 */
-	u8 iboost_dp:4; /* 196 */
-	u8 iboost_hdmi:4; /* 196 */
 } __packed;
 
 struct vbt {
@@ -155,7 +151,7 @@ static void virt_vbt_generation(struct vbt *v)
 	v->header.bdb_offset = offsetof(struct vbt, bdb_header);
 
 	strcpy(&v->bdb_header.signature[0], "BIOS_DATA_BLOCK");
-	v->bdb_header.version = 186; /* child_dev_size = 38 */
+	v->bdb_header.version = 186; /* child_dev_size = 33 */
 	v->bdb_header.header_size = sizeof(v->bdb_header);
 
 	v->bdb_header.bdb_size = sizeof(struct vbt) - sizeof(struct vbt_header)
@@ -169,11 +165,13 @@ static void virt_vbt_generation(struct vbt *v)
 
 	/* child device */
 	num_child = 4; /* each port has one child */
+	v->general_definitions.child_dev_size =
+		sizeof(struct efp_child_device_config);
 	v->general_definitions_header.id = BDB_GENERAL_DEFINITIONS;
 	/* size will include child devices */
 	v->general_definitions_header.size =
-		sizeof(struct bdb_general_definitions) + num_child * DEV_SIZE;
-	v->general_definitions.child_dev_size = DEV_SIZE;
+		sizeof(struct bdb_general_definitions) +
+			num_child * v->general_definitions.child_dev_size;
 
 	/* portA */
 	v->child0.handle = DEVICE_TYPE_EFP1;
@@ -213,11 +211,19 @@ static void virt_vbt_generation(struct vbt *v)
 	v->driver_features.lvds_config = BDB_DRIVER_FEATURE_NO_LVDS;
 }
 
-static int alloc_and_init_virt_opregion(struct intel_vgpu *vgpu)
+/**
+ * intel_vgpu_init_opregion - initialize the stuff used to emulate opregion
+ * @vgpu: a vGPU
+ *
+ * Returns:
+ * Zero on success, negative error code if failed.
+ */
+int intel_vgpu_init_opregion(struct intel_vgpu *vgpu)
 {
 	u8 *buf;
 	struct opregion_header *header;
 	struct vbt v;
+	const char opregion_signature[16] = OPREGION_SIGNATURE;
 
 	gvt_dbg_core("init vgpu%d opregion\n", vgpu->id);
 	vgpu_opregion(vgpu)->va = (void *)__get_free_pages(GFP_KERNEL |
@@ -231,8 +237,8 @@ static int alloc_and_init_virt_opregion(struct intel_vgpu *vgpu)
 	/* emulated opregion with VBT mailbox only */
 	buf = (u8 *)vgpu_opregion(vgpu)->va;
 	header = (struct opregion_header *)buf;
-	memcpy(header->signature, OPREGION_SIGNATURE,
-			sizeof(OPREGION_SIGNATURE));
+	memcpy(header->signature, opregion_signature,
+	       sizeof(opregion_signature));
 	header->size = 0x8;
 	header->opregion_ver = 0x02000000;
 	header->mboxes = MBOX_VBT;
@@ -246,25 +252,6 @@ static int alloc_and_init_virt_opregion(struct intel_vgpu *vgpu)
 	/* emulated vbt from virt vbt generation */
 	virt_vbt_generation(&v);
 	memcpy(buf + INTEL_GVT_OPREGION_VBT_OFFSET, &v, sizeof(struct vbt));
-
-	return 0;
-}
-
-static int init_vgpu_opregion(struct intel_vgpu *vgpu, u32 gpa)
-{
-	int i, ret;
-
-	if (WARN((vgpu_opregion(vgpu)->va),
-			"vgpu%d: opregion has been initialized already.\n",
-			vgpu->id))
-		return -EINVAL;
-
-	ret = alloc_and_init_virt_opregion(vgpu);
-	if (ret < 0)
-		return ret;
-
-	for (i = 0; i < INTEL_GVT_OPREGION_PAGES; i++)
-		vgpu_opregion(vgpu)->gfn[i] = (gpa >> PAGE_SHIFT) + i;
 
 	return 0;
 }
@@ -290,7 +277,52 @@ static int map_vgpu_opregion(struct intel_vgpu *vgpu, bool map)
 			return ret;
 		}
 	}
+
+	vgpu_opregion(vgpu)->mapped = map;
+
 	return 0;
+}
+
+/**
+ * intel_vgpu_opregion_base_write_handler - Opregion base register write handler
+ *
+ * @vgpu: a vGPU
+ * @gpa: guest physical address of opregion
+ *
+ * Returns:
+ * Zero on success, negative error code if failed.
+ */
+int intel_vgpu_opregion_base_write_handler(struct intel_vgpu *vgpu, u32 gpa)
+{
+
+	int i, ret = 0;
+
+	gvt_dbg_core("emulate opregion from kernel\n");
+
+	switch (intel_gvt_host.hypervisor_type) {
+	case INTEL_GVT_HYPERVISOR_KVM:
+		for (i = 0; i < INTEL_GVT_OPREGION_PAGES; i++)
+			vgpu_opregion(vgpu)->gfn[i] = (gpa >> PAGE_SHIFT) + i;
+		break;
+	case INTEL_GVT_HYPERVISOR_XEN:
+		/**
+		 * Wins guest on Xengt will write this register twice: xen
+		 * hvmloader and windows graphic driver.
+		 */
+		if (vgpu_opregion(vgpu)->mapped)
+			map_vgpu_opregion(vgpu, false);
+
+		for (i = 0; i < INTEL_GVT_OPREGION_PAGES; i++)
+			vgpu_opregion(vgpu)->gfn[i] = (gpa >> PAGE_SHIFT) + i;
+
+		ret = map_vgpu_opregion(vgpu, true);
+		break;
+	default:
+		ret = -EINVAL;
+		gvt_vgpu_err("not supported hypervisor\n");
+	}
+
+	return ret;
 }
 
 /**
@@ -306,42 +338,18 @@ void intel_vgpu_clean_opregion(struct intel_vgpu *vgpu)
 		return;
 
 	if (intel_gvt_host.hypervisor_type == INTEL_GVT_HYPERVISOR_XEN) {
-		map_vgpu_opregion(vgpu, false);
-		free_pages((unsigned long)vgpu_opregion(vgpu)->va,
-				get_order(INTEL_GVT_OPREGION_SIZE));
-
-		vgpu_opregion(vgpu)->va = NULL;
+		if (vgpu_opregion(vgpu)->mapped)
+			map_vgpu_opregion(vgpu, false);
+	} else if (intel_gvt_host.hypervisor_type == INTEL_GVT_HYPERVISOR_KVM) {
+		/* Guest opregion is released by VFIO */
 	}
+	free_pages((unsigned long)vgpu_opregion(vgpu)->va,
+		   get_order(INTEL_GVT_OPREGION_SIZE));
+
+	vgpu_opregion(vgpu)->va = NULL;
+
 }
 
-/**
- * intel_vgpu_init_opregion - initialize the stuff used to emulate opregion
- * @vgpu: a vGPU
- * @gpa: guest physical address of opregion
- *
- * Returns:
- * Zero on success, negative error code if failed.
- */
-int intel_vgpu_init_opregion(struct intel_vgpu *vgpu, u32 gpa)
-{
-	int ret;
-
-	gvt_dbg_core("vgpu%d: init vgpu opregion\n", vgpu->id);
-
-	if (intel_gvt_host.hypervisor_type == INTEL_GVT_HYPERVISOR_XEN) {
-		gvt_dbg_core("emulate opregion from kernel\n");
-
-		ret = init_vgpu_opregion(vgpu, gpa);
-		if (ret)
-			return ret;
-
-		ret = map_vgpu_opregion(vgpu, true);
-		if (ret)
-			return ret;
-	}
-
-	return 0;
-}
 
 #define GVT_OPREGION_FUNC(scic)					\
 	({							\
@@ -458,11 +466,45 @@ static bool querying_capabilities(u32 scic)
  */
 int intel_vgpu_emulate_opregion_request(struct intel_vgpu *vgpu, u32 swsci)
 {
-	u32 *scic, *parm;
+	u32 scic, parm;
 	u32 func, subfunc;
+	u64 scic_pa = 0, parm_pa = 0;
+	int ret;
 
-	scic = vgpu_opregion(vgpu)->va + INTEL_GVT_OPREGION_SCIC;
-	parm = vgpu_opregion(vgpu)->va + INTEL_GVT_OPREGION_PARM;
+	switch (intel_gvt_host.hypervisor_type) {
+	case INTEL_GVT_HYPERVISOR_XEN:
+		scic = *((u32 *)vgpu_opregion(vgpu)->va +
+					INTEL_GVT_OPREGION_SCIC);
+		parm = *((u32 *)vgpu_opregion(vgpu)->va +
+					INTEL_GVT_OPREGION_PARM);
+		break;
+	case INTEL_GVT_HYPERVISOR_KVM:
+		scic_pa = (vgpu_opregion(vgpu)->gfn[0] << PAGE_SHIFT) +
+					INTEL_GVT_OPREGION_SCIC;
+		parm_pa = (vgpu_opregion(vgpu)->gfn[0] << PAGE_SHIFT) +
+					INTEL_GVT_OPREGION_PARM;
+
+		ret = intel_gvt_hypervisor_read_gpa(vgpu, scic_pa,
+						    &scic, sizeof(scic));
+		if (ret) {
+			gvt_vgpu_err("guest opregion read error %d, gpa 0x%llx, len %lu\n",
+				ret, scic_pa, sizeof(scic));
+			return ret;
+		}
+
+		ret = intel_gvt_hypervisor_read_gpa(vgpu, parm_pa,
+						    &parm, sizeof(parm));
+		if (ret) {
+			gvt_vgpu_err("guest opregion read error %d, gpa 0x%llx, len %lu\n",
+				ret, scic_pa, sizeof(scic));
+			return ret;
+		}
+
+		break;
+	default:
+		gvt_vgpu_err("not supported hypervisor\n");
+		return -EINVAL;
+	}
 
 	if (!(swsci & SWSCI_SCI_SELECT)) {
 		gvt_vgpu_err("requesting SMI service\n");
@@ -475,9 +517,9 @@ int intel_vgpu_emulate_opregion_request(struct intel_vgpu *vgpu, u32 swsci)
 		return 0;
 	}
 
-	func = GVT_OPREGION_FUNC(*scic);
-	subfunc = GVT_OPREGION_SUBFUNC(*scic);
-	if (!querying_capabilities(*scic)) {
+	func = GVT_OPREGION_FUNC(scic);
+	subfunc = GVT_OPREGION_SUBFUNC(scic);
+	if (!querying_capabilities(scic)) {
 		gvt_vgpu_err("requesting runtime service: func \"%s\","
 				" subfunc \"%s\"\n",
 				opregion_func_name(func),
@@ -486,11 +528,43 @@ int intel_vgpu_emulate_opregion_request(struct intel_vgpu *vgpu, u32 swsci)
 		 * emulate exit status of function call, '0' means
 		 * "failure, generic, unsupported or unknown cause"
 		 */
-		*scic &= ~OPREGION_SCIC_EXIT_MASK;
-		return 0;
+		scic &= ~OPREGION_SCIC_EXIT_MASK;
+		goto out;
 	}
 
-	*scic = 0;
-	*parm = 0;
+	scic = 0;
+	parm = 0;
+
+out:
+	switch (intel_gvt_host.hypervisor_type) {
+	case INTEL_GVT_HYPERVISOR_XEN:
+		*((u32 *)vgpu_opregion(vgpu)->va +
+					INTEL_GVT_OPREGION_SCIC) = scic;
+		*((u32 *)vgpu_opregion(vgpu)->va +
+					INTEL_GVT_OPREGION_PARM) = parm;
+		break;
+	case INTEL_GVT_HYPERVISOR_KVM:
+		ret = intel_gvt_hypervisor_write_gpa(vgpu, scic_pa,
+						    &scic, sizeof(scic));
+		if (ret) {
+			gvt_vgpu_err("guest opregion write error %d, gpa 0x%llx, len %lu\n",
+				ret, scic_pa, sizeof(scic));
+			return ret;
+		}
+
+		ret = intel_gvt_hypervisor_write_gpa(vgpu, parm_pa,
+						    &parm, sizeof(parm));
+		if (ret) {
+			gvt_vgpu_err("guest opregion write error %d, gpa 0x%llx, len %lu\n",
+				ret, scic_pa, sizeof(scic));
+			return ret;
+		}
+
+		break;
+	default:
+		gvt_vgpu_err("not supported hypervisor\n");
+		return -EINVAL;
+	}
+
 	return 0;
 }

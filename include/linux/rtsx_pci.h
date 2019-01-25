@@ -36,12 +36,12 @@
 #define   CHECK_REG_CMD			2
 
 #define RTSX_HDBAR			0x08
-#define   SG_INT			0x04
-#define   SG_END			0x02
-#define   SG_VALID			0x01
-#define   SG_NO_OP			0x00
-#define   SG_TRANS_DATA			(0x02 << 4)
-#define   SG_LINK_DESC			(0x03 << 4)
+#define   RTSX_SG_INT			0x04
+#define   RTSX_SG_END			0x02
+#define   RTSX_SG_VALID			0x01
+#define   RTSX_SG_NO_OP			0x00
+#define   RTSX_SG_TRANS_DATA		(0x02 << 4)
+#define   RTSX_SG_LINK_DESC		(0x03 << 4)
 #define RTSX_HDBCTLR			0x0C
 #define   SDMA_MODE			0x00
 #define   ADMA_MODE			(0x02 << 26)
@@ -1121,10 +1121,10 @@ enum PDEV_STAT  {PDEV_STAT_IDLE, PDEV_STAT_RUN};
 #define LTR_L1SS_PWR_GATE_CHECK_CARD_EN	BIT(6)
 
 enum dev_aspm_mode {
-	DEV_ASPM_DISABLE = 0,
 	DEV_ASPM_DYNAMIC,
 	DEV_ASPM_BACKDOOR,
 	DEV_ASPM_STATIC,
+	DEV_ASPM_DISABLE,
 };
 
 /*
