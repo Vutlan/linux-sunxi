@@ -47,14 +47,18 @@
 #include "sunxi-common-regulators.dtsi"
 
 #include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
 #include <dt-bindings/interrupt-controller/irq.h>
-#include <dt-bindings/pinctrl/sun4i-a10.h>
 
 / {
-	model = "New Marsboard A20";
-	compatible = "haoyu,a20-marsboard-new", "allwinner,sun7i-a20";
+	model = "Marsboard A20 New emmc";
+	compatible = "haoyu,a20-marsboard-new-emmc", "allwinner,sun7i-a20";
 
 	aliases {
+		i2c4 = "/soc@01c00000/i2c@01c2c000";
+		serial3 = "/soc@01c00000/serial@01c28c00";
+		serial7 = "/soc@01c00000/serial@01c29c00";
+
 		serial0 = &uart0;
 		serial1 = &uart3;
 		serial2 = &uart7;
@@ -64,18 +68,53 @@
 		stdout-path = "serial0:115200n8";
 	};
 
+
 	leds {
 		compatible = "gpio-leds";
 		pinctrl-names = "default";
 		pinctrl-0 = <&led_pins_vt900v2>;
 
-		green {
-			label = "a20-olinuxino-micro:green:usr";
-			gpios = <&pio 3 22 GPIO_ACTIVE_HIGH>;  /* PD22 */
+		hdd {
+			label = "hdd-activity";
+			gpios = <&pio 3 22 GPIO_ACTIVE_HIGH>; /* PD22 */
+			linux,default-trigger = "disk-activity";
+		};
+
+		err {
+			label = "error";
+			gpios = <&pio 3 23 GPIO_ACTIVE_HIGH>; /* PD23 */
+		};
+
+		status {
+			label = "status";
+			gpios = <&pio 3 24 GPIO_ACTIVE_HIGH>; /* PD24 */
 			default-state = "on";
+			linux,default-trigger = "heartbeat";
+		};
+
+		can-bus {
+			label = "can-bus";
+			gpios = <&pio 3 25 GPIO_ACTIVE_HIGH>; /* PD25 */
+		};
+
+		relay1 {
+			label = "relay1";
+			gpios = <&pio 4 0 GPIO_ACTIVE_HIGH>; /* PE0 */
+		};
+		relay2 {
+			label = "relay2";
+			gpios = <&pio 4 1 GPIO_ACTIVE_HIGH>; /* PE1 */
+		};
+		relay3 {
+			label = "relay3";
+			gpios = <&pio 4 10 GPIO_ACTIVE_HIGH>; /* PE10 */
+		};
+		relay4 {
+			label = "relay4";
+			gpios = <&pio 4 11 GPIO_ACTIVE_HIGH>; /* PE11 */
 		};
 	};
-	
+
 	reg_mmc0_3v3: mmc0-3v3 {
 		status = "okay";
 		compatible = "regulator-fixed";
@@ -88,32 +127,11 @@
 		/* enable-active-high; */
 		gpio = <&pio 8 15 GPIO_ACTIVE_HIGH>; /* PI15 */
 	};
-	
-	reg_usb1_vbus_vt900v2: usb1-vbus_vt900v2 {
-		status = "okay";	
-		compatible = "regulator-fixed";
-		regulator-name = "usb1-vbus";
-		regulator-min-microvolt = <5000000>;
-		regulator-max-microvolt = <5000000>;
-		enable-active-high;		
-		startup-delay-us = <100000>;
-		pinctrl-0 = <&usb1_vbus_pin_vt900v2>;
-		gpio = <&pio 7 14 GPIO_ACTIVE_HIGH>;   /* PH14 */
-		
-	};
 
-	reg_usb2_vbus_vt900v2: usb2-vbus_vt900v2 {
-		status = "okay";	
-		compatible = "regulator-fixed";
-		regulator-name = "usb2-vbus";
-		regulator-min-microvolt = <5000000>;
-		regulator-max-microvolt = <5000000>;
-		enable-active-high;
-		startup-delay-us = <100000>;
-		gpio = <&pio 7 15 GPIO_ACTIVE_HIGH>;  /* PH15 */		
+	mmc2_pwrseq: pwrseq {
+		compatible = "mmc-pwrseq-emmc";
+		reset-gpios = <&pio 2 24 GPIO_ACTIVE_LOW>;  /* PC24 */
 	};
-	
-	
 
 };
 
@@ -159,84 +177,57 @@
 	};
 };
 
-&nfc {
-	pinctrl-names = "default";
-	pinctrl-0 = <&nand_pins_a>;  /* &nand_cs0_pins_a &nand_rb0_pins_a>; */	
+
+
+
+&lradc {
+	vref-supply = <&reg_vcc3v0>;
 	status = "okay";
 
-	nand@0 {
-		reg = <0>;
-		allwinner,rb = <0>;
-		nand-ecc-mode = "hw";
-		nand-rnd-mode = "hw";
-		nand-on-flash-bbt;
-				
-		partitions {
-			compatible = "fixed-partitions";
-			#address-cells = <2>;
-			#size-cells = <2>;
-
-			partition@0 {
-				label = "SPL";
-				reg = /bits/ 64 <0x0 0x400000>;
-			};
-
-			partition@400000 {
-				label = "SPL.backup";
-				reg = /bits/ 64 <0x400000 0x400000>;
-			};
-
-			partition@800000 {
-				label = "U-Boot";
-				reg = /bits/ 64 <0x800000 0x400000>;
-			};
-
-			partition@c00000 {
-				label = "U-Boot.backup";
-				reg = /bits/ 64 <0xc00000 0x400000>;
-			};
-
-			partition@1000000 {	
-				label = "env";
-				reg = /bits/ 64 <0x1000000 0x400000>;
-			};
-
-			partition@1400000 {
-				label = "rootfs";
-				reg = /bits/ 64 <0x1400000 0x78000000>;				
-			};
-		};
+	button-392 {
+		label = "Unmount";
+		linux,code = <KEY_VOLUMEDOWN>;
+		channel = <0>;
+		voltage = <392644>;
 	};
-};
 
-&i2c0 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&i2c0_pins_a>;
-	status = "okay";
-
-	axp209: pmic@34 {
-		reg = <0x34>;
-		interrupt-parent = <&nmi_intc>;
-		interrupts = <0 IRQ_TYPE_LEVEL_LOW>;
+	button-1184 {
+		label = "Recover";
+		linux,code = <KEY_ESC>;
+		channel = <0>;
+		voltage = <1184678>;
 	};
-};
-
-&i2c2 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&i2c2_pins_a>;
-	status = "okay";
 };
 
 
 &mmc0 {
 	pinctrl-names = "default";
-	pinctrl-0 = <&mmc0_pins_a>, <&mmc0_cd_pin_bananapi>;
+	pinctrl-0 = <&mmc0_pins>, <&mmc0_cd_pin_bananapi>;
 	vmmc-supply = <&reg_mmc0_3v3>;   /*<&reg_vcc3v3>;*/
 	bus-width = <4>;
 	cd-gpios = <&pio 7 10 GPIO_ACTIVE_HIGH>; /* PH10 */
 	cd-inverted;
 	status = "okay";
 };
+
+&mmc2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&mmc2_pins>;
+	vmmc-supply = <&reg_vcc3v3>;
+	vqmmc-supply = <&reg_vcc3v3>;
+	bus-width = <4>;
+	non-removable;
+	mmc-pwrseq = <&mmc2_pwrseq>;
+	/*max-frequency = <12000000>;*/
+	status = "okay";
+
+	emmc: emmc@0 {
+		reg = <0>;
+		compatible = "mmc-card";
+		broken-hpi;
+	};
+};
+
 
 &ohci0 {
 	status = "okay";
@@ -251,109 +242,52 @@
 };
 
 &pio {
-	gpio-line-names =
-		/* PA */
-		"ERXD3", "ERXD2", "ERXD1", "ERXD0", "ETXD3",
-		"ETXD2", "ETXD1", "ETXD0",
-		"ERXCK", "ERXERR", "ERXDV", "EMDC", "EMDIO",
-		"ETXEN", "ETXCK", "ECRS",
-		"ECOL", "ETXERR", "", "", "", "", "", "",
-		"", "", "", "", "", "", "", "",
-		/* PB */
-		"PMU-SCK", "PMU-SDA", "", "", "", "", "", "",
-		"", "USB0-DRV", "", "", "", "", "", "",
-		"", "", "", "", "SCL", "SDA", "", "",
-		"", "", "", "", "", "", "", "",
-		/* PC */
-		"", "", "", "", "", "", "", "",
-		"", "", "", "", "", "", "", "",
-		"", "", "", "", "", "", "", "",
-		"", "", "", "", "", "", "", "",
-		/* PD */
-		"", "", "", "", "", "", "", "",
-		"", "", "", "", "", "", "", "",
-		"", "", "", "", "", "", "", "",
-		"", "", "", "", "", "", "", "",
-		/* PE */
-		"", "", "", "", "", "", "", "",
-		"", "", "", "", "", "", "", "",
-		"", "", "", "", "", "", "", "",
-		"", "", "", "", "", "", "", "",
-		/* PF */
-		"SD0-D1", "SD0-D0", "SD0-CLK", "SD0-CMD", "SD0-D3",
-			"SD0-D2", "", "",
-		"", "", "", "", "", "", "", "",
-		"", "", "", "", "", "", "", "",
-		"", "", "", "", "", "", "", "",
-		/* PG */
-		"", "", "", "", "", "", "", "",
-		"", "", "", "", "", "", "", "",
-		"", "", "", "", "", "", "", "",
-		"", "", "", "", "", "", "", "",
-		/* PH */
-		"TXD0", "RXD0", "IO-1", "PH3", "USB0-IDDET", "PH5", "", "",
-		"", "", "SD0-DET", "", "", "", "", "",
-		"", "", "", "", "IO-4", "IO-5", "", "EMAC-PWR-EN",
-		"LED1", "", "", "", "", "", "", "",
-		/* PI */
-		"", "", "", "IO-GCLK", "", "", "", "",
-		"", "", "SPI-CE0", "SPI-CLK", "SPI-MOSI",
-			"SPI-MISO", "SPI-CE1", "",
-		"IO-6", "IO-3", "IO-2", "IO-0", "", "", "", "",
-		"", "", "", "", "", "", "", "";
+	vcc-pa-supply = <&reg_vcc3v3>;
+	vcc-pc-supply = <&reg_vcc3v3>;
+	vcc-pe-supply = <&reg_vcc3v3>;
+	vcc-pf-supply = <&reg_vcc3v3>;
+	vcc-pg-supply = <&reg_vcc3v3>;
+
+	i2c4_pins_vt900v2: i2c4@0 {
+		pins = "PI2", "PI3";
+		function = "i2c4";
+	};
+	uart3_pins_vt900v2: uart3@1 {
+		pins = "PH0", "PH1";
+		function = "uart3";
+	};
+	uart7_pins_vt900v2: uart7@0 {
+		pins = "PI20", "PI21";
+		function = "uart7";
+	};
 
 	led_pins_vt900v2: led_pins@0 {
 		allwinner,pins = "PD22", "PD23", "PD24", "PD25",
-			"PE0", "PE1", "PE2", "PE3";
+			"PE0", "PE1", "PE10", "PE11";
 		allwinner,function = "gpio_out";
-		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
-		allwinner,pull = <SUN4I_PINCTRL_NO_PULL>;
 	};
-	nand_pins_a: nand-base0@0 {
-		allwinner,pins = "PC0", "PC1", "PC2",	/* we, ale, cle */
-			"PC3", "PC4",  			/* ce1, ce0 */
-			"PC5", "PC6", "PC7",	/* nre, rb0, rb1 */
-			"PC8", "PC9", "PC10", "PC11", "PC12", "PC13", "PC14", "PC15", /* d0-d7 */
-			"PC16", 				/* wp */
-			"PC17", "PC18" ,		/* ce2, ce3 */
-			"PC24";					/* ndqs */
-		allwinner,function = "nand0";
-		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
-		allwinner,pull = <SUN4I_PINCTRL_NO_PULL>;
-	};
-/*
-	nand_cs0_pins_a: nand-cs@0 {
-		allwinner,pins = "PC4";
-		allwinner,function = "nand0";
-		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
-		allwinner,pull = <SUN4I_PINCTRL_NO_PULL>;
-	};
-
-	nand_rb0_pins_a: nand-rb@0 {
-		allwinner,pins = "PC6";
-		allwinner,function = "nand0";
-		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
-		allwinner,pull = <SUN4I_PINCTRL_NO_PULL>;
-	};
-*/	
+	
 	usb0_id_detect_pin_vt900v2: usb0_id_detect_pin_vt900v2@0 {
 		allwinner,pins = "PH11";
 		allwinner,function = "gpio_in";
-		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
-		allwinner,pull = <SUN4I_PINCTRL_PULL_UP>;
+		bias-pull-up;
 	};
-
 	usb0_vbus_detect_pin_vt900v2: usb0_vbus_detect_pin_vt900v2@0 {
 		allwinner,pins = "PH13";
 		allwinner,function = "gpio_in";
-		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
-		allwinner,pull = <SUN4I_PINCTRL_PULL_DOWN>;
+		bias-pull-down;
+	};
+	usb0_vbus_pin_vt900v2: usb1_vbus_pin@0 {
+		allwinner,pins = "PB9";
+		allwinner,function = "gpio_out";
 	};
 	usb1_vbus_pin_vt900v2: usb1_vbus_pin@0 {
 		allwinner,pins = "PH14";
 		allwinner,function = "gpio_out";
-		allwinner,drive = <SUN4I_PINCTRL_10_MA>;
-		allwinner,pull = <SUN4I_PINCTRL_NO_PULL>;
+	};
+	usb2_vbus_pin_vt900v2: usb1_vbus_pin@0 {
+		allwinner,pins = "PH15";
+		allwinner,function = "gpio_out";
 	};
 
 	mmc0_cd_pin_bananapi: mmc0_cd_pin@0 {
@@ -364,10 +298,8 @@
 	mmc0_power_pin_vt900v2: mmc0_power_pin@0 {
 		allwinner,pins = "PI15";
 		allwinner,function = "gpio_out";
-		allwinner,drive = <SUN4I_PINCTRL_20_MA>;
-		allwinner,pull = <SUN4I_PINCTRL_NO_PULL>;
+		drive-strength = <20>;
 	};
-
 
 	gmac_pins_mii_17: gmac_mii_17@0 {
 		pins = "PA0", "PA1", "PA2",
@@ -377,15 +309,37 @@
 		       "PA15", "PA16", "PA17";
 		function = "gmac";
 	};
-/*
-	led_pins_bananapi: led_pins@0 {
-		pins = "PH24";
-		function = "gpio_out";
+};
+
+&i2c0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c0_pins>;
+	status = "okay";
+
+	axp209: pmic@34 {
+		reg = <0x34>;
+		interrupt-parent = <&nmi_intc>;
+		interrupts = <0 IRQ_TYPE_LEVEL_LOW>;
 	};
-*/
+};
+
+&i2c1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c1_pins>;
+	status = "okay";
+};
+
+&i2c4 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c4_pins_vt900v2>;
+	status = "okay";
 };
 
 #include "axp209.dtsi"
+
+&ac_power_supply {
+	status = "okay";
+};
 
 &reg_dcdc2 {
 	regulator-always-on;
@@ -416,6 +370,7 @@
 	status = "okay";
 	regulator-always-on;
 };
+/*
 &reg_vcc3v3 {
 	status = "okay";
 	regulator-always-on;
@@ -424,11 +379,13 @@
 	status = "okay";
 	regulator-always-on;
 };
+*/
 &reg_ahci_5v {
 	status = "okay";
 	regulator-always-on;
 };
 
+/*
 &spi0 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&spi0_pins_a>,
@@ -436,42 +393,41 @@
 		    <&spi0_cs1_pins_a>;
 	status = "okay";
 };
+*/
 
 &uart0 {
 	pinctrl-names = "default";
-	pinctrl-0 = <&uart0_pins_a>;
+	pinctrl-0 = <&uart0_pb_pins>;
 	status = "okay";
 };
-
 &uart3 {
 	pinctrl-names = "default";
-	pinctrl-0 = <&uart3_pins_b>;
+	pinctrl-0 = <&uart3_pins_vt900v2>;
+	status = "okay";
+};
+&uart7 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart7_pins_vt900v2>;
 	status = "okay";
 };
 
-&uart7 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&uart7_pins_a>;
-	status = "okay";
-};
 
 &usb_otg {
 	dr_mode = "otg";
 	status = "okay";
 };
 
+/*
 &usb_power_supply {
 	status = "okay";
 	regulator-always-on;
-};
-/*
-&ac_power_supply {
-	status = "okay";
 };
 */
 
 &reg_usb0_vbus {
 	status = "okay";
+	pinctrl-0 = <&usb0_vbus_pin_vt900v2>;
+	gpio = <&pio 1 9 GPIO_ACTIVE_HIGH>;   /* PB9 */  
 	enable-active-high;
 	/delete-property/ regulator-boot-on;
 };
@@ -479,15 +435,17 @@
 
 &reg_usb1_vbus {
 	status = "okay";
-	pinctrl-0 = <&usb1_vbus_pin_vt900v2>;
+	pinctrl-0 = <&usb1_vbus_pin_vt900v2>;  
 	gpio = <&pio 7 14 GPIO_ACTIVE_HIGH>;   /* PH14 */  
 	enable-active-high;
-	/delete-property/ regulator-boot-on;	
+	/delete-property/ regulator-boot-on;
 };
 
 
 &reg_usb2_vbus {
 	status = "okay";
+	pinctrl-0 = <&usb2_vbus_pin_vt900v2>;
+	gpio = <&pio 7 15 GPIO_ACTIVE_HIGH>;   /* PH15 */ 
 	enable-active-high;
 	/delete-property/ regulator-boot-on;
 };
@@ -496,22 +454,15 @@
 &usbphy {
 	pinctrl-names = "default";
 	pinctrl-0 = <&usb0_id_detect_pin_vt900v2>, <&usb0_vbus_detect_pin_vt900v2>;
-	vcc-supply = <&reg_vcc3v3>;
-	usb0_id_det = <&pio 7 11 GPIO_ACTIVE_HIGH>;   /* PH11 */
-	usb0_vbus_det = <&pio 7 13 GPIO_ACTIVE_HIGH>; /* PH13 */
-	usb0_vbus_power-supply = <&usb_power_supply>;
-	usb0_vbus = <&reg_usb0_vbus>;
-	/* usb1_vbus_power-supply = <&usb_power_supply>; */
-	usb1_vbus = <&reg_usb1_vbus>;
-	usb2_vbus = <&reg_usb2_vbus>;
-	
-	/*
-	usb0_vbus_power-supply = <&usb_power_supply>;
+
+	usb0_id_det-gpio = <&pio 7 11 GPIO_ACTIVE_HIGH>;   /* PH11 */
+	usb0_vbus_det-gpio = <&pio 7 13 GPIO_ACTIVE_HIGH>; /* PH13 */
 	usb0_vbus-supply = <&reg_usb0_vbus>;
-	usb1_vbus_power-supply = <&reg_vcc5v0>;
-	usb1_vbus-supply = <&reg_usb1_vbus_vt900v2>;
-	usb2_vbus_power-supply = <&usb_power_supply>;
+	usb1_vbus-supply = <&reg_usb1_vbus>;
 	usb2_vbus-supply = <&reg_usb2_vbus>;
-	*/
+	
 	status = "okay";
 };
+
+
+
