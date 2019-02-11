@@ -53,6 +53,7 @@
 
 #define SUN4I_TVE_NOTCH_REG		0x00c
 #define SUN4I_TVE_NOTCH_DAC0_TO_DAC_DLY(dac, x)	((4 - (x)) << (dac * 3))
+#define SUN4I_TVE_NOTCH_NOTCH_EN	(1 << 16)
 
 #define SUN4I_TVE_CHROMA_FREQ_REG	0x010
 
@@ -76,6 +77,8 @@
 #define SUN4I_TVE_DETECT_STA_UNCONNECTED		0
 #define SUN4I_TVE_DETECT_STA_CONNECTED			1
 #define SUN4I_TVE_DETECT_STA_GROUND			2
+
+#define SUN4I_TVE_NOTCH_FLT_FREQ_REG 0x108
 
 #define SUN4I_TVE_CB_CR_LVL_REG		0x10c
 #define SUN4I_TVE_CB_CR_LVL_CR_BURST(x)		((x) << 8)
@@ -172,7 +175,8 @@ struct sun4i_tv {
 	struct drm_connector	connector;
 	struct drm_encoder	encoder;
 
-	struct clk		*clk;
+	struct clk		*bus_clk;
+	struct clk		*ram_clk;
 	struct regmap		*regs;
 	struct reset_control	*reset;
 
@@ -378,10 +382,10 @@ static void sun4i_tv_mode_set(struct drm_encoder *encoder,
 	/* Enable and map the DAC to the output */
 	regmap_update_bits(tv->regs, SUN4I_TVE_EN_REG,
 			   SUN4I_TVE_EN_DAC_MAP_MASK,
-			   SUN4I_TVE_EN_DAC_MAP(0, 1) |
-			   SUN4I_TVE_EN_DAC_MAP(1, 2) |
-			   SUN4I_TVE_EN_DAC_MAP(2, 3) |
-			   SUN4I_TVE_EN_DAC_MAP(3, 4));
+			   SUN4I_TVE_EN_DAC_MAP(0, 4) |
+			   SUN4I_TVE_EN_DAC_MAP(1, 3) |
+			   SUN4I_TVE_EN_DAC_MAP(2, 2) |
+			   SUN4I_TVE_EN_DAC_MAP(3, 1));
 
 	/* Set PAL settings */
 	regmap_write(tv->regs, SUN4I_TVE_CFG0_REG,
@@ -405,6 +409,7 @@ static void sun4i_tv_mode_set(struct drm_encoder *encoder,
 
 	/* Configure the sample delay between DAC0 and the other DAC */
 	regmap_write(tv->regs, SUN4I_TVE_NOTCH_REG,
+			(tv_mode->yc_en ? 0 : SUN4I_TVE_NOTCH_NOTCH_EN) |
 		     SUN4I_TVE_NOTCH_DAC0_TO_DAC_DLY(1, 0) |
 		     SUN4I_TVE_NOTCH_DAC0_TO_DAC_DLY(2, 0));
 
@@ -430,6 +435,9 @@ static void sun4i_tv_mode_set(struct drm_encoder *encoder,
 		     SUN4I_TVE_DAC1_AMPLITUDE(1, 0x18) |
 		     SUN4I_TVE_DAC1_AMPLITUDE(2, 0x18) |
 		     SUN4I_TVE_DAC1_AMPLITUDE(3, 0x18));
+
+	regmap_write(tv->regs, SUN4I_TVE_NOTCH_FLT_FREQ_REG,
+			(tv_mode->mode == SUN4I_TVE_CFG0_RES_576i ? 5 : 3));
 
 	regmap_write(tv->regs, SUN4I_TVE_CB_CR_LVL_REG,
 		     SUN4I_TVE_CB_CR_LVL_CB_BURST(tv_mode->burst_levels->cb) |
@@ -584,13 +592,27 @@ static int sun4i_tv_bind(struct device *dev, struct device *master,
 		return ret;
 	}
 
-	tv->clk = devm_clk_get(dev, NULL);
-	if (IS_ERR(tv->clk)) {
-		dev_err(dev, "Couldn't get the TV encoder clock\n");
-		ret = PTR_ERR(tv->clk);
+	tv->bus_clk = devm_clk_get(dev, "ahb");
+	if (IS_ERR(tv->bus_clk)) {
+		dev_err(dev, "Couldn't get the TV encoder bus clock\n");
+		ret = PTR_ERR(tv->bus_clk);
 		goto err_assert_reset;
 	}
-	clk_prepare_enable(tv->clk);
+
+	tv->ram_clk = devm_clk_get(dev, "ram");
+	if (IS_ERR(tv->ram_clk)) {
+		dev_err(dev, "Couldn't get the TV encoder bus clock\n");
+		ret = PTR_ERR(tv->ram_clk);
+		goto err_assert_reset;
+	}
+	ret = clk_prepare_enable(tv->bus_clk);
+	if (ret) {
+		dev_err(dev, "clk_prepare_enable(tv->bus_clk) error!\n");
+	}
+	ret = clk_prepare_enable(tv->ram_clk);
+	if (ret) {
+		dev_err(dev, "clk_prepare_enable(tv->ram_clk) error!\n");
+	}
 
 	drm_encoder_helper_add(&tv->encoder,
 			       &sun4i_tv_helper_funcs);
@@ -630,7 +652,8 @@ static int sun4i_tv_bind(struct device *dev, struct device *master,
 err_cleanup_connector:
 	drm_encoder_cleanup(&tv->encoder);
 err_disable_clk:
-	clk_disable_unprepare(tv->clk);
+	clk_disable_unprepare(tv->bus_clk);
+	clk_disable_unprepare(tv->ram_clk);
 err_assert_reset:
 	reset_control_assert(tv->reset);
 	return ret;
@@ -643,7 +666,8 @@ static void sun4i_tv_unbind(struct device *dev, struct device *master,
 
 	drm_connector_cleanup(&tv->connector);
 	drm_encoder_cleanup(&tv->encoder);
-	clk_disable_unprepare(tv->clk);
+	clk_disable_unprepare(tv->bus_clk);
+	clk_disable_unprepare(tv->ram_clk);
 }
 
 static const struct component_ops sun4i_tv_ops = {
