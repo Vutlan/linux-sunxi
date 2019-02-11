@@ -43,7 +43,7 @@
  */
 
 /dts-v1/;
-#include "sun7i-a20.dtsi"
+#include "sun7i-a20-work.dtsi"
 #include "sunxi-common-regulators.dtsi"
 
 #include <dt-bindings/gpio/gpio.h>
@@ -65,9 +65,74 @@
 	};
 
 	chosen {
-		stdout-path = "serial0:115200n8";
+		stdout-path = "serial0:115200n8";		
 	};
 
+/*	tv: connector {
+		compatible = "composite-video-connector";
+		label = "tv";
+
+		port {
+			tv_connector_in: endpoint {
+				remote-endpoint = <&tve0_out_con>;
+			};
+		};
+	};
+*/
+
+
+	tve0: tv-encoder@1c0a000 {
+		compatible = "allwinner,sun4i-a10-tv-encoder";
+		reg = <0x01c0a000 0x1000>;
+		clocks = <&ccu CLK_AHB_TVE0>, <&ccu CLK_DRAM_TVE0>;
+		clock-names = "ahb", "ram";
+		resets = <&ccu RST_TVE0>;
+		status = "okay";
+		port {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			
+			hdmi_in_tcon0: endpoint@0 {
+				reg = <0>;
+				remote-endpoint = <&tcon0_out_hdmi>;
+			};
+			hdmi_in_tcon1: endpoint@1 {
+				reg = <1>;
+				remote-endpoint = <&tcon1_out_hdmi>;
+			};
+		};
+	};
+
+/*	tve1: tv-encoder@1c1b000 {
+		compatible = "allwinner,sun4i-a10-tv-encoder";
+		reg = <0x01c1b000 0x1000>;
+		clocks = <&ccu CLK_AHB_TVE1>, <&ccu CLK_DRAM_TVE1>;
+		clock-names = "ahb", "ram";
+		resets = <&ccu RST_TVE1>;
+		status = "okay";
+
+		port {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			hdmi_in_tcon1: endpoint@0 {
+				reg = <0>;
+				remote-endpoint = <&tcon1_out_hdmi>;
+			};
+		};
+	};    */
+
+/*
+	hdmi-connector {
+		compatible = "hdmi-connector";
+		type = "a";
+
+		port {
+			hdmi_con_in: endpoint {
+				remote-endpoint = <&hdmi_out_con>;
+			};
+		};
+	};   */
 
 	leds {
 		compatible = "gpio-leds";
@@ -123,8 +188,8 @@
 		regulator-name = "mmc0-3v3";
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
-		startup-delay-us = <100000>;		
-		/* enable-active-high; */
+		startup-delay-us = <100000>;
+		regulator-boot-on;
 		gpio = <&pio 8 15 GPIO_ACTIVE_HIGH>; /* PI15 */
 	};
 
@@ -134,6 +199,27 @@
 	};
 
 };
+
+
+&de {
+	status = "okay";
+	/* allwinner,pipelines = <&fe0>; */
+};
+
+
+
+
+
+/* &hdmi {
+	status = "okay";
+};
+&hdmi_out {
+	hdmi_out_con: endpoint {
+		remote-endpoint = <&hdmi_con_in>;
+	};
+};  */
+
+
 
 &ahci {
 	status = "okay";
@@ -145,16 +231,6 @@
 
 &cpu0 {
 	cpu-supply = <&reg_dcdc2>;
-	operating-points = <
-		/* kHz	  uV */
-		960000	1400000
-		912000	1400000
-		864000	1350000
-		720000	1250000
-		528000	1150000
-		312000	1100000
-		144000	1050000
-		>;
 };
 
 &ehci0 {
@@ -176,7 +252,6 @@
 		reg = <1>;
 	};
 };
-
 
 
 
@@ -218,7 +293,7 @@
 	bus-width = <4>;
 	non-removable;
 	mmc-pwrseq = <&mmc2_pwrseq>;
-	/*max-frequency = <12000000>;*/
+	max-frequency = <12000000>;
 	status = "okay";
 
 	emmc: emmc@0 {
@@ -243,10 +318,14 @@
 
 &pio {
 	vcc-pa-supply = <&reg_vcc3v3>;
+	vcc-pb-supply = <&reg_vcc3v3>;
 	vcc-pc-supply = <&reg_vcc3v3>;
+	vcc-pd-supply = <&reg_vcc3v3>;
 	vcc-pe-supply = <&reg_vcc3v3>;
 	vcc-pf-supply = <&reg_vcc3v3>;
 	vcc-pg-supply = <&reg_vcc3v3>;
+	vcc-ph-supply = <&reg_vcc3v3>;
+	vcc-pi-supply = <&reg_vcc3v3>;
 
 	i2c4_pins_vt900v2: i2c4@0 {
 		pins = "PI2", "PI3";
@@ -326,6 +405,10 @@
 &i2c1 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&i2c1_pins>;
+	status = "okay";
+};
+
+&i2c2 {
 	status = "okay";
 };
 
