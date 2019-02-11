@@ -1327,6 +1327,7 @@ static int sun4i_a10_tcon_set_mux(struct sun4i_tcon *tcon,
 		return -EINVAL;
 
 	switch (encoder->encoder_type) {
+	case DRM_MODE_ENCODER_TVDAC:
 	case DRM_MODE_ENCODER_TMDS:
 		/* HDMI */
 		shift = 8;
