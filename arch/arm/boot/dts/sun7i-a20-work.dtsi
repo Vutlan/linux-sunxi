@@ -175,14 +175,20 @@
 		#address-cells = <1>;
 		#size-cells = <1>;
 		ranges;
-
 		/* Address must be kept in the lower 256 MiBs of DRAM for VE. */
 		default-pool {
 			compatible = "shared-dma-pool";
-			size = <0xc000000>;
+			size = <0x6000000>;
 			alloc-ranges = <0x4a000000 0x6000000>;
 			reusable;
 			linux,cma-default;
+		};
+		/* memory region for cedar video codec */
+		ve_reserved: cma@0x50000000 {
+			compatible = "shared-dma-pool";
+			size = <0x5000000>;
+			alloc-ranges = <0x50000000 0x5000000>;  /* 80M */
+			reusable;
 		};
 	};
 
@@ -264,7 +270,7 @@
 		#size-cells = <1>;
 		ranges;
 
-		system-control@1c00000 {
+		syscon: system-control@1c00000 {
 			compatible = "allwinner,sun7i-a20-system-control",
 				     "allwinner,sun4i-a10-system-control";
 			reg = <0x01c00000 0x30>;
@@ -528,7 +534,8 @@
 			};
 		};  */
 
-		video-codec@1c0e000 {
+
+/*		video-codec@1c0e000 {
 			compatible = "allwinner,sun7i-a20-video-engine";
 			reg = <0x01c0e000 0x1000>;
 			clocks = <&ccu CLK_AHB_VE>, <&ccu CLK_VE>,
@@ -537,6 +544,23 @@
 			resets = <&ccu RST_VE>;
 			interrupts = <GIC_SPI 53 IRQ_TYPE_LEVEL_HIGH>;
 			allwinner,sram = <&ve_sram 1>;
+		};
+*/
+
+		ve: video-engine@01c0e000 {
+			compatible = "allwinner,sunxi-cedar";
+			reg = <0x01c0e000 0x1000>;
+			memory-region = <&ve_reserved>;
+
+			clocks = <&ccu CLK_AHB_VE>, <&ccu CLK_VE>,
+				<&ccu CLK_DRAM_VE>;
+			clock-names = "ahb", "mod", "ram";
+
+			assigned-clocks = <&ccu CLK_VE>;
+			assigned-clock-rates = <320000000>;
+
+			resets = <&ccu RST_VE>;
+			interrupts = <GIC_SPI 53 IRQ_TYPE_LEVEL_HIGH>;			
 		};
 
 		mmc0: mmc@1c0f000 {
