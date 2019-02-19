@@ -197,7 +197,6 @@
 		compatible = "mmc-pwrseq-emmc";
 		reset-gpios = <&pio 2 24 GPIO_ACTIVE_LOW>;  /* PC24 */
 	};
-
 };
 
 
@@ -205,9 +204,6 @@
 	status = "okay";
 	/* allwinner,pipelines = <&fe0>; */
 };
-
-
-
 
 
 /* &hdmi {
@@ -453,7 +449,7 @@
 	status = "okay";
 	regulator-always-on;
 };
-/*
+
 &reg_vcc3v3 {
 	status = "okay";
 	regulator-always-on;
@@ -462,7 +458,7 @@
 	status = "okay";
 	regulator-always-on;
 };
-*/
+
 &reg_ahci_5v {
 	status = "okay";
 	regulator-always-on;
@@ -496,22 +492,22 @@
 
 
 &usb_otg {
-	dr_mode = "otg";
+	dr_mode = "host"; /*otg*/
 	status = "okay";
 };
 
-/*
+
 &usb_power_supply {
 	status = "okay";
 	regulator-always-on;
 };
-*/
+
 
 &reg_usb0_vbus {
 	status = "okay";
 	pinctrl-0 = <&usb0_vbus_pin_vt900v2>;
-	gpio = <&pio 1 9 GPIO_ACTIVE_HIGH>;   /* PB9 */  
 	enable-active-high;
+	gpio = <&pio 1 9 GPIO_ACTIVE_HIGH>;   /* PB9 */  	
 	/delete-property/ regulator-boot-on;
 };
 
