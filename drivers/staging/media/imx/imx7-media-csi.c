@@ -923,15 +923,12 @@ static int imx7_csi_enum_mbus_code(struct v4l2_subdev *sd,
 				   struct v4l2_subdev_mbus_code_enum *code)
 {
 	struct imx7_csi *csi = v4l2_get_subdevdata(sd);
-	const struct imx_media_pixfmt *in_cc;
 	struct v4l2_mbus_framefmt *in_fmt;
 	int ret = 0;
 
 	mutex_lock(&csi->lock);
 
 	in_fmt = imx7_csi_get_format(csi, cfg, IMX7_CSI_PAD_SINK, code->which);
-
-	in_cc = imx_media_find_mbus_format(in_fmt->code, CS_SEL_ANY, true);
 
 	switch (code->pad) {
 	case IMX7_CSI_PAD_SINK:
@@ -980,10 +977,10 @@ out_unlock:
 	return ret;
 }
 
-static void imx7_csi_try_fmt(struct imx7_csi *csi,
-			     struct v4l2_subdev_pad_config *cfg,
-			     struct v4l2_subdev_format *sdformat,
-			     const struct imx_media_pixfmt **cc)
+static int imx7_csi_try_fmt(struct imx7_csi *csi,
+			    struct v4l2_subdev_pad_config *cfg,
+			    struct v4l2_subdev_format *sdformat,
+			    const struct imx_media_pixfmt **cc)
 {
 	const struct imx_media_pixfmt *in_cc;
 	struct v4l2_mbus_framefmt *in_fmt;
@@ -992,7 +989,7 @@ static void imx7_csi_try_fmt(struct imx7_csi *csi,
 	in_fmt = imx7_csi_get_format(csi, cfg, IMX7_CSI_PAD_SINK,
 				     sdformat->which);
 	if (!in_fmt)
-		return;
+		return -EINVAL;
 
 	switch (sdformat->pad) {
 	case IMX7_CSI_PAD_SRC:
@@ -1023,8 +1020,10 @@ static void imx7_csi_try_fmt(struct imx7_csi *csi,
 						   false);
 		break;
 	default:
+		return -EINVAL;
 		break;
 	}
+	return 0;
 }
 
 static int imx7_csi_set_fmt(struct v4l2_subdev *sd,
@@ -1036,6 +1035,7 @@ static int imx7_csi_set_fmt(struct v4l2_subdev *sd,
 	const struct imx_media_pixfmt *outcc;
 	struct v4l2_mbus_framefmt *outfmt;
 	struct v4l2_pix_format vdev_fmt;
+	struct v4l2_rect vdev_compose;
 	const struct imx_media_pixfmt *cc;
 	struct v4l2_mbus_framefmt *fmt;
 	struct v4l2_subdev_format format;
@@ -1066,8 +1066,10 @@ static int imx7_csi_set_fmt(struct v4l2_subdev *sd,
 		format.pad = IMX7_CSI_PAD_SRC;
 		format.which = sdformat->which;
 		format.format = sdformat->format;
-		imx7_csi_try_fmt(csi, cfg, &format, &outcc);
-
+		if (imx7_csi_try_fmt(csi, cfg, &format, &outcc)) {
+			ret = -EINVAL;
+			goto out_unlock;
+		}
 		outfmt = imx7_csi_get_format(csi, cfg, IMX7_CSI_PAD_SRC,
 					     sdformat->which);
 		*outfmt = format.format;
@@ -1082,11 +1084,11 @@ static int imx7_csi_set_fmt(struct v4l2_subdev *sd,
 	csi->cc[sdformat->pad] = cc;
 
 	/* propagate output pad format to capture device */
-	imx_media_mbus_fmt_to_pix_fmt(&vdev_fmt,
+	imx_media_mbus_fmt_to_pix_fmt(&vdev_fmt, &vdev_compose,
 				      &csi->format_mbus[IMX7_CSI_PAD_SRC],
 				      csi->cc[IMX7_CSI_PAD_SRC]);
 	mutex_unlock(&csi->lock);
-	imx_media_capture_device_set_format(vdev, &vdev_fmt);
+	imx_media_capture_device_set_format(vdev, &vdev_fmt, &vdev_compose);
 
 	return 0;
 

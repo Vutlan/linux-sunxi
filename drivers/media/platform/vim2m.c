@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0+
 /*
  * A virtual v4l2-mem2mem example device.
  *
@@ -34,12 +35,12 @@
 MODULE_DESCRIPTION("Virtual device for mem2mem framework testing");
 MODULE_AUTHOR("Pawel Osciak, <pawel@osciak.com>");
 MODULE_LICENSE("GPL");
-MODULE_VERSION("0.1.1");
+MODULE_VERSION("0.2");
 MODULE_ALIAS("mem2mem_testdev");
 
-static unsigned debug;
+static unsigned int debug;
 module_param(debug, uint, 0644);
-MODULE_PARM_DESC(debug, "activates debug info");
+MODULE_PARM_DESC(debug, "debug level");
 
 /* Default transaction time in msec */
 static unsigned int default_transtime = 40; /* Max 25 fps */
@@ -50,11 +51,18 @@ MODULE_PARM_DESC(default_transtime, "default transaction time in ms");
 #define MIN_H 32
 #define MAX_W 640
 #define MAX_H 480
-#define DIM_ALIGN_MASK 7 /* 8-byte alignment for line length */
+
+/* Pixel alignment for non-bayer formats */
+#define WIDTH_ALIGN 2
+#define HEIGHT_ALIGN 1
+
+/* Pixel alignment for bayer formats */
+#define BAYER_WIDTH_ALIGN  2
+#define BAYER_HEIGHT_ALIGN 2
 
 /* Flags that indicate a format can be used for capture/output */
-#define MEM2MEM_CAPTURE	(1 << 0)
-#define MEM2MEM_OUTPUT	(1 << 1)
+#define MEM2MEM_CAPTURE	BIT(0)
+#define MEM2MEM_OUTPUT	BIT(1)
 
 #define MEM2MEM_NAME		"vim2m"
 
@@ -64,12 +72,11 @@ MODULE_PARM_DESC(default_transtime, "default transaction time in ms");
 #define MEM2MEM_VID_MEM_LIMIT	(16 * 1024 * 1024)
 
 /* Flags that indicate processing mode */
-#define MEM2MEM_HFLIP	(1 << 0)
-#define MEM2MEM_VFLIP	(1 << 1)
+#define MEM2MEM_HFLIP	BIT(0)
+#define MEM2MEM_VFLIP	BIT(1)
 
-#define dprintk(dev, fmt, arg...) \
-	v4l2_dbg(1, debug, &dev->v4l2_dev, "%s: " fmt, __func__, ## arg)
-
+#define dprintk(dev, lvl, fmt, arg...) \
+	v4l2_dbg(lvl, debug, &(dev)->v4l2_dev, "%s: " fmt, __func__, ## arg)
 
 static void vim2m_dev_release(struct device *dev)
 {}
@@ -82,24 +89,47 @@ static struct platform_device vim2m_pdev = {
 struct vim2m_fmt {
 	u32	fourcc;
 	int	depth;
+	/* Types the format can be used for */
+	u32     types;
 };
 
 static struct vim2m_fmt formats[] = {
 	{
 		.fourcc	= V4L2_PIX_FMT_RGB565,  /* rrrrrggg gggbbbbb */
 		.depth	= 16,
+		.types  = MEM2MEM_CAPTURE | MEM2MEM_OUTPUT,
 	}, {
 		.fourcc	= V4L2_PIX_FMT_RGB565X, /* gggbbbbb rrrrrggg */
 		.depth	= 16,
+		.types  = MEM2MEM_CAPTURE | MEM2MEM_OUTPUT,
 	}, {
 		.fourcc	= V4L2_PIX_FMT_RGB24,
 		.depth	= 24,
+		.types  = MEM2MEM_CAPTURE | MEM2MEM_OUTPUT,
 	}, {
 		.fourcc	= V4L2_PIX_FMT_BGR24,
 		.depth	= 24,
+		.types  = MEM2MEM_CAPTURE | MEM2MEM_OUTPUT,
 	}, {
 		.fourcc	= V4L2_PIX_FMT_YUYV,
 		.depth	= 16,
+		.types  = MEM2MEM_CAPTURE,
+	}, {
+		.fourcc	= V4L2_PIX_FMT_SBGGR8,
+		.depth	= 8,
+		.types  = MEM2MEM_CAPTURE,
+	}, {
+		.fourcc	= V4L2_PIX_FMT_SGBRG8,
+		.depth	= 8,
+		.types  = MEM2MEM_CAPTURE,
+	}, {
+		.fourcc	= V4L2_PIX_FMT_SGRBG8,
+		.depth	= 8,
+		.types  = MEM2MEM_CAPTURE,
+	}, {
+		.fourcc	= V4L2_PIX_FMT_SRGGB8,
+		.depth	= 8,
+		.types  = MEM2MEM_CAPTURE,
 	},
 };
 
@@ -122,14 +152,14 @@ enum {
 #define V4L2_CID_TRANS_TIME_MSEC	(V4L2_CID_USER_BASE + 0x1000)
 #define V4L2_CID_TRANS_NUM_BUFS		(V4L2_CID_USER_BASE + 0x1001)
 
-static struct vim2m_fmt *find_format(struct v4l2_format *f)
+static struct vim2m_fmt *find_format(u32 fourcc)
 {
 	struct vim2m_fmt *fmt;
 	unsigned int k;
 
 	for (k = 0; k < NUM_FORMATS; k++) {
 		fmt = &formats[k];
-		if (fmt->fourcc == f->fmt.pix.pixelformat)
+		if (fmt->fourcc == fourcc)
 			break;
 	}
 
@@ -137,6 +167,24 @@ static struct vim2m_fmt *find_format(struct v4l2_format *f)
 		return NULL;
 
 	return &formats[k];
+}
+
+static void get_alignment(u32 fourcc,
+			  unsigned int *walign, unsigned int *halign)
+{
+	switch (fourcc) {
+	case V4L2_PIX_FMT_SBGGR8:
+	case V4L2_PIX_FMT_SGBRG8:
+	case V4L2_PIX_FMT_SGRBG8:
+	case V4L2_PIX_FMT_SRGGB8:
+		*walign = BAYER_WIDTH_ALIGN;
+		*halign = BAYER_HEIGHT_ALIGN;
+		return;
+	default:
+		*walign = WIDTH_ALIGN;
+		*halign = HEIGHT_ALIGN;
+		return;
+	}
 }
 
 struct vim2m_dev {
@@ -191,7 +239,7 @@ static inline struct vim2m_ctx *file2ctx(struct file *file)
 }
 
 static struct vim2m_q_data *get_q_data(struct vim2m_ctx *ctx,
-					 enum v4l2_buf_type type)
+				       enum v4l2_buf_type type)
 {
 	switch (type) {
 	case V4L2_BUF_TYPE_VIDEO_OUTPUT:
@@ -199,54 +247,51 @@ static struct vim2m_q_data *get_q_data(struct vim2m_ctx *ctx,
 	case V4L2_BUF_TYPE_VIDEO_CAPTURE:
 		return &ctx->q_data[V4L2_M2M_DST];
 	default:
-		BUG();
+		return NULL;
 	}
-	return NULL;
+}
+
+static const char *type_name(enum v4l2_buf_type type)
+{
+	switch (type) {
+	case V4L2_BUF_TYPE_VIDEO_OUTPUT:
+		return "Output";
+	case V4L2_BUF_TYPE_VIDEO_CAPTURE:
+		return "Capture";
+	default:
+		return "Invalid";
+	}
 }
 
 #define CLIP(__color) \
 	(u8)(((__color) > 0xff) ? 0xff : (((__color) < 0) ? 0 : (__color)))
 
-static void copy_two_pixels(struct vim2m_fmt *in, struct vim2m_fmt *out,
-			    u8 **src, u8 **dst, bool reverse)
+static void copy_line(struct vim2m_q_data *q_data_out,
+		      u8 *src, u8 *dst, bool reverse)
 {
-	u8 _r[2], _g[2], _b[2], *r, *g, *b;
-	int i, step;
+	int x, depth = q_data_out->fmt->depth >> 3;
 
-	// If format is the same just copy the data, respecting the width
-	if (in->fourcc == out->fourcc) {
-		int depth = out->depth >> 3;
-
-		if (reverse) {
-			if (in->fourcc == V4L2_PIX_FMT_YUYV) {
-				int u, v, y, y1;
-
-				*src -= 2;
-
-				y1 = (*src)[0]; /* copy as second point */
-				u  = (*src)[1];
-				y  = (*src)[2]; /* copy as first point */
-				v  = (*src)[3];
-
-				*src -= 2;
-
-				*(*dst)++ = y;
-				*(*dst)++ = u;
-				*(*dst)++ = y1;
-				*(*dst)++ = v;
-				return;
-			}
-
-			memcpy(*dst, *src, depth);
-			memcpy(*dst + depth, *src - depth, depth);
-			*src -= depth << 1;
-		} else {
-			memcpy(*dst, *src, depth << 1);
-			*src += depth << 1;
+	if (!reverse) {
+		memcpy(dst, src, q_data_out->width * depth);
+	} else {
+		for (x = 0; x < q_data_out->width >> 1; x++) {
+			memcpy(dst, src, depth);
+			memcpy(dst + depth, src - depth, depth);
+			src -= depth << 1;
+			dst += depth << 1;
 		}
-		*dst += depth << 1;
 		return;
 	}
+}
+
+static void copy_two_pixels(struct vim2m_q_data *q_data_in,
+			    struct vim2m_q_data *q_data_out,
+			    u8 *src[2], u8 **dst, int ypos, bool reverse)
+{
+	struct vim2m_fmt *out = q_data_out->fmt;
+	struct vim2m_fmt *in = q_data_in->fmt;
+	u8 _r[2], _g[2], _b[2], *r, *g, *b;
+	int i;
 
 	/* Step 1: read two consecutive pixels from src pointer */
 
@@ -254,87 +299,41 @@ static void copy_two_pixels(struct vim2m_fmt *in, struct vim2m_fmt *out,
 	g = _g;
 	b = _b;
 
-	if (reverse)
-		step = -1;
-	else
-		step = 1;
-
 	switch (in->fourcc) {
 	case V4L2_PIX_FMT_RGB565: /* rrrrrggg gggbbbbb */
 		for (i = 0; i < 2; i++) {
-			u16 pix = *(u16 *)*src;
+			u16 pix = *(u16 *)(src[i]);
 
 			*r++ = (u8)(((pix & 0xf800) >> 11) << 3) | 0x07;
 			*g++ = (u8)((((pix & 0x07e0) >> 5)) << 2) | 0x03;
 			*b++ = (u8)((pix & 0x1f) << 3) | 0x07;
-
-			*src += step << 1;
 		}
 		break;
 	case V4L2_PIX_FMT_RGB565X: /* gggbbbbb rrrrrggg */
 		for (i = 0; i < 2; i++) {
-			u16 pix = *(u16 *)*src;
+			u16 pix = *(u16 *)(src[i]);
 
 			*r++ = (u8)(((0x00f8 & pix) >> 3) << 3) | 0x07;
 			*g++ = (u8)(((pix & 0x7) << 2) |
 				    ((pix & 0xe000) >> 5)) | 0x03;
 			*b++ = (u8)(((pix & 0x1f00) >> 8) << 3) | 0x07;
-
-			*src += step << 1;
 		}
 		break;
+	default:
 	case V4L2_PIX_FMT_RGB24:
 		for (i = 0; i < 2; i++) {
-			*r++ = (*src)[0];
-			*g++ = (*src)[1];
-			*b++ = (*src)[2];
-
-			*src += step * 3;
+			*r++ = src[i][0];
+			*g++ = src[i][1];
+			*b++ = src[i][2];
 		}
 		break;
 	case V4L2_PIX_FMT_BGR24:
 		for (i = 0; i < 2; i++) {
-			*b++ = (*src)[0];
-			*g++ = (*src)[1];
-			*r++ = (*src)[2];
-
-			*src += step * 3;
+			*b++ = src[i][0];
+			*g++ = src[i][1];
+			*r++ = src[i][2];
 		}
 		break;
-	default: /* V4L2_PIX_FMT_YUYV */
-	{
-		int u, v, y, y1, u1, v1, tmp;
-
-		if (reverse) {
-			*src -= 2;
-
-			y1 = (*src)[0]; /* copy as second point */
-			u  = (*src)[1];
-			y  = (*src)[2]; /* copy as first point */
-			v  = (*src)[3];
-
-			*src -= 2;
-		} else {
-			y  = *(*src)++;
-			u  = *(*src)++;
-			y1 = *(*src)++;
-			v  = *(*src)++;
-		}
-
-		u1 = (((u - 128) << 7) +  (u - 128)) >> 6;
-		tmp = (((u - 128) << 1) + (u - 128) +
-		       ((v - 128) << 2) + ((v - 128) << 1)) >> 3;
-		v1 = (((v - 128) << 1) +  (v - 128)) >> 1;
-
-		*r++ = CLIP(y + v1);
-		*g++ = CLIP(y - tmp);
-		*b++ = CLIP(y + u1);
-
-		*r = CLIP(y1 + v1);
-		*g = CLIP(y1 - tmp);
-		*b = CLIP(y1 + u1);
-		break;
-	}
 	}
 
 	/* Step 2: store two consecutive points, reversing them if needed */
@@ -379,7 +378,8 @@ static void copy_two_pixels(struct vim2m_fmt *in, struct vim2m_fmt *out,
 			*(*dst)++ = *r++;
 		}
 		return;
-	default: /* V4L2_PIX_FMT_YUYV */
+	case V4L2_PIX_FMT_YUYV:
+	default:
 	{
 		u8 y, y1, u, v;
 
@@ -399,6 +399,42 @@ static void copy_two_pixels(struct vim2m_fmt *in, struct vim2m_fmt *out,
 		*(*dst)++ = v;
 		return;
 	}
+	case V4L2_PIX_FMT_SBGGR8:
+		if (!(ypos & 1)) {
+			*(*dst)++ = *b;
+			*(*dst)++ = *++g;
+		} else {
+			*(*dst)++ = *g;
+			*(*dst)++ = *++r;
+		}
+		return;
+	case V4L2_PIX_FMT_SGBRG8:
+		if (!(ypos & 1)) {
+			*(*dst)++ = *g;
+			*(*dst)++ = *++b;
+		} else {
+			*(*dst)++ = *r;
+			*(*dst)++ = *++g;
+		}
+		return;
+	case V4L2_PIX_FMT_SGRBG8:
+		if (!(ypos & 1)) {
+			*(*dst)++ = *g;
+			*(*dst)++ = *++r;
+		} else {
+			*(*dst)++ = *b;
+			*(*dst)++ = *++g;
+		}
+		return;
+	case V4L2_PIX_FMT_SRGGB8:
+		if (!(ypos & 1)) {
+			*(*dst)++ = *r;
+			*(*dst)++ = *++g;
+		} else {
+			*(*dst)++ = *g;
+			*(*dst)++ = *++b;
+		}
+		return;
 	}
 }
 
@@ -408,18 +444,24 @@ static int device_process(struct vim2m_ctx *ctx,
 {
 	struct vim2m_dev *dev = ctx->dev;
 	struct vim2m_q_data *q_data_in, *q_data_out;
-	u8 *p_in, *p, *p_out;
-	int width, height, bytesperline, x, y, start, end, step;
-	struct vim2m_fmt *in, *out;
+	u8 *p_in, *p_line, *p_in_x[2], *p, *p_out;
+	unsigned int width, height, bytesperline, bytes_per_pixel;
+	unsigned int x, y, y_in, y_out, x_int, x_fract, x_err, x_offset;
+	int start, end, step;
 
 	q_data_in = get_q_data(ctx, V4L2_BUF_TYPE_VIDEO_OUTPUT);
-	in = q_data_in->fmt;
-	width = q_data_in->width;
-	height = q_data_in->height;
+	if (!q_data_in)
+		return 0;
 	bytesperline = (q_data_in->width * q_data_in->fmt->depth) >> 3;
+	bytes_per_pixel = q_data_in->fmt->depth >> 3;
 
 	q_data_out = get_q_data(ctx, V4L2_BUF_TYPE_VIDEO_CAPTURE);
-	out = q_data_out->fmt;
+	if (!q_data_out)
+		return 0;
+
+	/* As we're doing scaling, use the output dimensions here */
+	height = q_data_out->height;
+	width = q_data_out->width;
 
 	p_in = vb2_plane_vaddr(&in_vb->vb2_buf, 0);
 	p_out = vb2_plane_vaddr(&out_vb->vb2_buf, 0);
@@ -429,8 +471,7 @@ static int device_process(struct vim2m_ctx *ctx,
 		return -EFAULT;
 	}
 
-	out_vb->sequence = get_q_data(ctx,
-				      V4L2_BUF_TYPE_VIDEO_CAPTURE)->sequence++;
+	out_vb->sequence = q_data_out->sequence++;
 	in_vb->sequence = q_data_in->sequence++;
 	v4l2_m2m_buf_copy_metadata(in_vb, out_vb, true);
 
@@ -443,14 +484,74 @@ static int device_process(struct vim2m_ctx *ctx,
 		end = height;
 		step = 1;
 	}
-	for (y = start; y != end; y += step) {
-		p = p_in + (y * bytesperline);
-		if (ctx->mode & MEM2MEM_HFLIP)
-			p += bytesperline - (q_data_in->fmt->depth >> 3);
+	y_out = 0;
 
-		for (x = 0; x < width >> 1; x++)
-			copy_two_pixels(in, out, &p, &p_out,
+	/*
+	 * When format and resolution are identical,
+	 * we can use a faster copy logic
+	 */
+	if (q_data_in->fmt->fourcc == q_data_out->fmt->fourcc &&
+	    q_data_in->width == q_data_out->width &&
+	    q_data_in->height == q_data_out->height) {
+		for (y = start; y != end; y += step, y_out++) {
+			p = p_in + (y * bytesperline);
+			if (ctx->mode & MEM2MEM_HFLIP)
+				p += bytesperline - (q_data_in->fmt->depth >> 3);
+
+			copy_line(q_data_out, p, p_out,
+				  ctx->mode & MEM2MEM_HFLIP);
+
+			p_out += bytesperline;
+		}
+		return 0;
+	}
+
+	/* Slower algorithm with format conversion, hflip, vflip and scaler */
+
+	/* To speed scaler up, use Bresenham for X dimension */
+	x_int = q_data_in->width / q_data_out->width;
+	x_fract = q_data_in->width % q_data_out->width;
+
+	for (y = start; y != end; y += step, y_out++) {
+		y_in = (y * q_data_in->height) / q_data_out->height;
+		x_offset = 0;
+		x_err = 0;
+
+		p_line = p_in + (y_in * bytesperline);
+		if (ctx->mode & MEM2MEM_HFLIP)
+			p_line += bytesperline - (q_data_in->fmt->depth >> 3);
+		p_in_x[0] = p_line;
+
+		for (x = 0; x < width >> 1; x++) {
+			x_offset += x_int;
+			x_err += x_fract;
+			if (x_err > width) {
+				x_offset++;
+				x_err -= width;
+			}
+
+			if (ctx->mode & MEM2MEM_HFLIP)
+				p_in_x[1] = p_line - x_offset * bytes_per_pixel;
+			else
+				p_in_x[1] = p_line + x_offset * bytes_per_pixel;
+
+			copy_two_pixels(q_data_in, q_data_out,
+					p_in_x, &p_out, y_out,
 					ctx->mode & MEM2MEM_HFLIP);
+
+			/* Calculate the next p_in_x0 */
+			x_offset += x_int;
+			x_err += x_fract;
+			if (x_err > width) {
+				x_offset++;
+				x_err -= width;
+			}
+
+			if (ctx->mode & MEM2MEM_HFLIP)
+				p_in_x[0] = p_line - x_offset * bytes_per_pixel;
+			else
+				p_in_x[0] = p_line + x_offset * bytes_per_pixel;
+		}
 	}
 
 	return 0;
@@ -469,7 +570,7 @@ static int job_ready(void *priv)
 
 	if (v4l2_m2m_num_src_bufs_ready(ctx->fh.m2m_ctx) < ctx->translen
 	    || v4l2_m2m_num_dst_bufs_ready(ctx->fh.m2m_ctx) < ctx->translen) {
-		dprintk(ctx->dev, "Not enough buffers available\n");
+		dprintk(ctx->dev, 1, "Not enough buffers available\n");
 		return 0;
 	}
 
@@ -521,7 +622,7 @@ static void device_work(struct work_struct *w)
 
 	curr_ctx = container_of(w, struct vim2m_ctx, work_run.work);
 
-	if (NULL == curr_ctx) {
+	if (!curr_ctx) {
 		pr_err("Instance released before the end of transaction\n");
 		return;
 	}
@@ -540,7 +641,7 @@ static void device_work(struct work_struct *w)
 
 	if (curr_ctx->num_processed == curr_ctx->translen
 	    || curr_ctx->aborting) {
-		dprintk(curr_ctx->dev, "Finishing transaction\n");
+		dprintk(curr_ctx->dev, 2, "Finishing capture buffer fill\n");
 		curr_ctx->num_processed = 0;
 		v4l2_m2m_job_finish(vim2m_dev->m2m_dev, curr_ctx->fh.m2m_ctx);
 	} else {
@@ -557,17 +658,33 @@ static int vidioc_querycap(struct file *file, void *priv,
 	strncpy(cap->driver, MEM2MEM_NAME, sizeof(cap->driver) - 1);
 	strncpy(cap->card, MEM2MEM_NAME, sizeof(cap->card) - 1);
 	snprintf(cap->bus_info, sizeof(cap->bus_info),
-			"platform:%s", MEM2MEM_NAME);
+		 "platform:%s", MEM2MEM_NAME);
 	return 0;
 }
 
 static int enum_fmt(struct v4l2_fmtdesc *f, u32 type)
 {
+	int i, num;
 	struct vim2m_fmt *fmt;
 
-	if (f->index < NUM_FORMATS) {
+	num = 0;
+
+	for (i = 0; i < NUM_FORMATS; ++i) {
+		if (formats[i].types & type) {
+			/* index-th format of type type found ? */
+			if (num == f->index)
+				break;
+			/*
+			 * Correct type but haven't reached our index yet,
+			 * just increment per-type index
+			 */
+			++num;
+		}
+	}
+
+	if (i < NUM_FORMATS) {
 		/* Format found */
-		fmt = &formats[f->index];
+		fmt = &formats[i];
 		f->pixelformat = fmt->fourcc;
 		return 0;
 	}
@@ -588,6 +705,27 @@ static int vidioc_enum_fmt_vid_out(struct file *file, void *priv,
 	return enum_fmt(f, MEM2MEM_OUTPUT);
 }
 
+static int vidioc_enum_framesizes(struct file *file, void *priv,
+				  struct v4l2_frmsizeenum *fsize)
+{
+	if (fsize->index != 0)
+		return -EINVAL;
+
+	if (!find_format(fsize->pixel_format))
+		return -EINVAL;
+
+	fsize->type = V4L2_FRMSIZE_TYPE_STEPWISE;
+	fsize->stepwise.min_width = MIN_W;
+	fsize->stepwise.min_height = MIN_H;
+	fsize->stepwise.max_width = MAX_W;
+	fsize->stepwise.max_height = MAX_H;
+
+	get_alignment(fsize->pixel_format,
+		      &fsize->stepwise.step_width,
+		      &fsize->stepwise.step_height);
+	return 0;
+}
+
 static int vidioc_g_fmt(struct vim2m_ctx *ctx, struct v4l2_format *f)
 {
 	struct vb2_queue *vq;
@@ -598,6 +736,8 @@ static int vidioc_g_fmt(struct vim2m_ctx *ctx, struct v4l2_format *f)
 		return -EINVAL;
 
 	q_data = get_q_data(ctx, f->type);
+	if (!q_data)
+		return -EINVAL;
 
 	f->fmt.pix.width	= q_data->width;
 	f->fmt.pix.height	= q_data->height;
@@ -627,8 +767,11 @@ static int vidioc_g_fmt_vid_cap(struct file *file, void *priv,
 
 static int vidioc_try_fmt(struct v4l2_format *f, struct vim2m_fmt *fmt)
 {
-	/* V4L2 specification suggests the driver corrects the format struct
-	 * if any of the dimensions is unsupported */
+	int walign, halign;
+	/*
+	 * V4L2 specification specifies the driver corrects the
+	 * format struct if any of the dimensions is unsupported
+	 */
 	if (f->fmt.pix.height < MIN_H)
 		f->fmt.pix.height = MIN_H;
 	else if (f->fmt.pix.height > MAX_H)
@@ -639,7 +782,9 @@ static int vidioc_try_fmt(struct v4l2_format *f, struct vim2m_fmt *fmt)
 	else if (f->fmt.pix.width > MAX_W)
 		f->fmt.pix.width = MAX_W;
 
-	f->fmt.pix.width &= ~DIM_ALIGN_MASK;
+	get_alignment(f->fmt.pix.pixelformat, &walign, &halign);
+	f->fmt.pix.width &= ~(walign - 1);
+	f->fmt.pix.height &= ~(halign - 1);
 	f->fmt.pix.bytesperline = (f->fmt.pix.width * fmt->depth) >> 3;
 	f->fmt.pix.sizeimage = f->fmt.pix.height * f->fmt.pix.bytesperline;
 	f->fmt.pix.field = V4L2_FIELD_NONE;
@@ -653,10 +798,16 @@ static int vidioc_try_fmt_vid_cap(struct file *file, void *priv,
 	struct vim2m_fmt *fmt;
 	struct vim2m_ctx *ctx = file2ctx(file);
 
-	fmt = find_format(f);
+	fmt = find_format(f->fmt.pix.pixelformat);
 	if (!fmt) {
 		f->fmt.pix.pixelformat = formats[0].fourcc;
-		fmt = find_format(f);
+		fmt = find_format(f->fmt.pix.pixelformat);
+	}
+	if (!(fmt->types & MEM2MEM_CAPTURE)) {
+		v4l2_err(&ctx->dev->v4l2_dev,
+			 "Fourcc format (0x%08x) invalid.\n",
+			 f->fmt.pix.pixelformat);
+		return -EINVAL;
 	}
 	f->fmt.pix.colorspace = ctx->colorspace;
 	f->fmt.pix.xfer_func = ctx->xfer_func;
@@ -670,11 +821,18 @@ static int vidioc_try_fmt_vid_out(struct file *file, void *priv,
 				  struct v4l2_format *f)
 {
 	struct vim2m_fmt *fmt;
+	struct vim2m_ctx *ctx = file2ctx(file);
 
-	fmt = find_format(f);
+	fmt = find_format(f->fmt.pix.pixelformat);
 	if (!fmt) {
 		f->fmt.pix.pixelformat = formats[0].fourcc;
-		fmt = find_format(f);
+		fmt = find_format(f->fmt.pix.pixelformat);
+	}
+	if (!(fmt->types & MEM2MEM_OUTPUT)) {
+		v4l2_err(&ctx->dev->v4l2_dev,
+			 "Fourcc format (0x%08x) invalid.\n",
+			 f->fmt.pix.pixelformat);
+		return -EINVAL;
 	}
 	if (!f->fmt.pix.colorspace)
 		f->fmt.pix.colorspace = V4L2_COLORSPACE_REC709;
@@ -700,15 +858,20 @@ static int vidioc_s_fmt(struct vim2m_ctx *ctx, struct v4l2_format *f)
 		return -EBUSY;
 	}
 
-	q_data->fmt		= find_format(f);
+	q_data->fmt		= find_format(f->fmt.pix.pixelformat);
 	q_data->width		= f->fmt.pix.width;
 	q_data->height		= f->fmt.pix.height;
 	q_data->sizeimage	= q_data->width * q_data->height
 				* q_data->fmt->depth >> 3;
 
-	dprintk(ctx->dev,
-		"Setting format for type %d, wxh: %dx%d, fmt: %d\n",
-		f->type, q_data->width, q_data->height, q_data->fmt->fourcc);
+	dprintk(ctx->dev, 1,
+		"Format for type %s: %dx%d (%d bpp), fmt: %c%c%c%c\n",
+		type_name(f->type), q_data->width, q_data->height,
+		q_data->fmt->depth,
+		(q_data->fmt->fourcc & 0xff),
+		(q_data->fmt->fourcc >>  8) & 0xff,
+		(q_data->fmt->fourcc >> 16) & 0xff,
+		(q_data->fmt->fourcc >> 24) & 0xff);
 
 	return 0;
 }
@@ -787,11 +950,11 @@ static const struct v4l2_ctrl_ops vim2m_ctrl_ops = {
 	.s_ctrl = vim2m_s_ctrl,
 };
 
-
 static const struct v4l2_ioctl_ops vim2m_ioctl_ops = {
 	.vidioc_querycap	= vidioc_querycap,
 
 	.vidioc_enum_fmt_vid_cap = vidioc_enum_fmt_vid_cap,
+	.vidioc_enum_framesizes = vidioc_enum_framesizes,
 	.vidioc_g_fmt_vid_cap	= vidioc_g_fmt_vid_cap,
 	.vidioc_try_fmt_vid_cap	= vidioc_try_fmt_vid_cap,
 	.vidioc_s_fmt_vid_cap	= vidioc_s_fmt_vid_cap,
@@ -816,20 +979,23 @@ static const struct v4l2_ioctl_ops vim2m_ioctl_ops = {
 	.vidioc_unsubscribe_event = v4l2_event_unsubscribe,
 };
 
-
 /*
  * Queue operations
  */
 
 static int vim2m_queue_setup(struct vb2_queue *vq,
-				unsigned int *nbuffers, unsigned int *nplanes,
-				unsigned int sizes[], struct device *alloc_devs[])
+			     unsigned int *nbuffers,
+			     unsigned int *nplanes,
+			     unsigned int sizes[],
+			     struct device *alloc_devs[])
 {
 	struct vim2m_ctx *ctx = vb2_get_drv_priv(vq);
 	struct vim2m_q_data *q_data;
 	unsigned int size, count = *nbuffers;
 
 	q_data = get_q_data(ctx, vq->type);
+	if (!q_data)
+		return -EINVAL;
 
 	size = q_data->width * q_data->height * q_data->fmt->depth >> 3;
 
@@ -843,7 +1009,8 @@ static int vim2m_queue_setup(struct vb2_queue *vq,
 	*nplanes = 1;
 	sizes[0] = size;
 
-	dprintk(ctx->dev, "get %d buffer(s) of size %d each.\n", count, size);
+	dprintk(ctx->dev, 1, "%s: get %d buffer(s) of size %d each.\n",
+		type_name(vq->type), count, size);
 
 	return 0;
 }
@@ -856,7 +1023,7 @@ static int vim2m_buf_out_validate(struct vb2_buffer *vb)
 	if (vbuf->field == V4L2_FIELD_ANY)
 		vbuf->field = V4L2_FIELD_NONE;
 	if (vbuf->field != V4L2_FIELD_NONE) {
-		dprintk(ctx->dev, "%s field isn't supported\n", __func__);
+		dprintk(ctx->dev, 1, "%s field isn't supported\n", __func__);
 		return -EINVAL;
 	}
 
@@ -868,12 +1035,16 @@ static int vim2m_buf_prepare(struct vb2_buffer *vb)
 	struct vim2m_ctx *ctx = vb2_get_drv_priv(vb->vb2_queue);
 	struct vim2m_q_data *q_data;
 
-	dprintk(ctx->dev, "type: %d\n", vb->vb2_queue->type);
+	dprintk(ctx->dev, 2, "type: %s\n", type_name(vb->vb2_queue->type));
 
 	q_data = get_q_data(ctx, vb->vb2_queue->type);
+	if (!q_data)
+		return -EINVAL;
 	if (vb2_plane_size(vb, 0) < q_data->sizeimage) {
-		dprintk(ctx->dev, "%s data will not fit into plane (%lu < %lu)\n",
-				__func__, vb2_plane_size(vb, 0), (long)q_data->sizeimage);
+		dprintk(ctx->dev, 1,
+			"%s data will not fit into plane (%lu < %lu)\n",
+			__func__, vb2_plane_size(vb, 0),
+			(long)q_data->sizeimage);
 		return -EINVAL;
 	}
 
@@ -890,10 +1061,13 @@ static void vim2m_buf_queue(struct vb2_buffer *vb)
 	v4l2_m2m_buf_queue(ctx->fh.m2m_ctx, vbuf);
 }
 
-static int vim2m_start_streaming(struct vb2_queue *q, unsigned count)
+static int vim2m_start_streaming(struct vb2_queue *q, unsigned int count)
 {
 	struct vim2m_ctx *ctx = vb2_get_drv_priv(q);
 	struct vim2m_q_data *q_data = get_q_data(ctx, q->type);
+
+	if (!q_data)
+		return -EINVAL;
 
 	q_data->sequence = 0;
 	return 0;
@@ -912,7 +1086,7 @@ static void vim2m_stop_streaming(struct vb2_queue *q)
 			vbuf = v4l2_m2m_src_buf_remove(ctx->fh.m2m_ctx);
 		else
 			vbuf = v4l2_m2m_dst_buf_remove(ctx->fh.m2m_ctx);
-		if (vbuf == NULL)
+		if (!vbuf)
 			return;
 		v4l2_ctrl_request_complete(vbuf->vb2_buf.req_obj.req,
 					   &ctx->hdl);
@@ -941,7 +1115,8 @@ static const struct vb2_ops vim2m_qops = {
 	.buf_request_complete = vim2m_buf_request_complete,
 };
 
-static int queue_init(void *priv, struct vb2_queue *src_vq, struct vb2_queue *dst_vq)
+static int queue_init(void *priv, struct vb2_queue *src_vq,
+		      struct vb2_queue *dst_vq)
 {
 	struct vim2m_ctx *ctx = priv;
 	int ret;
@@ -1059,7 +1234,7 @@ static int vim2m_open(struct file *file)
 	v4l2_fh_add(&ctx->fh);
 	atomic_inc(&dev->num_inst);
 
-	dprintk(dev, "Created instance: %p, m2m_ctx: %p\n",
+	dprintk(dev, 1, "Created instance: %p, m2m_ctx: %p\n",
 		ctx, ctx->fh.m2m_ctx);
 
 open_unlock:
@@ -1072,7 +1247,7 @@ static int vim2m_release(struct file *file)
 	struct vim2m_dev *dev = video_drvdata(file);
 	struct vim2m_ctx *ctx = file2ctx(file);
 
-	dprintk(dev, "Releasing instance %p\n", ctx);
+	dprintk(dev, 1, "Releasing instance %p\n", ctx);
 
 	v4l2_fh_del(&ctx->fh);
 	v4l2_fh_exit(&ctx->fh);
@@ -1147,7 +1322,7 @@ static int vim2m_probe(struct platform_device *pdev)
 
 	video_set_drvdata(vfd, dev);
 	v4l2_info(&dev->v4l2_dev,
-			"Device registered as /dev/video%d\n", vfd->num);
+		  "Device registered as /dev/video%d\n", vfd->num);
 
 	platform_set_drvdata(pdev, dev);
 
@@ -1167,8 +1342,8 @@ static int vim2m_probe(struct platform_device *pdev)
 	dev->mdev.ops = &m2m_media_ops;
 	dev->v4l2_dev.mdev = &dev->mdev;
 
-	ret = v4l2_m2m_register_media_controller(dev->m2m_dev,
-			vfd, MEDIA_ENT_F_PROC_VIDEO_SCALER);
+	ret = v4l2_m2m_register_media_controller(dev->m2m_dev, vfd,
+						 MEDIA_ENT_F_PROC_VIDEO_SCALER);
 	if (ret) {
 		v4l2_err(&dev->v4l2_dev, "Failed to init mem2mem media controller\n");
 		goto unreg_m2m;
