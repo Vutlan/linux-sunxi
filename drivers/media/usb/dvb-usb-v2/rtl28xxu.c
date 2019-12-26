@@ -1,23 +1,10 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 /*
  * Realtek RTL28xxU DVB USB driver
  *
  * Copyright (C) 2009 Antti Palosaari <crope@iki.fi>
  * Copyright (C) 2011 Antti Palosaari <crope@iki.fi>
  * Copyright (C) 2012 Thomas Mair <thomas.mair86@googlemail.com>
- *
- *    This program is free software; you can redistribute it and/or modify
- *    it under the terms of the GNU General Public License as published by
- *    the Free Software Foundation; either version 2 of the License, or
- *    (at your option) any later version.
- *
- *    This program is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU General Public License for more details.
- *
- *    You should have received a copy of the GNU General Public License along
- *    with this program; if not, write to the Free Software Foundation, Inc.,
- *    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
 #include "rtl28xxu.h"
@@ -1794,7 +1781,6 @@ static int rtl2832u_rc_query(struct dvb_usb_device *d)
 	}
 
 	/* 'flush' ir_raw_event_store_with_filter() */
-	ir_raw_event_set_idle(d->rc_dev, true);
 	ir_raw_event_handle(d->rc_dev);
 exit:
 	return ret;
@@ -1817,6 +1803,8 @@ static int rtl2832u_get_rc_config(struct dvb_usb_device *d,
 	rc->driver_type = RC_DRIVER_IR_RAW;
 	rc->query = rtl2832u_rc_query;
 	rc->interval = 200;
+	/* we program idle len to 0xc0, set timeout to one less */
+	rc->timeout = 0xbf * 50800;
 
 	return 0;
 }
@@ -1970,7 +1958,8 @@ static const struct usb_device_id rtl28xxu_id_table[] = {
 
 	/* RTL2832P devices: */
 	{ DVB_USB_DEVICE(USB_VID_HANFTEK, 0x0131,
-		&rtl28xxu_props, "Astrometa DVB-T2", NULL) },
+		&rtl28xxu_props, "Astrometa DVB-T2",
+		RC_MAP_ASTROMETA_T2HYBRID) },
 	{ DVB_USB_DEVICE(0x5654, 0xca42,
 		&rtl28xxu_props, "GoTView MasterHD 3", NULL) },
 	{ }

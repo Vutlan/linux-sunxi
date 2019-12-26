@@ -71,9 +71,10 @@ static int sysfs_init_fs_context(struct fs_context *fc)
 	kfc->magic = SYSFS_MAGIC;
 	fc->fs_private = kfc;
 	fc->ops = &sysfs_fs_context_ops;
-	if (fc->user_ns)
+	if (netns) {
 		put_user_ns(fc->user_ns);
-	fc->user_ns = get_user_ns(netns->user_ns);
+		fc->user_ns = get_user_ns(netns->user_ns);
+	}
 	fc->global = true;
 	return 0;
 }

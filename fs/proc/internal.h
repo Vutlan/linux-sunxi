@@ -1,12 +1,8 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
 /* Internal procfs definitions
  *
  * Copyright (C) 2004 Red Hat, Inc. All Rights Reserved.
  * Written by David Howells (dhowells@redhat.com)
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version
- * 2 of the License, or (at your option) any later version.
  */
 
 #include <linux/proc_fs.h>
@@ -201,8 +197,8 @@ extern ssize_t proc_simple_write(struct file *, const char __user *, size_t, lof
  * inode.c
  */
 struct pde_opener {
-	struct file *file;
 	struct list_head lh;
+	struct file *file;
 	bool closing;
 	struct completion *c;
 } __randomize_layout;

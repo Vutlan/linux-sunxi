@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 /*
  * iSCSI over TCP/IP Data-Path lib
  *
@@ -6,18 +7,6 @@
  * Copyright (C) 2005 - 2006 Mike Christie
  * Copyright (C) 2006 Red Hat, Inc.  All rights reserved.
  * maintained by open-iscsi@googlegroups.com
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published
- * by the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- *
- * See the file COPYING included with this distribution for more details.
  *
  * Credits:
  *	Christoph Hellwig
@@ -129,12 +118,17 @@ static void iscsi_tcp_segment_map(struct iscsi_segment *segment, int recv)
 	BUG_ON(sg->length == 0);
 
 	/*
+	 * We always map for the recv path.
+	 *
 	 * If the page count is greater than one it is ok to send
 	 * to the network layer's zero copy send path. If not we
-	 * have to go the slow sendmsg path. We always map for the
-	 * recv path.
+	 * have to go the slow sendmsg path.
+	 *
+	 * Same goes for slab pages: skb_can_coalesce() allows
+	 * coalescing neighboring slab objects into a single frag which
+	 * triggers one of hardened usercopy checks.
 	 */
-	if (page_count(sg_page(sg)) >= 1 && !recv)
+	if (!recv && page_count(sg_page(sg)) >= 1 && !PageSlab(sg_page(sg)))
 		return;
 
 	if (recv) {

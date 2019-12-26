@@ -469,18 +469,6 @@ extern ssize_t parport_device_id (int devnum, char *buffer, size_t len);
 extern void parport_daisy_deselect_all (struct parport *port);
 extern int parport_daisy_select (struct parport *port, int daisy, int mode);
 
-#ifdef CONFIG_PARPORT_1284
-extern int daisy_drv_init(void);
-extern void daisy_drv_exit(void);
-#else
-static inline int daisy_drv_init(void)
-{
-	return 0;
-}
-
-static inline void daisy_drv_exit(void) {}
-#endif
-
 /* Lowlevel drivers _can_ call this support function to handle irqs.  */
 static inline void parport_generic_irq(struct parport *port)
 {

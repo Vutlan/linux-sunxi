@@ -1,36 +1,9 @@
+// SPDX-License-Identifier: GPL-2.0 OR Linux-OpenIB
 /*
  * Copyright (c) 2005 Voltaire Inc.  All rights reserved.
  * Copyright (c) 2002-2005, Network Appliance, Inc. All rights reserved.
- * Copyright (c) 1999-2005, Mellanox Technologies, Inc. All rights reserved.
+ * Copyright (c) 1999-2019, Mellanox Technologies, Inc. All rights reserved.
  * Copyright (c) 2005-2006 Intel Corporation.  All rights reserved.
- *
- * This software is available to you under a choice of one of two
- * licenses.  You may choose to be licensed under the terms of the GNU
- * General Public License (GPL) Version 2, available from the file
- * COPYING in the main directory of this source tree, or the
- * OpenIB.org BSD license below:
- *
- *     Redistribution and use in source and binary forms, with or
- *     without modification, are permitted provided that the following
- *     conditions are met:
- *
- *      - Redistributions of source code must retain the above
- *        copyright notice, this list of conditions and the following
- *        disclaimer.
- *
- *      - Redistributions in binary form must reproduce the above
- *        copyright notice, this list of conditions and the following
- *        disclaimer in the documentation and/or other materials
- *        provided with the distribution.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
- * BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
- * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
  */
 
 #include <linux/completion.h>
@@ -39,7 +12,7 @@
 #include <linux/mutex.h>
 #include <linux/random.h>
 #include <linux/igmp.h>
-#include <linux/idr.h>
+#include <linux/xarray.h>
 #include <linux/inetdevice.h>
 #include <linux/slab.h>
 #include <linux/module.h>
@@ -191,10 +164,10 @@ static struct workqueue_struct *cma_wq;
 static unsigned int cma_pernet_id;
 
 struct cma_pernet {
-	struct idr tcp_ps;
-	struct idr udp_ps;
-	struct idr ipoib_ps;
-	struct idr ib_ps;
+	struct xarray tcp_ps;
+	struct xarray udp_ps;
+	struct xarray ipoib_ps;
+	struct xarray ib_ps;
 };
 
 static struct cma_pernet *cma_pernet(struct net *net)
@@ -202,7 +175,8 @@ static struct cma_pernet *cma_pernet(struct net *net)
 	return net_generic(net, cma_pernet_id);
 }
 
-static struct idr *cma_pernet_idr(struct net *net, enum rdma_ucm_port_space ps)
+static
+struct xarray *cma_pernet_xa(struct net *net, enum rdma_ucm_port_space ps)
 {
 	struct cma_pernet *pernet = cma_pernet(net);
 
@@ -247,25 +221,25 @@ struct class_port_info_context {
 static int cma_ps_alloc(struct net *net, enum rdma_ucm_port_space ps,
 			struct rdma_bind_list *bind_list, int snum)
 {
-	struct idr *idr = cma_pernet_idr(net, ps);
+	struct xarray *xa = cma_pernet_xa(net, ps);
 
-	return idr_alloc(idr, bind_list, snum, snum + 1, GFP_KERNEL);
+	return xa_insert(xa, snum, bind_list, GFP_KERNEL);
 }
 
 static struct rdma_bind_list *cma_ps_find(struct net *net,
 					  enum rdma_ucm_port_space ps, int snum)
 {
-	struct idr *idr = cma_pernet_idr(net, ps);
+	struct xarray *xa = cma_pernet_xa(net, ps);
 
-	return idr_find(idr, snum);
+	return xa_load(xa, snum);
 }
 
 static void cma_ps_remove(struct net *net, enum rdma_ucm_port_space ps,
 			  int snum)
 {
-	struct idr *idr = cma_pernet_idr(net, ps);
+	struct xarray *xa = cma_pernet_xa(net, ps);
 
-	idr_remove(idr, snum);
+	xa_erase(xa, snum);
 }
 
 enum {
@@ -614,6 +588,9 @@ cma_validate_port(struct ib_device *device, u8 port,
 	const struct ib_gid_attr *sgid_attr;
 	int dev_type = dev_addr->dev_type;
 	struct net_device *ndev = NULL;
+
+	if (!rdma_dev_access_netns(device, id_priv->id.route.addr.dev_addr.net))
+		return ERR_PTR(-ENODEV);
 
 	if ((dev_type == ARPHRD_INFINIBAND) && !rdma_protocol_ib(device, port))
 		return ERR_PTR(-ENODEV);
@@ -1173,18 +1150,31 @@ static inline bool cma_any_addr(const struct sockaddr *addr)
 	return cma_zero_addr(addr) || cma_loopback_addr(addr);
 }
 
-static int cma_addr_cmp(struct sockaddr *src, struct sockaddr *dst)
+static int cma_addr_cmp(const struct sockaddr *src, const struct sockaddr *dst)
 {
 	if (src->sa_family != dst->sa_family)
 		return -1;
 
 	switch (src->sa_family) {
 	case AF_INET:
-		return ((struct sockaddr_in *) src)->sin_addr.s_addr !=
-		       ((struct sockaddr_in *) dst)->sin_addr.s_addr;
-	case AF_INET6:
-		return ipv6_addr_cmp(&((struct sockaddr_in6 *) src)->sin6_addr,
-				     &((struct sockaddr_in6 *) dst)->sin6_addr);
+		return ((struct sockaddr_in *)src)->sin_addr.s_addr !=
+		       ((struct sockaddr_in *)dst)->sin_addr.s_addr;
+	case AF_INET6: {
+		struct sockaddr_in6 *src_addr6 = (struct sockaddr_in6 *)src;
+		struct sockaddr_in6 *dst_addr6 = (struct sockaddr_in6 *)dst;
+		bool link_local;
+
+		if (ipv6_addr_cmp(&src_addr6->sin6_addr,
+					  &dst_addr6->sin6_addr))
+			return 1;
+		link_local = ipv6_addr_type(&dst_addr6->sin6_addr) &
+			     IPV6_ADDR_LINKLOCAL;
+		/* Link local must match their scope_ids */
+		return link_local ? (src_addr6->sin6_scope_id !=
+				     dst_addr6->sin6_scope_id) :
+				    0;
+	}
+
 	default:
 		return ib_addr_cmp(&((struct sockaddr_ib *) src)->sib_addr,
 				   &((struct sockaddr_ib *) dst)->sib_addr);
@@ -1469,6 +1459,7 @@ static struct net_device *
 roce_get_net_dev_by_cm_event(const struct ib_cm_event *ib_event)
 {
 	const struct ib_gid_attr *sgid_attr = NULL;
+	struct net_device *ndev;
 
 	if (ib_event->event == IB_CM_REQ_RECEIVED)
 		sgid_attr = ib_event->param.req_rcvd.ppath_sgid_attr;
@@ -1477,8 +1468,15 @@ roce_get_net_dev_by_cm_event(const struct ib_cm_event *ib_event)
 
 	if (!sgid_attr)
 		return NULL;
-	dev_hold(sgid_attr->ndev);
-	return sgid_attr->ndev;
+
+	rcu_read_lock();
+	ndev = rdma_read_gid_attr_ndev_rcu(sgid_attr);
+	if (IS_ERR(ndev))
+		ndev = NULL;
+	else
+		dev_hold(ndev);
+	rcu_read_unlock();
+	return ndev;
 }
 
 static struct net_device *cma_get_net_dev(const struct ib_cm_event *ib_event,
@@ -2371,9 +2369,10 @@ static int iw_conn_req_handler(struct iw_cm_id *cm_id,
 		conn_id->cm_id.iw = NULL;
 		cma_exch(conn_id, RDMA_CM_DESTROYING);
 		mutex_unlock(&conn_id->handler_mutex);
+		mutex_unlock(&listen_id->handler_mutex);
 		cma_deref_id(conn_id);
 		rdma_destroy_id(&conn_id->id);
-		goto out;
+		return ret;
 	}
 
 	mutex_unlock(&conn_id->handler_mutex);
@@ -2505,7 +2504,9 @@ EXPORT_SYMBOL(rdma_set_service_type);
  * This function should be called before rdma_connect() on active side,
  * and on passive side before rdma_accept(). It is applicable to primary
  * path only. The timeout will affect the local side of the QP, it is not
- * negotiated with remote side and zero disables the timer.
+ * negotiated with remote side and zero disables the timer. In case it is
+ * set before rdma_resolve_route, the value will also be used to determine
+ * PacketLifeTime for RoCE.
  *
  * Return: 0 for success
  */
@@ -2802,22 +2803,65 @@ static int cma_resolve_iw_route(struct rdma_id_private *id_priv)
 	return 0;
 }
 
-static int iboe_tos_to_sl(struct net_device *ndev, int tos)
+static int get_vlan_ndev_tc(struct net_device *vlan_ndev, int prio)
 {
-	int prio;
 	struct net_device *dev;
 
-	prio = rt_tos2priority(tos);
-	dev = is_vlan_dev(ndev) ? vlan_dev_real_dev(ndev) : ndev;
+	dev = vlan_dev_real_dev(vlan_ndev);
 	if (dev->num_tc)
 		return netdev_get_prio_tc_map(dev, prio);
 
-#if IS_ENABLED(CONFIG_VLAN_8021Q)
+	return (vlan_dev_get_egress_qos_mask(vlan_ndev, prio) &
+		VLAN_PRIO_MASK) >> VLAN_PRIO_SHIFT;
+}
+
+struct iboe_prio_tc_map {
+	int input_prio;
+	int output_tc;
+	bool found;
+};
+
+static int get_lower_vlan_dev_tc(struct net_device *dev, void *data)
+{
+	struct iboe_prio_tc_map *map = data;
+
+	if (is_vlan_dev(dev))
+		map->output_tc = get_vlan_ndev_tc(dev, map->input_prio);
+	else if (dev->num_tc)
+		map->output_tc = netdev_get_prio_tc_map(dev, map->input_prio);
+	else
+		map->output_tc = 0;
+	/* We are interested only in first level VLAN device, so always
+	 * return 1 to stop iterating over next level devices.
+	 */
+	map->found = true;
+	return 1;
+}
+
+static int iboe_tos_to_sl(struct net_device *ndev, int tos)
+{
+	struct iboe_prio_tc_map prio_tc_map = {};
+	int prio = rt_tos2priority(tos);
+
+	/* If VLAN device, get it directly from the VLAN netdev */
 	if (is_vlan_dev(ndev))
-		return (vlan_dev_get_egress_qos_mask(ndev, prio) &
-			VLAN_PRIO_MASK) >> VLAN_PRIO_SHIFT;
-#endif
-	return 0;
+		return get_vlan_ndev_tc(ndev, prio);
+
+	prio_tc_map.input_prio = prio;
+	rcu_read_lock();
+	netdev_walk_all_lower_dev_rcu(ndev,
+				      get_lower_vlan_dev_tc,
+				      &prio_tc_map);
+	rcu_read_unlock();
+	/* If map is found from lower device, use it; Otherwise
+	 * continue with the current netdevice to get priority to tc map.
+	 */
+	if (prio_tc_map.found)
+		return prio_tc_map.output_tc;
+	else if (ndev->num_tc)
+		return netdev_get_prio_tc_map(ndev, prio);
+	else
+		return 0;
 }
 
 static int cma_resolve_iboe_route(struct rdma_id_private *id_priv)
@@ -2871,7 +2915,16 @@ static int cma_resolve_iboe_route(struct rdma_id_private *id_priv)
 	route->path_rec->rate = iboe_get_rate(ndev);
 	dev_put(ndev);
 	route->path_rec->packet_life_time_selector = IB_SA_EQ;
-	route->path_rec->packet_life_time = CMA_IBOE_PACKET_LIFETIME;
+	/* In case ACK timeout is set, use this value to calculate
+	 * PacketLifeTime.  As per IBTA 12.7.34,
+	 * local ACK timeout = (2 * PacketLifeTime + Local CA’s ACK delay).
+	 * Assuming a negligible local ACK delay, we can use
+	 * PacketLifeTime = local ACK timeout/2
+	 * as a reasonable approximation for RoCE networks.
+	 */
+	route->path_rec->packet_life_time = id_priv->timeout_set ?
+		id_priv->timeout - 1 : CMA_IBOE_PACKET_LIFETIME;
+
 	if (!route->path_rec->mtu) {
 		ret = -EINVAL;
 		goto err2;
@@ -3021,7 +3074,7 @@ static void addr_handler(int status, struct sockaddr *src_addr,
 		if (status)
 			pr_debug_ratelimited("RDMA CM: ADDR_ERROR: failed to acquire device. status %d\n",
 					     status);
-	} else {
+	} else if (status) {
 		pr_debug_ratelimited("RDMA CM: ADDR_ERROR: failed to resolve IP. status %d\n", status);
 	}
 
@@ -3247,7 +3300,7 @@ static int cma_alloc_port(enum rdma_ucm_port_space ps,
 		goto err;
 
 	bind_list->ps = ps;
-	bind_list->port = (unsigned short)ret;
+	bind_list->port = snum;
 	cma_bind_port(bind_list, id_priv);
 	return 0;
 err:
@@ -4655,10 +4708,10 @@ static int cma_init_net(struct net *net)
 {
 	struct cma_pernet *pernet = cma_pernet(net);
 
-	idr_init(&pernet->tcp_ps);
-	idr_init(&pernet->udp_ps);
-	idr_init(&pernet->ipoib_ps);
-	idr_init(&pernet->ib_ps);
+	xa_init(&pernet->tcp_ps);
+	xa_init(&pernet->udp_ps);
+	xa_init(&pernet->ipoib_ps);
+	xa_init(&pernet->ib_ps);
 
 	return 0;
 }
@@ -4667,10 +4720,10 @@ static void cma_exit_net(struct net *net)
 {
 	struct cma_pernet *pernet = cma_pernet(net);
 
-	idr_destroy(&pernet->tcp_ps);
-	idr_destroy(&pernet->udp_ps);
-	idr_destroy(&pernet->ipoib_ps);
-	idr_destroy(&pernet->ib_ps);
+	WARN_ON(!xa_empty(&pernet->tcp_ps));
+	WARN_ON(!xa_empty(&pernet->udp_ps));
+	WARN_ON(!xa_empty(&pernet->ipoib_ps));
+	WARN_ON(!xa_empty(&pernet->ib_ps));
 }
 
 static struct pernet_operations cma_pernet_operations = {
@@ -4699,10 +4752,14 @@ static int __init cma_init(void)
 	if (ret)
 		goto err;
 
-	cma_configfs_init();
+	ret = cma_configfs_init();
+	if (ret)
+		goto err_ib;
 
 	return 0;
 
+err_ib:
+	ib_unregister_client(&cma_client);
 err:
 	unregister_netdevice_notifier(&cma_nb);
 	ib_sa_unregister_client(&sa_client);

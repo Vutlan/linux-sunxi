@@ -75,6 +75,7 @@ struct seccomp_knotif {
 	/* The return values, only valid when in SECCOMP_NOTIFY_REPLIED */
 	int error;
 	long val;
+	u32 flags;
 
 	/* Signals when this has entered SECCOMP_NOTIFY_REPLIED */
 	struct completion ready;
@@ -148,8 +149,8 @@ static void populate_seccomp_data(struct seccomp_data *sd)
 	unsigned long args[6];
 
 	sd->nr = syscall_get_nr(task, regs);
-	sd->arch = syscall_get_arch();
-	syscall_get_arguments(task, regs, 0, 6, args);
+	sd->arch = syscall_get_arch(task);
+	syscall_get_arguments(task, regs, args);
 	sd->args[0] = args[0];
 	sd->args[1] = args[1];
 	sd->args[2] = args[2];
@@ -331,7 +332,7 @@ static int is_ancestor(struct seccomp_filter *parent,
  * Expects sighand and cred_guard_mutex locks to be held.
  *
  * Returns 0 on success, -ve on error, or the pid of a thread which was
- * either not in the correct seccomp mode or it did not have an ancestral
+ * either not in the correct seccomp mode or did not have an ancestral
  * seccomp filter.
  */
 static inline pid_t seccomp_can_sync_threads(void)
@@ -502,7 +503,10 @@ out:
  *
  * Caller must be holding current->sighand->siglock lock.
  *
- * Returns 0 on success, -ve on error.
+ * Returns 0 on success, -ve on error, or
+ *   - in TSYNC mode: the pid of a thread which was either not in the correct
+ *     seccomp mode or did not have an ancestral seccomp filter
+ *   - in NEW_LISTENER mode: the fd of the new listener
  */
 static long seccomp_attach_filter(unsigned int flags,
 				  struct seccomp_filter *filter)
@@ -591,7 +595,7 @@ static void seccomp_init_siginfo(kernel_siginfo_t *info, int syscall, int reason
 	info->si_code = SYS_SECCOMP;
 	info->si_call_addr = (void __user *)KSTK_EIP(current);
 	info->si_errno = reason;
-	info->si_arch = syscall_get_arch();
+	info->si_arch = syscall_get_arch(current);
 	info->si_syscall = syscall;
 }
 
@@ -606,7 +610,7 @@ static void seccomp_send_sigsys(int syscall, int reason)
 {
 	struct kernel_siginfo info;
 	seccomp_init_siginfo(&info, syscall, reason);
-	force_sig_info(SIGSYS, &info, current);
+	force_sig_info(&info);
 }
 #endif	/* CONFIG_SECCOMP_FILTER */
 
@@ -729,11 +733,12 @@ static u64 seccomp_next_notify_id(struct seccomp_filter *filter)
 	return filter->notif->next_id++;
 }
 
-static void seccomp_do_user_notification(int this_syscall,
-					 struct seccomp_filter *match,
-					 const struct seccomp_data *sd)
+static int seccomp_do_user_notification(int this_syscall,
+					struct seccomp_filter *match,
+					const struct seccomp_data *sd)
 {
 	int err;
+	u32 flags = 0;
 	long ret = 0;
 	struct seccomp_knotif n = {};
 
@@ -761,6 +766,7 @@ static void seccomp_do_user_notification(int this_syscall,
 	if (err == 0) {
 		ret = n.val;
 		err = n.error;
+		flags = n.flags;
 	}
 
 	/*
@@ -777,8 +783,14 @@ static void seccomp_do_user_notification(int this_syscall,
 		list_del(&n.list);
 out:
 	mutex_unlock(&match->notify_lock);
+
+	/* Userspace requests to continue the syscall. */
+	if (flags & SECCOMP_USER_NOTIF_FLAG_CONTINUE)
+		return 0;
+
 	syscall_set_return_value(current, task_pt_regs(current),
 				 err, ret);
+	return -1;
 }
 
 static int __seccomp_filter(int this_syscall, const struct seccomp_data *sd,
@@ -864,8 +876,10 @@ static int __seccomp_filter(int this_syscall, const struct seccomp_data *sd,
 		return 0;
 
 	case SECCOMP_RET_USER_NOTIF:
-		seccomp_do_user_notification(this_syscall, match, sd);
-		goto skip;
+		if (seccomp_do_user_notification(this_syscall, match, sd))
+			goto skip;
+
+		return 0;
 
 	case SECCOMP_RET_LOG:
 		seccomp_log(this_syscall, 0, action, true);
@@ -1084,7 +1098,11 @@ static long seccomp_notify_send(struct seccomp_filter *filter,
 	if (copy_from_user(&resp, buf, sizeof(resp)))
 		return -EFAULT;
 
-	if (resp.flags)
+	if (resp.flags & ~SECCOMP_USER_NOTIF_FLAG_CONTINUE)
+		return -EINVAL;
+
+	if ((resp.flags & SECCOMP_USER_NOTIF_FLAG_CONTINUE) &&
+	    (resp.error || resp.val))
 		return -EINVAL;
 
 	ret = mutex_lock_interruptible(&filter->notify_lock);
@@ -1113,6 +1131,7 @@ static long seccomp_notify_send(struct seccomp_filter *filter,
 	knotif->state = SECCOMP_NOTIFY_REPLIED;
 	knotif->error = resp.error;
 	knotif->val = resp.val;
+	knotif->flags = resp.flags;
 	complete(&knotif->ready);
 out:
 	mutex_unlock(&filter->notify_lock);
@@ -1258,6 +1277,16 @@ static long seccomp_set_mode_filter(unsigned int flags,
 	if (flags & ~SECCOMP_FILTER_FLAG_MASK)
 		return -EINVAL;
 
+	/*
+	 * In the successful case, NEW_LISTENER returns the new listener fd.
+	 * But in the failure case, TSYNC returns the thread that died. If you
+	 * combine these two flags, there's no way to tell whether something
+	 * succeeded or failed. So, let's disallow this combination.
+	 */
+	if ((flags & SECCOMP_FILTER_FLAG_TSYNC) &&
+	    (flags & SECCOMP_FILTER_FLAG_NEW_LISTENER))
+		return -EINVAL;
+
 	/* Prepare the new filter before holding any locks. */
 	prepared = seccomp_prepare_user_filter(filter);
 	if (IS_ERR(prepared))
@@ -1304,7 +1333,7 @@ out:
 		mutex_unlock(&current->signal->cred_guard_mutex);
 out_put_fd:
 	if (flags & SECCOMP_FILTER_FLAG_NEW_LISTENER) {
-		if (ret < 0) {
+		if (ret) {
 			listener_f->private_data = NULL;
 			fput(listener_f);
 			put_unused_fd(listener);

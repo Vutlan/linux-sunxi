@@ -1,10 +1,9 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Xilinx XADC driver
  *
  * Copyright 2013-2014 Analog Devices Inc.
  *  Author: Lars-Peter Clauen <lars@metafoo.de>
- *
- * Licensed under the GPL-2.
  *
  * Documentation for the parts can be found at:
  *  - XADC hardmacro: Xilinx UG480
@@ -1151,7 +1150,6 @@ static int xadc_probe(struct platform_device *pdev)
 	const struct of_device_id *id;
 	struct iio_dev *indio_dev;
 	unsigned int bipolar_mask;
-	struct resource *mem;
 	unsigned int conf0;
 	struct xadc *xadc;
 	int ret;
@@ -1181,8 +1179,7 @@ static int xadc_probe(struct platform_device *pdev)
 	spin_lock_init(&xadc->lock);
 	INIT_DELAYED_WORK(&xadc->zynq_unmask_work, xadc_zynq_unmask_worker);
 
-	mem = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	xadc->base = devm_ioremap_resource(&pdev->dev, mem);
+	xadc->base = devm_platform_ioremap_resource(pdev, 0);
 	if (IS_ERR(xadc->base))
 		return PTR_ERR(xadc->base);
 
@@ -1292,6 +1289,7 @@ static int xadc_probe(struct platform_device *pdev)
 
 err_free_irq:
 	free_irq(xadc->irq, indio_dev);
+	cancel_delayed_work_sync(&xadc->zynq_unmask_work);
 err_clk_disable_unprepare:
 	clk_disable_unprepare(xadc->clk);
 err_free_samplerate_trigger:
@@ -1321,8 +1319,8 @@ static int xadc_remove(struct platform_device *pdev)
 		iio_triggered_buffer_cleanup(indio_dev);
 	}
 	free_irq(xadc->irq, indio_dev);
+	cancel_delayed_work_sync(&xadc->zynq_unmask_work);
 	clk_disable_unprepare(xadc->clk);
-	cancel_delayed_work(&xadc->zynq_unmask_work);
 	kfree(xadc->data);
 	kfree(indio_dev->channels);
 

@@ -1,19 +1,7 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  *
  * Implementation of primary ALSA driver code base for NVIDIA Tegra HDA.
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms and conditions of the GNU General Public License,
- * version 2, as published by the Free Software Foundation.
- *
- * This program is distributed in the hope it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
  */
 
 #include <linux/clk.h>
@@ -87,88 +75,6 @@ MODULE_PARM_DESC(power_save,
 #define power_save	0
 #endif
 
-/*
- * DMA page allocation ops.
- */
-static int dma_alloc_pages(struct hdac_bus *bus, int type, size_t size,
-			   struct snd_dma_buffer *buf)
-{
-	return snd_dma_alloc_pages(type, bus->dev, size, buf);
-}
-
-static void dma_free_pages(struct hdac_bus *bus, struct snd_dma_buffer *buf)
-{
-	snd_dma_free_pages(buf);
-}
-
-/*
- * Register access ops. Tegra HDA register access is DWORD only.
- */
-static void hda_tegra_writel(u32 value, u32 __iomem *addr)
-{
-	writel(value, addr);
-}
-
-static u32 hda_tegra_readl(u32 __iomem *addr)
-{
-	return readl(addr);
-}
-
-static void hda_tegra_writew(u16 value, u16 __iomem  *addr)
-{
-	unsigned int shift = ((unsigned long)(addr) & 0x3) << 3;
-	void __iomem *dword_addr = (void __iomem *)((unsigned long)(addr) & ~0x3);
-	u32 v;
-
-	v = readl(dword_addr);
-	v &= ~(0xffff << shift);
-	v |= value << shift;
-	writel(v, dword_addr);
-}
-
-static u16 hda_tegra_readw(u16 __iomem *addr)
-{
-	unsigned int shift = ((unsigned long)(addr) & 0x3) << 3;
-	void __iomem *dword_addr = (void __iomem *)((unsigned long)(addr) & ~0x3);
-	u32 v;
-
-	v = readl(dword_addr);
-	return (v >> shift) & 0xffff;
-}
-
-static void hda_tegra_writeb(u8 value, u8 __iomem *addr)
-{
-	unsigned int shift = ((unsigned long)(addr) & 0x3) << 3;
-	void __iomem *dword_addr = (void __iomem *)((unsigned long)(addr) & ~0x3);
-	u32 v;
-
-	v = readl(dword_addr);
-	v &= ~(0xff << shift);
-	v |= value << shift;
-	writel(v, dword_addr);
-}
-
-static u8 hda_tegra_readb(u8 __iomem *addr)
-{
-	unsigned int shift = ((unsigned long)(addr) & 0x3) << 3;
-	void __iomem *dword_addr = (void __iomem *)((unsigned long)(addr) & ~0x3);
-	u32 v;
-
-	v = readl(dword_addr);
-	return (v >> shift) & 0xff;
-}
-
-static const struct hdac_io_ops hda_tegra_io_ops = {
-	.reg_writel = hda_tegra_writel,
-	.reg_readl = hda_tegra_readl,
-	.reg_writew = hda_tegra_writew,
-	.reg_readw = hda_tegra_readw,
-	.reg_writeb = hda_tegra_writeb,
-	.reg_readb = hda_tegra_readb,
-	.dma_alloc_pages = dma_alloc_pages,
-	.dma_free_pages = dma_free_pages,
-};
-
 static const struct hda_controller_ops hda_tegra_ops; /* nothing special */
 
 static void hda_tegra_init(struct hda_tegra *hda)
@@ -219,7 +125,6 @@ disable_hda:
 	return rc;
 }
 
-#ifdef CONFIG_PM_SLEEP
 static void hda_tegra_disable_clocks(struct hda_tegra *data)
 {
 	clk_disable_unprepare(data->hda2hdmi_clk);
@@ -230,7 +135,7 @@ static void hda_tegra_disable_clocks(struct hda_tegra *data)
 /*
  * power management
  */
-static int hda_tegra_suspend(struct device *dev)
+static int __maybe_unused hda_tegra_suspend(struct device *dev)
 {
 	struct snd_card *card = dev_get_drvdata(dev);
 	int rc;
@@ -243,7 +148,7 @@ static int hda_tegra_suspend(struct device *dev)
 	return 0;
 }
 
-static int hda_tegra_resume(struct device *dev)
+static int __maybe_unused hda_tegra_resume(struct device *dev)
 {
 	struct snd_card *card = dev_get_drvdata(dev);
 	int rc;
@@ -255,10 +160,8 @@ static int hda_tegra_resume(struct device *dev)
 
 	return 0;
 }
-#endif /* CONFIG_PM_SLEEP */
 
-#ifdef CONFIG_PM
-static int hda_tegra_runtime_suspend(struct device *dev)
+static int __maybe_unused hda_tegra_runtime_suspend(struct device *dev)
 {
 	struct snd_card *card = dev_get_drvdata(dev);
 	struct azx *chip = card->private_data;
@@ -275,7 +178,7 @@ static int hda_tegra_runtime_suspend(struct device *dev)
 	return 0;
 }
 
-static int hda_tegra_runtime_resume(struct device *dev)
+static int __maybe_unused hda_tegra_runtime_resume(struct device *dev)
 {
 	struct snd_card *card = dev_get_drvdata(dev);
 	struct azx *chip = card->private_data;
@@ -292,7 +195,6 @@ static int hda_tegra_runtime_resume(struct device *dev)
 
 	return 0;
 }
-#endif /* CONFIG_PM */
 
 static const struct dev_pm_ops hda_tegra_pm = {
 	SET_SYSTEM_SLEEP_PM_OPS(hda_tegra_suspend, hda_tegra_resume)
@@ -491,7 +393,7 @@ static int hda_tegra_create(struct snd_card *card,
 
 	INIT_WORK(&hda->probe_work, hda_tegra_probe_work);
 
-	err = azx_bus_init(chip, NULL, &hda_tegra_io_ops);
+	err = azx_bus_init(chip, NULL);
 	if (err < 0)
 		return err;
 

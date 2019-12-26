@@ -67,7 +67,8 @@ static struct ch_tc_pedit_fields pedits[] = {
 static struct ch_tc_flower_entry *allocate_flower_entry(void)
 {
 	struct ch_tc_flower_entry *new = kzalloc(sizeof(*new), GFP_KERNEL);
-	spin_lock_init(&new->lock);
+	if (new)
+		spin_lock_init(&new->lock);
 	return new;
 }
 
@@ -80,10 +81,10 @@ static struct ch_tc_flower_entry *ch_flower_lookup(struct adapter *adap,
 }
 
 static void cxgb4_process_flow_match(struct net_device *dev,
-				     struct tc_cls_flower_offload *cls,
+				     struct flow_cls_offload *cls,
 				     struct ch_filter_specification *fs)
 {
-	struct flow_rule *rule = tc_cls_flower_offload_flow_rule(cls);
+	struct flow_rule *rule = flow_cls_offload_flow_rule(cls);
 	u16 addr_type = 0;
 
 	if (flow_rule_match_key(rule, FLOW_DISSECTOR_KEY_CONTROL)) {
@@ -197,6 +198,9 @@ static void cxgb4_process_flow_match(struct net_device *dev,
 		fs->val.ivlan = vlan_tci;
 		fs->mask.ivlan = vlan_tci_mask;
 
+		fs->val.ivlan_vld = 1;
+		fs->mask.ivlan_vld = 1;
+
 		/* Chelsio adapters use ivlan_vld bit to match vlan packets
 		 * as 802.1Q. Also, when vlan tag is present in packets,
 		 * ethtype match is used then to match on ethtype of inner
@@ -207,8 +211,6 @@ static void cxgb4_process_flow_match(struct net_device *dev,
 		 * ethtype value with ethtype of inner header.
 		 */
 		if (fs->val.ethtype == ETH_P_8021Q) {
-			fs->val.ivlan_vld = 1;
-			fs->mask.ivlan_vld = 1;
 			fs->val.ethtype = 0;
 			fs->mask.ethtype = 0;
 		}
@@ -222,9 +224,9 @@ static void cxgb4_process_flow_match(struct net_device *dev,
 }
 
 static int cxgb4_validate_flow_match(struct net_device *dev,
-				     struct tc_cls_flower_offload *cls)
+				     struct flow_cls_offload *cls)
 {
-	struct flow_rule *rule = tc_cls_flower_offload_flow_rule(cls);
+	struct flow_rule *rule = flow_cls_offload_flow_rule(cls);
 	struct flow_dissector *dissector = rule->match.dissector;
 	u16 ethtype_mask = 0;
 	u16 ethtype_key = 0;
@@ -376,15 +378,14 @@ static void process_pedit_field(struct ch_filter_specification *fs, u32 val,
 	}
 }
 
-static void cxgb4_process_flow_actions(struct net_device *in,
-				       struct tc_cls_flower_offload *cls,
-				       struct ch_filter_specification *fs)
+void cxgb4_process_flow_actions(struct net_device *in,
+				struct flow_action *actions,
+				struct ch_filter_specification *fs)
 {
-	struct flow_rule *rule = tc_cls_flower_offload_flow_rule(cls);
 	struct flow_action_entry *act;
 	int i;
 
-	flow_action_for_each(i, act, &rule->action) {
+	flow_action_for_each(i, act, actions) {
 		switch (act->id) {
 		case FLOW_ACTION_ACCEPT:
 			fs->action = FILTER_PASS;
@@ -542,17 +543,16 @@ static bool valid_pedit_action(struct net_device *dev,
 	return true;
 }
 
-static int cxgb4_validate_flow_actions(struct net_device *dev,
-				       struct tc_cls_flower_offload *cls)
+int cxgb4_validate_flow_actions(struct net_device *dev,
+				struct flow_action *actions)
 {
-	struct flow_rule *rule = tc_cls_flower_offload_flow_rule(cls);
 	struct flow_action_entry *act;
 	bool act_redir = false;
 	bool act_pedit = false;
 	bool act_vlan = false;
 	int i;
 
-	flow_action_for_each(i, act, &rule->action) {
+	flow_action_for_each(i, act, actions) {
 		switch (act->id) {
 		case FLOW_ACTION_ACCEPT:
 		case FLOW_ACTION_DROP:
@@ -632,16 +632,17 @@ static int cxgb4_validate_flow_actions(struct net_device *dev,
 }
 
 int cxgb4_tc_flower_replace(struct net_device *dev,
-			    struct tc_cls_flower_offload *cls)
+			    struct flow_cls_offload *cls)
 {
+	struct flow_rule *rule = flow_cls_offload_flow_rule(cls);
+	struct netlink_ext_ack *extack = cls->common.extack;
 	struct adapter *adap = netdev2adap(dev);
 	struct ch_tc_flower_entry *ch_flower;
 	struct ch_filter_specification *fs;
 	struct filter_ctx ctx;
-	int fidx;
-	int ret;
+	int fidx, ret;
 
-	if (cxgb4_validate_flow_actions(dev, cls))
+	if (cxgb4_validate_flow_actions(dev, &rule->action))
 		return -EOPNOTSUPP;
 
 	if (cxgb4_validate_flow_match(dev, cls))
@@ -656,19 +657,40 @@ int cxgb4_tc_flower_replace(struct net_device *dev,
 	fs = &ch_flower->fs;
 	fs->hitcnts = 1;
 	cxgb4_process_flow_match(dev, cls, fs);
-	cxgb4_process_flow_actions(dev, cls, fs);
+	cxgb4_process_flow_actions(dev, &rule->action, fs);
 
 	fs->hash = is_filter_exact_match(adap, fs);
 	if (fs->hash) {
 		fidx = 0;
 	} else {
-		fidx = cxgb4_get_free_ftid(dev, fs->type ? PF_INET6 : PF_INET);
-		if (fidx < 0) {
-			netdev_err(dev, "%s: No fidx for offload.\n", __func__);
+		u8 inet_family;
+
+		inet_family = fs->type ? PF_INET6 : PF_INET;
+
+		/* Note that TC uses prio 0 to indicate stack to
+		 * generate automatic prio and hence doesn't pass prio
+		 * 0 to driver. However, the hardware TCAM index
+		 * starts from 0. Hence, the -1 here.
+		 */
+		if (cls->common.prio <= adap->tids.nftids)
+			fidx = cls->common.prio - 1;
+		else
+			fidx = cxgb4_get_free_ftid(dev, inet_family);
+
+		/* Only insert FLOWER rule if its priority doesn't
+		 * conflict with existing rules in the LETCAM.
+		 */
+		if (fidx < 0 ||
+		    !cxgb4_filter_prio_in_range(dev, fidx, cls->common.prio)) {
+			NL_SET_ERR_MSG_MOD(extack,
+					   "No free LETCAM index available");
 			ret = -ENOMEM;
 			goto free_entry;
 		}
 	}
+
+	fs->tc_prio = cls->common.prio;
+	fs->tc_cookie = cls->cookie;
 
 	init_completion(&ctx.completion);
 	ret = __cxgb4_set_filter(dev, fidx, fs, &ctx);
@@ -687,11 +709,8 @@ int cxgb4_tc_flower_replace(struct net_device *dev,
 
 	ret = ctx.result;
 	/* Check if hw returned error for filter creation */
-	if (ret) {
-		netdev_err(dev, "%s: filter creation err %d\n",
-			   __func__, ret);
+	if (ret)
 		goto free_entry;
-	}
 
 	ch_flower->tc_flower_cookie = cls->cookie;
 	ch_flower->filter_id = ctx.tid;
@@ -711,7 +730,7 @@ free_entry:
 }
 
 int cxgb4_tc_flower_destroy(struct net_device *dev,
-			    struct tc_cls_flower_offload *cls)
+			    struct flow_cls_offload *cls)
 {
 	struct adapter *adap = netdev2adap(dev);
 	struct ch_tc_flower_entry *ch_flower;
@@ -785,7 +804,7 @@ static void ch_flower_stats_cb(struct timer_list *t)
 }
 
 int cxgb4_tc_flower_stats(struct net_device *dev,
-			  struct tc_cls_flower_offload *cls)
+			  struct flow_cls_offload *cls)
 {
 	struct adapter *adap = netdev2adap(dev);
 	struct ch_tc_flower_stats *ofld_stats;

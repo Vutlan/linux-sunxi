@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 /*
  *   ALSA driver for VT1724 ICEnsemble ICE1724 / VIA VT1724 (Envy24HT)
  *                   VIA VT1720 (Envy24PT)
@@ -5,21 +6,6 @@
  *	Copyright (c) 2000 Jaroslav Kysela <perex@perex.cz>
  *                    2002 James Stafford <jstafford@ampltd.com>
  *                    2003 Takashi Iwai <tiwai@suse.de>
- *
- *   This program is free software; you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation; either version 2 of the License, or
- *   (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program; if not, write to the Free Software
- *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
- *
  */
 
 #include <linux/delay.h>
@@ -1157,7 +1143,7 @@ static int snd_vt1724_pcm_profi(struct snd_ice1712 *ice, int device)
 	strcpy(pcm->name, "ICE1724");
 
 	snd_pcm_lib_preallocate_pages_for_all(pcm, SNDRV_DMA_TYPE_DEV,
-					      snd_dma_pci_data(ice->pci),
+					      &ice->pci->dev,
 					      256*1024, 256*1024);
 
 	ice->pcm_pro = pcm;
@@ -1355,7 +1341,7 @@ static int snd_vt1724_pcm_spdif(struct snd_ice1712 *ice, int device)
 	strcpy(pcm->name, name);
 
 	snd_pcm_lib_preallocate_pages_for_all(pcm, SNDRV_DMA_TYPE_DEV,
-					      snd_dma_pci_data(ice->pci),
+					      &ice->pci->dev,
 					      256*1024, 256*1024);
 
 	ice->pcm = pcm;
@@ -1469,7 +1455,7 @@ static int snd_vt1724_pcm_indep(struct snd_ice1712 *ice, int device)
 	strcpy(pcm->name, "ICE1724 Surround PCM");
 
 	snd_pcm_lib_preallocate_pages_for_all(pcm, SNDRV_DMA_TYPE_DEV,
-					      snd_dma_pci_data(ice->pci),
+					      &ice->pci->dev,
 					      256*1024, 256*1024);
 
 	ice->pcm_ds = pcm;

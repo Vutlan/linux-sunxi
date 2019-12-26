@@ -1,13 +1,9 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
 /*
  *	Linux ethernet bridge
  *
  *	Authors:
  *	Lennert Buytenhek		<buytenh@gnu.org>
- *
- *	This program is free software; you can redistribute it and/or
- *	modify it under the terms of the GNU General Public License
- *	as published by the Free Software Foundation; either version
- *	2 of the License, or (at your option) any later version.
  */
 
 #ifndef _BR_PRIVATE_H
@@ -176,6 +172,16 @@ struct net_bridge_vlan_group {
 	u16				pvid;
 };
 
+/* bridge fdb flags */
+enum {
+	BR_FDB_LOCAL,
+	BR_FDB_STATIC,
+	BR_FDB_STICKY,
+	BR_FDB_ADDED_BY_USER,
+	BR_FDB_ADDED_BY_EXT_LEARN,
+	BR_FDB_OFFLOADED,
+};
+
 struct net_bridge_fdb_key {
 	mac_addr addr;
 	u16 vlan_id;
@@ -187,12 +193,7 @@ struct net_bridge_fdb_entry {
 
 	struct net_bridge_fdb_key	key;
 	struct hlist_node		fdb_node;
-	unsigned char			is_local:1,
-					is_static:1,
-					is_sticky:1,
-					added_by_user:1,
-					added_by_external_learn:1,
-					offloaded:1;
+	unsigned long			flags;
 
 	/* write-heavy members should not affect lookups */
 	unsigned long			updated ____cacheline_aligned_in_smp;
@@ -203,6 +204,7 @@ struct net_bridge_fdb_entry {
 
 #define MDB_PG_FLAGS_PERMANENT	BIT(0)
 #define MDB_PG_FLAGS_OFFLOAD	BIT(1)
+#define MDB_PG_FLAGS_FAST_LEAVE	BIT(2)
 
 struct net_bridge_port_group {
 	struct net_bridge_port		*port;
@@ -288,8 +290,6 @@ struct net_bridge_port {
 #define br_auto_port(p) ((p)->flags & BR_AUTO_MASK)
 #define br_promisc_port(p) ((p)->flags & BR_PROMISC)
 
-#define br_port_exists(dev) (dev->priv_flags & IFF_BRIDGE_PORT)
-
 static inline struct net_bridge_port *br_port_get_rcu(const struct net_device *dev)
 {
 	return rcu_dereference(dev->rx_handler_data);
@@ -297,13 +297,13 @@ static inline struct net_bridge_port *br_port_get_rcu(const struct net_device *d
 
 static inline struct net_bridge_port *br_port_get_rtnl(const struct net_device *dev)
 {
-	return br_port_exists(dev) ?
+	return netif_is_bridge_port(dev) ?
 		rtnl_dereference(dev->rx_handler_data) : NULL;
 }
 
 static inline struct net_bridge_port *br_port_get_rtnl_rcu(const struct net_device *dev)
 {
-	return br_port_exists(dev) ?
+	return netif_is_bridge_port(dev) ?
 		rcu_dereference_rtnl(dev->rx_handler_data) : NULL;
 }
 
@@ -323,6 +323,7 @@ enum net_bridge_opts {
 	BROPT_MTU_SET_BY_USER,
 	BROPT_VLAN_STATS_PER_PORT,
 	BROPT_NO_LL_LEARN,
+	BROPT_VLAN_BRIDGE_BINDING,
 };
 
 struct net_bridge {
@@ -426,16 +427,18 @@ struct net_bridge {
 struct br_input_skb_cb {
 	struct net_device *brdev;
 
+	u16 frag_max_size;
 #ifdef CONFIG_BRIDGE_IGMP_SNOOPING
-	int igmp;
-	int mrouters_only;
+	u8 igmp;
+	u8 mrouters_only:1;
 #endif
-
-	bool proxyarp_replied;
-	bool src_port_isolated;
-
+	u8 proxyarp_replied:1;
+	u8 src_port_isolated:1;
 #ifdef CONFIG_BRIDGE_VLAN_FILTERING
-	bool vlan_filtered;
+	u8 vlan_filtered:1;
+#endif
+#ifdef CONFIG_NETFILTER_FAMILY_BRIDGE
+	u8 br_netfilter_broute:1;
 #endif
 
 #ifdef CONFIG_NET_SWITCHDEV
@@ -495,6 +498,11 @@ static inline bool br_vlan_should_use(const struct net_bridge_vlan *v)
 	}
 
 	return true;
+}
+
+static inline bool nbp_state_should_learn(const struct net_bridge_port *p)
+{
+	return p->state == BR_STATE_LEARNING || p->state == BR_STATE_FORWARDING;
 }
 
 static inline int br_opt_get(const struct net_bridge *br,
@@ -568,7 +576,7 @@ int br_fdb_fillbuf(struct net_bridge *br, void *buf, unsigned long count,
 int br_fdb_insert(struct net_bridge *br, struct net_bridge_port *source,
 		  const unsigned char *addr, u16 vid);
 void br_fdb_update(struct net_bridge *br, struct net_bridge_port *source,
-		   const unsigned char *addr, u16 vid, bool added_by_user);
+		   const unsigned char *addr, u16 vid, unsigned long flags);
 
 int br_fdb_delete(struct ndmsg *ndm, struct nlattr *tb[],
 		  struct net_device *dev, const unsigned char *addr, u16 vid);
@@ -704,6 +712,8 @@ void br_multicast_get_stats(const struct net_bridge *br,
 			    struct br_mcast_stats *dest);
 void br_mdb_init(void);
 void br_mdb_uninit(void);
+void br_multicast_host_join(struct net_bridge_mdb_entry *mp, bool notify);
+void br_multicast_host_leave(struct net_bridge_mdb_entry *mp, bool notify);
 
 #define mlock_dereference(X, br) \
 	rcu_dereference_protected(X, lockdep_is_held(&br->multicast_lock))
@@ -896,6 +906,9 @@ int nbp_vlan_init(struct net_bridge_port *port, struct netlink_ext_ack *extack);
 int nbp_get_num_vlan_infos(struct net_bridge_port *p, u32 filter_mask);
 void br_vlan_get_stats(const struct net_bridge_vlan *v,
 		       struct br_vlan_stats *stats);
+void br_vlan_port_event(struct net_bridge_port *p, unsigned long event);
+int br_vlan_bridge_event(struct net_device *dev, unsigned long event,
+			 void *ptr);
 
 static inline struct net_bridge_vlan_group *br_vlan_group(
 					const struct net_bridge *br)
@@ -1078,6 +1091,17 @@ static inline struct net_bridge_vlan_group *nbp_vlan_group_rcu(
 static inline void br_vlan_get_stats(const struct net_bridge_vlan *v,
 				     struct br_vlan_stats *stats)
 {
+}
+
+static inline void br_vlan_port_event(struct net_bridge_port *p,
+				      unsigned long event)
+{
+}
+
+static inline int br_vlan_bridge_event(struct net_device *dev,
+				       unsigned long event, void *ptr)
+{
+	return 0;
 }
 #endif
 

@@ -85,12 +85,49 @@ enum rgmii_rx_clock_delay {
 #define LED_MODE_SEL_MASK(x)		  (GENMASK(3, 0) << LED_MODE_SEL_POS(x))
 #define LED_MODE_SEL(x, mode)		  (((mode) << LED_MODE_SEL_POS(x)) & LED_MODE_SEL_MASK(x))
 
+#define MSCC_EXT_PAGE_CSR_CNTL_17	  17
+#define MSCC_EXT_PAGE_CSR_CNTL_18	  18
+
+#define MSCC_EXT_PAGE_CSR_CNTL_19	  19
+#define MSCC_PHY_CSR_CNTL_19_REG_ADDR(x)  (x)
+#define MSCC_PHY_CSR_CNTL_19_TARGET(x)	  ((x) << 12)
+#define MSCC_PHY_CSR_CNTL_19_READ	  BIT(14)
+#define MSCC_PHY_CSR_CNTL_19_CMD	  BIT(15)
+
+#define MSCC_EXT_PAGE_CSR_CNTL_20	  20
+#define MSCC_PHY_CSR_CNTL_20_TARGET(x)	  (x)
+
+#define PHY_MCB_TARGET			  0x07
+#define PHY_MCB_S6G_WRITE		  BIT(31)
+#define PHY_MCB_S6G_READ		  BIT(30)
+
+#define PHY_S6G_PLL5G_CFG0		  0x06
+#define PHY_S6G_LCPLL_CFG		  0x11
+#define PHY_S6G_PLL_CFG			  0x2b
+#define PHY_S6G_COMMON_CFG		  0x2c
+#define PHY_S6G_GPC_CFG			  0x2e
+#define PHY_S6G_MISC_CFG		  0x3b
+#define PHY_MCB_S6G_CFG			  0x3f
+#define PHY_S6G_DFT_CFG2		  0x3e
+#define PHY_S6G_PLL_STATUS		  0x31
+#define PHY_S6G_IB_STATUS0		  0x2f
+
+#define PHY_S6G_SYS_RST_POS		  31
+#define PHY_S6G_ENA_LANE_POS		  18
+#define PHY_S6G_ENA_LOOP_POS		  8
+#define PHY_S6G_QRATE_POS		  6
+#define PHY_S6G_IF_MODE_POS		  4
+#define PHY_S6G_PLL_ENA_OFFS_POS	  21
+#define PHY_S6G_PLL_FSM_CTRL_DATA_POS	  8
+#define PHY_S6G_PLL_FSM_ENA_POS		  7
+
 #define MSCC_EXT_PAGE_ACCESS		  31
 #define MSCC_PHY_PAGE_STANDARD		  0x0000 /* Standard registers */
 #define MSCC_PHY_PAGE_EXTENDED		  0x0001 /* Extended registers */
 #define MSCC_PHY_PAGE_EXTENDED_2	  0x0002 /* Extended reg - page 2 */
 #define MSCC_PHY_PAGE_EXTENDED_3	  0x0003 /* Extended reg - page 3 */
 #define MSCC_PHY_PAGE_EXTENDED_4	  0x0004 /* Extended reg - page 4 */
+#define MSCC_PHY_PAGE_CSR_CNTL		  MSCC_PHY_PAGE_EXTENDED_4
 /* Extended reg - GPIO; this is a bank of registers that are shared for all PHYs
  * in the same package.
  */
@@ -215,12 +252,21 @@ enum rgmii_rx_clock_delay {
 #define MSCC_PHY_TR_LSB			  17
 #define MSCC_PHY_TR_MSB			  18
 
-/* Microsemi PHY ID's */
+/* Microsemi PHY ID's
+ *   Code assumes lowest nibble is 0
+ */
+#define PHY_ID_VSC8504			  0x000704c0
+#define PHY_ID_VSC8514			  0x00070670
 #define PHY_ID_VSC8530			  0x00070560
 #define PHY_ID_VSC8531			  0x00070570
 #define PHY_ID_VSC8540			  0x00070760
 #define PHY_ID_VSC8541			  0x00070770
+#define PHY_ID_VSC8552			  0x000704e0
+#define PHY_ID_VSC856X			  0x000707e0
+#define PHY_ID_VSC8572			  0x000704d0
 #define PHY_ID_VSC8574			  0x000704a0
+#define PHY_ID_VSC8575			  0x000707d0
+#define PHY_ID_VSC8582			  0x000707b0
 #define PHY_ID_VSC8584			  0x000707c0
 
 #define MSCC_VDDMAC_1500		  1500
@@ -857,7 +903,7 @@ static void vsc85xx_tr_write(struct phy_device *phydev, u16 addr, u32 val)
 static int vsc8531_pre_init_seq_set(struct phy_device *phydev)
 {
 	int rc;
-	const struct reg_val init_seq[] = {
+	static const struct reg_val init_seq[] = {
 		{0x0f90, 0x00688980},
 		{0x0696, 0x00000003},
 		{0x07fa, 0x0050100f},
@@ -901,7 +947,7 @@ out_unlock:
 
 static int vsc85xx_eee_init_seq_set(struct phy_device *phydev)
 {
-	const struct reg_val init_eee[] = {
+	static const struct reg_val init_eee[] = {
 		{0x0f82, 0x0012b00a},
 		{0x1686, 0x00000004},
 		{0x168c, 0x00d2c46f},
@@ -1186,7 +1232,7 @@ out:
 /* bus->mdio_lock should be locked when using this function */
 static int vsc8574_config_pre_init(struct phy_device *phydev)
 {
-	const struct reg_val pre_init1[] = {
+	static const struct reg_val pre_init1[] = {
 		{0x0fae, 0x000401bd},
 		{0x0fac, 0x000f000f},
 		{0x17a0, 0x00a0f147},
@@ -1234,7 +1280,7 @@ static int vsc8574_config_pre_init(struct phy_device *phydev)
 		{0x0fee, 0x0004a6a1},
 		{0x0ffe, 0x00b01807},
 	};
-	const struct reg_val pre_init2[] = {
+	static const struct reg_val pre_init2[] = {
 		{0x0486, 0x0008a518},
 		{0x0488, 0x006dc696},
 		{0x048a, 0x00000912},
@@ -1389,7 +1435,7 @@ out:
 /* bus->mdio_lock should be locked when using this function */
 static int vsc8584_config_pre_init(struct phy_device *phydev)
 {
-	const struct reg_val pre_init1[] = {
+	static const struct reg_val pre_init1[] = {
 		{0x07fa, 0x0050100f},
 		{0x1688, 0x00049f81},
 		{0x0f90, 0x00688980},
@@ -1413,7 +1459,7 @@ static int vsc8584_config_pre_init(struct phy_device *phydev)
 		{0x16b2, 0x00007000},
 		{0x16b4, 0x00000814},
 	};
-	const struct reg_val pre_init2[] = {
+	static const struct reg_val pre_init2[] = {
 		{0x0486, 0x0008a518},
 		{0x0488, 0x006dc696},
 		{0x048a, 0x00000912},
@@ -1557,6 +1603,9 @@ static bool vsc8584_is_pkg_init(struct phy_device *phydev, bool reversed)
 		else
 			addr = vsc8531->base_addr + i;
 
+		if (!map[addr])
+			continue;
+
 		phy = container_of(map[addr], struct phy_device, mdio);
 
 		if ((phy->phy_id & phydev->drv->phy_id_mask) !=
@@ -1609,14 +1658,29 @@ static int vsc8584_config_init(struct phy_device *phydev)
 	 * in this pre-init function.
 	 */
 	if (!vsc8584_is_pkg_init(phydev, val & PHY_ADDR_REVERSED ? 1 : 0)) {
-		if ((phydev->phy_id & phydev->drv->phy_id_mask) ==
-		    (PHY_ID_VSC8574 & phydev->drv->phy_id_mask))
+		/* The following switch statement assumes that the lowest
+		 * nibble of the phy_id_mask is always 0. This works because
+		 * the lowest nibble of the PHY_ID's below are also 0.
+		 */
+		WARN_ON(phydev->drv->phy_id_mask & 0xf);
+
+		switch (phydev->phy_id & phydev->drv->phy_id_mask) {
+		case PHY_ID_VSC8504:
+		case PHY_ID_VSC8552:
+		case PHY_ID_VSC8572:
+		case PHY_ID_VSC8574:
 			ret = vsc8574_config_pre_init(phydev);
-		else if ((phydev->phy_id & phydev->drv->phy_id_mask) ==
-			 (PHY_ID_VSC8584 & phydev->drv->phy_id_mask))
+			break;
+		case PHY_ID_VSC856X:
+		case PHY_ID_VSC8575:
+		case PHY_ID_VSC8582:
+		case PHY_ID_VSC8584:
 			ret = vsc8584_config_pre_init(phydev);
-		else
+			break;
+		default:
 			ret = -EINVAL;
+			break;
+		}
 
 		if (ret)
 			goto err;
@@ -1687,7 +1751,7 @@ static int vsc8584_config_init(struct phy_device *phydev)
 			return ret;
 	}
 
-	return genphy_config_init(phydev);
+	return 0;
 
 err:
 	mutex_unlock(&phydev->mdio.bus->mdio_lock);
@@ -1729,7 +1793,7 @@ static int vsc85xx_config_init(struct phy_device *phydev)
 			return rc;
 	}
 
-	return genphy_config_init(phydev);
+	return 0;
 }
 
 static int vsc8584_did_interrupt(struct phy_device *phydev)
@@ -1740,6 +1804,386 @@ static int vsc8584_did_interrupt(struct phy_device *phydev)
 		rc = phy_read(phydev, MII_VSC85XX_INT_STATUS);
 
 	return (rc < 0) ? 0 : rc & MII_VSC85XX_INT_MASK_MASK;
+}
+
+static int vsc8514_config_pre_init(struct phy_device *phydev)
+{
+	/* These are the settings to override the silicon default
+	 * values to handle hardware performance of PHY. They
+	 * are set at Power-On state and remain until PHY Reset.
+	 */
+	static const struct reg_val pre_init1[] = {
+		{0x0f90, 0x00688980},
+		{0x0786, 0x00000003},
+		{0x07fa, 0x0050100f},
+		{0x0f82, 0x0012b002},
+		{0x1686, 0x00000004},
+		{0x168c, 0x00d2c46f},
+		{0x17a2, 0x00000620},
+		{0x16a0, 0x00eeffdd},
+		{0x16a6, 0x00071448},
+		{0x16a4, 0x0013132f},
+		{0x16a8, 0x00000000},
+		{0x0ffc, 0x00c0a028},
+		{0x0fe8, 0x0091b06c},
+		{0x0fea, 0x00041600},
+		{0x0f80, 0x00fffaff},
+		{0x0fec, 0x00901809},
+		{0x0ffe, 0x00b01007},
+		{0x16b0, 0x00eeff00},
+		{0x16b2, 0x00007000},
+		{0x16b4, 0x00000814},
+	};
+	unsigned int i;
+	u16 reg;
+
+	phy_base_write(phydev, MSCC_EXT_PAGE_ACCESS, MSCC_PHY_PAGE_STANDARD);
+
+	/* all writes below are broadcasted to all PHYs in the same package */
+	reg = phy_base_read(phydev, MSCC_PHY_EXT_CNTL_STATUS);
+	reg |= SMI_BROADCAST_WR_EN;
+	phy_base_write(phydev, MSCC_PHY_EXT_CNTL_STATUS, reg);
+
+	phy_base_write(phydev, MSCC_EXT_PAGE_ACCESS, MSCC_PHY_PAGE_TEST);
+
+	reg = phy_base_read(phydev, MSCC_PHY_TEST_PAGE_8);
+	reg |= BIT(15);
+	phy_base_write(phydev, MSCC_PHY_TEST_PAGE_8, reg);
+
+	phy_base_write(phydev, MSCC_EXT_PAGE_ACCESS, MSCC_PHY_PAGE_TR);
+
+	for (i = 0; i < ARRAY_SIZE(pre_init1); i++)
+		vsc8584_csr_write(phydev, pre_init1[i].reg, pre_init1[i].val);
+
+	phy_base_write(phydev, MSCC_EXT_PAGE_ACCESS, MSCC_PHY_PAGE_TEST);
+
+	reg = phy_base_read(phydev, MSCC_PHY_TEST_PAGE_8);
+	reg &= ~BIT(15);
+	phy_base_write(phydev, MSCC_PHY_TEST_PAGE_8, reg);
+
+	phy_base_write(phydev, MSCC_EXT_PAGE_ACCESS, MSCC_PHY_PAGE_STANDARD);
+
+	reg = phy_base_read(phydev, MSCC_PHY_EXT_CNTL_STATUS);
+	reg &= ~SMI_BROADCAST_WR_EN;
+	phy_base_write(phydev, MSCC_PHY_EXT_CNTL_STATUS, reg);
+
+	return 0;
+}
+
+static u32 vsc85xx_csr_ctrl_phy_read(struct phy_device *phydev,
+				     u32 target, u32 reg)
+{
+	unsigned long deadline;
+	u32 val, val_l, val_h;
+
+	phy_base_write(phydev, MSCC_EXT_PAGE_ACCESS, MSCC_PHY_PAGE_CSR_CNTL);
+
+	/* CSR registers are grouped under different Target IDs.
+	 * 6-bit Target_ID is split between MSCC_EXT_PAGE_CSR_CNTL_20 and
+	 * MSCC_EXT_PAGE_CSR_CNTL_19 registers.
+	 * Target_ID[5:2] maps to bits[3:0] of MSCC_EXT_PAGE_CSR_CNTL_20
+	 * and Target_ID[1:0] maps to bits[13:12] of MSCC_EXT_PAGE_CSR_CNTL_19.
+	 */
+
+	/* Setup the Target ID */
+	phy_base_write(phydev, MSCC_EXT_PAGE_CSR_CNTL_20,
+		       MSCC_PHY_CSR_CNTL_20_TARGET(target >> 2));
+
+	/* Trigger CSR Action - Read into the CSR's */
+	phy_base_write(phydev, MSCC_EXT_PAGE_CSR_CNTL_19,
+		       MSCC_PHY_CSR_CNTL_19_CMD | MSCC_PHY_CSR_CNTL_19_READ |
+		       MSCC_PHY_CSR_CNTL_19_REG_ADDR(reg) |
+		       MSCC_PHY_CSR_CNTL_19_TARGET(target & 0x3));
+
+	/* Wait for register access*/
+	deadline = jiffies + msecs_to_jiffies(PROC_CMD_NCOMPLETED_TIMEOUT_MS);
+	do {
+		usleep_range(500, 1000);
+		val = phy_base_read(phydev, MSCC_EXT_PAGE_CSR_CNTL_19);
+	} while (time_before(jiffies, deadline) &&
+		!(val & MSCC_PHY_CSR_CNTL_19_CMD));
+
+	if (!(val & MSCC_PHY_CSR_CNTL_19_CMD))
+		return 0xffffffff;
+
+	/* Read the Least Significant Word (LSW) (17) */
+	val_l = phy_base_read(phydev, MSCC_EXT_PAGE_CSR_CNTL_17);
+
+	/* Read the Most Significant Word (MSW) (18) */
+	val_h = phy_base_read(phydev, MSCC_EXT_PAGE_CSR_CNTL_18);
+
+	phy_base_write(phydev, MSCC_EXT_PAGE_ACCESS,
+		       MSCC_PHY_PAGE_STANDARD);
+
+	return (val_h << 16) | val_l;
+}
+
+static int vsc85xx_csr_ctrl_phy_write(struct phy_device *phydev,
+				      u32 target, u32 reg, u32 val)
+{
+	unsigned long deadline;
+
+	phy_base_write(phydev, MSCC_EXT_PAGE_ACCESS, MSCC_PHY_PAGE_CSR_CNTL);
+
+	/* CSR registers are grouped under different Target IDs.
+	 * 6-bit Target_ID is split between MSCC_EXT_PAGE_CSR_CNTL_20 and
+	 * MSCC_EXT_PAGE_CSR_CNTL_19 registers.
+	 * Target_ID[5:2] maps to bits[3:0] of MSCC_EXT_PAGE_CSR_CNTL_20
+	 * and Target_ID[1:0] maps to bits[13:12] of MSCC_EXT_PAGE_CSR_CNTL_19.
+	 */
+
+	/* Setup the Target ID */
+	phy_base_write(phydev, MSCC_EXT_PAGE_CSR_CNTL_20,
+		       MSCC_PHY_CSR_CNTL_20_TARGET(target >> 2));
+
+	/* Write the Least Significant Word (LSW) (17) */
+	phy_base_write(phydev, MSCC_EXT_PAGE_CSR_CNTL_17, (u16)val);
+
+	/* Write the Most Significant Word (MSW) (18) */
+	phy_base_write(phydev, MSCC_EXT_PAGE_CSR_CNTL_18, (u16)(val >> 16));
+
+	/* Trigger CSR Action - Write into the CSR's */
+	phy_base_write(phydev, MSCC_EXT_PAGE_CSR_CNTL_19,
+		       MSCC_PHY_CSR_CNTL_19_CMD |
+		       MSCC_PHY_CSR_CNTL_19_REG_ADDR(reg) |
+		       MSCC_PHY_CSR_CNTL_19_TARGET(target & 0x3));
+
+	/* Wait for register access */
+	deadline = jiffies + msecs_to_jiffies(PROC_CMD_NCOMPLETED_TIMEOUT_MS);
+	do {
+		usleep_range(500, 1000);
+		val = phy_base_read(phydev, MSCC_EXT_PAGE_CSR_CNTL_19);
+	} while (time_before(jiffies, deadline) &&
+		 !(val & MSCC_PHY_CSR_CNTL_19_CMD));
+
+	if (!(val & MSCC_PHY_CSR_CNTL_19_CMD))
+		return -ETIMEDOUT;
+
+	phy_base_write(phydev, MSCC_EXT_PAGE_ACCESS,
+		       MSCC_PHY_PAGE_STANDARD);
+
+	return 0;
+}
+
+static int __phy_write_mcb_s6g(struct phy_device *phydev, u32 reg, u8 mcb,
+			       u32 op)
+{
+	unsigned long deadline;
+	u32 val;
+	int ret;
+
+	ret = vsc85xx_csr_ctrl_phy_write(phydev, PHY_MCB_TARGET, reg,
+					 op | (1 << mcb));
+	if (ret)
+		return -EINVAL;
+
+	deadline = jiffies + msecs_to_jiffies(PROC_CMD_NCOMPLETED_TIMEOUT_MS);
+	do {
+		usleep_range(500, 1000);
+		val = vsc85xx_csr_ctrl_phy_read(phydev, PHY_MCB_TARGET, reg);
+
+		if (val == 0xffffffff)
+			return -EIO;
+
+	} while (time_before(jiffies, deadline) && (val & op));
+
+	if (val & op)
+		return -ETIMEDOUT;
+
+	return 0;
+}
+
+/* Trigger a read to the spcified MCB */
+static int phy_update_mcb_s6g(struct phy_device *phydev, u32 reg, u8 mcb)
+{
+	return __phy_write_mcb_s6g(phydev, reg, mcb, PHY_MCB_S6G_READ);
+}
+
+/* Trigger a write to the spcified MCB */
+static int phy_commit_mcb_s6g(struct phy_device *phydev, u32 reg, u8 mcb)
+{
+	return __phy_write_mcb_s6g(phydev, reg, mcb, PHY_MCB_S6G_WRITE);
+}
+
+static int vsc8514_config_init(struct phy_device *phydev)
+{
+	struct vsc8531_private *vsc8531 = phydev->priv;
+	unsigned long deadline;
+	u16 val, addr;
+	int ret, i;
+	u32 reg;
+
+	phydev->mdix_ctrl = ETH_TP_MDI_AUTO;
+
+	mutex_lock(&phydev->mdio.bus->mdio_lock);
+
+	__phy_write(phydev, MSCC_EXT_PAGE_ACCESS, MSCC_PHY_PAGE_EXTENDED);
+
+	addr = __phy_read(phydev, MSCC_PHY_EXT_PHY_CNTL_4);
+	addr >>= PHY_CNTL_4_ADDR_POS;
+
+	val = __phy_read(phydev, MSCC_PHY_ACTIPHY_CNTL);
+
+	if (val & PHY_ADDR_REVERSED)
+		vsc8531->base_addr = phydev->mdio.addr + addr;
+	else
+		vsc8531->base_addr = phydev->mdio.addr - addr;
+
+	/* Some parts of the init sequence are identical for every PHY in the
+	 * package. Some parts are modifying the GPIO register bank which is a
+	 * set of registers that are affecting all PHYs, a few resetting the
+	 * microprocessor common to all PHYs.
+	 * All PHYs' interrupts mask register has to be zeroed before enabling
+	 * any PHY's interrupt in this register.
+	 * For all these reasons, we need to do the init sequence once and only
+	 * once whatever is the first PHY in the package that is initialized and
+	 * do the correct init sequence for all PHYs that are package-critical
+	 * in this pre-init function.
+	 */
+	if (!vsc8584_is_pkg_init(phydev, val & PHY_ADDR_REVERSED ? 1 : 0))
+		vsc8514_config_pre_init(phydev);
+
+	vsc8531->pkg_init = true;
+
+	phy_base_write(phydev, MSCC_EXT_PAGE_ACCESS,
+		       MSCC_PHY_PAGE_EXTENDED_GPIO);
+
+	val = phy_base_read(phydev, MSCC_PHY_MAC_CFG_FASTLINK);
+
+	val &= ~MAC_CFG_MASK;
+	val |= MAC_CFG_QSGMII;
+	ret = phy_base_write(phydev, MSCC_PHY_MAC_CFG_FASTLINK, val);
+
+	if (ret)
+		goto err;
+
+	ret = vsc8584_cmd(phydev,
+			  PROC_CMD_MCB_ACCESS_MAC_CONF |
+			  PROC_CMD_RST_CONF_PORT |
+			  PROC_CMD_READ_MOD_WRITE_PORT | PROC_CMD_QSGMII_MAC);
+	if (ret)
+		goto err;
+
+	/* 6g mcb */
+	phy_update_mcb_s6g(phydev, PHY_MCB_S6G_CFG, 0);
+	/* lcpll mcb */
+	phy_update_mcb_s6g(phydev, PHY_S6G_LCPLL_CFG, 0);
+	/* pll5gcfg0 */
+	ret = vsc85xx_csr_ctrl_phy_write(phydev, PHY_MCB_TARGET,
+					 PHY_S6G_PLL5G_CFG0, 0x7036f145);
+	if (ret)
+		goto err;
+
+	phy_commit_mcb_s6g(phydev, PHY_S6G_LCPLL_CFG, 0);
+	/* pllcfg */
+	ret = vsc85xx_csr_ctrl_phy_write(phydev, PHY_MCB_TARGET,
+					 PHY_S6G_PLL_CFG,
+					 (3 << PHY_S6G_PLL_ENA_OFFS_POS) |
+					 (120 << PHY_S6G_PLL_FSM_CTRL_DATA_POS)
+					 | (0 << PHY_S6G_PLL_FSM_ENA_POS));
+	if (ret)
+		goto err;
+
+	/* commoncfg */
+	ret = vsc85xx_csr_ctrl_phy_write(phydev, PHY_MCB_TARGET,
+					 PHY_S6G_COMMON_CFG,
+					 (0 << PHY_S6G_SYS_RST_POS) |
+					 (0 << PHY_S6G_ENA_LANE_POS) |
+					 (0 << PHY_S6G_ENA_LOOP_POS) |
+					 (0 << PHY_S6G_QRATE_POS) |
+					 (3 << PHY_S6G_IF_MODE_POS));
+	if (ret)
+		goto err;
+
+	/* misccfg */
+	ret = vsc85xx_csr_ctrl_phy_write(phydev, PHY_MCB_TARGET,
+					 PHY_S6G_MISC_CFG, 1);
+	if (ret)
+		goto err;
+
+	/* gpcfg */
+	ret = vsc85xx_csr_ctrl_phy_write(phydev, PHY_MCB_TARGET,
+					 PHY_S6G_GPC_CFG, 768);
+	if (ret)
+		goto err;
+
+	phy_commit_mcb_s6g(phydev, PHY_S6G_DFT_CFG2, 0);
+
+	deadline = jiffies + msecs_to_jiffies(PROC_CMD_NCOMPLETED_TIMEOUT_MS);
+	do {
+		usleep_range(500, 1000);
+		phy_update_mcb_s6g(phydev, PHY_MCB_S6G_CFG,
+				   0); /* read 6G MCB into CSRs */
+		reg = vsc85xx_csr_ctrl_phy_read(phydev, PHY_MCB_TARGET,
+						PHY_S6G_PLL_STATUS);
+		if (reg == 0xffffffff) {
+			mutex_unlock(&phydev->mdio.bus->mdio_lock);
+			return -EIO;
+		}
+
+	} while (time_before(jiffies, deadline) && (reg & BIT(12)));
+
+	if (reg & BIT(12)) {
+		mutex_unlock(&phydev->mdio.bus->mdio_lock);
+		return -ETIMEDOUT;
+	}
+
+	/* misccfg */
+	ret = vsc85xx_csr_ctrl_phy_write(phydev, PHY_MCB_TARGET,
+					 PHY_S6G_MISC_CFG, 0);
+	if (ret)
+		goto err;
+
+	phy_commit_mcb_s6g(phydev, PHY_MCB_S6G_CFG, 0);
+
+	deadline = jiffies + msecs_to_jiffies(PROC_CMD_NCOMPLETED_TIMEOUT_MS);
+	do {
+		usleep_range(500, 1000);
+		phy_update_mcb_s6g(phydev, PHY_MCB_S6G_CFG,
+				   0); /* read 6G MCB into CSRs */
+		reg = vsc85xx_csr_ctrl_phy_read(phydev, PHY_MCB_TARGET,
+						PHY_S6G_IB_STATUS0);
+		if (reg == 0xffffffff) {
+			mutex_unlock(&phydev->mdio.bus->mdio_lock);
+			return -EIO;
+		}
+
+	} while (time_before(jiffies, deadline) && !(reg & BIT(8)));
+
+	if (!(reg & BIT(8))) {
+		mutex_unlock(&phydev->mdio.bus->mdio_lock);
+		return -ETIMEDOUT;
+	}
+
+	mutex_unlock(&phydev->mdio.bus->mdio_lock);
+
+	ret = phy_write(phydev, MSCC_EXT_PAGE_ACCESS, MSCC_PHY_PAGE_STANDARD);
+
+	if (ret)
+		return ret;
+
+	ret = phy_modify(phydev, MSCC_PHY_EXT_PHY_CNTL_1, MEDIA_OP_MODE_MASK,
+			 MEDIA_OP_MODE_COPPER);
+
+	if (ret)
+		return ret;
+
+	ret = genphy_soft_reset(phydev);
+
+	if (ret)
+		return ret;
+
+	for (i = 0; i < vsc8531->nleds; i++) {
+		ret = vsc85xx_led_cntl_set(phydev, i, vsc8531->leds_mode[i]);
+		if (ret)
+			return ret;
+	}
+
+	return ret;
+
+err:
+	mutex_unlock(&phydev->mdio.bus->mdio_lock);
+	return ret;
 }
 
 static int vsc85xx_ack_interrupt(struct phy_device *phydev)
@@ -1791,6 +2235,31 @@ static int vsc85xx_read_status(struct phy_device *phydev)
 	return genphy_read_status(phydev);
 }
 
+static int vsc8514_probe(struct phy_device *phydev)
+{
+	struct vsc8531_private *vsc8531;
+	u32 default_mode[4] = {VSC8531_LINK_1000_ACTIVITY,
+	   VSC8531_LINK_100_ACTIVITY, VSC8531_LINK_ACTIVITY,
+	   VSC8531_DUPLEX_COLLISION};
+
+	vsc8531 = devm_kzalloc(&phydev->mdio.dev, sizeof(*vsc8531), GFP_KERNEL);
+	if (!vsc8531)
+		return -ENOMEM;
+
+	phydev->priv = vsc8531;
+
+	vsc8531->nleds = 4;
+	vsc8531->supp_led_modes = VSC85XX_SUPP_LED_MODES;
+	vsc8531->hw_stats = vsc85xx_hw_stats;
+	vsc8531->nstats = ARRAY_SIZE(vsc85xx_hw_stats);
+	vsc8531->stats = devm_kcalloc(&phydev->mdio.dev, vsc8531->nstats,
+				      sizeof(u64), GFP_KERNEL);
+	if (!vsc8531->stats)
+		return -ENOMEM;
+
+	return vsc85xx_dt_led_modes_get(phydev, default_mode);
+}
+
 static int vsc8574_probe(struct phy_device *phydev)
 {
 	struct vsc8531_private *vsc8531;
@@ -1808,8 +2277,8 @@ static int vsc8574_probe(struct phy_device *phydev)
 	vsc8531->supp_led_modes = VSC8584_SUPP_LED_MODES;
 	vsc8531->hw_stats = vsc8584_hw_stats;
 	vsc8531->nstats = ARRAY_SIZE(vsc8584_hw_stats);
-	vsc8531->stats = devm_kmalloc_array(&phydev->mdio.dev, vsc8531->nstats,
-					    sizeof(u64), GFP_KERNEL);
+	vsc8531->stats = devm_kcalloc(&phydev->mdio.dev, vsc8531->nstats,
+				      sizeof(u64), GFP_KERNEL);
 	if (!vsc8531->stats)
 		return -ENOMEM;
 
@@ -1838,8 +2307,8 @@ static int vsc8584_probe(struct phy_device *phydev)
 	vsc8531->supp_led_modes = VSC8584_SUPP_LED_MODES;
 	vsc8531->hw_stats = vsc8584_hw_stats;
 	vsc8531->nstats = ARRAY_SIZE(vsc8584_hw_stats);
-	vsc8531->stats = devm_kmalloc_array(&phydev->mdio.dev, vsc8531->nstats,
-					    sizeof(u64), GFP_KERNEL);
+	vsc8531->stats = devm_kcalloc(&phydev->mdio.dev, vsc8531->nstats,
+				      sizeof(u64), GFP_KERNEL);
 	if (!vsc8531->stats)
 		return -ENOMEM;
 
@@ -1868,8 +2337,8 @@ static int vsc85xx_probe(struct phy_device *phydev)
 	vsc8531->supp_led_modes = VSC85XX_SUPP_LED_MODES;
 	vsc8531->hw_stats = vsc85xx_hw_stats;
 	vsc8531->nstats = ARRAY_SIZE(vsc85xx_hw_stats);
-	vsc8531->stats = devm_kmalloc_array(&phydev->mdio.dev, vsc8531->nstats,
-					    sizeof(u64), GFP_KERNEL);
+	vsc8531->stats = devm_kcalloc(&phydev->mdio.dev, vsc8531->nstats,
+				      sizeof(u64), GFP_KERNEL);
 	if (!vsc8531->stats)
 		return -ENOMEM;
 
@@ -1879,10 +2348,59 @@ static int vsc85xx_probe(struct phy_device *phydev)
 /* Microsemi VSC85xx PHYs */
 static struct phy_driver vsc85xx_driver[] = {
 {
+	.phy_id		= PHY_ID_VSC8504,
+	.name		= "Microsemi GE VSC8504 SyncE",
+	.phy_id_mask	= 0xfffffff0,
+	/* PHY_GBIT_FEATURES */
+	.soft_reset	= &genphy_soft_reset,
+	.config_init    = &vsc8584_config_init,
+	.config_aneg    = &vsc85xx_config_aneg,
+	.aneg_done	= &genphy_aneg_done,
+	.read_status	= &vsc85xx_read_status,
+	.ack_interrupt  = &vsc85xx_ack_interrupt,
+	.config_intr    = &vsc85xx_config_intr,
+	.did_interrupt  = &vsc8584_did_interrupt,
+	.suspend	= &genphy_suspend,
+	.resume		= &genphy_resume,
+	.probe		= &vsc8574_probe,
+	.set_wol	= &vsc85xx_wol_set,
+	.get_wol	= &vsc85xx_wol_get,
+	.get_tunable	= &vsc85xx_get_tunable,
+	.set_tunable	= &vsc85xx_set_tunable,
+	.read_page	= &vsc85xx_phy_read_page,
+	.write_page	= &vsc85xx_phy_write_page,
+	.get_sset_count = &vsc85xx_get_sset_count,
+	.get_strings    = &vsc85xx_get_strings,
+	.get_stats      = &vsc85xx_get_stats,
+},
+{
+	.phy_id		= PHY_ID_VSC8514,
+	.name		= "Microsemi GE VSC8514 SyncE",
+	.phy_id_mask	= 0xfffffff0,
+	.soft_reset	= &genphy_soft_reset,
+	.config_init    = &vsc8514_config_init,
+	.config_aneg    = &vsc85xx_config_aneg,
+	.read_status	= &vsc85xx_read_status,
+	.ack_interrupt  = &vsc85xx_ack_interrupt,
+	.config_intr    = &vsc85xx_config_intr,
+	.suspend	= &genphy_suspend,
+	.resume		= &genphy_resume,
+	.probe		= &vsc8514_probe,
+	.set_wol	= &vsc85xx_wol_set,
+	.get_wol	= &vsc85xx_wol_get,
+	.get_tunable	= &vsc85xx_get_tunable,
+	.set_tunable	= &vsc85xx_set_tunable,
+	.read_page      = &vsc85xx_phy_read_page,
+	.write_page     = &vsc85xx_phy_write_page,
+	.get_sset_count = &vsc85xx_get_sset_count,
+	.get_strings    = &vsc85xx_get_strings,
+	.get_stats      = &vsc85xx_get_stats,
+},
+{
 	.phy_id		= PHY_ID_VSC8530,
 	.name		= "Microsemi FE VSC8530",
 	.phy_id_mask	= 0xfffffff0,
-	.features	= PHY_BASIC_FEATURES,
+	/* PHY_BASIC_FEATURES */
 	.soft_reset	= &genphy_soft_reset,
 	.config_init	= &vsc85xx_config_init,
 	.config_aneg    = &vsc85xx_config_aneg,
@@ -1907,7 +2425,7 @@ static struct phy_driver vsc85xx_driver[] = {
 	.phy_id		= PHY_ID_VSC8531,
 	.name		= "Microsemi VSC8531",
 	.phy_id_mask    = 0xfffffff0,
-	.features	= PHY_GBIT_FEATURES,
+	/* PHY_GBIT_FEATURES */
 	.soft_reset	= &genphy_soft_reset,
 	.config_init    = &vsc85xx_config_init,
 	.config_aneg    = &vsc85xx_config_aneg,
@@ -1932,7 +2450,7 @@ static struct phy_driver vsc85xx_driver[] = {
 	.phy_id		= PHY_ID_VSC8540,
 	.name		= "Microsemi FE VSC8540 SyncE",
 	.phy_id_mask	= 0xfffffff0,
-	.features	= PHY_BASIC_FEATURES,
+	/* PHY_BASIC_FEATURES */
 	.soft_reset	= &genphy_soft_reset,
 	.config_init	= &vsc85xx_config_init,
 	.config_aneg	= &vsc85xx_config_aneg,
@@ -1957,7 +2475,7 @@ static struct phy_driver vsc85xx_driver[] = {
 	.phy_id		= PHY_ID_VSC8541,
 	.name		= "Microsemi VSC8541 SyncE",
 	.phy_id_mask    = 0xfffffff0,
-	.features	= PHY_GBIT_FEATURES,
+	/* PHY_GBIT_FEATURES */
 	.soft_reset	= &genphy_soft_reset,
 	.config_init    = &vsc85xx_config_init,
 	.config_aneg    = &vsc85xx_config_aneg,
@@ -1979,10 +2497,10 @@ static struct phy_driver vsc85xx_driver[] = {
 	.get_stats      = &vsc85xx_get_stats,
 },
 {
-	.phy_id		= PHY_ID_VSC8574,
-	.name		= "Microsemi GE VSC8574 SyncE",
+	.phy_id		= PHY_ID_VSC8552,
+	.name		= "Microsemi GE VSC8552 SyncE",
 	.phy_id_mask	= 0xfffffff0,
-	.features	= PHY_GBIT_FEATURES,
+	/* PHY_GBIT_FEATURES */
 	.soft_reset	= &genphy_soft_reset,
 	.config_init    = &vsc8584_config_init,
 	.config_aneg    = &vsc85xx_config_aneg,
@@ -2005,10 +2523,134 @@ static struct phy_driver vsc85xx_driver[] = {
 	.get_stats      = &vsc85xx_get_stats,
 },
 {
+	.phy_id		= PHY_ID_VSC856X,
+	.name		= "Microsemi GE VSC856X SyncE",
+	.phy_id_mask	= 0xfffffff0,
+	/* PHY_GBIT_FEATURES */
+	.soft_reset	= &genphy_soft_reset,
+	.config_init    = &vsc8584_config_init,
+	.config_aneg    = &vsc85xx_config_aneg,
+	.aneg_done	= &genphy_aneg_done,
+	.read_status	= &vsc85xx_read_status,
+	.ack_interrupt  = &vsc85xx_ack_interrupt,
+	.config_intr    = &vsc85xx_config_intr,
+	.did_interrupt  = &vsc8584_did_interrupt,
+	.suspend	= &genphy_suspend,
+	.resume		= &genphy_resume,
+	.probe		= &vsc8584_probe,
+	.get_tunable	= &vsc85xx_get_tunable,
+	.set_tunable	= &vsc85xx_set_tunable,
+	.read_page	= &vsc85xx_phy_read_page,
+	.write_page	= &vsc85xx_phy_write_page,
+	.get_sset_count = &vsc85xx_get_sset_count,
+	.get_strings    = &vsc85xx_get_strings,
+	.get_stats      = &vsc85xx_get_stats,
+},
+{
+	.phy_id		= PHY_ID_VSC8572,
+	.name		= "Microsemi GE VSC8572 SyncE",
+	.phy_id_mask	= 0xfffffff0,
+	/* PHY_GBIT_FEATURES */
+	.soft_reset	= &genphy_soft_reset,
+	.config_init    = &vsc8584_config_init,
+	.config_aneg    = &vsc85xx_config_aneg,
+	.aneg_done	= &genphy_aneg_done,
+	.read_status	= &vsc85xx_read_status,
+	.ack_interrupt  = &vsc85xx_ack_interrupt,
+	.config_intr    = &vsc85xx_config_intr,
+	.did_interrupt  = &vsc8584_did_interrupt,
+	.suspend	= &genphy_suspend,
+	.resume		= &genphy_resume,
+	.probe		= &vsc8574_probe,
+	.set_wol	= &vsc85xx_wol_set,
+	.get_wol	= &vsc85xx_wol_get,
+	.get_tunable	= &vsc85xx_get_tunable,
+	.set_tunable	= &vsc85xx_set_tunable,
+	.read_page	= &vsc85xx_phy_read_page,
+	.write_page	= &vsc85xx_phy_write_page,
+	.get_sset_count = &vsc85xx_get_sset_count,
+	.get_strings    = &vsc85xx_get_strings,
+	.get_stats      = &vsc85xx_get_stats,
+},
+{
+	.phy_id		= PHY_ID_VSC8574,
+	.name		= "Microsemi GE VSC8574 SyncE",
+	.phy_id_mask	= 0xfffffff0,
+	/* PHY_GBIT_FEATURES */
+	.soft_reset	= &genphy_soft_reset,
+	.config_init    = &vsc8584_config_init,
+	.config_aneg    = &vsc85xx_config_aneg,
+	.aneg_done	= &genphy_aneg_done,
+	.read_status	= &vsc85xx_read_status,
+	.ack_interrupt  = &vsc85xx_ack_interrupt,
+	.config_intr    = &vsc85xx_config_intr,
+	.did_interrupt  = &vsc8584_did_interrupt,
+	.suspend	= &genphy_suspend,
+	.resume		= &genphy_resume,
+	.probe		= &vsc8574_probe,
+	.set_wol	= &vsc85xx_wol_set,
+	.get_wol	= &vsc85xx_wol_get,
+	.get_tunable	= &vsc85xx_get_tunable,
+	.set_tunable	= &vsc85xx_set_tunable,
+	.read_page	= &vsc85xx_phy_read_page,
+	.write_page	= &vsc85xx_phy_write_page,
+	.get_sset_count = &vsc85xx_get_sset_count,
+	.get_strings    = &vsc85xx_get_strings,
+	.get_stats      = &vsc85xx_get_stats,
+},
+{
+	.phy_id		= PHY_ID_VSC8575,
+	.name		= "Microsemi GE VSC8575 SyncE",
+	.phy_id_mask	= 0xfffffff0,
+	/* PHY_GBIT_FEATURES */
+	.soft_reset	= &genphy_soft_reset,
+	.config_init    = &vsc8584_config_init,
+	.config_aneg    = &vsc85xx_config_aneg,
+	.aneg_done	= &genphy_aneg_done,
+	.read_status	= &vsc85xx_read_status,
+	.ack_interrupt  = &vsc85xx_ack_interrupt,
+	.config_intr    = &vsc85xx_config_intr,
+	.did_interrupt  = &vsc8584_did_interrupt,
+	.suspend	= &genphy_suspend,
+	.resume		= &genphy_resume,
+	.probe		= &vsc8584_probe,
+	.get_tunable	= &vsc85xx_get_tunable,
+	.set_tunable	= &vsc85xx_set_tunable,
+	.read_page	= &vsc85xx_phy_read_page,
+	.write_page	= &vsc85xx_phy_write_page,
+	.get_sset_count = &vsc85xx_get_sset_count,
+	.get_strings    = &vsc85xx_get_strings,
+	.get_stats      = &vsc85xx_get_stats,
+},
+{
+	.phy_id		= PHY_ID_VSC8582,
+	.name		= "Microsemi GE VSC8582 SyncE",
+	.phy_id_mask	= 0xfffffff0,
+	/* PHY_GBIT_FEATURES */
+	.soft_reset	= &genphy_soft_reset,
+	.config_init    = &vsc8584_config_init,
+	.config_aneg    = &vsc85xx_config_aneg,
+	.aneg_done	= &genphy_aneg_done,
+	.read_status	= &vsc85xx_read_status,
+	.ack_interrupt  = &vsc85xx_ack_interrupt,
+	.config_intr    = &vsc85xx_config_intr,
+	.did_interrupt  = &vsc8584_did_interrupt,
+	.suspend	= &genphy_suspend,
+	.resume		= &genphy_resume,
+	.probe		= &vsc8584_probe,
+	.get_tunable	= &vsc85xx_get_tunable,
+	.set_tunable	= &vsc85xx_set_tunable,
+	.read_page	= &vsc85xx_phy_read_page,
+	.write_page	= &vsc85xx_phy_write_page,
+	.get_sset_count = &vsc85xx_get_sset_count,
+	.get_strings    = &vsc85xx_get_strings,
+	.get_stats      = &vsc85xx_get_stats,
+},
+{
 	.phy_id		= PHY_ID_VSC8584,
 	.name		= "Microsemi GE VSC8584 SyncE",
 	.phy_id_mask	= 0xfffffff0,
-	.features	= PHY_GBIT_FEATURES,
+	/* PHY_GBIT_FEATURES */
 	.soft_reset	= &genphy_soft_reset,
 	.config_init    = &vsc8584_config_init,
 	.config_aneg    = &vsc85xx_config_aneg,
@@ -2034,11 +2676,18 @@ static struct phy_driver vsc85xx_driver[] = {
 module_phy_driver(vsc85xx_driver);
 
 static struct mdio_device_id __maybe_unused vsc85xx_tbl[] = {
+	{ PHY_ID_VSC8504, 0xfffffff0, },
+	{ PHY_ID_VSC8514, 0xfffffff0, },
 	{ PHY_ID_VSC8530, 0xfffffff0, },
 	{ PHY_ID_VSC8531, 0xfffffff0, },
 	{ PHY_ID_VSC8540, 0xfffffff0, },
 	{ PHY_ID_VSC8541, 0xfffffff0, },
+	{ PHY_ID_VSC8552, 0xfffffff0, },
+	{ PHY_ID_VSC856X, 0xfffffff0, },
+	{ PHY_ID_VSC8572, 0xfffffff0, },
 	{ PHY_ID_VSC8574, 0xfffffff0, },
+	{ PHY_ID_VSC8575, 0xfffffff0, },
+	{ PHY_ID_VSC8582, 0xfffffff0, },
 	{ PHY_ID_VSC8584, 0xfffffff0, },
 	{ }
 };

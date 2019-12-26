@@ -905,7 +905,7 @@ static inline bool intel_vgpu_in_aperture(struct intel_vgpu *vgpu, u64 off)
 static int intel_vgpu_aperture_rw(struct intel_vgpu *vgpu, u64 off,
 		void *buf, unsigned long count, bool is_write)
 {
-	void *aperture_va;
+	void __iomem *aperture_va;
 
 	if (!intel_vgpu_in_aperture(vgpu, off) ||
 	    !intel_vgpu_in_aperture(vgpu, off + count)) {
@@ -920,9 +920,9 @@ static int intel_vgpu_aperture_rw(struct intel_vgpu *vgpu, u64 off,
 		return -EIO;
 
 	if (is_write)
-		memcpy(aperture_va + offset_in_page(off), buf, count);
+		memcpy_toio(aperture_va + offset_in_page(off), buf, count);
 	else
-		memcpy(buf, aperture_va + offset_in_page(off), count);
+		memcpy_fromio(buf, aperture_va + offset_in_page(off), count);
 
 	io_mapping_unmap(aperture_va);
 
@@ -1306,7 +1306,6 @@ static long intel_vgpu_ioctl(struct mdev_device *mdev, unsigned int cmd,
 		unsigned int i;
 		int ret;
 		struct vfio_region_info_cap_sparse_mmap *sparse = NULL;
-		size_t size;
 		int nr_areas = 1;
 		int cap_type_id;
 
@@ -1349,9 +1348,8 @@ static long intel_vgpu_ioctl(struct mdev_device *mdev, unsigned int cmd,
 					VFIO_REGION_INFO_FLAG_WRITE;
 			info.size = gvt_aperture_sz(vgpu->gvt);
 
-			size = sizeof(*sparse) +
-					(nr_areas * sizeof(*sparse->areas));
-			sparse = kzalloc(size, GFP_KERNEL);
+			sparse = kzalloc(struct_size(sparse, areas, nr_areas),
+					 GFP_KERNEL);
 			if (!sparse)
 				return -ENOMEM;
 
@@ -1416,9 +1414,9 @@ static long intel_vgpu_ioctl(struct mdev_device *mdev, unsigned int cmd,
 			switch (cap_type_id) {
 			case VFIO_REGION_INFO_CAP_SPARSE_MMAP:
 				ret = vfio_info_add_capability(&caps,
-					&sparse->header, sizeof(*sparse) +
-					(sparse->nr_areas *
-						sizeof(*sparse->areas)));
+					&sparse->header,
+					struct_size(sparse, areas,
+						    sparse->nr_areas));
 				if (ret) {
 					kfree(sparse);
 					return ret;
@@ -1566,27 +1564,10 @@ vgpu_id_show(struct device *dev, struct device_attribute *attr,
 	return sprintf(buf, "\n");
 }
 
-static ssize_t
-hw_id_show(struct device *dev, struct device_attribute *attr,
-	   char *buf)
-{
-	struct mdev_device *mdev = mdev_from_dev(dev);
-
-	if (mdev) {
-		struct intel_vgpu *vgpu = (struct intel_vgpu *)
-			mdev_get_drvdata(mdev);
-		return sprintf(buf, "%u\n",
-			       vgpu->submission.shadow_ctx->hw_id);
-	}
-	return sprintf(buf, "\n");
-}
-
 static DEVICE_ATTR_RO(vgpu_id);
-static DEVICE_ATTR_RO(hw_id);
 
 static struct attribute *intel_vgpu_attrs[] = {
 	&dev_attr_vgpu_id.attr,
-	&dev_attr_hw_id.attr,
 	NULL
 };
 
@@ -1798,9 +1779,6 @@ static int kvmgt_guest_init(struct mdev_device *mdev)
 						"kvmgt_nr_cache_entries",
 						0444, vgpu->debugfs,
 						&vgpu->vdev.nr_cache_entries);
-	if (!info->debugfs_cache_entries)
-		gvt_vgpu_err("Cannot create kvmgt debugfs entry\n");
-
 	return 0;
 }
 
@@ -1904,6 +1882,18 @@ static int kvmgt_dma_map_guest_page(unsigned long handle, unsigned long gfn,
 
 	entry = __gvt_cache_find_gfn(info->vgpu, gfn);
 	if (!entry) {
+		ret = gvt_dma_map_page(vgpu, gfn, dma_addr, size);
+		if (ret)
+			goto err_unlock;
+
+		ret = __gvt_cache_add(info->vgpu, gfn, *dma_addr, size);
+		if (ret)
+			goto err_unmap;
+	} else if (entry->size != size) {
+		/* the same gfn with different size: unmap and re-map */
+		gvt_dma_unmap_page(vgpu, gfn, entry->dma_addr, entry->size);
+		__gvt_cache_remove_entry(vgpu, entry);
+
 		ret = gvt_dma_map_page(vgpu, gfn, dma_addr, size);
 		if (ret)
 			goto err_unlock;

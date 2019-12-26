@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * linux/fs/nfs/namespace.c
  *
@@ -154,6 +155,9 @@ struct vfsmount *nfs_d_automount(struct path *path)
 
 	mnt = server->nfs_client->rpc_ops->submount(server, path->dentry, fh, fattr);
 	if (IS_ERR(mnt))
+		goto out;
+
+	if (nfs_mountpoint_expiry_timeout < 0)
 		goto out;
 
 	mntget(mnt); /* prevent immediate expiration */

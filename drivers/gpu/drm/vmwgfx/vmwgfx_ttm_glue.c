@@ -25,22 +25,27 @@
  *
  **************************************************************************/
 
-#include <drm/drmP.h>
 #include "vmwgfx_drv.h"
 
 int vmw_mmap(struct file *filp, struct vm_area_struct *vma)
 {
-	struct drm_file *file_priv;
-	struct vmw_private *dev_priv;
+	static const struct vm_operations_struct vmw_vm_ops = {
+		.pfn_mkwrite = vmw_bo_vm_mkwrite,
+		.page_mkwrite = vmw_bo_vm_mkwrite,
+		.fault = vmw_bo_vm_fault,
+		.open = ttm_bo_vm_open,
+		.close = ttm_bo_vm_close
+	};
+	struct drm_file *file_priv = filp->private_data;
+	struct vmw_private *dev_priv = vmw_priv(file_priv->minor->dev);
+	int ret = ttm_bo_mmap(filp, vma, &dev_priv->bdev);
 
-	if (unlikely(vma->vm_pgoff < VMWGFX_FILE_PAGE_OFFSET)) {
-		DRM_ERROR("Illegal attempt to mmap old fifo space.\n");
-		return -EINVAL;
-	}
+	if (ret)
+		return ret;
 
-	file_priv = filp->private_data;
-	dev_priv = vmw_priv(file_priv->minor->dev);
-	return ttm_bo_mmap(filp, vma, &dev_priv->bdev);
+	vma->vm_ops = &vmw_vm_ops;
+
+	return 0;
 }
 
 /* struct vmw_validation_mem callback */

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  *  linux/kernel/compat.c
  *
@@ -5,10 +6,6 @@
  *  on 64 bit kernels.
  *
  *  Copyright (C) 2002-2003 Stephen Rothwell, IBM Corporation
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License version 2 as
- *  published by the Free Software Foundation.
  */
 
 #include <linux/linkage.h>
@@ -92,30 +89,6 @@ int compat_put_timespec(const struct timespec *ts, void __user *uts)
 		return __compat_put_timespec(ts, uts);
 }
 EXPORT_SYMBOL_GPL(compat_put_timespec);
-
-int get_compat_itimerval(struct itimerval *o, const struct compat_itimerval __user *i)
-{
-	struct compat_itimerval v32;
-
-	if (copy_from_user(&v32, i, sizeof(struct compat_itimerval)))
-		return -EFAULT;
-	o->it_interval.tv_sec = v32.it_interval.tv_sec;
-	o->it_interval.tv_usec = v32.it_interval.tv_usec;
-	o->it_value.tv_sec = v32.it_value.tv_sec;
-	o->it_value.tv_usec = v32.it_value.tv_usec;
-	return 0;
-}
-
-int put_compat_itimerval(struct compat_itimerval __user *o, const struct itimerval *i)
-{
-	struct compat_itimerval v32;
-
-	v32.it_interval.tv_sec = i->it_interval.tv_sec;
-	v32.it_interval.tv_usec = i->it_interval.tv_usec;
-	v32.it_value.tv_sec = i->it_value.tv_sec;
-	v32.it_value.tv_usec = i->it_value.tv_usec;
-	return copy_to_user(o, &v32, sizeof(struct compat_itimerval)) ? -EFAULT : 0;
-}
 
 #ifdef __ARCH_WANT_SYS_SIGPROCMASK
 
@@ -346,8 +319,11 @@ get_compat_sigset(sigset_t *set, const compat_sigset_t __user *compat)
 		return -EFAULT;
 	switch (_NSIG_WORDS) {
 	case 4: set->sig[3] = v.sig[6] | (((long)v.sig[7]) << 32 );
+		/* fall through */
 	case 3: set->sig[2] = v.sig[4] | (((long)v.sig[5]) << 32 );
+		/* fall through */
 	case 2: set->sig[1] = v.sig[2] | (((long)v.sig[3]) << 32 );
+		/* fall through */
 	case 1: set->sig[0] = v.sig[0] | (((long)v.sig[1]) << 32 );
 	}
 #else

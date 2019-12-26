@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /* sunvdc.c: Sun LDOM Virtual Disk Client.
  *
  * Copyright (C) 2007, 2008 David S. Miller <davem@davemloft.net>
@@ -633,7 +634,7 @@ static int generic_request(struct vdc_port *port, u8 op, void *buf, int len)
 	case VD_OP_GET_EFI:
 	case VD_OP_SET_EFI:
 		return -EOPNOTSUPP;
-	};
+	}
 
 	map_perm |= LDC_MAP_SHADOW | LDC_MAP_DIRECT | LDC_MAP_IO;
 

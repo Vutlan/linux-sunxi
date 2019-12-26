@@ -145,7 +145,7 @@ void mod_freesync_build_vrr_infopacket(struct mod_freesync *mod_freesync,
 		const struct dc_stream_state *stream,
 		const struct mod_vrr_params *vrr,
 		enum vrr_packet_type packet_type,
-		const enum color_transfer_func *app_tf,
+		enum color_transfer_func app_tf,
 		struct dc_info_packet *infopacket);
 
 void mod_freesync_build_vrr_params(struct mod_freesync *mod_freesync,
@@ -172,5 +172,7 @@ bool mod_freesync_is_valid_range(struct mod_freesync *mod_freesync,
 		uint32_t max_refresh_cap_in_uhz,
 		uint32_t min_refresh_request_in_uhz,
 		uint32_t max_refresh_request_in_uhz);
+
+
 
 #endif

@@ -26,11 +26,15 @@
 #include <linux/hwmon.h>
 #include <linux/marvell_phy.h>
 #include <linux/phy.h>
+#include <linux/sfp.h>
 
 #define MV_PHY_ALASKA_NBT_QUIRK_MASK	0xfffffffe
 #define MV_PHY_ALASKA_NBT_QUIRK_REV	(MARVELL_PHY_ID_88X3310 | 0xa)
 
 enum {
+	MV_PMA_BOOT		= 0xc050,
+	MV_PMA_BOOT_FATAL	= BIT(0),
+
 	MV_PCS_BASE_T		= 0x0000,
 	MV_PCS_BASE_R		= 0x1000,
 	MV_PCS_1000BASEX	= 0x2000,
@@ -48,6 +52,8 @@ enum {
 	MV_AN_STAT1000		= 0x8001, /* 1000base-T status register */
 
 	/* Vendor2 MMD registers */
+	MV_V2_PORT_CTRL		= 0xf001,
+	MV_V2_PORT_CTRL_PWRDOWN = 0x0800,
 	MV_V2_TEMP_CTRL		= 0xf08a,
 	MV_V2_TEMP_CTRL_MASK	= 0xc000,
 	MV_V2_TEMP_CTRL_SAMPLE	= 0x0000,
@@ -201,6 +207,28 @@ static int mv3310_hwmon_probe(struct phy_device *phydev)
 }
 #endif
 
+static int mv3310_sfp_insert(void *upstream, const struct sfp_eeprom_id *id)
+{
+	struct phy_device *phydev = upstream;
+	__ETHTOOL_DECLARE_LINK_MODE_MASK(support) = { 0, };
+	phy_interface_t iface;
+
+	sfp_parse_support(phydev->sfp_bus, id, support);
+	iface = sfp_select_interface(phydev->sfp_bus, id, support);
+
+	if (iface != PHY_INTERFACE_MODE_10GKR) {
+		dev_err(&phydev->mdio.dev, "incompatible SFP module inserted\n");
+		return -EINVAL;
+	}
+	return 0;
+}
+
+static const struct sfp_upstream_ops mv3310_sfp_ops = {
+	.attach = phy_sfp_attach,
+	.detach = phy_sfp_detach,
+	.module_insert = mv3310_sfp_insert,
+};
+
 static int mv3310_probe(struct phy_device *phydev)
 {
 	struct mv3310_priv *priv;
@@ -210,6 +238,16 @@ static int mv3310_probe(struct phy_device *phydev)
 	if (!phydev->is_c45 ||
 	    (phydev->c45_ids.devices_in_package & mmd_mask) != mmd_mask)
 		return -ENODEV;
+
+	ret = phy_read_mmd(phydev, MDIO_MMD_PMAPMD, MV_PMA_BOOT);
+	if (ret < 0)
+		return ret;
+
+	if (ret & MV_PMA_BOOT_FATAL) {
+		dev_warn(&phydev->mdio.dev,
+			 "PHY failed to boot firmware, status=%04x\n", ret);
+		return -ENODEV;
+	}
 
 	priv = devm_kzalloc(&phydev->mdio.dev, sizeof(*priv), GFP_KERNEL);
 	if (!priv)
@@ -221,16 +259,24 @@ static int mv3310_probe(struct phy_device *phydev)
 	if (ret)
 		return ret;
 
-	return 0;
+	return phy_sfp_probe(phydev, &mv3310_sfp_ops);
 }
 
 static int mv3310_suspend(struct phy_device *phydev)
 {
-	return 0;
+	return phy_set_bits_mmd(phydev, MDIO_MMD_VEND2, MV_V2_PORT_CTRL,
+				MV_V2_PORT_CTRL_PWRDOWN);
 }
 
 static int mv3310_resume(struct phy_device *phydev)
 {
+	int ret;
+
+	ret = phy_clear_bits_mmd(phydev, MDIO_MMD_VEND2, MV_V2_PORT_CTRL,
+				 MV_V2_PORT_CTRL_PWRDOWN);
+	if (ret)
+		return ret;
+
 	return mv3310_hwmon_config(phydev, true);
 }
 
@@ -472,8 +518,9 @@ static struct phy_driver mv3310_drivers[] = {
 		.phy_id		= MARVELL_PHY_ID_88E2110,
 		.phy_id_mask	= MARVELL_PHY_ID_MASK,
 		.name		= "mv88x2110",
-		.get_features	= genphy_c45_pma_read_abilities,
 		.probe		= mv3310_probe,
+		.suspend	= mv3310_suspend,
+		.resume		= mv3310_resume,
 		.soft_reset	= genphy_no_soft_reset,
 		.config_init	= mv3310_config_init,
 		.config_aneg	= mv3310_config_aneg,

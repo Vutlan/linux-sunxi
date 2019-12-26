@@ -137,19 +137,11 @@ static struct bus_type parport_bus_type = {
 
 int parport_bus_init(void)
 {
-	int retval;
-
-	retval = bus_register(&parport_bus_type);
-	if (retval)
-		return retval;
-	daisy_drv_init();
-
-	return 0;
+	return bus_register(&parport_bus_type);
 }
 
 void parport_bus_exit(void)
 {
-	daisy_drv_exit();
 	bus_unregister(&parport_bus_type);
 }
 
@@ -238,6 +230,18 @@ static int port_check(struct device *dev, void *dev_drv)
 	return 0;
 }
 
+/*
+ * Iterates through all the devices connected to the bus and return 1
+ * if the device is a parallel port.
+ */
+
+static int port_detect(struct device *dev, void *dev_drv)
+{
+	if (is_parport(dev))
+		return 1;
+	return 0;
+}
+
 /**
  *	parport_register_driver - register a parallel port device driver
  *	@drv: structure describing the driver
@@ -274,9 +278,6 @@ static int port_check(struct device *dev, void *dev_drv)
 int __parport_register_driver(struct parport_driver *drv, struct module *owner,
 			      const char *mod_name)
 {
-	if (list_empty(&portlist))
-		get_lowlevel_driver();
-
 	if (drv->devmodel) {
 		/* using device model */
 		int ret;
@@ -290,6 +291,15 @@ int __parport_register_driver(struct parport_driver *drv, struct module *owner,
 		if (ret)
 			return ret;
 
+		/*
+		 * check if bus has any parallel port registered, if
+		 * none is found then load the lowlevel driver.
+		 */
+		ret = bus_for_each_dev(&parport_bus_type, NULL, NULL,
+				       port_detect);
+		if (!ret)
+			get_lowlevel_driver();
+
 		mutex_lock(&registration_lock);
 		if (drv->match_port)
 			bus_for_each_dev(&parport_bus_type, NULL, drv,
@@ -300,6 +310,8 @@ int __parport_register_driver(struct parport_driver *drv, struct module *owner,
 
 		drv->devmodel = false;
 
+		if (list_empty(&portlist))
+			get_lowlevel_driver();
 		mutex_lock(&registration_lock);
 		list_for_each_entry(port, &portlist, list)
 			drv->attach(port);
@@ -903,6 +915,7 @@ parport_register_dev_model(struct parport *port, const char *name,
 	par_dev->devmodel = true;
 	ret = device_register(&par_dev->dev);
 	if (ret) {
+		kfree(par_dev->state);
 		put_device(&par_dev->dev);
 		goto err_put_port;
 	}
@@ -920,6 +933,7 @@ parport_register_dev_model(struct parport *port, const char *name,
 			spin_unlock(&port->physport->pardevice_lock);
 			pr_debug("%s: cannot grant exclusive access for device %s\n",
 				 port->name, name);
+			kfree(par_dev->state);
 			device_unregister(&par_dev->dev);
 			goto err_put_port;
 		}

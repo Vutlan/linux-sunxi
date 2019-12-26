@@ -265,13 +265,8 @@ void ext4_free_inode(handle_t *handle, struct inode *inode)
 	ext4_debug("freeing inode %lu\n", ino);
 	trace_ext4_free_inode(inode);
 
-	/*
-	 * Note: we must free any quota before locking the superblock,
-	 * as writing the quota to disk may need the lock as well.
-	 */
 	dquot_initialize(inode);
 	dquot_free_inode(inode);
-	dquot_drop(inode);
 
 	is_directory = S_ISDIR(inode->i_mode);
 
@@ -455,7 +450,7 @@ static int find_group_orlov(struct super_block *sb, struct inode *parent,
 		if (qstr) {
 			hinfo.hash_version = DX_HASH_HALF_MD4;
 			hinfo.seed = sbi->s_hash_seed;
-			ext4fs_dirhash(qstr->name, qstr->len, &hinfo);
+			ext4fs_dirhash(parent, qstr->name, qstr->len, &hinfo);
 			grp = hinfo.hash;
 		} else
 			grp = prandom_u32();
@@ -927,7 +922,7 @@ repeat_in_this_group:
 			BUG_ON(nblocks <= 0);
 			handle = __ext4_journal_start_sb(dir->i_sb, line_no,
 							 handle_type, nblocks,
-							 0);
+							 0, 0);
 			if (IS_ERR(handle)) {
 				err = PTR_ERR(handle);
 				ext4_std_error(sb, err);

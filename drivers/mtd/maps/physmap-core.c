@@ -41,6 +41,7 @@
 #include <linux/gpio/consumer.h>
 
 #include "physmap-gemini.h"
+#include "physmap-ixp4xx.h"
 #include "physmap-versatile.h"
 
 struct physmap_flash_info {
@@ -132,6 +133,8 @@ static void physmap_set_addr_gpios(struct physmap_flash_info *info,
 
 		gpiod_set_value(info->gpios->desc[i], !!(BIT(i) & ofs));
 	}
+
+	info->gpio_values = ofs;
 }
 
 #define win_mask(order)		(BIT(order) - 1)
@@ -365,6 +368,10 @@ static int physmap_flash_of_init(struct platform_device *dev)
 		info->maps[i].device_node = dp;
 
 		err = of_flash_probe_gemini(dev, dp, &info->maps[i]);
+		if (err)
+			return err;
+
+		err = of_flash_probe_ixp4xx(dev, dp, &info->maps[i]);
 		if (err)
 			return err;
 

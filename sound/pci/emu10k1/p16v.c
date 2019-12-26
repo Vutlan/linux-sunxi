@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 /*
  *  Copyright (c) by James Courtier-Dutton <James@superbug.demon.co.uk>
  *  Driver p16v chips
@@ -71,21 +72,6 @@
  *
  *  This code was initially based on code from ALSA's emu10k1x.c which is:
  *  Copyright (c) by Francisco Moraes <fmoraes@nc.rr.com>
- *
- *   This program is free software; you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation; either version 2 of the License, or
- *   (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program; if not, write to the Free Software
- *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
- *
  */
 #include <linux/delay.h>
 #include <linux/init.h>
@@ -657,7 +643,7 @@ int snd_p16v_pcm(struct snd_emu10k1 *emu, int device)
 	    substream; 
 	    substream = substream->next) {
 		snd_pcm_lib_preallocate_pages(substream, SNDRV_DMA_TYPE_DEV,
-					      snd_dma_pci_data(emu->pci),
+					      &emu->pci->dev,
 					      (65536 - 64) * 8,
 					      (65536 - 64) * 8);
 		/*
@@ -670,7 +656,7 @@ int snd_p16v_pcm(struct snd_emu10k1 *emu, int device)
 	      substream; 
 	      substream = substream->next) {
 		snd_pcm_lib_preallocate_pages(substream, SNDRV_DMA_TYPE_DEV,
-					      snd_dma_pci_data(emu->pci),
+					      &emu->pci->dev,
 					      65536 - 64, 65536 - 64);
 		/*
 		dev_dbg(emu->card->dev,

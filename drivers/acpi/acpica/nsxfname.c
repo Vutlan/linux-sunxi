@@ -425,8 +425,8 @@ acpi_get_object_info(acpi_handle handle,
 	}
 
 	if (cls) {
-		next_id_string = acpi_ns_copy_device_id(&info->class_code,
-							cls, next_id_string);
+		(void)acpi_ns_copy_device_id(&info->class_code,
+					     cls, next_id_string);
 	}
 
 	/* Copy the fixed-length data */
@@ -495,8 +495,8 @@ acpi_status acpi_install_method(u8 *buffer)
 
 	/* Table must be a DSDT or SSDT */
 
-	if (!ACPI_COMPARE_NAME(table->signature, ACPI_SIG_DSDT) &&
-	    !ACPI_COMPARE_NAME(table->signature, ACPI_SIG_SSDT)) {
+	if (!ACPI_COMPARE_NAMESEG(table->signature, ACPI_SIG_DSDT) &&
+	    !ACPI_COMPARE_NAMESEG(table->signature, ACPI_SIG_SSDT)) {
 		return (AE_BAD_HEADER);
 	}
 

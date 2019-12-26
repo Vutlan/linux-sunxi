@@ -1,14 +1,9 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 /*
  *  fs/eventpoll.c (Efficient event retrieval implementation)
  *  Copyright (C) 2001,...,2009	 Davide Libenzi
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
  *  Davide Libenzi <davidel@xmailserver.org>
- *
  */
 
 #include <linux/init.h>
@@ -296,7 +291,7 @@ static LIST_HEAD(tfile_check_list);
 
 #include <linux/sysctl.h>
 
-static long zero;
+static long long_zero;
 static long long_max = LONG_MAX;
 
 struct ctl_table epoll_table[] = {
@@ -306,7 +301,7 @@ struct ctl_table epoll_table[] = {
 		.maxlen		= sizeof(max_user_watches),
 		.mode		= 0644,
 		.proc_handler	= proc_doulongvec_minmax,
-		.extra1		= &zero,
+		.extra1		= &long_zero,
 		.extra2		= &long_max,
 	},
 	{ }
@@ -556,28 +551,23 @@ out_unlock:
  */
 #ifdef CONFIG_DEBUG_LOCK_ALLOC
 
-static struct nested_calls poll_safewake_ncalls;
-
-static int ep_poll_wakeup_proc(void *priv, void *cookie, int call_nests)
-{
-	unsigned long flags;
-	wait_queue_head_t *wqueue = (wait_queue_head_t *)cookie;
-
-	spin_lock_irqsave_nested(&wqueue->lock, flags, call_nests + 1);
-	wake_up_locked_poll(wqueue, EPOLLIN);
-	spin_unlock_irqrestore(&wqueue->lock, flags);
-
-	return 0;
-}
+static DEFINE_PER_CPU(int, wakeup_nest);
 
 static void ep_poll_safewake(wait_queue_head_t *wq)
 {
-	int this_cpu = get_cpu();
+	unsigned long flags;
+	int subclass;
 
-	ep_call_nested(&poll_safewake_ncalls,
-		       ep_poll_wakeup_proc, NULL, wq, (void *) (long) this_cpu);
-
-	put_cpu();
+	local_irq_save(flags);
+	preempt_disable();
+	subclass = __this_cpu_read(wakeup_nest);
+	spin_lock_nested(&wq->lock, subclass + 1);
+	__this_cpu_inc(wakeup_nest);
+	wake_up_locked_poll(wq, POLLIN);
+	__this_cpu_dec(wakeup_nest);
+	spin_unlock(&wq->lock);
+	local_irq_restore(flags);
+	preempt_enable();
 }
 
 #else
@@ -676,7 +666,6 @@ static __poll_t ep_scan_ready_list(struct eventpoll *ep,
 			      void *priv, int depth, bool ep_locked)
 {
 	__poll_t res;
-	int pwake = 0;
 	struct epitem *epi, *nepi;
 	LIST_HEAD(txlist);
 
@@ -743,25 +732,10 @@ static __poll_t ep_scan_ready_list(struct eventpoll *ep,
 	 */
 	list_splice(&txlist, &ep->rdllist);
 	__pm_relax(ep->ws);
-
-	if (!list_empty(&ep->rdllist)) {
-		/*
-		 * Wake up (if active) both the eventpoll wait list and
-		 * the ->poll() wait list (delayed after we release the lock).
-		 */
-		if (waitqueue_active(&ep->wq))
-			wake_up(&ep->wq);
-		if (waitqueue_active(&ep->poll_wait))
-			pwake++;
-	}
 	write_unlock_irq(&ep->lock);
 
 	if (!ep_locked)
 		mutex_unlock(&ep->mtx);
-
-	/* We have to call this outside the lock */
-	if (pwake)
-		ep_poll_safewake(&ep->poll_wait);
 
 	return res;
 }
@@ -1464,13 +1438,13 @@ static int ep_create_wakeup_source(struct epitem *epi)
 	struct wakeup_source *ws;
 
 	if (!epi->ep->ws) {
-		epi->ep->ws = wakeup_source_register("eventpoll");
+		epi->ep->ws = wakeup_source_register(NULL, "eventpoll");
 		if (!epi->ep->ws)
 			return -ENOMEM;
 	}
 
 	name = epi->ffd.file->f_path.dentry->d_name.name;
-	ws = wakeup_source_register(name);
+	ws = wakeup_source_register(NULL, name);
 
 	if (!ws)
 		return -ENOMEM;
@@ -2318,19 +2292,17 @@ SYSCALL_DEFINE6(epoll_pwait, int, epfd, struct epoll_event __user *, events,
 		size_t, sigsetsize)
 {
 	int error;
-	sigset_t ksigmask, sigsaved;
 
 	/*
 	 * If the caller wants a certain signal mask to be set during the wait,
 	 * we apply it here.
 	 */
-	error = set_user_sigmask(sigmask, &ksigmask, &sigsaved, sigsetsize);
+	error = set_user_sigmask(sigmask, sigsetsize);
 	if (error)
 		return error;
 
 	error = do_epoll_wait(epfd, events, maxevents, timeout);
-
-	restore_user_sigmask(sigmask, &sigsaved);
+	restore_saved_sigmask_unless(error == -EINTR);
 
 	return error;
 }
@@ -2343,19 +2315,17 @@ COMPAT_SYSCALL_DEFINE6(epoll_pwait, int, epfd,
 			compat_size_t, sigsetsize)
 {
 	long err;
-	sigset_t ksigmask, sigsaved;
 
 	/*
 	 * If the caller wants a certain signal mask to be set during the wait,
 	 * we apply it here.
 	 */
-	err = set_compat_user_sigmask(sigmask, &ksigmask, &sigsaved, sigsetsize);
+	err = set_compat_user_sigmask(sigmask, sigsetsize);
 	if (err)
 		return err;
 
 	err = do_epoll_wait(epfd, events, maxevents, timeout);
-
-	restore_user_sigmask(sigmask, &sigsaved);
+	restore_saved_sigmask_unless(err == -EINTR);
 
 	return err;
 }
@@ -2378,11 +2348,6 @@ static int __init eventpoll_init(void)
 	 * inclusion loops checks.
 	 */
 	ep_nested_calls_init(&poll_loop_ncalls);
-
-#ifdef CONFIG_DEBUG_LOCK_ALLOC
-	/* Initialize the structure used to perform safe poll wait head wake ups */
-	ep_nested_calls_init(&poll_safewake_ncalls);
-#endif
 
 	/*
 	 * We can have many thousands of epitems, so prevent this from

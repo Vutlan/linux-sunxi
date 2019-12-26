@@ -1,11 +1,14 @@
-#ifndef _LINUX_MODULE_H
-#define _LINUX_MODULE_H
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Dynamic loading of modules into the kernel.
  *
  * Rewritten by Richard Henderson <rth@tamu.edu> Dec 1996
  * Rewritten again by Rusty Russell, 2002
  */
+
+#ifndef _LINUX_MODULE_H
+#define _LINUX_MODULE_H
+
 #include <linux/list.h>
 #include <linux/stat.h>
 #include <linux/compiler.h>
@@ -21,12 +24,10 @@
 #include <linux/rbtree_latch.h>
 #include <linux/error-injection.h>
 #include <linux/tracepoint-defs.h>
+#include <linux/srcu.h>
 
 #include <linux/percpu.h>
 #include <asm/module.h>
-
-/* In stripped ARM and x86-64 modules, ~ is surprisingly rare. */
-#define MODULE_SIG_STRING "~Module signature appended~\n"
 
 /* Not Yet Implemented */
 #define MODULE_SUPPORTED_DEVICE(name)
@@ -253,6 +254,7 @@ extern typeof(name) __mod_##type##__##name##_device_table		\
 #define MODULE_VERSION(_version) MODULE_INFO(version, _version)
 #else
 #define MODULE_VERSION(_version)					\
+	MODULE_INFO(version, _version);					\
 	static struct module_version_attribute ___modver_attr = {	\
 		.mattr	= {						\
 			.attr	= {					\
@@ -273,6 +275,8 @@ extern typeof(name) __mod_##type##__##name##_device_table		\
  * format is simply firmware file name.  Multiple firmware
  * files require multiple MODULE_FIRMWARE() specifiers */
 #define MODULE_FIRMWARE(_firmware) MODULE_INFO(firmware, _firmware)
+
+#define MODULE_IMPORT_NS(ns) MODULE_INFO(import_ns, #ns)
 
 struct notifier_block;
 
@@ -331,6 +335,7 @@ struct mod_kallsyms {
 	Elf_Sym *symtab;
 	unsigned int num_symtab;
 	char *strtab;
+	char *typetab;
 };
 
 #ifdef CONFIG_LIVEPATCH
@@ -447,6 +452,10 @@ struct module {
 #ifdef CONFIG_TRACEPOINTS
 	unsigned int num_tracepoints;
 	tracepoint_ptr_t *tracepoints_ptrs;
+#endif
+#ifdef CONFIG_TREE_SRCU
+	unsigned int num_srcu_structs;
+	struct srcu_struct **srcu_struct_ptrs;
 #endif
 #ifdef CONFIG_BPF_EVENTS
 	unsigned int num_bpf_raw_events;
@@ -676,6 +685,7 @@ static inline bool is_livepatch_module(struct module *mod)
 #endif /* CONFIG_LIVEPATCH */
 
 bool is_module_sig_enforced(void);
+void set_module_sig_enforced(void);
 
 #else /* !CONFIG_MODULES... */
 
@@ -705,6 +715,23 @@ static inline bool __is_module_percpu_address(unsigned long addr, unsigned long 
 }
 
 static inline bool is_module_text_address(unsigned long addr)
+{
+	return false;
+}
+
+static inline bool within_module_core(unsigned long addr,
+				      const struct module *mod)
+{
+	return false;
+}
+
+static inline bool within_module_init(unsigned long addr,
+				      const struct module *mod)
+{
+	return false;
+}
+
+static inline bool within_module(unsigned long addr, const struct module *mod)
 {
 	return false;
 }
@@ -794,6 +821,10 @@ static inline bool module_requested_async_probing(struct module *module)
 static inline bool is_module_sig_enforced(void)
 {
 	return false;
+}
+
+static inline void set_module_sig_enforced(void)
+{
 }
 
 /* Dereference module function descriptor */

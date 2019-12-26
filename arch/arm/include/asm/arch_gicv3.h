@@ -1,19 +1,8 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * arch/arm/include/asm/arch_gicv3.h
  *
  * Copyright (C) 2015 ARM Ltd.
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #ifndef __ASM_ARCH_GICV3_H
 #define __ASM_ARCH_GICV3_H
@@ -55,7 +44,7 @@
 #define ICH_VTR				__ACCESS_CP15(c12, 4, c11, 1)
 #define ICH_MISR			__ACCESS_CP15(c12, 4, c11, 2)
 #define ICH_EISR			__ACCESS_CP15(c12, 4, c11, 3)
-#define ICH_ELSR			__ACCESS_CP15(c12, 4, c11, 5)
+#define ICH_ELRSR			__ACCESS_CP15(c12, 4, c11, 5)
 #define ICH_VMCR			__ACCESS_CP15(c12, 4, c11, 7)
 
 #define __LR0(x)			__ACCESS_CP15(c12, 4, c12, x)
@@ -152,7 +141,7 @@ CPUIF_MAP(ICH_HCR, ICH_HCR_EL2)
 CPUIF_MAP(ICH_VTR, ICH_VTR_EL2)
 CPUIF_MAP(ICH_MISR, ICH_MISR_EL2)
 CPUIF_MAP(ICH_EISR, ICH_EISR_EL2)
-CPUIF_MAP(ICH_ELSR, ICH_ELSR_EL2)
+CPUIF_MAP(ICH_ELRSR, ICH_ELRSR_EL2)
 CPUIF_MAP(ICH_VMCR, ICH_VMCR_EL2)
 CPUIF_MAP(ICH_AP0R3, ICH_AP0R3_EL2)
 CPUIF_MAP(ICH_AP0R2, ICH_AP0R2_EL2)
@@ -344,7 +333,7 @@ static inline u64 __gic_readq_nonatomic(const volatile void __iomem *addr)
  * GITS_VPENDBASER - the Valid bit must be cleared before changing
  * anything else.
  */
-static inline void gits_write_vpendbaser(u64 val, void * __iomem addr)
+static inline void gits_write_vpendbaser(u64 val, void __iomem *addr)
 {
 	u32 tmp;
 

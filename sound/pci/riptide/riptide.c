@@ -1,22 +1,8 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 /*
  *   Driver for the Conexant Riptide Soundchip
  *
  *	Copyright (c) 2004 Peter Gruber <nokos@gmx.net>
- *
- *   This program is free software; you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation; either version 2 of the License, or
- *   (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program; if not, write to the Free Software
- *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
- *
  */
 /*
   History:
@@ -1564,7 +1550,7 @@ snd_riptide_hw_params(struct snd_pcm_substream *substream,
 	if (sgdlist->area)
 		snd_dma_free_pages(sgdlist);
 	if ((err = snd_dma_alloc_pages(SNDRV_DMA_TYPE_DEV,
-				       snd_dma_pci_data(chip->pci),
+				       &chip->pci->dev,
 				       sizeof(struct sgd) * (DESC_MAX_MASK + 1),
 				       sgdlist)) < 0) {
 		snd_printk(KERN_ERR "Riptide: failed to alloc %d dma bytes\n",
@@ -1675,7 +1661,6 @@ static const struct snd_pcm_ops snd_riptide_playback_ops = {
 	.hw_params = snd_riptide_hw_params,
 	.hw_free = snd_riptide_hw_free,
 	.prepare = snd_riptide_prepare,
-	.page = snd_pcm_sgbuf_ops_page,
 	.trigger = snd_riptide_trigger,
 	.pointer = snd_riptide_pointer,
 };
@@ -1686,7 +1671,6 @@ static const struct snd_pcm_ops snd_riptide_capture_ops = {
 	.hw_params = snd_riptide_hw_params,
 	.hw_free = snd_riptide_hw_free,
 	.prepare = snd_riptide_prepare,
-	.page = snd_pcm_sgbuf_ops_page,
 	.trigger = snd_riptide_trigger,
 	.pointer = snd_riptide_pointer,
 };
@@ -1709,7 +1693,7 @@ static int snd_riptide_pcm(struct snd_riptide *chip, int device)
 	strcpy(pcm->name, "RIPTIDE");
 	chip->pcm = pcm;
 	snd_pcm_lib_preallocate_pages_for_all(pcm, SNDRV_DMA_TYPE_DEV_SG,
-					      snd_dma_pci_data(chip->pci),
+					      &chip->pci->dev,
 					      64 * 1024, 128 * 1024);
 	return 0;
 }

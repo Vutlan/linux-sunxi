@@ -20,9 +20,13 @@
  * OF THIS SOFTWARE.
  */
 
+#include <linux/uaccess.h>
+
+#include <drm/drm_drv.h>
 #include <drm/drm_encoder.h>
+#include <drm/drm_file.h>
 #include <drm/drm_mode_config.h>
-#include <drm/drmP.h>
+#include <drm/drm_print.h>
 
 #include "drm_crtc_internal.h"
 #include "drm_internal.h"
@@ -297,8 +301,9 @@ static int drm_mode_create_standard_properties(struct drm_device *dev)
 		return -ENOMEM;
 	dev->mode_config.prop_crtc_id = prop;
 
-	prop = drm_property_create(dev, DRM_MODE_PROP_BLOB, "FB_DAMAGE_CLIPS",
-				   0);
+	prop = drm_property_create(dev,
+			DRM_MODE_PROP_ATOMIC | DRM_MODE_PROP_BLOB,
+			"FB_DAMAGE_CLIPS", 0);
 	if (!prop)
 		return -ENOMEM;
 	dev->mode_config.prop_fb_damage_clips = prop;
@@ -423,8 +428,6 @@ EXPORT_SYMBOL(drm_mode_config_init);
  * Note that since this /should/ happen single-threaded at driver/device
  * teardown time, no locking is required. It's the driver's job to ensure that
  * this guarantee actually holds true.
- *
- * FIXME: cleanup any dangling user buffer objects too
  */
 void drm_mode_config_cleanup(struct drm_device *dev)
 {

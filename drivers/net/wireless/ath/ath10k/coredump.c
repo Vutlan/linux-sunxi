@@ -703,7 +703,7 @@ static const struct ath10k_mem_region qca99x0_hw20_mem_regions[] = {
 	},
 	{
 		.type = ATH10K_MEM_REGION_TYPE_REG,
-		.start = 0x98000,
+		.start = 0x980000,
 		.len = 0x50000,
 		.name = "IRAM",
 		.section_table = {
@@ -786,7 +786,7 @@ static const struct ath10k_mem_region qca9984_hw10_mem_regions[] = {
 	},
 	{
 		.type = ATH10K_MEM_REGION_TYPE_REG,
-		.start = 0x98000,
+		.start = 0x980000,
 		.len = 0x50000,
 		.name = "IRAM",
 		.section_table = {
@@ -891,7 +891,7 @@ static const struct ath10k_mem_region qca4019_hw10_mem_regions[] = {
 	},
 	{
 		.type = ATH10K_MEM_REGION_TYPE_REG,
-		.start = 0x98000,
+		.start = 0x980000,
 		.len = 0x50000,
 		.name = "IRAM",
 		.section_table = {
@@ -947,6 +947,19 @@ static const struct ath10k_mem_region qca4019_hw10_mem_regions[] = {
 		.section_table = {
 			.sections = ipq4019_soc_reg_range,
 			.size = ARRAY_SIZE(ipq4019_soc_reg_range),
+		},
+	},
+};
+
+static const struct ath10k_mem_region wcn399x_hw10_mem_regions[] = {
+	{
+		/* MSA region start is not fixed, hence it is assigned at runtime */
+		.type = ATH10K_MEM_REGION_TYPE_MSA,
+		.len = 0x100000,
+		.name = "DRAM",
+		.section_table = {
+			.sections = NULL,
+			.size = 0,
 		},
 	},
 };
@@ -1048,6 +1061,14 @@ static const struct ath10k_hw_mem_layout hw_mem_layouts[] = {
 			.size = ARRAY_SIZE(qca4019_hw10_mem_regions),
 		},
 	},
+	{
+		.hw_id = WCN3990_HW_1_0_DEV_VERSION,
+		.hw_rev = ATH10K_HW_WCN3990,
+		.region_table = {
+			.regions = wcn399x_hw10_mem_regions,
+			.size = ARRAY_SIZE(wcn399x_hw10_mem_regions),
+		},
+	},
 };
 
 static u32 ath10k_coredump_get_ramdump_size(struct ath10k *ar)
@@ -1102,7 +1123,7 @@ struct ath10k_fw_crash_data *ath10k_coredump_new(struct ath10k *ar)
 {
 	struct ath10k_fw_crash_data *crash_data = ar->coredump.fw_crash_data;
 
-	lockdep_assert_held(&ar->data_lock);
+	lockdep_assert_held(&ar->dump_mutex);
 
 	if (ath10k_coredump_mask == 0)
 		/* coredump disabled */
@@ -1146,7 +1167,7 @@ static struct ath10k_dump_file_data *ath10k_coredump_build(struct ath10k *ar)
 	if (!buf)
 		return NULL;
 
-	spin_lock_bh(&ar->data_lock);
+	mutex_lock(&ar->dump_mutex);
 
 	dump_data = (struct ath10k_dump_file_data *)(buf);
 	strlcpy(dump_data->df_magic, "ATH10K-FW-DUMP",
@@ -1192,8 +1213,8 @@ static struct ath10k_dump_file_data *ath10k_coredump_build(struct ath10k *ar)
 	if (test_bit(ATH10K_FW_CRASH_DUMP_CE_DATA, &ath10k_coredump_mask)) {
 		dump_tlv = (struct ath10k_tlv_dump_data *)(buf + sofar);
 		dump_tlv->type = cpu_to_le32(ATH10K_FW_CRASH_DUMP_CE_DATA);
-		dump_tlv->tlv_len = cpu_to_le32(sizeof(*ce_hdr) +
-						CE_COUNT * sizeof(ce_hdr->entries[0]));
+		dump_tlv->tlv_len = cpu_to_le32(struct_size(ce_hdr, entries,
+							    CE_COUNT));
 		ce_hdr = (struct ath10k_ce_crash_hdr *)(dump_tlv->tlv_data);
 		ce_hdr->ce_count = cpu_to_le32(CE_COUNT);
 		memset(ce_hdr->reserved, 0, sizeof(ce_hdr->reserved));
@@ -1208,12 +1229,14 @@ static struct ath10k_dump_file_data *ath10k_coredump_build(struct ath10k *ar)
 		dump_tlv = (struct ath10k_tlv_dump_data *)(buf + sofar);
 		dump_tlv->type = cpu_to_le32(ATH10K_FW_CRASH_DUMP_RAM_DATA);
 		dump_tlv->tlv_len = cpu_to_le32(crash_data->ramdump_buf_len);
-		memcpy(dump_tlv->tlv_data, crash_data->ramdump_buf,
-		       crash_data->ramdump_buf_len);
-		sofar += sizeof(*dump_tlv) + crash_data->ramdump_buf_len;
+		if (crash_data->ramdump_buf_len) {
+			memcpy(dump_tlv->tlv_data, crash_data->ramdump_buf,
+			       crash_data->ramdump_buf_len);
+			sofar += sizeof(*dump_tlv) + crash_data->ramdump_buf_len;
+		}
 	}
 
-	spin_unlock_bh(&ar->data_lock);
+	mutex_unlock(&ar->dump_mutex);
 
 	return dump_data;
 }
@@ -1256,6 +1279,9 @@ int ath10k_coredump_register(struct ath10k *ar)
 
 	if (test_bit(ATH10K_FW_CRASH_DUMP_RAM_DATA, &ath10k_coredump_mask)) {
 		crash_data->ramdump_buf_len = ath10k_coredump_get_ramdump_size(ar);
+
+		if (!crash_data->ramdump_buf_len)
+			return 0;
 
 		crash_data->ramdump_buf = vzalloc(crash_data->ramdump_buf_len);
 		if (!crash_data->ramdump_buf)
