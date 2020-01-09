@@ -4291,8 +4291,8 @@ skl_allocate_pipe_ddb(struct intel_crtc_state *crtc_state,
 				&crtc_state->wm.skl.optimal.planes[plane_id];
 
 			if (plane_id == PLANE_CURSOR) {
-				if (WARN_ON(wm->wm[level].min_ddb_alloc >
-					    total[PLANE_CURSOR])) {
+				if (wm->wm[level].min_ddb_alloc > total[PLANE_CURSOR]) {
+					WARN_ON(wm->wm[level].min_ddb_alloc != U16_MAX);
 					blocks = U32_MAX;
 					break;
 				}
@@ -5218,7 +5218,7 @@ skl_print_wm_changes(struct intel_atomic_state *state)
 	struct intel_crtc *crtc;
 	int i;
 
-	if ((drm_debug & DRM_UT_KMS) == 0)
+	if (!drm_debug_enabled(DRM_UT_KMS))
 		return;
 
 	for_each_oldnew_intel_crtc_in_state(state, crtc, old_crtc_state,

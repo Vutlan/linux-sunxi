@@ -12286,7 +12286,7 @@ static void
 intel_dump_infoframe(struct drm_i915_private *dev_priv,
 		     const union hdmi_infoframe *frame)
 {
-	if ((drm_debug & DRM_UT_KMS) == 0)
+	if (!drm_debug_enabled(DRM_UT_KMS))
 		return;
 
 	hdmi_infoframe_log(KERN_DEBUG, dev_priv->drm.dev, frame);
@@ -12824,7 +12824,7 @@ pipe_config_infoframe_mismatch(struct drm_i915_private *dev_priv,
 			       const union hdmi_infoframe *b)
 {
 	if (fastset) {
-		if ((drm_debug & DRM_UT_KMS) == 0)
+		if (!drm_debug_enabled(DRM_UT_KMS))
 			return;
 
 		DRM_DEBUG_KMS("fastset mismatch in %s infoframe\n", name);
@@ -15112,7 +15112,7 @@ intel_prepare_plane_fb(struct drm_plane *plane,
 		return ret;
 
 	fb_obj_bump_render_priority(obj);
-	intel_frontbuffer_flush(obj->frontbuffer, ORIGIN_DIRTYFB);
+	i915_gem_object_flush_frontbuffer(obj, ORIGIN_DIRTYFB);
 
 	if (!new_plane_state->base.fence) { /* implicit fencing */
 		struct dma_fence *fence;
