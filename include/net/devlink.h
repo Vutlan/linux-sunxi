@@ -485,6 +485,8 @@ enum devlink_param_generic_id {
 #define DEVLINK_INFO_VERSION_GENERIC_FW_UNDI	"fw.undi"
 /* NCSI support/handler version */
 #define DEVLINK_INFO_VERSION_GENERIC_FW_NCSI	"fw.ncsi"
+/* FW parameter set id */
+#define DEVLINK_INFO_VERSION_GENERIC_FW_PSID	"fw.psid"
 
 struct devlink_region;
 struct devlink_info_req;
@@ -562,7 +564,7 @@ struct devlink_trap {
 };
 
 /* All traps must be documented in
- * Documentation/networking/devlink-trap.rst
+ * Documentation/networking/devlink/devlink-trap.rst
  */
 enum devlink_trap_generic_id {
 	DEVLINK_TRAP_GENERIC_ID_SMAC_MC,
@@ -596,7 +598,7 @@ enum devlink_trap_generic_id {
 };
 
 /* All trap groups must be documented in
- * Documentation/networking/devlink-trap.rst
+ * Documentation/networking/devlink/devlink-trap.rst
  */
 enum devlink_trap_group_generic_id {
 	DEVLINK_TRAP_GROUP_GENERIC_ID_L2_DROPS,
@@ -938,7 +940,7 @@ struct devlink_region *devlink_region_create(struct devlink *devlink,
 					     u32 region_max_snapshots,
 					     u64 region_size);
 void devlink_region_destroy(struct devlink_region *region);
-u32 devlink_region_shapshot_id_get(struct devlink *devlink);
+u32 devlink_region_snapshot_id_get(struct devlink *devlink);
 int devlink_region_snapshot_create(struct devlink_region *region,
 				   u8 *data, u32 snapshot_id,
 				   devlink_snapshot_data_dest_t *data_destructor);
@@ -1000,6 +1002,8 @@ int devlink_health_report(struct devlink_health_reporter *reporter,
 void
 devlink_health_reporter_state_update(struct devlink_health_reporter *reporter,
 				     enum devlink_health_reporter_state state);
+void
+devlink_health_reporter_recovery_done(struct devlink_health_reporter *reporter);
 
 bool devlink_is_reload_failed(const struct devlink *devlink);
 
