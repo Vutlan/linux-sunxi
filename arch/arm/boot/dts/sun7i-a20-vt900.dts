@@ -512,7 +512,7 @@
 	status = "okay";
 };
 &usb_otg {
-	dr_mode = "host"; /*otg*/
+	dr_mode = "otg"; /*peripheral|otg|host*/
 	status = "okay";
 };
 
@@ -522,7 +522,7 @@
 	pinctrl-0 = <&usb0_id_detect_pin_vt900v2>, <&usb0_vbus_detect_pin_vt900v2>;
 
 	usb0_id_det-gpio = <&pio 7 11 GPIO_ACTIVE_HIGH>;   /* PH11 */
-	/*usb0_vbus_det-gpio = <&pio 7 13 GPIO_ACTIVE_HIGH>; /* PH13 */
+	usb0_vbus_det-gpio = <&pio 7 13 GPIO_ACTIVE_HIGH>; /* PH13 */
 	usb0_vbus-supply = <&reg_vcc5v0>;
 	
 	status = "okay";
