@@ -185,6 +185,7 @@ struct dcn_optc_registers {
 	SF(OTG0_OTG_GLOBAL_CONTROL0, OTG_MASTER_UPDATE_LOCK_SEL, mask_sh),\
 	SF(OTG0_OTG_DOUBLE_BUFFER_CONTROL, OTG_UPDATE_PENDING, mask_sh),\
 	SF(OTG0_OTG_DOUBLE_BUFFER_CONTROL, OTG_BLANK_DATA_DOUBLE_BUFFER_EN, mask_sh),\
+	SF(OTG0_OTG_DOUBLE_BUFFER_CONTROL, OTG_RANGE_TIMING_DBUF_UPDATE_MODE, mask_sh),\
 	SF(OTG0_OTG_H_TOTAL, OTG_H_TOTAL, mask_sh),\
 	SF(OTG0_OTG_H_BLANK_START_END, OTG_H_BLANK_START, mask_sh),\
 	SF(OTG0_OTG_H_BLANK_START_END, OTG_H_BLANK_END, mask_sh),\
@@ -625,7 +626,8 @@ void optc1_set_drr(
 
 void optc1_set_static_screen_control(
 	struct timing_generator *optc,
-	uint32_t value);
+	uint32_t event_triggers,
+	uint32_t num_frames);
 
 void optc1_program_stereo(struct timing_generator *optc,
 	const struct dc_crtc_timing *timing, struct crtc_stereo_flags *flags);
@@ -641,6 +643,8 @@ bool optc1_is_tg_enabled(struct timing_generator *optc);
 bool optc1_is_optc_underflow_occurred(struct timing_generator *optc);
 
 void optc1_set_blank_data_double_buffer(struct timing_generator *optc, bool enable);
+
+void optc1_set_timing_double_buffer(struct timing_generator *optc, bool enable);
 
 bool optc1_get_otg_active_size(struct timing_generator *optc,
 		uint32_t *otg_active_width,

@@ -50,6 +50,31 @@ static const struct strset_info info_template[] = {
 		.count		= __ETHTOOL_LINK_MODE_MASK_NBITS,
 		.strings	= link_mode_names,
 	},
+	[ETH_SS_MSG_CLASSES] = {
+		.per_dev	= false,
+		.count		= NETIF_MSG_CLASS_COUNT,
+		.strings	= netif_msg_class_names,
+	},
+	[ETH_SS_WOL_MODES] = {
+		.per_dev	= false,
+		.count		= WOL_MODE_COUNT,
+		.strings	= wol_mode_names,
+	},
+	[ETH_SS_SOF_TIMESTAMPING] = {
+		.per_dev	= false,
+		.count		= __SOF_TIMESTAMPING_CNT,
+		.strings	= sof_timestamping_names,
+	},
+	[ETH_SS_TS_TX_TYPES] = {
+		.per_dev	= false,
+		.count		= __HWTSTAMP_TX_CNT,
+		.strings	= ts_tx_type_names,
+	},
+	[ETH_SS_TS_RX_FILTERS] = {
+		.per_dev	= false,
+		.count		= __HWTSTAMP_FILTER_CNT,
+		.strings	= ts_rx_filter_names,
+	},
 };
 
 struct strset_req_info {
@@ -85,6 +110,7 @@ get_stringset_policy[ETHTOOL_A_STRINGSET_MAX + 1] = {
 
 /**
  * strset_include() - test if a string set should be included in reply
+ * @info: parsed client request
  * @data: pointer to request data structure
  * @id:   id of string set to check (ETH_SS_* constants)
  */

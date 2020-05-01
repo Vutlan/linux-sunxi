@@ -26,6 +26,7 @@
 #ifndef DC_LINK_H_
 #define DC_LINK_H_
 
+#include "dc.h"
 #include "dc_types.h"
 #include "grph_object_defs.h"
 
@@ -128,11 +129,13 @@ struct dc_link {
 	enum edp_revision edp_revision;
 	bool psr_feature_enabled;
 	bool psr_allow_active;
+	union dpcd_sink_ext_caps dpcd_sink_ext_caps;
 
 	/* MST record stream using this link */
 	struct link_flags {
 		bool dp_keep_receiver_powered;
 		bool dp_skip_DID2;
+		bool dp_skip_reset_segment;
 	} wa_flags;
 	struct link_mst_stream_allocation_table mst_stream_alloc_table;
 
@@ -177,6 +180,21 @@ bool dc_link_set_backlight_level(const struct dc_link *dc_link,
 		uint32_t backlight_pwm_u16_16,
 		uint32_t frame_ramp);
 
+/* Set/get nits-based backlight level of an embedded panel (eDP, LVDS). */
+bool dc_link_set_backlight_level_nits(struct dc_link *link,
+		bool isHDR,
+		uint32_t backlight_millinits,
+		uint32_t transition_time_in_ms);
+
+bool dc_link_get_backlight_level_nits(struct dc_link *link,
+		uint32_t *backlight_millinits,
+		uint32_t *backlight_millinits_peak);
+
+bool dc_link_backlight_enable_aux(struct dc_link *link, bool enable);
+
+bool dc_link_read_default_bl_aux(struct dc_link *link, uint32_t *backlight_millinits);
+bool dc_link_set_default_brightness_aux(struct dc_link *link);
+
 int dc_link_get_backlight_level(const struct dc_link *dc_link);
 
 bool dc_link_set_abm_disable(const struct dc_link *dc_link);
@@ -204,6 +222,7 @@ enum dc_detect_reason {
 bool dc_link_detect(struct dc_link *dc_link, enum dc_detect_reason reason);
 bool dc_link_get_hpd_state(struct dc_link *dc_link);
 enum dc_status dc_link_allocate_mst_payload(struct pipe_ctx *pipe_ctx);
+enum dc_status dc_link_reallocate_mst_payload(struct dc_link *link);
 
 /* Notify DC about DP RX Interrupt (aka Short Pulse Interrupt).
  * Return:
@@ -300,6 +319,9 @@ uint32_t dc_link_bandwidth_kbps(
 const struct dc_link_settings *dc_link_get_link_cap(
 		const struct dc_link *link);
 
+void dc_link_overwrite_extended_receiver_cap(
+		struct dc_link *link);
+
 bool dc_submit_i2c(
 		struct dc *dc,
 		uint32_t link_index,
@@ -311,4 +333,7 @@ bool dc_submit_i2c_oem(
 
 uint32_t dc_bandwidth_in_kbps_from_timing(
 	const struct dc_crtc_timing *timing);
+
+bool dc_link_is_fec_supported(const struct dc_link *link);
+
 #endif /* DC_LINK_H_ */

@@ -690,10 +690,10 @@ static int jpeg_v2_0_set_clockgating_state(void *handle,
 					  enum amd_clockgating_state state)
 {
 	struct amdgpu_device *adev = (struct amdgpu_device *)handle;
-	bool enable = (state == AMD_CG_STATE_GATE) ? true : false;
+	bool enable = (state == AMD_CG_STATE_GATE);
 
 	if (enable) {
-		if (jpeg_v2_0_is_idle(handle))
+		if (!jpeg_v2_0_is_idle(handle))
 			return -EBUSY;
 		jpeg_v2_0_enable_clock_gating(adev);
 	} else {

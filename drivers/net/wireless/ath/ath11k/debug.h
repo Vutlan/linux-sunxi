@@ -53,6 +53,8 @@ enum ath11k_dbg_htt_ext_stats_type {
 	ATH11K_DBG_HTT_EXT_STATS_TWT_SESSIONS               =  20,
 	ATH11K_DBG_HTT_EXT_STATS_REO_RESOURCE_STATS         =  21,
 	ATH11K_DBG_HTT_EXT_STATS_TX_SOUNDING_INFO           =  22,
+	ATH11K_DBG_HTT_EXT_STATS_PDEV_OBSS_PD_STATS	    =  23,
+	ATH11K_DBG_HTT_EXT_STATS_RING_BACKPRESSURE_STATS    =  24,
 
 	/* keep this last */
 	ATH11K_DBG_HTT_NUM_EXT_STATS,
@@ -68,11 +70,18 @@ struct debug_htt_stats_req {
 	u8 buf[0];
 };
 
+struct ath_pktlog_hdr {
+	u16 flags;
+	u16 missed_cnt;
+	u16 log_type;
+	u16 size;
+	u32 timestamp;
+	u32 type_specific_data;
+	u8 payload[0];
+};
+
 #define ATH11K_HTT_STATS_BUF_SIZE (1024 * 512)
-
 #define ATH11K_FW_STATS_BUF_SIZE (1024 * 1024)
-
-#define ATH11K_HTT_PKTLOG_MAX_SIZE 2048
 
 enum ath11k_pktlog_filter {
 	ATH11K_PKTLOG_RX		= 0x000000001,
@@ -172,6 +181,16 @@ static inline int ath11k_debug_is_extd_rx_stats_enabled(struct ath11k *ar)
 {
 	return ar->debug.extd_rx_stats;
 }
+
+void ath11k_sta_add_debugfs(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
+			    struct ieee80211_sta *sta, struct dentry *dir);
+void
+ath11k_accumulate_per_peer_tx_stats(struct ath11k_sta *arsta,
+				    struct ath11k_per_peer_tx_stats *peer_stats,
+				    u8 legacy_rate_idx);
+void ath11k_update_per_peer_stats_from_txcompl(struct ath11k *ar,
+					       struct sk_buff *msdu,
+					       struct hal_tx_status *ts);
 #else
 static inline int ath11k_debug_soc_create(struct ath11k_base *ab)
 {
@@ -243,19 +262,7 @@ static inline bool ath11k_debug_is_pktlog_peer_valid(struct ath11k *ar, u8 *addr
 {
 	return false;
 }
-#endif /* CONFIG_ATH11K_DEBUGFS */
 
-#ifdef CONFIG_MAC80211_DEBUGFS
-void ath11k_sta_add_debugfs(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
-			    struct ieee80211_sta *sta, struct dentry *dir);
-void
-ath11k_accumulate_per_peer_tx_stats(struct ath11k_sta *arsta,
-				    struct ath11k_per_peer_tx_stats *peer_stats,
-				    u8 legacy_rate_idx);
-void ath11k_update_per_peer_stats_from_txcompl(struct ath11k *ar,
-					       struct sk_buff *msdu,
-					       struct hal_tx_status *ts);
-#else /* !CONFIG_MAC80211_DEBUGFS */
 static inline void
 ath11k_accumulate_per_peer_tx_stats(struct ath11k_sta *arsta,
 				    struct ath11k_per_peer_tx_stats *peer_stats,

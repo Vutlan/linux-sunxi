@@ -13,7 +13,6 @@
 
 #include "i915_drv.h"
 #include "i915_gem.h"
-#include "i915_gem_gtt.h"
 #include "i915_scheduler.h"
 #include "intel_device_info.h"
 
@@ -193,12 +192,16 @@ i915_gem_context_unlock_engines(struct i915_gem_context *ctx)
 static inline struct intel_context *
 i915_gem_context_get_engine(struct i915_gem_context *ctx, unsigned int idx)
 {
-	struct intel_context *ce = ERR_PTR(-EINVAL);
+	struct intel_context *ce;
 
 	rcu_read_lock(); {
 		struct i915_gem_engines *e = rcu_dereference(ctx->engines);
-		if (likely(idx < e->num_engines && e->engines[idx]))
+		if (unlikely(!e)) /* context was closed! */
+			ce = ERR_PTR(-ENOENT);
+		else if (likely(idx < e->num_engines && e->engines[idx]))
 			ce = intel_context_get(e->engines[idx]);
+		else
+			ce = ERR_PTR(-EINVAL);
 	} rcu_read_unlock();
 
 	return ce;
@@ -208,7 +211,6 @@ static inline void
 i915_gem_engines_iter_init(struct i915_gem_engines_iter *it,
 			   struct i915_gem_engines *engines)
 {
-	GEM_BUG_ON(!engines);
 	it->engines = engines;
 	it->idx = 0;
 }

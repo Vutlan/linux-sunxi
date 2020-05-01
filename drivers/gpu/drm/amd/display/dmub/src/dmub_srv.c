@@ -26,7 +26,7 @@
 #include "../inc/dmub_srv.h"
 #include "dmub_dcn20.h"
 #include "dmub_dcn21.h"
-#include "dmub_trace_buffer.h"
+#include "dmub_fw_meta.h"
 #include "os_types.h"
 /*
  * Note: the DMUB service is standalone. No additional headers should be
@@ -46,9 +46,17 @@
 /* Mailbox size */
 #define DMUB_MAILBOX_SIZE (DMUB_RB_SIZE)
 
+/* Default state size if meta is absent. */
+#define DMUB_FW_STATE_SIZE (1024)
+
+/* Default tracebuffer size if meta is absent. */
+#define DMUB_TRACE_BUFFER_SIZE (1024)
+
+/* Default scratch mem size. */
+#define DMUB_SCRATCH_MEM_SIZE (256)
 
 /* Number of windows in use. */
-#define DMUB_NUM_WINDOWS (DMUB_WINDOW_6_FW_STATE + 1)
+#define DMUB_NUM_WINDOWS (DMUB_WINDOW_TOTAL)
 /* Base addresses. */
 
 #define DMUB_CW0_BASE (0x60000000)
@@ -62,6 +70,47 @@ static inline uint32_t dmub_align(uint32_t val, uint32_t factor)
 	return (val + factor - 1) / factor * factor;
 }
 
+static void dmub_flush_buffer_mem(const struct dmub_fb *fb)
+{
+	const uint8_t *base = (const uint8_t *)fb->cpu_addr;
+	uint8_t buf[64];
+	uint32_t pos, end;
+
+	/**
+	 * Read 64-byte chunks since we don't want to store a
+	 * large temporary buffer for this purpose.
+	 */
+	end = fb->size / sizeof(buf) * sizeof(buf);
+
+	for (pos = 0; pos < end; pos += sizeof(buf))
+		dmub_memcpy(buf, base + pos, sizeof(buf));
+
+	/* Read anything leftover into the buffer. */
+	if (end < fb->size)
+		dmub_memcpy(buf, base + pos, fb->size - end);
+}
+
+static const struct dmub_fw_meta_info *
+dmub_get_fw_meta_info(const uint8_t *fw_bss_data, uint32_t fw_bss_data_size)
+{
+	const union dmub_fw_meta *meta;
+
+	if (fw_bss_data == NULL)
+		return NULL;
+
+	if (fw_bss_data_size < sizeof(union dmub_fw_meta) + DMUB_FW_META_OFFSET)
+		return NULL;
+
+	meta = (const union dmub_fw_meta *)(fw_bss_data + fw_bss_data_size -
+					    DMUB_FW_META_OFFSET -
+					    sizeof(union dmub_fw_meta));
+
+	if (meta->info.magic_value != DMUB_FW_META_MAGIC)
+		return NULL;
+
+	return &meta->info;
+}
+
 static bool dmub_srv_hw_setup(struct dmub_srv *dmub, enum dmub_asic asic)
 {
 	struct dmub_srv_hw_funcs *funcs = &dmub->hw_funcs;
@@ -69,6 +118,8 @@ static bool dmub_srv_hw_setup(struct dmub_srv *dmub, enum dmub_asic asic)
 	switch (asic) {
 	case DMUB_ASIC_DCN20:
 	case DMUB_ASIC_DCN21:
+		dmub->regs = &dmub_srv_dcn20_regs;
+
 		funcs->reset = dmub_dcn20_reset;
 		funcs->reset_release = dmub_dcn20_reset_release;
 		funcs->backdoor_load = dmub_dcn20_backdoor_load;
@@ -78,10 +129,13 @@ static bool dmub_srv_hw_setup(struct dmub_srv *dmub, enum dmub_asic asic)
 		funcs->set_inbox1_wptr = dmub_dcn20_set_inbox1_wptr;
 		funcs->is_supported = dmub_dcn20_is_supported;
 		funcs->is_hw_init = dmub_dcn20_is_hw_init;
+		funcs->set_gpint = dmub_dcn20_set_gpint;
+		funcs->is_gpint_acked = dmub_dcn20_is_gpint_acked;
+		funcs->get_gpint_response = dmub_dcn20_get_gpint_response;
 
 		if (asic == DMUB_ASIC_DCN21) {
-			funcs->backdoor_load = dmub_dcn21_backdoor_load;
-			funcs->setup_windows = dmub_dcn21_setup_windows;
+			dmub->regs = &dmub_srv_dcn21_regs;
+
 			funcs->is_auto_load_done = dmub_dcn21_is_auto_load_done;
 			funcs->is_phy_init = dmub_dcn21_is_phy_init;
 		}
@@ -160,6 +214,11 @@ dmub_srv_calc_region_info(struct dmub_srv *dmub,
 	struct dmub_region *mail = &out->regions[DMUB_WINDOW_4_MAILBOX];
 	struct dmub_region *trace_buff = &out->regions[DMUB_WINDOW_5_TRACEBUFF];
 	struct dmub_region *fw_state = &out->regions[DMUB_WINDOW_6_FW_STATE];
+	struct dmub_region *scratch_mem = &out->regions[DMUB_WINDOW_7_SCRATCH_MEM];
+	const struct dmub_fw_meta_info *fw_info;
+	uint32_t fw_state_size = DMUB_FW_STATE_SIZE;
+	uint32_t trace_buffer_size = DMUB_TRACE_BUFFER_SIZE;
+	uint32_t scratch_mem_size = DMUB_SCRATCH_MEM_SIZE;
 
 	if (!dmub->sw_init)
 		return DMUB_STATUS_INVALID;
@@ -174,6 +233,11 @@ dmub_srv_calc_region_info(struct dmub_srv *dmub,
 	data->base = dmub_align(inst->top, 256);
 	data->top = data->base + params->bss_data_size;
 
+	/*
+	 * All cache windows below should be aligned to the size
+	 * of the DMCUB cache line, 64 bytes.
+	 */
+
 	stack->base = dmub_align(data->top, 256);
 	stack->top = stack->base + DMUB_STACK_SIZE + DMUB_CONTEXT_SIZE;
 
@@ -183,16 +247,24 @@ dmub_srv_calc_region_info(struct dmub_srv *dmub,
 	mail->base = dmub_align(bios->top, 256);
 	mail->top = mail->base + DMUB_MAILBOX_SIZE;
 
+	fw_info = dmub_get_fw_meta_info(params->fw_bss_data,
+					params->bss_data_size);
+
+	if (fw_info) {
+		fw_state_size = fw_info->fw_region_size;
+		trace_buffer_size = fw_info->trace_buffer_size;
+	}
+
 	trace_buff->base = dmub_align(mail->top, 256);
-	trace_buff->top = trace_buff->base + TRACE_BUF_SIZE;
+	trace_buff->top = trace_buff->base + dmub_align(trace_buffer_size, 64);
 
 	fw_state->base = dmub_align(trace_buff->top, 256);
+	fw_state->top = fw_state->base + dmub_align(fw_state_size, 64);
 
-	/* Align firmware state to size of cache line. */
-	fw_state->top =
-		fw_state->base + dmub_align(sizeof(struct dmub_fw_state), 64);
+	scratch_mem->base = dmub_align(fw_state->top, 256);
+	scratch_mem->top = scratch_mem->base + dmub_align(scratch_mem_size, 64);
 
-	out->fb_size = dmub_align(fw_state->top, 4096);
+	out->fb_size = dmub_align(scratch_mem->top, 4096);
 
 	return DMUB_STATUS_OK;
 }
@@ -251,6 +323,9 @@ enum dmub_status dmub_srv_is_hw_init(struct dmub_srv *dmub, bool *is_hw_init)
 	if (!dmub->sw_init)
 		return DMUB_STATUS_INVALID;
 
+	if (!dmub->hw_init)
+		return DMUB_STATUS_OK;
+
 	if (dmub->hw_funcs.is_hw_init)
 		*is_hw_init = dmub->hw_funcs.is_hw_init(dmub);
 
@@ -267,6 +342,7 @@ enum dmub_status dmub_srv_hw_init(struct dmub_srv *dmub,
 	struct dmub_fb *mail_fb = params->fb[DMUB_WINDOW_4_MAILBOX];
 	struct dmub_fb *tracebuff_fb = params->fb[DMUB_WINDOW_5_TRACEBUFF];
 	struct dmub_fb *fw_state_fb = params->fb[DMUB_WINDOW_6_FW_STATE];
+	struct dmub_fb *scratch_mem_fb = params->fb[DMUB_WINDOW_7_SCRATCH_MEM];
 
 	struct dmub_rb_init_params rb_params;
 	struct dmub_window cw0, cw1, cw2, cw3, cw4, cw5, cw6;
@@ -288,6 +364,13 @@ enum dmub_status dmub_srv_hw_init(struct dmub_srv *dmub,
 		cw1.region.base = DMUB_CW1_BASE;
 		cw1.region.top = cw1.region.base + stack_fb->size - 1;
 
+		/**
+		 * Read back all the instruction memory so we don't hang the
+		 * DMCUB when backdoor loading if the write from x86 hasn't been
+		 * flushed yet. This only occurs in backdoor loading.
+		 */
+		dmub_flush_buffer_mem(inst_fb);
+
 		if (params->load_inst_const && dmub->hw_funcs.backdoor_load)
 			dmub->hw_funcs.backdoor_load(dmub, &cw0, &cw1);
 	}
@@ -296,7 +379,7 @@ enum dmub_status dmub_srv_hw_init(struct dmub_srv *dmub,
 		dmub->hw_funcs.reset(dmub);
 
 	if (inst_fb && data_fb && bios_fb && mail_fb && tracebuff_fb &&
-	    fw_state_fb) {
+	    fw_state_fb && scratch_mem_fb) {
 		cw2.offset.quad_part = data_fb->gpu_addr;
 		cw2.region.base = DMUB_CW0_BASE + inst_fb->size;
 		cw2.region.top = cw2.region.base + data_fb->size;
@@ -321,6 +404,8 @@ enum dmub_status dmub_srv_hw_init(struct dmub_srv *dmub,
 		cw6.region.top = cw6.region.base + fw_state_fb->size;
 
 		dmub->fw_state = fw_state_fb->cpu_addr;
+
+		dmub->scratch_mem_fb = *scratch_mem_fb;
 
 		if (dmub->hw_funcs.setup_windows)
 			dmub->hw_funcs.setup_windows(dmub, &cw2, &cw3, &cw4,
@@ -347,6 +432,22 @@ enum dmub_status dmub_srv_hw_init(struct dmub_srv *dmub,
 	return DMUB_STATUS_OK;
 }
 
+enum dmub_status dmub_srv_hw_reset(struct dmub_srv *dmub)
+{
+	if (!dmub->sw_init)
+		return DMUB_STATUS_INVALID;
+
+	if (dmub->hw_init == false)
+		return DMUB_STATUS_OK;
+
+	if (dmub->hw_funcs.reset)
+		dmub->hw_funcs.reset(dmub);
+
+	dmub->hw_init = false;
+
+	return DMUB_STATUS_OK;
+}
+
 enum dmub_status dmub_srv_cmd_queue(struct dmub_srv *dmub,
 				    const struct dmub_cmd_header *cmd)
 {
@@ -364,31 +465,15 @@ enum dmub_status dmub_srv_cmd_execute(struct dmub_srv *dmub)
 	if (!dmub->hw_init)
 		return DMUB_STATUS_INVALID;
 
+	/**
+	 * Read back all the queued commands to ensure that they've
+	 * been flushed to framebuffer memory. Otherwise DMCUB might
+	 * read back stale, fully invalid or partially invalid data.
+	 */
+	dmub_rb_flush_pending(&dmub->inbox1_rb);
+
 	dmub->hw_funcs.set_inbox1_wptr(dmub, dmub->inbox1_rb.wrpt);
 	return DMUB_STATUS_OK;
-}
-
-enum dmub_status dmub_srv_cmd_submit(struct dmub_srv *dmub,
-				     const struct dmub_cmd_header *cmd,
-				     uint32_t timeout_us)
-{
-	uint32_t i = 0;
-
-	if (!dmub->hw_init)
-		return DMUB_STATUS_INVALID;
-
-	for (i = 0; i <= timeout_us; ++i) {
-		dmub->inbox1_rb.rptr = dmub->hw_funcs.get_inbox1_rptr(dmub);
-		if (dmub_rb_push_front(&dmub->inbox1_rb, cmd)) {
-			dmub->hw_funcs.set_inbox1_wptr(dmub,
-						       dmub->inbox1_rb.wrpt);
-			return DMUB_STATUS_OK;
-		}
-
-		udelay(1);
-	}
-
-	return DMUB_STATUS_TIMEOUT;
 }
 
 enum dmub_status dmub_srv_wait_for_auto_load(struct dmub_srv *dmub,
@@ -450,4 +535,51 @@ enum dmub_status dmub_srv_wait_for_idle(struct dmub_srv *dmub,
 	}
 
 	return DMUB_STATUS_TIMEOUT;
+}
+
+enum dmub_status
+dmub_srv_send_gpint_command(struct dmub_srv *dmub,
+			    enum dmub_gpint_command command_code,
+			    uint16_t param, uint32_t timeout_us)
+{
+	union dmub_gpint_data_register reg;
+	uint32_t i;
+
+	if (!dmub->sw_init)
+		return DMUB_STATUS_INVALID;
+
+	if (!dmub->hw_funcs.set_gpint)
+		return DMUB_STATUS_INVALID;
+
+	if (!dmub->hw_funcs.is_gpint_acked)
+		return DMUB_STATUS_INVALID;
+
+	reg.bits.status = 1;
+	reg.bits.command_code = command_code;
+	reg.bits.param = param;
+
+	dmub->hw_funcs.set_gpint(dmub, reg);
+
+	for (i = 0; i < timeout_us; ++i) {
+		if (dmub->hw_funcs.is_gpint_acked(dmub, reg))
+			return DMUB_STATUS_OK;
+	}
+
+	return DMUB_STATUS_TIMEOUT;
+}
+
+enum dmub_status dmub_srv_get_gpint_response(struct dmub_srv *dmub,
+					     uint32_t *response)
+{
+	*response = 0;
+
+	if (!dmub->sw_init)
+		return DMUB_STATUS_INVALID;
+
+	if (!dmub->hw_funcs.get_gpint_response)
+		return DMUB_STATUS_INVALID;
+
+	*response = dmub->hw_funcs.get_gpint_response(dmub);
+
+	return DMUB_STATUS_OK;
 }

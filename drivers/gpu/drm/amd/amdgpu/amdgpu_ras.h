@@ -494,8 +494,7 @@ int amdgpu_ras_add_bad_pages(struct amdgpu_device *adev,
 
 int amdgpu_ras_reserve_bad_pages(struct amdgpu_device *adev);
 
-static inline int amdgpu_ras_reset_gpu(struct amdgpu_device *adev,
-		bool is_baco)
+static inline int amdgpu_ras_reset_gpu(struct amdgpu_device *adev)
 {
 	struct amdgpu_ras *ras = amdgpu_ras_get_context(adev);
 
@@ -592,6 +591,8 @@ int amdgpu_ras_sysfs_remove(struct amdgpu_device *adev,
 
 void amdgpu_ras_debugfs_create(struct amdgpu_device *adev,
 		struct ras_fs_if *head);
+
+void amdgpu_ras_debugfs_create_all(struct amdgpu_device *adev);
 
 void amdgpu_ras_debugfs_remove(struct amdgpu_device *adev,
 		struct ras_common_if *head);

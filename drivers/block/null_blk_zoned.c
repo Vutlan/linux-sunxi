@@ -2,6 +2,9 @@
 #include <linux/vmalloc.h>
 #include "null_blk.h"
 
+#define CREATE_TRACE_POINTS
+#include "null_blk_trace.h"
+
 /* zone_size in MBs to sectors. */
 #define ZONE_SIZE_SHIFT		11
 
@@ -80,6 +83,8 @@ int null_report_zones(struct gendisk *disk, sector_t sector,
 		return 0;
 
 	nr_zones = min(nr_zones, dev->nr_zones - first_zone);
+	trace_nullb_report_zones(nullb, nr_zones);
+
 	for (i = 0; i < nr_zones; i++) {
 		/*
 		 * Stacked DM target drivers will remap the zone information by
@@ -129,11 +134,13 @@ static blk_status_t null_zone_write(struct nullb_cmd *cmd, sector_t sector,
 		return BLK_STS_IOERR;
 	case BLK_ZONE_COND_EMPTY:
 	case BLK_ZONE_COND_IMP_OPEN:
+	case BLK_ZONE_COND_EXP_OPEN:
+	case BLK_ZONE_COND_CLOSED:
 		/* Writes must be at the write pointer position */
 		if (sector != zone->wp)
 			return BLK_STS_IOERR;
 
-		if (zone->cond == BLK_ZONE_COND_EMPTY)
+		if (zone->cond != BLK_ZONE_COND_EXP_OPEN)
 			zone->cond = BLK_ZONE_COND_IMP_OPEN;
 
 		zone->wp += nr_sectors;
@@ -146,6 +153,8 @@ static blk_status_t null_zone_write(struct nullb_cmd *cmd, sector_t sector,
 		/* Invalid zone condition */
 		return BLK_STS_IOERR;
 	}
+
+	trace_nullb_zone_op(cmd, zno, zone->cond);
 	return BLK_STS_OK;
 }
 
@@ -153,7 +162,8 @@ static blk_status_t null_zone_mgmt(struct nullb_cmd *cmd, enum req_opf op,
 				   sector_t sector)
 {
 	struct nullb_device *dev = cmd->nq->dev;
-	struct blk_zone *zone = &dev->zones[null_zone_no(dev, sector)];
+	unsigned int zone_no = null_zone_no(dev, sector);
+	struct blk_zone *zone = &dev->zones[zone_no];
 	size_t i;
 
 	switch (op) {
@@ -201,6 +211,8 @@ static blk_status_t null_zone_mgmt(struct nullb_cmd *cmd, enum req_opf op,
 	default:
 		return BLK_STS_NOTSUPP;
 	}
+
+	trace_nullb_zone_op(cmd, zone_no, zone->cond);
 	return BLK_STS_OK;
 }
 

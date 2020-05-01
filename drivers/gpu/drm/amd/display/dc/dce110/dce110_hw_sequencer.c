@@ -71,6 +71,8 @@
 #define PANEL_POWER_UP_TIMEOUT 300
 #define PANEL_POWER_DOWN_TIMEOUT 500
 #define HPD_CHECK_INTERVAL 10
+#define OLED_POST_T7_DELAY 100
+#define OLED_PRE_T11_DELAY 150
 
 #define CTX \
 	hws->ctx
@@ -696,8 +698,10 @@ void dce110_enable_stream(struct pipe_ctx *pipe_ctx)
 }
 
 /*todo: cloned in stream enc, fix*/
-static bool is_panel_backlight_on(struct dce_hwseq *hws)
+bool dce110_is_panel_backlight_on(struct dc_link *link)
 {
+	struct dc_context *ctx = link->ctx;
+	struct dce_hwseq *hws = ctx->dc->hwseq;
 	uint32_t value;
 
 	REG_GET(LVTMA_PWRSEQ_CNTL, LVTMA_BLON, &value);
@@ -705,10 +709,11 @@ static bool is_panel_backlight_on(struct dce_hwseq *hws)
 	return value;
 }
 
-static bool is_panel_powered_on(struct dce_hwseq *hws)
+bool dce110_is_panel_powered_on(struct dc_link *link)
 {
+	struct dc_context *ctx = link->ctx;
+	struct dce_hwseq *hws = ctx->dc->hwseq;
 	uint32_t pwr_seq_state, dig_on, dig_on_ovrd;
-
 
 	REG_GET(LVTMA_PWRSEQ_STATE, LVTMA_PWRSEQ_TARGET_STATE_R, &pwr_seq_state);
 
@@ -816,7 +821,7 @@ void dce110_edp_power_control(
 		return;
 	}
 
-	if (power_up != is_panel_powered_on(hwseq)) {
+	if (power_up != hwseq->funcs.is_panel_powered_on(link)) {
 		/* Send VBIOS command to prompt eDP panel power */
 		if (power_up) {
 			unsigned long long current_ts = dm_get_timestamp(ctx);
@@ -896,7 +901,7 @@ void dce110_edp_backlight_control(
 		return;
 	}
 
-	if (enable && is_panel_backlight_on(hws)) {
+	if (enable && hws->funcs.is_panel_backlight_on(link)) {
 		DC_LOG_HW_RESUME_S3(
 				"%s: panel already powered up. Do nothing.\n",
 				__func__);
@@ -936,9 +941,21 @@ void dce110_edp_backlight_control(
 	if (cntl.action == TRANSMITTER_CONTROL_BACKLIGHT_ON)
 		edp_receiver_ready_T7(link);
 	link_transmitter_control(ctx->dc_bios, &cntl);
+
+	if (enable && link->dpcd_sink_ext_caps.bits.oled)
+		msleep(OLED_POST_T7_DELAY);
+
+	if (link->dpcd_sink_ext_caps.bits.oled ||
+		link->dpcd_sink_ext_caps.bits.hdr_aux_backlight_control == 1 ||
+		link->dpcd_sink_ext_caps.bits.sdr_aux_backlight_control == 1)
+		dc_link_backlight_enable_aux(link, enable);
+
 	/*edp 1.2*/
 	if (cntl.action == TRANSMITTER_CONTROL_BACKLIGHT_OFF)
 		edp_receiver_ready_T9(link);
+
+	if (!enable && link->dpcd_sink_ext_caps.bits.oled)
+		msleep(OLED_PRE_T11_DELAY);
 }
 
 void dce110_enable_audio_stream(struct pipe_ctx *pipe_ctx)
@@ -1373,9 +1390,13 @@ static enum dc_status apply_single_controller_ctx_to_hw(
 	// DRR should set trigger event to monitor surface update event
 	if (stream->adjust.v_total_min != 0 && stream->adjust.v_total_max != 0)
 		event_triggers = 0x80;
+	/* Event triggers and num frames initialized for DRR, but can be
+	 * later updated for PSR use. Note DRR trigger events are generated
+	 * regardless of whether num frames met.
+	 */
 	if (pipe_ctx->stream_res.tg->funcs->set_static_screen_control)
 		pipe_ctx->stream_res.tg->funcs->set_static_screen_control(
-				pipe_ctx->stream_res.tg, event_triggers);
+				pipe_ctx->stream_res.tg, event_triggers, 2);
 
 	if (!dc_is_virtual_signal(pipe_ctx->stream->signal))
 		pipe_ctx->stream_res.stream_enc->funcs->dig_connect_to_otg(
@@ -1706,6 +1727,8 @@ static void set_drr(struct pipe_ctx **pipe_ctx,
 	struct drr_params params = {0};
 	// DRR should set trigger event to monitor surface update event
 	unsigned int event_triggers = 0x80;
+	// Note DRR trigger events are generated regardless of whether num frames met.
+	unsigned int num_frames = 2;
 
 	params.vertical_total_max = vmax;
 	params.vertical_total_min = vmin;
@@ -1721,7 +1744,7 @@ static void set_drr(struct pipe_ctx **pipe_ctx,
 		if (vmax != 0 && vmin != 0)
 			pipe_ctx[i]->stream_res.tg->funcs->set_static_screen_control(
 					pipe_ctx[i]->stream_res.tg,
-					event_triggers);
+					event_triggers, num_frames);
 	}
 }
 
@@ -1738,30 +1761,31 @@ static void get_position(struct pipe_ctx **pipe_ctx,
 }
 
 static void set_static_screen_control(struct pipe_ctx **pipe_ctx,
-		int num_pipes, const struct dc_static_screen_events *events)
+		int num_pipes, const struct dc_static_screen_params *params)
 {
 	unsigned int i;
-	unsigned int value = 0;
+	unsigned int triggers = 0;
 
-	if (events->overlay_update)
-		value |= 0x100;
-	if (events->surface_update)
-		value |= 0x80;
-	if (events->cursor_update)
-		value |= 0x2;
-	if (events->force_trigger)
-		value |= 0x1;
+	if (params->triggers.overlay_update)
+		triggers |= 0x100;
+	if (params->triggers.surface_update)
+		triggers |= 0x80;
+	if (params->triggers.cursor_update)
+		triggers |= 0x2;
+	if (params->triggers.force_trigger)
+		triggers |= 0x1;
 
 	if (num_pipes) {
 		struct dc *dc = pipe_ctx[0]->stream->ctx->dc;
 
 		if (dc->fbc_compressor)
-			value |= 0x84;
+			triggers |= 0x84;
 	}
 
 	for (i = 0; i < num_pipes; i++)
 		pipe_ctx[i]->stream_res.tg->funcs->
-			set_static_screen_control(pipe_ctx[i]->stream_res.tg, value);
+			set_static_screen_control(pipe_ctx[i]->stream_res.tg,
+					triggers, params->num_frames);
 }
 
 /*
@@ -2569,17 +2593,6 @@ static void dce110_apply_ctx_for_surface(
 
 	for (i = 0; i < dc->res_pool->pipe_count; i++) {
 		struct pipe_ctx *pipe_ctx = &context->res_ctx.pipe_ctx[i];
-		struct pipe_ctx *old_pipe_ctx = &dc->current_state->res_ctx.pipe_ctx[i];
-
-		if (stream == pipe_ctx->stream) {
-			if (!pipe_ctx->top_pipe &&
-				(pipe_ctx->plane_state || old_pipe_ctx->plane_state))
-				dc->hwss.pipe_control_lock(dc, pipe_ctx, true);
-		}
-	}
-
-	for (i = 0; i < dc->res_pool->pipe_count; i++) {
-		struct pipe_ctx *pipe_ctx = &context->res_ctx.pipe_ctx[i];
 
 		if (pipe_ctx->stream != stream)
 			continue;
@@ -2600,18 +2613,14 @@ static void dce110_apply_ctx_for_surface(
 
 	}
 
-	for (i = 0; i < dc->res_pool->pipe_count; i++) {
-		struct pipe_ctx *pipe_ctx = &context->res_ctx.pipe_ctx[i];
-		struct pipe_ctx *old_pipe_ctx = &dc->current_state->res_ctx.pipe_ctx[i];
-
-		if ((stream == pipe_ctx->stream) &&
-			(!pipe_ctx->top_pipe) &&
-			(pipe_ctx->plane_state || old_pipe_ctx->plane_state))
-			dc->hwss.pipe_control_lock(dc, pipe_ctx, false);
-	}
-
 	if (dc->fbc_compressor)
 		enable_fbc(dc, context);
+}
+
+static void dce110_post_unlock_program_front_end(
+		struct dc *dc,
+		struct dc_state *context)
+{
 }
 
 static void dce110_power_down_fe(struct dc *dc, struct pipe_ctx *pipe_ctx)
@@ -2676,6 +2685,23 @@ void dce110_set_cursor_position(struct pipe_ctx *pipe_ctx)
 		.mirror = pipe_ctx->plane_state->horizontal_mirror
 	};
 
+	/**
+	 * If the cursor's source viewport is clipped then we need to
+	 * translate the cursor to appear in the correct position on
+	 * the screen.
+	 *
+	 * This translation isn't affected by scaling so it needs to be
+	 * done *after* we adjust the position for the scale factor.
+	 *
+	 * This is only done by opt-in for now since there are still
+	 * some usecases like tiled display that might enable the
+	 * cursor on both streams while expecting dc to clip it.
+	 */
+	if (pos_cpy.translate_by_source) {
+		pos_cpy.x += pipe_ctx->plane_state->src_rect.x;
+		pos_cpy.y += pipe_ctx->plane_state->src_rect.y;
+	}
+
 	if (pipe_ctx->plane_state->address.type
 			== PLN_ADDR_TYPE_VIDEO_PROGRESSIVE)
 		pos_cpy.enable = false;
@@ -2715,6 +2741,7 @@ static const struct hw_sequencer_funcs dce110_funcs = {
 	.init_hw = init_hw,
 	.apply_ctx_to_hw = dce110_apply_ctx_to_hw,
 	.apply_ctx_for_surface = dce110_apply_ctx_for_surface,
+	.post_unlock_program_front_end = dce110_post_unlock_program_front_end,
 	.update_plane_addr = update_plane_addr,
 	.update_pending_status = dce110_update_pending_status,
 	.enable_accelerated_mode = dce110_enable_accelerated_mode,
@@ -2729,6 +2756,7 @@ static const struct hw_sequencer_funcs dce110_funcs = {
 	.disable_audio_stream = dce110_disable_audio_stream,
 	.disable_plane = dce110_power_down_fe,
 	.pipe_control_lock = dce_pipe_control_lock,
+	.interdependent_update_lock = NULL,
 	.prepare_bandwidth = dce110_prepare_bandwidth,
 	.optimize_bandwidth = dce110_optimize_bandwidth,
 	.set_drr = set_drr,
@@ -2756,6 +2784,8 @@ static const struct hwseq_private_funcs dce110_private_funcs = {
 	.disable_stream_gating = NULL,
 	.enable_stream_gating = NULL,
 	.edp_backlight_control = dce110_edp_backlight_control,
+	.is_panel_backlight_on = dce110_is_panel_backlight_on,
+	.is_panel_powered_on = dce110_is_panel_powered_on,
 };
 
 void dce110_hw_sequencer_construct(struct dc *dc)

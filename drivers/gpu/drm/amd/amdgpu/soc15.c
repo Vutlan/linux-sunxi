@@ -89,6 +89,13 @@
 #define HDP_MEM_POWER_CTRL__RC_MEM_POWER_CTRL_EN_MASK	0x00010000L
 #define HDP_MEM_POWER_CTRL__RC_MEM_POWER_LS_EN_MASK		0x00020000L
 #define mmHDP_MEM_POWER_CTRL_BASE_IDX	0
+
+/* for Vega20/arcturus regiter offset change */
+#define	mmROM_INDEX_VG20				0x00e4
+#define	mmROM_INDEX_VG20_BASE_IDX			0
+#define	mmROM_DATA_VG20					0x00e5
+#define	mmROM_DATA_VG20_BASE_IDX			0
+
 /*
  * Indirect registers accessor
  */
@@ -272,7 +279,12 @@ static u32 soc15_get_config_memsize(struct amdgpu_device *adev)
 
 static u32 soc15_get_xclk(struct amdgpu_device *adev)
 {
-	return adev->clock.spll.reference_freq;
+	u32 reference_clock = adev->clock.spll.reference_freq;
+
+	if (adev->asic_type == CHIP_RAVEN)
+		return reference_clock / 4;
+
+	return reference_clock;
 }
 
 
@@ -304,6 +316,8 @@ static bool soc15_read_bios_from_rom(struct amdgpu_device *adev,
 {
 	u32 *dw_ptr;
 	u32 i, length_dw;
+	uint32_t rom_index_offset;
+	uint32_t rom_data_offset;
 
 	if (bios == NULL)
 		return false;
@@ -316,11 +330,23 @@ static bool soc15_read_bios_from_rom(struct amdgpu_device *adev,
 	dw_ptr = (u32 *)bios;
 	length_dw = ALIGN(length_bytes, 4) / 4;
 
+	switch (adev->asic_type) {
+	case CHIP_VEGA20:
+	case CHIP_ARCTURUS:
+		rom_index_offset = SOC15_REG_OFFSET(SMUIO, 0, mmROM_INDEX_VG20);
+		rom_data_offset = SOC15_REG_OFFSET(SMUIO, 0, mmROM_DATA_VG20);
+		break;
+	default:
+		rom_index_offset = SOC15_REG_OFFSET(SMUIO, 0, mmROM_INDEX);
+		rom_data_offset = SOC15_REG_OFFSET(SMUIO, 0, mmROM_DATA);
+		break;
+	}
+
 	/* set rom index to 0 */
-	WREG32(SOC15_REG_OFFSET(SMUIO, 0, mmROM_INDEX), 0);
+	WREG32(rom_index_offset, 0);
 	/* read out the rom data */
 	for (i = 0; i < length_dw; i++)
-		dw_ptr[i] = RREG32(SOC15_REG_OFFSET(SMUIO, 0, mmROM_DATA));
+		dw_ptr[i] = RREG32(rom_data_offset);
 
 	return true;
 }
@@ -479,79 +505,24 @@ static int soc15_asic_mode1_reset(struct amdgpu_device *adev)
 	return ret;
 }
 
-static int soc15_asic_get_baco_capability(struct amdgpu_device *adev, bool *cap)
-{
-	if (is_support_sw_smu(adev)) {
-		struct smu_context *smu = &adev->smu;
-
-		*cap = smu_baco_is_support(smu);
-		return 0;
-	} else {
-		void *pp_handle = adev->powerplay.pp_handle;
-		const struct amd_pm_funcs *pp_funcs = adev->powerplay.pp_funcs;
-
-		if (!pp_funcs || !pp_funcs->get_asic_baco_capability) {
-			*cap = false;
-			return -ENOENT;
-		}
-
-		return pp_funcs->get_asic_baco_capability(pp_handle, cap);
-	}
-}
-
 static int soc15_asic_baco_reset(struct amdgpu_device *adev)
 {
 	struct amdgpu_ras *ras = amdgpu_ras_get_context(adev);
+	int ret = 0;
 
 	/* avoid NBIF got stuck when do RAS recovery in BACO reset */
 	if (ras && ras->supported)
 		adev->nbio.funcs->enable_doorbell_interrupt(adev, false);
 
-	dev_info(adev->dev, "GPU BACO reset\n");
-
-	if (is_support_sw_smu(adev)) {
-		struct smu_context *smu = &adev->smu;
-		int ret;
-
-		ret = smu_baco_enter(smu);
-		if (ret)
-			return ret;
-
-		ret = smu_baco_exit(smu);
-		if (ret)
-			return ret;
-	} else {
-		void *pp_handle = adev->powerplay.pp_handle;
-		const struct amd_pm_funcs *pp_funcs = adev->powerplay.pp_funcs;
-
-		if (!pp_funcs ||!pp_funcs->get_asic_baco_state ||!pp_funcs->set_asic_baco_state)
-			return -ENOENT;
-
-		/* enter BACO state */
-		if (pp_funcs->set_asic_baco_state(pp_handle, 1))
-			return -EIO;
-
-		/* exit BACO state */
-		if (pp_funcs->set_asic_baco_state(pp_handle, 0))
-			return -EIO;
-	}
+	ret = amdgpu_dpm_baco_reset(adev);
+	if (ret)
+		return ret;
 
 	/* re-enable doorbell interrupt after BACO exit */
 	if (ras && ras->supported)
 		adev->nbio.funcs->enable_doorbell_interrupt(adev, true);
 
 	return 0;
-}
-
-static int soc15_mode2_reset(struct amdgpu_device *adev)
-{
-	if (is_support_sw_smu(adev))
-		return smu_mode2_reset(&adev->smu);
-	if (!adev->powerplay.pp_funcs ||
-	    !adev->powerplay.pp_funcs->asic_reset_mode_2)
-		return -ENOENT;
-
-	return adev->powerplay.pp_funcs->asic_reset_mode_2(adev->powerplay.pp_handle);
 }
 
 static enum amd_reset_method
@@ -567,11 +538,11 @@ soc15_asic_reset_method(struct amdgpu_device *adev)
 	case CHIP_VEGA10:
 	case CHIP_VEGA12:
 	case CHIP_ARCTURUS:
-		soc15_asic_get_baco_capability(adev, &baco_reset);
+		baco_reset = amdgpu_dpm_is_baco_supported(adev);
 		break;
 	case CHIP_VEGA20:
 		if (adev->psp.sos_fw_version >= 0x80067)
-			soc15_asic_get_baco_capability(adev, &baco_reset);
+			baco_reset = amdgpu_dpm_is_baco_supported(adev);
 
 		/*
 		 * 1. PMFW version > 0x284300: all cases use baco
@@ -592,13 +563,17 @@ soc15_asic_reset_method(struct amdgpu_device *adev)
 
 static int soc15_asic_reset(struct amdgpu_device *adev)
 {
+	/* original raven doesn't have full asic reset */
+	if (adev->pdev->device == 0x15dd && adev->rev_id < 0x8)
+		return 0;
+
 	switch (soc15_asic_reset_method(adev)) {
 		case AMD_RESET_METHOD_BACO:
 			if (!adev->in_suspend)
 				amdgpu_inc_vram_lost(adev);
 			return soc15_asic_baco_reset(adev);
 		case AMD_RESET_METHOD_MODE2:
-			return soc15_mode2_reset(adev);
+			return amdgpu_dpm_mode2_reset(adev);
 		default:
 			if (!adev->in_suspend)
 				amdgpu_inc_vram_lost(adev);
@@ -608,24 +583,18 @@ static int soc15_asic_reset(struct amdgpu_device *adev)
 
 static bool soc15_supports_baco(struct amdgpu_device *adev)
 {
-	bool baco_support;
-
 	switch (adev->asic_type) {
 	case CHIP_VEGA10:
 	case CHIP_VEGA12:
-		soc15_asic_get_baco_capability(adev, &baco_support);
-		break;
+	case CHIP_ARCTURUS:
+		return amdgpu_dpm_is_baco_supported(adev);
 	case CHIP_VEGA20:
 		if (adev->psp.sos_fw_version >= 0x80067)
-			soc15_asic_get_baco_capability(adev, &baco_support);
-		else
-			baco_support = false;
-		break;
+			return amdgpu_dpm_is_baco_supported(adev);
+		return false;
 	default:
 		return false;
 	}
-
-	return baco_support;
 }
 
 /*static int soc15_set_uvd_clock(struct amdgpu_device *adev, u32 clock,
@@ -738,9 +707,9 @@ int soc15_set_ip_blocks(struct amdgpu_device *adev)
 	}
 
 	if (adev->asic_type == CHIP_VEGA20 || adev->asic_type == CHIP_ARCTURUS)
-		adev->df_funcs = &df_v3_6_funcs;
+		adev->df.funcs = &df_v3_6_funcs;
 	else
-		adev->df_funcs = &df_v1_7_funcs;
+		adev->df.funcs = &df_v1_7_funcs;
 
 	adev->rev_id = soc15_get_rev_id(adev);
 	adev->nbio.funcs->detect_hw_virt(adev);
@@ -827,11 +796,14 @@ int soc15_set_ip_blocks(struct amdgpu_device *adev)
 			amdgpu_device_ip_block_add(adev, &dce_virtual_ip_block);
 		amdgpu_device_ip_block_add(adev, &gfx_v9_0_ip_block);
 		amdgpu_device_ip_block_add(adev, &sdma_v4_0_ip_block);
-		if (!amdgpu_sriov_vf(adev))
-			amdgpu_device_ip_block_add(adev, &smu_v11_0_ip_block);
+		amdgpu_device_ip_block_add(adev, &smu_v11_0_ip_block);
 
-		if (unlikely(adev->firmware.load_type == AMDGPU_FW_LOAD_DIRECT))
+		if (amdgpu_sriov_vf(adev)) {
+			if (likely(adev->firmware.load_type == AMDGPU_FW_LOAD_PSP))
+				amdgpu_device_ip_block_add(adev, &vcn_v2_5_ip_block);
+		} else {
 			amdgpu_device_ip_block_add(adev, &vcn_v2_5_ip_block);
+		}
 		if (!amdgpu_sriov_vf(adev))
 			amdgpu_device_ip_block_add(adev, &jpeg_v2_5_ip_block);
 		break;
@@ -841,8 +813,7 @@ int soc15_set_ip_blocks(struct amdgpu_device *adev)
 		amdgpu_device_ip_block_add(adev, &vega10_ih_ip_block);
 		if (likely(adev->firmware.load_type == AMDGPU_FW_LOAD_PSP))
 			amdgpu_device_ip_block_add(adev, &psp_v12_0_ip_block);
-		if (is_support_sw_smu(adev))
-			amdgpu_device_ip_block_add(adev, &smu_v12_0_ip_block);
+		amdgpu_device_ip_block_add(adev, &smu_v12_0_ip_block);
 		amdgpu_device_ip_block_add(adev, &gfx_v9_0_ip_block);
 		amdgpu_device_ip_block_add(adev, &sdma_v4_0_ip_block);
 		if (adev->enable_virtual_display || amdgpu_sriov_vf(adev))
@@ -881,6 +852,15 @@ static bool soc15_need_full_reset(struct amdgpu_device *adev)
 	/* change this when we implement soft reset */
 	return true;
 }
+
+static void vega20_reset_hdp_ras_error_count(struct amdgpu_device *adev)
+{
+	if (!amdgpu_ras_is_supported(adev, AMDGPU_RAS_BLOCK__HDP))
+		return;
+	/*read back hdp ras counter to reset it to 0 */
+	RREG32_SOC15(HDP, 0, mmHDP_EDC_CNT);
+}
+
 static void soc15_get_pcie_usage(struct amdgpu_device *adev, uint64_t *count0,
 				 uint64_t *count1)
 {
@@ -1048,6 +1028,7 @@ static const struct amdgpu_asic_funcs vega20_asic_funcs =
 	.get_config_memsize = &soc15_get_config_memsize,
 	.flush_hdp = &soc15_flush_hdp,
 	.invalidate_hdp = &soc15_invalidate_hdp,
+	.reset_hdp_ras_error_count = &vega20_reset_hdp_ras_error_count,
 	.need_full_reset = &soc15_need_full_reset,
 	.init_doorbell_index = &vega20_doorbell_index_init,
 	.get_pcie_usage = &vega20_get_pcie_usage,
@@ -1293,6 +1274,10 @@ static int soc15_common_late_init(void *handle)
 	if (amdgpu_sriov_vf(adev))
 		xgpu_ai_mailbox_get_irq(adev);
 
+	if (adev->asic_funcs &&
+	    adev->asic_funcs->reset_hdp_ras_error_count)
+		adev->asic_funcs->reset_hdp_ras_error_count(adev);
+
 	if (adev->nbio.funcs->ras_late_init)
 		r = adev->nbio.funcs->ras_late_init(adev);
 
@@ -1306,7 +1291,7 @@ static int soc15_common_sw_init(void *handle)
 	if (amdgpu_sriov_vf(adev))
 		xgpu_ai_mailbox_add_irq_id(adev);
 
-	adev->df_funcs->sw_init(adev);
+	adev->df.funcs->sw_init(adev);
 
 	return 0;
 }
@@ -1316,7 +1301,7 @@ static int soc15_common_sw_fini(void *handle)
 	struct amdgpu_device *adev = (struct amdgpu_device *)handle;
 
 	amdgpu_nbio_ras_fini(adev);
-	adev->df_funcs->sw_fini(adev);
+	adev->df.funcs->sw_fini(adev);
 	return 0;
 }
 
@@ -1526,38 +1511,38 @@ static int soc15_common_set_clockgating_state(void *handle,
 	case CHIP_VEGA12:
 	case CHIP_VEGA20:
 		adev->nbio.funcs->update_medium_grain_clock_gating(adev,
-				state == AMD_CG_STATE_GATE ? true : false);
+				state == AMD_CG_STATE_GATE);
 		adev->nbio.funcs->update_medium_grain_light_sleep(adev,
-				state == AMD_CG_STATE_GATE ? true : false);
+				state == AMD_CG_STATE_GATE);
 		soc15_update_hdp_light_sleep(adev,
-				state == AMD_CG_STATE_GATE ? true : false);
+				state == AMD_CG_STATE_GATE);
 		soc15_update_drm_clock_gating(adev,
-				state == AMD_CG_STATE_GATE ? true : false);
+				state == AMD_CG_STATE_GATE);
 		soc15_update_drm_light_sleep(adev,
-				state == AMD_CG_STATE_GATE ? true : false);
+				state == AMD_CG_STATE_GATE);
 		soc15_update_rom_medium_grain_clock_gating(adev,
-				state == AMD_CG_STATE_GATE ? true : false);
-		adev->df_funcs->update_medium_grain_clock_gating(adev,
-				state == AMD_CG_STATE_GATE ? true : false);
+				state == AMD_CG_STATE_GATE);
+		adev->df.funcs->update_medium_grain_clock_gating(adev,
+				state == AMD_CG_STATE_GATE);
 		break;
 	case CHIP_RAVEN:
 	case CHIP_RENOIR:
 		adev->nbio.funcs->update_medium_grain_clock_gating(adev,
-				state == AMD_CG_STATE_GATE ? true : false);
+				state == AMD_CG_STATE_GATE);
 		adev->nbio.funcs->update_medium_grain_light_sleep(adev,
-				state == AMD_CG_STATE_GATE ? true : false);
+				state == AMD_CG_STATE_GATE);
 		soc15_update_hdp_light_sleep(adev,
-				state == AMD_CG_STATE_GATE ? true : false);
+				state == AMD_CG_STATE_GATE);
 		soc15_update_drm_clock_gating(adev,
-				state == AMD_CG_STATE_GATE ? true : false);
+				state == AMD_CG_STATE_GATE);
 		soc15_update_drm_light_sleep(adev,
-				state == AMD_CG_STATE_GATE ? true : false);
+				state == AMD_CG_STATE_GATE);
 		soc15_update_rom_medium_grain_clock_gating(adev,
-				state == AMD_CG_STATE_GATE ? true : false);
+				state == AMD_CG_STATE_GATE);
 		break;
 	case CHIP_ARCTURUS:
 		soc15_update_hdp_light_sleep(adev,
-				state == AMD_CG_STATE_GATE ? true : false);
+				state == AMD_CG_STATE_GATE);
 		break;
 	default:
 		break;
@@ -1595,7 +1580,7 @@ static void soc15_common_get_clockgating_state(void *handle, u32 *flags)
 	if (!(data & CGTT_ROM_CLK_CTRL0__SOFT_OVERRIDE0_MASK))
 		*flags |= AMD_CG_SUPPORT_ROM_MGCG;
 
-	adev->df_funcs->get_clockgating_state(adev, flags);
+	adev->df.funcs->get_clockgating_state(adev, flags);
 }
 
 static int soc15_common_set_powergating_state(void *handle,

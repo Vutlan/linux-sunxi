@@ -90,6 +90,7 @@
 #include "amdgpu_mes.h"
 #include "amdgpu_umc.h"
 #include "amdgpu_mmhub.h"
+#include "amdgpu_df.h"
 
 #define MAX_GPU_INSTANCE		16
 
@@ -578,6 +579,7 @@ struct amdgpu_asic_funcs {
 	/* invalidate hdp read cache */
 	void (*invalidate_hdp)(struct amdgpu_device *adev,
 			       struct amdgpu_ring *ring);
+	void (*reset_hdp_ras_error_count)(struct amdgpu_device *adev);
 	/* check if the asic needs a full reset of if soft reset will work */
 	bool (*need_full_reset)(struct amdgpu_device *adev);
 	/* initialize doorbell layout for specific asic*/
@@ -636,9 +638,8 @@ struct amdgpu_fw_vram_usage {
 	struct amdgpu_bo *reserved_bo;
 	void *va;
 
-	/* Offset on the top of VRAM, used as c2p write buffer.
+	/* GDDR6 training support flag.
 	*/
-	u64 mem_train_fb_loc;
 	bool mem_train_support;
 };
 
@@ -665,29 +666,6 @@ struct amdgpu_mmio_remap {
 	resource_size_t bus_addr;
 };
 
-struct amdgpu_df_funcs {
-	void (*sw_init)(struct amdgpu_device *adev);
-	void (*sw_fini)(struct amdgpu_device *adev);
-	void (*enable_broadcast_mode)(struct amdgpu_device *adev,
-				      bool enable);
-	u32 (*get_fb_channel_number)(struct amdgpu_device *adev);
-	u32 (*get_hbm_channel_number)(struct amdgpu_device *adev);
-	void (*update_medium_grain_clock_gating)(struct amdgpu_device *adev,
-						 bool enable);
-	void (*get_clockgating_state)(struct amdgpu_device *adev,
-				      u32 *flags);
-	void (*enable_ecc_force_par_wr_rmw)(struct amdgpu_device *adev,
-					    bool enable);
-	int (*pmc_start)(struct amdgpu_device *adev, uint64_t config,
-					 int is_enable);
-	int (*pmc_stop)(struct amdgpu_device *adev, uint64_t config,
-					 int is_disable);
-	void (*pmc_get_count)(struct amdgpu_device *adev, uint64_t config,
-					 uint64_t *count);
-	uint64_t (*get_fica)(struct amdgpu_device *adev, uint32_t ficaa_val);
-	void (*set_fica)(struct amdgpu_device *adev, uint32_t ficaa_val,
-			 uint32_t ficadl_val, uint32_t ficadh_val);
-};
 /* Define the HW IP blocks will be used in driver , add more if necessary */
 enum amd_hw_ip_block_type {
 	GC_HWIP = 1,
@@ -931,6 +909,9 @@ struct amdgpu_device {
 	bool                            enable_mes;
 	struct amdgpu_mes               mes;
 
+	/* df */
+	struct amdgpu_df                df;
+
 	struct amdgpu_ip_block          ip_blocks[AMDGPU_MAX_IP_NUM];
 	int				num_ip_blocks;
 	struct mutex	mn_lock;
@@ -943,8 +924,6 @@ struct amdgpu_device {
 
 	/* soc15 register offset based on ip, instance and  segment */
 	uint32_t 		*reg_offset[MAX_HWIP][HWIP_MAX_INSTANCE];
-
-	const struct amdgpu_df_funcs	*df_funcs;
 
 	/* delayed work_func for deferring clockgating during resume */
 	struct delayed_work     delayed_init_work;
@@ -991,11 +970,10 @@ struct amdgpu_device {
 	int				pstate;
 	/* enable runtime pm on the device */
 	bool                            runpm;
+	bool                            in_runpm;
 
 	bool                            pm_sysfs_en;
 	bool                            ucode_sysfs_en;
-
-	bool				in_baco;
 };
 
 static inline struct amdgpu_device *amdgpu_ttm_adev(struct ttm_bo_device *bdev)
@@ -1016,6 +994,8 @@ uint32_t amdgpu_mm_rreg(struct amdgpu_device *adev, uint32_t reg,
 			uint32_t acc_flags);
 void amdgpu_mm_wreg(struct amdgpu_device *adev, uint32_t reg, uint32_t v,
 		    uint32_t acc_flags);
+void amdgpu_mm_wreg_mmio_rlc(struct amdgpu_device *adev, uint32_t reg, uint32_t v,
+		    uint32_t acc_flags);
 void amdgpu_mm_wreg8(struct amdgpu_device *adev, uint32_t offset, uint8_t value);
 uint8_t amdgpu_mm_rreg8(struct amdgpu_device *adev, uint32_t offset);
 
@@ -1033,9 +1013,13 @@ int emu_soc_asic_init(struct amdgpu_device *adev);
 
 #define AMDGPU_REGS_IDX       (1<<0)
 #define AMDGPU_REGS_NO_KIQ    (1<<1)
+#define AMDGPU_REGS_KIQ       (1<<2)
 
 #define RREG32_NO_KIQ(reg) amdgpu_mm_rreg(adev, (reg), AMDGPU_REGS_NO_KIQ)
 #define WREG32_NO_KIQ(reg, v) amdgpu_mm_wreg(adev, (reg), (v), AMDGPU_REGS_NO_KIQ)
+
+#define RREG32_KIQ(reg) amdgpu_mm_rreg(adev, (reg), AMDGPU_REGS_KIQ)
+#define WREG32_KIQ(reg, v) amdgpu_mm_wreg(adev, (reg), (v), AMDGPU_REGS_KIQ)
 
 #define RREG8(reg) amdgpu_mm_rreg8(adev, (reg))
 #define WREG8(reg, v) amdgpu_mm_wreg8(adev, (reg), (v))
@@ -1194,9 +1178,9 @@ void amdgpu_driver_postclose_kms(struct drm_device *dev,
 int amdgpu_device_ip_suspend(struct amdgpu_device *adev);
 int amdgpu_device_suspend(struct drm_device *dev, bool fbcon);
 int amdgpu_device_resume(struct drm_device *dev, bool fbcon);
-u32 amdgpu_get_vblank_counter_kms(struct drm_device *dev, unsigned int pipe);
-int amdgpu_enable_vblank_kms(struct drm_device *dev, unsigned int pipe);
-void amdgpu_disable_vblank_kms(struct drm_device *dev, unsigned int pipe);
+u32 amdgpu_get_vblank_counter_kms(struct drm_crtc *crtc);
+int amdgpu_enable_vblank_kms(struct drm_crtc *crtc);
+void amdgpu_disable_vblank_kms(struct drm_crtc *crtc);
 long amdgpu_kms_compat_ioctl(struct file *filp, unsigned int cmd,
 			     unsigned long arg);
 

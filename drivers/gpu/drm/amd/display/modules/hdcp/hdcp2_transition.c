@@ -47,8 +47,7 @@ enum mod_hdcp_status mod_hdcp_hdcp2_transition(struct mod_hdcp *hdcp,
 		}
 		break;
 	case H2_A1_SEND_AKE_INIT:
-		if (input->add_topology != PASS ||
-				input->create_session != PASS ||
+		if (input->create_session != PASS ||
 				input->ake_init_prepare != PASS) {
 			/* out of sync with psp state */
 			adjust->hdcp2.disable = 1;
@@ -114,7 +113,7 @@ enum mod_hdcp_status mod_hdcp_hdcp2_transition(struct mod_hdcp *hdcp,
 			if (event_ctx->event ==
 					MOD_HDCP_EVENT_WATCHDOG_TIMEOUT) {
 				/* 1A-11-3: consider h' timeout a failure */
-				fail_and_restart_in_ms(0, &status, output);
+				fail_and_restart_in_ms(1000, &status, output);
 			} else {
 				/* continue h' polling */
 				callback_in_ms(100, output);
@@ -166,7 +165,7 @@ enum mod_hdcp_status mod_hdcp_hdcp2_transition(struct mod_hdcp *hdcp,
 			if (event_ctx->event ==
 					MOD_HDCP_EVENT_WATCHDOG_TIMEOUT) {
 				/* 1A-11-2: consider h' timeout a failure */
-				fail_and_restart_in_ms(0, &status, output);
+				fail_and_restart_in_ms(1000, &status, output);
 			} else {
 				/* continue h' polling */
 				callback_in_ms(20, output);
@@ -389,8 +388,7 @@ enum mod_hdcp_status mod_hdcp_hdcp2_dp_transition(struct mod_hdcp *hdcp,
 		}
 		break;
 	case D2_A1_SEND_AKE_INIT:
-		if (input->add_topology != PASS ||
-				input->create_session != PASS ||
+		if (input->create_session != PASS ||
 				input->ake_init_prepare != PASS) {
 			/* out of sync with psp state */
 			adjust->hdcp2.disable = 1;
@@ -439,7 +437,7 @@ enum mod_hdcp_status mod_hdcp_hdcp2_dp_transition(struct mod_hdcp *hdcp,
 			if (event_ctx->event ==
 					MOD_HDCP_EVENT_WATCHDOG_TIMEOUT)
 				/* 1A-10-3: consider h' timeout a failure */
-				fail_and_restart_in_ms(0, &status, output);
+				fail_and_restart_in_ms(1000, &status, output);
 			else
 				increment_stay_counter(hdcp);
 			break;
@@ -484,7 +482,7 @@ enum mod_hdcp_status mod_hdcp_hdcp2_dp_transition(struct mod_hdcp *hdcp,
 			if (event_ctx->event ==
 					MOD_HDCP_EVENT_WATCHDOG_TIMEOUT)
 				/* 1A-10-2: consider h' timeout a failure */
-				fail_and_restart_in_ms(0, &status, output);
+				fail_and_restart_in_ms(1000, &status, output);
 			else
 				increment_stay_counter(hdcp);
 			break;
@@ -630,7 +628,10 @@ enum mod_hdcp_status mod_hdcp_hdcp2_dp_transition(struct mod_hdcp *hdcp,
 			break;
 		} else if (input->prepare_stream_manage != PASS ||
 				input->stream_manage_write != PASS) {
-			fail_and_restart_in_ms(0, &status, output);
+			if (event_ctx->event == MOD_HDCP_EVENT_CALLBACK)
+				fail_and_restart_in_ms(0, &status, output);
+			else
+				increment_stay_counter(hdcp);
 			break;
 		}
 		callback_in_ms(100, output);
@@ -655,10 +656,12 @@ enum mod_hdcp_status mod_hdcp_hdcp2_dp_transition(struct mod_hdcp *hdcp,
 			 */
 			if (hdcp->auth.count.stream_management_retry_count > 10) {
 				fail_and_restart_in_ms(0, &status, output);
-			} else {
+			} else if (event_ctx->event == MOD_HDCP_EVENT_CALLBACK) {
 				hdcp->auth.count.stream_management_retry_count++;
 				callback_in_ms(0, output);
 				set_state_id(hdcp, output, D2_A9_SEND_STREAM_MANAGEMENT);
+			} else {
+				increment_stay_counter(hdcp);
 			}
 			break;
 		}

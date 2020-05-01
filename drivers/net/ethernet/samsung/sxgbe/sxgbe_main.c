@@ -1939,9 +1939,7 @@ static int sxgbe_ioctl(struct net_device *dev, struct ifreq *rq, int cmd)
 	case SIOCGMIIPHY:
 	case SIOCGMIIREG:
 	case SIOCSMIIREG:
-		if (!dev->phydev)
-			return -EINVAL;
-		ret = phy_mii_ioctl(dev->phydev, rq, cmd);
+		ret = phy_do_ioctl(dev, rq, cmd);
 		break;
 	default:
 		break;
@@ -2279,7 +2277,7 @@ static int __init sxgbe_cmdline_opt(char *str)
 	if (!str || !*str)
 		return -EINVAL;
 	while ((opt = strsep(&str, ",")) != NULL) {
-		if (!strncmp(opt, "eee_timer:", 6)) {
+		if (!strncmp(opt, "eee_timer:", 10)) {
 			if (kstrtoint(opt + 10, 0, &eee_timer))
 				goto err;
 		}

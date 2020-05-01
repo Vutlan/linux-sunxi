@@ -22,10 +22,11 @@
  * Authors: AMD
  *
  */
+
+#include "dc_features.h"
+
 #ifndef __DISPLAY_MODE_STRUCTS_H__
 #define __DISPLAY_MODE_STRUCTS_H__
-
-#define MAX_CLOCK_LIMIT_STATES 8
 
 typedef struct _vcs_dpi_voltage_scaling_st voltage_scaling_st;
 typedef struct _vcs_dpi_soc_bounding_box_st soc_bounding_box_st;
@@ -61,11 +62,15 @@ struct _vcs_dpi_voltage_scaling_st {
 	double dram_speed_mts;
 	double fabricclk_mhz;
 	double dispclk_mhz;
+	double dram_bw_per_chan_gbps;
 	double phyclk_mhz;
 	double dppclk_mhz;
+	double dtbclk_mhz;
 };
 
 struct _vcs_dpi_soc_bounding_box_st {
+	struct _vcs_dpi_voltage_scaling_st clock_limits[DC__VOLTAGE_STATES];
+	unsigned int num_states;
 	double sr_exit_time_us;
 	double sr_enter_plus_exit_time_us;
 	double urgent_latency_us;
@@ -108,8 +113,7 @@ struct _vcs_dpi_soc_bounding_box_st {
 	double xfc_bus_transport_time_us;
 	double xfc_xbuf_latency_tolerance_us;
 	int use_urgent_burst_bw;
-	unsigned int num_states;
-	struct _vcs_dpi_voltage_scaling_st clock_limits[MAX_CLOCK_LIMIT_STATES];
+	double min_dcfclk;
 	bool do_urgent_latency_adjustment;
 	double urgent_latency_adjustment_fabric_clock_component_us;
 	double urgent_latency_adjustment_fabric_clock_reference_mhz;
@@ -188,7 +192,7 @@ struct _vcs_dpi_ip_params_st {
 	unsigned int min_vblank_lines;
 	unsigned int dppclk_delay_subtotal;
 	unsigned int dispclk_delay_subtotal;
-	unsigned int dcfclk_cstate_latency;
+	double dcfclk_cstate_latency;
 	unsigned int dppclk_delay_scl;
 	unsigned int dppclk_delay_scl_lb_only;
 	unsigned int dppclk_delay_cnvc_formatter;
@@ -201,6 +205,7 @@ struct _vcs_dpi_ip_params_st {
 	unsigned int LineBufferFixedBpp;
 	unsigned int can_vstartup_lines_exceed_vsync_plus_back_porch_lines_minus_one;
 	unsigned int bug_forcing_LC_req_same_size_fixed;
+	unsigned int number_of_cursors;
 };
 
 struct _vcs_dpi_display_xfc_params_st {
@@ -214,6 +219,7 @@ struct _vcs_dpi_display_pipe_source_params_st {
 	int source_format;
 	unsigned char dcc;
 	unsigned int dcc_rate;
+	unsigned int dcc_rate_chroma;
 	unsigned char dcc_use_global;
 	unsigned char vm;
 	bool gpuvm;    // gpuvm enabled
@@ -225,7 +231,10 @@ struct _vcs_dpi_display_pipe_source_params_st {
 	int source_scan;
 	int sw_mode;
 	int macro_tile_size;
+	unsigned int surface_width_y;
 	unsigned int surface_height_y;
+	unsigned int surface_width_c;
+	unsigned int surface_height_c;
 	unsigned int viewport_width;
 	unsigned int viewport_height;
 	unsigned int viewport_y_y;
@@ -278,6 +287,7 @@ struct _vcs_dpi_display_output_params_st {
 	int output_type;
 	int output_format;
 	int dsc_slices;
+	int max_audio_sample_rate;
 	struct writeback_st wb;
 };
 
@@ -319,11 +329,10 @@ struct _vcs_dpi_display_pipe_dest_params_st {
 	unsigned int vupdate_width;
 	unsigned int vready_offset;
 	unsigned char interlaced;
-	unsigned char embedded;
 	double pixel_rate_mhz;
 	unsigned char synchronized_vblank_all_planes;
 	unsigned char otg_inst;
-	unsigned char odm_combine;
+	unsigned int odm_combine;
 	unsigned char use_maximum_vstartup;
 	unsigned int vtotal_max;
 	unsigned int vtotal_min;

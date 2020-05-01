@@ -32,6 +32,7 @@
 
 #include "gt/intel_rc6.h"
 #include "gt/intel_rps.h"
+#include "gt/sysfs_engines.h"
 
 #include "i915_drv.h"
 #include "i915_sysfs.h"
@@ -498,15 +499,15 @@ static ssize_t error_state_read(struct file *filp, struct kobject *kobj,
 
 	struct device *kdev = kobj_to_dev(kobj);
 	struct drm_i915_private *i915 = kdev_minor_to_i915(kdev);
-	struct i915_gpu_state *gpu;
+	struct i915_gpu_coredump *gpu;
 	ssize_t ret;
 
 	gpu = i915_first_error_state(i915);
 	if (IS_ERR(gpu)) {
 		ret = PTR_ERR(gpu);
 	} else if (gpu) {
-		ret = i915_gpu_state_copy_to_buffer(gpu, buf, off, count);
-		i915_gpu_state_put(gpu);
+		ret = i915_gpu_coredump_copy_to_buffer(gpu, buf, off, count);
+		i915_gpu_coredump_put(gpu);
 	} else {
 		const char *str = "No error state collected\n";
 		size_t len = strlen(str);
@@ -525,7 +526,7 @@ static ssize_t error_state_write(struct file *file, struct kobject *kobj,
 	struct device *kdev = kobj_to_dev(kobj);
 	struct drm_i915_private *dev_priv = kdev_minor_to_i915(kdev);
 
-	DRM_DEBUG_DRIVER("Resetting error state\n");
+	drm_dbg(&dev_priv->drm, "Resetting error state\n");
 	i915_reset_error_state(dev_priv);
 
 	return count;
@@ -564,31 +565,36 @@ void i915_setup_sysfs(struct drm_i915_private *dev_priv)
 		ret = sysfs_merge_group(&kdev->kobj,
 					&rc6_attr_group);
 		if (ret)
-			DRM_ERROR("RC6 residency sysfs setup failed\n");
+			drm_err(&dev_priv->drm,
+				"RC6 residency sysfs setup failed\n");
 	}
 	if (HAS_RC6p(dev_priv)) {
 		ret = sysfs_merge_group(&kdev->kobj,
 					&rc6p_attr_group);
 		if (ret)
-			DRM_ERROR("RC6p residency sysfs setup failed\n");
+			drm_err(&dev_priv->drm,
+				"RC6p residency sysfs setup failed\n");
 	}
 	if (IS_VALLEYVIEW(dev_priv) || IS_CHERRYVIEW(dev_priv)) {
 		ret = sysfs_merge_group(&kdev->kobj,
 					&media_rc6_attr_group);
 		if (ret)
-			DRM_ERROR("Media RC6 residency sysfs setup failed\n");
+			drm_err(&dev_priv->drm,
+				"Media RC6 residency sysfs setup failed\n");
 	}
 #endif
 	if (HAS_L3_DPF(dev_priv)) {
 		ret = device_create_bin_file(kdev, &dpf_attrs);
 		if (ret)
-			DRM_ERROR("l3 parity sysfs setup failed\n");
+			drm_err(&dev_priv->drm,
+				"l3 parity sysfs setup failed\n");
 
 		if (NUM_L3_SLICES(dev_priv) > 1) {
 			ret = device_create_bin_file(kdev,
 						     &dpf_attrs_1);
 			if (ret)
-				DRM_ERROR("l3 parity slice 1 setup failed\n");
+				drm_err(&dev_priv->drm,
+					"l3 parity slice 1 setup failed\n");
 		}
 	}
 
@@ -598,9 +604,11 @@ void i915_setup_sysfs(struct drm_i915_private *dev_priv)
 	else if (INTEL_GEN(dev_priv) >= 6)
 		ret = sysfs_create_files(&kdev->kobj, gen6_attrs);
 	if (ret)
-		DRM_ERROR("RPS sysfs setup failed\n");
+		drm_err(&dev_priv->drm, "RPS sysfs setup failed\n");
 
 	i915_setup_error_capture(kdev);
+
+	intel_engines_add_sysfs(dev_priv);
 }
 
 void i915_teardown_sysfs(struct drm_i915_private *dev_priv)

@@ -16,7 +16,10 @@
 
 /* Wake Up Filter Control */
 #define IGC_WUFC_LNKC	0x00000001 /* Link Status Change Wakeup Enable */
+#define IGC_WUFC_MAG	0x00000002 /* Magic Packet Wakeup Enable */
+#define IGC_WUFC_EX	0x00000004 /* Directed Exact Wakeup Enable */
 #define IGC_WUFC_MC	0x00000008 /* Directed Multicast Wakeup Enable */
+#define IGC_WUFC_BC	0x00000010 /* Broadcast Wakeup Enable */
 
 #define IGC_CTRL_ADVD3WUC	0x00100000  /* D3 WUC */
 
@@ -259,6 +262,9 @@
 #define IGC_GPIE_EIAME		0x40000000
 #define IGC_GPIE_PBA		0x80000000
 
+/* Receive Descriptor bit definitions */
+#define IGC_RXD_STAT_DD		0x01    /* Descriptor Done */
+
 /* Transmit Descriptor bit definitions */
 #define IGC_TXD_DTYP_D		0x00100000 /* Data Descriptor */
 #define IGC_TXD_DTYP_C		0x00000000 /* Context Descriptor */
@@ -281,6 +287,10 @@
 #define IGC_TXD_CMD_TSE		0x04000000 /* TCP Seg enable */
 #define IGC_TXD_STAT_TC		0x00000004 /* Tx Underrun */
 #define IGC_TXD_EXTCMD_TSTAMP	0x00000010 /* IEEE1588 Timestamp packet */
+
+/* IPSec Encrypt Enable */
+#define IGC_ADVTXD_L4LEN_SHIFT	8  /* Adv ctxt L4LEN shift */
+#define IGC_ADVTXD_MSS_SHIFT	16 /* Adv ctxt MSS shift */
 
 /* Transmit Control */
 #define IGC_TCTL_EN		0x00000002 /* enable Tx */
@@ -460,6 +470,7 @@
 /* PHY Status Register */
 #define MII_SR_LINK_STATUS	0x0004 /* Link Status 1 = link */
 #define MII_SR_AUTONEG_COMPLETE	0x0020 /* Auto Neg Complete */
+#define IGC_PHY_RST_COMP	0x0100 /* Internal PHY reset completion */
 
 /* PHY 1000 MII Register/Bit Definitions */
 /* PHY Registers defined by IEEE */

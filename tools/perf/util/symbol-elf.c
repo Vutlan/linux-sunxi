@@ -704,9 +704,15 @@ void symsrc__destroy(struct symsrc *ss)
 	close(ss->fd);
 }
 
-bool __weak elf__needs_adjust_symbols(GElf_Ehdr ehdr)
+bool elf__needs_adjust_symbols(GElf_Ehdr ehdr)
 {
-	return ehdr.e_type == ET_EXEC || ehdr.e_type == ET_REL;
+	/*
+	 * Usually vmlinux is an ELF file with type ET_EXEC for most
+	 * architectures; except Arm64 kernel is linked with option
+	 * '-share', so need to check type ET_DYN.
+	 */
+	return ehdr.e_type == ET_EXEC || ehdr.e_type == ET_REL ||
+	       ehdr.e_type == ET_DYN;
 }
 
 int symsrc__init(struct symsrc *ss, struct dso *dso, const char *name,
@@ -919,6 +925,9 @@ static int dso__process_kernel_symbol(struct dso *dso, struct map *map,
 		dso__put(curr_dso);
 		if (curr_map == NULL)
 			return -1;
+
+		if (curr_dso->kernel)
+			map__kmap(curr_map)->kmaps = kmaps;
 
 		if (adjust_kernel_syms) {
 			curr_map->start  = shdr->sh_addr + ref_reloc(kmap);

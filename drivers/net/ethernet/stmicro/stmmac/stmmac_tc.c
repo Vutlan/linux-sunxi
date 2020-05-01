@@ -367,13 +367,17 @@ static int tc_setup_cbs(struct stmmac_priv *priv,
 
 static int tc_parse_flow_actions(struct stmmac_priv *priv,
 				 struct flow_action *action,
-				 struct stmmac_flow_entry *entry)
+				 struct stmmac_flow_entry *entry,
+				 struct netlink_ext_ack *extack)
 {
 	struct flow_action_entry *act;
 	int i;
 
 	if (!flow_action_has_entries(action))
 		return -EINVAL;
+
+	if (!flow_action_basic_hw_stats_check(action, extack))
+		return -EOPNOTSUPP;
 
 	flow_action_for_each(i, act, action) {
 		switch (act->id) {
@@ -530,7 +534,8 @@ static int tc_add_flow(struct stmmac_priv *priv,
 			return -ENOENT;
 	}
 
-	ret = tc_parse_flow_actions(priv, &rule->action, entry);
+	ret = tc_parse_flow_actions(priv, &rule->action, entry,
+				    cls->common.extack);
 	if (ret)
 		return ret;
 
@@ -731,10 +736,31 @@ disable:
 	return ret;
 }
 
+static int tc_setup_etf(struct stmmac_priv *priv,
+			struct tc_etf_qopt_offload *qopt)
+{
+	if (!priv->dma_cap.tbssel)
+		return -EOPNOTSUPP;
+	if (qopt->queue >= priv->plat->tx_queues_to_use)
+		return -EINVAL;
+	if (!(priv->tx_queue[qopt->queue].tbs & STMMAC_TBS_AVAIL))
+		return -EINVAL;
+
+	if (qopt->enable)
+		priv->tx_queue[qopt->queue].tbs |= STMMAC_TBS_EN;
+	else
+		priv->tx_queue[qopt->queue].tbs &= ~STMMAC_TBS_EN;
+
+	netdev_info(priv->dev, "%s ETF for Queue %d\n",
+		    qopt->enable ? "enabled" : "disabled", qopt->queue);
+	return 0;
+}
+
 const struct stmmac_tc_ops dwmac510_tc_ops = {
 	.init = tc_init,
 	.setup_cls_u32 = tc_setup_cls_u32,
 	.setup_cbs = tc_setup_cbs,
 	.setup_cls = tc_setup_cls,
 	.setup_taprio = tc_setup_taprio,
+	.setup_etf = tc_setup_etf,
 };

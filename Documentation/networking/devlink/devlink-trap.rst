@@ -223,6 +223,27 @@ be added to the following table:
    * - ``ipv6_lpm_miss``
      - ``exception``
      - Traps unicast IPv6 packets that did not match any route
+   * - ``non_routable_packet``
+     - ``drop``
+     - Traps packets that the device decided to drop because they are not
+       supposed to be routed. For example, IGMP queries can be flooded by the
+       device in layer 2 and reach the router. Such packets should not be
+       routed and instead dropped
+   * - ``decap_error``
+     - ``exception``
+     - Traps NVE and IPinIP packets that the device decided to drop because of
+       failure during decapsulation (e.g., packet being too short, reserved
+       bits set in VXLAN header)
+   * - ``overlay_smac_is_mc``
+     - ``drop``
+     - Traps NVE packets that the device decided to drop because their overlay
+       source MAC is multicast
+   * - ``ingress_flow_action_drop``
+     - ``drop``
+     - Traps packets dropped during processing of ingress flow action drop
+   * - ``egress_flow_action_drop``
+     - ``drop``
+     - Traps packets dropped during processing of egress flow action drop
 
 Driver-specific Packet Traps
 ============================
@@ -234,6 +255,7 @@ links to the description of driver-specific traps registered by various device
 drivers:
 
   * :doc:`netdevsim`
+  * :doc:`mlxsw`
 
 Generic Packet Trap Groups
 ==========================
@@ -258,6 +280,38 @@ narrow. The description of these groups must be added to the following table:
    * - ``buffer_drops``
      - Contains packet traps for packets that were dropped by the device due to
        an enqueue decision
+   * - ``tunnel_drops``
+     - Contains packet traps for packets that were dropped by the device during
+       tunnel encapsulation / decapsulation
+   * - ``acl_drops``
+     - Contains packet traps for packets that were dropped by the device during
+       ACL processing
+
+Packet Trap Policers
+====================
+
+As previously explained, the underlying device can trap certain packets to the
+CPU for processing. In most cases, the underlying device is capable of handling
+packet rates that are several orders of magnitude higher compared to those that
+can be handled by the CPU.
+
+Therefore, in order to prevent the underlying device from overwhelming the CPU,
+devices usually include packet trap policers that are able to police the
+trapped packets to rates that can be handled by the CPU.
+
+The ``devlink-trap`` mechanism allows capable device drivers to register their
+supported packet trap policers with ``devlink``. The device driver can choose
+to associate these policers with supported packet trap groups (see
+:ref:`Generic-Packet-Trap-Groups`) during its initialization, thereby exposing
+its default control plane policy to user space.
+
+Device drivers should allow user space to change the parameters of the policers
+(e.g., rate, burst size) as well as the association between the policers and
+trap groups by implementing the relevant callbacks.
+
+If possible, device drivers should implement a callback that allows user space
+to retrieve the number of packets that were dropped by the policer because its
+configured policy was violated.
 
 Testing
 =======

@@ -12,8 +12,10 @@
 #define BNXT_H
 
 #define DRV_MODULE_NAME		"bnxt_en"
-#define DRV_MODULE_VERSION	"1.10.1"
 
+/* DO NOT CHANGE DRV_VER_* defines
+ * FIXME: Delete them
+ */
 #define DRV_VER_MAJ	1
 #define DRV_VER_MIN	10
 #define DRV_VER_UPD	1
@@ -1457,6 +1459,8 @@ struct bnxt {
 #define CHIP_NUM_58804		0xd804
 #define CHIP_NUM_58808		0xd808
 
+	u8			chip_rev;
+
 #define BNXT_CHIP_NUM_5730X(chip_num)		\
 	((chip_num) >= CHIP_NUM_57301 &&	\
 	 (chip_num) <= CHIP_NUM_57304)
@@ -1496,6 +1500,10 @@ struct bnxt {
 	 (chip_num) == CHIP_NUM_58804 ||        \
 	 (chip_num) == CHIP_NUM_58808)
 
+#define BNXT_VPD_FLD_LEN	32
+	char			board_partno[BNXT_VPD_FLD_LEN];
+	char			board_serialno[BNXT_VPD_FLD_LEN];
+
 	struct net_device	*dev;
 	struct pci_dev		*pdev;
 
@@ -1532,6 +1540,7 @@ struct bnxt {
 	#define BNXT_FLAG_NO_AGG_RINGS	0x20000
 	#define BNXT_FLAG_RX_PAGE_MODE	0x40000
 	#define BNXT_FLAG_MULTI_HOST	0x100000
+	#define BNXT_FLAG_DSN_VALID	0x200000
 	#define BNXT_FLAG_DOUBLE_DB	0x400000
 	#define BNXT_FLAG_CHIP_NITRO_A0	0x1000000
 	#define BNXT_FLAG_DIM		0x2000000
@@ -1713,7 +1722,7 @@ struct bnxt {
 	u16			fw_rx_stats_ext_size;
 	u16			fw_tx_stats_ext_size;
 	u16			hw_ring_stats_size;
-	u8			pri2cos[8];
+	u8			pri2cos_idx[8];
 	u8			pri2cos_valid;
 
 	u16			hwrm_max_req_len;
@@ -1725,6 +1734,7 @@ struct bnxt {
 #define BC_HWRM_STR_LEN		21
 #define PHY_VER_STR_LEN         (FW_VER_STR_LEN - BC_HWRM_STR_LEN)
 	char			fw_ver_str[FW_VER_STR_LEN];
+	char			hwrm_ver_supp[FW_VER_STR_LEN];
 	__be16			vxlan_port;
 	u8			vxlan_port_cnt;
 	__le16			vxlan_fw_dst_port_id;
@@ -1845,7 +1855,7 @@ struct bnxt {
 	enum devlink_eswitch_mode eswitch_mode;
 	struct bnxt_vf_rep	**vf_reps; /* array of vf-rep ptrs */
 	u16			*cfa_code_map; /* cfa_code -> vf_idx map */
-	u8			switch_id[8];
+	u8			dsn[8];
 	struct bnxt_tc_info	*tc_info;
 	struct list_head	tc_indr_block_list;
 	struct notifier_block	tc_netdev_nb;
@@ -1936,9 +1946,6 @@ static inline bool bnxt_cfa_hwrm_message(u16 req_type)
 	case HWRM_CFA_ENCAP_RECORD_FREE:
 	case HWRM_CFA_DECAP_FILTER_ALLOC:
 	case HWRM_CFA_DECAP_FILTER_FREE:
-	case HWRM_CFA_NTUPLE_FILTER_ALLOC:
-	case HWRM_CFA_NTUPLE_FILTER_FREE:
-	case HWRM_CFA_NTUPLE_FILTER_CFG:
 	case HWRM_CFA_EM_FLOW_ALLOC:
 	case HWRM_CFA_EM_FLOW_FREE:
 	case HWRM_CFA_EM_FLOW_CFG:

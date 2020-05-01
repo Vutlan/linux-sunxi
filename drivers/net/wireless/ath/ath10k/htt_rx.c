@@ -2140,7 +2140,7 @@ static bool ath10k_htt_rx_pn_check_replay_hl(struct ath10k *ar,
 	if (last_pn_valid)
 		pn_invalid = ath10k_htt_rx_pn_cmp48(&new_pn, last_pn);
 	else
-		peer->tids_last_pn_valid[tid] = 1;
+		peer->tids_last_pn_valid[tid] = true;
 
 	if (!pn_invalid)
 		last_pn->pn48 = new_pn.pn48;
@@ -2744,7 +2744,8 @@ static void ath10k_htt_rx_tx_compl_ind(struct ath10k *ar,
 			continue;
 		}
 
-		tid = FIELD_GET(HTT_TX_PPDU_DUR_INFO0_TID_MASK, info0);
+		tid = FIELD_GET(HTT_TX_PPDU_DUR_INFO0_TID_MASK, info0) &
+						IEEE80211_QOS_CTL_TID_MASK;
 		tx_duration = __le32_to_cpu(ppdu_dur->tx_duration);
 
 		ieee80211_sta_register_airtime(peer->sta, tid, tx_duration, 0);

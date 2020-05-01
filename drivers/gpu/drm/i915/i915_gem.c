@@ -26,7 +26,6 @@
  */
 
 #include <drm/drm_vma_manager.h>
-#include <drm/i915_drm.h>
 #include <linux/dma-fence-array.h>
 #include <linux/kthread.h>
 #include <linux/dma-resv.h>
@@ -45,6 +44,7 @@
 #include "gem/i915_gem_context.h"
 #include "gem/i915_gem_ioctls.h"
 #include "gem/i915_gem_mman.h"
+#include "gem/i915_gem_region.h"
 #include "gt/intel_engine_user.h"
 #include "gt/intel_gt.h"
 #include "gt/intel_gt_pm.h"
@@ -179,7 +179,7 @@ i915_gem_phys_pwrite(struct drm_i915_gem_object *obj,
 		     struct drm_i915_gem_pwrite *args,
 		     struct drm_file *file)
 {
-	void *vaddr = obj->phys_handle->vaddr + args->offset;
+	void *vaddr = sg_page(obj->mm.pages->sgl) + args->offset;
 	char __user *user_data = u64_to_user_ptr(args->data_ptr);
 
 	/*
@@ -200,7 +200,7 @@ i915_gem_phys_pwrite(struct drm_i915_gem_object *obj,
 
 static int
 i915_gem_create(struct drm_file *file,
-		struct drm_i915_private *dev_priv,
+		struct intel_memory_region *mr,
 		u64 *size_p,
 		u32 *handle_p)
 {
@@ -209,12 +209,16 @@ i915_gem_create(struct drm_file *file,
 	u64 size;
 	int ret;
 
-	size = round_up(*size_p, PAGE_SIZE);
+	GEM_BUG_ON(!is_power_of_2(mr->min_page_size));
+	size = round_up(*size_p, mr->min_page_size);
 	if (size == 0)
 		return -EINVAL;
 
+	/* For most of the ABI (e.g. mmap) we think in system pages */
+	GEM_BUG_ON(!IS_ALIGNED(size, PAGE_SIZE));
+
 	/* Allocate the new object */
-	obj = i915_gem_object_create_shmem(dev_priv, size);
+	obj = i915_gem_object_create_region(mr, size, 0);
 	if (IS_ERR(obj))
 		return PTR_ERR(obj);
 
@@ -234,6 +238,7 @@ i915_gem_dumb_create(struct drm_file *file,
 		     struct drm_device *dev,
 		     struct drm_mode_create_dumb *args)
 {
+	enum intel_memory_type mem_type;
 	int cpp = DIV_ROUND_UP(args->bpp, 8);
 	u32 format;
 
@@ -259,8 +264,18 @@ i915_gem_dumb_create(struct drm_file *file,
 						    DRM_FORMAT_MOD_LINEAR))
 		args->pitch = ALIGN(args->pitch, 4096);
 
-	args->size = args->pitch * args->height;
-	return i915_gem_create(file, to_i915(dev),
+	if (args->pitch < args->width)
+		return -EINVAL;
+
+	args->size = mul_u32_u32(args->pitch, args->height);
+
+	mem_type = INTEL_MEMORY_SYSTEM;
+	if (HAS_LMEM(to_i915(dev)))
+		mem_type = INTEL_MEMORY_LOCAL;
+
+	return i915_gem_create(file,
+			       intel_memory_region_by_type(to_i915(dev),
+							   mem_type),
 			       &args->size, &args->handle);
 }
 
@@ -274,12 +289,14 @@ int
 i915_gem_create_ioctl(struct drm_device *dev, void *data,
 		      struct drm_file *file)
 {
-	struct drm_i915_private *dev_priv = to_i915(dev);
+	struct drm_i915_private *i915 = to_i915(dev);
 	struct drm_i915_gem_create *args = data;
 
-	i915_gem_flush_free_objects(dev_priv);
+	i915_gem_flush_free_objects(i915);
 
-	return i915_gem_create(file, dev_priv,
+	return i915_gem_create(file,
+			       intel_memory_region_by_type(i915,
+							   INTEL_MEMORY_SYSTEM),
 			       &args->size, &args->handle);
 }
 
@@ -826,10 +843,10 @@ i915_gem_pwrite_ioctl(struct drm_device *dev, void *data,
 		ret = i915_gem_gtt_pwrite_fast(obj, args);
 
 	if (ret == -EFAULT || ret == -ENOSPC) {
-		if (obj->phys_handle)
-			ret = i915_gem_phys_pwrite(obj, args, file);
-		else
+		if (i915_gem_object_has_struct_page(obj))
 			ret = i915_gem_shmem_pwrite(obj, args);
+		else
+			ret = i915_gem_phys_pwrite(obj, args, file);
 	}
 
 	i915_gem_object_unpin_pages(obj);
@@ -923,9 +940,6 @@ i915_gem_object_ggtt_pin(struct drm_i915_gem_object *obj,
 	struct i915_vma *vma;
 	int ret;
 
-	if (i915_gem_object_never_bind_ggtt(obj))
-		return ERR_PTR(-ENODEV);
-
 	if (flags & PIN_MAPPABLE &&
 	    (!view || view->type == I915_GGTT_VIEW_NORMAL)) {
 		/*
@@ -990,6 +1004,12 @@ i915_gem_object_ggtt_pin(struct drm_i915_gem_object *obj,
 	ret = i915_vma_pin(vma, size, alignment, flags | PIN_GLOBAL);
 	if (ret)
 		return ERR_PTR(ret);
+
+	ret = i915_vma_wait_for_bind(vma);
+	if (ret) {
+		i915_vma_unpin(vma);
+		return ERR_PTR(ret);
+	}
 
 	return vma;
 }
@@ -1135,7 +1155,7 @@ err_unlock:
 
 		/* Minimal basic recovery for KMS */
 		ret = i915_ggtt_enable_hw(dev_priv);
-		i915_gem_restore_gtt_mappings(dev_priv);
+		i915_ggtt_resume(&dev_priv->ggtt);
 		i915_gem_restore_fences(&dev_priv->ggtt);
 		intel_init_clock_gating(dev_priv);
 	}
@@ -1172,6 +1192,8 @@ void i915_gem_driver_remove(struct drm_i915_private *dev_priv)
 
 void i915_gem_driver_release(struct drm_i915_private *dev_priv)
 {
+	i915_gem_driver_release__contexts(dev_priv);
+
 	intel_gt_driver_release(&dev_priv->gt);
 
 	intel_wa_list_free(&dev_priv->gt_wa_list);
@@ -1179,11 +1201,9 @@ void i915_gem_driver_release(struct drm_i915_private *dev_priv)
 	intel_uc_cleanup_firmwares(&dev_priv->gt.uc);
 	i915_gem_cleanup_userptr(dev_priv);
 
-	i915_gem_driver_release__contexts(dev_priv);
-
 	i915_gem_drain_freed_objects(dev_priv);
 
-	WARN_ON(!list_empty(&dev_priv->gem.contexts.list));
+	drm_WARN_ON(&dev_priv->drm, !list_empty(&dev_priv->gem.contexts.list));
 }
 
 static void i915_gem_init__mm(struct drm_i915_private *i915)
@@ -1211,7 +1231,7 @@ void i915_gem_cleanup_early(struct drm_i915_private *dev_priv)
 	i915_gem_drain_freed_objects(dev_priv);
 	GEM_BUG_ON(!llist_empty(&dev_priv->mm.free_list));
 	GEM_BUG_ON(atomic_read(&dev_priv->mm.free_count));
-	WARN_ON(dev_priv->mm.shrink_count);
+	drm_WARN_ON(&dev_priv->drm, dev_priv->mm.shrink_count);
 }
 
 int i915_gem_freeze(struct drm_i915_private *dev_priv)
@@ -1251,7 +1271,8 @@ int i915_gem_freeze_late(struct drm_i915_private *i915)
 
 	list_for_each_entry(obj, &i915->mm.shrink_list, mm.link) {
 		i915_gem_object_lock(obj);
-		WARN_ON(i915_gem_object_set_to_cpu_domain(obj, true));
+		drm_WARN_ON(&i915->drm,
+			    i915_gem_object_set_to_cpu_domain(obj, true));
 		i915_gem_object_unlock(obj);
 	}
 

@@ -1667,9 +1667,6 @@ pci_ers_result_t hclge_handle_hw_ras_error(struct hnae3_ae_dev *ae_dev)
 		hclge_handle_rocee_ras_error(ae_dev);
 	}
 
-	if (test_bit(HCLGE_STATE_RST_HANDLING, &hdev->state))
-		goto out;
-
 	if (ae_dev->hw_err_reset_req)
 		return PCI_ERS_RESULT_NEED_RESET;
 
@@ -1898,10 +1895,8 @@ static int hclge_handle_all_hw_msix_error(struct hclge_dev *hdev,
 
 	bd_num = max_t(u32, mpf_bd_num, pf_bd_num);
 	desc = kcalloc(bd_num, sizeof(struct hclge_desc), GFP_KERNEL);
-	if (!desc) {
-		ret = -ENOMEM;
-		goto out;
-	}
+	if (!desc)
+		return -ENOMEM;
 
 	ret = hclge_handle_mpf_msix_error(hdev, desc, mpf_bd_num,
 					  reset_requests);

@@ -22,6 +22,9 @@
 #include <linux/timer.h>
 #include <linux/workqueue.h>
 #include <linux/mod_devicetable.h>
+#include <linux/u64_stats_sync.h>
+#include <linux/irqreturn.h>
+#include <linux/iopoll.h>
 
 #include <linux/atomic.h>
 
@@ -93,6 +96,7 @@ typedef enum {
 	PHY_INTERFACE_MODE_RTBI,
 	PHY_INTERFACE_MODE_SMII,
 	PHY_INTERFACE_MODE_XGMII,
+	PHY_INTERFACE_MODE_XLGMII,
 	PHY_INTERFACE_MODE_MOCA,
 	PHY_INTERFACE_MODE_QSGMII,
 	PHY_INTERFACE_MODE_TRGMII,
@@ -164,6 +168,8 @@ static inline const char *phy_modes(phy_interface_t interface)
 		return "smii";
 	case PHY_INTERFACE_MODE_XGMII:
 		return "xgmii";
+	case PHY_INTERFACE_MODE_XLGMII:
+		return "xlgmii";
 	case PHY_INTERFACE_MODE_MOCA:
 		return "moca";
 	case PHY_INTERFACE_MODE_QSGMII:
@@ -212,6 +218,15 @@ struct sfp_bus;
 struct sfp_upstream_ops;
 struct sk_buff;
 
+struct mdio_bus_stats {
+	u64_stats_t transfers;
+	u64_stats_t errors;
+	u64_stats_t writes;
+	u64_stats_t reads;
+	/* Must be last, add new statistics above */
+	struct u64_stats_sync syncp;
+};
+
 /*
  * The Bus class for PHYs.  Devices which provide access to
  * PHYs should register using this structure
@@ -224,6 +239,7 @@ struct mii_bus {
 	int (*read)(struct mii_bus *bus, int addr, int regnum);
 	int (*write)(struct mii_bus *bus, int addr, int regnum, u16 val);
 	int (*reset)(struct mii_bus *bus);
+	struct mdio_bus_stats stats[PHY_MAX_ADDR];
 
 	/*
 	 * A lock to ensure that only one thing can read/write
@@ -278,6 +294,7 @@ static inline struct mii_bus *devm_mdiobus_alloc(struct device *dev)
 	return devm_mdiobus_alloc_size(dev, 0);
 }
 
+struct mii_bus *mdio_find_bus(const char *mdio_name);
 void devm_mdiobus_free(struct device *dev, struct mii_bus *bus);
 struct phy_device *mdiobus_scan(struct mii_bus *bus, int addr);
 
@@ -332,6 +349,9 @@ struct phy_c45_device_ids {
 	u32 device_ids[8];
 };
 
+struct macsec_context;
+struct macsec_ops;
+
 /* phy_device: An instance of a PHY
  *
  * drv: Pointer to the driver for this PHY instance
@@ -343,8 +363,10 @@ struct phy_c45_device_ids {
  * is_gigabit_capable: Set to true if PHY supports 1000Mbps
  * has_fixups: Set to true if this phy has fixups/quirks.
  * suspended: Set to true if this phy has been suspended successfully.
+ * suspended_by_mdio_bus: Set to true if this phy was suspended by MDIO bus.
  * sysfs_links: Internal boolean tracking sysfs symbolic links setup/removal.
  * loopback_enabled: Set true if this phy has been loopbacked successfully.
+ * downshifted_rate: Set true if link speed has been downshifted.
  * state: state of the PHY for management purposes
  * dev_flags: Device-specific flags used by the PHY driver.
  * irq: IRQ number of the PHY's interrupt (-1 if none)
@@ -354,6 +376,7 @@ struct phy_c45_device_ids {
  * attached_dev: The attached enet driver's device instance ptr
  * adjust_link: Callback for the enet controller to respond to
  * changes in the link state.
+ * macsec_ops: MACsec offloading ops.
  *
  * speed, duplex, pause, supported, advertising, lp_advertising,
  * and autoneg are used like in mii_if_info
@@ -381,8 +404,10 @@ struct phy_device {
 	unsigned is_gigabit_capable:1;
 	unsigned has_fixups:1;
 	unsigned suspended:1;
+	unsigned suspended_by_mdio_bus:1;
 	unsigned sysfs_links:1;
 	unsigned loopback_enabled:1;
+	unsigned downshifted_rate:1;
 
 	unsigned autoneg:1;
 	/* The most recently read link state */
@@ -453,6 +478,11 @@ struct phy_device {
 
 	void (*phy_link_change)(struct phy_device *, bool up, bool do_carrier);
 	void (*adjust_link)(struct net_device *dev);
+
+#if IS_ENABLED(CONFIG_MACSEC)
+	/* MACsec management functions */
+	const struct macsec_ops *macsec_ops;
+#endif
 };
 #define to_phy_device(d) container_of(to_mdio_device(d), \
 				      struct phy_device, mdio)
@@ -537,11 +567,12 @@ struct phy_driver {
 	/*
 	 * Checks if the PHY generated an interrupt.
 	 * For multi-PHY devices with shared PHY interrupt pin
+	 * Set interrupt bits have to be cleared.
 	 */
 	int (*did_interrupt)(struct phy_device *phydev);
 
 	/* Override default interrupt handling */
-	int (*handle_interrupt)(struct phy_device *phydev);
+	irqreturn_t (*handle_interrupt)(struct phy_device *phydev);
 
 	/* Clears up any memory if needed */
 	void (*remove)(struct phy_device *phydev);
@@ -670,6 +701,7 @@ static inline bool phy_is_started(struct phy_device *phydev)
 
 void phy_resolve_aneg_pause(struct phy_device *phydev);
 void phy_resolve_aneg_linkmode(struct phy_device *phydev);
+void phy_check_downshift(struct phy_device *phydev);
 
 /**
  * phy_read - Convenience function for reading a given PHY register
@@ -684,6 +716,19 @@ static inline int phy_read(struct phy_device *phydev, u32 regnum)
 {
 	return mdiobus_read(phydev->mdio.bus, phydev->mdio.addr, regnum);
 }
+
+#define phy_read_poll_timeout(phydev, regnum, val, cond, sleep_us, \
+				timeout_us, sleep_before_read) \
+({ \
+	int __ret = read_poll_timeout(phy_read, val, (cond) || val < 0, \
+		sleep_us, timeout_us, sleep_before_read, phydev, regnum); \
+	if (val <  0) \
+		__ret = val; \
+	if (__ret) \
+		phydev_err(phydev, "%s failed: %d\n", __func__, __ret); \
+	__ret; \
+})
+
 
 /**
  * __phy_read - convenience function for reading a given PHY register
@@ -727,6 +772,25 @@ static inline int __phy_write(struct phy_device *phydev, u32 regnum, u16 val)
 }
 
 /**
+ * __phy_modify_changed() - Convenience function for modifying a PHY register
+ * @phydev: a pointer to a &struct phy_device
+ * @regnum: register number
+ * @mask: bit mask of bits to clear
+ * @set: bit mask of bits to set
+ *
+ * Unlocked helper function which allows a PHY register to be modified as
+ * new register value = (old register value & ~mask) | set
+ *
+ * Returns negative errno, 0 if there was no change, and 1 in case of change
+ */
+static inline int __phy_modify_changed(struct phy_device *phydev, u32 regnum,
+				       u16 mask, u16 set)
+{
+	return __mdiobus_modify_changed(phydev->mdio.bus, phydev->mdio.addr,
+					regnum, mask, set);
+}
+
+/**
  * phy_read_mmd - Convenience function for reading a register
  * from an MMD on a given PHY.
  * @phydev: The phy_device struct
@@ -736,6 +800,19 @@ static inline int __phy_write(struct phy_device *phydev, u32 regnum, u16 val)
  * Same rules as for phy_read();
  */
 int phy_read_mmd(struct phy_device *phydev, int devad, u32 regnum);
+
+#define phy_read_mmd_poll_timeout(phydev, devaddr, regnum, val, cond, \
+				  sleep_us, timeout_us, sleep_before_read) \
+({ \
+	int __ret = read_poll_timeout(phy_read_mmd, val, (cond) || val < 0, \
+				  sleep_us, timeout_us, sleep_before_read, \
+				  phydev, devaddr, regnum); \
+	if (val <  0) \
+		__ret = val; \
+	if (__ret) \
+		phydev_err(phydev, "%s failed: %d\n", __func__, __ret); \
+	__ret; \
+})
 
 /**
  * __phy_read_mmd - Convenience function for reading a register
@@ -1131,6 +1208,8 @@ static inline void phy_unlock_mdio_bus(struct phy_device *phydev)
 
 void phy_attached_print(struct phy_device *phydev, const char *fmt, ...)
 	__printf(2, 3);
+char *phy_attached_info_irq(struct phy_device *phydev)
+	__malloc;
 void phy_attached_info(struct phy_device *phydev);
 
 /* Clause 22 PHY */
@@ -1220,6 +1299,8 @@ void phy_ethtool_ksettings_get(struct phy_device *phydev,
 int phy_ethtool_ksettings_set(struct phy_device *phydev,
 			      const struct ethtool_link_ksettings *cmd);
 int phy_mii_ioctl(struct phy_device *phydev, struct ifreq *ifr, int cmd);
+int phy_do_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd);
+int phy_do_ioctl_running(struct net_device *dev, struct ifreq *ifr, int cmd);
 void phy_request_interrupt(struct phy_device *phydev);
 void phy_free_interrupt(struct phy_device *phydev);
 void phy_print_status(struct phy_device *phydev);
@@ -1233,6 +1314,9 @@ void phy_set_sym_pause(struct phy_device *phydev, bool rx, bool tx,
 void phy_set_asym_pause(struct phy_device *phydev, bool rx, bool tx);
 bool phy_validate_pause(struct phy_device *phydev,
 			struct ethtool_pauseparam *pp);
+void phy_get_pause(struct phy_device *phydev, bool *tx_pause, bool *rx_pause);
+void phy_resolve_pause(unsigned long *local_adv, unsigned long *partner_adv,
+		       bool *tx_pause, bool *rx_pause);
 
 int phy_register_fixup(const char *bus_id, u32 phy_uid, u32 phy_uid_mask,
 		       int (*run)(struct phy_device *));

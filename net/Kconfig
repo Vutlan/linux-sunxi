@@ -52,6 +52,9 @@ config NET_INGRESS
 config NET_EGRESS
 	bool
 
+config NET_REDIRECT
+	bool
+
 config SKB_EXTENSIONS
 	bool
 
@@ -91,6 +94,7 @@ if INET
 source "net/ipv4/Kconfig"
 source "net/ipv6/Kconfig"
 source "net/netlabel/Kconfig"
+source "net/mptcp/Kconfig"
 
 endif # if INET
 
@@ -188,7 +192,6 @@ config BRIDGE_NETFILTER
 	depends on NETFILTER_ADVANCED
 	select NETFILTER_FAMILY_BRIDGE
 	select SKB_EXTENSIONS
-	default m
 	---help---
 	  Enabling this option will let arptables resp. iptables see bridged
 	  ARP resp. IP traffic. If you want a bridging firewall, you probably

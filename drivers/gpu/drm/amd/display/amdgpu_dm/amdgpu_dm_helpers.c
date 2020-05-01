@@ -37,6 +37,7 @@
 #include "dc.h"
 #include "amdgpu_dm.h"
 #include "amdgpu_dm_irq.h"
+#include "amdgpu_dm_mst_types.h"
 
 #include "dm_helpers.h"
 
@@ -215,7 +216,8 @@ bool dm_helpers_dp_mst_write_payload_allocation_table(
 		drm_dp_mst_reset_vcpi_slots(mst_mgr, mst_port);
 	}
 
-	ret = drm_dp_update_payload_part1(mst_mgr);
+	/* It's OK for this to fail */
+	drm_dp_update_payload_part1(mst_mgr);
 
 	/* mst_mgr->->payloads are VC payload notify MST branch using DPCD or
 	 * AUX message. The sequence is slot 1-63 allocated sequence for each
@@ -223,9 +225,6 @@ bool dm_helpers_dp_mst_write_payload_allocation_table(
 	 * sequence. copy DRM MST allocation to dc */
 
 	get_payload_table(aconnector, proposed_table);
-
-	if (ret)
-		return false;
 
 	return true;
 }
@@ -284,7 +283,6 @@ bool dm_helpers_dp_mst_send_payload_allocation(
 	struct amdgpu_dm_connector *aconnector;
 	struct drm_dp_mst_topology_mgr *mst_mgr;
 	struct drm_dp_mst_port *mst_port;
-	int ret;
 
 	aconnector = (struct amdgpu_dm_connector *)stream->dm_stream_context;
 
@@ -298,10 +296,8 @@ bool dm_helpers_dp_mst_send_payload_allocation(
 	if (!mst_mgr->mst_state)
 		return false;
 
-	ret = drm_dp_update_payload_part2(mst_mgr);
-
-	if (ret)
-		return false;
+	/* It's OK for this to fail */
+	drm_dp_update_payload_part2(mst_mgr);
 
 	if (!enable)
 		drm_dp_mst_deallocate_vcpi(mst_mgr, mst_port);
@@ -404,8 +400,8 @@ bool dm_helpers_dp_mst_start_top_mgr(
 	struct amdgpu_dm_connector *aconnector = link->priv;
 
 	if (!aconnector) {
-			DRM_ERROR("Failed to found connector for link!");
-			return false;
+		DRM_ERROR("Failed to find connector for link!");
+		return false;
 	}
 
 	if (boot) {
@@ -427,8 +423,8 @@ void dm_helpers_dp_mst_stop_top_mgr(
 	struct amdgpu_dm_connector *aconnector = link->priv;
 
 	if (!aconnector) {
-			DRM_ERROR("Failed to found connector for link!");
-			return;
+		DRM_ERROR("Failed to find connector for link!");
+		return;
 	}
 
 	DRM_INFO("DM_MST: stopping TM on aconnector: %p [id: %d]\n",
@@ -449,7 +445,7 @@ bool dm_helpers_dp_read_dpcd(
 	struct amdgpu_dm_connector *aconnector = link->priv;
 
 	if (!aconnector) {
-		DRM_ERROR("Failed to found connector for link!");
+		DRM_ERROR("Failed to find connector for link!");
 		return false;
 	}
 
@@ -467,7 +463,7 @@ bool dm_helpers_dp_write_dpcd(
 	struct amdgpu_dm_connector *aconnector = link->priv;
 
 	if (!aconnector) {
-		DRM_ERROR("Failed to found connector for link!");
+		DRM_ERROR("Failed to find connector for link!");
 		return false;
 	}
 
@@ -487,7 +483,7 @@ bool dm_helpers_submit_i2c(
 	bool result;
 
 	if (!aconnector) {
-		DRM_ERROR("Failed to found connector for link!");
+		DRM_ERROR("Failed to find connector for link!");
 		return false;
 	}
 
@@ -516,8 +512,24 @@ bool dm_helpers_dp_write_dsc_enable(
 )
 {
 	uint8_t enable_dsc = enable ? 1 : 0;
+	struct amdgpu_dm_connector *aconnector;
 
-	return dm_helpers_dp_write_dpcd(ctx, stream->sink->link, DP_DSC_ENABLE, &enable_dsc, 1);
+	if (!stream)
+		return false;
+
+	if (stream->signal == SIGNAL_TYPE_DISPLAY_PORT_MST) {
+		aconnector = (struct amdgpu_dm_connector *)stream->dm_stream_context;
+
+		if (!aconnector->dsc_aux)
+			return false;
+
+		return (drm_dp_dpcd_write(aconnector->dsc_aux, DP_DSC_ENABLE, &enable_dsc, 1) >= 0);
+	}
+
+	if (stream->signal == SIGNAL_TYPE_DISPLAY_PORT)
+		return dm_helpers_dp_write_dpcd(ctx, stream->link, DP_DSC_ENABLE, &enable_dsc, 1);
+
+	return false;
 }
 
 bool dm_helpers_is_dp_sink_present(struct dc_link *link)
@@ -526,7 +538,7 @@ bool dm_helpers_is_dp_sink_present(struct dc_link *link)
 	struct amdgpu_dm_connector *aconnector = link->priv;
 
 	if (!aconnector) {
-		BUG_ON("Failed to found connector for link!");
+		BUG_ON("Failed to find connector for link!");
 		return true;
 	}
 
@@ -567,6 +579,20 @@ enum dc_edid_status dm_helpers_read_local_edid(
 
 		/* We don't need the original edid anymore */
 		kfree(edid);
+
+		/* connector->display_info will be parsed from EDID and saved
+		 * into drm_connector->display_info from edid by call stack
+		 * below:
+		 * drm_parse_ycbcr420_deep_color_info
+		 * drm_parse_hdmi_forum_vsdb
+		 * drm_parse_cea_ext
+		 * drm_add_display_info
+		 * drm_connector_update_edid_property
+		 *
+		 * drm_connector->display_info will be used by amdgpu_dm funcs,
+		 * like fill_stream_properties_from_drm_display_mode
+		 */
+		amdgpu_dm_update_connector_after_detect(aconnector);
 
 		edid_status = dm_helpers_parse_edid_caps(
 						ctx,

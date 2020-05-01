@@ -41,6 +41,7 @@
 #include <drm/drm_drv.h>
 #include <drm/drm_device.h>
 #include <kgd_kfd_interface.h>
+#include <linux/swap.h>
 
 #include "amd_shared.h"
 
@@ -293,6 +294,9 @@ struct kfd_dev {
 
 	/* xGMI */
 	uint64_t hive_id;
+    
+	/* UUID */
+	uint64_t unique_id;
 
 	bool pci_atomic_requested;
 
@@ -502,6 +506,9 @@ struct queue {
 	struct kfd_process	*process;
 	struct kfd_dev		*device;
 	void *gws;
+
+	/* procfs */
+	struct kobject kobj;
 };
 
 /*
@@ -646,6 +653,7 @@ struct kfd_process_device {
 	 * function.
 	 */
 	bool already_dequeued;
+	bool runtime_inuse;
 
 	/* Is this process/pasid bound to this device? (amd_iommu_bind_pasid) */
 	enum kfd_pdd_bound bound;
@@ -729,6 +737,7 @@ struct kfd_process {
 
 	/* Kobj for our procfs */
 	struct kobject *kobj;
+	struct kobject *kobj_queues;
 	struct attribute attr_pasid;
 };
 
@@ -835,6 +844,8 @@ extern struct device *kfd_device;
 /* KFD's procfs */
 void kfd_procfs_init(void);
 void kfd_procfs_shutdown(void);
+int kfd_procfs_add_queue(struct queue *q);
+void kfd_procfs_del_queue(struct queue *q);
 
 /* Topology */
 int kfd_topology_init(void);
@@ -883,7 +894,7 @@ struct device_queue_manager *device_queue_manager_init(struct kfd_dev *dev);
 void device_queue_manager_uninit(struct device_queue_manager *dqm);
 struct kernel_queue *kernel_queue_init(struct kfd_dev *dev,
 					enum kfd_queue_type type);
-void kernel_queue_uninit(struct kernel_queue *kq);
+void kernel_queue_uninit(struct kernel_queue *kq, bool hanging);
 int kfd_process_vm_fault(struct device_queue_manager *dqm, unsigned int pasid);
 
 /* Process Queue Manager */
@@ -972,7 +983,7 @@ extern const struct packet_manager_funcs kfd_vi_pm_funcs;
 extern const struct packet_manager_funcs kfd_v9_pm_funcs;
 
 int pm_init(struct packet_manager *pm, struct device_queue_manager *dqm);
-void pm_uninit(struct packet_manager *pm);
+void pm_uninit(struct packet_manager *pm, bool hanging);
 int pm_send_set_resources(struct packet_manager *pm,
 				struct scheduling_resources *res);
 int pm_send_runlist(struct packet_manager *pm, struct list_head *dqm_queues);

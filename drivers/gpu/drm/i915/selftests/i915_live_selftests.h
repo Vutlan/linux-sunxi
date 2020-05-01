@@ -1,5 +1,11 @@
 /* SPDX-License-Identifier: GPL-2.0 */
-/* List each unit test as selftest(name, function)
+
+#ifndef selftest
+#define selftest(x, y)
+#endif
+
+/*
+ * List each unit test as selftest(name, function)
  *
  * The name is used as both an enum and expanded as subtest__name to create
  * a module parameter. It must be unique and legal for a C identifier.
@@ -37,6 +43,7 @@ selftest(reset, intel_reset_live_selftests)
 selftest(memory_region, intel_memory_region_live_selftests)
 selftest(hangcheck, intel_hangcheck_live_selftests)
 selftest(execlists, intel_execlists_live_selftests)
+selftest(ring_submission, intel_ring_submission_live_selftests)
 selftest(perf, i915_perf_live_selftests)
 /* Here be dragons: keep last to run last! */
 selftest(late_gt_pm, intel_gt_pm_late_selftests)

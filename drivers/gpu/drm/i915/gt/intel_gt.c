@@ -38,8 +38,6 @@ void intel_gt_init_early(struct intel_gt *gt, struct drm_i915_private *i915)
 void intel_gt_init_hw_early(struct intel_gt *gt, struct i915_ggtt *ggtt)
 {
 	gt->ggtt = ggtt;
-
-	intel_gt_sanitize(gt, false);
 }
 
 static void init_unused_ring(struct intel_gt *gt, u32 base)
@@ -76,10 +74,6 @@ int intel_gt_init_hw(struct intel_gt *gt)
 	struct drm_i915_private *i915 = gt->i915;
 	struct intel_uncore *uncore = gt->uncore;
 	int ret;
-
-	ret = intel_gt_terminally_wedged(gt);
-	if (ret)
-		return ret;
 
 	gt->last_init_time = ktime_get();
 
@@ -204,16 +198,16 @@ static void gen6_check_faults(struct intel_gt *gt)
 	for_each_engine(engine, gt, id) {
 		fault = GEN6_RING_FAULT_REG_READ(engine);
 		if (fault & RING_FAULT_VALID) {
-			DRM_DEBUG_DRIVER("Unexpected fault\n"
-					 "\tAddr: 0x%08lx\n"
-					 "\tAddress space: %s\n"
-					 "\tSource ID: %d\n"
-					 "\tType: %d\n",
-					 fault & PAGE_MASK,
-					 fault & RING_FAULT_GTTSEL_MASK ?
-					 "GGTT" : "PPGTT",
-					 RING_FAULT_SRCID(fault),
-					 RING_FAULT_FAULT_TYPE(fault));
+			drm_dbg(&engine->i915->drm, "Unexpected fault\n"
+				"\tAddr: 0x%08lx\n"
+				"\tAddress space: %s\n"
+				"\tSource ID: %d\n"
+				"\tType: %d\n",
+				fault & PAGE_MASK,
+				fault & RING_FAULT_GTTSEL_MASK ?
+				"GGTT" : "PPGTT",
+				RING_FAULT_SRCID(fault),
+				RING_FAULT_FAULT_TYPE(fault));
 		}
 	}
 }
@@ -245,18 +239,17 @@ static void gen8_check_faults(struct intel_gt *gt)
 		fault_addr = ((u64)(fault_data1 & FAULT_VA_HIGH_BITS) << 44) |
 			     ((u64)fault_data0 << 12);
 
-		DRM_DEBUG_DRIVER("Unexpected fault\n"
-				 "\tAddr: 0x%08x_%08x\n"
-				 "\tAddress space: %s\n"
-				 "\tEngine ID: %d\n"
-				 "\tSource ID: %d\n"
-				 "\tType: %d\n",
-				 upper_32_bits(fault_addr),
-				 lower_32_bits(fault_addr),
-				 fault_data1 & FAULT_GTT_SEL ? "GGTT" : "PPGTT",
-				 GEN8_RING_FAULT_ENGINE_ID(fault),
-				 RING_FAULT_SRCID(fault),
-				 RING_FAULT_FAULT_TYPE(fault));
+		drm_dbg(&uncore->i915->drm, "Unexpected fault\n"
+			"\tAddr: 0x%08x_%08x\n"
+			"\tAddress space: %s\n"
+			"\tEngine ID: %d\n"
+			"\tSource ID: %d\n"
+			"\tType: %d\n",
+			upper_32_bits(fault_addr), lower_32_bits(fault_addr),
+			fault_data1 & FAULT_GTT_SEL ? "GGTT" : "PPGTT",
+			GEN8_RING_FAULT_ENGINE_ID(fault),
+			RING_FAULT_SRCID(fault),
+			RING_FAULT_FAULT_TYPE(fault));
 	}
 }
 
@@ -351,7 +344,7 @@ static int intel_gt_init_scratch(struct intel_gt *gt, unsigned int size)
 		goto err_unref;
 	}
 
-	ret = i915_vma_pin(vma, 0, 0, PIN_GLOBAL | PIN_HIGH);
+	ret = i915_ggtt_pin(vma, 0, PIN_HIGH);
 	if (ret)
 		goto err_unref;
 
@@ -372,7 +365,7 @@ static void intel_gt_fini_scratch(struct intel_gt *gt)
 static struct i915_address_space *kernel_vm(struct intel_gt *gt)
 {
 	if (INTEL_PPGTT(gt->i915) > INTEL_PPGTT_ALIASING)
-		return &i915_ppgtt_create(gt->i915)->vm;
+		return &i915_ppgtt_create(gt)->vm;
 	else
 		return i915_vm_get(&gt->ggtt->vm);
 }
@@ -410,13 +403,12 @@ static int __engines_record_defaults(struct intel_gt *gt)
 		struct intel_context *ce;
 		struct i915_request *rq;
 
+		/* We must be able to switch to something! */
+		GEM_BUG_ON(!engine->kernel_context);
+
 		err = intel_renderstate_init(&so, engine);
 		if (err)
 			goto out;
-
-		/* We must be able to switch to something! */
-		GEM_BUG_ON(!engine->kernel_context);
-		engine->serial++; /* force the kernel context switch */
 
 		ce = intel_context_create(engine);
 		if (IS_ERR(ce)) {
@@ -461,6 +453,11 @@ err_rq:
 		rq = requests[id];
 		if (!rq)
 			continue;
+
+		if (rq->fence.error) {
+			err = -EIO;
+			goto out;
+		}
 
 		GEM_BUG_ON(!test_bit(CONTEXT_ALLOC_BIT, &rq->context->flags));
 		state = rq->context->state;
@@ -545,6 +542,10 @@ static int __engines_verify_workarounds(struct intel_gt *gt)
 			err = -EIO;
 	}
 
+	/* Flush and restore the kernel context for safety */
+	if (intel_gt_wait_for_idle(gt, I915_GEM_IDLE_TIMEOUT) == -ETIME)
+		err = -EIO;
+
 	return err;
 }
 
@@ -591,7 +592,9 @@ int intel_gt_init(struct intel_gt *gt)
 	if (err)
 		goto err_engines;
 
-	intel_uc_init(&gt->uc);
+	err = intel_uc_init(&gt->uc);
+	if (err)
+		goto err_engines;
 
 	err = intel_gt_resume(gt);
 	if (err)
@@ -641,6 +644,13 @@ void intel_gt_driver_remove(struct intel_gt *gt)
 void intel_gt_driver_unregister(struct intel_gt *gt)
 {
 	intel_rps_driver_unregister(&gt->rps);
+
+	/*
+	 * Upon unregistering the device to prevent any new users, cancel
+	 * all in-flight requests so that we can quickly unbind the active
+	 * resources.
+	 */
+	intel_gt_set_wedged(gt);
 }
 
 void intel_gt_driver_release(struct intel_gt *gt)
@@ -657,6 +667,9 @@ void intel_gt_driver_release(struct intel_gt *gt)
 
 void intel_gt_driver_late_release(struct intel_gt *gt)
 {
+	/* We need to wait for inflight RCU frees to release their grip */
+	rcu_barrier();
+
 	intel_uc_driver_late_release(&gt->uc);
 	intel_gt_fini_requests(gt);
 	intel_gt_fini_reset(gt);

@@ -70,10 +70,17 @@ void dcn10_reset_hw_ctx_wrap(
 		struct dc *dc,
 		struct dc_state *context);
 void dcn10_disable_plane(struct dc *dc, struct pipe_ctx *pipe_ctx);
+void dcn10_lock_all_pipes(
+		struct dc *dc,
+		struct dc_state *context,
+		bool lock);
 void dcn10_apply_ctx_for_surface(
 		struct dc *dc,
 		const struct dc_stream_state *stream,
 		int num_planes,
+		struct dc_state *context);
+void dcn10_post_unlock_program_front_end(
+		struct dc *dc,
 		struct dc_state *context);
 void dcn10_hubp_pg_control(
 		struct dce_hwseq *hws,
@@ -132,7 +139,7 @@ void dcn10_get_position(struct pipe_ctx **pipe_ctx,
 		int num_pipes,
 		struct crtc_position *position);
 void dcn10_set_static_screen_control(struct pipe_ctx **pipe_ctx,
-		int num_pipes, const struct dc_static_screen_events *events);
+		int num_pipes, const struct dc_static_screen_params *params);
 void dcn10_setup_stereo(struct pipe_ctx *pipe_ctx, struct dc *dc);
 void dce110_set_avmute(struct pipe_ctx *pipe_ctx, bool enable);
 void dcn10_log_hw_state(struct dc *dc,

@@ -42,7 +42,7 @@ struct dc_state;
 struct dc_stream_status;
 struct dc_writeback_info;
 struct dchub_init_data;
-struct dc_static_screen_events;
+struct dc_static_screen_params;
 struct resource_pool;
 struct dc_phy_addr_space_config;
 struct dc_virtual_addr_space_config;
@@ -66,6 +66,8 @@ struct hw_sequencer_funcs {
 			int num_planes, struct dc_state *context);
 	void (*program_front_end_for_ctx)(struct dc *dc,
 			struct dc_state *context);
+	void (*post_unlock_program_front_end)(struct dc *dc,
+			struct dc_state *context);
 	void (*update_plane_addr)(const struct dc *dc,
 			struct pipe_ctx *pipe_ctx);
 	void (*update_dchub)(struct dce_hwseq *hws,
@@ -78,10 +80,10 @@ struct hw_sequencer_funcs {
 	void (*update_pending_status)(struct pipe_ctx *pipe_ctx);
 
 	/* Pipe Lock Related */
-	void (*pipe_control_lock_global)(struct dc *dc,
-			struct pipe_ctx *pipe, bool lock);
 	void (*pipe_control_lock)(struct dc *dc,
 			struct pipe_ctx *pipe, bool lock);
+	void (*interdependent_update_lock)(struct dc *dc,
+			struct dc_state *context, bool lock);
 	void (*set_flip_control_gsl)(struct pipe_ctx *pipe_ctx,
 			bool flip_immediate);
 
@@ -102,7 +104,7 @@ struct hw_sequencer_funcs {
 			unsigned int vmid, unsigned int vmid_frame_number);
 	void (*set_static_screen_control)(struct pipe_ctx **pipe_ctx,
 			int num_pipes,
-			const struct dc_static_screen_events *events);
+			const struct dc_static_screen_params *events);
 
 	/* Stream Related */
 	void (*enable_stream)(struct pipe_ctx *pipe_ctx);
@@ -149,15 +151,17 @@ struct hw_sequencer_funcs {
 
 	/* Writeback Related */
 	void (*update_writeback)(struct dc *dc,
-			const struct dc_stream_status *stream_status,
 			struct dc_writeback_info *wb_info,
 			struct dc_state *context);
 	void (*enable_writeback)(struct dc *dc,
-			const struct dc_stream_status *stream_status,
 			struct dc_writeback_info *wb_info,
 			struct dc_state *context);
 	void (*disable_writeback)(struct dc *dc,
 			unsigned int dwb_pipe_inst);
+
+	bool (*mmhubbub_warmup)(struct dc *dc,
+			unsigned int num_dwb,
+			struct dc_writeback_info *wb_info);
 
 	/* Clock Related */
 	enum dc_status (*set_clock)(struct dc *dc,

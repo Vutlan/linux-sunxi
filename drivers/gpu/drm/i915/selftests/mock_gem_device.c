@@ -58,6 +58,8 @@ static void mock_device_release(struct drm_device *dev)
 	mock_device_flush(i915);
 	intel_gt_driver_remove(&i915->gt);
 
+	i915_gem_driver_release__contexts(i915);
+
 	i915_gem_drain_workqueue(i915);
 	i915_gem_drain_freed_objects(i915);
 
@@ -142,7 +144,6 @@ struct drm_i915_private *mock_gem_device(void)
 		goto put_device;
 	}
 	i915->drm.pdev = pdev;
-	i915->drm.dev_private = i915;
 
 	intel_runtime_pm_init_early(&i915->runtime_pm);
 
@@ -184,6 +185,7 @@ struct drm_i915_private *mock_gem_device(void)
 	if (mock_engine_init(i915->engine[RCS0]))
 		goto err_context;
 
+	__clear_bit(I915_WEDGED, &i915->gt.reset.flags);
 	intel_engines_driver_register(i915);
 
 	return i915;

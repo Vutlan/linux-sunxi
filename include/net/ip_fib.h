@@ -153,7 +153,7 @@ struct fib_info {
 	bool			nh_updated;
 	struct nexthop		*nh;
 	struct rcu_head		rcu;
-	struct fib_nh		fib_nh[0];
+	struct fib_nh		fib_nh[];
 };
 
 
@@ -204,6 +204,18 @@ __be32 fib_result_prefsrc(struct net *net, struct fib_result *res);
 #define FIB_RES_DEV(res)	(FIB_RES_NHC(res)->nhc_dev)
 #define FIB_RES_OIF(res)	(FIB_RES_NHC(res)->nhc_oif)
 
+struct fib_rt_info {
+	struct fib_info		*fi;
+	u32			tb_id;
+	__be32			dst;
+	int			dst_len;
+	u8			tos;
+	u8			type;
+	u8			offload:1,
+				trap:1,
+				unused:6;
+};
+
 struct fib_entry_notifier_info {
 	struct fib_notifier_info info; /* must be first */
 	u32 dst;
@@ -238,7 +250,7 @@ struct fib_table {
 	int			tb_num_default;
 	struct rcu_head		rcu;
 	unsigned long 		*tb_data;
-	unsigned long		__data[0];
+	unsigned long		__data[];
 };
 
 struct fib_dump_filter {
@@ -458,12 +470,14 @@ int fib_nh_init(struct net *net, struct fib_nh *fib_nh,
 		struct fib_config *cfg, int nh_weight,
 		struct netlink_ext_ack *extack);
 void fib_nh_release(struct net *net, struct fib_nh *fib_nh);
-int fib_nh_common_init(struct fib_nh_common *nhc, struct nlattr *fc_encap,
-		       u16 fc_encap_type, void *cfg, gfp_t gfp_flags,
+int fib_nh_common_init(struct net *net, struct fib_nh_common *nhc,
+		       struct nlattr *fc_encap, u16 fc_encap_type,
+		       void *cfg, gfp_t gfp_flags,
 		       struct netlink_ext_ack *extack);
 void fib_nh_common_release(struct fib_nh_common *nhc);
 
 /* Exported by fib_trie.c */
+void fib_alias_hw_flags_set(struct net *net, const struct fib_rt_info *fri);
 void fib_trie_init(void);
 struct fib_table *fib_trie_table(u32 id, struct fib_table *alias);
 

@@ -42,6 +42,7 @@
 
 static long kfd_ioctl(struct file *, unsigned int, unsigned long);
 static int kfd_open(struct inode *, struct file *);
+static int kfd_release(struct inode *, struct file *);
 static int kfd_mmap(struct file *, struct vm_area_struct *);
 
 static const char kfd_dev_name[] = "kfd";
@@ -51,6 +52,7 @@ static const struct file_operations kfd_fops = {
 	.unlocked_ioctl = kfd_ioctl,
 	.compat_ioctl = compat_ptr_ioctl,
 	.open = kfd_open,
+	.release = kfd_release,
 	.mmap = kfd_mmap,
 };
 
@@ -124,11 +126,28 @@ static int kfd_open(struct inode *inode, struct file *filep)
 	if (IS_ERR(process))
 		return PTR_ERR(process);
 
-	if (kfd_is_locked())
+	if (kfd_is_locked()) {
+		dev_dbg(kfd_device, "kfd is locked!\n"
+				"process %d unreferenced", process->pasid);
+		kfd_unref_process(process);
 		return -EAGAIN;
+	}
+
+	/* filep now owns the reference returned by kfd_create_process */
+	filep->private_data = process;
 
 	dev_dbg(kfd_device, "process %d opened, compat mode (32 bit) - %d\n",
 		process->pasid, process->is_32bit_user_mode);
+
+	return 0;
+}
+
+static int kfd_release(struct inode *inode, struct file *filep)
+{
+	struct kfd_process *process = filep->private_data;
+
+	if (process)
+		kfd_unref_process(process);
 
 	return 0;
 }
@@ -1150,7 +1169,7 @@ static int kfd_ioctl_get_tile_config(struct file *filep,
 	if (!dev)
 		return -EINVAL;
 
-	dev->kfd2kgd->get_tile_config(dev->kgd, &config);
+	amdgpu_amdkfd_get_tile_config(dev->kgd, &config);
 
 	args->gb_addr_config = config.gb_addr_config;
 	args->num_banks = config.num_banks;
@@ -1801,9 +1820,14 @@ static long kfd_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
 
 	dev_dbg(kfd_device, "ioctl cmd 0x%x (#0x%x), arg 0x%lx\n", cmd, nr, arg);
 
-	process = kfd_get_process(current);
-	if (IS_ERR(process)) {
-		dev_dbg(kfd_device, "no process\n");
+	/* Get the process struct from the filep. Only the process
+	 * that opened /dev/kfd can use the file descriptor. Child
+	 * processes need to create their own KFD device context.
+	 */
+	process = filep->private_data;
+	if (process->lead_thread != current->group_leader) {
+		dev_dbg(kfd_device, "Using KFD FD in wrong process\n");
+		retcode = -EBADF;
 		goto err_i1;
 	}
 
