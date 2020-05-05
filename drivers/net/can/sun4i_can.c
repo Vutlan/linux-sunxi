@@ -61,6 +61,7 @@
 #include <linux/of.h>
 #include <linux/of_device.h>
 #include <linux/platform_device.h>
+#include <linux/reset.h>
 
 #define DRV_NAME "sun4i_can"
 
@@ -200,10 +201,14 @@
 #define SUN4I_CAN_MAX_IRQ	20
 #define SUN4I_MODE_MAX_RETRIES	100
 
+#define ARCH_SUN4I_A10 0
+#define ARCH_SUN8I_R40 1
+
 struct sun4ican_priv {
 	struct can_priv can;
 	void __iomem *base;
 	struct clk *clk;
+	struct reset_control *rst;
 	spinlock_t cmdreg_lock;	/* lock for concurrent cmd register writes */
 };
 
@@ -710,6 +715,13 @@ static int sun4ican_open(struct net_device *dev)
 		goto exit_clock;
 	}
 
+	/* deassert reset */
+	err = reset_control_deassert(priv->rst);
+	if (err) {
+		netdev_err(dev, "could not deassert CAN reset\n");
+		goto exit_reset;
+	}
+
 	err = sun4i_can_start(dev);
 	if (err) {
 		netdev_err(dev, "could not start CAN peripheral\n");
@@ -722,6 +734,8 @@ static int sun4ican_open(struct net_device *dev)
 	return 0;
 
 exit_can_start:
+	reset_control_assert(priv->rst);
+exit_reset:
 	clk_disable_unprepare(priv->clk);
 exit_clock:
 	free_irq(dev->irq, dev);
@@ -736,6 +750,8 @@ static int sun4ican_close(struct net_device *dev)
 
 	netif_stop_queue(dev);
 	sun4i_can_stop(dev);
+
+	reset_control_assert(priv->rst);
 	clk_disable_unprepare(priv->clk);
 
 	free_irq(dev->irq, dev);
@@ -752,7 +768,13 @@ static const struct net_device_ops sun4ican_netdev_ops = {
 };
 
 static const struct of_device_id sun4ican_of_match[] = {
-	{.compatible = "allwinner,sun4i-a10-can"},
+	{ /* A10, A20 */
+	 .compatible = "allwinner,sun4i-a10-can",
+	 .data = (void *)ARCH_SUN4I_A10
+	},
+	{ /* R40 / V40 / T3 / A40i */
+	 .compatible = "allwinner,sun8i-r40-can",
+	 .data = (void *)ARCH_SUN8I_R40},
 	{},
 };
 
@@ -761,9 +783,12 @@ MODULE_DEVICE_TABLE(of, sun4ican_of_match);
 static int sun4ican_remove(struct platform_device *pdev)
 {
 	struct net_device *dev = platform_get_drvdata(pdev);
+	struct sun4ican_priv *priv = netdev_priv(dev);
 
 	unregister_netdev(dev);
 	free_candev(dev);
+
+	reset_control_assert(priv->rst);
 
 	return 0;
 }
@@ -772,16 +797,33 @@ static int sun4ican_probe(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
 	struct clk *clk;
+	struct reset_control *rst;
 	void __iomem *addr;
 	int err, irq;
 	struct net_device *dev;
 	struct sun4ican_priv *priv;
+	const struct of_device_id *of_id;
+
+	of_id = of_match_node(sun4ican_of_match, np);
+	if (!of_id)
+		return -EINVAL;
 
 	clk = of_clk_get(np, 0);
 	if (IS_ERR(clk)) {
 		dev_err(&pdev->dev, "unable to request clock\n");
 		err = -ENODEV;
 		goto exit;
+	}
+
+	rst = devm_reset_control_get_exclusive(&pdev->dev, NULL);
+	if (IS_ERR(rst)) {
+		if ((long)of_id->data != ARCH_SUN4I_A10) {
+			dev_err(&pdev->dev, "unable to request reset err=%ld\n", PTR_ERR(rst));
+			err = -ENODEV;
+			goto exit;
+		}
+		else
+			rst = NULL;
 	}
 
 	irq = platform_get_irq(pdev, 0);
@@ -819,6 +861,7 @@ static int sun4ican_probe(struct platform_device *pdev)
 				       CAN_CTRLMODE_3_SAMPLES;
 	priv->base = addr;
 	priv->clk = clk;
+	priv->rst = rst;
 	spin_lock_init(&priv->cmdreg_lock);
 
 	platform_set_drvdata(pdev, dev);
