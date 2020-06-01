@@ -823,6 +823,9 @@ struct i915_selftest_stash {
 struct drm_i915_private {
 	struct drm_device drm;
 
+	/* FIXME: Device release actions should all be moved to drmm_ */
+	bool do_release;
+
 	const struct intel_device_info __info; /* Use INTEL_INFO() to access. */
 	struct intel_runtime_info __runtime; /* Use RUNTIME_INFO() to access. */
 	struct intel_driver_caps caps;
@@ -1507,6 +1510,8 @@ IS_SUBPLATFORM(const struct drm_i915_private *i915,
 	(IS_ICELAKE(p) && IS_REVID(p, since, until))
 
 #define TGL_REVID_A0		0x0
+#define TGL_REVID_B0		0x1
+#define TGL_REVID_C0		0x2
 
 #define IS_TGL_REVID(p, since, until) \
 	(IS_TIGERLAKE(p) && IS_REVID(p, since, until))
