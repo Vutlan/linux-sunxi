@@ -187,5 +187,6 @@
 #define CLK_GPU			163
 #define CLK_OUTA		164
 #define CLK_OUTB		165
+#define CLK_AC_DIG		166
 
 #endif /* _DT_BINDINGS_CLK_SUN8I_R40_H_ */

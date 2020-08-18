@@ -460,6 +460,9 @@ static SUNXI_CCU_GATE(bus_uart7_clk,	"bus-uart7",	"apb2",
 static SUNXI_CCU_GATE(bus_dbg_clk,	"bus-dbg",	"ahb1",
 		      0x070, BIT(7), 0);
 
+static SUNXI_CCU_GATE(ac_dig_clk,       "ac-dig",       "pll-audio",
+		      0x140, BIT(31), CLK_SET_RATE_PARENT);
+
 static const char * const ths_parents[] = { "osc24M" };
 static struct ccu_div ths_clk = {
 	.enable	= BIT(31),
@@ -943,6 +946,7 @@ static struct ccu_common *sun8i_r40_ccu_clks[] = {
 	&gpu_clk.common,
 	&outa_clk.common,
 	&outb_clk.common,
+	&ac_dig_clk.common,
 };
 
 /* Fixed Factor clocks */
@@ -1146,6 +1150,7 @@ static struct clk_hw_onecell_data sun8i_r40_hw_clks = {
 		[CLK_GPU]		= &gpu_clk.common.hw,
 		[CLK_OUTA]		= &outa_clk.common.hw,
 		[CLK_OUTB]		= &outb_clk.common.hw,
+		[CLK_AC_DIG]		= &ac_dig_clk.common.hw,
 	},
 	.num	= CLK_NUMBER,
 };
