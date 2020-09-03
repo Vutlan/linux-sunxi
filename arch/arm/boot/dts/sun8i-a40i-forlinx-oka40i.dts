@@ -69,35 +69,84 @@
 		status = "disabled";
 	};
 
-	
+	sram-controller@1c00000 {
+		compatible = "allwinner,sun4i-a10-sram-controller";
+		reg = <0x01c00000 0x30>;
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		sram_a: sram@0 {
+			compatible = "mmio-sram";
+			reg = <0x00000000 0xc000>;
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges = <0 0x00000000 0xc000>;
+
+			emac_sram: sram-section@8000 {
+				compatible = "allwinner,sun4i-a10-sram-a3-a4";
+				reg = <0x8000 0x4000>;
+				status = "okay";
+			};
+		};
+
+		sram_d: sram@10000 {
+			compatible = "mmio-sram";
+			reg = <0x00010000 0x1000>;
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges = <0 0x00010000 0x1000>;
+
+			otg_sram: sram-section@0 {
+				compatible = "allwinner,sun4i-a10-sram-d";
+				reg = <0x0000 0x1000>;
+				status = "okay";
+			};
+		};
+	};
+
+	usb_otg: usb@1c13000 {
+		compatible = "allwinner,sun8i-r40-musb";
+		reg = <0x01c13000 0x0400>;
+		clocks = <&ccu CLK_BUS_OTG>;
+		resets = <&ccu RST_BUS_OTG>;
+		interrupts = <GIC_SPI 38 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "mc";
+		phys = <&usbphy 0>;
+		phy-names = "usb";
+		extcon = <&usbphy 0>;
+		allwinner,sram = <&otg_sram 1>;
+		status = "disabled";
+	};
+
 	reg_usb0_pwr: usb0_pwr {
 		regulator-always-on;
 		compatible = "regulator-fixed";
-		regulator-name = "usb0_pwr";
+		regulator-name = "usb0-vbus";
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
 		gpio = <&pio 8 13 GPIO_ACTIVE_HIGH>; /* PI13 */
 		enable-active-high;
 	};
-	
+
 	//reg_usb2_drv: usb2_drv  {
 	//	compatible = "regulator-fixed";
-	//	regulator-name = "usb2_drv";
+	//	regulator-name = "usb2-vbus";
 	//	regulator-min-microvolt = <5000000>;
 	//	regulator-max-microvolt = <5000000>;
 	//	gpio = <&pio 7 22 GPIO_ACTIVE_HIGH>; /* PH22 */
 	//	enable-active-high;		
 	//};
-	
+
 	reg_usb1_drv: usb1_drv {
 		compatible = "regulator-fixed";
-		regulator-name = "usb1_drv";
+		regulator-name = "usb1-vbus";
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
 		gpio = <&pio 1 12 GPIO_ACTIVE_HIGH>; /* PB12 */
 		enable-active-high;		
 	};
-	
+
 	leds {
 		compatible = "gpio-leds";
 		
@@ -162,8 +211,8 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&uart3_pg_pins>, <&uart3_rts_cts_pg_pins>;
 	status = "okay";
-
 };
+
 /* P10 connector */
 &uart4 {
 	pinctrl-names = "default";
@@ -202,10 +251,18 @@
 	status = "okay";
 };
 
+&de {
+	status = "okay";
+};
+
+&tcon_tv0 {
+	status = "okay";
+};
+
 &can0 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&can_ph_pins>;	/* ! usb0_id conflict ! */
-	status = "okay";
+	status = "disabled";
 };
 
 #include "axp22x.dtsi"
@@ -410,16 +467,16 @@
 		function = "spi2";
 	};
 	
-	can_ph_pins: can-ph-pins {
+	/*can_ph_pins: can-ph-pins {
 		pins = "PH20", "PH21";
 		function = "can";
-	};
+	}; */
 
-	/*usb0_id_detect_pin: usb0_id_detect_pin@0 {
+	usb0_id_detect_pin: usb0_id_detect_pin@0 {
 		pins = "PH21";	// ! can_ph conflict !
 		function = "gpio_in";
 		bias-pull-up;
-	};*/
+	};
 	usb0_vbus_detect_pin: usb0_vbus_detect_pin@0 {
 		pins = "PH17";
 		function = "gpio_in";
@@ -501,6 +558,11 @@
 	status = "okay";
 };
 
+&usb_otg {
+	dr_mode = "host"; //"peripheral";
+	status = "okay";
+};
+
 /* USB2514B 4-port USB 2.0 hub here */
 /* P32=port1, P34=port2, miniPCIe=port3, WiFi/BT=port4 */
 &ehci1 {
@@ -526,10 +588,10 @@
 
 &usbphy {
 	pinctrl-names = "default";
-	pinctrl-0 = /*<&usb0_id_detect_pin>,*/ <&usb0_vbus_detect_pin>;
+	pinctrl-0 = <&usb0_id_detect_pin>, <&usb0_vbus_detect_pin>;
 
-	//usb0_id_det-gpio = <&pio 7 21 GPIO_ACTIVE_HIGH>; /* PH21 */
-	//usb0_vbus_det-gpios = <&pio 7 17 GPIO_ACTIVE_HIGH>; /* PH17 */
+	usb0_id_det-gpio = <&pio 7 21 GPIO_ACTIVE_HIGH>; /* PH21 */
+	usb0_vbus_det-gpios = <&pio 7 17 GPIO_ACTIVE_HIGH>; /* PH17 */
 	usb0_vbus-supply = <&reg_usb0_pwr>;
 	usb0_vbus_power-supply = <&usb_power_supply>;
 
