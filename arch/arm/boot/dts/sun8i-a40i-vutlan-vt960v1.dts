@@ -59,15 +59,13 @@
 		stdout-path = "serial0:115200n8";
 	};
 	
-	rtp: rtp@1c25000 {
-		//compatible = "allwinner,sun5i-a13-ts";
-		compatible = "allwinner,sun4i-a10-ts";
-		reg = <0x01c25000 0x100>;
-		//clocks = <&ccu CLK_BUS_TS>;
-		//resets = <&ccu RST_BUS_TS>;
+	gpadc: gpadc@1c25000 {
+		compatible = "allwinner,sun8i-r40-gpadc4ch";
+		reg = <0x01c25000 0x400>;
+		clocks = <&ccu CLK_BUS_TS>, <&ccu CLK_TS>, <&ccu CLK_DRAM_TS>;
+		resets = <&ccu RST_BUS_TS>;
 		interrupts = <GIC_SPI 29 IRQ_TYPE_LEVEL_HIGH>;
-		#thermal-sensor-cells = <0>;
-		status = "disabled";
+		status = "okay";
 	};
 	
 	sram-controller@1c00000 {

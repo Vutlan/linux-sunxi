@@ -1,0 +1,11 @@
+#
+# Vutlan vt9xx
+#
+
+config VT9XX_GPADC
+	tristate "VT9xx ADC driver"
+	depends on STAGING && !TOUCHSCREEN_SUN4I_TS && !SENSORS_A20_TP_HWMON && !MFD_SUN4I_GPADC
+	default m
+	help
+		VT9xx internal ADC
+

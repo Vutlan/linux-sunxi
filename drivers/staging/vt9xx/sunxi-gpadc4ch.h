@@ -1,0 +1,10 @@
+#ifndef __SUNXI_GPADC4CH__H__
+#define __SUNXI_GPADC4CH__H__
+
+enum IOCTL_CMD {
+	IOCTL_ONE_CONVERSION = 0x100,
+	//IOCTL_START_CONVERSION,
+	//IOCTL_READ_DATA
+};
+
+#endif
