@@ -419,7 +419,7 @@ static bool gfs2_jhead_pg_srch(struct gfs2_jdesc *jd,
 			      struct page *page)
 {
 	struct gfs2_sbd *sdp = GFS2_SB(jd->jd_inode);
-	struct gfs2_log_header_host uninitialized_var(lh);
+	struct gfs2_log_header_host lh;
 	void *kaddr = kmap_atomic(page);
 	unsigned int offset;
 	bool ret = false;
@@ -823,7 +823,7 @@ static int buf_lo_scan_elements(struct gfs2_jdesc *jd, u32 start,
  *
  */
 
-static void gfs2_meta_sync(struct gfs2_glock *gl)
+void gfs2_meta_sync(struct gfs2_glock *gl)
 {
 	struct address_space *mapping = gfs2_glock2aspace(gl);
 	struct gfs2_sbd *sdp = gl->gl_name.ln_sbd;

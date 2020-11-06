@@ -358,7 +358,7 @@ static inline int cpucap_default_scope(const struct arm64_cpu_capabilities *cap)
 }
 
 /*
- * Generic helper for handling capabilties with multiple (match,enable) pairs
+ * Generic helper for handling capabilities with multiple (match,enable) pairs
  * of call backs, sharing the same capability bit.
  * Iterate over each entry to see if at least one matches.
  */
@@ -681,6 +681,12 @@ static __always_inline bool system_uses_irq_prio_masking(void)
 	       cpus_have_const_cap(ARM64_HAS_IRQ_PRIO_MASKING);
 }
 
+static inline bool system_supports_mte(void)
+{
+	return IS_ENABLED(CONFIG_ARM64_MTE) &&
+		cpus_have_const_cap(ARM64_MTE);
+}
+
 static inline bool system_has_prio_mask_debugging(void)
 {
 	return IS_ENABLED(CONFIG_ARM64_DEBUG_PRIORITY_MASKING) &&
@@ -692,29 +698,11 @@ static inline bool system_supports_bti(void)
 	return IS_ENABLED(CONFIG_ARM64_BTI) && cpus_have_const_cap(ARM64_BTI);
 }
 
-#define ARM64_BP_HARDEN_UNKNOWN		-1
-#define ARM64_BP_HARDEN_WA_NEEDED	0
-#define ARM64_BP_HARDEN_NOT_REQUIRED	1
-
-int get_spectre_v2_workaround_state(void);
-
-#define ARM64_SSBD_UNKNOWN		-1
-#define ARM64_SSBD_FORCE_DISABLE	0
-#define ARM64_SSBD_KERNEL		1
-#define ARM64_SSBD_FORCE_ENABLE		2
-#define ARM64_SSBD_MITIGATED		3
-
-static inline int arm64_get_ssbd_state(void)
+static inline bool system_supports_tlb_range(void)
 {
-#ifdef CONFIG_ARM64_SSBD
-	extern int ssbd_state;
-	return ssbd_state;
-#else
-	return ARM64_SSBD_UNKNOWN;
-#endif
+	return IS_ENABLED(CONFIG_ARM64_TLB_RANGE) &&
+		cpus_have_const_cap(ARM64_HAS_TLB_RANGE);
 }
-
-void arm64_set_ssbd_mitigation(bool state);
 
 extern int do_emulate_mrs(struct pt_regs *regs, u32 sys_reg, u32 rt);
 
@@ -774,6 +762,7 @@ static inline unsigned int get_vmid_bits(u64 mmfr1)
 }
 
 u32 get_kvm_ipa_limit(void);
+void dump_cpu_features(void);
 
 #endif /* __ASSEMBLY__ */
 

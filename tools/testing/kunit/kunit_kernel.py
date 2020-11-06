@@ -34,11 +34,11 @@ class LinuxSourceTreeOperations(object):
 
 	def make_mrproper(self):
 		try:
-			subprocess.check_output(['make', 'mrproper'])
+			subprocess.check_output(['make', 'mrproper'], stderr=subprocess.STDOUT)
 		except OSError as e:
-			raise ConfigError('Could not call make command: ' + e)
+			raise ConfigError('Could not call make command: ' + str(e))
 		except subprocess.CalledProcessError as e:
-			raise ConfigError(e.output)
+			raise ConfigError(e.output.decode())
 
 	def make_olddefconfig(self, build_dir, make_options):
 		command = ['make', 'ARCH=um', 'olddefconfig']
@@ -47,24 +47,29 @@ class LinuxSourceTreeOperations(object):
 		if build_dir:
 			command += ['O=' + build_dir]
 		try:
-			subprocess.check_output(command, stderr=subprocess.PIPE)
+			subprocess.check_output(command, stderr=subprocess.STDOUT)
 		except OSError as e:
-			raise ConfigError('Could not call make command: ' + e)
+			raise ConfigError('Could not call make command: ' + str(e))
 		except subprocess.CalledProcessError as e:
-			raise ConfigError(e.output)
+			raise ConfigError(e.output.decode())
 
-	def make_allyesconfig(self):
+	def make_allyesconfig(self, build_dir, make_options):
 		kunit_parser.print_with_timestamp(
 			'Enabling all CONFIGs for UML...')
+		command = ['make', 'ARCH=um', 'allyesconfig']
+		if make_options:
+			command.extend(make_options)
+		if build_dir:
+			command += ['O=' + build_dir]
 		process = subprocess.Popen(
-			['make', 'ARCH=um', 'allyesconfig'],
+			command,
 			stdout=subprocess.DEVNULL,
 			stderr=subprocess.STDOUT)
 		process.wait()
 		kunit_parser.print_with_timestamp(
 			'Disabling broken configs to run KUnit tests...')
 		with ExitStack() as es:
-			config = open(KCONFIG_PATH, 'a')
+			config = open(get_kconfig_path(build_dir), 'a')
 			disable = open(BROKEN_ALLCONFIG_PATH, 'r').read()
 			config.write(disable)
 		kunit_parser.print_with_timestamp(
@@ -77,11 +82,11 @@ class LinuxSourceTreeOperations(object):
 		if build_dir:
 			command += ['O=' + build_dir]
 		try:
-			subprocess.check_output(command)
+			subprocess.check_output(command, stderr=subprocess.STDOUT)
 		except OSError as e:
-			raise BuildError('Could not call execute make: ' + e)
+			raise BuildError('Could not call execute make: ' + str(e))
 		except subprocess.CalledProcessError as e:
-			raise BuildError(e.output)
+			raise BuildError(e.output.decode())
 
 	def linux_bin(self, params, timeout, build_dir, outfile):
 		"""Runs the Linux UML binary. Must be named 'linux'."""
@@ -161,9 +166,9 @@ class LinuxSourceTree(object):
 			return self.build_config(build_dir, make_options)
 
 	def build_um_kernel(self, alltests, jobs, build_dir, make_options):
-		if alltests:
-			self._ops.make_allyesconfig()
 		try:
+			if alltests:
+				self._ops.make_allyesconfig(build_dir, make_options)
 			self._ops.make_olddefconfig(build_dir, make_options)
 			self._ops.make(jobs, build_dir, make_options)
 		except (ConfigError, BuildError) as e:

@@ -19,6 +19,7 @@
 #include <linux/glob.h>
 #include <linux/irq_work.h>
 #include <linux/workqueue.h>
+#include <linux/ctype.h>
 
 #ifdef CONFIG_FTRACE_SYSCALLS
 #include <asm/unistd.h>		/* For NR_SYSCALLS	     */
@@ -98,7 +99,7 @@ enum trace_type {
 
 /* Use this for memory failure errors */
 #define MEM_FAIL(condition, fmt, ...) ({			\
-	static bool __section(.data.once) __warned;		\
+	static bool __section(".data.once") __warned;		\
 	int __ret_warn_once = !!(condition);			\
 								\
 	if (unlikely(__ret_warn_once && !__warned)) {		\
@@ -246,7 +247,7 @@ typedef bool (*cond_update_fn_t)(struct trace_array *tr, void *cond_data);
  * tracing_snapshot_cond(tr, cond_data), the cond_data passed in is
  * passed in turn to the cond_snapshot.update() function.  That data
  * can be compared by the update() implementation with the cond_data
- * contained wihin the struct cond_snapshot instance associated with
+ * contained within the struct cond_snapshot instance associated with
  * the trace_array.  Because the tr->max_lock is held throughout the
  * update() call, the update() function can directly retrieve the
  * cond_snapshot and cond_data associated with the per-instance
@@ -271,7 +272,7 @@ typedef bool (*cond_update_fn_t)(struct trace_array *tr, void *cond_data);
  *	take the snapshot, by returning 'true' if so, 'false' if no
  *	snapshot should be taken.  Because the max_lock is held for
  *	the duration of update(), the implementation is safe to
- *	directly retrieven and save any implementation data it needs
+ *	directly retrieved and save any implementation data it needs
  *	to in association with the snapshot.
  */
 struct cond_snapshot {
@@ -356,6 +357,7 @@ struct trace_array {
 	struct trace_event_file *trace_marker_file;
 	cpumask_var_t		tracing_cpumask; /* only trace on set CPUs */
 	int			ref;
+	int			trace_ref;
 #ifdef CONFIG_FUNCTION_TRACER
 	struct ftrace_ops	*ops;
 	struct trace_pid_list	__rcu *function_pids;
@@ -547,7 +549,6 @@ struct tracer {
 	struct tracer		*next;
 	struct tracer_flags	*flags;
 	int			enabled;
-	int			ref;
 	bool			print_max;
 	bool			allow_instances;
 #ifdef CONFIG_TRACER_MAX_TRACE
@@ -573,7 +574,7 @@ struct tracer {
  *   The function callback, which can use the FTRACE bits to
  *    check for recursion.
  *
- * Now if the arch does not suppport a feature, and it calls
+ * Now if the arch does not support a feature, and it calls
  * the global list function which calls the ftrace callback
  * all three of these steps will do a recursion protection.
  * There's no reason to do one if the previous caller already
@@ -737,7 +738,7 @@ struct dentry *trace_create_file(const char *name,
 				 void *data,
 				 const struct file_operations *fops);
 
-struct dentry *tracing_init_dentry(void);
+int tracing_init_dentry(void);
 
 struct ring_buffer_event;
 
@@ -1103,6 +1104,10 @@ print_graph_function_flags(struct trace_iterator *iter, u32 flags)
 extern struct list_head ftrace_pids;
 
 #ifdef CONFIG_FUNCTION_TRACER
+
+#define FTRACE_PID_IGNORE	-1
+#define FTRACE_PID_TRACE	-2
+
 struct ftrace_func_command {
 	struct list_head	list;
 	char			*name;
@@ -1114,12 +1119,15 @@ struct ftrace_func_command {
 extern bool ftrace_filter_param __initdata;
 static inline int ftrace_trace_task(struct trace_array *tr)
 {
-	return !this_cpu_read(tr->array_buffer.data->ftrace_ignore_pid);
+	return this_cpu_read(tr->array_buffer.data->ftrace_ignore_pid) !=
+		FTRACE_PID_IGNORE;
 }
 extern int ftrace_is_dead(void);
 int ftrace_create_function_files(struct trace_array *tr,
 				 struct dentry *parent);
 void ftrace_destroy_function_files(struct trace_array *tr);
+int ftrace_allocate_ftrace_ops(struct trace_array *tr);
+void ftrace_free_ftrace_ops(struct trace_array *tr);
 void ftrace_init_global_array_ops(struct trace_array *tr);
 void ftrace_init_array_ops(struct trace_array *tr, ftrace_func_t func);
 void ftrace_reset_array_ops(struct trace_array *tr);
@@ -1141,6 +1149,11 @@ ftrace_create_function_files(struct trace_array *tr,
 {
 	return 0;
 }
+static inline int ftrace_allocate_ftrace_ops(struct trace_array *tr)
+{
+	return 0;
+}
+static inline void ftrace_free_ftrace_ops(struct trace_array *tr) { }
 static inline void ftrace_destroy_function_files(struct trace_array *tr) { }
 static inline __init void
 ftrace_init_global_array_ops(struct trace_array *tr) { }
@@ -1467,7 +1480,7 @@ __trace_event_discard_commit(struct trace_buffer *buffer,
 /*
  * Helper function for event_trigger_unlock_commit{_regs}().
  * If there are event triggers attached to this event that requires
- * filtering against its fields, then they wil be called as the
+ * filtering against its fields, then they will be called as the
  * entry already holds the field information of the current event.
  *
  * It also checks if the event should be discarded or not.
@@ -1646,6 +1659,7 @@ extern void trace_event_enable_tgid_record(bool enable);
 extern int event_trace_init(void);
 extern int event_trace_add_tracer(struct dentry *parent, struct trace_array *tr);
 extern int event_trace_del_tracer(struct trace_array *tr);
+extern void __trace_early_add_events(struct trace_array *tr);
 
 extern struct trace_event_file *__find_event_file(struct trace_array *tr,
 						  const char *system,
@@ -2075,6 +2089,18 @@ static __always_inline void trace_iterator_reset(struct trace_iterator *iter)
 	memset((char *)iter + offset, 0, sizeof(struct trace_iterator) - offset);
 
 	iter->pos = -1;
+}
+
+/* Check the name is good for event/group/fields */
+static inline bool is_good_name(const char *name)
+{
+	if (!isalpha(*name) && *name != '_')
+		return false;
+	while (*++name != '\0') {
+		if (!isalpha(*name) && !isdigit(*name) && *name != '_')
+			return false;
+	}
+	return true;
 }
 
 #endif /* _LINUX_KERNEL_TRACE_H */

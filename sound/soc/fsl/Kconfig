@@ -95,6 +95,16 @@ config SND_SOC_FSL_EASRC
 	  destination sample rate. It is a new design module compare with the
 	  old ASRC.
 
+config SND_SOC_FSL_XCVR
+	tristate "NXP Audio Transceiver (XCVR) module support"
+	select REGMAP_MMIO
+	select SND_SOC_IMX_PCM_DMA if SND_IMX_SOC != n
+	select SND_SOC_GENERIC_DMAENGINE_PCM
+	help
+	  Say Y if you want to add Audio Transceiver (XCVR) support for NXP
+	  iMX CPUs. XCVR is a digital module that supports HDMI2.1 eARC,
+	  HDMI1.4 ARC and SPDIF.
+
 config SND_SOC_FSL_UTILS
 	tristate
 
@@ -315,6 +325,7 @@ config SND_SOC_FSL_ASOC_CARD
 	depends on OF && I2C
 	# enforce SND_SOC_FSL_ASOC_CARD=m if SND_AC97_CODEC=m:
 	depends on SND_AC97_CODEC || SND_AC97_CODEC=n
+	select SND_SIMPLE_CARD_UTILS
 	select SND_SOC_IMX_AUDMUX
 	select SND_SOC_IMX_PCM_DMA
 	select SND_SOC_FSL_ESAI
@@ -323,7 +334,7 @@ config SND_SOC_FSL_ASOC_CARD
 	help
 	 ALSA SoC Audio support with ASRC feature for Freescale SoCs that have
 	 ESAI/SAI/SSI and connect with external CODECs such as WM8962, CS42888,
-	 CS4271, CS4272 and SGTL5000.
+	 CS4271, CS4272, SGTL5000 and TLV320AIC32x4.
 	 Say Y if you want to add support for Freescale Generic ASoC Sound Card.
 
 config SND_SOC_IMX_AUDMIX

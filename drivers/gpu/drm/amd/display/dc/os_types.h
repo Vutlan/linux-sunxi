@@ -55,6 +55,10 @@
 #include <asm/fpu/api.h>
 #define DC_FP_START() kernel_fpu_begin()
 #define DC_FP_END() kernel_fpu_end()
+#elif defined(CONFIG_ARM64)
+#include <asm/neon.h>
+#define DC_FP_START() kernel_neon_begin()
+#define DC_FP_END() kernel_neon_end()
 #elif defined(CONFIG_PPC64)
 #include <asm/switch_to.h>
 #include <asm/cputable.h>
@@ -111,7 +115,15 @@
 #define ASSERT(expr) WARN_ON_ONCE(!(expr))
 #endif
 
-#define BREAK_TO_DEBUGGER() ASSERT(0)
+#if defined(CONFIG_DEBUG_KERNEL_DC) && (defined(CONFIG_HAVE_KGDB) || defined(CONFIG_KGDB))
+#define BREAK_TO_DEBUGGER() \
+	do { \
+		DRM_DEBUG_DRIVER("%s():%d\n", __func__, __LINE__); \
+		kgdb_breakpoint(); \
+	} while (0)
+#else
+#define BREAK_TO_DEBUGGER() DRM_DEBUG_DRIVER("%s():%d\n", __func__, __LINE__)
+#endif
 
 #define DC_ERR(...)  do { \
 	dm_error(__VA_ARGS__); \
