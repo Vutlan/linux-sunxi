@@ -69,42 +69,6 @@
 		status = "disabled";
 	};
 
-	sram-controller@1c00000 {
-		compatible = "allwinner,sun4i-a10-sram-controller";
-		reg = <0x01c00000 0x30>;
-		#address-cells = <1>;
-		#size-cells = <1>;
-		ranges;
-
-		sram_a: sram@0 {
-			compatible = "mmio-sram";
-			reg = <0x00000000 0xc000>;
-			#address-cells = <1>;
-			#size-cells = <1>;
-			ranges = <0 0x00000000 0xc000>;
-
-			emac_sram: sram-section@8000 {
-				compatible = "allwinner,sun4i-a10-sram-a3-a4";
-				reg = <0x8000 0x4000>;
-				status = "okay";
-			};
-		};
-
-		sram_d: sram@10000 {
-			compatible = "mmio-sram";
-			reg = <0x00010000 0x1000>;
-			#address-cells = <1>;
-			#size-cells = <1>;
-			ranges = <0 0x00010000 0x1000>;
-
-			otg_sram: sram-section@0 {
-				compatible = "allwinner,sun4i-a10-sram-d";
-				reg = <0x0000 0x1000>;
-				status = "okay";
-			};
-		};
-	};
-
 	usb_otg: usb@1c13000 {
 		compatible = "allwinner,sun8i-r40-musb";
 		reg = <0x01c13000 0x0400>;
@@ -160,8 +124,77 @@
 			gpios = <&pio 8 15 GPIO_ACTIVE_LOW>; /*PI15-led6*/
 		};
 	};
+
+	cpu0_opp_table: opp_table0 {
+		compatible = "operating-points-v2";
+		opp-shared;
+
+		opp-528000000 {
+			opp-hz = /bits/ 64 <528000000>;
+			opp-microvolt = <1000000>;
+			clock-latency-ns = <244144>; /* 8 32k periods */
+		};
+
+		opp-720000000 {
+			opp-hz = /bits/ 64 <720000000>;
+			opp-microvolt = <1000000>;
+			clock-latency-ns = <244144>; /* 8 32k periods */
+		};
+
+		opp-912000000 {
+			opp-hz = /bits/ 64 <912000000>;
+			opp-microvolt = <1100000 1100000 1300000>;
+			clock-latency-ns = <244144>; /* 8 32k periods */
+		};
+
+		opp-1008000000 {
+			opp-hz = /bits/ 64 <1008000000>;
+			opp-microvolt = <1160000 1160000 1300000>;
+			clock-latency-ns = <244144>; /* 8 32k periods */
+		};
+
+		opp-1104000000 {
+			opp-hz = /bits/ 64 <1104000000>;
+			opp-microvolt = <1240000 1240000 1300000>;
+			clock-latency-ns = <244144>; /* 8 32k periods */
+		};
+
+		opp-1200000000 {
+			opp-hz = /bits/ 64 <1200000000>;
+			opp-microvolt = <1300000>;
+			clock-latency-ns = <244144>; /* 8 32k periods */
+		};
+	};
 };
 
+&cpu0 {
+	clocks = <&ccu CLK_CPU>;
+	clock-names = "cpu";
+	cpu-supply = <&reg_dcdc2>;
+	operating-points-v2 = <&cpu0_opp_table>;
+	clock-frequency = <912000000>;
+};
+&cpu1 {
+	clocks = <&ccu CLK_CPU>;
+	clock-names = "cpu";
+	cpu-supply = <&reg_dcdc2>;
+	operating-points-v2 = <&cpu0_opp_table>;
+	clock-frequency = <912000000>;
+};
+&cpu2 {
+	clocks = <&ccu CLK_CPU>;
+	clock-names = "cpu";
+	cpu-supply = <&reg_dcdc2>;
+	operating-points-v2 = <&cpu0_opp_table>;
+	clock-frequency = <912000000>;
+};
+&cpu3 {
+	clocks = <&ccu CLK_CPU>;
+	clock-names = "cpu";
+	cpu-supply = <&reg_dcdc2>;
+	operating-points-v2 = <&cpu0_opp_table>;
+	clock-frequency = <912000000>;
+};
 &i2c0 {
 	status = "okay";
 
@@ -237,11 +270,15 @@
 &spi0 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&spi0_pc_pins>, <&spi0_cs0_pc_pin>;
+	dmas = <&dma 24>, <&dma 24>;
+    dma-names = "rx", "tx";
 	status = "okay";
 };
 &spi2 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&spi2_pins_oka40i>, <&spi2_cs_pin_oka40i>;
+	dmas = <&dma 26>, <&dma 26>;
+    dma-names = "rx", "tx";
 	status = "okay";
 };
 
